@@ -11,6 +11,7 @@ import android.os.Bundle;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardEditHistory;
 import com.jjricks.volt.DashboardLayout;
+import com.jjricks.volt.T;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -69,6 +70,8 @@ public final class DashboardSlotsValidation extends Instrumentation {
             editHistoryRestoresStructureOnly();
             editHistoryRestoresBothDisplays();
             editHistoryNoOpsAndBounds();
+            displayNames();
+            exampleProvenance();
             require(historyCount() == 2, "Layout changes altered history rows");
             try (Cursor row = history.rawQuery("SELECT profile,wall,power FROM readings ORDER BY wall", null)) {
                 require(row.moveToFirst() && row.getString(0).equals("alpha")
@@ -1390,6 +1393,199 @@ public final class DashboardSlotsValidation extends Instrumentation {
         if (historyFile != null) SQLiteDatabase.deleteDatabase(historyFile);
         if (preferences != null) preferences.edit().clear().commit();
         if (fixtureName != null) getTargetContext().deleteSharedPreferences(fixtureName);
+    }
+
+    /**
+     * B12: titles, notes and slot names Volt gave show through the catalogue, in English exactly as
+     * saved, and an owner's own text shows as saved. (A marked language needs a T.Source type, which an
+     * existing test may not declare; DashboardModelTextTest checks the keys against this English.)
+     */
+    private void displayNames() throws Exception {
+        T.Source saved = T.source();
+        try {
+            T.install(null);
+            DashboardConfig config = new DashboardConfig(preferences, "display-names");
+            require(config.slot(2) != null && config.restoreSlot(2), "Example slot missing for display names");
+            for (DashboardConfig.Widget widget : config.widgets) {
+                require(DashboardConfig.displayTitle(widget).equals(widget.title),
+                        "English " + widget.type + " title changed: " + DashboardConfig.displayTitle(widget));
+                require(DashboardConfig.displayNote(widget).equals(widget.note), "English " + widget.type + " note changed");
+            }
+            for (int i = 0; i < DashboardConfig.TYPES.length; i++) {
+                require(DashboardConfig.typeName(i).equals(DashboardConfig.NAMES[i]), "English type name " + i + " changed");
+                require(DashboardConfig.typeName(DashboardConfig.TYPES[i]).equals(DashboardConfig.NAMES[i]),
+                        "English type name of " + DashboardConfig.TYPES[i] + " changed");
+            }
+            require(DashboardConfig.typeName("unknown").equals(DashboardConfig.NAMES[0]), "Unknown type name changed");
+            // Saved under each name in each slot (another profile, so the example slot above stays).
+            DashboardConfig named = new DashboardConfig(preferences, "display-slot-names");
+            for (int i = 0; i < DashboardConfig.SLOT_COUNT; i++) {
+                require(DashboardConfig.defaultSlotName(i).equals("Slot " + (i + 1)), "English default slot name " + i);
+                require(named.saveSlot(i, "Slot " + (i + 1), 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("Slot " + (i + 1)), "English slot name " + i);
+                require(named.saveSlot(i, "All widgets", 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("All widgets"), "English example slot name " + i);
+                require(named.saveSlot(i, "Commute", 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("Commute"), "Owner slot name " + i);
+            }
+            require(config.slot(2).name.equals("All widgets"), "Example slot name not saved in English");
+
+            require(config.saveSlot(0, "", 2), "Blank-named slot did not save");
+            require(config.slot(0).name.equals("Slot 1"), "Blank slot name not saved in English");
+            require(DashboardConfig.displaySlotName(config.slot(0), 0).equals("Slot 1"), "English blank slot name shown");
+            require(config.slot(2).name.equals("All widgets"), "Example slot name not kept in English");
+            DashboardConfig.Widget owner = new DashboardConfig.Widget("gauge");
+            require(DashboardConfig.displayTitle(owner).equals(DashboardConfig.NAMES[4]), "English default gauge title");
+            owner.title = "My gauge";
+            require(DashboardConfig.displayTitle(owner).equals("My gauge"), "Owner title rewritten");
+            owner.title = "Battery charge";
+            require(DashboardConfig.displayTitle(owner).equals("Battery charge"), "Another type's example title changed");
+            DashboardConfig.Widget note = new DashboardConfig.Widget("note");
+            note.note = "Check tyre pressure later";
+            require(DashboardConfig.displayNote(note).equals("Check tyre pressure later"), "Owner note rewritten");
+        } finally {
+            T.install(saved);
+        }
+        checks.add("Volt's own titles, notes and slot names show their saved English; owner text shows as saved");
+    }
+
+    /**
+     * B12 review: only the shipped example's own widgets and slot show its titles, note and name through
+     * the catalogue (create() gives its widgets example ids, which saves, exports and imports keep). The
+     * same words an owner typed on another widget or slot show as saved, and so does an example an older
+     * version saved (random ids). Checked by catalogue key, which a marked language would show (an
+     * existing test may not declare a T.Source; DashboardModelTextTest checks the ids on the JVM).
+     */
+    private void exampleProvenance() throws Exception {
+        T.Source previousSource = T.source();
+        try {
+            T.install(null);
+            String profile = "example-provenance";
+            DashboardConfig config = new DashboardConfig(preferences, profile);
+            String seededJson = preferences.getString(slotKey(profile, 2), "");
+            DashboardConfig.SavedSlot seeded = config.slot(2);
+            require(seeded != null && seeded.name.equals("All widgets") && DashboardConfig.voltSlotName(seeded, 2) != null
+                            && T.key(DashboardConfig.voltSlotName(seeded, 2).id()).equals("dashboard_model_slot_example")
+                            && DashboardConfig.displaySlotName(seeded, 2).equals(T.dashboardModelSlotExample()),
+                    "The seeded example's slot name is not Volt's");
+            // What older versions read: the same reader, the same canonical UUID ids.
+            java.util.ArrayList<DashboardConfig.Widget> parsed =
+                    DashboardConfig.parseWidgets(new JSONObject(seededJson).getJSONArray("widgets").toString());
+            require(parsed != null && parsed.size() == DashboardConfig.TYPES.length, "The example's widgets do not read back");
+            require(config.restoreSlot(2), "Could not restore the example");
+            String[][] titles = {{"gauge", "dashboard_model_example_speed"}, {"metric", "dashboard_model_example_battery_charge"},
+                {"readings", "dashboard_model_example_electrical"}, {"live", "dashboard_model_example_battery_power"},
+                {"history", "dashboard_model_example_charge_history"}};
+            DashboardConfig.Widget exampleNote = null;
+            DashboardConfig.Widget exampleGauge = null;
+            for (DashboardConfig.Widget widget : config.widgets) {
+                String expected = "dashboard_model_type_" + widget.type;
+                for (String[] pair : titles) if (pair[0].equals(widget.type)) expected = pair[1];
+                require(DashboardConfig.voltTitle(widget) != null && T.key(DashboardConfig.voltTitle(widget).id()).equals(expected)
+                                && DashboardConfig.displayTitle(widget).equals(widget.title),
+                        "The example's " + widget.type + " title is not Volt's");
+                if (widget.type.equals("note")) exampleNote = widget;
+                else require(DashboardConfig.voltNote(widget) == null, "A " + widget.type + " widget shows the example note");
+                if (widget.type.equals("gauge")) exampleGauge = widget;
+            }
+            require(exampleNote != null && exampleGauge != null && exampleNote.note.equals("Check tyre pressure")
+                            && DashboardConfig.voltNote(exampleNote) != null
+                            && T.key(DashboardConfig.voltNote(exampleNote).id()).equals("dashboard_model_example_note")
+                            && DashboardConfig.displayNote(exampleNote).equals(T.dashboardModelExampleNote()),
+                    "The example's own note is not Volt's");
+            // The whole example, saved by its owner to slot 1 under the example's name: the name is the owner's.
+            require(config.saveSlot(0, "All widgets", 6) && DashboardConfig.voltSlotName(config.slot(0), 0) == null
+                            && DashboardConfig.displaySlotName(config.slot(0), 0).equals("All widgets"),
+                    "An owner's slot 1 named like the example shows Volt's name");
+
+            // The example's words, typed by the owner on widgets they add beside the example's own.
+            DashboardConfig.Widget typedNote = new DashboardConfig.Widget("note");
+            typedNote.note = "Check tyre pressure";
+            DashboardConfig.Widget typedGauge = new DashboardConfig.Widget("gauge");
+            typedGauge.title = "Speed";
+            require(DashboardConfig.voltNote(typedNote) == null && DashboardConfig.displayNote(typedNote).equals("Check tyre pressure")
+                            && DashboardConfig.voltTitle(typedGauge) == null && DashboardConfig.displayTitle(typedGauge).equals("Speed"),
+                    "An owner's note or title with the example's words shows Volt's");
+            config.widgets.add(typedNote);
+            config.widgets.add(typedGauge);
+            config.save();
+            // Saved, reopened, exported and imported: the example's stay Volt's, the owner's stay the owner's.
+            DashboardConfig imported = new DashboardConfig(preferences, profile + "-imported");
+            require(imported.importLayouts(config.exportLayouts()), "Could not import the example with owner widgets");
+            for (DashboardConfig reread : new DashboardConfig[] {new DashboardConfig(preferences, profile), imported}) {
+                int found = 0;
+                for (DashboardConfig.Widget widget : reread.widgets) {
+                    if (widget.id.equals(exampleNote.id)) {
+                        found++;
+                        require(DashboardConfig.voltNote(widget) != null, "The example note lost its provenance");
+                    }
+                    if (widget.id.equals(typedNote.id)) {
+                        found++;
+                        require(DashboardConfig.voltNote(widget) == null && widget.note.equals("Check tyre pressure"),
+                                "The owner's matching note became Volt's");
+                    }
+                    if (widget.id.equals(typedGauge.id)) {
+                        found++;
+                        require(DashboardConfig.voltTitle(widget) == null && widget.title.equals("Speed"),
+                                "The owner's matching title became Volt's");
+                    }
+                }
+                require(found == 3 && reread.slot(2) != null && DashboardConfig.voltSlotName(reread.slot(2), 2) != null
+                                && DashboardConfig.voltSlotName(reread.slot(0), 0) == null,
+                        "Reopening or importing changed which slot name is Volt's");
+            }
+            // Slot 3 holding the example plus the owner's widgets, under the example's name, is the owner's.
+            require(config.saveSlot(2, "All widgets", 6) && DashboardConfig.voltSlotName(config.slot(2), 2) == null
+                            && DashboardConfig.displaySlotName(config.slot(2), 2).equals("All widgets"),
+                    "Slot 3 with the owner's widgets shows Volt's name");
+            // Slot 3 holding only some of the example's own widgets, under the example's name, is still the
+            // example's: the rule does not count types (DashboardExampleIds.exampleSlot).
+            require(config.widgets.remove(typedNote) && config.widgets.remove(typedGauge) && config.widgets.remove(exampleNote)
+                            && config.saveSlot(2, "All widgets", 6) && config.slot(2).widgetCount == DashboardConfig.TYPES.length - 1
+                            && DashboardConfig.voltSlotName(config.slot(2), 2) != null
+                            && T.key(DashboardConfig.voltSlotName(config.slot(2), 2).id()).equals("dashboard_model_slot_example"),
+                    "Slot 3 with some of the example's own widgets lost the example's name");
+            // Editing the example's own note or title makes it the owner's.
+            exampleNote.note = "Check tyre pressure today";
+            exampleGauge.title = "My speed";
+            require(DashboardConfig.voltNote(exampleNote) == null && DashboardConfig.displayNote(exampleNote).equals("Check tyre pressure today")
+                            && DashboardConfig.voltTitle(exampleGauge) == null && DashboardConfig.displayTitle(exampleGauge).equals("My speed"),
+                    "An edited example note or title stayed Volt's");
+            // A slot's own blank-name default is Volt's; another slot's default name, typed, is the owner's.
+            require(config.saveSlot(1, "", 6) && DashboardConfig.voltSlotName(config.slot(1), 1) != null
+                            && T.key(DashboardConfig.voltSlotName(config.slot(1), 1).id()).equals("dashboard_model_slot_default")
+                            && DashboardConfig.displaySlotName(config.slot(1), 1).equals("Slot 2"),
+                    "A blank slot name is not Volt's default");
+            require(config.saveSlot(0, "Slot 2", 6) && DashboardConfig.voltSlotName(config.slot(0), 0) == null
+                            && DashboardConfig.displaySlotName(config.slot(0), 0).equals("Slot 2"),
+                    "Another slot's default name became Volt's");
+
+            // An example an older version seeded: the same data with random ids. It reads, and shows as saved.
+            String legacy = seededJson;
+            JSONArray legacyWidgets = new JSONObject(seededJson).getJSONArray("widgets");
+            for (int i = 0; i < legacyWidgets.length(); i++)
+                legacy = legacy.replace(legacyWidgets.getJSONObject(i).getString("id"), java.util.UUID.randomUUID().toString());
+            require(!legacy.equals(seededJson) && preferences.edit().putString(slotKey(profile + "-older", 2), legacy).commit(),
+                    "Could not seed an older version's example");
+            DashboardConfig older = new DashboardConfig(preferences, profile + "-older");
+            DashboardConfig.SavedSlot olderSlot = older.slot(2);
+            require(legacy.equals(preferences.getString(slotKey(profile + "-older", 2), "")) && olderSlot != null
+                            && olderSlot.name.equals("All widgets") && olderSlot.widgetCount == DashboardConfig.TYPES.length
+                            && DashboardConfig.voltSlotName(olderSlot, 2) == null
+                            && DashboardConfig.displaySlotName(olderSlot, 2).equals("All widgets") && older.restoreSlot(2),
+                    "An older version's example did not read as saved");
+            for (DashboardConfig.Widget widget : older.widgets) {
+                require(DashboardConfig.voltNote(widget) == null && DashboardConfig.displayNote(widget).equals(widget.note)
+                                && DashboardConfig.displayTitle(widget).equals(widget.title),
+                        "An older version's example " + widget.type + " text shows Volt's");
+                if (widget.type.equals("gauge"))
+                    require(DashboardConfig.voltTitle(widget) == null && widget.title.equals("Speed"),
+                            "An older version's example gauge title shows Volt's");
+            }
+        } finally {
+            T.install(previousSource);
+        }
+        checks.add("Only the shipped example's own widgets and slot show its titles, note and name as Volt's; the same words typed by the owner, an edited example and an older version's example show as saved, through saves, exports and imports");
     }
 
     private void require(boolean value, String message) {

@@ -1,0 +1,13 @@
+# B11, the Backup screen (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English the Backup screen takes from the backup engine (the refusals it shows, the CHANGED
+# and NO_SPACE refusals) and the counts it still builds in English, pinned before the batch.
+tests/l10n/characterization/BackupScreenTextTest.java
+# The screen's language handling: manifest configChanges, AppLanguage.wrap, the in-place relabel and the
+# Save hint's button name.
+tests/l10n/BackupScreenTest.java
+# The Backup views stay base's classes (the census keys views by class) and still relabel through maps.
+tests/l10n/BackupViewsTest.java
+# A language change formats the Restore page's date and the history, rides and charges sizes again and
+# rebuilds the texts that were given rendered (the Save hint's button name, the unreadable-file String).
+tests/l10n/BackupRelabelTest.java

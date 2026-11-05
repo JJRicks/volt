@@ -60,6 +60,128 @@ public final class DashboardConfig {
         "Reading tiles",
         "Setting tiles"
     };
+    /**
+     * TYPES' names in the current language, in order. NAMES stays the English default title a widget
+     * saves (data, exports, older screens); show {@link #typeName} and {@link #displayTitle}.
+     */
+    private static final Msg[] TYPE_NAMES = {
+        M.dashboardModelTypeLock(),
+        M.dashboardModelTypeScooter(),
+        M.dashboardModelTypeBattery(),
+        M.dashboardModelTypeMetric(),
+        M.dashboardModelTypeGauge(),
+        M.dashboardModelTypeLive(),
+        M.dashboardModelTypeHistory(),
+        M.dashboardModelTypeReadings(),
+        M.dashboardModelTypeTrip(),
+        M.dashboardModelTypeHealth(),
+        M.dashboardModelTypeCapacity(),
+        M.dashboardModelTypeCharging(),
+        M.dashboardModelTypeQuick(),
+        M.dashboardModelTypeRide(),
+        M.dashboardModelTypeNote(),
+        M.dashboardModelTypeLockbar(),
+        M.dashboardModelTypeOverview(),
+        M.dashboardModelTypeTiles(),
+        M.dashboardModelTypeShortcuts()
+    };
+    /** The shipped example's slot name, saved in English (data); {@link #displaySlotName} shows it. */
+    static final String EXAMPLE_SLOT_NAME = "All widgets";
+
+    /** The name of TYPES[index] in the current language (the widget picker); NAMES[index] is its English. */
+    public static String typeName(int index) {
+        return TYPE_NAMES[index].render();
+    }
+
+    /** The name of a widget type in the current language; the first type's for an unknown one, as Widget does. */
+    public static String typeName(String type) {
+        return typeName(Math.max(0, Arrays.asList(TYPES).indexOf(type)));
+    }
+
+    /**
+     * A widget's title as shown: {@link #voltTitle} in the current language, else the owner's title as
+     * saved. widget.title itself stays English: saves, exports and imports never change.
+     */
+    public static String displayTitle(Widget widget) {
+        Msg volt = voltTitle(widget);
+        return volt != null ? volt.render() : widget.title == null ? "" : widget.title;
+    }
+
+    /**
+     * The title Volt gave a widget, as a catalogue message, or null when the title is the owner's. Volt's
+     * are its type's default name, on any widget, and the shipped example's own titles, only on the
+     * example's own widgets (AllWidgetsDashboard.exampleTitle). A default name an owner typed themselves
+     * also shows as that type's name in the current language: every widget starts with it (Widget) and
+     * its title field starts from it, and a saved title cannot say whether it was kept or typed again
+     * without a field older versions would refuse on import.
+     */
+    public static Msg voltTitle(Widget widget) {
+        String title = widget.title == null ? "" : widget.title;
+        int index = Arrays.asList(TYPES).indexOf(widget.type);
+        if (index >= 0 && title.equals(NAMES[index])) return TYPE_NAMES[index];
+        return AllWidgetsDashboard.exampleTitle(widget);
+    }
+
+    /** A note widget's text as shown: {@link #voltNote} in the current language, else exactly as saved. */
+    public static String displayNote(Widget widget) {
+        Msg volt = voltNote(widget);
+        return volt != null ? volt.render() : widget.note;
+    }
+
+    /**
+     * The shipped example's note as a catalogue message, when widget is the example's own note widget and
+     * still holds it (AllWidgetsDashboard.exampleNote), or null: every other note is the owner's and shows
+     * as saved, even one with the example's words.
+     */
+    public static Msg voltNote(Widget widget) {
+        return AllWidgetsDashboard.exampleNote(widget);
+    }
+
+    /** An empty slot's name, and a saved slot's when its owner left the name blank, in the current language. */
+    public static String defaultSlotName(int index) {
+        return T.dashboardModelSlotDefault(Fmt.integer(index + 1));
+    }
+
+    /**
+     * A saved slot's name as shown: {@link #voltSlotName} in the current language, else the owner's name
+     * as saved. SavedSlot.name stays English. There is no name-only form: a name alone cannot say it is
+     * the shipped example's (exampleSlot); an empty slot shows {@link #defaultSlotName}.
+     */
+    public static String displaySlotName(SavedSlot slot, int index) {
+        Msg volt = voltSlotName(slot, index);
+        return volt != null ? volt.render() : slot.name;
+    }
+
+    /**
+     * The name Volt gave a saved slot, as a catalogue message, or null when the name is the owner's.
+     * Volt's are the shipped example's name on the example's own slot ({@link #exampleSlot}), and this
+     * slot's own "Slot N": a blank name saves as it and the save dialog starts an empty slot with it, so
+     * the same name typed again shows in the current language too (a slot must save a name, in older
+     * versions as well, so it cannot say which).
+     */
+    public static Msg voltSlotName(SavedSlot slot, int index) {
+        if (slot.example) return M.dashboardModelSlotExample();
+        return slot.name.equals(slotName("", index)) ? M.dashboardModelSlotDefault(Fmt.integer(index + 1)) : null;
+    }
+
+    /**
+     * True for the shipped example's own slot, as seedExampleSlot and forceExampleSlot save it
+     * (DashboardExampleIds.exampleSlot): slot 3 (index 2), named EXAMPLE_SLOT_NAME, holding at least one
+     * widget, every one with an example id (AllWidgetsDashboard.isExample) and no type twice. Not one
+     * widget of every type: a type added later must not make every example slot this version saved show
+     * as the owner's. A slot the owner names so fails unless it holds only the example's own widgets
+     * (all of them or some), in slot 3. An example saved by an older version has random ids, so its
+     * name shows as saved.
+     */
+    private static boolean exampleSlot(int index, String name, JSONArray definitions) throws JSONException {
+        String[] ids = new String[definitions.length()], types = new String[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            JSONObject widget = definitions.getJSONObject(i);
+            ids[i] = widget.optString("id");
+            types[i] = widget.optString("type");
+        }
+        return DashboardExampleIds.exampleSlot(index, EXAMPLE_SLOT_NAME.equals(name), ids, types);
+    }
 
     public static final class Widget {
         public final String id;
@@ -82,7 +204,8 @@ public final class DashboardConfig {
             this(UUID.randomUUID().toString(), type);
         }
 
-        private Widget(String id, String type) {
+        /** A saved widget's own id, or the example's (AllWidgetsDashboard); other widgets get a random one. */
+        Widget(String id, String type) {
             this.id = id;
             this.type = type;
             int index = Arrays.asList(TYPES).indexOf(type);
@@ -274,7 +397,7 @@ public final class DashboardConfig {
     private void seedExampleSlot(java.util.function.Supplier<ArrayList<Widget>> exampleFactory) {
         try {
             if (!slotExists(2) && !preferences.getBoolean(emptyExampleKey, false))
-                saveSlot(2, "All widgets", AllWidgetsDashboard.COLUMNS, exampleFactory.get());
+                saveSlot(2, EXAMPLE_SLOT_NAME, AllWidgetsDashboard.COLUMNS, exampleFactory.get());
         } catch (RuntimeException unavailable) {
             // Optional content must never invalidate a loaded dashboard or prevent a
             // fresh one from opening. A missing example can be retried next time.
@@ -566,12 +689,15 @@ public final class DashboardConfig {
         public final String name;
         public final long savedAtMs;
         public final int widgetCount, columns;
+        /** The shipped example's own slot (exampleSlot): its name is Volt's, shown by voltSlotName. */
+        private final boolean example;
 
-        private SavedSlot(JSONObject snapshot) throws JSONException {
+        private SavedSlot(JSONObject snapshot, int index) throws JSONException {
             name = snapshot.getString("name");
             savedAtMs = snapshot.getLong("savedAt");
             widgetCount = snapshot.getJSONArray("widgets").length();
             columns = snapshot.getInt("columns");
+            example = exampleSlot(index, name, snapshot.getJSONArray("widgets"));
         }
     }
 
@@ -583,7 +709,7 @@ public final class DashboardConfig {
     public SavedSlot slot(int index) {
         try {
             JSONObject snapshot = readSlot(index);
-            return snapshot == null ? null : new SavedSlot(snapshot);
+            return snapshot == null ? null : new SavedSlot(snapshot, index);
         } catch (JSONException | RuntimeException invalid) {
             return null;
         }
@@ -596,7 +722,7 @@ public final class DashboardConfig {
 
     /** Explicit developer action: replace only slot 3 with the shipped example. */
     public boolean forceExampleSlot() {
-        return saveSlot(2, "All widgets", AllWidgetsDashboard.COLUMNS, AllWidgetsDashboard.create());
+        return saveSlot(2, EXAMPLE_SLOT_NAME, AllWidgetsDashboard.COLUMNS, AllWidgetsDashboard.create());
     }
 
     /** Consent preview. It contains no live readings, owner identity or scooter identifier. */

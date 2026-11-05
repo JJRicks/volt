@@ -364,6 +364,11 @@
     <!-- Status byte 41, which Volt does not read. -->
     <string name="compat_field_byte_41" volt:screen="Compatibility fields" volt:purpose="label">Byte 41 (unread)</string>
 
+    <!-- Fields group value: the scooter's status reply does not carry this field. -->
+    <string name="compat_fields_value_absent" volt:screen="Compatibility results" volt:purpose="value">Absent</string>
+    <!-- Fields group value: the status reply carries this field (its value is not shown). -->
+    <string name="compat_fields_value_present" volt:screen="Compatibility results" volt:purpose="value">Present</string>
+
     <!-- ===== Guided test and try outcomes (shown in the panel; the journal and report keep their own tokens) ===== -->
 
     <!-- Outcome: the scooter answered the read. -->
@@ -440,6 +445,8 @@
     <string name="compat_review_already_back" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Already back to %1$s.</string>
     <!-- %1$s is the value the test set, which the setting still has. -->
     <string name="compat_review_still_test_value" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Still on the test value, %1$s.</string>
+    <!-- Unfinished test card or notice: the try or guided test is still in progress, so it cannot be reviewed yet. -->
+    <string name="compat_review_test_running" volt:screen="Compatibility unfinished card" volt:purpose="status">The test is still running.</string>
 
     <!-- ===== Update check ===== -->
 

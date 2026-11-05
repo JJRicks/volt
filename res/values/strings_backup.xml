@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Backup screen (batch B11, BackupActivity): back up, save the file, restore from a file, choose
+  where each backup scooter goes, review and close. The English must stay exactly what the source said
+  before the batch (G1, G2).
+
+  The engine's own text (category labels, review lines, refusals) is strings_backup_engine.xml (B10);
+  the screen shows it as it is. What these pages still show in English, and why:
+  - counts built with BackupArchive.plural ("2 rides", "3 scooters"): G1 models that helper only in
+    the file that declares it, and BackupActivity does not;
+  - the Review page's lines that BackupArchive.plan (B10's file) still builds as Strings, which wait
+    for a tooling pull request (l10n/README.md, "Ledger format"):
+    - for Replace everything, each category's line ("Rides: 2 rides", BackupArchive.java:564): the
+      engine joins BackupRegistry.label's English with BackupArchive.count. G1 wants a template's
+      holes passed as the base wrote them, so it refuses BackupRegistry.labelMsg there, and count,
+      which picks its noun by category, has no helper model ("A helper with any other body");
+    - for a merge, the Dashboards and Scooter preferences lines (:667-668, "Dashboards: nothing to
+      replace", "Dashboards: replaces layouts for <scooters>", "Scooter preferences: replaces
+      settings for <scooters>") and the rides and charges lines for what is skipped (:721-725,
+      "2 rides skipped · scooter not restored", "1 charge skipped · unreadable", "3 charges
+      skipped · 20-charge limit"): each picks its words in a local set on an earlier line ("Still
+      blocked: a helper argument or a choice set on an earlier line");
+  - the owner-key note on the Review page: G1 refuses it beside the switch to Review.messages;
+  - the Paused page's reason, which MainActivity passes rendered (preparation_error);
+  - when a file is refused or a check fails, a plain IOException's own message of 80 characters or
+    fewer (BackupActivity.message; a BackupException shows its msg() instead): the system's, or
+    Volt's own English from the engine and the stores it calls:
+    - opening a file without a password: BackupArchive.ownerText (:441, "The pairing file has an
+      invalid <field>.") for a pairing file, and for a ride backup RideStore through
+      RideArchive.stage (:121): "The backup contains an unfinished or unreadable ride." (:725) and
+      "Ride journal record too large" (:851);
+    - Review for a merge with rides or charges (BackupArchive.recordings :697, current :729):
+      ChargeSessionStore.inspectJournal and reassignJournal ("Unexpected charge file." :664, "The
+      backup contains an unreadable charge." :665, :673, :675, "Choose a destination scooter."
+      :670, "Could not associate the restored charge." :678) and RideStore.reassignJournal
+      ("Choose a destination scooter." :754, "Could not associate the restored ride." :771, :851
+      as it reads the journal or its rewritten copy, and :725 for that copy);
+  - the file name a backup is saved under (volt-full-..., volt-selected-...): data, never translated.
+  Dates and sizes are not English: the backup's date (DateFormat, MEDIUM date, SHORT time) and sizes
+  (Android's Formatter) follow Volt's locale, as before. After a language change the Restore page's
+  date, the Readings history size and the size on the rides and charges rows ("12 · 3.4 MB") are
+  formatted again; those rows keep their count and " · " as shown.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Every page ===== -->
+
+    <!-- The button at the bottom of every page: Volt quits so the next start reads the new data. -->
+    <string name="backup_close_volt" volt:screen="Back up and restore" volt:purpose="button" volt:dnt="Volt">Close Volt</string>
+    <!-- Close Volt confirmation: the dialog title. -->
+    <string name="backup_close_title" volt:screen="Back up and restore close dialog" volt:purpose="dialog title"
+        volt:dnt="Volt">Close Volt?</string>
+    <!-- Close Volt confirmation: nothing was backed up or restored yet, so closing changes nothing. -->
+    <string name="backup_close_nothing_changed" volt:screen="Back up and restore close dialog" volt:purpose="dialog text">Nothing has changed.</string>
+    <!-- Close Volt confirmation: the button that keeps the screen open (the other is Close). -->
+    <string name="backup_stay_here" volt:screen="Back up and restore close dialog" volt:purpose="button">Stay here</string>
+    <!-- A category's row, read by a screen reader: %1$s is the category (Rides), %2$s its count or size
+         (12, 3.4 MB). -->
+    <string name="backup_category_spoken" volt:screen="Back up and restore lists" volt:purpose="spoken label">%1$s, %2$s</string>
+    <!-- Ticks or clears every category in the list. -->
+    <string name="backup_select_all" volt:screen="Back up and restore lists" volt:purpose="checkbox">Select all</string>
+    <!-- A category with nothing in it (it cannot be chosen). -->
+    <string name="backup_detail_none" volt:screen="Back up and restore lists" volt:purpose="count">None</string>
+    <!-- The Scooters category on Back up: %1$d scooters, and a warning that the file holds their owner keys.
+         Keep the " · " between the count and the word: the screen reader hears it as a comma. -->
+    <string name="backup_detail_private" volt:screen="Back up list" volt:purpose="count"
+        volt:safety="owner-key,privacy">%1$d · Private</string>
+
+    <!-- ===== Interrupted, recovering and ended sessions ===== -->
+
+    <!-- Heading when Android recreated the screen or a second one opened: nothing staged is carried over. -->
+    <string name="backup_session_interrupted_title" volt:screen="Back up and restore" volt:purpose="heading">Backup session interrupted</string>
+    <!-- While an operation the person already approved finishes before Volt can close. -->
+    <string name="backup_finishing_previous" volt:screen="Back up and restore" volt:purpose="status"
+        volt:dnt="Volt">Finishing the previous operation. Keep Volt open.</string>
+    <!-- The session is over; a fresh start reads the new data. -->
+    <string name="backup_close_and_reopen" volt:screen="Back up and restore" volt:purpose="status"
+        volt:dnt="Volt">Close and reopen Volt.</string>
+    <!-- Heading while a restore that stopped part way is rolled back at startup. -->
+    <string name="backup_recovering_title" volt:screen="Restore recovery" volt:purpose="heading">Recovering your app data</string>
+    <string name="backup_recovering_keep_open" volt:screen="Restore recovery" volt:purpose="status"
+        volt:dnt="Volt">Keep Volt open while the previous restore is rolled back.</string>
+    <string name="backup_recovered" volt:screen="Restore recovery" volt:purpose="status"
+        volt:dnt="Volt">Your previous app data was recovered. Close and reopen Volt.</string>
+    <!-- Recovery failed: clearing Volt's storage would lose the data the recovery keeps. -->
+    <string name="backup_recovery_failed" volt:screen="Restore recovery" volt:purpose="status">Recovery failed. Free space, reopen. Don\'t clear storage.</string>
+    <!-- Heading when the screen opens after the backup session already ended. -->
+    <string name="backup_session_ended_title" volt:screen="Back up and restore" volt:purpose="heading">Backup session ended</string>
+    <string name="backup_reopen_to_continue" volt:screen="Back up and restore" volt:purpose="status"
+        volt:dnt="Volt">Reopen Volt to continue.</string>
+    <!-- Heading when Volt could not pause its app data to start a backup; the reason follows. -->
+    <string name="backup_paused_title" volt:screen="Back up and restore" volt:purpose="heading">App data is paused</string>
+
+    <!-- ===== Back up ===== -->
+
+    <string name="backup_back_up_title" volt:screen="Back up" volt:purpose="heading">Back up</string>
+    <string name="backup_counting" volt:screen="Back up" volt:purpose="status">Counting your data…</string>
+    <string name="backup_inventory_unreadable" volt:screen="Back up" volt:purpose="status"
+        volt:dnt="Volt">App data can\'t be read. Reopen Volt.</string>
+    <!-- Every category with data is ticked: the backup is complete, and it holds the scooters' owner keys. -->
+    <string name="backup_scope_full" volt:screen="Back up" volt:purpose="summary"
+        volt:safety="owner-key">Full backup · all saved app data, including scooter access.</string>
+    <!-- %1$d categories that have data are not ticked, so the backup leaves them out. -->
+    <plurals name="backup_scope_selected" volt:screen="Back up" volt:purpose="summary">
+        <item quantity="one">Selected data only · %1$d category excluded.</item>
+        <item quantity="other">Selected data only · %1$d categories excluded.</item>
+    </plurals>
+    <!-- The backup's estimated size: %1$s is a size such as 3.4 MB. -->
+    <string name="backup_estimate" volt:screen="Back up" volt:purpose="summary">About %1$s</string>
+    <string name="backup_not_included_preferences" volt:screen="Back up" volt:purpose="note"
+        volt:dnt="Bluetooth|Volt">Permissions and Bluetooth pairing aren\'t included. Scooter preferences are saved in Volt; restoring them doesn\'t change settings on the scooter.</string>
+    <!-- The password field the backup is encrypted with (a hint inside the field). -->
+    <string name="backup_new_password" volt:screen="Back up" volt:purpose="field hint" volt:safety="privacy">New password</string>
+    <string name="backup_repeat_password" volt:screen="Back up" volt:purpose="field hint" volt:safety="privacy">Repeat password</string>
+    <!-- Nobody, not Volt either, can open the backup without its password. -->
+    <string name="backup_password_unrecoverable" volt:screen="Back up" volt:purpose="warning"
+        volt:safety="privacy">Password can\'t be recovered.</string>
+    <string name="backup_create" volt:screen="Back up" volt:purpose="button">Create backup</string>
+    <string name="backup_choose_what" volt:screen="Back up" volt:purpose="status">Choose what to back up.</string>
+    <!-- A backup or backup-file password that is too short. -->
+    <string name="backup_password_short" volt:screen="Back up and restore" volt:purpose="field error"
+        volt:safety="privacy">Use at least 8 characters.</string>
+    <string name="backup_passwords_differ" volt:screen="Back up" volt:purpose="field error"
+        volt:safety="privacy">The passwords do not match.</string>
+    <string name="backup_encrypting" volt:screen="Back up" volt:purpose="status">Encrypting your backup…</string>
+    <string name="backup_failed" volt:screen="Back up" volt:purpose="status">Backup failed. Check free space.</string>
+    <string name="backup_unavailable" volt:screen="Back up" volt:purpose="status">The backup is unavailable. Create it again.</string>
+    <!-- The button that opens Android's file picker to save the encrypted backup. -->
+    <string name="backup_save" volt:screen="Back up" volt:purpose="button" volt:ladder="full">Save backup</string>
+    <!-- The same button named in a sentence (backup_picker_failed_save). -->
+    <string name="backup_save_short" volt:ladder="short">Save</string>
+    <!-- No file picker opened; %1$s is the Save button (backup_save_short). -->
+    <string name="backup_picker_failed_save" volt:screen="Back up" volt:purpose="status">A file picker could not open. Tap %1$s to try again.</string>
+    <string name="backup_saving" volt:screen="Back up" volt:purpose="status">Saving the backup…</string>
+    <string name="backup_save_failed" volt:screen="Back up" volt:purpose="status">Save failed. Try another place.</string>
+    <string name="backup_saved" volt:screen="Back up" volt:purpose="status">Backup saved.</string>
+
+    <!-- ===== Restore: the file ===== -->
+
+    <string name="backup_restore_title" volt:screen="Restore" volt:purpose="heading">Restore</string>
+    <string name="backup_restore_intro" volt:screen="Restore" volt:purpose="note"
+        volt:dnt="Volt">Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you’ll see exactly what they contain before restoring.</string>
+    <string name="backup_not_included" volt:screen="Restore" volt:purpose="note"
+        volt:dnt="Bluetooth">Permissions and Bluetooth pairing aren\'t included.</string>
+    <string name="backup_choose_file" volt:screen="Restore" volt:purpose="button">Choose file</string>
+    <string name="backup_picker_failed" volt:screen="Restore" volt:purpose="status">A file picker could not open.</string>
+    <!-- The file picker closed without a file. -->
+    <string name="backup_no_file" volt:screen="Back up and restore" volt:purpose="status">No file selected</string>
+    <string name="backup_checking_file" volt:screen="Restore" volt:purpose="status">Checking the file…</string>
+    <string name="backup_file_unopenable" volt:screen="Restore" volt:purpose="status">The file could not be opened.</string>
+    <string name="backup_choose_volt_file" volt:screen="Restore" volt:purpose="status"
+        volt:dnt="Volt">Choose a Volt backup file.</string>
+    <!-- A file refused for a reason the backup engine did not name. -->
+    <string name="backup_file_unreadable" volt:screen="Restore" volt:purpose="status">The file could not be read.</string>
+    <!-- The password field for an encrypted backup file (a hint inside the field). -->
+    <string name="backup_password_hint" volt:screen="Restore" volt:purpose="field hint" volt:safety="privacy">Backup password</string>
+    <string name="backup_open" volt:screen="Restore" volt:purpose="button">Open backup</string>
+    <string name="backup_choose_another" volt:screen="Restore" volt:purpose="button">Choose another file</string>
+    <string name="backup_checking_backup" volt:screen="Restore" volt:purpose="status">Checking backup…</string>
+    <string name="backup_wrong_password" volt:screen="Restore" volt:purpose="status" volt:safety="privacy">Wrong password or bad file.</string>
+
+    <!-- ===== Restore: what the file holds ===== -->
+
+    <!-- An owner setup file (from Volt's owner setup) holds only scooters' owner keys. -->
+    <string name="backup_file_owner" volt:screen="Restore" volt:purpose="summary"
+        volt:safety="owner-key">Owner setup file · scooter access only</string>
+    <string name="backup_file_layout" volt:screen="Restore" volt:purpose="summary">Layout file</string>
+    <!-- An older file with only rides. -->
+    <string name="backup_file_rides" volt:screen="Restore" volt:purpose="summary">Ride backup</string>
+    <!-- %1$s is when the file was made, a date and time. -->
+    <string name="backup_file_rides_from" volt:screen="Restore" volt:purpose="summary">Ride backup from %1$s</string>
+    <!-- A Volt backup of every category. -->
+    <string name="backup_file_full" volt:screen="Restore" volt:purpose="summary">Full backup</string>
+    <!-- %1$s is when the file was made, a date and time. -->
+    <string name="backup_file_full_from" volt:screen="Restore" volt:purpose="summary">Full backup from %1$s</string>
+    <!-- A Volt backup of some categories. -->
+    <string name="backup_file_selected" volt:screen="Restore" volt:purpose="summary">Selected data backup</string>
+    <!-- %1$s is when the file was made, a date and time. -->
+    <string name="backup_file_selected_from" volt:screen="Restore" volt:purpose="summary">Selected data backup from %1$s</string>
+    <string name="backup_owner_only_detail" volt:screen="Restore" volt:purpose="note"
+        volt:safety="owner-key">This file has no rides, charges, history, dashboards or app settings. It only restores scooter access. Your existing data stays on this phone.</string>
+    <string name="backup_partial_file" volt:screen="Restore" volt:purpose="note">Only the categories listed below are in this file. Other app data stays on this phone.</string>
+    <!-- A switch: the restore deletes this phone's app data and copies the whole backup in its place. -->
+    <string name="backup_replace_all" volt:screen="Restore" volt:purpose="switch">Replace everything on this phone</string>
+    <string name="backup_next" volt:screen="Restore" volt:purpose="button">Next</string>
+    <string name="backup_choose_what_restore" volt:screen="Restore" volt:purpose="status">Choose what to restore.</string>
+    <string name="backup_checking_scooters" volt:screen="Restore" volt:purpose="status">Checking scooters…</string>
+
+    <!-- ===== Restore: where each backup scooter goes ===== -->
+
+    <string name="backup_scooters_title" volt:screen="Restore scooters" volt:purpose="heading">Scooters</string>
+    <!-- An owner setup file that more than one scooter on this phone can use. -->
+    <string name="backup_destination_setup" volt:screen="Restore scooters" volt:purpose="question"
+        volt:safety="owner-key">Which scooter is this setup for?</string>
+    <!-- A layout file's dashboard: which scooter receives it (a list follows). -->
+    <string name="backup_destination_layout" volt:screen="Restore scooters" volt:purpose="question">Layout goes to:</string>
+    <!-- %1$s is a scooter's name in the backup; a list of this phone's scooters follows. -->
+    <string name="backup_destination_data" volt:screen="Restore scooters" volt:purpose="question">Data from “%1$s” goes to:</string>
+    <string name="backup_owner_choice" volt:screen="Restore scooters" volt:purpose="note"
+        volt:safety="owner-key">More than one scooter can use this setup file. Choose an existing scooter or add another.</string>
+    <!-- The list's first item before a scooter is chosen. -->
+    <string name="backup_choose_scooter_item" volt:screen="Restore scooters" volt:purpose="list item">Choose a scooter…</string>
+    <!-- List item: add the setup file's scooter as a new scooter. -->
+    <string name="backup_add_another_scooter" volt:screen="Restore scooters" volt:purpose="list item"
+        volt:safety="owner-key">Add another scooter</string>
+    <!-- List item: add the backup's scooter to this phone. -->
+    <string name="backup_add_from_backup" volt:screen="Restore scooters" volt:purpose="list item">Add from backup</string>
+    <!-- List item: leave this backup scooter's data out. -->
+    <string name="backup_dont_restore" volt:screen="Restore scooters" volt:purpose="list item">Don\'t restore</string>
+    <!-- Read by a screen reader for the list: %1$s is the backup scooter's name. -->
+    <string name="backup_destination_for" volt:screen="Restore scooters" volt:purpose="spoken label">Destination for %1$s</string>
+    <!-- Read by a screen reader for the list: %1$s is the backup scooter's name, %2$s the chosen item. -->
+    <string name="backup_destination_for_choice" volt:screen="Restore scooters" volt:purpose="spoken label">Destination for %1$s: %2$s</string>
+    <!-- Every backup scooter can only be skipped: there is no scooter on this phone to receive it. "Scooters" names the
+         category shown as backup_engine_category_scooters ("Scooters & setup keys"): use the words that category's
+         translation starts with, so the owner can find it in the list above. -->
+    <string name="backup_scooter_first" volt:screen="Restore scooters" volt:purpose="note">Include Scooters or set up a scooter first.</string>
+    <!-- The button that opens the review of the restore. -->
+    <string name="backup_review_button" volt:screen="Restore scooters" volt:purpose="button">Review</string>
+    <string name="backup_choose_scooter_first" volt:screen="Restore scooters" volt:purpose="status">Choose a scooter first.</string>
+
+    <!-- ===== Restore: review and apply ===== -->
+
+    <string name="backup_comparing" volt:screen="Restore" volt:purpose="status">Comparing with this phone…</string>
+    <string name="backup_review_title" volt:screen="Restore review" volt:purpose="heading">Review</string>
+    <string name="backup_closes_when_done" volt:screen="Restore review" volt:purpose="note"
+        volt:dnt="Volt">Volt closes when the restore is done.</string>
+    <!-- The restore button when it deletes this phone's app data first. -->
+    <string name="backup_replace_everything" volt:screen="Restore review" volt:purpose="button">Replace everything</string>
+    <string name="backup_restore_button" volt:screen="Restore review" volt:purpose="button">Restore</string>
+    <string name="backup_restoring" volt:screen="Restore review" volt:purpose="status">Restoring your data…</string>
+    <string name="backup_restored" volt:screen="Restore review" volt:purpose="status"
+        volt:dnt="Volt">Restored. Reopen Volt.</string>
+</resources>

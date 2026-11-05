@@ -25,6 +25,40 @@ public final class FastChargeTaper {
     static final double TAU_LOW = 8, TAU_HIGH = 20, FIT_START = 3, FIT_FULL = 6, FIT_WINDOW = 10;
     /** A decay sample must set a new low by this much; a fitted tau beyond FLAT_TAU is a plateau, not a taper. */
     static final double NEW_LOW_AMPS = .005, FLAT_TAU = 60;
+    /**
+     * The newest decay point is recent enough for ownTaper. At FLAT_TAU near END_AMPS a real decay
+     * still sets a 0.01 A reading step lower about every 0.9 minutes (owner charges: every 0.8 at
+     * most); twice that allows for noise, then a plateau or stopped decay hands back to v7.
+     */
+    static final long RECENT_MS = 2 * 60_000L;
+    /**
+     * ownTaper's check that the decay is still going at the estimate's pace: the decay points of
+     * the last RECENT_FIT minutes, fitted alone, may be at most SLOWER slower than tau(). A slow
+     * taper that tau() clamps, or a stopped decay that creeps on in small new lows, fails it. If
+     * the decay keeps that recent pace, the time shown is at most SLOWER of itself short; a taper
+     * that keeps slowing can read shorter. Owner charges: at most 12% slower (RECENT_FIT minutes
+     * hold at least 6 points there).
+     */
+    static final double RECENT_FIT = 3, SLOWER = .25;
+    /**
+     * A fall between consecutive decay points faster than a decay of STEP_TAU (minutes), and by
+     * at least STEP_AMPS, is a charger's step down, not a taper. STEP_TAU is faster than any fall
+     * the owner's tapers showed: while their own taper applied, no fall within RECENT_FIT was
+     * faster than a 5.62-minute tau. A 4.3 to 2.5 A step down is that fast between 10-s readings
+     * if it takes about 1.5 minutes or less (in a straight line; up to about 2.75 minutes it is
+     * caught partway), and falls about 0.1 A or more between them. A slower fall, or a step down
+     * inside a gap in readings of more than about 2 minutes, is not caught.
+     * STEP_AMPS keeps reading noise from passing as a step down. Below about 1.85 A, up to 0.03 A
+     * of noise either way on constructed tau-11 and tau-13 decays made new lows fall faster than
+     * STEP_TAU (down to tau 2.75), by 0.04-0.08 A: such noise puts two readings up to 0.06 A apart,
+     * and rounding to 0.01 A adds up to 0.01 A, so a step must fall at least 0.08 A (.075, half a
+     * reading step lower, like NEW_LOW_AMPS, so that rounding never loses a 0.08 A fall). With the
+     * taper's own fall added, that noise still reached 0.08 A in one of six realizations. Below
+     * about 2 A, where a STEP_TAU fall between 10-s readings is under 0.08 A, only a faster one
+     * counts (about tau 2 at 1 A). A larger minimum let slow falls near 2 A through (0.09 and
+     * 0.10 A: 2 and 65 more own samples past Charge done by's buffer in constructed falls).
+     */
+    static final double STEP_TAU = 4, STEP_AMPS = .075;
     public static final long HOLD_MS = 3 * 60_000L, SPACING_MS = 10_000L, MAX_SILENCE_MS = 30 * 60_000L;
     // Reference charge, constant current: volts below the CV entry voltage -> Ah delivered before it.
     static final double[] HEADROOM_VOLTS = {0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
@@ -73,16 +107,72 @@ public final class FastChargeTaper {
         return cvCeiling > 0 && decay.size() >= 2 && volts >= CV_VOLTS && amps < cvCeiling * FALLING;
     }
 
+    /**
+     * The charge's own taper is established and still decaying at its fitted pace now: it is
+     * tapering at these readings, its watched decay points (at least three) span at least FIT_FULL
+     * minutes (from which tau() uses this charge's fit alone rather than blending in the
+     * reference), that fit is usable (a real decay, not a plateau that tau() replaces with the
+     * reference), the newest point is no older than RECENT_MS at nowMs, the last RECENT_FIT
+     * minutes of points (at least three) fall at least as fast as tau() x (1 + SLOWER), and none
+     * of those points fell from the one before faster than STEP_TAU and by at least STEP_AMPS.
+     * Decay points are only added and pruned at a new low, so a plateau leaves old points in place
+     * (the age check retires them) and a decay that stops but creeps on in 0.01 A lows keeps the
+     * whole fit recent; within RECENT_FIT minutes of the stop the recent points are only that
+     * creep, too slow for the check. A real taper slower than TAU_HIGH, which tau() clamps, fails
+     * the same check. A charger's step down steepens both fits, down to tau()'s TAU_LOW clamp,
+     * while the slower decay after it is too new to fail the pace check; the step check hands back
+     * while a fall faster than STEP_TAU (and of at least STEP_AMPS) is in the RECENT_FIT window (a
+     * slower fall passes until the pace check sees the decay after it). A decay reported in
+     * 2.5-minute steps never has three points in that window. ChargingEstimate then lets this
+     * taper, not the battery percentage, place the finish; otherwise v7's choice stands.
+     */
+    boolean ownTaper(double volts, double amps, long nowMs) {
+        if (!tapering(volts, amps) || decay.size() < 3 || decay.peekLast()[0] - decay.peekFirst()[0] < FIT_FULL
+                || !finite(fittedTau()) || nowMs < lastSample || nowMs - lastSample > RECENT_MS) return false;
+        double from = decay.peekLast()[0] - RECENT_FIT;
+        double[] recent = line(from);
+        // Decay points are strictly falling new lows at increasing times, so a fit of three always
+        // falls; recent[0] < 0 stays so that a rising fit's negative -1 / slope never passes as fast.
+        return recent[1] >= 3 && recent[0] < 0 && -1 / recent[0] <= tau() * (1 + SLOWER) && !stepped(from);
+    }
+
+    /** A fall between consecutive decay points from that minute on faster than a STEP_TAU decay, and by at least STEP_AMPS. */
+    private boolean stepped(double from) {
+        double[] previous = null;
+        for (double[] p : decay) if (p[0] >= from) {
+            // Points hold {minutes, ln(amps)}: the pace check is on ln(amps), the size check on amps.
+            if (previous != null && previous[1] - p[1] > (p[0] - previous[0]) / STEP_TAU
+                    && Math.exp(previous[1]) - Math.exp(p[1]) > STEP_AMPS) return true;
+            previous = p;
+        }
+        return false;
+    }
+
     /** The reference tau until three minutes of decay are watched, this charge's own by six. */
     public double tau() {
-        if (decay.size() < 3) return TAU_MINUTES;
-        double sx = 0, sy = 0, sxx = 0, sxy = 0, start = decay.peekFirst()[0], end = decay.peekLast()[0];
-        int n = decay.size();
-        for (double[] p : decay) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; }
-        double span = end - start, slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
-        if (span < FIT_START || !(slope < 0) || -1 / slope > FLAT_TAU) return TAU_MINUTES;
-        double fitted = Math.max(TAU_LOW, Math.min(TAU_HIGH, -1 / slope));
-        return TAU_MINUTES + (fitted - TAU_MINUTES) * Math.min(1, (span - FIT_START) / (FIT_FULL - FIT_START));
+        double fitted = fittedTau();
+        if (!finite(fitted)) return TAU_MINUTES;
+        double span = decay.peekLast()[0] - decay.peekFirst()[0];
+        return TAU_MINUTES + (Math.max(TAU_LOW, Math.min(TAU_HIGH, fitted)) - TAU_MINUTES) * Math.min(1, (span - FIT_START) / (FIT_FULL - FIT_START));
+    }
+
+    /**
+     * The decay's least-squares tau before clamping, or NaN without a usable fit: under three
+     * points or FIT_START minutes, no fall, or one slower than FLAT_TAU (a plateau, not a taper).
+     */
+    double fittedTau() {
+        if (decay.size() < 3) return Double.NaN;
+        double slope = line(decay.peekFirst()[0])[0], span = decay.peekLast()[0] - decay.peekFirst()[0];
+        return span < FIT_START || !(slope < 0) || -1 / slope > FLAT_TAU ? Double.NaN : -1 / slope;
+    }
+
+    /** {slope, points} of the least-squares line of ln(amps) on charge minutes through the decay points from that minute on. */
+    private double[] line(double from) {
+        double sx = 0, sy = 0, sxx = 0, sxy = 0;
+        int n = 0;
+        for (double[] p : decay) if (p[0] >= from) { n++; sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; }
+        double slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+        return new double[]{slope, n};
     }
 
     /** A personal finish shown now; a dropout within HOLD_MS keeps counting it down. */

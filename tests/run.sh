@@ -45,7 +45,7 @@ sources+=("$APP_DIR/src/com/jjricks/volt/FeatureVariant.java" "$TEST_DIR/OemCont
 # Standard-charger pack model (ut5-stock-pack-v6), its generated parity table and charge-age tracking.
 for name in Ut5MaxStockPackModel ChargeProgressTracker ChargeMeasureWindow; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$TEST_DIR/StockPackParity.java")
-# High-speed voltage/current taper (ut5-fast-taper-v7) and its owner-charge replay.
+# High-speed voltage/current taper (ut5-fast-taper-v8) and its owner-charge replay.
 sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastChargeTaperTest.java" "$TEST_DIR/FastChargeTaperReplay.java")
 # Battery alerts (charge level, full, low) for models without a native charge limit; uses the compat suites' resolver.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")

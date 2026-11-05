@@ -1,0 +1,10 @@
+# B16, Live Stats and charge history (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/ScooterReadingLabels.java
+# G5: Live Stats row names, groups, numbers and charge history formatting, pinned before the batch.
+tests/l10n/characterization/StatsTextTest.java
+# B16's pure helper and its catalog test.
+src/com/jjricks/volt/StatsLabels.java
+tests/l10n/StatsCatalogTest.java
+# B16 review fixes: per-heading spoken state words and the charger-stopped plural note.
+tests/l10n/StatsStateWordsTest.java

@@ -1,0 +1,222 @@
+# Ledger for b17-onboarding: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/OnboardingScreen.java:457	["Setup step ", {"hole": "number(step)", "arg": 1, "type": "d"}, " of 7"]	onboarding_pane_step	template	
+src/com/jjricks/volt/OnboardingScreen.java:457	["Setup"]	onboarding_pane_setup	exact	
+src/com/jjricks/volt/OnboardingScreen.java:514	["Set up your scooter"]	onboarding_side_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:555	["Step ", {"hole": "n", "arg": 1, "type": "d"}, ", ", {"hole": "STEP_NAMES[n - 1]", "arg": 2, "type": "s", "as": "STEP_LABELS[n - 1]"}, ", ", {"hole": "(now ? \"current\" : done ? \"done\" : applies ? \"to do\" : \"not needed\")", "arg": 3, "type": "s", "as": "now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone() : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()"}]	onboarding_step_row	template	manual: the step name comes from STEP_LABELS, the catalog names of the English STEP_NAMES table by index (same English); the state word's ternary keeps its conditions, each branch one state key (rows below)
+src/com/jjricks/volt/OnboardingScreen.java:556	["current"]	onboarding_step_state_current	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["done"]	onboarding_step_state_done	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["to do"]	onboarding_step_state_to_do	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["not needed"]	onboarding_step_state_not_needed	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:569	["Back"]	onboarding_back	exact	
+src/com/jjricks/volt/OnboardingScreen.java:578	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/OnboardingScreen.java:578	["Skip"]	onboarding_skip	exact	
+src/com/jjricks/volt/OnboardingScreen.java:582	["Cancel adding a scooter"]	onboarding_cancel_adding	exact	
+src/com/jjricks/volt/OnboardingScreen.java:582	["Skip setup for now"]	onboarding_skip_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:585	[{"hole": "n", "arg": 1, "type": "d"}, "/7"]	onboarding_step_counter	template	
+src/com/jjricks/volt/OnboardingScreen.java:357	["shared role"]	onboarding_role_shared	exact	
+src/com/jjricks/volt/OnboardingScreen.java:357	["owner role"]	onboarding_role_owner	exact	
+src/com/jjricks/volt/OnboardingScreen.java:675	["Your scooter, no cloud"]	onboarding_welcome_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:677	["Get started"]	onboarding_welcome_get_started	exact	
+src/com/jjricks/volt/OnboardingScreen.java:678	["Restore Volt backup"]	onboarding_restore_backup	exact	
+src/com/jjricks/volt/OnboardingScreen.java:680	["Restore Volt backup: scooters, rides, history, dashboards and settings"]	onboarding_welcome_restore_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:683	["I already have an owner file"]	onboarding_welcome_have_owner_file	exact	
+src/com/jjricks/volt/OnboardingScreen.java:691	["Lock"]	onboarding_welcome_tile_lock	exact	
+src/com/jjricks/volt/OnboardingScreen.java:691	["Settings"]	onboarding_welcome_tile_settings	exact	
+src/com/jjricks/volt/OnboardingScreen.java:691	["Battery"]	onboarding_welcome_tile_battery	exact	
+src/com/jjricks/volt/OnboardingScreen.java:691	["Rides"]	onboarding_welcome_tile_rides	exact	
+src/com/jjricks/volt/OnboardingScreen.java:710	["Lock, settings, battery and rides, over Bluetooth"]	onboarding_welcome_tiles_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:722	["How would you like to set up?"]	onboarding_path_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:727	["Use Chrome and a USB cable"]	onboarding_path_webadb	exact	
+src/com/jjricks/volt/OnboardingScreen.java:727	["Computer · a few minutes"]	onboarding_path_webadb_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:727	["Recommended"]	onboarding_path_recommended	exact	
+src/com/jjricks/volt/OnboardingScreen.java:728	["Restore Volt backup"]	onboarding_restore_backup	exact	
+src/com/jjricks/volt/OnboardingScreen.java:728	["Scooters, rides, dashboards & settings"]	onboarding_path_restore_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:729	["Capture it from the NAVEE app"]	onboarding_path_capture	exact	
+src/com/jjricks/volt/OnboardingScreen.java:729	["Computer · 10 min"]	onboarding_path_capture_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:730	["Use Shizuku on this phone"]	onboarding_path_shizuku	exact	
+src/com/jjricks/volt/OnboardingScreen.java:730	["No computer · Android 11+"]	onboarding_path_shizuku_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:731	["Import an owner setup file"]	onboarding_path_owner_file	exact	
+src/com/jjricks/volt/OnboardingScreen.java:731	["Scooter access only · no rides or history"]	onboarding_path_owner_file_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:732	["Enter a 12-character identity"]	onboarding_path_identity	exact	
+src/com/jjricks/volt/OnboardingScreen.java:740	["Needs Android 11 or newer"]	onboarding_needs_android_11	exact	
+src/com/jjricks/volt/OnboardingScreen.java:746	["Continue"]	onboarding_continue	exact	
+src/com/jjricks/volt/OnboardingScreen.java:752	["Needs Android 11 or newer"]	onboarding_needs_android_11	exact	
+src/com/jjricks/volt/OnboardingScreen.java:753	["Finish importing your selected owner file first."]	onboarding_finish_import_first	exact	
+src/com/jjricks/volt/OnboardingScreen.java:761	["Skip setup for now?"]	onboarding_skip_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:762	["Add it later in More."]	onboarding_skip_message	exact	
+src/com/jjricks/volt/OnboardingScreen.java:763	["Keep going"]	onboarding_skip_keep_going	exact	
+src/com/jjricks/volt/OnboardingScreen.java:764	["Skip"]	onboarding_skip	exact	
+src/com/jjricks/volt/OnboardingScreen.java:770	["Before you start"]	onboarding_prepare_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:774	["NAVEE app works"]	onboarding_prepare_navee	exact	
+src/com/jjricks/volt/OnboardingScreen.java:774	["Signed in and connecting"]	onboarding_prepare_navee_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:775	["A computer with Chrome or Edge"]	onboarding_prepare_browser_computer	exact	
+src/com/jjricks/volt/OnboardingScreen.java:775	["A computer with ADB and Python 3"]	onboarding_prepare_adb_computer	exact	
+src/com/jjricks/volt/OnboardingScreen.java:776	["The Volt source, extracted"]	onboarding_prepare_source	exact	
+src/com/jjricks/volt/OnboardingScreen.java:776	["Get source below; it holds setup/capture-owner.py"]	onboarding_prepare_source_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:777	["A USB data cable"]	onboarding_prepare_cable	exact	
+src/com/jjricks/volt/OnboardingScreen.java:777	["Not charge-only"]	onboarding_prepare_cable_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:778	["Scooter parked and powered on"]	onboarding_prepare_parked	exact	
+src/com/jjricks/volt/OnboardingScreen.java:778	["Close any other scooter apps"]	onboarding_prepare_parked_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:783	["Continue"]	onboarding_continue	exact	
+src/com/jjricks/volt/OnboardingScreen.java:787	["Where do I get ADB?"]	onboarding_prepare_where_adb	exact	
+src/com/jjricks/volt/OnboardingScreen.java:788	["Where do I get ADB? Opens the Platform-Tools download"]	onboarding_prepare_where_adb_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:790	["Get source"]	onboarding_prepare_get_source	exact	
+src/com/jjricks/volt/OnboardingScreen.java:791	["Get source. Opens the source bundle with the capture helper"]	onboarding_prepare_get_source_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:798	["No browser found"]	onboarding_no_browser	exact	
+src/com/jjricks/volt/OnboardingScreen.java:803	["Turn on USB debugging"]	onboarding_usb_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:809	["About phone"]	onboarding_mock_about_phone	exact	
+src/com/jjricks/volt/OnboardingScreen.java:813	["Android version"]	onboarding_mock_android_version	exact	
+src/com/jjricks/volt/OnboardingScreen.java:814	["Build number"]	onboarding_mock_build_number	exact	
+src/com/jjricks/volt/OnboardingScreen.java:815	["Example: Settings, About phone. Tap Build number seven times."]	onboarding_usb_example_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:818	["Settings › About phone"]	onboarding_usb_path_about	exact	
+src/com/jjricks/volt/OnboardingScreen.java:818	["Tap **Build number** seven times"]	onboarding_usb_tap_build	exact	
+src/com/jjricks/volt/OnboardingScreen.java:819	["Settings › System › Developer options"]	onboarding_usb_path_developer	exact	
+src/com/jjricks/volt/OnboardingScreen.java:819	["Turn on **USB debugging**"]	onboarding_usb_turn_on	exact	
+src/com/jjricks/volt/OnboardingScreen.java:820	["I've turned it on"]	onboarding_usb_done	exact	
+src/com/jjricks/volt/OnboardingScreen.java:821	["Open Settings"]	onboarding_open_settings	exact	
+src/com/jjricks/volt/OnboardingScreen.java:827	["Plug into your computer"]	onboarding_computer_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:831	["Allow USB debugging?"]	onboarding_mock_allow_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:832	["The computer's RSA key fingerprint is:\n4F:2A:…:9C"]	onboarding_mock_fingerprint	exact	
+src/com/jjricks/volt/OnboardingScreen.java:839	["Always allow from this computer"]	onboarding_mock_always_allow	exact	
+src/com/jjricks/volt/OnboardingScreen.java:845	["Cancel"]	onboarding_mock_cancel	exact	
+src/com/jjricks/volt/OnboardingScreen.java:846	["Allow"]	onboarding_mock_allow	exact	
+src/com/jjricks/volt/OnboardingScreen.java:850	["Example: the Allow USB debugging prompt on your phone, with Always allow from this computer unticked."]	onboarding_computer_example_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:853	["Connect your phone with the data cable"]	onboarding_computer_connect_cable	exact	
+src/com/jjricks/volt/OnboardingScreen.java:854	["Tap **Allow** on the prompt above"]	onboarding_computer_tap_allow	exact	
+src/com/jjricks/volt/OnboardingScreen.java:855	["`adb devices` shows **device**"]	onboarding_computer_adb_devices	exact	
+src/com/jjricks/volt/OnboardingScreen.java:856	["It shows “device”"]	onboarding_computer_shows_device	exact	
+src/com/jjricks/volt/OnboardingScreen.java:857	["It says unauthorized"]	onboarding_computer_unauthorized	exact	
+src/com/jjricks/volt/OnboardingScreen.java:857	["Phone says unauthorized"]	onboarding_computer_unauthorized_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:858	["1  Unlock your phone, unplug the cable and plug it back in.\n", "2  Tap Allow on the “Allow USB debugging?” prompt.\n", "3  No prompt? In Developer options, tap Revoke USB debugging authorizations, then reconnect."]	onboarding_computer_unauthorized_help	template	one + chain of literal lines, now one string
+src/com/jjricks/volt/OnboardingScreen.java:866	["Run the capture helper"]	onboarding_helper_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:867	["In the extracted source folder on your computer, run:"]	onboarding_helper_run_in_folder	exact	
+src/com/jjricks/volt/OnboardingScreen.java:877	["Command: ", {"hole": "COMMAND", "arg": 1, "type": "s"}]	onboarding_helper_command_description	template	
+src/com/jjricks/volt/OnboardingScreen.java:884	["Copy"]	onboarding_helper_copy	exact	
+src/com/jjricks/volt/OnboardingScreen.java:887	["Copy command"]	onboarding_helper_copy_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:894	["Connect in NAVEE"]	onboarding_helper_connect_navee	exact	
+src/com/jjricks/volt/OnboardingScreen.java:895	["Wait up to 90 s"]	onboarding_helper_wait	exact	
+src/com/jjricks/volt/OnboardingScreen.java:896	["File saves to Downloads"]	onboarding_helper_file_saves	exact	
+src/com/jjricks/volt/OnboardingScreen.java:897	["The helper finished"]	onboarding_helper_finished	exact	
+src/com/jjricks/volt/OnboardingScreen.java:898	["Capture didn't work"]	onboarding_capture_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:903	["Connect through your browser"]	onboarding_browser_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:904	["On your computer, open:"]	onboarding_browser_open	exact	
+src/com/jjricks/volt/OnboardingScreen.java:909	["Connect your phone with a USB data cable"]	onboarding_browser_connect_cable	exact	
+src/com/jjricks/volt/OnboardingScreen.java:910	["Pick your phone in Chrome"]	onboarding_browser_pick_phone	exact	
+src/com/jjricks/volt/OnboardingScreen.java:911	["Approve USB debugging on this phone"]	onboarding_browser_approve	exact	
+src/com/jjricks/volt/OnboardingScreen.java:911	["Leave **Always allow from this computer** unchecked"]	onboarding_browser_leave_unchecked	exact	
+src/com/jjricks/volt/OnboardingScreen.java:912	["The website connected"]	onboarding_browser_connected	exact	
+src/com/jjricks/volt/OnboardingScreen.java:913	["Phone isn't listed"]	onboarding_browser_not_listed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:913	["Connecting in Chrome"]	onboarding_browser_help_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:914	["•  Phone unlocked, USB debugging on\n", "•  A data cable, not charge-only\n", "•  Android Studio, other ADB tools and setup tabs closed\n", "•  Chrome or Edge, not Safari or Firefox"]	onboarding_browser_help	template	one + chain of literal lines, now one string
+src/com/jjricks/volt/OnboardingScreen.java:922	["Approve the capture on the website"]	onboarding_browser_capture_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:923	["Keep the cable in until cleanup finishes."]	onboarding_browser_keep_cable	exact	
+src/com/jjricks/volt/OnboardingScreen.java:924	["Read the capture explanation and choose **Start**"]	onboarding_browser_start	exact	
+src/com/jjricks/volt/OnboardingScreen.java:925	["Select your scooter in NAVEE and connect"]	onboarding_browser_select_scooter	exact	
+src/com/jjricks/volt/OnboardingScreen.java:925	["Up to **90 s**"]	onboarding_browser_up_to	exact	
+src/com/jjricks/volt/OnboardingScreen.java:926	["After cleanup, choose **Save to phone Downloads**"]	onboarding_browser_save	exact	
+src/com/jjricks/volt/OnboardingScreen.java:927	["This file is a scooter key. Keep it private."]	onboarding_browser_key_private	exact	
+src/com/jjricks/volt/OnboardingScreen.java:928	["The file is in Downloads"]	onboarding_browser_in_downloads	exact	
+src/com/jjricks/volt/OnboardingScreen.java:929	["Capture didn't work"]	onboarding_capture_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:929	["Browser capture"]	onboarding_browser_capture_help_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:930	["•  NAVEE signed in, scooter nearby\n", "•  Other scooter apps closed\n", "•  Stopped early? Finish cleanup in the same browser first"]	onboarding_browser_capture_help	template	one + chain of literal lines, now one string
+src/com/jjricks/volt/OnboardingScreen.java:939	["Capture command"]	onboarding_helper_clip_label	exact	
+src/com/jjricks/volt/OnboardingScreen.java:941	["Command copied."]	onboarding_helper_copied	exact	
+src/com/jjricks/volt/OnboardingScreen.java:942	["Copy failed"]	onboarding_helper_copy_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:947	["Your owner setup"]	onboarding_import_shizuku_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:947	["Import your owner file"]	onboarding_import_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:950	["Pick navee-owner-setup.json. This restores scooter access only, not rides or other app data."]	onboarding_import_pick	exact	
+src/com/jjricks/volt/OnboardingScreen.java:951	["Loading your owner profile…"]	onboarding_import_loading	exact	
+src/com/jjricks/volt/OnboardingScreen.java:951	["No file chosen yet"]	onboarding_import_no_file	exact	
+src/com/jjricks/volt/OnboardingScreen.java:955	["Not an owner file."]	onboarding_import_not_owner_file	exact	
+src/com/jjricks/volt/OnboardingScreen.java:958	["This file unlocks your scooter. Keep it private."]	onboarding_import_keep_private	exact	
+src/com/jjricks/volt/OnboardingScreen.java:959	["Choose owner file"]	onboarding_import_choose	exact	
+src/com/jjricks/volt/OnboardingScreen.java:961	["Enter the identity instead"]	onboarding_import_enter_identity	exact	
+src/com/jjricks/volt/OnboardingScreen.java:962	["Restore Volt backup instead"]	onboarding_import_restore_instead	exact	
+src/com/jjricks/volt/OnboardingScreen.java:967	["shared role"]	onboarding_role_shared	exact	
+src/com/jjricks/volt/OnboardingScreen.java:967	["owner role"]	onboarding_role_owner	exact	
+src/com/jjricks/volt/OnboardingScreen.java:978	["Owner identity found"]	onboarding_import_found	exact	
+src/com/jjricks/volt/OnboardingScreen.java:979	[{"hole": "summary[0]", "arg": 1, "type": "s"}, " · ", {"hole": "summary[1]", "arg": 2, "type": "s"}]	onboarding_import_summary	template	
+src/com/jjricks/volt/OnboardingScreen.java:985	["Owner identity found, stored privately on this phone. ", {"hole": "detail.getText()", "arg": 1, "type": "s"}]	onboarding_import_found_description	template	
+src/com/jjricks/volt/OnboardingScreen.java:989	["Not an owner file."]	onboarding_import_not_owner_file	exact	
+src/com/jjricks/volt/OnboardingScreen.java:991	["Stored privately. Revoke Shizuku now."]	onboarding_import_revoke_shizuku	exact	
+src/com/jjricks/volt/OnboardingScreen.java:991	["This file unlocks your scooter. Keep it private."]	onboarding_import_keep_private	exact	
+src/com/jjricks/volt/OnboardingScreen.java:995	["Delete Downloads copy"]	onboarding_import_delete_copy	exact	
+src/com/jjricks/volt/OnboardingScreen.java:997	["Downloads copy deleted"]	onboarding_import_copy_deleted	exact	
+src/com/jjricks/volt/OnboardingScreen.java:997	["Couldn't delete · remove it in Files"]	onboarding_import_copy_not_deleted	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1003	["Save and continue"]	onboarding_save_continue	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1018	["Open Shizuku"]	onboarding_open_shizuku	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1019	["Choose a different file"]	onboarding_import_choose_different	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1028	["Shizuku isn't installed"]	onboarding_shizuku_missing	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1033	["Stop recording first"]	onboarding_stop_recording	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1040	["Enter owner identity"]	onboarding_identity_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1041	["Not a password."]	onboarding_identity_not_password	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1055	["Owner identity, 12 characters, or a private backup"]	onboarding_identity_hint	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1066	["Save and continue"]	onboarding_save_continue	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1078	["Save and continue"]	onboarding_save_continue	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1078	["Save and continue, starting"]	onboarding_save_continue_starting	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1080	{"if": "parsed.role == 1", "then": ["Private backup recognised · shared role"], "else": ["Private backup recognised · owner role"]}	onboarding_identity_backup_shared,onboarding_identity_backup_owner	choice	
+src/com/jjricks/volt/OnboardingScreen.java:1083	["Only 0–9 and A–F."]	onboarding_identity_hex_only	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1119	["Couldn't clear old file. Retry."]	onboarding_identity_clear_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1145	["Allow Nearby devices"]	onboarding_nearby_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1153	["Bluetooth only. No servers."]	onboarding_nearby_body	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1155	["Allow"]	onboarding_nearby_allow	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1161	["Open app settings"]	onboarding_nearby_app_settings	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1169	["Find your scooter"]	onboarding_connect_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1173	["Found your scooter"]	onboarding_connect_found	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1173	["Bluetooth connected"]	onboarding_connect_bluetooth	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1173	["Checking owner identity"]	onboarding_connect_checking	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1174	["Saving this scooter"]	onboarding_connect_saving	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1207	["Connect"]	onboarding_connect_button	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1212	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1223	["Connecting to ", {"hole": "active.name", "arg": 1, "type": "s"}]	onboarding_connect_connecting	template	
+src/com/jjricks/volt/OnboardingScreen.java:1223	["Find your scooter"]	onboarding_connect_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1227	["Looking for your scooter"]	onboarding_connect_looking	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1231	{"if": "mode == StateDot.DONE", "then": [{"hole": "label", "arg": 1, "type": "s"}, ", done"], "else": {"if": "mode == StateDot.ACTIVE", "then": [{"hole": "label", "arg": 1, "type": "s"}, ", in progress"], "else": [{"hole": "label", "arg": 1, "type": "s"}, ", not yet"]}}	onboarding_connect_row_done,onboarding_connect_row_in_progress,onboarding_connect_row_not_yet	choice	
+src/com/jjricks/volt/OnboardingScreen.java:1236	["Starting…"]	onboarding_connect_starting	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1237	["Waiting for your owner profile…"]	onboarding_connect_waiting_profile	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1244	["No scooter found"]	-	stays-english	the nothing-found test compares BleController's English id (message() stays English); it now names the existing constant BleController.NOTHING_FOUND, which holds the same text
+src/com/jjricks/volt/OnboardingScreen.java:1245	["Is it on? Is NAVEE closed?"]	onboarding_connect_is_it_on	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1250	["Allow Nearby devices"]	onboarding_connect_allow_nearby	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1250	["Try again"]	common_try_again	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1250	["Connect"]	onboarding_connect_button	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1272	["You're connected"]	onboarding_done_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1274	{"if": "p == null", "then": ["Your scooter is ready."], "else": [{"hole": "p.name", "arg": 1, "type": "s"}, " is ready."]}	onboarding_done_ready_default,onboarding_done_ready	choice	
+src/com/jjricks/volt/OnboardingScreen.java:1278	["Back up Volt"]	onboarding_done_backup	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1282	["Back up Volt: scooter access and all saved app data"]	onboarding_done_backup_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1286	["Turn off USB debugging"]	onboarding_done_usb_off	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1286	["You don't need the computer any more"]	onboarding_done_usb_off_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1288	["Revoke Shizuku"]	onboarding_done_revoke	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1291	["Revoke Shizuku. Opens Shizuku to remove Volt's access"]	onboarding_done_revoke_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1295	["Go to Home"]	onboarding_done_home	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1327	["Capture didn't work"]	onboarding_capture_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1333	["Close"]	common_close	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1341	["Phone not listed as device"]	onboarding_fix_not_listed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1341	["Approve prompt · use data cable"]	onboarding_fix_not_listed_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1342	["NAVEE didn't connect"]	onboarding_fix_navee	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1342	["Check NAVEE connects alone"]	onboarding_fix_navee_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1343	["Helper timed out"]	onboarding_fix_timeout	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1343	["Close other apps, rerun"]	onboarding_fix_timeout_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1344	["File already exists"]	onboarding_fix_exists	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1344	["Add --output newname"]	onboarding_fix_exists_detail	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1359	[{"hole": "fixes[i][1]", "arg": 1, "type": "s"}, ". ", {"hole": "fixes[i][2]", "arg": 2, "type": "s"}]	onboarding_heading_detail	template	
+src/com/jjricks/volt/OnboardingScreen.java:1366	["Try again"]	common_try_again	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1374	["Capture didn't work"]	onboarding_capture_failed	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1456	{"if": "chip == null", "then": {"if": "detail == null", "then": {"if": "disabled", "then": [{"hole": "heading", "arg": 1, "type": "s"}, ". Needs Android 11 or newer"], "else": [{"hole": "heading", "arg": 1, "type": "s"}]}, "else": {"if": "disabled", "then": [{"hole": "heading", "arg": 1, "type": "s"}, ". ", {"hole": "detail", "arg": 2, "type": "s"}, ". Needs Android 11 or newer"], "else": [{"hole": "heading", "arg": 1, "type": "s"}, ". ", {"hole": "detail", "arg": 2, "type": "s"}]}}, "else": {"if": "detail == null", "then": {"if": "disabled", "then": [{"hole": "heading", "arg": 1, "type": "s"}, ", ", {"hole": "chip", "arg": 2, "type": "s"}, ". Needs Android 11 or newer"], "else": [{"hole": "heading", "arg": 1, "type": "s"}, ", ", {"hole": "chip", "arg": 2, "type": "s"}]}, "else": {"if": "disabled", "then": [{"hole": "heading", "arg": 1, "type": "s"}, ", ", {"hole": "chip", "arg": 2, "type": "s"}, ". ", {"hole": "detail", "arg": 3, "type": "s"}, ". Needs Android 11 or newer"], "else": [{"hole": "heading", "arg": 1, "type": "s"}, ", ", {"hole": "chip", "arg": 2, "type": "s"}, ". ", {"hole": "detail", "arg": 3, "type": "s"}]}}}	onboarding_option_spoken_unavailable,onboarding_option_spoken,onboarding_option_spoken_detail_unavailable,onboarding_option_spoken_detail,onboarding_option_spoken_chip_unavailable,onboarding_option_spoken_chip,onboarding_option_spoken_chip_detail_unavailable,onboarding_option_spoken_chip_detail	choice	
+src/com/jjricks/volt/OnboardingScreen.java:1491	["Checked"]	onboarding_tick_checked	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1491	["Not checked"]	onboarding_tick_not_checked	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1494	[{"hole": "heading", "arg": 1, "type": "s"}, ". ", {"hole": "detail", "arg": 2, "type": "s"}]	onboarding_heading_detail	template	
+src/com/jjricks/volt/OnboardingScreen.java:1529	["Step ", {"hole": "n", "arg": 1, "type": "d"}, ". ", {"hole": "heading.replace(\"**\", \"\").replace(\"`\", \"\")", "arg": 2, "type": "s"}, {"hole": "(detail == null ? \"\" : \". \" + detail.replace(\"**\", \"\"))", "arg": 3, "type": "s", "as": "(detail == null ? \"\" : T.onboardingNumberedDetail(detail.replace(\"**\", \"\")))"}]	onboarding_numbered_spoken	template	manual: the optional detail keeps its ternary as the third argument, its ". " + detail now onboarding_numbered_detail (row below); a choice between two whole templates would repeat the markup-stripping replace("**", "") literals, which G1 counts as new text
+src/com/jjricks/volt/OnboardingScreen.java:1530	[". ", {"hole": "detail.replace(\"**\", \"\")", "arg": 1, "type": "s"}]	onboarding_numbered_detail	template	manual: the detail branch of the third argument of onboarding_numbered_spoken; its empty branch stays ""
+src/com/jjricks/volt/OnboardingScreen.java:1554	[{"hole": "heading", "arg": 1, "type": "s"}, ". ", {"hole": "detail", "arg": 2, "type": "s"}]	onboarding_heading_detail	template	
+src/com/jjricks/volt/OnboardingScreen.java:1559	["Name your scooter"]	onboarding_name_label	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1569	["Scooter name"]	onboarding_name_hint	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1574	["Name your scooter"]	onboarding_name_label	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1653	["OK"]	common_ok	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1671	["Open your phone's Settings app to continue."]	onboarding_open_settings_app	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1701	["Step ", {"hole": "current", "arg": 1, "type": "d"}, " of 7"]	onboarding_progress_step	template	
+src/com/jjricks/volt/OnboardingScreen.java:1701	["Setup, choose a path"]	onboarding_progress_choose	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1781	["NAVEE ", {"hole": "ModelRegistry.modelName(model)", "arg": 1, "type": "s"}, " scooter, connected"]	onboarding_hero_model_connected	template	the model name stays as ModelRegistry spells it (a product name)
+src/com/jjricks/volt/OnboardingScreen.java:1782	["NAVEE UT5 MAX scooter, connected"]	onboarding_hero_connected	exact	
+src/com/jjricks/volt/OnboardingScreen.java:1782	["NAVEE UT5 MAX scooter"]	onboarding_hero	exact	

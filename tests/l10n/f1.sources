@@ -1,0 +1,7 @@
+# F1, ScooterService's consumers of the wave-2 display accessors (l10n/README.md). tests/run.sh compiles
+# every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the schedule control reasons and the battery alert wording the service showed, pinned before the batch.
+tests/l10n/characterization/ServiceConsumersEnglishTest.java
+# F1's own suite: the schedule reasons stay English ids, battery alerts render when shown, and the notices read
+# displayMessage() and displayName(), checked in the service source.
+tests/l10n/ServiceConsumersTest.java

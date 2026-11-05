@@ -1,0 +1,10 @@
+# B18, the More screen and the Language row (l10n/README.md). tests/run.sh compiles every path listed
+# in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English the More screen joins and formats today, pinned before the batch.
+src/com/jjricks/volt/Fmt.java
+tests/l10n/characterization/MoreScreenTextTest.java
+# B18's own suite: the catalog keys against MoreScreenTextTest.Base, every branch and count, and a
+# key-echo source.
+tests/l10n/MoreTextTest.java
+# G7 at source level: the Language card is in the App preferences tree only while offered.
+tests/l10n/MoreTreeTest.java

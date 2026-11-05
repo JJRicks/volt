@@ -1,0 +1,272 @@
+entry lights label	Lights
+entry lights icon	lights
+entry lights group	Menus
+entry lights featureKey	null
+entry lights directToggle	false
+entry controls label	Settings
+entry controls icon	settings
+entry controls group	Menus
+entry controls featureKey	null
+entry controls directToggle	false
+entry stats label	Live Stats
+entry stats icon	stats
+entry stats group	Pages
+entry stats featureKey	null
+entry stats directToggle	false
+entry rides label	Rides
+entry rides icon	rides
+entry rides group	Pages
+entry rides featureKey	null
+entry rides directToggle	false
+entry section:Ride label	Ride settings
+entry section:Ride icon	scooter
+entry section:Ride group	Menus
+entry section:Ride featureKey	null
+entry section:Ride directToggle	false
+entry section:Battery label	Battery settings
+entry section:Battery icon	battery
+entry section:Battery group	Menus
+entry section:Battery featureKey	null
+entry section:Battery directToggle	false
+entry section:Line lights label	Line lights
+entry section:Line lights icon	lights
+entry section:Line lights group	Menus
+entry section:Line lights featureKey	null
+entry section:Line lights directToggle	false
+entry section:Star lights label	Star lights
+entry section:Star lights icon	star
+entry section:Star lights group	Menus
+entry section:Star lights featureKey	null
+entry section:Star lights directToggle	false
+entry section:Dashboard & sound label	Dashboard & sound
+entry section:Dashboard & sound icon	sound
+entry section:Dashboard & sound group	Menus
+entry section:Dashboard & sound featureKey	null
+entry section:Dashboard & sound directToggle	false
+entry section:Security label	PIN & proximity
+entry section:Security icon	shield
+entry section:Security group	Menus
+entry section:Security featureKey	null
+entry section:Security directToggle	false
+entry section:Profile label	Scooter name
+entry section:Profile icon	pencil
+entry section:Profile group	Menus
+entry section:Profile featureKey	null
+entry section:Profile directToggle	false
+entry more:App label	App preferences
+entry more:App icon	settings
+entry more:App group	Menus
+entry more:App featureKey	null
+entry more:App directToggle	false
+entry more:Scooters label	My scooters
+entry more:Scooters icon	scooter
+entry more:Scooters group	Menus
+entry more:Scooters featureKey	null
+entry more:Scooters directToggle	false
+entry more:Lab label	Experimental controls
+entry more:Lab icon	lab
+entry more:Lab group	Menus
+entry more:Lab featureKey	null
+entry more:Lab directToggle	false
+entry more:Data label	Data & history
+entry more:Data icon	history
+entry more:Data group	Menus
+entry more:Data featureKey	null
+entry more:Data directToggle	false
+entry more:About label	About & permissions
+entry more:About icon	info
+entry more:About group	Menus
+entry more:About featureKey	null
+entry more:About directToggle	false
+entry charge_done_by label	Charge done by
+entry charge_done_by icon	clock
+entry charge_done_by group	Battery
+entry charge_done_by featureKey	null
+entry charge_done_by directToggle	true
+entry charge_done_time label	Charge done by time
+entry charge_done_time icon	clock
+entry charge_done_time group	Battery
+entry charge_done_time featureKey	null
+entry charge_done_time directToggle	false
+entry feature:lock label	Electronic lock
+entry feature:lock icon	lock
+entry feature:lock group	Security
+entry feature:lock featureKey	lock
+entry feature:lock directToggle	true
+entry feature:cruise_control label	Cruise control
+entry feature:cruise_control icon	speed
+entry feature:cruise_control group	Ride
+entry feature:cruise_control featureKey	cruise_control
+entry feature:cruise_control directToggle	true
+entry feature:energy_recovery label	Energy recovery
+entry feature:energy_recovery icon	recovery
+entry feature:energy_recovery group	Ride
+entry feature:energy_recovery featureKey	energy_recovery
+entry feature:energy_recovery directToggle	false
+entry feature:acceleration label	Acceleration profile
+entry feature:acceleration icon	tune
+entry feature:acceleration group	Experimental controls
+entry feature:acceleration featureKey	acceleration
+entry feature:acceleration directToggle	false
+entry feature:headlight label	Tail light
+entry feature:headlight icon	lights
+entry feature:headlight group	Lights & sound
+entry feature:headlight featureKey	headlight
+entry feature:headlight directToggle	true
+entry feature:auto_sensor label	Automatic lights
+entry feature:auto_sensor icon	lights
+entry feature:auto_sensor group	Lights & sound
+entry feature:auto_sensor featureKey	auto_sensor
+entry feature:auto_sensor directToggle	true
+entry feature:traction_control label	Traction control
+entry feature:traction_control icon	shield
+entry feature:traction_control group	Ride
+entry feature:traction_control featureKey	traction_control
+entry feature:traction_control directToggle	true
+entry feature:turn_sound label	Turn signal sound
+entry feature:turn_sound icon	sound
+entry feature:turn_sound group	Lights & sound
+entry feature:turn_sound featureKey	turn_sound
+entry feature:turn_sound directToggle	true
+entry feature:display_units label	Dashboard units
+entry feature:display_units icon	ruler
+entry feature:display_units group	Preferences
+entry feature:display_units featureKey	display_units
+entry feature:display_units directToggle	false
+entry feature:range_algorithm label	Range estimate
+entry feature:range_algorithm icon	route
+entry feature:range_algorithm group	Preferences
+entry feature:range_algorithm featureKey	range_algorithm
+entry feature:range_algorithm directToggle	false
+entry feature:start_speed label	Kick-start speed
+entry feature:start_speed icon	speed
+entry feature:start_speed group	Ride
+entry feature:start_speed featureKey	start_speed
+entry feature:start_speed directToggle	false
+entry feature:speed_limit label	Custom speed cap
+entry feature:speed_limit icon	speed
+entry feature:speed_limit group	Experimental controls
+entry feature:speed_limit featureKey	speed_limit
+entry feature:speed_limit directToggle	false
+entry feature:maximum_speed label	Maximum speed
+entry feature:maximum_speed icon	speed
+entry feature:maximum_speed group	Ride
+entry feature:maximum_speed featureKey	maximum_speed
+entry feature:maximum_speed directToggle	false
+entry feature:dual_drive label	Dual motor drive
+entry feature:dual_drive icon	tune
+entry feature:dual_drive group	Experimental controls
+entry feature:dual_drive featureKey	dual_drive
+entry feature:dual_drive directToggle	false
+entry feature:drive_speed_limit label	Drive mode speed cap
+entry feature:drive_speed_limit icon	speed
+entry feature:drive_speed_limit group	Experimental controls
+entry feature:drive_speed_limit featureKey	drive_speed_limit
+entry feature:drive_speed_limit directToggle	false
+entry feature:charge_limit label	Charge ceiling
+entry feature:charge_limit icon	battery
+entry feature:charge_limit group	Battery
+entry feature:charge_limit featureKey	charge_limit
+entry feature:charge_limit directToggle	false
+entry feature:timed_charging label	Scheduled charging
+entry feature:timed_charging icon	clock
+entry feature:timed_charging group	Battery
+entry feature:timed_charging featureKey	timed_charging
+entry feature:timed_charging directToggle	true
+entry feature:charge_start label	Charging start time
+entry feature:charge_start icon	clock
+entry feature:charge_start group	Battery
+entry feature:charge_start featureKey	charge_start
+entry feature:charge_start directToggle	false
+entry feature:lock_expiry label	Lock duration
+entry feature:lock_expiry icon	lock
+entry feature:lock_expiry group	Security
+entry feature:lock_expiry featureKey	lock_expiry
+entry feature:lock_expiry directToggle	false
+entry feature:low_power label	Low Battery Mode
+entry feature:low_power icon	battery
+entry feature:low_power group	Battery
+entry feature:low_power featureKey	low_power
+entry feature:low_power directToggle	true
+entry feature:long_range_mode label	Long range mode
+entry feature:long_range_mode icon	battery
+entry feature:long_range_mode group	Experimental controls
+entry feature:long_range_mode featureKey	long_range_mode
+entry feature:long_range_mode directToggle	false
+entry feature:hill_start_assist label	Walk Assist
+entry feature:hill_start_assist icon	walk
+entry feature:hill_start_assist group	Ride
+entry feature:hill_start_assist featureKey	hill_start_assist
+entry feature:hill_start_assist directToggle	true
+entry feature:parking_assist label	Power Assist
+entry feature:parking_assist icon	hill
+entry feature:parking_assist group	Ride
+entry feature:parking_assist featureKey	parking_assist
+entry feature:parking_assist directToggle	true
+entry feature:hill_descent_control label	Hill descent control
+entry feature:hill_descent_control icon	hill
+entry feature:hill_descent_control group	Ride
+entry feature:hill_descent_control featureKey	hill_descent_control
+entry feature:hill_descent_control directToggle	true
+entry feature:overspeed_control label	Overspeed active control
+entry feature:overspeed_control icon	speed
+entry feature:overspeed_control group	Experimental controls
+entry feature:overspeed_control featureKey	overspeed_control
+entry feature:overspeed_control directToggle	false
+entry feature:prompt_tone label	Prompt sound
+entry feature:prompt_tone icon	sound
+entry feature:prompt_tone group	Experimental controls
+entry feature:prompt_tone featureKey	prompt_tone
+entry feature:prompt_tone directToggle	false
+entry feature:line_light label	Line lights
+entry feature:line_light icon	lights
+entry feature:line_light group	Lights & sound
+entry feature:line_light featureKey	line_light
+entry feature:line_light directToggle	true
+entry feature:line_pattern label	Line lights pattern
+entry feature:line_pattern icon	lights
+entry feature:line_pattern group	Lights & sound
+entry feature:line_pattern featureKey	line_pattern
+entry feature:line_pattern directToggle	false
+entry feature:line_color label	Line lights color
+entry feature:line_color icon	lights
+entry feature:line_color group	Lights & sound
+entry feature:line_color featureKey	line_color
+entry feature:line_color directToggle	false
+entry feature:line_boost_color label	Line lights Boost color
+entry feature:line_boost_color icon	lights
+entry feature:line_boost_color group	Lights & sound
+entry feature:line_boost_color featureKey	line_boost_color
+entry feature:line_boost_color directToggle	false
+entry feature:star_light label	Star lights
+entry feature:star_light icon	star
+entry feature:star_light group	Lights & sound
+entry feature:star_light featureKey	star_light
+entry feature:star_light directToggle	true
+entry feature:star_pattern label	Star lights pattern
+entry feature:star_pattern icon	star
+entry feature:star_pattern group	Lights & sound
+entry feature:star_pattern featureKey	star_pattern
+entry feature:star_pattern directToggle	false
+entry feature:star_color label	Star lights color
+entry feature:star_color icon	star
+entry feature:star_color group	Lights & sound
+entry feature:star_color featureKey	star_color
+entry feature:star_color directToggle	false
+entry feature:star_boost_color label	Star lights Boost color
+entry feature:star_boost_color icon	star
+entry feature:star_boost_color group	Lights & sound
+entry feature:star_boost_color featureKey	star_boost_color
+entry feature:star_boost_color directToggle	false
+entry feature:proximity_key label	Proximity unlock
+entry feature:proximity_key icon	lock
+entry feature:proximity_key group	Security
+entry feature:proximity_key featureKey	proximity_key
+entry feature:proximity_key directToggle	false
+entry feature:pin label	Handlebar PIN
+entry feature:pin icon	lock
+entry feature:pin group	Security
+entry feature:pin featureKey	pin
+entry feature:pin directToggle	false
+defaults	lights,controls,stats,rides
+limits	2-8
