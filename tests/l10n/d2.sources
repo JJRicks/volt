@@ -1,0 +1,6 @@
+# D2, narrow labels fall to their next rung instead of shrinking (l10n/README.md). tests/run.sh compiles every
+# path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# D2's own suite: TileRung.first, the Home status line's ladder, the new rungs' English and the five sites.
+tests/l10n/NarrowLabelLadderTest.java
+src/com/jjricks/volt/TileRung.java
+src/com/jjricks/volt/DashboardWords.java

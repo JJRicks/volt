@@ -78,6 +78,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
     /** The tab names as shown; names above are ids, in the same order. */
     private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
+    /** The rail's one-line tab captions when a full name does not fit (Ui.nav); the screen reader keeps the full name. */
+    private String[] navShortNames(){return new String[]{T.mainNavHomeShort(),T.mainNavStatsShort(),T.mainNavScooterShort(),T.mainNavRidesShort(),T.mainNavMoreShort()};}
     private String shownPageName(String id){int at=java.util.Arrays.asList(names).indexOf(id);return at<0?id:navNames()[at];}
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
@@ -683,6 +685,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         label.setTooltipText(T.mainConnectionDetails());
         return label;
     }
+    /**
+     * The connection line's narrow-label ladder when not connecting, full line first (Ui.statusRungs shows the first that
+     * fits): the scooter's name drops before the state word does, and the words last seen before the time does.
+     */
+    private String[] connectionRungs(boolean named,boolean seen,boolean ready,String state,String shown,long last){
+        if(named)return new String[]{shown,state};
+        if(ready)return new String[]{shown};
+        if(!seen)return new String[]{shown,T.bleStatusDisconnectedShort()};
+        return new String[]{shown,T.mainStatusLastSeenShort(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())),state,T.bleStatusDisconnectedShort()};
+    }
     /** States that need no extra line in the connection dialog: the state row already says them. */
     private static final java.util.Set<String> PLAIN_CONNECTION_STATES=new java.util.HashSet<>(java.util.Arrays.asList(
             "","Not connected","Disconnected","Connected","Connecting…","Checking owner…","Searching…","Paused in background",
@@ -806,7 +818,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View navigation(boolean rail){
         LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
         View selected=null;
-        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],icons[i],selectedPage.equals(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(selectedPage.equals(page))selected=item;}
+        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],selectedPage.equals(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(selectedPage.equals(page))selected=item;}
         if(!rail)return nav;
         // App text and Android font size compound. Let two-line captions determine each
         // item's height, and keep every destination reachable in a short or large-text rail.
@@ -936,7 +948,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(connectionTitle!=null){
             String state=ready?T.bleStatusConnected():connecting?T.mainLockConnecting():T.bleStatusDisconnected();
             String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
-            connectionTitle.setText(connecting?connectingLabel(connectionTitle):shown);
+            if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
         }
@@ -1064,6 +1076,33 @@ public final class MainActivity extends Activity implements ScreenHost {
         private LockSliderGeometry sliderGeometry(){
             return new LockSliderGeometry(getWidth(),getHeight(),design.dp(58),design.dp(5));
         }
+        /** The icons a switch too narrow for any word shows: the action's, or a cross while the lock is unavailable. */
+        private static final String LOCK_ICON="lock",UNLOCK_ICON="unlock",UNAVAILABLE_ICON="close";
+        /** The words the switch can draw, full first: the lock bar's state, else what sliding does (or Unavailable). */
+        private String[] lockRungs(Boolean value,boolean locked){
+            if(compact&&value!=null)return locked?new String[]{T.mainLockLocked(),T.mainLockLockedShort()}:new String[]{T.mainLockUnlocked(),T.mainLockUnlockedShort()};
+            if(value==null)return new String[]{T.mainLockUnavailable(),T.mainLockUnavailableShort()};
+            return locked?new String[]{T.mainLockActionUnlock(),T.mainLockActionUnlockShort()}:new String[]{T.mainLockActionLock(),T.mainLockActionLockShort()};
+        }
+        /** The word lane onDraw gives the text: the width less the far padding, the thumb and the arrow's lane (or a gap). */
+        private float lockRoom(boolean arrow,float w,LockSliderGeometry geometry){return Math.max(0,w-design.dp(18)-geometry.diameter-(arrow?design.dp(18):design.dp(4)));}
+        /** The first rung that fits room at the switch's word size, or -1 (TileRung.first). */
+        private int lockRung(String[] rungs,float room){
+            float[] widths=new float[rungs.length];
+            for(int i=0;i<rungs.length;i++)widths[i]=words.measureText(rungs[i]);
+            return TileRung.first(widths,room);
+        }
+        /** The shorter rung that fits the lane, else the icon alone. */
+        private void drawLockWord(Canvas canvas,String[] rungs,String icon,float left,float right,float h){
+            int rung=lockRung(rungs,right-left);
+            if(rung>=0){canvas.drawText(rungs[rung],(left+right)/2,h/2-(wordMetrics.ascent+wordMetrics.descent)/2,words);return;}
+            drawLockIcon(canvas,icon,words.getColor(),left,right,h);
+        }
+        /** The worst case: the icon alone, centred in the lane, at the arrow's alpha. */
+        private void drawLockIcon(Canvas canvas,String icon,int color,float left,float right,float h){
+            float size=Math.min(design.dp(16),h*.6f);
+            design.drawIcon(canvas,icon,Ui.withAlpha(color,words.getAlpha()),(left+right)/2,h/2,size);
+        }
         /** The state word alone, centred on the bar's height; false when it cannot fit the lane. */
         private boolean drawState(Canvas canvas,String state,float left,float right,float h){
             int alpha=words.getAlpha();
@@ -1119,6 +1158,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Let the knob pass through the label's space without obscuring its words.
             words.setAlpha(Math.round(255*Math.max(0,1-4*Math.abs(position-(locked?1:0)))));
             boolean arrow=available&&value!=null&&!dragging;
+            // The narrow-label ladder: the word, its short rung, then the icon alone, never a blank lane and never a
+            // smaller word. The arrow is decorative, so it goes before the word does.
+            String[] rungs=lockRungs(value,locked);
+            if(arrow&&lockRung(rungs,lockRoom(true,w,geometry))<0)arrow=false;
             float lane=arrow?design.dp(18):design.dp(4);
             float textLeft=locked||value==null?x+design.dp(18):x+geometry.diameter+lane,textRight=locked||value==null?x+w-geometry.diameter-lane:x+w-design.dp(18);
             float textWidth=Math.max(0,textRight-textLeft);
@@ -1131,8 +1174,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Its accessibility label always keeps the full tap/slide action text.
             String fitted=words.measureText(label)<=textWidth?label:"";
             words.setTextAlign(Paint.Align.CENTER);words.getFontMetrics(wordMetrics);
-            if(compact&&value!=null){drawState(canvas,locked?T.mainLockLocked():T.mainLockUnlocked(),textLeft,textRight,h);return;}
-            canvas.drawText(fitted,(textLeft+textRight)/2,h/2-(wordMetrics.ascent+wordMetrics.descent)/2,words);
+            if(compact&&value!=null){if(!drawState(canvas,rungs[0],textLeft,textRight,h)&&!drawState(canvas,rungs[1],textLeft,textRight,h))drawLockIcon(canvas,locked?LOCK_ICON:UNLOCK_ICON,!available?design.dim:Boolean.FALSE.equals(shown())?design.danger:design.text,textLeft,textRight,h);return;}
+            if(!fitted.isEmpty())canvas.drawText(fitted,(textLeft+textRight)/2,h/2-(wordMetrics.ascent+wordMetrics.descent)/2,words);
+            else drawLockWord(canvas,rungs,value==null?UNAVAILABLE_ICON:locked?UNLOCK_ICON:LOCK_ICON,textLeft,textRight,h);
         }
     }
     @Override public void connect(){

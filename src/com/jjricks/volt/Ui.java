@@ -125,7 +125,13 @@ public final class Ui {
         states.addState(new int[0], up); view.setStateListAnimator(states);
         states.jumpToCurrentState();
     }
-    /** Keep compact status timestamps on one line, shrinking only when their width requires it. */
+    /** The readable text floor in sp (times the app's text scale): compact labels never auto-size below it. */
+    public static final float READABLE_FLOOR_SP = 12;
+    /**
+     * Keep compact status lines on one line at a readable size. Auto-size may shrink a line only to the readable
+     * floor; a line wider than that falls to the next rung its caller gave {@link #statusRungs}, then to its start
+     * icon alone when it has one. Only the last rung of a line without an icon is ever ellipsized.
+     */
     public void fitStatusLine(TextView view) {
         int maximum = Math.round(view.getTextSize());
         // Keep the original line's height as auto-size settles, including across Edit rebuilds.
@@ -134,8 +140,32 @@ public final class Ui {
         view.setGravity((view.getGravity() & ~Gravity.VERTICAL_GRAVITY_MASK) | Gravity.CENTER_VERTICAL);
         view.setMaxLines(1);
         view.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        view.setAutoSizeTextTypeUniformWithConfiguration(
-                Math.min(maximum, Math.round(sp(7) / textScale)), maximum, 1, TypedValue.COMPLEX_UNIT_PX);
+        int floor = Math.round(sp(READABLE_FLOOR_SP));
+        // A line already at the floor keeps its size (auto-size needs a range).
+        if (floor < maximum) view.setAutoSizeTextTypeUniformWithConfiguration(
+                floor, maximum, 1, TypedValue.COMPLEX_UNIT_PX);
+        ladder(view, false);
+    }
+    /**
+     * Shows a status line's narrow-label ladder: rungs[0] is the full line, each next one shorter. The line shows
+     * the first rung that fits at the readable floor and picks again whenever its width changes. A view
+     * {@link #fitStatusLine} prepared also refits text set on it directly, as a ladder of that text alone.
+     */
+    public void statusRungs(TextView view, CharSequence... rungs) {
+        StatusRungs ladder = ladders.get(view);
+        if (ladder == null) ladder = ladder(view, false);
+        ladder.show(rungs);
+    }
+    private final java.util.WeakHashMap<TextView, StatusRungs> ladders = new java.util.WeakHashMap<>();
+    private StatusRungs ladder(TextView view, boolean iconBeside) {
+        StatusRungs ladder = ladders.get(view);
+        if (ladder == null) {
+            ladder = new StatusRungs(view);
+            ladders.put(view, ladder);
+            view.addOnLayoutChangeListener(ladder);
+        }
+        ladder.iconBeside = iconBeside;
+        return ladder;
     }
     public TextView text(String value, float sp, boolean bold) {
         TextView view = new TextView(context);
@@ -509,15 +539,18 @@ public final class Ui {
         View line = new View(context); line.setBackgroundColor(raised);
         parent.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
     }
-    public View nav(String label, String iconKey, boolean selected, Runnable action) {
+    /** A rail tab: its icon over one line of caption, the full name, else shortLabel, else the icon alone. */
+    public View nav(String label, String shortLabel, String iconKey, boolean selected, Runnable action) {
         LinearLayout item = new LinearLayout(context);
         item.setOrientation(LinearLayout.VERTICAL); item.setGravity(Gravity.CENTER);
         item.setPadding(dp(2), dp(8), dp(2), dp(8)); item.setMinimumHeight(dp(64));
         item.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 30)),
                 shape(selected ? withAlpha(accent, dark ? 40 : 26) : Color.TRANSPARENT, 18, 0), null));
         item.addView(icon(iconKey, 24, selected ? text : muted), new LinearLayout.LayoutParams(dp(24), dp(24)));
-        TextView caption = text(label, 10, selected); caption.setMaxLines(2); caption.setTextColor(selected ? text : muted);
+        TextView caption = text(label, 10, selected); caption.setMaxLines(1); caption.setTextColor(selected ? text : muted);
         caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption);
+        caption.setEllipsize(TextUtils.TruncateAt.END);
+        ladder(caption, true).show(new CharSequence[]{label, shortLabel});
         item.setContentDescription(label); item.setSelected(selected); item.setFocusable(true);
         if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(selected ? T.commonSelected() : "");
         item.setOnClickListener(v -> { if (!selected) Haptics.tick(v); if (action != null) action.run(); });
