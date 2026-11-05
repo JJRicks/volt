@@ -62,6 +62,13 @@ public final class ChargingEstimate {
         /**
          * Minutes for Charge done by, before its separate safety buffer. Use the same
          * estimate shown on the dashboard rather than stacking pessimistic model assumptions.
+         * The one exception: while a high-speed charge's own taper places the shown time
+         * (ut5-fast-taper-v8), a longer personal time that v7 would show for the same reading
+         * (past charges that still match it, or its briefly held personal finish) plans that
+         * target instead, uncapped by the own taper's time to 100% at a lower limit. The own
+         * taper can take up to about three minutes to see its decay stop, and Charge done by
+         * programs its start once, so planning keeps the longer evidence; the display keeps the
+         * own taper. Everywhere else these equal the displayed minutes.
          */
         public final Double planningMinutesToLimit, planningMinutesToFull;
         /** The standard-charger pack-voltage model supplied the bulk-stage estimate. */
@@ -245,16 +252,41 @@ public final class ChargingEstimate {
         // (withPersonalLimit), never longer than the time to 100%. v7's choice is made first, so a
         // plateau, a stopped, creeping or slow decay, a charger's step down faster than STEP_TAU
         // (while it is in the RECENT_FIT window), or a declining taper model returns it unchanged,
-        // with v7's held personal finish kept up to date throughout.
+        // with v7's held personal finish kept up to date throughout. Only the display follows the
+        // own taper: Charge done by plans with the longer of it and v7's personal time
+        // (withPersonalPlanning), the one case where display and planning differ, because a
+        // stopped decay can keep the own taper for up to RECENT_FIT minutes and a one-shot start
+        // set from it then cannot be corrected.
         Result v7=withHistory(prior,baseline,soc,ratedAh,productId,selectedCharger,personal,gate,taper,nowMs);
         if (fast&&taper!=null&&baseline!=null&&baseline.charging&&baseline.inputAmps!=null&&baseline.inputWatts!=null
                 &&baseline.inputAmps>=MINIMUM_ETA_CURRENT_A&&productId==Ut5MaxFastChargeReference.PRODUCT_ID
                 &&valid(soc)&&valid(ratedAh)&&soc.number<100
                 &&taper.ownTaper(baseline.inputWatts/baseline.inputAmps,baseline.inputAmps,nowMs)) {
             Result own=withFastTaper(withoutFullReference(prior,baseline),baseline,soc,ratedAh,productId,taper);
-            if(own!=null&&own.referenceToFull)return withPersonalLimit(own,baseline,soc,selectedCharger,personal);
+            if(own!=null&&own.referenceToFull)return withPersonalPlanning(withPersonalLimit(own,baseline,soc,selectedCharger,personal),v7);
         }
         return v7;
+    }
+
+    /**
+     * shown (the own taper's result) with Charge done by's minutes to each target no shorter than
+     * the personal time v7 shows there for the same reading: past charges that still match it, or
+     * v7's held personal finish (withHistory decides both, as without the own taper). At a lower
+     * limit that is past charges' time to it, not capped at the own taper's time to 100% as the
+     * display is. Without such a time, or with a shorter one, planning stays the displayed time.
+     */
+    private static Result withPersonalPlanning(Result shown,Result v7) {
+        Double limit=atLeast(shown.planningMinutesToLimit,v7.learnedToLimit?v7.remainingMinutesToLimit:null);
+        Double full=atLeast(shown.planningMinutesToFull,v7.learnedToFull?v7.remainingMinutesToFull:null);
+        if(same(limit,shown.planningMinutesToLimit)&&same(full,shown.planningMinutesToFull))return shown;
+        return new Result(shown.charging,shown.inputWatts,shown.inputAmps,shown.remainingMinutesToLimit,shown.remainingMinutesToFull,
+                shown.targetPercent,shown.labelMsg,shown.status,shown.learnedToLimit,shown.learnedToFull,shown.learnedSessions,
+                shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,shown.stockVoltageMatch,limit,full,shown.stockPackModel);
+    }
+
+    /** planned, or personal where both exist and personal is longer; an unavailable plan stays unavailable. */
+    private static Double atLeast(Double planned,Double personal) {
+        return planned==null||personal==null?planned:Double.valueOf(Math.max(planned,personal));
     }
 
     /** The v7 evidence choice after the bundled references: past charges, a held personal finish or prior. */

@@ -28,6 +28,7 @@ public final class FastChargeTaperTest {
         ownTaper();
         plateau();
         noise();
+        planning();
         replay(Paths.get(args[0]));
         System.out.println("FastChargeTaper: " + checks + " checks passed");
     }
@@ -241,13 +242,16 @@ public final class FastChargeTaperTest {
      * Two identical synthetic completed high-speed charges, 50% to 100% at 54 V and the given amps,
      * 5 minutes per percent: past charges that match a live reading at that current (not a measured charge).
      */
-    private static ChargeSessionStore.Curve history(Path dir, double amps) throws Exception {
+    private static ChargeSessionStore.Curve history(Path dir, double amps) throws Exception { return history(dir, amps, 30); }
+
+    /** The same, with readingsPerPercent 10-s readings (readingsPerPercent / 6 minutes) per percent. */
+    private static ChargeSessionStore.Curve history(Path dir, double amps, int readingsPerPercent) throws Exception {
         for (int h = 0; h < 2; h++) {
             List<FastChargeTaperReplay.Sample> samples = new ArrayList<>();
-            for (int i = 0; i <= 250 * 6; i++) {
+            for (int i = 0; i <= 50 * readingsPerPercent; i++) {
                 FastChargeTaperReplay.Sample s = new FastChargeTaperReplay.Sample();
                 s.session = h; s.charger = "HIGH_SPEED"; s.stop = "COMPLETE"; s.elapsed = i * 10 * SEC;
-                s.soc = Math.min(100, 50 + Math.floor(i / 30d)); s.volts = 54.0; s.amps = -amps;
+                s.soc = Math.min(100, 50 + Math.floor(i / (double) readingsPerPercent)); s.volts = 54.0; s.amps = -amps;
                 samples.add(s);
             }
             FastChargeTaperReplay.journal(samples, dir.resolve(String.format("00000000-0000-0000-0000-%012d.csv", h)).toFile());
@@ -448,21 +452,23 @@ public final class FastChargeTaperTest {
                 }
             }
 
-            // The positive case keeps v8: its own taper replaces the past charges' 122.5 minutes.
+            // The positive case keeps v8: its own taper replaces the past charges' 122.5 minutes on
+            // screen, while Charge done by keeps planning with them (planning(), review of 59ac1d9).
             ChargeSessionStore.Curve curve = history(Files.createTempDirectory(tmp, "history-"), own.amps);
             double mine = own.taper.tau() * Math.log(own.amps / FastChargeTaper.END_AMPS);
             ChargingEstimate.Result full = scheduled(75, own.amps, 100, curve, own.taper, own.now);
             near(20.631, full.remainingMinutesToFull, .001, "Its own taper places 100%");
             near(mine, full.remainingMinutesToFull, 1e-9, "from this charge's tau");
-            check(full.remainingMinutesToLimit.equals(full.remainingMinutesToFull) && full.planningMinutesToLimit.equals(full.remainingMinutesToFull),
-                    "Charge done by plans with the displayed time");
+            check(full.remainingMinutesToLimit.equals(full.remainingMinutesToFull), "A 100% limit shows the time to 100%");
+            near(122.5, full.planningMinutesToLimit, 1e-9, "Charge done by plans with the longer, still-matching past charges");
+            near(122.5, full.planningMinutesToFull, 1e-9, "and so does the time to 100% it would plan with");
             check(FastChargeTaperReplay.source(full).equals("FAST_REFERENCE") && FastChargeTaperReplay.limitSource(full).equals("FAST_REFERENCE")
                     && full.learnedSessions == 0 && full.label.equals("High-speed reference"), "Shown as the high-speed estimate");
             ChargingEstimate.Result lower = scheduled(75, own.amps, 95, curve, own.taper, own.now);
             check(Objects.equals(lower.remainingMinutesToFull, full.remainingMinutesToFull) && Objects.equals(lower.remainingMinutesToLimit, full.remainingMinutesToFull)
-                    && Objects.equals(lower.planningMinutesToLimit, full.remainingMinutesToFull) && FastChargeTaperReplay.limitSource(lower).equals("PERSONAL")
-                    && lower.learnedSessions == 2 && lower.label.equals("From 2 past charges"),
-                    "At 95%, past charges' 100 minutes are capped at its own time to 100%");
+                    && FastChargeTaperReplay.limitSource(lower).equals("PERSONAL") && lower.learnedSessions == 2 && lower.label.equals("From 2 past charges"),
+                    "At 95%, past charges' 100 minutes are shown capped at its own time to 100%");
+            near(100.0, lower.planningMinutesToLimit, 1e-9, "and planned uncapped");
 
             // A slow taper within SLOWER of TAU_HIGH (raw tau 24) still takes over, clamped at TAU_HIGH:
             // 43.0 minutes against a pure exponential's 51.6, inside Charge done by's buffer.
@@ -472,8 +478,8 @@ public final class FastChargeTaperTest {
                     "A raw tau of 24 is this charge's own taper");
             ChargingEstimate.Result slowOwn = scheduled(75, under.amps, 100, history(Files.createTempDirectory(tmp, "history-"), under.amps), under.taper, under.now);
             near(43.042, slowOwn.remainingMinutesToFull, .001, "Clamped at TAU_HIGH");
-            check(slowOwn.planningMinutesToLimit.equals(slowOwn.remainingMinutesToFull) && FastChargeTaperReplay.source(slowOwn).equals("FAST_REFERENCE"),
-                    "and shown as the high-speed estimate");
+            check(FastChargeTaperReplay.source(slowOwn).equals("FAST_REFERENCE"), "and shown as the high-speed estimate");
+            near(122.5, slowOwn.planningMinutesToLimit, 1e-9, "Charge done by keeps the past charges' longer time");
         } finally {
             try (java.util.stream.Stream<Path> walk = Files.walk(tmp)) { walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete()); }
         }
@@ -518,6 +524,203 @@ public final class FastChargeTaperTest {
         check(before && !after, "A noisy 30-s step down hands back from its first reading for as long as it is in the RECENT_FIT window");
     }
 
+    /** One reading of a timeline: its case after the reading, and whether the decay had stopped. */
+    private interface Reading { void read(Case c, boolean stopped) throws Exception; }
+
+    /**
+     * Codex's synthetic timeline from the review of 59ac1d9, not a measured charge: a 10 A ceiling,
+     * then decaying(11, 72), 12 minutes to 2.69 A, then a hold that falls 0.01 A every 30 s, read
+     * every 10 s for 2 minutes. The own taper keeps it for 50 s after the stop.
+     */
+    private static void stopping(Reading each) throws Exception {
+        Case c = new Case();
+        for (int i = 0; i <= 84; i++) {
+            c.at(i <= 72 ? Math.round(800 * Math.exp(-(i / 6d) / 11)) / 100d : Math.round((2.69 - .01 * Math.floor((i - 72) / 3d)) * 100) / 100d,
+                    T0 + MIN + i * 10 * SEC);
+            each.read(c, i > 72);
+        }
+    }
+
+    /** Past charges' estimate for this reading alone (ChargingEstimate.withObservedCurve), as v7 matches them. */
+    private static ChargingEstimate.Result past(double soc, double amps, double target, ChargeSessionStore.Curve curve, long t) {
+        ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(54.0, t), live(-amps, t), live(soc, t), live(15.3, t), live(target, t));
+        return ChargingEstimate.withObservedCurve(base, live(soc, t), curve);
+    }
+
+    /**
+     * Review of 59ac1d9 (Codex): Charge done by programs its start once, from planningMinutesToLimit,
+     * and the own taper needs up to RECENT_FIT minutes to see a decay stop. 59ac1d9 planned with the
+     * own taper's 15.1 minutes there, where two matching past charges give about 80: a start about
+     * 65 minutes late. While the own taper places the time shown, Charge done by plans with the
+     * longer of it and the personal time v7 shows; the display keeps the own taper.
+     */
+    private static void planning() throws Exception {
+        planningWindow();
+        planningGuards();
+        planningLowerLimits();
+        planningSchedule();
+    }
+
+    private interface InTemp { void run(Path tmp) throws Exception; }
+
+    /** Runs body with a temporary folder for synthetic past charges, deleted afterwards. */
+    private static void inTemp(InTemp body) throws Exception {
+        Path tmp = Files.createTempDirectory("fast-taper-planning-");
+        try { body.run(tmp); } finally {
+            try (java.util.stream.Stream<Path> walk = Files.walk(tmp)) { walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete()); }
+        }
+    }
+
+    /** Two synthetic past charges at the hold's 2.69 A, 8.5 minutes per percent: about 80 minutes at 90%. */
+    private static ChargeSessionStore.Curve matching(Path tmp) throws Exception { return history(Files.createTempDirectory(tmp, "history-"), 2.69, 51); }
+
+    /** Codex's window: the time shown is the own taper's, Charge done by plans with at least the matching past charges'. */
+    private static void planningWindow() throws Exception {
+        inTemp(tmp -> {
+            ChargeSessionStore.Curve matching = matching(tmp);
+            int[] window = {0}, ownRows = {0};
+            stopping((c, stopped) -> {
+                if (!c.taper.ownTaper(54.0, c.amps, c.now)) return;
+                ownRows[0]++;
+                ChargingEstimate.Result r = scheduled(90, c.amps, 100, matching, c.taper, c.now), history = past(90, c.amps, 100, matching, c.now);
+                String where = "Codex's timeline at " + (c.now - T0 - MIN) / SEC + " s, " + c.amps + " A";
+                near(FastChargeTaper.minutes(54.0, c.amps, 15.3, c.taper), r.remainingMinutesToFull, 1e-12, where + ": the time shown is its own taper's");
+                check(r.remainingMinutesToLimit.equals(r.remainingMinutesToFull) && FastChargeTaperReplay.source(r).equals("FAST_REFERENCE")
+                        && r.label.equals("High-speed reference"), where + ": shown as the high-speed estimate");
+                double plan = history.learnedToFull ? Math.max(r.remainingMinutesToFull, history.remainingMinutesToFull) : r.remainingMinutesToFull;
+                near(plan, r.planningMinutesToLimit, 1e-9, where + ": Charge done by plans with the longer of it and matching past charges");
+                near(plan, r.planningMinutesToFull, 1e-9, where + ": and plans the time to 100% the same way");
+                if (!stopped) return;
+                window[0]++;
+                near(15.15, r.remainingMinutesToFull, .05, where + ": about 15 minutes shown");
+                check(history.learnedToFull && history.learnedSessions == 2, where + ": two past charges still match");
+                near(80.75, history.remainingMinutesToFull, .01, where + ": about 80 minutes from them");
+                check(r.planningMinutesToLimit >= history.remainingMinutesToFull, where + ": Charge done by plans with at least their time");
+            });
+            check(window[0] == 5 && ownRows[0] > window[0], "The own taper keeps the stopped decay for 50 s: " + window[0] + " readings");
+        });
+    }
+
+    /** Without matching past charges, or with matching ones that are shorter, Charge done by plans with the time shown. */
+    private static void planningGuards() throws Exception {
+        inTemp(tmp -> {
+            ChargeSessionStore.Curve other = history(Files.createTempDirectory(tmp, "history-"), 1.0, 51),
+                    shorter = history(Files.createTempDirectory(tmp, "history-"), 2.69, 6);
+            int[] ownRows = {0}, guarded = {0, 0};
+            stopping((c, stopped) -> {
+                if (!c.taper.ownTaper(54.0, c.amps, c.now)) return;
+                ownRows[0]++;
+                String where = "Codex's timeline at " + (c.now - T0 - MIN) / SEC + " s";
+                for (ChargeSessionStore.Curve curve : new ChargeSessionStore.Curve[]{null, other}) {
+                    ChargingEstimate.Result r = scheduled(90, c.amps, 100, curve, c.taper, c.now);
+                    check(curve == null || !past(90, c.amps, 100, curve, c.now).learnedToFull, where + ": a 1 A past charge never matches 2.7 A or more");
+                    check(r.planningMinutesToLimit.equals(r.remainingMinutesToLimit) && r.planningMinutesToFull.equals(r.remainingMinutesToFull),
+                            where + (curve == null ? ", no past charges" : ", unmatched past charges") + ": Charge done by plans with the time shown");
+                    guarded[0]++;
+                }
+                ChargingEstimate.Result r = scheduled(90, c.amps, 100, shorter, c.taper, c.now), history = past(90, c.amps, 100, shorter, c.now);
+                if (history.learnedToFull) {
+                    check(history.remainingMinutesToFull < r.remainingMinutesToFull - 5, where + ": the past charges are shorter, " + history.remainingMinutesToFull);
+                    check(r.planningMinutesToLimit.equals(r.remainingMinutesToLimit) && r.planningMinutesToFull.equals(r.remainingMinutesToFull),
+                            where + ": a longer own taper keeps its own time for Charge done by");
+                    guarded[1]++;
+                }
+            });
+            check(ownRows[0] > 5 && guarded[0] == 2 * ownRows[0] && guarded[1] >= 5, "Guards covered " + guarded[0] + " and " + guarded[1] + " own-taper readings");
+        });
+    }
+
+    /**
+     * Lower limits: past charges' time from 75% to 80, 85 or 90% exceeds the own taper's time to
+     * 100%. It is shown capped there (as at 59ac1d9), and planned uncapped.
+     */
+    private static void planningLowerLimits() throws Exception {
+        inTemp(tmp -> {
+            ChargeSessionStore.Curve matching = matching(tmp);
+            for (double target : new double[]{80, 85, 90}) {
+                int[] capped = {0};
+                stopping((c, stopped) -> {
+                    if (!c.taper.ownTaper(54.0, c.amps, c.now)) return;
+                    ChargingEstimate.Result r = scheduled(75, c.amps, target, matching, c.taper, c.now), history = past(75, c.amps, target, matching, c.now);
+                    String where = (int) target + "% limit at " + (c.now - T0 - MIN) / SEC + " s";
+                    if (!history.learnedToLimit) {
+                        check(r.planningMinutesToLimit.equals(r.remainingMinutesToLimit), where + ": without past charges' time, the time shown plans");
+                        return;
+                    }
+                    check(FastChargeTaperReplay.limitSource(r).equals("PERSONAL")
+                            && Math.abs(r.remainingMinutesToLimit - Math.min(history.remainingMinutesToLimit, r.remainingMinutesToFull)) <= 1e-12,
+                            where + ": past charges' time is shown, capped at the own taper's time to 100%");
+                    check(r.planningMinutesToLimit >= history.remainingMinutesToLimit, where + ": Charge done by plans with no less than past charges' time, "
+                            + r.planningMinutesToLimit + " < " + history.remainingMinutesToLimit);
+                    if (history.remainingMinutesToLimit > r.remainingMinutesToFull) capped[0]++;
+                });
+                check(capped[0] >= 20, (int) target + "% limit: the cap bites on " + capped[0] + " own-taper readings");
+            }
+        });
+    }
+
+    /**
+     * Through the controller: arming Charge done by in the window, at a 100% and a 90% limit,
+     * programs a start no later than the matching past charges' start, with the 20-minute buffer added once.
+     */
+    private static void planningSchedule() throws Exception {
+        inTemp(tmp -> {
+            ChargeSessionStore.Curve matching = matching(tmp);
+            for (double[] at : new double[][]{{90, 100}, {75, 90}}) {
+                double soc = at[0], target = at[1];
+                ChargingEstimate.Result[] seen = new ChargingEstimate.Result[2];
+                stopping((c, stopped) -> {
+                    if (stopped && seen[0] == null && c.taper.ownTaper(54.0, c.amps, c.now)) {
+                        seen[0] = scheduled(soc, c.amps, target, matching, c.taper, c.now); seen[1] = past(soc, c.amps, target, matching, c.now);
+                    }
+                });
+                String where = "Charge done by at " + (int) soc + "%, " + (int) target + "% limit";
+                check(seen[0] != null && seen[1].learnedToLimit, where + ": armed in the window, with past charges' time to the limit");
+                ChargingEstimate.Result r = seen[0];
+                double history = seen[1].remainingMinutesToLimit;
+                Scooter s = new Scooter(soc, target, r.planningMinutesToLimit);
+                s.arm();
+                long deadline = ChargeScheduleController.nextOccurrence(s.c.now, 8 * 60, s.c.zone);
+                long pastStart = ChargeScheduleController.plan(s.c.now, 8 * 60, history, s.c.zone, false).startWallMs;
+                long shownStart = ChargeScheduleController.plan(s.c.now, 8 * 60, r.remainingMinutesToLimit, s.c.zone, false).startWallMs;
+                check(s.controller.view().doneByEnabled && s.controller.view().startWallMs == s.sentTime, where + ": armed");
+                check(s.sentTime <= pastStart, where + ": the start is no later than past charges' " + pastStart + ", " + s.sentTime);
+                double lead = (deadline - s.sentTime) / 60_000d, buffer = ChargeScheduleController.BUFFER_MS / 60_000d;
+                check(lead >= history + buffer && lead < history + buffer + 1, where + ": " + lead + " minutes ahead, past charges' " + history + " plus one buffer");
+                check(shownStart - s.sentTime >= 60 * MIN, where + ": 59ac1d9 would have started " + (shownStart - s.sentTime) / MIN + " minutes later");
+            }
+        });
+    }
+
+    /** ChargeScheduleControllerTest's rig, reduced to arming Charge done by at 11 PM for 8 AM in Boise. */
+    private static final class Scooter implements ChargeScheduleController.Store, ChargeScheduleController.Driver {
+        final Map<String, String> saved = new HashMap<>();
+        final ChargeScheduleController.Context c = new ChargeScheduleController.Context();
+        final List<String> writes = new ArrayList<>(), results = new ArrayList<>();
+        final ChargeScheduleController controller = new ChargeScheduleController(this, this);
+        java.util.function.Consumer<Boolean> callback;
+        long sentTime;
+        int sentOffset;
+        Scooter(double soc, double target, Double estimateMinutes) {
+            c.scope = "owner-A"; c.ready = true; c.generation = 1; c.now = java.time.Instant.parse("2026-10-20T05:00:00Z").toEpochMilli();
+            c.zone = TimeZone.getTimeZone("America/Boise"); c.charging = 1; c.enabled = 0; c.soc = soc; c.target = target; c.estimateMinutes = estimateMinutes; c.sampleMs = 100_000;
+        }
+        public String read(String key) { return saved.get(key); }
+        public void write(String key, String value) { saved.put(key, value); }
+        public ChargeScheduleController.Context context() { return c; }
+        public void clock(java.util.function.Consumer<Boolean> result) { writes.add("clock"); callback = result; }
+        public void time(long wall, int offset, java.util.function.Consumer<Boolean> result) { writes.add("time"); sentTime = wall; sentOffset = offset; callback = result; }
+        public void enabled(boolean enabled, java.util.function.Consumer<Boolean> result) { writes.add(enabled ? "on" : "off"); callback = result; }
+        void reply() { java.util.function.Consumer<Boolean> done = callback; callback = null; done.accept(true); }
+        /** Turns Charge done by on and confirms the clock, the start and ON. */
+        void arm() {
+            controller.setDoneTime(8, 0, results::add);
+            controller.setDoneEnabled(true, results::add);
+            reply(); reply(); c.wireStart = sentTime / 1000 + sentOffset; reply(); c.enabled = 1;
+            check(writes.equals(Arrays.asList("clock", "time", "on")) && results.equals(Arrays.asList(null, null)), "Charge done by armed: " + writes + " " + results);
+        }
+    }
+
     /** The probes' noise, -1 to 1, for a reading dt after the start and a seed. */
     private static double jitter(long dt, int seed) {
         double x = StrictMath.sin((dt / 1000d + seed * 1013.37) * 12.9898) * 43758.5453;
@@ -535,13 +738,22 @@ public final class FastChargeTaperTest {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
         List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
         check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
-        int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, ownFast = 0, changed = 0;
+        int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, ownFast = 0, changed = 0, replaced = 0, planned = 0;
+        double earlier = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
             String[] base = v7.get(i);
             Double before = base[2].isEmpty() ? null : Double.valueOf(base[2]);
             boolean same = before == null ? row.full == null : row.full != null && Math.abs(before - row.full) <= 1e-6;
             same = same && base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned;
+            // Charge done by plans with the time shown, except where this charge's own taper replaced
+            // past charges that v7 showed: there it keeps the longer of the two (review of 59ac1d9).
+            boolean personal = row.ownTaper && row.sample.charger.equals("HIGH_SPEED") && row.source.equals("FAST_REFERENCE") && base[3].equals("PERSONAL");
+            Double plan = personal ? Double.valueOf(Math.max(row.full, before)) : row.full;
+            check(plan == null ? row.planningLimit == null : row.planningLimit != null && Math.abs(row.planningLimit - plan) <= 1e-6,
+                    "Session " + row.sample.session + " at " + row.minutes + " min: Charge done by plans with " + plan + ", not " + row.planningLimit);
+            if (personal) replaced++;
+            if (personal && before > row.full + 1e-6) { planned++; earlier = Math.max(earlier, before - row.full); }
             // v8 changes only samples where this charge's own taper is established.
             if (row.ownTaper) own++;
             if (row.ownTaper && row.sample.charger.equals("HIGH_SPEED")) ownFast++;
@@ -574,6 +786,10 @@ public final class FastChargeTaperTest {
         // samples, where the branch never applies, the recency check (RECENT_MS) clears the flag on
         // 59 samples of session 2 and the recent-pace check (SLOWER) on 145 of sessions 3 and 8-10.
         check(ownFast == 1197 && own == 1532 && changed == 1110, "Own-taper samples " + ownFast + " high-speed, " + own + " in all, changed from v7 " + changed);
+        // Of the 921 own-taper samples that replaced past charges v7 showed, 459 plan with those longer
+        // past charges, at most 4.58 minutes longer than the time shown.
+        check(replaced == 921 && planned == 459 && Math.abs(earlier - 4.577) < .001,
+                "Own taper over past charges: " + replaced + " samples, " + planned + " planned with them, up to " + earlier + " min longer");
         // expected-v7.csv replays what the app showed live (journal samples are 10 s apart, the app
         // re-evaluates every frame, so held countdowns and taper fits can start a sample apart).
         check(recordedV7 == 1167 && liveV7 >= 1100 && liveSource >= 1166, "The v7 baseline replay reproduces the app's recorded predictions");
@@ -662,14 +878,18 @@ public final class FastChargeTaperTest {
                 "Session 15 at 82% keeps v7's personal 19.4 minutes to 95%");
 
         // Very close to 100%, past charges' time to the limit can exceed this charge's time to 100%
-        // (v7 showed it, at 99% on session 15); the time to the limit is capped there instead.
+        // (v7 showed it, at 99% on session 15); the time shown to the limit is capped there instead,
+        // while Charge done by keeps planning with past charges' uncapped time (review of 59ac1d9).
         List<FastChargeTaperReplay.Row> near = FastChargeTaperReplay.replay(data.resolve("sessions.csv"), 99);
         int capped = 0; double most = 0;
         for (int i = 0; i < near.size(); i++) {
             FastChargeTaperReplay.Row row = near.get(i), hundred = full.get(i);
             String where = "Session " + row.sample.session + " at " + row.minutes + " min, 99% limit";
-            check(Objects.equals(row.full, hundred.full) && Objects.equals(row.planningLimit, row.limit), where + ": time to 100% and Charge done by unchanged");
-            if (!row.ownTaper || !row.sample.charger.equals("HIGH_SPEED") || !hundred.source.equals("FAST_REFERENCE") || row.limit == null) continue;
+            boolean own = row.ownTaper && row.sample.charger.equals("HIGH_SPEED") && hundred.source.equals("FAST_REFERENCE") && row.limit != null;
+            check(Objects.equals(row.full, hundred.full) && (own && row.personalLimit != null
+                    ? Math.abs(row.planningLimit - Math.max(row.limit, row.personalLimit)) <= 1e-9 : Objects.equals(row.planningLimit, row.limit)),
+                    where + ": time to 100% unchanged; Charge done by plans with the time shown, or under its own taper past charges' longer one");
+            if (!own) continue;
             check(row.limit <= row.full + 1e-9, where + ": the cutoff time never exceeds the time to 100%");
             if (row.personalLimit == null) continue;
             check(row.limitSource.equals("PERSONAL") && Math.abs(row.limit - Math.min(row.personalLimit, row.full)) <= 1e-9, where + ": past charges' time, capped");
