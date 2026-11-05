@@ -361,8 +361,9 @@ class ProveEnglishKindsTest(unittest.TestCase):
                                           '    String open() { return "<trk>"; }'))
         self.base = self.repo.commit("base")
 
-    def prove(self):
-        result = subprocess.run(["bash", "tools/l10n/prove-english.sh", self.base, "--skip-build", "--skip-tests"],
+    def prove(self, run_tests=False):
+        flags = ["--skip-build"] + ([] if run_tests else ["--skip-tests"])
+        result = subprocess.run(["bash", "tools/l10n/prove-english.sh", self.base] + flags,
                                 cwd=self.repo.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         report = result.stdout.decode("utf-8", "replace")
         everything = report + result.stderr.decode("utf-8", "replace")
@@ -438,6 +439,103 @@ class ProveEnglishKindsTest(unittest.TestCase):
         self.assertEqual(code, 1, everything)
         self.assertEqual(g1, "FAIL")
         self.assertIn("english-change change", report)
+
+    CHAR = "tests/l10n/characterization/RidesEnglishTest.java"
+    OTHER = "tests/l10n/OtherTest.java"
+    # Reads the tests/l10n/*.sources lists as the real tests/run.sh does ("#" starts a comment, the rest is
+    # trimmed) and runs only the tests/l10n/**Test.java entries; a test still pinning "Old words" fails.
+    LIST_ONLY_RUNNER = r"""#!/bin/bash
+for list in tests/l10n/*.sources; do
+  [[ -f "$list" ]] || continue
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+    [[ -n "$line" ]] || continue
+    case "$line" in tests/l10n/*Test.java)
+      grep -q 'Old words' "$line" && { echo "$line failed"; exit 1; }
+      echo "$line passed" ;; esac
+  done < "$list"
+done
+"""
+    UNLISTED = (r"\| G5 tests pass at the first commit \| FAIL \| not an active entry of any tests/l10n/\*\.sources "
+                r"list( at head)?, so tests/run.sh never runs them: " + re.escape(CHAR))
+
+    def english_change_with_characterization(self, first_sources, head_sources=None):
+        """A base with a list-only tests/run.sh; a first commit pinning the new English, with first_sources as
+        tests/l10n/rides.sources (None: no list); then the English change, which may rewrite the list."""
+        self.repo.write("tests/run.sh", self.LIST_ONLY_RUNNER)
+        self.repo.write(self.OTHER, java_class("OtherTest", '    String s() { return "Other words"; }'))
+        self.base = self.repo.commit("a list-only test runner")
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "New words"; }'))
+        if first_sources is not None:
+            self.repo.write("tests/l10n/rides.sources", first_sources)
+        self.repo.commit("pin the new English")
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz\t-\ta\tb\towner approved in #999\n")
+        if head_sources is not None:
+            self.repo.write("tests/l10n/rides.sources", head_sources)
+        self.repo.commit("the English change")
+
+    def assert_unlisted(self):
+        for run_tests in (True, False):
+            code, _, report, everything = self.prove(run_tests=run_tests)
+            self.assertEqual(code, 1, everything)
+            self.assertRegex(report, self.UNLISTED, everything)
+
+    def test_an_english_change_does_not_run_its_characterization_tests_on_the_base_code(self):
+        """Its characterization tests pin the new English, which the base code does not print yet."""
+        self.english_change_with_characterization("# the rides suites\n" + self.CHAR + "\n")
+        _, _, report, everything = self.prove()
+        self.assertIn("english-change change", report)
+        self.assertRegex(report, r"\| G5 characterization first \| PASS \|", everything)
+        self.assertRegex(report, r"\| G5 tests pass at the first commit \| n/a \| an English change's characterization "
+                                 r"tests pin the new English")
+
+    def test_an_english_change_runs_its_registered_characterization_tests_at_head(self):
+        """Re-review of #207: the exemption is from running them on the base code, not from running them at all.
+        An entry with surrounding whitespace and an inline comment is still an entry."""
+        self.english_change_with_characterization("# the rides suites\n  \t" + self.CHAR + "   # the Rides screen\n")
+        _, _, report, everything = self.prove(run_tests=True)
+        self.assertRegex(report, r"\| G5 tests pass at the first commit \| n/a \|", everything)
+        self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| PASS \| 1 suites reported passing \|",
+                         everything)
+
+    def test_an_english_change_with_an_unregistered_characterization_test_fails(self):
+        """Re-review of #207: tests/run.sh would never run it, so G6 passing would prove nothing about it."""
+        self.english_change_with_characterization(None)
+        self.assert_unlisted()
+
+    def test_an_english_change_that_comments_out_its_characterization_entry_fails(self):
+        """Second re-review of #207: a commented-out entry is no entry, though the path is still in the file."""
+        self.english_change_with_characterization(self.CHAR + "\n", head_sources="# " + self.CHAR + "\n")
+        self.assert_unlisted()
+
+    def test_a_characterization_path_in_another_entrys_comment_is_not_an_entry(self):
+        """Second re-review of #207: tests/run.sh runs OtherTest only."""
+        self.english_change_with_characterization(self.OTHER + " # replaces " + self.CHAR + "\n")
+        self.assert_unlisted()
+
+    def test_a_batch_still_runs_its_characterization_tests_at_the_first_commit(self):
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.repo.commit("characterize")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        _, _, report, everything = self.prove()
+        self.assertIn("batch change", report)
+        # --skip-tests (see prove) skips the run itself; the n/a row is the English change's alone.
+        self.assertNotIn("G5 tests pass at the first commit", report, everything)
+
+    def test_a_batch_with_a_commented_out_characterization_entry_fails_at_the_first_commit(self):
+        """Second re-review of #207: the batch check reads the lists the same way."""
+        self.repo.write("tests/run.sh", self.LIST_ONLY_RUNNER)
+        self.base = self.repo.commit("a list-only test runner")
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.repo.write("tests/l10n/rides.sources", "#" + self.CHAR + "\n")
+        self.repo.commit("characterize")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        code, _, report, everything = self.prove(run_tests=True)
+        self.assertIn("batch change", report)
+        self.assertEqual(code, 1, everything)
+        self.assertRegex(report, self.UNLISTED, everything)
 
     def test_a_batch_that_keeps_its_literals_gets_a_real_g1_pass(self):
         self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
