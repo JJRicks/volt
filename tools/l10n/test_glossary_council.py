@@ -99,6 +99,8 @@ class FakeProviders(object):
             return 200, json.dumps({"models": [{"name": "models/" + m, "supportedGenerationMethods": [
                 "generateContent"]} for m in ("gemini-3.8-flash", "gemini-3.8-pro")]}).encode()
         if url == "https://api.openai.com/v1/responses":
+            if cf.json_mode_without_json(payload):
+                return cf.OPENAI_JSON_INPUT_ERROR
             model, prompt = payload["model"], payload["input"]
             self.prompts.append((model, payload["instructions"], prompt))
             return 200, json.dumps({"model": model + "-2026-11-01", "output_text": json.dumps(self.reply(model, prompt)),
