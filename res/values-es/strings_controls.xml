@@ -252,6 +252,8 @@
     <string name="controls_experimental_traction_control">Se desactivará el control de tracción. Conduce con suavidad sobre terreno mojado o suelto hasta que sepas cómo se comporta.</string>
     <!-- src:1dde06a75fcf7f5479f0e10b9ebb4cd9af0c91e8 -->
     <string name="controls_experimental_start_speed">Una velocidad de arranque por impulso inferior a 3 km/h permite que el motor tire desde parado en cuanto uses el acelerador.</string>
+    <!-- src:d2d497d1972364eef4417e4bf90df4eb7aec3f0c -->
+    <string name="controls_experimental_start_speed_region">Por debajo del rango oficial para esta región. Algunos patinetes se quedan en P al reactivarse tras un bloqueo o desbloqueo, hasta que se reinician. Si al tuyo le pasa, establece 3 km/h.</string>
     <!-- src:7f7b50de012785a2ff6e1bff2a886f3b848c6b80 -->
     <string name="controls_experimental_energy_recovery">La recuperación de energía quedará desactivada, así que tus frenos harán más trabajo al detenerte.</string>
     <!-- src:fc6fd13ec7ff4620a356431586574897b470778c -->
