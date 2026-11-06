@@ -198,6 +198,18 @@ Scooters without a charge limit setting, such as the GT3 Max, show **Charge aler
 - **While it shows,** Volt stays connected, so other apps, the official one included, can't connect to the scooter. Open the official app after tapping **Stop**.
 - A charge recording shows the same card while it records. A ride recording, phone saving, a battery alert waiting for this charge, or a playing alarm keeps its own notification instead; the hold still ends on the same rules. The card needs Volt's notifications; with them off, the sheet offers **Allow**.
 
+## Maintenance reminders
+
+**Scooter → Maintenance → Reminders** opens the **Maintenance** page. Reminders are off until you turn them on there. They stay on this phone, work without a connection, and are kept for each scooter; a backup of Scooter preferences carries them, and forgetting a scooter removes them. Volt sends nothing to the scooter for this: it only reads the odometer the scooter already reports.
+
+- **Add reminder** asks what to check (a suggested task such as **Tire pressure** or **Brakes**, or your own words) and when: after a distance, after a time (days, weeks or months), or **Either**, whichever comes first. The shortcut chips are only shortcuts, not recommendations. Distance needs one odometer reading first, so connect once; time reminders work at once. **Counting from** can start now or at an earlier date, with the odometer reading then if you know it ("I changed the tires in August").
+- Distance counts only while reminders are on and Volt is connected. Volt counts forward from the readings it sees, so an odometer that wraps or resets doesn't undo progress; a reset shows a short notice. When the last reading is more than a week old, the page says the distance may be behind.
+- **Coming up** lists every reminder, nearest first, with a bar and what's left. **Soon** shows from 80%. A due reminder moves to **Due now** with **Mark done** and **Snooze** (1 day, 3 days or 1 week). **Mark done** starts the next interval from today and the current odometer, or from an earlier date and reading.
+- Tap a reminder for its details: how often, counting from, when it's due, its history (**Added**, **Done**, **Snoozed**), **Edit** and **Delete**.
+- The **Reminders** row shows **Off**, the number of reminders, or how many are due. While one is due, the Scooter tab shows a small red dot.
+- Distances follow **More → Units** (km, mi or both). An interval typed in miles stays exact.
+- Reminders show only in the app for now; there are no notifications yet. The manual's intervals section shows none for any model yet. Follow the scooter's manual and a qualified mechanic; reminders don't make the scooter safe to ride.
+
 ## Last-known readings and connected history
 
 Last-known stats and settings stay on the phone for the selected scooter. Grey values are historical; a grey lock state is unverified until you reconnect. Only fresh authenticated scooter state enables setting changes.
