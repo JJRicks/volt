@@ -277,7 +277,7 @@ public final class RideAutoExportTest {
                 rides.sample(wall + i * 1000, 1000 + i * 1000, s);
             }
             if (phoneFiles) {
-                phone.start(id, wall, 1000, "pocket");
+                phone.start(id, wall, 1000);
                 StringBuilder journal = new StringBuilder();
                 if (fixes) for (int i = 0; i <= 20; i++) {
                     long mono = 1000 + i * 1000;

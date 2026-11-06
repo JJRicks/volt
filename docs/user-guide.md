@@ -297,9 +297,8 @@ Start from **Rides → Start recording** while the app is visible. Recording sta
 
 The phone journal is separate from the scooter energy accumulator. GPS continues through a Bluetooth gap. Missing or poor fixes split the route; grade uses a distance window, preferably barometric elevation, with stricter limits for GPS altitude. Implausible altitude excursions are excluded from derived elevation, grade and ascent while raw measurements are retained. GPS and scooter speed derivatives are separate from the phone's raw and gravity-free acceleration. Pocket movement, vibration, pressure changes, and GPS error remain limitations.
 
-**Phone sensors** offers GPS, motion recording and **Pocket / Mounted** placement.
-Placement is recorded as context; it does not calibrate the phone's axes to the
-scooter. Raw acceleration includes gravity; linear acceleration removes gravity;
+**Phone sensors** offers GPS and motion recording. Motion is not calibrated to the
+phone's position on the scooter. Raw acceleration includes gravity; linear acceleration removes gravity;
 earth-frame east/north/up components require fresh orientation data. Speed-derived
 GPS/scooter acceleration is separate and is expressed in m/s². Phone movement and
 bumps can dominate the sensor readings. Route comparison shows measured distance,

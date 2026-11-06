@@ -49,6 +49,7 @@ final class BackupRegistry {
             PERMISSION = "Tied to this installation's Android permission prompts", WIZARD = "Setup wizard in progress on this installation";
     static {
         String app = "app_settings";
+        // phone_placement is retired (no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "theme units temperature_unit time_format stats_density phone_placement map_tile_url map_tile_attribution map_tile_attribution_url stats_favourite_order ride_chart_key last_ride_label".split(" ")) add(app, key, String.class, PREFERENCES);
         for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
@@ -85,7 +86,14 @@ final class BackupRegistry {
         prefix(app, "charge_schedule_owned_", String.class, SCOOTER_PREFERENCES, true);
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
+        // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
+        prefix(app, "scooter_menu_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "charge_alert_state_", true, String.class, null, "Charge in progress on this installation; a restored copy could silence the next alert", true, false, false));
+        // Maintenance reminders travel with the scooter (MaintenanceStore); a merge onto another scooter drops the raw
+        // odometer baseline (BackupArchive.perScooter). Which due reminders this phone already notified stays here:
+        // a restored copy could repeat or silence the next reminder.
+        prefix(app, "maintenance_v1_", String.class, SCOOTER_PREFERENCES, true);
+        RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);

@@ -35,7 +35,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `poll_interval_ms` | Integer | global | Durable | Telemetry refresh. |
 | `history_enabled` | Boolean | global | Durable | Save connected history. |
 | `phone_gps`, `phone_motion` | Boolean | global | Durable | Ride sidecar recording choices. |
-| `phone_placement` | String | global | Durable | `pocket`/`mounted`. |
+| `phone_placement` | String | global | Durable | Retired: no longer read or written. Older Volt wrote `pocket`/`mounted`; the key stays registered so older backups that hold it restore it. |
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
 | `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. |
@@ -69,7 +69,10 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `charge_charger_<pid>` | String | per scooter | Durable | Manual charger choice (`STOCK`/`HIGH_SPEED`). |
 | `charge_schedule_owned_<pid>` | String | per scooter | Durable | Confirmed one-shot charging intent, chosen finish time, actual scheduled start, target and expiry. ScooterService / ChargeScheduleController. Simulation and pending operations never persist; restoring this display state never sends or rearms a scooter command. |
 | `charge_alerts_<pid>` | String | per scooter | Durable | Battery alert choices: charge alert on/level, low battery alert on/level, Notify me, Alarm sound (`charge=1;at=80;low=0;below=20;notify=1;alarm=0`). ScooterService / ChargeAlertPolicy. Everything off when absent or unreadable. |
+| `scooter_menu_v1_<pid>` | String (JSON) | per scooter | Durable | Scooter tab menu layout: section order, each section's row order, hidden sections and rows, and every id seen (`known`). ScooterMenuLayout. Absent or unreadable means the default menu. Hiding never changes a scooter setting. |
 | `charge_alert_state_<pid>` | String | per scooter | Device | The charge in progress for battery alerts: whether one is open, its first and best battery level, the level already alerted, when it was last seen, and the low-battery latch. Never backed up: a restored copy could silence the next alert. |
+| `maintenance_v1_<pid>` | String (JSON) | per scooter | Durable | Maintenance reminders: the master switch, the forward-only maintenance odometer (last raw odometer value, its field width, the counted distance, the last reset) and up to 30 reminders, each with its task id or own name, distance (km) and/or time interval, notify choice, count start, snooze end and last 20 events. MaintenanceStore / MaintenancePolicy / MaintenanceDistance. Off with no reminders when absent or unreadable; fields a newer version added are kept. A merge onto another scooter drops the raw odometer value, so the next reading re-baselines without adding. Not written yet: no screen uses it. |
+| `maintenance_seen_<pid>` | String | per scooter | Device | Which due reminders this phone has already notified about. Never backed up: a restored copy could repeat or silence the next reminder. Registered ahead of the notifications work; not written yet. |
 | `ride_comparison` | String set | global (ride UUIDs) | Durable | Rides selected for comparison. |
 | `ride_selected` | String | global (ride UUID) | Durable | Last opened ride. |
 | `notification_prompted` | Boolean | global | Device | Volt already asked for Android's notification permission on this installation. |

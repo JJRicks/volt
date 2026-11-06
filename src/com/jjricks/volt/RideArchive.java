@@ -261,7 +261,7 @@ final class RideArchive {
             if(motion){if(fields.length!=15)throw new IllegalArgumentException();clock(fields[0]);firstNumber=1;}
             else {
                 if(fields.length<3)throw new IllegalArgumentException();clock(fields[1]);clock(fields[2]);String event=fields[0];
-                if("START".equals(event)){if(fields.length!=4||!("pocket".equals(fields[3])||"mounted".equals(fields[3])))throw new IllegalArgumentException();return;}
+                if("START".equals(event)){if(fields.length!=4||!(fields[3].isEmpty()||"pocket".equals(fields[3])||"mounted".equals(fields[3])))throw new IllegalArgumentException();return;}
                 int expected="GPS".equals(event)?10:"TELEMETRY".equals(event)?9:"MOTION".equals(event)?5:"PRESSURE".equals(event)?4:("GAP".equals(event)||"STOP".equals(event))?3:-1;
                 if(fields.length!=expected&&!("TELEMETRY".equals(event)&&fields.length==6))throw new IllegalArgumentException();firstNumber=3;
             }

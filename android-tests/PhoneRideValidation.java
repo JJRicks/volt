@@ -188,7 +188,7 @@ public final class PhoneRideValidation extends Instrumentation {
             PhoneRideRecorder recorder = new PhoneRideRecorder(getTargetContext(), service.phoneRides);
             AtomicReference<HandlerThread> thread = new AtomicReference<>();
             main(() -> {
-                recorder.start(id, "pocket", false, true);
+                recorder.start(id, false, true);
                 thread.set((HandlerThread) field(recorder, "thread"));
                 recorder.stop();
             });
@@ -204,7 +204,7 @@ public final class PhoneRideValidation extends Instrumentation {
         PhoneRideStore store = service.phoneRides;
         require(store != null, "Phone journal unavailable");
         long wall = 1791835200000L, mono = 100000;
-        store.start(id, wall, mono, "pocket");
+        store.start(id, wall, mono);
         StringBuilder batch = new StringBuilder();
         for (int i = 0; i < 14; i++) {
             long dt = i * 2000L;

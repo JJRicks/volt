@@ -36,7 +36,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
             if (args.getString("start_only", "false").equals("true")) { result.putString("result", "PASS"); return; }
             main(() -> invoke(screen, "phoneOptions", new Class[0])); settle();
             AlertDialog optionsDialog = (AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1);
-            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) != null, "Phone placement uses sliding selector"); text(options, "Mounted").performClick(); check(activity.service().settings.getString("phone_placement", "").equals("mounted"), "Placement saves immediately"); text(options, "Pocket").performClick(); optionsDialog.dismiss(); });
+            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors sheet has no placement choice"); optionsDialog.dismiss(); });
             settle(); check(!optionsDialog.isShowing(), "Phone options sheet closed before reading the ride");
             if (!Boolean.TRUE.equals(field(screen, "wide"))) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
             settle();
@@ -399,7 +399,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 5000000;
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(),"rides"));
         String longId = synthetic.start("fixture","Long full-detail fixture",wall,1000);
-        service.phoneRides.start(longId,wall,1000,"pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(longId,wall,1000); StringBuilder phone = new StringBuilder();
         for(int i=0;i<4096;i++) {
             long mono=1000+i*1000L; Map<String,RideStore.Sample> row=new LinkedHashMap<>();
             row.put("voltage_v",new RideStore.Sample(50d,"","V",0x72,mono)); row.put("current_a",new RideStore.Sample((i==1235?3456d:100d)/50,"","A",0x72,mono));
@@ -470,7 +470,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 3000000;
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(), "rides"));
         String speedId = synthetic.start("fixture", "Stops and gap · synthetic", wall, 1000);
-        service.phoneRides.start(speedId, wall, 1000, "pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(speedId, wall, 1000); StringBuilder phone = new StringBuilder();
         double lat = 43.82, lon = -111.78;
         for (int i = 0; i < 300; i++) {
             long mono = 1000 + i * 1000L;
@@ -613,7 +613,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         main(()->((AlertDialog)((List<?>)field(screen,"dialogs")).get(0)).dismiss());
         ScooterService service=activity.service();String legacy=service.rides.start("fixture","Scooter only",System.currentTimeMillis(),900000);service.rides.stop(System.currentTimeMillis()+1000,901000);
         for(int attempt=0;attempt<2;attempt++){
-            if(attempt==1){service.phoneRides.start(legacy,System.currentTimeMillis(),900000,"pocket");service.phoneRides.stop(legacy,System.currentTimeMillis()+1000,901000);}
+            if(attempt==1){service.phoneRides.start(legacy,System.currentTimeMillis(),900000);service.phoneRides.stop(legacy,System.currentTimeMillis()+1000,901000);}
             main(()->invoke(screen,"showDetails",new Class[]{String.class},legacy));settle();
             check(text(root(),"Phone & route")==null&&text(root(),"Export phone data")==null,"Empty phone data has no placeholder stats or export block");
             main(()->((AlertDialog)((List<?>)field(screen,"dialogs")).get(0)).dismiss());
@@ -830,7 +830,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         // a service tick can add real-time disconnect heartbeats to the synthetic timeline.
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(), "rides"));
         id = synthetic.start("fixture", "Campus hill · synthetic", wall, 1000); synthetic.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
-        service.phoneRides.start(id, wall, 1000, "pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(id, wall, 1000); StringBuilder phone = new StringBuilder();
         for (int i = 0; i < 240; i++) {
             long mono = 1000 + i * 1000; double speed = 20 + 4 * Math.sin(i / 15.0), watts = 600 + 500 * Math.sin(i / 20.0);
             Map<String,RideStore.Sample> row = new LinkedHashMap<>(); row.put("voltage_v", new RideStore.Sample(50d, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(watts / 50, "", "A", 0x72, mono));

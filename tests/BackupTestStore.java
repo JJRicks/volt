@@ -108,7 +108,7 @@ final class BackupTestStore implements BackupArchive.Storage {
         for (int i = 0; i < 40; i++) { Map<String, RideStore.Sample> s = new LinkedHashMap<>(); s.put("speed_kmh", new RideStore.Sample(10 + i % 7, wall / 7 + i * 1000)); s.put("battery_percent", new RideStore.Sample(90 - i / 10d, wall / 7 + i * 1000)); rides.sample(wall + i * 1000, wall / 7 + i * 1000, s); }
         rides.stop(wall + 40000, wall / 7 + 40000);
         if (phone) {
-            PhoneRideStore sensors = new PhoneRideStore(new File(files(), "phone-rides")); sensors.start(id, wall, wall / 7, "mounted");
+            PhoneRideStore sensors = new PhoneRideStore(new File(files(), "phone-rides")); sensors.start(id, wall, wall / 7);
             sensors.appendBatch(id, PhoneRideStore.row("GPS", wall + 1000, wall / 7 + 1000, 40.1, -111.2, 3, 4, 5, 6, 7), (wall / 7 + 1000) + ",1,2,3,4,5,6,7,8,9,0,0,0,1,3\n");
             sensors.stop(id, wall + 40000, wall / 7 + 40000);
         }
