@@ -80,7 +80,8 @@ It drives the real system pickers through UiAutomation and checks:
    (`AUTO_PARKED_DISCONNECT`) and a ride revived by a new service and stopped later.
 9. Failure: the line on the Folder row (the switches keep their captions), one notification on the `scooter` channel
    while hidden with catalog title and text, none for a second failure of the same kind,
-   none while visible; the line clears after the next ride end.
+   none while visible, then one when that same failure happens on a hidden ride and none
+   on the next; the line clears after the next ride end.
 10. Restored without a folder: `Choose a folder to start saving`, the ride waits, and
     tapping the Folder row and choosing the folder copies it.
 11. About 327 dp wide with Volt's text at 130%: heading, titles, captions, folder line,

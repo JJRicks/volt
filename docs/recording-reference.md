@@ -191,8 +191,9 @@ ride you end into one folder, and a **Folder** row:
   switches never turn themselves off. The **Folder** row shows **Couldn't save the last ride.
   Choose the folder again.** (folder deleted or access lost) or **… Volt will try
   again.** (a write failed). While Volt is in the background, one notification is
-  posted per kind of failure, until the kind changes or a copy succeeds. A success
-  is silent.
+  posted per kind of failure, until the kind changes or a copy succeeds. A failure
+  that first happens while Volt is open shows only on the row, so the same failure
+  on a later ride in the background still posts one. A success is silent.
 - **Running.** A copy keeps Volt's service running until it ends, separately from
   the ten-second idle timeout, and backup and restore wait for it. None starts
   during a backup or restore.

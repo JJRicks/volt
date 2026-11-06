@@ -85,6 +85,8 @@ public final class ScooterService extends Service {
     private RideAutoExportRunner rideAutoExport;
     /** A failed automatic ride copy, posted only while Volt is hidden (rideAutoExportFinished). */
     private static final int AUTO_EXPORT_NOTICE = 78;
+    /** The failure kind AUTO_EXPORT_NOTICE last posted in this service run; NONE until one is, and again after a success. */
+    private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
     static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
@@ -1439,9 +1441,11 @@ public final class ScooterService extends Service {
         if(destroyed)return;
         if(again)startRideAutoExport();
         // A success is silent and clears an earlier failure notice. A failure shows on the settings row from the stored
-        // id; while Volt is hidden it also posts once per failure kind, until the kind changes or a copy succeeds.
-        if(after==RideAutoExport.Problem.NONE)cancelNotice(AUTO_EXPORT_NOTICE);
-        else if(after!=before&&!visible)showAutoExportNotice(after);
+        // id; while Volt is hidden it also posts once per failure kind, until the kind changes or a copy succeeds. The
+        // kind posted is tracked, not the kind stored: a failure first seen while Volt was open still posts at the next
+        // hidden failure of the same kind (RideAutoExport.notifies).
+        if(after==RideAutoExport.Problem.NONE){cancelNotice(AUTO_EXPORT_NOTICE);autoExportNotified=after;}
+        else if(RideAutoExport.notifies(before,after,autoExportNotified,visible)){showAutoExportNotice(after);autoExportNotified=after;}
         applyWorkPolicy(false);
         changed();
     }

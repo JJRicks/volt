@@ -653,9 +653,24 @@ public final class RideAutoExportValidation extends Instrumentation {
         check("folder".equals(settings.getString(PROBLEM, "")), "Failed while visible");
         SystemClock.sleep(1500);
         check(notice(78) == null, "No notification while Volt is visible; the row shows it");
+        // The same failure on a later hidden ride: the visible one was never posted, so this one is, once.
+        String x = recordRide("Same failure while hidden", true);
+        hide();
+        stopFromNotification(false); awaitPassDone();
+        check("folder".equals(settings.getString(PROBLEM, "")), "Still the folder problem");
+        await(() -> notice(78) != null, 10000, "Visible failure, then the same failure while hidden: one notification");
+        dismissNotice(78);
+        screenOnAndShow();
+        String y = recordRide("Same failure, hidden again", true);
+        hide();
+        stopFromNotification(false); awaitPassDone();
+        SystemClock.sleep(1500);
+        check(notice(78) == null, "Posted once: no repeat on the next hidden ride");
+        screenOnAndShow();
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
         String w = recordRide("Folder back again", false, false); stopOnly(null); awaitPassDone();
         check(listing().contains(csvName(v)) && listing().contains(analysisName(w)) && !settings.contains(PROBLEM), "Both copied after the folder came back");
+        check(listing().contains(csvName(x)) && listing().contains(csvName(y)), "The hidden rides waiting with it are copied too");
         folderClean();
     }
 
