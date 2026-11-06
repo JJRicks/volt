@@ -90,12 +90,14 @@ final class RidingScreen implements AppScreen {
     private RidingDiscMotion disc;
     /** Brightness and the rotation lock while riding mode is open (its slider sits below). */
     private final RidingDisplay display;
+    /** Night vision: the red layer on this screen and the moon at the top bar's end. */
+    private final RidingNight night;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
         this.host = host;
         this.session = session;
         this.leave = leave;
-        ui = host.ui();
+        ui = RidingNight.palette(host, session);
         service = host.service();
         Context context = host.activity();
         preferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
@@ -223,6 +225,8 @@ final class RidingScreen implements AppScreen {
         frame.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
         display = new RidingDisplay(host.activity(), ui, preferences, host.resumed());
         frame.addView(display.controls(), RidingDisplay.slot(ui));
+        night = new RidingNight(host, ui, session, view, display);
+        top.addView(night.button(), RidingNight.slot(ui));
         // The big watt number sits on the bar's zero line, so the eye always finds it in the same place.
         body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> bar.post(this::alignZero));
         refresh();
@@ -507,6 +511,7 @@ final class RidingScreen implements AppScreen {
         dismissSheet();
         if (disc != null) disc.stop();
         display.detach();
+        night.detach();
     }
 
     /**
