@@ -129,7 +129,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         List<String> created = new ArrayList<>(); ScooterProfiles.Profile profile = service.profiles.active();
         String serial = profile.serial, pid = profile.advertisedPid;
         try {
-            main(() -> { screen.beginRecording(); check(!service.isRecording(), "Home record still requires a ready connection"); });
+            main(() -> { homeStart(); check(!service.isRecording(), "Home record still requires a ready connection"); });
             main(() -> {
                 syntheticReady(profile); profile.serial = "S2538SYNTHETIC"; profile.advertisedPid = "2538";
                 service.ble.telemetry.accept(0x70, new byte[]{0, 0, 3}, SystemClock.elapsedRealtime());
@@ -140,7 +140,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 check(started.label.endsWith(" - SPORT") && !started.label.contains("Old manually"), "Actual journal uses fresh model-aware mode instead of the previous manual label");
                 check(started.label.equals(DisplayTime.rideName(activity, settings, started.startWallMs, "SPORT")), "Actual journal gets its date and time at capture start");
                 check(((List<?>)field(screen, "dialogs")).isEmpty() && find(screen.view(), EditText.class) == null, "Record opens no pre-start naming dialog or text editor");
-                screen.beginRecording(); check(started.id.equals(service.rides.activeId()), "Repeated Home Record leaves the existing recording intact");
+                homeStart(); check(started.id.equals(service.rides.activeId()), "Repeated Home Record leaves the existing recording intact");
             }); settle(); awaitPhoneSensorsStarted(); screenshot("immediate-ride-recording");
             main(() -> service.stopRide()); awaitPhoneSave();
             final String first = created.get(0);
@@ -155,10 +155,12 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 service.ble.telemetry.accept(0x70, new byte[]{0, 0, 2}, SystemClock.elapsedRealtime());
                 invoke(activity, "select", new Class[]{String.class}, "home");
                 DashboardScreen home = (DashboardScreen)field(activity, "screen");
-                ((DashboardScreen.Actions)field(home, "actions")).startRide(); screen = (RidesScreen)field(activity, "screen");
+                ((DashboardScreen.Actions)field(home, "actions")).startRide();
                 check(service.isRecording() && service.rides.activeSummary().label.endsWith(" - ECO"), "Actual dashboard callback starts immediately with the newly reported mode");
+                check(field(activity, "screen") == home, "Home's start stays on Home, with no Rides-tab hop (owner Q1 B)");
                 created.add(service.rides.activeId()); check(((List<?>)field(screen, "dialogs")).isEmpty(), "Dashboard start has no extra naming step");
                 service.stopRide();
+                invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen)field(activity, "screen");
             }); awaitPhoneSave();
             main(() -> {
                 setField(service.ble, "statusMs", SystemClock.elapsedRealtime());
@@ -179,9 +181,9 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 check(((String)invoke(screen, "defaultRideName", new Class[0])).split(" - ", -1).length == 2, "Another connected profile cannot provide the new ride's mode");
                 setField(service.ble, "profile", profile); service.ble.telemetry.clear();
                 check(((String)invoke(screen, "defaultRideName", new Class[0])).split(" - ", -1).length == 2, "Missing mode is omitted without a placeholder or trailing separator");
-                setField(service, "phoneSavingCount", 1); screen.beginRecording(); check(!service.isRecording(), "Pending sensor save still blocks a new ride"); setField(service, "phoneSavingCount", 0);
+                setField(service, "phoneSavingCount", 1); homeStart(); check(!service.isRecording(), "Pending sensor save still blocks a new ride"); setField(service, "phoneSavingCount", 0);
                 setField(service.ble, "gatt", null); service.ble.disconnect();
-                settings.edit().putBoolean("developer_options", true).commit(); check(service.setSimulation(true), "Developer simulation fixture enabled"); screen.beginRecording(); check(!service.isRecording() && service.simulating(), "Home cannot start a simulated ride or silently exit simulation");
+                settings.edit().putBoolean("developer_options", true).commit(); check(service.setSimulation(true), "Developer simulation fixture enabled"); homeStart(); check(!service.isRecording() && service.simulating(), "Home cannot start a simulated ride or silently exit simulation");
                 service.setSimulation(false); screen = (RidesScreen)field(activity, "screen");
             });
         } finally {
@@ -200,6 +202,14 @@ public final class RidesAnalysisValidation extends Instrumentation {
         check(!service.ble.connected() && !service.isRecording(), "Immediate-start fixture leaves no connection or capture running");
     }
     /** Ready-state fixture only: Bluetooth stays disabled, with no writer, poll or remote GATT service. */
+    /** Home's start (RideRecordingApp.of(host).start(), package-private): the shared control, wherever the app is. */
+    void homeStart() {
+        try {
+            Method of = Class.forName("com.jjricks.volt.RideRecordingApp").getDeclaredMethod("of", ScreenHost.class); of.setAccessible(true);
+            Object control = of.invoke(null, activity);
+            Method start = control.getClass().getDeclaredMethod("start"); start.setAccessible(true); start.invoke(control);
+        } catch (Exception e) { throw new IllegalStateException("Home start unavailable", e); }
+    }
     void syntheticReady(ScooterProfiles.Profile profile) {
         try {
             Class<?> unsafe = Class.forName("sun.misc.Unsafe"); Field singleton = unsafe.getDeclaredField("theUnsafe"); singleton.setAccessible(true);

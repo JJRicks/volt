@@ -254,34 +254,25 @@ public final class RidesScreen implements AppScreen {
         if (!text.contentEquals(button.getText())) button.setText(text);
         button.setContentDescription(text);
     }
-    /** Home's Record ride; unlike the Rides record button, it never leaves simulation. */
-    public void beginRecording() {
-        if (service.isRecording()) return;
-        if (service.simulating()) { host.toast(T.ridesToastExitSimulation()); return; }
-        toggleRecording();
-    }
+    /** The record and end buttons; the checks and the start live in the shared RideRecordingControl. */
     private void toggleRecording() {
-        if (service.simulating() && !service.isRecording()) { service.setSimulation(false); host.rebuild(); return; }
-        if (service.isRecording()) {
-            service.stopRide();
-            if (service.isRecording()) host.toast(T.ridesToastCouldNotStop()); else Haptics.confirm(scroll);
-            refresh(); return;
-        }
-        if (service.phoneSaving()) { host.toast(T.ridesToastFinishingPrevious()); return; }
-        if (service.rides == null) { host.toast(T.ridesToastStorageUnavailable()); return; }
-        if (!service.ble.ready()) { host.toast(T.ridesToastConnectFirst()); return; }
-        // Keep permission handling ahead of capture; name the ride at its actual start,
-        // since the permission prompt can stay open for an arbitrary amount of time.
-        Runnable begin = () -> {
-            if (closed || host.activity().isDestroyed() || service.isRecording()) return;
-            service.startRide(defaultRideName());
-            if (service.isRecording()) Haptics.confirm(scroll);
-            refresh();
-        };
-        if (preferences.getBoolean("phone_gps", true)) host.requestRideLocation(begin);
-        else begin.run();
+        RideRecordingApp.of(host).toggle();
     }
-    private String defaultRideName() {
+    /** Why a ride did not start or stop (RideRecordingControl), as the Rides tab has always said it. */
+    static String recordingMessage(int outcome) {
+        switch (outcome) {
+            case RideRecordingControl.SIMULATING: return T.ridesToastExitSimulation();
+            case RideRecordingControl.FINISHING_PREVIOUS: return T.ridesToastFinishingPrevious();
+            case RideRecordingControl.NO_STORAGE: return T.ridesToastStorageUnavailable();
+            case RideRecordingControl.NOT_CONNECTED: return T.ridesToastConnectFirst();
+            case RideRecordingControl.NOT_STOPPED: return T.ridesToastCouldNotStop();
+            default: return null;
+        }
+    }
+    private String defaultRideName() { return defaultRideName(host); }
+    /** A new ride's name: date, time and the scooter's fresh drive mode, when it is known. */
+    static String defaultRideName(ScreenHost host) {
+        ScooterService service = host.service(); SharedPreferences preferences = service.settings;
         String mode = "";
         long now = android.os.SystemClock.elapsedRealtime();
         ScooterProfiles.Profile active = service.profiles.active(), bound = service.ble.profile();
