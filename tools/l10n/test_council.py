@@ -1301,6 +1301,179 @@ class SafetyJudgedTest(Base):
         self.assertEqual(self.decisions()["common_disclaimer"]["outcome"], "safety-agreed")
 
 
+class RefusedUnanimousTest(Base):
+    """A unanimous safety key the judge refused (the pt-PT «à hora certa» case of 2026-11-06) is listed
+    again as safety-refused; a merge there is a judged safety text, which needs a back-translation by a
+    model that drafted nothing and a later confirm before it is safety-judged. Anything less stays English."""
+
+    KEY = "common_alarm_on"
+    YES = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
+    MERGED = "Alarma encendida"
+
+    def setUp(self):
+        super().setUp()
+        self.fake = self.draft_all()  # every drafter writes «Alarma activada»
+        self.main("check", "--tag", "es", "--area", "common")
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+
+    def refusal(self, **extra):
+        return dict({"key": self.KEY, "verdict": "fallback", "reason": "«activada» may read as armed later"}, **extra)
+
+    def merge(self, text=MERGED):
+        return {"key": self.KEY, "verdict": "merge", "text": text, "reason": "says the alarm is on now"}
+
+    def merged_confirm(self, text=MERGED, back="Alarm activated", **extra):
+        row = {"key": self.KEY, "verdict": "confirm", "confirm": dict(self.YES), "backtranslation_meaning_kept": True,
+               "text": text, "back": back, "reason": "the merged text keeps the meaning"}
+        row.update(extra)
+        return row
+
+    def requests(self):
+        self.assertEqual(self.main("judge-requests", "--tag", "es", "--area", "common"), 0)
+        return dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+
+    def decide_final(self):
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
+        return self.decisions()[self.KEY]
+
+    def waiting(self):
+        """What decide (not final) says the key waits for, or None."""
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.main("decide", "--tag", "es", "--area", "common")
+        found = re.search(r"  %s: waiting for (.*)" % self.KEY, self.out.getvalue())
+        return found.group(1) if found else None
+
+    def backtranslate(self):
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+
+    def test_refused_merged_back_translated_confirmed_is_safety_judged(self):
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-confirmation")
+        # The judge refuses the text every drafter wrote: English, as before, and not a missing step.
+        self.judge([self.refusal()])
+        d = self.decide_final()
+        self.assertEqual((d["outcome"], d["text"]), ("fallback-english", None))
+        self.assertIn("the judge ruled fallback", d["reason"])
+        self.assertNotIn("final run", d["reason"])
+        self.assertIsNone(self.waiting())
+        # It is listed again, for a merge or a second fallback, with the refused text and the refusal.
+        request = self.requests()[self.KEY]
+        self.assertEqual(request["reason"], "safety-refused")
+        self.assertEqual(request["verdicts"], ["merge", "fallback"])
+        self.assertEqual(request["confirm"], [])
+        self.assertEqual(request["text"], "Alarma activada")
+        self.assertEqual(request["backtranslation"]["back"], "Alarm activated")
+        self.assertEqual(request["refusal"]["reason"], "«activada» may read as armed later")
+        self.assertIsNone(request["refusal"]["merge"])
+        self.assertIn("- safety-refused:", self.repo.read("l10n/work/es/common/prompts/judge.md"))
+        # The judge merges: the text is not used before its own back-translation.
+        self.judge([self.refusal(), self.merge()])
+        self.assertEqual(self.waiting(), "a back-translation of the judged safety text")
+        self.assertIn("no back-translation", self.decide_final()["reason"])
+        self.assertNotIn(self.KEY, self.requests())
+        self.backtranslate()
+        prompt = self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"]
+        self.assertIn(self.MERGED, prompt)
+        self.assertNotIn("Alarma activada", prompt)
+        back = self.stored_backs()[self.KEY]
+        self.assertEqual((back["target"], back["model"]), (self.MERGED, "gemini-3.7-flash"))
+        # A merge without a confirm stays English, and waits for the confirm.
+        self.assertEqual(self.waiting(), "the judge's confirmation of the judged safety text and its back-translation")
+        d = self.decide_final()
+        self.assertEqual((d["outcome"], d["text"]), ("fallback-english", None))
+        self.assertIn("not confirmed", d["reason"])
+        request = self.requests()[self.KEY]
+        self.assertEqual(request["reason"], "safety-judged-confirmation")
+        self.assertEqual((request["text"], request["backtranslation"]["back"]), (self.MERGED, "Alarm activated"))
+        self.assertEqual(request["verdicts"], ["confirm", "fallback"])
+        self.assertEqual(request["confirm"], list(council.SAFETY_CONFIRMATIONS))
+        # A confirm of the refused text, or one written before the merge, confirms nothing.
+        self.judge([self.refusal(), self.merge(), self.confirm(self.KEY)])
+        self.assertIn("confirmed another text", self.decide_final()["reason"])
+        self.judge([self.refusal(), self.merged_confirm(), self.merge()])
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        # A confirm missing an item confirms nothing either.
+        self.judge([self.refusal(), self.merge(), self.merged_confirm(backtranslation_meaning_kept=False)])
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        # The confirm of that text and that back-translation, on a later line: safety-judged.
+        self.judge([self.refusal(), self.merge(), self.merged_confirm()])
+        d = self.decide_final()
+        self.assertEqual((d["outcome"], d["text"]), ("safety-judged", self.MERGED))
+        self.assertEqual(d["models"]["backtranslator"], "gemini-3.7-flash")
+        self.assertEqual(d["judge"]["verdict"], "confirm")
+        self.assertIn("refused", d["reason"])
+        self.assertIn("merged", d["reason"])
+        self.assertEqual(d["excused"], {})
+        # Rewriting judge-requests.jsonl rebinds nothing: decide reads judge.jsonl and the drafts only.
+        path = self.repo.path("l10n/work/es/common/judge-requests.jsonl")
+        translib.write_jsonl(path, [dict(r, reason="safety-confirmation", text="Alarma activada")
+                                    for r in translib.read_jsonl(path)])
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+        # The merged text's back-translation must be by a model that drafted nothing.
+        rows = [dict(r, model="gpt-6.1-terra") if r["key"] == self.KEY else r
+                for r in translib.read_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"))]
+        translib.write_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"), rows)
+        self.assertIn("also drafted", self.decide_final()["reason"])
+
+    def test_refused_merge_stays_english(self):
+        self.judge([self.refusal(), self.merge()])
+        self.backtranslate()
+        # The judge refuses its merged text: English for good, not asked again, and not a missing step.
+        for rulings in ([self.refusal(), self.merge(), self.refusal(reason="still ambiguous")],
+                        [self.refusal(), self.merge(), self.merged_confirm(), self.refusal(reason="on reflection")],
+                        [self.refusal(), self.merge(), self.refusal(reason="no"), self.merge(), self.merged_confirm()]):
+            self.judge(rulings)
+            d = self.decide_final()
+            self.assertEqual((d["outcome"], d["text"]), ("fallback-english", None))
+            self.assertIn("refused its merged text", d["reason"])
+            self.assertNotIn("final run", d["reason"])
+            self.assertIsNone(self.waiting())
+            self.assertNotIn(self.KEY, self.requests())
+
+    def test_second_fallback_declines_and_failing_merge_is_asked_again(self):
+        # A second fallback in a row answers safety-refused: English stays and the key is not listed.
+        self.judge([self.refusal(), self.refusal(reason="no merge keeps it exact")])
+        self.assertNotIn(self.KEY, self.requests())
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        # A merged text that fails the checks is never back-translated; the key is asked again with why.
+        self.judge([self.refusal(), self.merge("Alarma %1$s")])
+        self.backtranslate()
+        self.assertEqual(self.stored_backs()[self.KEY]["target"], "Alarma activada")
+        request = self.requests()[self.KEY]
+        self.assertEqual(request["reason"], "safety-refused")
+        self.assertEqual(request["refusal"]["merge"], "Alarma %1$s")
+        self.assertIn("failed the checks", request["refusal"]["merge_problem"])
+        self.assertTrue(request["refusal"]["merge_findings"])
+        self.assertEqual(self.waiting(), "a new pick or merge of the safety text")
+        self.assertIn("failed the checks", self.decide_final()["reason"])
+        # A later merge that passes replaces it, and takes the same back-translation and confirm.
+        self.judge([self.refusal(), self.merge("Alarma %1$s"), self.merge()])
+        self.backtranslate()
+        self.judge([self.refusal(), self.merge("Alarma %1$s"), self.merge(), self.merged_confirm()])
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+
+    def test_keys_without_a_refusal_keep_their_path(self):
+        # A merge that answers no refusal is no way in: only the confirm of the agreed text counts.
+        self.judge([self.merge()])
+        self.backtranslate()
+        self.assertEqual(self.stored_backs()[self.KEY]["target"], "Alarma activada")
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-confirmation")
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        self.judge([self.merge(), self.merged_confirm()])
+        self.assertIn("confirmed another text", self.decide_final()["reason"])
+        # A refusal of older English is ignored, like every ruling of older English.
+        self.judge([self.refusal(source_sha1="0" * 40)])
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-confirmation")
+        # A confirm after a refusal is the latest ruling, as before: safety-agreed, not listed as refused.
+        self.judge([self.refusal(), self.confirm(self.KEY)])
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-confirmation")
+        self.assertEqual(self.decide_final()["outcome"], "safety-agreed")
+        self.judge([self.confirm(self.KEY)])
+        self.assertEqual(self.decide_final()["outcome"], "safety-agreed")
+        self.assertIsNone(self.requests()[self.KEY]["refusal"])
+
+
 def spanish_shaped(s):
     """The English as decision text with every plural form Spanish needs, which merge.py requires."""
     return s.items["other"] if s.kind == "string" else dict(s.items, many=s.items["other"])

@@ -1,0 +1,642 @@
+{
+ "format": "volt-l10n-glossary-draft-v1",
+ "tag": "pt-PT",
+ "provider": "google",
+ "model": "gemini-3.8-flash",
+ "model_reported": "gemini-3.8-flash",
+ "usage": {
+  "candidatesTokenCount": 3323,
+  "promptTokenCount": 47399,
+  "thoughtsTokenCount": 6478,
+  "totalTokenCount": 57200
+ },
+ "rows": {
+  "not-affiliated": {
+   "en_sha1": "8f8d5270ab5faa30da17b2108db2f73b1d0662ca",
+   "term": "não afiliada à NAVEE | sem afiliação à NAVEE"
+  },
+  "official-app": {
+   "en_sha1": "22fafde795a1230529ee2d5b93dfded682ec3038",
+   "term": "app oficial | apps oficiais"
+  },
+  "navee-app": {
+   "en_sha1": "ddb7cdbd621466a678e5bc78cadebf31dd5325af",
+   "term": "a app NAVEE"
+  },
+  "scooter": {
+   "en_sha1": "38573ffc24b31cec000c21510cd132b50df2d63d",
+   "term": "trotinete | trotinetes"
+  },
+  "owner": {
+   "en_sha1": "f048f667854fde945701d08869f7c88b6e88d560",
+   "term": "proprietário | proprietários"
+  },
+  "owner-profile": {
+   "en_sha1": "132dbca5e69e9a945c9eb0794535d55fe556fcf5",
+   "term": "perfil de proprietário | perfis de proprietário | perfil do proprietário"
+  },
+  "shared-rider": {
+   "en_sha1": "f6e80fc799e35db41cf3fdb9d8d7b86cebe90bff",
+   "term": "utilizador autorizado | utilizadores autorizados | autorizada | autorizadas"
+  },
+  "owner-key": {
+   "en_sha1": "94369d1134c30861002e751b47a5c7464b414bb3",
+   "term": "chave de proprietário | chaves de proprietário"
+  },
+  "owner-setup": {
+   "en_sha1": "4993de4d8aba94a68c6022843d44a843a6c4a9ba",
+   "term": "configuração do proprietário"
+  },
+  "owner-setup-file": {
+   "en_sha1": "1d295bdfe6c0b366bf763f30a94af5006f059e8b",
+   "term": "ficheiro de configuração do proprietário | ficheiros de configuração do proprietário"
+  },
+  "owner-file": {
+   "en_sha1": "758983ff609c6100d01f8fa4942c8a05811dcc72",
+   "term": "ficheiro de proprietário | ficheiros de proprietário"
+  },
+  "capture": {
+   "en_sha1": "3034933ba13cc2c3dfeb03a15b1b1a635c972700",
+   "term": "captura | capturas | capturar"
+  },
+  "capture-helper": {
+   "en_sha1": "b3692094a04c7054ea99c89460e85aec7dc766aa",
+   "term": "ferramenta de captura | ferramentas de captura"
+  },
+  "usb-debugging": {
+   "en_sha1": "34ad0d12364dff5e899528d89a280fbf7c98904c",
+   "term": "Depuração USB"
+  },
+  "developer-options": {
+   "en_sha1": "9d9391003dbcae64d59d331d2f6115750fb6ca45",
+   "term": "Opções de programador"
+  },
+  "build-number": {
+   "en_sha1": "b357f362d2832d35cd53c9344c828b28544ef2d9",
+   "term": "Número de compilação"
+  },
+  "electronic-lock": {
+   "en_sha1": "d83160906fb884aa34b382958ac756fcb8ee2647",
+   "term": "bloqueio eletrónico | bloqueios eletrónicos"
+  },
+  "lock": {
+   "en_sha1": "12ef916cd5cd352718558fdea67db417a609f93c",
+   "term": "bloquear | bloqueia | bloqueio"
+  },
+  "locked": {
+   "en_sha1": "1d0d37a9e64e749fdd09c0f9d11753f43cf05ffc",
+   "term": "bloqueada | bloqueadas | bloqueado | bloqueados"
+  },
+  "unlock": {
+   "en_sha1": "cfc7f2e455760bcc3c18a62189f35ed4da5dbbad",
+   "term": "desbloquear | desbloqueia | desbloqueio"
+  },
+  "unlocked": {
+   "en_sha1": "a531082e9327456af8655b3091a3dc0153bcda14",
+   "term": "desbloqueada | desbloqueadas | desbloqueado | desbloqueados"
+  },
+  "lock-bar": {
+   "en_sha1": "6be027d8ef07fb67148de54f45aeb927a936348f",
+   "term": "barra de bloqueio | barras de bloqueio"
+  },
+  "lock-state-unverified": {
+   "en_sha1": "70f068e93db084748933de6760a2315482f11f4d",
+   "term": "estado do bloqueio não verificado"
+  },
+  "lock-state-unknown": {
+   "en_sha1": "02f5ed6ca8fa4b34de01bec0300d856592217c32",
+   "term": "estado do bloqueio desconhecido"
+  },
+  "lock-duration": {
+   "en_sha1": "bc2fa076781e2fe4cfb5941dae3794b9c7dbabca",
+   "term": "duração do bloqueio"
+  },
+  "handlebar-pin": {
+   "en_sha1": "cf378939299a94a43c16b46de381411f817dbbc6",
+   "term": "PIN do guiador"
+  },
+  "pin-unlock": {
+   "en_sha1": "2a25ab861e951f51861377509ce38308cd2fb7dd",
+   "term": "desbloqueio por PIN"
+  },
+  "proximity-unlock": {
+   "en_sha1": "7bcef8f808d2cc2523d324e189e6c178ba9056af",
+   "term": "desbloqueio por proximidade"
+  },
+  "pair": {
+   "en_sha1": "1cde876fcfafbdb9873bca204869b3386ae2774e",
+   "term": "emparelhar | emparelha | emparelhado | emparelhada"
+  },
+  "connect": {
+   "en_sha1": "7daad108de9b8b15ff42e6891f516f8faccf41a2",
+   "term": "conectar | conecta | conectado | conectada"
+  },
+  "disconnect": {
+   "en_sha1": "2a6e5077fd3b7b4c491cf3fc17317281faad38ed",
+   "term": "desconectar | desconecta | desconectado | desconectada"
+  },
+  "connection-details": {
+   "en_sha1": "bf27c0192123c2a0d1adb61ec29765369ffaa60f",
+   "term": "detalhes da ligação"
+  },
+  "signal-lost": {
+   "en_sha1": "a408dc6bb860b688d883526f49ee85016998502d",
+   "term": "sinal perdido | perdeu-se o sinal"
+  },
+  "parked": {
+   "en_sha1": "eedccdedbbbada8f64090eceb7f7711d609de19b",
+   "term": "parada | paradas | parado | parados"
+  },
+  "model-id": {
+   "en_sha1": "726a842aa4a06a71a601dabb2b6c6cade6ae6d4d",
+   "term": "ID do modelo | ID de modelo"
+  },
+  "firmware": {
+   "en_sha1": "47cabdbaa5f1868f89174c6b79c75d3cf0e32d5e",
+   "term": "firmware"
+  },
+  "compatibility-check": {
+   "en_sha1": "2478789b56708d039d01b3406c1e3a822ce6a1c6",
+   "term": "verificação de compatibilidade | verificações de compatibilidade"
+  },
+  "compatibility-checker": {
+   "en_sha1": "c82fb929ba9566a4638fffb71ed42629b18f22f3",
+   "term": "verificador de compatibilidade"
+  },
+  "compatibility-report": {
+   "en_sha1": "92a59e923717e3292f2755c3cc91b2ee73429d8a",
+   "term": "relatório de compatibilidade | relatórios de compatibilidade"
+  },
+  "report-an-issue": {
+   "en_sha1": "3bcbc1a8be4be1788f9c05f61a779e4ec0bfcf69",
+   "term": "comunicar um problema | comunica um problema"
+  },
+  "diagnostics": {
+   "en_sha1": "84065f6e10fe10900463aeb7c20429c84964d92d",
+   "term": "diagnóstico | diagnósticos"
+  },
+  "diagnostics-file": {
+   "en_sha1": "e7c83e52868230ed4c0c8a92f0f069ae2349d6e1",
+   "term": "ficheiro de diagnóstico | ficheiros de diagnóstico"
+  },
+  "experimental-controls": {
+   "en_sha1": "ec720a7549090709498e5e3168ce41fd31496e4c",
+   "term": "controlos experimentais | controlo experimental"
+  },
+  "controls-to-try": {
+   "en_sha1": "a4da153a380ca892024e8a357305faeba31f6cf6",
+   "term": "controlos a experimentar"
+  },
+  "lab-badge": {
+   "en_sha1": "6106ac42e5bf4c7e1f67c78efc00b98f7de2ff9b",
+   "term": "LAB"
+  },
+  "try": {
+   "en_sha1": "989fe96524a0c6cef5a38d1ad8ee9e087eb0dc1f",
+   "term": "experimentar | experimenta | tentativa | tentativas"
+  },
+  "set-back": {
+   "en_sha1": "3a547937c979d7e968157b76272a160ff438f755",
+   "term": "repor | repõe | reposição"
+  },
+  "help-verify": {
+   "en_sha1": "dd6b17daf140dadf66dcdc83e06097e75f334ea1",
+   "term": "ajudar a verificar | ajuda a verificar"
+  },
+  "unverified": {
+   "en_sha1": "2d59f65f7065ff1d1babd70f8ba1889932527eea",
+   "term": "não verificado | não verificada | não verificados | não verificadas"
+  },
+  "untested": {
+   "en_sha1": "464ab7be9fa656aaff6fdb58cdfb21d570399651",
+   "term": "não testado | não testada | não testados | não testadas"
+  },
+  "unconfirmed": {
+   "en_sha1": "6403afb349cbb0ddd6bcd8228924e53744329d46",
+   "term": "não confirmado | não confirmada | não confirmados | não confirmadas"
+  },
+  "refused-by-scooter": {
+   "en_sha1": "fd2c0a3416d1ed75fc1fd27a281cc9411b387f32",
+   "term": "recusado pela trotinete | recusada pela trotinete"
+  },
+  "worked-here": {
+   "en_sha1": "d7633d798d368da068ab61aa928360fd15c6a85b",
+   "term": "funcionou aqui"
+  },
+  "readback": {
+   "en_sha1": "0601b22edaee33eda60b9a2531a4a86f86466488",
+   "term": "releitura | releituras"
+  },
+  "confirmed": {
+   "en_sha1": "24775abb6d33da0b850c98912c7b659c8eefef3e",
+   "term": "confirmado | confirmada | confirmados | confirmadas"
+  },
+  "not-confirmed": {
+   "en_sha1": "8f74dc3dee4eb31f7a9edf71dc0a0148714e86eb",
+   "term": "não confirmado | não confirmada | não confirmados | não confirmadas"
+  },
+  "rejected": {
+   "en_sha1": "55ca55d2b6c8f76de4660b66d3aee48bd117ce8e",
+   "term": "recusado | recusada | recusados | recusadas"
+  },
+  "acceleration-profile": {
+   "en_sha1": "ea0ee632e03ee1cc05f21cd6e068c2f8c576d133",
+   "term": "perfil de aceleração | perfis de aceleração"
+  },
+  "eco-estimate": {
+   "en_sha1": "00b6713e5bbdea8ceb261b133ef0db805f61b611",
+   "term": "estimativa Eco | estimativas Eco"
+  },
+  "energy-recovery": {
+   "en_sha1": "3d19f814f6fcdac08b52edfccd7ac8fea8de48ad",
+   "term": "recuperação de energia"
+  },
+  "energy-recovery-off": {
+   "en_sha1": "1fd50cb05bf57284e94c4076e355077a90e70838",
+   "term": "desativada | desativado | desligada | desligado"
+  },
+  "energy-recovery-low": {
+   "en_sha1": "433f35ed2c05ccf41a42fdd1b643fd3e86505316",
+   "term": "baixa | baixo"
+  },
+  "energy-recovery-medium": {
+   "en_sha1": "73022a9c9477d923014248990b5f5b694b919c6e",
+   "term": "média | médio"
+  },
+  "energy-recovery-high": {
+   "en_sha1": "4509292b764d86186c3088c47f535077d37007a3",
+   "term": "alta | alto"
+  },
+  "cruise-control": {
+   "en_sha1": "c67b24f263c9fb5ee177a5d0b2aeda960ffc02d5",
+   "term": "controlo de cruzeiro"
+  },
+  "traction-control": {
+   "en_sha1": "be310ea3cb4c3b5421f9b1dce1e616a46df723e0",
+   "term": "controlo de tração"
+  },
+  "overspeed-active-control": {
+   "en_sha1": "9a36f1839d70e035efaeb5b2aa277645b741a275",
+   "term": "controlo ativo de excesso de velocidade"
+  },
+  "hill-descent-control": {
+   "en_sha1": "e39ba3d81624ad154c0ace26e98518eb9cd478f3",
+   "term": "controlo de descida"
+  },
+  "dual-motor-drive": {
+   "en_sha1": "543059cc0bded753c5dc50b5f0aea84effc1550b",
+   "term": "tração bimotor | tração por motor duplo"
+  },
+  "single-motor": {
+   "en_sha1": "ea33332ff9ec634d31f4539945055a34d17a794e",
+   "term": "motor único | motor simples"
+  },
+  "kick-start-speed": {
+   "en_sha1": "fc146315940e590a9951b5a0a55e6e9266661512",
+   "term": "velocidade de arranque com impulso | velocidade de arranque por impulso"
+  },
+  "standing-start": {
+   "en_sha1": "2dc782cca5ca1007b63e25800a9ad7d398d1738b",
+   "term": "arranque a partir de parado | a partir de parado"
+  },
+  "custom-speed-limit": {
+   "en_sha1": "ae70d1d57d57ffc2fbcf0140b2f6f5597546cf13",
+   "term": "limite de velocidade personalizado | limites de velocidade personalizados"
+  },
+  "drive-mode-speed-limit": {
+   "en_sha1": "cc41b1417a8b6828c2c6b3214e971e657cdb9b0e",
+   "term": "limite de velocidade do modo de condução"
+  },
+  "speed-limit": {
+   "en_sha1": "b914a45563697c2f6e9dfe6dfb90d6a81b6f81fa",
+   "term": "limite de velocidade | limites de velocidade"
+  },
+  "maximum-speed": {
+   "en_sha1": "2c6c3fd2dcd7ebda2f0e3f8799419e76dd8d0ce0",
+   "term": "velocidade máxima | velocidades máximas"
+  },
+  "maximum-speed-short": {
+   "en_sha1": "35ab9a43483beea702e87c7268a89e498a236e3b",
+   "term": "vel. máxima | vel. máx."
+  },
+  "top-speed": {
+   "en_sha1": "5168db6b353cfe989a971cd95c82a947dc44d078",
+   "term": "velocidade de ponta | vel. de ponta | vel. ponta"
+  },
+  "walk-assist": {
+   "en_sha1": "7ae242bf4b42762bd9774ac5790fa08197c8afc7",
+   "term": "assistência à caminhada"
+  },
+  "power-assist": {
+   "en_sha1": "cb50dee66c5330d10c16203839ee95a7510f4008",
+   "term": "assistência de potência"
+  },
+  "boost": {
+   "en_sha1": "590052130fcccf0ddec882f39e77246975abf3aa",
+   "term": "Boost"
+  },
+  "low-battery-mode": {
+   "en_sha1": "7e204947d3b03e222803e050620defed6e6d021c",
+   "term": "modo de bateria fraca | Modo de bateria fraca"
+  },
+  "long-range-mode": {
+   "en_sha1": "bbad03e6b52cc46f17bcda29aeb6b6308b2dc8a0",
+   "term": "modo de longa autonomia | Modo de longa autonomia"
+  },
+  "tail-light": {
+   "en_sha1": "30ffc1a84079d9b7955aa237268c0b5caa06e161",
+   "term": "luz traseira | luzes traseiras | Luz traseira"
+  },
+  "automatic-lights": {
+   "en_sha1": "d1c165e6bf4e15449e8626717f1f299893b95411",
+   "term": "luzes automáticas | luz automática | Luzes automáticas"
+  },
+  "line-lights": {
+   "en_sha1": "87ec33c4bb9ccb7ec72ccba310ea0c8f7a87a734",
+   "term": "luzes de linha | luz de linha | Luzes de linha"
+  },
+  "star-lights": {
+   "en_sha1": "4a977ac349321450cc0c49d6b882e5951e438b73",
+   "term": "luzes de estrela | luz de estrela | Luzes de estrela"
+  },
+  "ambient-light": {
+   "en_sha1": "a8300517f11a17111c6d18c658c7d038400521af",
+   "term": "luz ambiente | luzes ambiente | Luz ambiente"
+  },
+  "logo-light": {
+   "en_sha1": "e4d1d24f423c78774c31c9defa870cf504b682bd",
+   "term": "luz do logótipo | luzes do logótipo | Luz do logótipo"
+  },
+  "daytime-running-light": {
+   "en_sha1": "f2bb7b207fbb312135a2f524d2a7f42a4ad3908a",
+   "term": "luz de circulação diurna | luzes de circulação diurna | Luz de circulação diurna"
+  },
+  "turn-signal": {
+   "en_sha1": "70c98d1bef6ad2d6416ca63b5870eb041f26b5c4",
+   "term": "pisca | piscas | Pisca | Piscas"
+  },
+  "prompt-sound": {
+   "en_sha1": "c40fbd45cb9ef11a30b7f92b239ebbc855e2ea62",
+   "term": "sinal sonoro | sinais sonoros | Sinal sonoro | Sinais sonoros"
+  },
+  "follow-headlight": {
+   "en_sha1": "ea63ba25476c9e2cfc96c44fcfbb91fa4598950e",
+   "term": "seguir o farol | Seguir o farol | seguir farol | Seguir farol"
+  },
+  "always-on": {
+   "en_sha1": "fac2146b2c7bd0c73acd87d3454c22d43203b1f5",
+   "term": "sempre ligada | sempre ligado | Sempre ligada | Sempre ligado"
+  },
+  "light-red": {
+   "en_sha1": "7cf428772cce89fed5bf9c83bb7a11abca574258",
+   "term": "vermelho | vermelha | vermelhos | vermelhas | Vermelho | Vermelha"
+  },
+  "light-ice-blue": {
+   "en_sha1": "f0b5c1494053efeeabc8af83cbfa5f05b66c564e",
+   "term": "azul-gelo | Azul-gelo"
+  },
+  "scooter-display-units": {
+   "en_sha1": "175254bd1f4d08b3eed7348a79190b84d15f4cd4",
+   "term": "unidades do ecrã da trotinete | Unidades do ecrã da trotinete"
+  },
+  "miles": {
+   "en_sha1": "e2c85c8138a19672ca3a6a0a9b43593cf3adf07d",
+   "term": "milhas | milha | Milhas"
+  },
+  "kilometers": {
+   "en_sha1": "aa66b7781719e64da94ca9486397181cc3e4a013",
+   "term": "quilómetros | quilómetro | Quilómetros"
+  },
+  "dashboard": {
+   "en_sha1": "6fb5a2438ab276fdfc0a4d60cca094c54a76b490",
+   "term": "painel | painéis | Painel | Painéis"
+  },
+  "scooter-display": {
+   "en_sha1": "8d08a0160ba815ee34540569b5efd10a407e3667",
+   "term": "ecrã da trotinete | ecrãs da trotinete | Ecrã da trotinete"
+  },
+  "widget": {
+   "en_sha1": "7e67f398bc423d87dfd0f5c4f6e1c70e09020ddc",
+   "term": "widget | widgets | Widget | Widgets"
+  },
+  "live-stats": {
+   "en_sha1": "a40e805ae4b524c850eb5e027b897d12a655fd33",
+   "term": "dados em direto | Dados em direto | em direto | Em direto"
+  },
+  "readings": {
+   "en_sha1": "2514a18d4e254daf847b553636595c2f488ef4b9",
+   "term": "leituras | leitura | Leituras"
+  },
+  "readings-history": {
+   "en_sha1": "5063125ada9848521afea8bc67f3f0cc4958ca9c",
+   "term": "histórico de leituras | Histórico de leituras"
+  },
+  "odometer": {
+   "en_sha1": "cb8c0ec7d5f535380479c3048d345ea3d73bb3da",
+   "term": "odómetro | odómetros | Odómetro"
+  },
+  "odometer-short": {
+   "en_sha1": "39b83989da0de4a3507c60ab3a3f9b8805540178",
+   "term": "Odóm."
+  },
+  "trip": {
+   "en_sha1": "09d3b7b6e7891b6ae152adeb00a2f84844c5209d",
+   "term": "trajeto | trajetos | Trajeto"
+  },
+  "range-estimate": {
+   "en_sha1": "5aa2fe25dcc9f7817c8d5c0e15a4594de61c1672",
+   "term": "estimativa de autonomia | estimativas de autonomia | Estimativa de autonomia"
+  },
+  "theoretical": {
+   "en_sha1": "c2eb51db3774c7e31725dd25f30fabae109e22a4",
+   "term": "teórico | teórica | teóricos | teóricas | Teórico | Teórica"
+  },
+  "actual-riding": {
+   "en_sha1": "e145a03560f37f79089134480b01f583e3056e7d",
+   "term": "condução real | Condução real"
+  },
+  "charge-limit": {
+   "en_sha1": "4b9da6a9fc6d97b85f0525b2ff3063a6aa030afd",
+   "term": "limite de carga | limites de carga | Limite de carga"
+  },
+  "scheduled-charging": {
+   "en_sha1": "da22bf2ee4aba2f4515dac842624a8859dc4fe1c",
+   "term": "carregamento programado | Carregamento programado"
+  },
+  "charge-start": {
+   "en_sha1": "3b0470a7898d5975aafd2ec0dde2290ac8531212",
+   "term": "início do carregamento | Início do carregamento"
+  },
+  "charging-start-time": {
+   "en_sha1": "d0b76d248390b2a317bdc93475cd901677e3d1df",
+   "term": "hora de início do carregamento | Hora de início do carregamento"
+  },
+  "next-charge-start": {
+   "en_sha1": "ab93b5cd9b8a79ed7142ae6c8c72c369bfc02c82",
+   "term": "próximo início do carregamento | Próximo início do carregamento"
+  },
+  "charge-done-by": {
+   "en_sha1": "d2e0eb54c71dd25f5ed928622af1640626a884b6",
+   "term": "Carga pronta até | carga pronta até | Carga até"
+  },
+  "test-scheduled-charging": {
+   "en_sha1": "1b8fd0f5ffc198670f49de309ecab252c303e549",
+   "term": "verificar o carregamento programado | Verificar o carregamento programado | verifica o carregamento programado"
+  },
+  "measure": {
+   "en_sha1": "2c81244a93a992e3d19692e40cc8fb2ae25f3952",
+   "term": "medir | mede | Medir | Mede"
+  },
+  "measuring": {
+   "en_sha1": "04ffaa71b273e2aa7e58f8896dc7d8f687b40cdf",
+   "term": "a medir | A medir"
+  },
+  "battery-alerts": {
+   "en_sha1": "a144938429ce9f2eb2de7d412da1c0bdbfc15fca",
+   "term": "alertas da bateria | alerta da bateria | Alertas da bateria"
+  },
+  "charge-alert": {
+   "en_sha1": "1453db18263941d005694e7616b25ec70dfb2b32",
+   "term": "alerta de carga | alertas de carga | Alerta de carga"
+  },
+  "low-battery-alert": {
+   "en_sha1": "601dc6927072e4c5ab6169691a03b8073ca5f06e",
+   "term": "alerta de bateria fraca | alertas de bateria fraca | Alerta de bateria fraca"
+  },
+  "notify-me": {
+   "en_sha1": "6c62ff33d42dfcdbf29f104604a4edc1b26ff22f",
+   "term": "notificar-me | Notificar-me | notifica-me | Notifica-me"
+  },
+  "alarm-sound": {
+   "en_sha1": "9bd8cfcd23f5ed77c7b0a2f5b002ac0eb3217331",
+   "term": "som de alarme | sons de alarme | Som de alarme"
+  },
+  "stop": {
+   "en_sha1": "ee3ac95f9b6f3b0c88d560a1e53ceb8b760ce1fd",
+   "term": "parar | para | Parar"
+  },
+  "stop-watching": {
+   "en_sha1": "b243217fd8c220bf28ef2c22872ad439fbc0322a",
+   "term": "deixar de monitorizar | Deixar de monitorizar | deixa de monitorizar"
+  },
+  "charge-recording": {
+   "en_sha1": "be3af9b332b74355721a00f88844a83cd4000f0e",
+   "term": "gravação de carregamento | gravações de carregamento | Gravação de carregamento"
+  },
+  "time-to-full": {
+   "en_sha1": "2f508b543f823c210578671fe13fbe270d7b8ee5",
+   "term": "tempo até carga completa | Tempo até carga completa"
+  },
+  "rides": {
+   "en_sha1": "95253b389019c7e1fee8a67c1fe5b2d9ea195868",
+   "term": "viagens | viagem | Viagens | Viagem"
+  },
+  "ride-recording": {
+   "en_sha1": "9c194267308d8c6cf6fd14946437fdd9276c1cff",
+   "term": "gravação da viagem | gravações da viagem | gravação de viagens | Gravação da viagem"
+  },
+  "phone-journal": {
+   "en_sha1": "5aea00f9c2635aad16d16dd4e0590a9912ce2708",
+   "term": "registo do telemóvel | registos do telemóvel | Registo do telemóvel"
+  },
+  "motion": {
+   "en_sha1": "74da1136a766fa2a1ca54fc66b4b67555bd444d2",
+   "term": "movimento | movimentos | Movimento"
+  },
+  "route": {
+   "en_sha1": "322c8e4b4f135017df395b82a4fa6883e9a715a0",
+   "term": "rota | rotas | Rota"
+  },
+  "backup": {
+   "en_sha1": "cb744a5d0cc9ac417a7c9273aa29d067a2e35a30",
+   "term": "cópia de segurança | cópias de segurança | Cópia de segurança"
+  },
+  "full-backup": {
+   "en_sha1": "8d6a97cea5b0fbacc5771ba0122f427d6eac9cc4",
+   "term": "cópia de segurança completa | cópias de segurança completas | Cópia de segurança completa"
+  },
+  "selected-data": {
+   "en_sha1": "a0bd8ad79511ec019f7709f48ab9a421778c0ac3",
+   "term": "dados selecionados | Dados selecionados"
+  },
+  "restore": {
+   "en_sha1": "5d8f1d2884307da6328cb02b03fa53f558e1ac28",
+   "term": "restaurar | restaura | restauro | Restaurar"
+  },
+  "replace-everything": {
+   "en_sha1": "342d926c91cb08bbbc50859f1384571c8082f955",
+   "term": "substituir tudo | Substituir tudo"
+  },
+  "owner-setup-file-scooter-access": {
+   "en_sha1": "13e53d8cee7267ad5f1f6d973e0e969a53edc138",
+   "term": "ficheiro de configuração do proprietário · apenas acesso à trotinete | Ficheiro de configuração do proprietário · apenas acesso à trotinete"
+  },
+  "simulated-scooter": {
+   "en_sha1": "f47cea9980e2d8c4dd4bac7ed6d353396321c412",
+   "term": "trotinete simulada | trotinetes simuladas | Trotinete simulada"
+  },
+  "simulation": {
+   "en_sha1": "e58ade14921821ecc80134f7c0780b1fd18e7967",
+   "term": "simulação | simulações | Simulação"
+  },
+  "not-reported": {
+   "en_sha1": "a4963678f8eff4dacfbfbd1e6ec3cc66ad01ab28",
+   "term": "sem dados | Sem dados"
+  },
+  "reported": {
+   "en_sha1": "860c5d536a6f0655be4035ae04fee0c4e88048b3",
+   "term": "indicado | indicada | indicados | indicadas | indicar | Indicado | Indicada"
+  },
+  "last-seen": {
+   "en_sha1": "861a5d1a32f953bee23de772fd2dacca847b86f0",
+   "term": "última leitura | Última leitura"
+  },
+  "raw": {
+   "en_sha1": "490338a36137fce5993ca6c68f5363635e5f13dc",
+   "term": "em bruto | Em bruto | BRUTO"
+  },
+  "navee-logging": {
+   "en_sha1": "21f80036b4637d8ae000cda9e0dce5d46fc4fc28",
+   "term": "registo de atividade da NAVEE | Registo de atividade da NAVEE"
+  },
+  "stock-charger": {
+   "en_sha1": "19389efc16b1a4bf29879f76ffc9f91900d38323",
+   "term": "carregador original | carregadores originais | Carregador original"
+  },
+  "high-speed-charger": {
+   "en_sha1": "2ea3bccaaed855a418228a92c44b159d11ad921e",
+   "term": "carregador rápido | carregadores rápidos | Carregador rápido"
+  },
+  "gap": {
+   "en_sha1": "172bf5da594ce86c24f827b15c0985c45f18952a",
+   "term": "lacuna | lacunas | Lacuna | Lacunas"
+  },
+  "elevation": {
+   "en_sha1": "cad7a079c5ee5b51edf402df1718ec60e90aac75",
+   "term": "altitude | altitudes | Altitude"
+  },
+  "add": {
+   "en_sha1": "9f5c12dcf3b709f342ea5320813df8789ba9c122",
+   "term": "adicionar | adiciona | Adicionar | Adiciona"
+  },
+  "enter": {
+   "en_sha1": "460f16a8e836c4c1126d7aa03ef2f6dd9f770289",
+   "term": "introduzir | introduz | Introduzir | Introduz"
+  }
+ },
+ "notes": {
+  "boost": "Retained in English per style guide drive-mode and power profile rule.",
+  "elevation": "Mandated fixed term 'altitude', avoiding Brazilian/false calque 'elevação'.",
+  "energy-recovery-off": "Agrees in gender with 'recuperação' (feminine: Desativada) on energy recovery menus.",
+  "last-seen": "Mandated fixed term 'Última leitura' so it is not mistaken for a current state.",
+  "maximum-speed": "Setting value (highest allowed), strictly separated from measured 'velocidade de ponta'.",
+  "not-reported": "Mandated fixed term 'sem dados' to avoid reading as confirmed or faulty.",
+  "odometer-short": "Includes European Portuguese accent per style guide ladder specifications.",
+  "prompt-sound": "Distinct from 'som de alarme' and never 'aviso'.",
+  "reported": "Mandated fixed term 'indicado' indicating controller/scooter claim rather than measurement.",
+  "shared-rider": "Role label on cards uses 'autorizado' or generic masculine 'utilizador autorizado'.",
+  "standing-start": "Avoids 'arranque parado' or 'sem impulso' per style guide rules.",
+  "turn-signal": "Using 'pisca' as defined in section 7 of the style guide."
+ },
+ "problems": []
+}

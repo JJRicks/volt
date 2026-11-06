@@ -1187,8 +1187,9 @@ python3 tools/l10n/council.py prompt --tag $T --area $A --name opus-context --re
 python3 tools/l10n/council.py check --tag $T --area $A
 ( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate openai --tag $T --area $A )
 python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then a separate Opus judge session
-#      writes judge.jsonl; for a safety key whose drafts disagree, back-translate the judge's text
-#      (backtranslate openai again) and run judge-requests again for the judge's confirm
+#      writes judge.jsonl; for a safety key whose drafts disagree, or a refused unanimous one the
+#      judge merged (safety-refused), back-translate the judge's text (backtranslate openai again)
+#      and run judge-requests again for the judge's confirm
 python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
@@ -1286,7 +1287,17 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    which must include at least two passing drafts from different providers (with fewer, English
    stays); the judge request and the decision name the excused provider and why in `excused`, and
    the decision's reason says so. A provider whose draft still fails after its redraft is also listed
-   in `excused`; its failing draft never blocked a judged key. Either way the back-translation
+   in `excused`; its failing draft never blocked a judged key. **When the judge refuses a text every
+   drafter agreed on** (2026-11-06; before, nothing could bring such a key back while its English
+   stayed the same, since its drafts pass and agree), the next `judge-requests` lists the key once
+   more as `safety-refused`, with the refused text, its back-translation and the refusal's reason in
+   `refusal`. The judge may `merge` a new text there or answer `fallback` again (English stays and
+   the key is not listed again). A merged text must pass the checks (a failing one is listed again,
+   with `refusal.merge_problem` and `merge_findings`) and is then a judged text exactly as above:
+   back-translated by a model that drafted nothing, listed as `safety-judged-confirmation`, and
+   `safety-judged` only after a confirm of that text and that back-translation on a later line; a
+   `fallback` of the merged text keeps English for good. A merge that answers no refusal never
+   counts for a unanimous key. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1764,7 +1775,12 @@ change a check inside a language or batch pull request.
   draft needs a new ruling. A safety key reaches `judge-requests` for a confirm only after a current
   back-translation exists. For a safety key whose drafts disagree, the latest `pick` or `merge`
   line is the judged text and the latest line must be the `confirm` (a later `fallback` keeps
-  English). A ruling whose `source_sha1` is not the current English is ignored.
+  English). For a unanimous safety key, read in file order: a `fallback` of the agreed text is a
+  refusal (listed as `safety-refused`); the next line answers it, a `merge` (then the latest merge
+  is the judged text, which needs its back-translation and a later `confirm` naming it, and a later
+  `fallback` keeps English for good) or a second `fallback` (English stays). A `confirm` before any
+  merge is the latest ruling as before, and a `merge` that answers no refusal counts for nothing.
+  A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
   and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,
   so rewriting the requests while a judge works cannot rebind an earlier ruling.
