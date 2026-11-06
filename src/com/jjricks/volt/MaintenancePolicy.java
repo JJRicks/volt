@@ -97,7 +97,7 @@ final class MaintenancePolicy {
         Reminder r = new Reminder();
         r.id = id; r.task = task == null ? "" : task; r.name = cut(name == null ? "" : name); r.km = km; r.days = days; r.months = months;
         r.notify = notify; r.baseWall = Math.min(baseWall, nowWall); r.baseAccKm = baseAccKm;
-        if (!valid(r)) throw new IllegalArgumentException("Reminder out of range");
+        if (!valid(r)) throw new IllegalArgumentException("reminder");
         record(r, new Event(ADDED, nowWall, baseAccKm));
         return r;
     }
@@ -152,7 +152,7 @@ final class MaintenancePolicy {
      */
     static void snooze(Reminder r, int days, long nowWall, double accKmNow, ZoneId zone) {
         boolean offered = false; for (int d : SNOOZE_DAYS) offered |= d == days;
-        if (!offered) throw new IllegalArgumentException("Snooze is 1, 3 or 7 days");
+        if (!offered) throw new IllegalArgumentException("days");
         r.snoozeUntil = Instant.ofEpochMilli(nowWall).atZone(zone).plusDays(days).toInstant().toEpochMilli();
         record(r, new Event(SNOOZED, nowWall, accKmNow));
     }

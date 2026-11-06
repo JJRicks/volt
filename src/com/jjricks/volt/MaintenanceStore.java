@@ -222,6 +222,6 @@ final class MaintenanceStore {
             out.append('['); boolean first = true;
             for (Object item : (List<?>) v) { if (!first) out.append(','); first = false; write(out, item); }
             out.append(']');
-        } else throw new IllegalArgumentException("Not a JSON value");
+        } else throw new IllegalArgumentException("json");
     }
 }

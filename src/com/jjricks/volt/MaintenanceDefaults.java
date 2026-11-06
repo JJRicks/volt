@@ -34,12 +34,12 @@ final class MaintenanceDefaults {
     static final class Interval {
         final String model, task; final Double km; final int days, months; final Source source;
         Interval(String model, String task, Double km, int days, int months, Source source) {
-            if (source == null) throw new IllegalArgumentException("A manual interval needs its source");
-            if (!task(task)) throw new IllegalArgumentException("Unknown task " + task);
-            if (km != null && !(km > 0 && km <= MaintenancePolicy.MAX_KM)) throw new IllegalArgumentException("Distance out of range");
+            if (source == null) throw new IllegalArgumentException("source");
+            if (!task(task)) throw new IllegalArgumentException("task");
+            if (km != null && !(km > 0 && km <= MaintenancePolicy.MAX_KM)) throw new IllegalArgumentException("km");
             if (days < 0 || months < 0 || days > 0 && months > 0 || days > MaintenancePolicy.MAX_DAYS || months > MaintenancePolicy.MAX_MONTHS)
-                throw new IllegalArgumentException("Time out of range");
-            if (km == null && days == 0 && months == 0) throw new IllegalArgumentException("An interval needs a distance or a time");
+                throw new IllegalArgumentException("days/months");
+            if (km == null && days == 0 && months == 0) throw new IllegalArgumentException("interval");
             this.model = required(model, "model"); this.task = task; this.km = km; this.days = days; this.months = months; this.source = source;
         }
     }
@@ -70,7 +70,7 @@ final class MaintenanceDefaults {
     }
 
     private static String required(String value, String what) {
-        if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException("Missing " + what);
+        if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(what);
         return value;
     }
 }
