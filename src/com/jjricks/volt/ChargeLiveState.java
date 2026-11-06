@@ -48,19 +48,17 @@ public final class ChargeLiveState {
     public final String title, text, subText, publicTitle, publicText, publicSubText;
     /** The bar: 0 to max (the limit, or 100), filled to progress; progress is -1 without a level. */
     public final int progress, max;
-    /** When Android's countdown in the header reaches zero (wall clock); 0 shows no countdown. */
-    public final long countdownEndWallMs;
-    /** Equal (equals) unless what the card shows changes: a whole percent, a whole minute, the state, the limit or the name. */
+    /** Equal (equals) unless what the card shows changes: a whole percent, the finish time, the state, the limit or the name. */
     public final java.util.List<Object> dedupeKey;
     public final Detail detail;
     /** The battery level shown (0 to 100), the last one seen while out of reach; null without one. */
     public final Integer percent;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
-            String publicSubText, int progress, int max, long countdownEndWallMs, java.util.List<Object> dedupeKey, Detail detail, Integer percent) {
+            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent) {
         this.kind = kind;this.title = title;this.text = text;this.subText = subText;this.publicTitle = publicTitle;
         this.publicText = publicText;this.publicSubText = publicSubText;this.progress = progress;this.max = max;
-        this.countdownEndWallMs = countdownEndWallMs;this.dedupeKey = dedupeKey;this.detail = detail;
+        this.dedupeKey = dedupeKey;this.detail = detail;
         this.percent = percent;
     }
 
@@ -75,7 +73,7 @@ public final class ChargeLiveState {
         boolean eta = kind == Kind.CHARGING && minutes > 0;
         Integer watts = in.watts == null || !Double.isFinite(in.watts) || in.watts < 1 ? null : (int) Math.round(in.watts);
         String title;
-        String text, plain;
+        String text, plain, done = null;
         switch (kind) {
             case RECONNECTING:
                 title = pct == null ? (capped ? T.chargingAlertWatchTitle(Fmt.integer(max)) : T.chargingAlertWatchFull()) : T.chargeLiveTitleLastSeen(Fmt.integer(pct));
@@ -91,9 +89,10 @@ public final class ChargeLiveState {
                         : capped ? T.chargeLiveTitleLimit(Fmt.integer(max), Fmt.integer(pct)) : T.chargeLiveTitleFull(Fmt.integer(pct));
                 String power = watts == null ? null : T.fmtQuantity(Fmt.integer(watts), T.unitsWatt());
                 if (eta) {
-                    String left = duration(minutes), done = clock.apply(in.nowWall + minutes * 60_000L);
-                    plain = T.chargeLiveTextEta(left, done);
-                    text = power == null ? plain : T.chargeLiveTextEtaWatts(left, done, power);
+                    // Owner, 2026-11-06: only the finish time and the power ("Done 10:42 PM · 412 W"), no time left or countdown.
+                    done = clock.apply(in.nowWall + minutes * 60_000L);
+                    plain = T.chargeLiveTextEta(done);
+                    text = power == null ? plain : T.chargeLiveTextEtaWatts(done, power);
                 } else {
                     plain = T.chargeLiveTextEstimating();
                     text = power == null ? plain : T.chargeLiveTextEstimatingWatts(power);
@@ -104,14 +103,14 @@ public final class ChargeLiveState {
         String publicText = detail == Detail.HIDDEN ? null : detail == Detail.LEVEL ? plain : text;
         String publicSub = detail == Detail.DETAILS ? name : null;
         int progress = pct == null ? -1 : Math.min(max, pct);
-        long countdown = eta ? in.nowWall + minutes * 60_000L : 0;
         // Power is left out: a watt reading that wiggles never reposts the card (it shows the latest power when it does).
-        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, eta ? minutes : -1L, max, in.startWallMs, in.doneByWallMs, detail, name);
-        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, countdown, key, detail, pct);
+        // The finish time as shown, not the minutes left: a minute that passes with the same finish time changes nothing.
+        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name);
+        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct);
     }
 
-    /** "≈ 38m", "≈ 1h 25m": the Home charging card's own wording. */
-    static String duration(long minutes) {
-        return minutes >= 60 ? T.dashboardDurationHours(Fmt.integer(minutes / 60), Fmt.integer(minutes % 60)) : T.dashboardDurationMinutes(Fmt.integer(minutes));
+    /** The card's one action: it ends Volt's hold and lets the connection go, and never touches charging (owner, 2026-11-06). */
+    public static String actionLabel() {
+        return T.chargeLiveActionDisconnect();
     }
 }

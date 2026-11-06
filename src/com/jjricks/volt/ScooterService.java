@@ -104,7 +104,7 @@ public final class ScooterService extends Service {
     private boolean chargeLiveHeld,chargeLiveUpdating;
     private java.util.List<Object> chargeLiveKey;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
-    /** The card's Stop: ends Volt's own hold and card, and never sends the scooter anything. */
+    /** The card's Disconnect (Stop before 2026-11-06): ends Volt's own hold and card, and never sends the scooter anything. */
     static final String STOP_CHARGE_LIVE="stop_charge_live";
     static final String CHARGE_LIVE_ENABLED="charge_live_enabled";
     static final String CHARGE_LIVE_LOCK_DETAIL="charge_live_lock_detail";
@@ -1061,7 +1061,7 @@ public final class ScooterService extends Service {
         catch(JSONException impossible){return;}
         settings.edit().putString(CHARGE_LIVE_STOPPED,out.toString()).apply();
     }
-    /** Stop on the card: Volt's own hold and card end. No scooter command is sent. */
+    /** Disconnect on the card: Volt's own hold and card end, then the connection goes as after leaving Volt. No scooter command is sent. */
     private void stopChargeLive(){
         restoreChargeLiveStopped();
         ChargeLiveHold.Facts facts=chargeLiveFacts();
@@ -1136,7 +1136,7 @@ public final class ScooterService extends Service {
         }
         return ChargeLiveState.of(in,wall->DisplayTime.clock(this,settings,wall));
     }
-    /** The bar, countdown, scooter name and lock screen version of the live card (Android 8 and later alike). */
+    /** The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner, 2026-11-06). */
     private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
         int red=android.graphics.Color.rgb(0xE3,0x2B,0x2F);
         builder.setColor(red);
@@ -1144,9 +1144,7 @@ public final class ScooterService extends Service {
         // Android 16 and later, where allowed: the same card asked to be a Live Update, with ProgressStyle's bar.
         boolean promoted=promoteChargeLive(builder,live,capture);
         if(!promoted&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
-        // Android ticks this countdown in the header by itself; Volt reposts only when a whole minute or percent changes.
-        if(live.countdownEndWallMs>0)builder.setWhen(live.countdownEndWallMs).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
-        else builder.setShowWhen(false);
+        builder.setShowWhen(false);
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
         if(capture!=null)big.setSummaryText(capture);
         if(!promoted)builder.setStyle(big);
@@ -1155,8 +1153,7 @@ public final class ScooterService extends Service {
                 .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
         if(live.publicSubText!=null)lock.setSubText(live.publicSubText);
         if(live.progress>=0)lock.setProgress(live.max,live.progress,false);
-        if(live.countdownEndWallMs>0)lock.setWhen(live.countdownEndWallMs).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
-        else lock.setShowWhen(false);
+        lock.setShowWhen(false);
         builder.setPublicVersion(lock.build());
     }
     // ---- Live Update promotion (ChargeLiveUpdate; Android 16 and later) ----------------------------------
@@ -1213,8 +1210,7 @@ public final class ScooterService extends Service {
             for(ChargeLiveUpdate.Point mark:bar.points)points.add(new Notification.ProgressStyle.Point(mark.position).setColor(liveUpdateColor(mark.role)));
             Notification.ProgressStyle style=new Notification.ProgressStyle().setProgressSegments(segments).setProgressPoints(points)
                     .setProgress(bar.progress).setProgressIndeterminate(bar.indeterminate)
-                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification))
-                    .setProgressStartIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_scooter_small));
+                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification));
             builder.setStyle(style);
             if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
             if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
@@ -2666,7 +2662,7 @@ public final class ScooterService extends Service {
         if (!phoneSaving() && !(measuring && chargeMeasure.arming()) && !testEnding)
             builder.addAction(
                     new Notification.Action.Builder(
-                                    null, liveStop || alarming ? T.serviceActionStop() : watching ? T.serviceActionStopWatching() : measuring ? T.serviceActionScheduleNow() : testing ? T.serviceActionCancelTest() : isChargeRecording() ? T.serviceActionStopCharge() : isRecording() ? T.serviceActionStopRecording() : T.serviceActionDisconnect(), stop)
+                                    null, liveStop ? ChargeLiveState.actionLabel() : alarming ? T.serviceActionStop() : watching ? T.serviceActionStopWatching() : measuring ? T.serviceActionScheduleNow() : testing ? T.serviceActionCancelTest() : isChargeRecording() ? T.serviceActionStopCharge() : isRecording() ? T.serviceActionStopRecording() : T.serviceActionDisconnect(), stop)
                             .build());
         Notification notice = builder.build();
         liveUpdateBuilt(notice);

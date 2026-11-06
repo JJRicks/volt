@@ -5,8 +5,7 @@
 
   The card's text can't step down to shorter words the way Volt's own narrow labels do: Android wraps or
   cuts it. Keep each line short and put the important part first. Percentages are filled in already
-  formatted (Fmt.integer), as %1$s followed by %%. Times are the phone's clock ("10:42 PM"). A duration is
-  the Home charging card's own "≈ 38m" or "≈ 1h 25m".
+  formatted (Fmt.integer), as %1$s followed by %%. Times are the phone's clock ("10:42 PM").
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
@@ -32,13 +31,13 @@
          battery level Volt read. -->
     <string name="charge_live_title_last_seen" volt:screen="Live charging notification" volt:purpose="notification title"
         volt:max="300dp@16sp" volt:safety="charge">Last seen %1$s%%</string>
-    <!-- Card text: %1$s is the time left ("≈ 38m"), %2$s the clock time charging should finish
-         ("10:42 PM"). Time left comes first. -->
+    <!-- Card text: %1$s is the clock time charging should finish ("10:42 PM"). Only the finish time: the
+         card shows no time left or countdown (owner, 2026-11-06). -->
     <string name="charge_live_text_eta" volt:screen="Live charging notification" volt:purpose="notification text"
-        volt:max="300dp@14sp" volt:safety="charge">%1$s left · done %2$s</string>
-    <!-- Same, with the charging power after it: %3$s is a power such as "412 W". -->
+        volt:max="300dp@14sp" volt:safety="charge">Done %1$s</string>
+    <!-- Same, with the charging power after it: %2$s is a power such as "412 W". -->
     <string name="charge_live_text_eta_watts" volt:screen="Live charging notification" volt:purpose="notification text"
-        volt:safety="charge">%1$s left · done %2$s · %3$s</string>
+        volt:safety="charge">Done %1$s · %2$s</string>
     <!-- Card text while Volt has no time estimate yet. -->
     <string name="charge_live_text_estimating" volt:screen="Live charging notification" volt:purpose="notification text"
         volt:max="300dp@14sp" volt:safety="charge">Estimating time left</string>
@@ -54,6 +53,10 @@
     <!-- Card text while the scooter is out of reach. Volt gives up after about 20 seconds. -->
     <string name="charge_live_text_reconnecting" volt:screen="Live charging notification" volt:purpose="notification text"
         volt:max="300dp@14sp">Out of reach · reconnecting</string>
+    <!-- The card's one button: it ends Volt's card and lets go of the scooter's connection, so other apps can
+         connect. It never stops the charge, so it doesn't say Stop (owner, 2026-11-06). -->
+    <string name="charge_live_action_disconnect" volt:screen="Live charging notification" volt:purpose="notification action"
+        volt:safety="charge">Disconnect</string>
 
     <!-- ===== Scooter › Battery ===== -->
 
@@ -78,7 +81,7 @@
     <!-- Explains the three lock screen choices. -->
     <string name="charge_live_lock_note" volt:screen="Live charging sheet" volt:purpose="explanation">Details adds the scooter\'s name and charging power to the battery level and times. Level shows only the battery level and times. Hidden shows neither.</string>
     <!-- When the card starts, and what holding the connection means. -->
-    <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">The card starts only if the scooter is still connected when you leave Volt, and it\'s charging or has a charging start time set. While it shows, other apps, the official one included, can\'t connect to the scooter. Tap Stop on the card to end it.</string>
+    <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">The card starts only if the scooter is still connected when you leave Volt, and it\'s charging or has a charging start time set. While it shows, other apps, the official one included, can\'t connect to the scooter. Tap Disconnect on the card to end it.</string>
     <!-- Notifications are off for Volt: the card can't show. -->
     <string name="charge_live_perm" volt:screen="Live charging sheet" volt:purpose="warning" volt:dnt="Volt">Notifications are off for Volt, so the live charging card can\'t show.</string>
 
