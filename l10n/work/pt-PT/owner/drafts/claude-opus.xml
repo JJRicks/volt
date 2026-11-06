@@ -12,7 +12,7 @@
     <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Conecta a trotinete na app NAVEE e depois volta.</string>
     <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Mantém o Shizuku em execução.</string>
     <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Cancelar captura</string>
-    <plurals name="owner_countdown_seconds_left" volt:src="403d585757493b61548f9ec61dfc56e11f85aec9">
+    <plurals name="owner_countdown_seconds_left" volt:src="117181f9d57065ad51050d70700613ef1e97827a">
         <item quantity="one">Falta %1$d segundo</item>
         <item quantity="many">Faltam %1$d de segundos</item>
         <item quantity="other">Faltam %1$d segundos</item>
@@ -27,8 +27,8 @@
     <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5" volt:attempt="2">Repor o registo de atividade da NAVEE</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Voltar</string>
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Tudo pronto para importar</string>
-    <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Chave de utilizador autorizado encontrada</string>
-    <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Chave de proprietário encontrada</string>
+    <string name="owner_shizuku_shared_identity_found" volt:src="d66323703ac9e0839a21f678b24c68ff37fdce90">Chave de utilizador autorizado encontrada</string>
+    <string name="owner_shizuku_owner_identity_found" volt:src="f4adc890a390a92df1d54d9a62730e7e9c836df3">Chave de proprietário encontrada</string>
     <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">App NAVEE reposta</string>
     <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Importar configuração do proprietário</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Descartar</string>
@@ -77,12 +77,12 @@
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">A repor a app NAVEE…</string>
     <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274" volt:attempt="2">Ligação ao Shizuku perdida. Repõe o registo de atividade.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Não foi encontrado nenhum navegador</string>
-    <string name="owner_setup_empty_or_large" volt:src="4a200d2bd2318934b72355920a208152c5182530">O ficheiro de configuração está vazio ou é demasiado grande.</string>
+    <string name="owner_setup_empty_or_large" volt:src="19d5fe0538740551de57168c33d54fd920c6ce08">O ficheiro de configuração do proprietário está vazio ou é demasiado grande.</string>
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">São precisos 12 caracteres hexadecimais</string>
-    <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Sem chave de proprietário no ficheiro</string>
-    <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Função de proprietário não suportada</string>
-    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4">Este ficheiro contém chaves de proprietário ou funções em conflito. Captura a ligação de uma só conta NAVEE ou importa uma só cópia de segurança privada da configuração.</string>
+    <string name="owner_setup_no_identity" volt:src="b147e42ee8379471878498ae4d3a9f30b197e989">Sem chave de proprietário no ficheiro</string>
+    <string name="owner_setup_unsupported_role" volt:src="caf895d1a13d5c149e906c58aadd3ec988ed1a12">Função não suportada</string>
+    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207">Este ficheiro contém chaves de proprietário ou funções em conflito. Captura a ligação de uma só conta NAVEE ou importa uma só cópia de segurança privada da configuração.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">A importação falhou. Escolhe novamente o ficheiro.</string>
-    <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Introduz uma chave de proprietário de 12 caracteres.</string>
+    <string name="owner_setup_enter_identity" volt:src="61ea1a66e824f413d1f78a1dd63978f6767b84a6">Introduz uma chave de proprietário de 12 caracteres.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Trotinete</string>
 </resources>

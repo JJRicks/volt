@@ -47,7 +47,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Não foi possível guardar. Tenta outro local.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Cópia de segurança guardada.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restauro</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Escolhe uma cópia de segurança da Volt para recuperar os dados guardados da app. Os ficheiros antigos de configuração do proprietário, de viagens e de esquema também funcionam; vais ver exatamente o que contêm antes de restaurar.</string>
+    <string name="backup_restore_intro" volt:src="3edbbca81c00f0869ecd161d0877696640456cf8">Escolhe uma cópia de segurança da Volt para recuperar os dados guardados da app. Também funcionam ficheiros antigos de configuração do proprietário, de viagens e de esquema do painel; vais ver exatamente o que contêm antes de restaurar.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">As permissões e o emparelhamento Bluetooth não estão incluídos.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Escolher ficheiro</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Não foi possível abrir um seletor de ficheiros.</string>
@@ -79,7 +79,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Para que trotinete é esta configuração?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">O esquema vai para:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Os dados de «%1$s» vão para:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Mais do que uma trotinete pode usar este ficheiro de configuração. Escolhe uma trotinete existente ou adiciona outra.</string>
+    <string name="backup_owner_choice" volt:src="deece19b3157d087723c77b3e5938e54cf6160d0">Mais do que uma trotinete pode usar este ficheiro de configuração do proprietário. Escolhe uma trotinete existente ou adiciona outra.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Escolher uma trotinete…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Adicionar outra trotinete</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Adicionar da cópia de segurança</string>
