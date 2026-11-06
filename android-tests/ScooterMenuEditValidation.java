@@ -36,7 +36,8 @@ import com.jjricks.volt.ScooterService;
 /**
  * Fresh disposable emulator only. The Scooter tab's menu editor (scooter-menu-edit plan, PR 2) on the UT5 MAX
  * developer simulator (memory only, no frames, no Bluetooth): the header pencil opens the editor; a section moves
- * by its screen-reader action; holding a section's grip folds every section; the eye hides a row with an Undo
+ * by its screen-reader action; holding a section's grip folds every section, a resting finger keeps the order and a
+ * touch drag moves it; the eye hides a row with an Undo
  * notice; Done shows the new order and the hidden row on the live page; rotation and an Activity rebuild keep the
  * editor open and the layout; Reset with Undo, Add back and Back. The editor sends no scooter command.
  */
@@ -143,28 +144,65 @@ public final class ScooterMenuEditValidation extends Instrumentation {
     }
 
     private void foldWhileHeld() throws Exception {
+        // MOVED is not the first section, and folding Top speed above it moves it up while the finger stays still.
+        main(() -> require(editorOrder().indexOf(MOVED) > 0, MOVED + " is the first section: " + editorOrder()));
+        int[] before = new int[1];
+        main(() -> { int[] at = new int[2]; header(MOVED).getLocationOnScreen(at); before[0] = at[1]; });
+        float[] finger = press(MOVED);
+        long down = (long)finger[2];
+        main(() -> {
+            for (Object body : ((Map<?, ?>)field(editor(), "bodies")).values())
+                require(((View)body).getVisibility() == View.GONE, "A section's rows stayed open while folded");
+            int[] at = new int[2]; header(MOVED).getLocationOnScreen(at);
+            require(at[1] < before[0], MOVED + " did not move up in the fold (" + before[0] + " to " + at[1] + "), so this would not test the anchor");
+        });
+        screenshot("editor-folded");
+        // A finger that stays put, then jitters a little (under the touch slop), must not move the section.
+        float x = finger[0], y = finger[1];
+        for (float jitter : new float[]{0, 0, 3, -4, 6, -6, 2, 0}) { touch(down, MotionEvent.ACTION_MOVE, x, y + jitter); SystemClock.sleep(30); }
+        main(() -> require(((View)editorView().findViewWithTag(MOVED)).getTranslationY() == 0, MOVED + " moved under a resting finger"));
+        touch(down, MotionEvent.ACTION_UP, x, y);
+        await(() -> !Boolean.TRUE.equals(field(editor(), "folded")), "Releasing the grip did not open the sections");
+        settle(); SystemClock.sleep(500); settle();
+        main(() -> require(sectionOrder().indexOf(MOVED) < sectionOrder().indexOf(ABOVE) && editorOrder().indexOf(MOVED) < editorOrder().indexOf(ABOVE),
+                "A resting finger through the fold changed the order: " + sectionOrder()));
+        checks.add("Holding " + MOVED + "'s grip folds every section; a resting or jittering finger through the fold keeps the order");
+        // A deliberate drag still follows the finger: down past the next section, then back up.
+        dragSection(MOVED, 3);
+        main(() -> require(sectionOrder().indexOf(MOVED) > sectionOrder().indexOf(ABOVE), "Dragging " + MOVED + " down did not pass " + ABOVE + ": " + sectionOrder()));
+        dragSection(MOVED, -3);
+        main(() -> require(sectionOrder().indexOf(MOVED) < sectionOrder().indexOf(ABOVE) && editorOrder().indexOf(MOVED) < editorOrder().indexOf(ABOVE),
+                "Dragging " + MOVED + " back up did not pass " + ABOVE + ": " + sectionOrder()));
+        checks.add("Dragging " + MOVED + " by touch moves it below " + ABOVE + " and back; each drop saves");
+    }
+
+    /** Presses a section's grip and waits until the sections have folded and the section has lifted: x, y, down time. */
+    private float[] press(String section) {
         View[] grip = new View[1];
-        main(() -> grip[0] = gripOf(header(MOVED)));
+        main(() -> grip[0] = gripOf(header(section)));
         int[] at = new int[2];
         main(() -> grip[0].getLocationOnScreen(at));
         float x = at[0] + grip[0].getWidth() / 2f, y = at[1] + grip[0].getHeight() / 2f;
         long down = SystemClock.uptimeMillis();
-        inject(MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, x, y, 0));
+        touch(down, MotionEvent.ACTION_DOWN, x, y);
         await(() -> Boolean.TRUE.equals(field(editor(), "folded")), "Holding a section's grip did not fold the sections");
-        SystemClock.sleep(500);
-        main(() -> {
-            for (Object body : ((Map<?, ?>)field(editor(), "bodies")).values())
-                require(((View)body).getVisibility() == View.GONE, "A section's rows stayed open while folded");
-            require(field(field(editor(), "sections"), "held") != null, "No section held while folded");
-        });
-        screenshot("editor-folded");
-        long up = SystemClock.uptimeMillis();
-        inject(MotionEvent.obtain(down, up, MotionEvent.ACTION_UP, x, y, 0));
-        await(() -> !Boolean.TRUE.equals(field(editor(), "folded")), "Releasing the grip did not open the sections");
-        settle(); SystemClock.sleep(400); settle();
-        main(() -> require(sectionOrder().indexOf(MOVED) < sectionOrder().indexOf(ABOVE), "A press without a move changed the order: " + sectionOrder()));
-        checks.add("Pressing a section's grip folds every section to its header; releasing without a move opens them and keeps the order");
+        await(() -> field(field(editor(), "sections"), "held") != null && !Boolean.TRUE.equals(field(field(editor(), "sections"), "waiting")), "The section did not lift after the fold");
+        return new float[]{x, y, down};
     }
+    /** Drags a section by {@code sections} folded section heights (down when positive), in small steps, and drops it. */
+    private void dragSection(String section, int sections) throws Exception {
+        float[] finger = press(section);
+        long down = (long)finger[2];
+        int[] pitch = new int[1];
+        main(() -> pitch[0] = ((View)editorView().findViewWithTag(section)).getHeight() + ((ViewGroup.MarginLayoutParams)((View)editorView().findViewWithTag(section)).getLayoutParams()).bottomMargin);
+        float x = finger[0], y = finger[1], total = sections * pitch[0];
+        for (int step = 1; step <= 20; step++) { touch(down, MotionEvent.ACTION_MOVE, x, y + total * step / 20f); SystemClock.sleep(25); }
+        SystemClock.sleep(300);
+        touch(down, MotionEvent.ACTION_UP, x, y + total);
+        await(() -> !Boolean.TRUE.equals(field(editor(), "folded")) && field(field(editor(), "sections"), "held") == null, "The dragged section did not settle");
+        settle(); SystemClock.sleep(500); settle();
+    }
+    private void touch(long down, int action, float x, float y) { inject(MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)); }
 
     private void hideRow() throws Exception {
         main(() -> {
