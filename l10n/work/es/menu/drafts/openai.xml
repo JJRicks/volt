@@ -14,7 +14,7 @@
     <string name="menu_reset_description" volt:src="5a7969dcab81209a948f28260990cc3dd4e97b64">Restablecer el orden original del menú y mostrar todo</string>
     <string name="menu_hint" volt:src="d598fa9c0d831c329af6d05b823fcedcfcb2adc7">Arrastra para cambiar el orden. Los ajustes ocultos siguen funcionando en el patinete.</string>
     <string name="menu_hint_folded" volt:src="e03e90e0e51fc78b00cf5efa3c05ce1ced03de56">Al mover una sección, todas se pliegan para que quepan.</string>
-    <string name="menu_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Velocidad punta</string>
+    <string name="menu_top_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Velocidad máxima</string>
     <plurals name="menu_settings_count" volt:src="c0fd630780c7fff42f0556afb24bd9a034136439">
         <item quantity="one">%1$d ajuste</item>
         <item quantity="many">%1$d ajustes</item>
