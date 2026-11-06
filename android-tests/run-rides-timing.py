@@ -4,6 +4,10 @@
 Each case installs fresh, seeds finished synthetic journals (mode=seed), force-stops Volt, then measures a
 cold start (mode=measure). The numbers are reported, with the plan's budgets marked; --enforce fails on a miss.
 Emulator times are slower than a phone's, so compare a branch against main on the same emulator.
+
+--release is the release sweep's gate (run-release-sweep.py step rides-timing). It takes at least two cold starts
+per case and fails when the best of them misses a RELEASE_BUDGETS budget. Those budgets catch the launch and Rides
+regressions #234 and #240 fixed (seconds) without failing on a busy Mac's noise (tenths): see RELEASE_BUDGETS.
 """
 import argparse
 import json
@@ -21,6 +25,8 @@ parser.add_argument("--case", action="append", help="widthxheight dp")
 parser.add_argument("--fixture", action="append", help="rides x seconds per ride, e.g. 41x3600")
 parser.add_argument("--repeat", type=int, default=1, help="cold measurements per seeded case")
 parser.add_argument("--enforce", action="store_true", help="fail when a budget is missed")
+parser.add_argument("--release", action="store_true",
+                    help="release gate: at least 2 cold starts per case; fail when the best one misses a RELEASE_BUDGETS budget")
 args = parser.parse_args()
 if not args.serial.startswith("emulator-"):
     parser.error("This destructive fixture refuses physical phones; use a disposable emulator.")
@@ -31,6 +37,16 @@ CLASS = "com.jjricks.volt.tests/com.jjricks.volt.tests.RidesTimingValidation"
 # first_row is the first frame after the tap (skeleton rows when the list loads on a worker); rows is the real rows.
 BUDGETS = {"rides_cold_first_row_ms": 300, "rides_warm_first_row_ms": 150, "rides_warm_rows_ms": 150,
            "rides_cold_longest_main_message_ms": 250, "rides_warm_longest_main_message_ms": 250}
+# Release gate (--release), judged on each case's best cold start. A regression to the code before #234 and #240
+# costs seconds: first frame and connection start 2.1-4.5 s, the first Rides open stalling the main thread
+# 2.1-24 s. The fixed code measures tenths even on a busy emulator (first frame 0.2-0.5 s, Rides stalls under
+# 0.11 s). Each budget sits several times above the fixed numbers and below the old ones; the PR that added the
+# gate (claude/release-sweep-rides-timing) records the numbers measured for it.
+RELEASE_BUDGETS = {"launch_first_frame_ms": 1500, "launch_connect_start_ms": 1500,
+                   "rides_cold_first_row_ms": 1000, "rides_cold_longest_main_message_ms": 1000,
+                   "rides_warm_longest_main_message_ms": 1000}
+if args.release:
+    args.repeat = max(args.repeat, 2)
 
 
 def adb(*command, optional=False, timeout=None):
@@ -53,7 +69,7 @@ if adb("shell", "getprop", "ro.kernel.qemu").strip() != "1":
     parser.error("Selected device did not identify itself as an emulator.")
 cases = args.case or ["344x882", "725x604"]
 fixtures = args.fixture or ["41x3600", "300x300"]
-results, missed = [], []
+results, missed, release_missed = [], [], []
 try:
     adb("shell", "svc", "bluetooth", "disable")
     adb("shell", "settings", "put", "system", "screen_off_timeout", "2147483647")
@@ -83,11 +99,26 @@ try:
                 for key, budget in BUDGETS.items():
                     if isinstance(row.get(key), int) and row[key] > budget:
                         missed.append(f"{fixture} {case} run {run + 1}: {key}={row[key]} > {budget}")
+            runs = [row for row in results if row["fixture"] == fixture and row["case"] == case]
+            for key, budget in RELEASE_BUDGETS.items():
+                values = [row[key] for row in runs if isinstance(row.get(key), int)]
+                if not values:
+                    release_missed.append(f"{fixture} {case}: {key} not reported")
+                elif min(values) > budget:
+                    release_missed.append(f"{fixture} {case}: best {key}={min(values)} > {budget} (runs {values})")
 finally:
     adb("shell", "wm", "size", "reset", optional=True)
     adb("shell", "wm", "density", "reset", optional=True)
-(output / "rides-timing.json").write_text(json.dumps({"results": results, "budget_misses": missed}, indent=2))
+(output / "rides-timing.json").write_text(json.dumps({"results": results, "budget_misses": missed,
+                                                     "release_budgets": RELEASE_BUDGETS if args.release else None,
+                                                     "release_misses": release_missed if args.release else None}, indent=2))
 for line in missed:
     print("over budget:", line)
+if args.release:
+    for line in release_missed:
+        print("over release budget:", line)
+    print("release gate:", "FAIL" if release_missed else "PASS", f"(best of {args.repeat} cold starts per case)")
 if missed and args.enforce:
     raise SystemExit("Rides timing over budget")
+if release_missed and args.release:
+    raise SystemExit("Rides timing over the release budget")

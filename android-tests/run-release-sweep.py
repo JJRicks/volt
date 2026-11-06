@@ -121,9 +121,10 @@ STEPS = [
     runner('ride-auto-stop', 'run-ride-auto-stop.py', ['RideAutoStopValidation']),
     runner('ride-backups', 'run-ride-backups.py', ['RideBackupValidation']),
     runner('rides', 'run-rides.py', ['RidesAnalysisValidation']),
-    # Seeds many rides and times the first Rides open. Without --enforce the times are reported against the budgets, not
-    # gated (an emulator's times vary run to run); the step still fails when a seed or measure run does not PASS.
-    runner('rides-timing', 'run-rides-timing.py', ['RidesTimingValidation']),
+    # Seeds many rides, then times a cold launch and two Rides opens (#234, #240: "Volt launches instantly"). --release
+    # fails when the best of two cold starts per case misses a generous budget (run-rides-timing.py RELEASE_BUDGETS):
+    # a regression costs seconds, load noise tenths. The plan's tight budgets are still reported, not gated.
+    runner('rides-timing', 'run-rides-timing.py', ['RidesTimingValidation'], '--release'),
     runner('live-stats', 'run-live-stats.py', ['LiveStatsValidation']),
     runner('responsive', 'run-responsive.py', ['ResponsiveDashboardValidation']),
     # The default matrix leaves out the modes whose checks run nowhere else.
