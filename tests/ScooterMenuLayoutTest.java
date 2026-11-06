@@ -71,6 +71,9 @@ public final class ScooterMenuLayoutTest {
         check(layout.hide("top_speed") && layout.hidden("speed", "top_speed"), "the top speed card hides");
         check(layout.hidden("Security", "lock_expiry") && !layout.rowHidden("lock_expiry"), "a hidden section hides its rows without flagging them");
         check(layout.hiddenCount(new HashSet<>(layout.known())) == 2 && layout.hiddenCount(new HashSet<>(Arrays.asList("cruise_control"))) == 0, "a hidden section counts once, a hidden row outside it once; only offered rows count");
+        // The live page's footer counts settings, not items: every offered row of a hidden section, each row once.
+        check(layout.hiddenSettings(new HashSet<>(layout.known())) == layout.rows("Security").size() + 1, "the footer counts each hidden section's rows and each hidden row once");
+        check(layout.hiddenSettings(new HashSet<>(Arrays.asList("cruise_control", "security_link"))) == 1 && layout.hiddenSettings(new HashSet<>(Arrays.asList("cruise_control"))) == 0, "the footer counts offered rows only");
         List<String> securityRows = new ArrayList<>(layout.rows("Security"));
         check(layout.show("Security") && layout.rowHidden("security_link") && layout.rows("Security").equals(securityRows), "a shown section keeps its order and its rows' own flags");
         check(!layout.show("Security") && layout.show("security_link") && !layout.hidden("Security", "security_link"), "a row shows again");

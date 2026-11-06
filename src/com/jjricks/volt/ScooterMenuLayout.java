@@ -165,6 +165,15 @@ final class ScooterMenuLayout {
         }
         return count;
     }
+    /**
+     * Offered settings the main page leaves out: each hidden row, and each row of a hidden section. The live page's
+     * "N settings hidden" footer counts these (the editor's Add back badge counts items instead, a section once).
+     */
+    int hiddenSettings(Set<String> offered) {
+        int count = 0;
+        for (String section : sections) for (String row : rows(section)) if (offered.contains(row) && hidden(section, row)) count++;
+        return count;
+    }
 
     // ---- Changes (the editor, PR 2) ----
 
