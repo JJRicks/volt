@@ -316,6 +316,13 @@ Map requests disclose the viewed area and IP address to the selected provider; c
 
 Old recordings have no phone route to reconstruct. Exported route/phone files contain coordinates; raw motion includes device axes, gravity-free acceleration, earth-frame acceleration when orientation is available, and rotation quaternion. GPX exports positions/time only because Android GNSS altitude is referenced to an ellipsoid; altitude and its accuracy remain in CSV/JSON. Raw journals remain available if a large file cannot be previewed.
 
+**Export ride data**, near the bottom of ride details, saves any of the ride's files. Its sheet has a checkbox for each one, with the file's name under it:
+
+- **Scooter recording:** **Sensor CSV** (every scooter reading, `ride-<first 8 of id>-sensors.csv`) and **Analysis JSON** (`-analysis.json`).
+- **Phone recording**, for a ride with phone data: **Route CSV**, **GPX**, **Phone raw CSV**, **Motion raw CSV** and **Scooter and phone JSON** (`-combined.json`, both parts in one file). A file that can't be made now is greyed out and says why: still saving, no GPS fixes, a recording that couldn't be read, or a raw file the ride never wrote.
+
+Check one file and Android's Save dialog asks where to put it, and you can rename it. Check several and Android's folder picker asks once; Volt then saves each file in that folder under its usual name, and a file of the same name already there is kept (Android names the new one `(1)`). On Android 11 and later the picker won't let you use the Download folder itself or the top of the phone's storage: pick or create a folder inside them, such as `Download/Volt`. Volt keeps no access to the folder afterwards; next time the picker starts there. The sheet remembers what you checked. The files are the same as before the sheet replaced the separate Export CSV, Export JSON and Export phone data buttons, and the Phone data files button under a route that couldn't load opens the same sheet. Ride auto-save is separate and unchanged.
+
 ## Troubleshooting
 
 - **Scooter stuck on P after unlocking?** If you tried a kick-start speed below 3 km/h, set it back to 3 km/h (**Experimental controls → Kick-start speed → Set back**, or Scooter settings), then restart the scooter.
