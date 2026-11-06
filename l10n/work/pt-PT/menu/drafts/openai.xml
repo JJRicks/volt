@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="menu_edit" volt:src="2aea7f021b41e67566c952e90b87bb6b63d8bad0">Editar menu</string>
+    <string name="menu_finish" volt:src="bcc9d65c4a3abc0cf2d209606f4917c80efbf64e">Terminar edição do menu</string>
+    <string name="menu_add_back" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600" volt:attempt="2">Adicionar</string>
+    <string name="menu_add_back_short" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Adicionar</string>
+    <plurals name="menu_add_back_description" volt:src="400ad69c8a2f2e26c4a3cd5e85f4ffc996f570fd">
+        <item quantity="one">Adicionar novamente, %1$d elemento oculto</item>
+        <item quantity="many">Adicionar novamente, %1$d de elementos ocultos</item>
+        <item quantity="other">Adicionar novamente, %1$d elementos ocultos</item>
+    </plurals>
+    <string name="menu_reset" volt:src="5b24badfe7ef48e30d387db25c4e419e4300f963">Repor</string>
+    <string name="menu_reset_description" volt:src="5a7969dcab81209a948f28260990cc3dd4e97b64">Repor a ordem original do menu e mostrar tudo</string>
+    <string name="menu_hint" volt:src="d598fa9c0d831c329af6d05b823fcedcfcb2adc7">Arrasta para reordenar. As definições ocultas continuam a funcionar na trotinete.</string>
+    <string name="menu_hint_folded" volt:src="e03e90e0e51fc78b00cf5efa3c05ce1ced03de56">Ao mover uma secção, todas são recolhidas para caberem.</string>
+    <string name="menu_top_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Velocidade máxima</string>
+    <plurals name="menu_settings_count" volt:src="c0fd630780c7fff42f0556afb24bd9a034136439">
+        <item quantity="one">%1$d definição</item>
+        <item quantity="many">%1$d de definições</item>
+        <item quantity="other">%1$d definições</item>
+    </plurals>
+    <plurals name="menu_section_said" volt:src="13710b0c775c58d87229cff0c19969692dc9ac32">
+        <item quantity="one">Secção: %2$s, %1$d definição</item>
+        <item quantity="many">Secção: %2$s, %1$d de definições</item>
+        <item quantity="other">Secção: %2$s, %1$d definições</item>
+    </plurals>
+    <string name="menu_with_done_by" volt:src="b25ae88f965781ba9a342efac6d570c983baf719">com Carga pronta até</string>
+    <string name="menu_hide" volt:src="5cc26972e9f6f19d3f1b68bc883e77d76b997395">Ocultar %1$s</string>
+    <string name="menu_hidden" volt:src="36307e956eea249ebc03e9af9ebbf2b14f628648">%1$s: deixou de aparecer no menu</string>
+    <string name="menu_reset_done" volt:src="ac4a831a20cce668661e109906dac6a9fe660030">Menu reposto</string>
+    <string name="menu_undo" volt:src="9e86661628ec947efef999d77ec524e05837f541">Anular</string>
+    <string name="menu_sheet_title" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600">Adicionar novamente</string>
+    <string name="menu_sheet_explanation" volt:src="b11a45de91f8c329df79e544db3618dd7fdab3b4">Ocultas apenas aqui. A trotinete mantém estas definições.</string>
+    <string name="menu_sheet_sections" volt:src="b68de78f32f3f836d602154c0b2a3ceaecef693b">Secções</string>
+    <string name="menu_sheet_empty" volt:src="5c7468dcecdabfc09f6e5b81ff621dd6da870db8">Não há nada oculto.</string>
+    <string name="menu_show" volt:src="1cbbc78284ec04913853588cc21b23c04ac781b3">Adicionar novamente %1$s</string>
+    <string name="menu_sheet_value" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="menu_search_hidden" volt:src="dab03497d1be8687d1fbd8bd76742b79f156a9bb">Oculta</string>
+    <plurals name="menu_footer_hidden" volt:src="d06eb2468e150e9c32e0dc24d552d3ce62025cc2">
+        <item quantity="one">%1$d definição oculta</item>
+        <item quantity="many">%1$d de definições ocultas</item>
+        <item quantity="other">%1$d definições ocultas</item>
+    </plurals>
+    <string name="menu_footer_edit" volt:src="39dce4e3cb7131455c9b2e9182552c9eb3fe432a">Editar</string>
+    <string name="menu_footer" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <plurals name="menu_footer_description" volt:src="6a3ce3d3888229c203abbed05cc5f8ff361ab66a">
+        <item quantity="one">%1$d definição oculta. Editar menu</item>
+        <item quantity="many">%1$d de definições ocultas. Editar menu</item>
+        <item quantity="other">%1$d definições ocultas. Editar menu</item>
+    </plurals>
+</resources>
