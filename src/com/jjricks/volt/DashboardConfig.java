@@ -342,8 +342,9 @@ public final class DashboardConfig {
         public int minimumHeight(float widthDp) {
             // Narrow rails keep a compact editor, with secondary actions in Options.
             if (type.equals("quick") && widthDp < 144) return 3;
-            // A one-row recorder reserves an independent resize target beside its editor bar.
-            if (type.equals("ride") && widthDp < 192) return 3;
+            // The editor bar gives any short card its own resize lane, so the recorder stays one row
+            // down to half a phone's width; only the narrowest cards stack the disc above the arrow.
+            if (type.equals("ride")) return RecorderTap.minimumRows(widthDp);
             return minimumHeight();
         }
 
