@@ -199,7 +199,7 @@ public final class DashboardValidation extends Instrumentation {
                 TextView footer = (TextView)field(tile, "footer");
                 require(footer.getVisibility() == View.VISIBLE
                                 ? String.valueOf(footer.getContentDescription()).startsWith("Last seen")
-                                : ((TextView)field(dashboard(), "status")).getText().toString().contains("last seen"),
+                                : headerShowsSeen(),
                         "Cached widget lacks its stale-reading age");
             });
             int columns = ((Number)field(grid(), "columns")).intValue();
@@ -2148,6 +2148,23 @@ public final class DashboardValidation extends Instrumentation {
     private AlertDialog dialog() { AlertDialog dialog = (AlertDialog)field(dashboard(), "dialog"); require(dialog != null && dialog.isShowing(), "Dashboard dialog is missing"); return dialog; }
     private View dialogRoot() { return dialog().getWindow().getDecorView(); }
     private DashboardScreen dashboard() { return (DashboardScreen)field(activity, "screen"); }
+    /**
+     * The header shows the last seen age: its full rung ("Disconnected · last seen 10:06 AM") or, where that doesn't fit,
+     * the narrow-label ladder's short rung without the words last seen ("Disconnected · 10:06 AM", #211). Either must
+     * carry the header's own last seen time: "Disconnected · last seen" with no time, or a bare "Disconnected", fails.
+     * The same check as ResponsiveDashboardValidation's.
+     */
+    private boolean headerShowsSeen() {
+        String shown = ((TextView)field(dashboard(), "status")).getText().toString();
+        long seen = ((Number)field(dashboard(), "headerSeenMs")).longValue();
+        if (seen <= 0) return false;
+        String time = DisplayTime.recent(activity, (SharedPreferences)field(dashboard(), "preferences"), seen, System.currentTimeMillis());
+        require(!showsSeenTime("Disconnected · last seen", time) && !showsSeenTime("Disconnected", time)
+                        && showsSeenTime("Disconnected · last seen " + time, time) && showsSeenTime("Disconnected · " + time, time),
+                "Header last seen check accepts a header without its time");
+        return showsSeenTime(shown, time);
+    }
+    private static boolean showsSeenTime(String shown, String time) { return !time.isEmpty() && shown.contains(time); }
     private DashboardConfig config() { return (DashboardConfig)field(dashboard(), "config"); }
     private ViewGroup grid() { return (ViewGroup)field(dashboard(), "grid"); }
     private List<?> tiles() { return (List<?>)field(dashboard(), "tiles"); }
