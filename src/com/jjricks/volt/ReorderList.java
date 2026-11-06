@@ -47,12 +47,15 @@ final class ReorderList extends LinearLayout {
     private View held;
     private boolean waiting;
     private int from, to, pointer = -1;
-    private float downY, grabOffset;
+    private final ReorderDrag drag;
+    /** The dragging finger's latest screen Y, so a row lifted after a Grab anchors where the finger is now. */
+    private float fingerY;
     private int[] restingTops = new int[0];
 
     ReorderList(Ui ui, Listener listener) {
         super(ui.context);
         this.ui = ui; this.listener = listener;
+        drag = new ReorderDrag(android.view.ViewConfiguration.get(ui.context).getScaledTouchSlop());
         setOrientation(VERTICAL); setClipChildren(false); setClipToPadding(false);
     }
 
@@ -131,15 +134,13 @@ final class ReorderList extends LinearLayout {
         return true;
     }
 
-    private static int screenTop(View view) { int[] at = new int[2]; view.getLocationOnScreen(at); return at[1]; }
-
     /** The held row lifts: its neighbours' resting places are taken now, after any change the Grab made. */
     private void lift(View row) {
         from = to = indexOfChild(row);
         restingTops = new int[getChildCount()];
         for (int i = 0; i < getChildCount(); i++) restingTops[i] = getChildAt(i).getTop();
-        // The finger keeps its place on the row, even when the Grab moved the row on screen.
-        downY = screenTop(row) + grabOffset;
+        // Measure from where the finger is now: a Grab may have moved the row (folding) while the finger stayed still.
+        drag.anchor(fingerY);
         row.animate().cancel();
         if (Motion.enabled())
             row.animate().scaleX(1.03f).scaleY(1.03f).translationZ(ui.dp(10)).setDuration(Motion.EXIT_MS)
@@ -156,7 +157,7 @@ final class ReorderList extends LinearLayout {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN: {
                 if (held != null || indexOfChild(row) < 0) return false;
-                held = row; pointer = event.getPointerId(0); grabOffset = event.getRawY() - screenTop(row);
+                held = row; pointer = event.getPointerId(0); fingerY = event.getRawY();
                 if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                 Haptics.lift(row);
                 if (grab == null) { lift(row); return true; }
@@ -166,27 +167,23 @@ final class ReorderList extends LinearLayout {
             }
             case MotionEvent.ACTION_MOVE: {
                 if (held != row) return false;
-                if (waiting) return true;
                 int index = event.findPointerIndex(pointer);
                 if (index < 0) return true;
                 // Only the finger that lifted the row moves it. getRawY(int) needs API 29, and
                 // every pointer shares this view's transform, so offset from the first pointer.
-                float dy = event.getRawY() + (event.getY(index) - event.getY(0)) - downY;
+                fingerY = event.getRawY() + (event.getY(index) - event.getY(0));
+                if (waiting) return true;
+                float dy = drag.offset(fingerY);
                 // Keep the held row within the list: its top stops at the first row's top, its bottom at the last row's bottom.
                 View last = getChildAt(getChildCount() - 1);
                 float lowest = restingTops[0] - restingTops[from];
                 float highest = restingTops[getChildCount() - 1] + last.getHeight() - restingTops[from] - row.getHeight();
                 dy = Math.max(lowest, Math.min(Math.max(lowest, highest), dy));
                 row.setTranslationY(dy);
-                // A neighbour gives way once the held row's leading edge passes its middle,
-                // so rows of different heights (wrapped labels, large text) still trade places.
                 float top = restingTops[from] + dy, bottom = top + row.getHeight();
-                int target = from;
-                for (int i = 0; i < getChildCount(); i++) {
-                    float middle = restingTops[i] + getChildAt(i).getHeight() / 2f;
-                    if (i < from && middle > top) target--;
-                    else if (i > from && middle < bottom) target++;
-                }
+                int[] heights = new int[getChildCount()];
+                for (int i = 0; i < heights.length; i++) heights[i] = getChildAt(i).getHeight();
+                int target = ReorderDrag.target(restingTops, heights, from, top, bottom);
                 if (target != to) {
                     to = target;
                     Haptics.tick(row);
