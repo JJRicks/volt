@@ -1265,7 +1265,7 @@ public final class RidesScreen implements AppScreen {
         PhoneRide ride = mapPanel(track, top, inline, false);
         bottom.addView(ui.sectionLabel(T.ridesPhoneRoute()));
         int dropped = track.rejectedLocationCount + track.rejectedElevationCount;
-        TextView fixes = ui.caption(track.locationCount == 0 ? "No GPS fixes" : String.format(Locale.US, "%,d fixes", track.locationCount) + (dropped > 0 ? String.format(Locale.US, " · %,d dropped", dropped) : ""));
+        TextView fixes = ui.caption(track.locationCount == 0 ? T.ridesGpsNoFixes() : T.ridesGpsFixes(track.locationCount, Fmt.groupedInteger(Locale.US, track.locationCount)) + (dropped > 0 ? T.ridesGpsDropped(dropped, Fmt.groupedInteger(Locale.US, dropped)) : ""));
         fixes.setContentDescription(track.statusText()); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
         if (track.distanceMeters != null) tileReadings(distanceParts(track.distanceMeters / 1000));
         tileReadings(ascentParts(track.ascentMeters, track.descentMeters));

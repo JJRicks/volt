@@ -260,6 +260,15 @@
     <string name="more_unit_mib" volt:screen="Data &amp; history" volt:purpose="unit">MiB</string>
     <!-- Stored history: %1$s used of %2$s allowed, both numbers in %3$s ("MiB"): "1.5 of 256 MiB". -->
     <string name="more_history_used" volt:screen="Data &amp; history" volt:purpose="value">%1$s of %2$s %3$s</string>
+    <!-- Under each history kind (Detailed samples, Minute summaries, Daily summaries): how many of that kind are saved. %1$s is the count, already grouped ("1,234"), and picks the plural form. -->
+    <plurals name="more_history_samples_saved" volt:screen="Data &amp; history" volt:purpose="value">
+        <item quantity="one">%1$s saved</item>
+        <item quantity="other">%1$s saved</item>
+    </plurals>
+    <!-- Spoken for the Local storage card. %1$s is the space used (more_history_used, "1.5 of 256 MiB"); %2$s is the sentence of saved counts (more_history_samples_description). -->
+    <string name="more_history_storage_description" volt:screen="Data &amp; history" volt:purpose="accessibility description">Local storage, %1$s used. %2$s</string>
+    <!-- Spoken for the Local storage card: how many detailed samples (%1$s), minute summaries (%2$s) and daily summaries (%3$s) are saved, each count already grouped ("1,234"). The three counts differ and none picks a plural form, so choose wording that reads right at any count, including 0 and 1 (for example "detailed: 1,234"). -->
+    <string name="more_history_samples_description" volt:screen="Data &amp; history" volt:purpose="accessibility description">%1$s detailed, %2$s minute and %3$s daily samples saved.</string>
     <!-- Shown when there is no current scooter whose history could be cleared. -->
     <string name="more_history_choose_scooter" volt:screen="Data &amp; history" volt:purpose="toast">Choose a scooter first.</string>
     <!-- Title of the confirmation before deleting saved history. -->
