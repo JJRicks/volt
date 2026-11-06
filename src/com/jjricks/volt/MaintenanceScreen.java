@@ -55,7 +55,7 @@ final class MaintenanceScreen {
             TAG_DONE = "maintenance_mark_done", TAG_SNOOZE = "maintenance_snooze", TAG_DUE = "maintenance_due_card",
             TAG_CONFIRM = "maintenance_confirm", TAG_DELETE = "maintenance_delete", TAG_EDIT = "maintenance_edit",
             TAG_MODE = "maintenance_mode", TAG_UNIT = "maintenance_unit", TAG_CHANGE = "maintenance_change";
-    private static final String TAG_NOTIFY = "maintenance_notify", TAG_MANUAL = "maintenance_manual_";
+    private static final String TAG_NOTIFY = "maintenance_notify";
 
     private final ScreenHost host;
     private final Ui ui;
@@ -276,7 +276,7 @@ final class MaintenanceScreen {
     /** One manual interval: its task, how often and the page it comes from, with Add (or Added once a reminder has the task). */
     private View manualRow(MaintenanceStore.Settings s, MaintenanceDefaults.Interval interval) {
         MaintenancePolicy.Reminder suggested = MaintenanceView.suggestion(interval);
-        LinearLayout row = new LinearLayout(host.activity()); row.setGravity(Gravity.CENTER_VERTICAL); row.setTag(TAG_MANUAL + interval.task);
+        LinearLayout row = new LinearLayout(host.activity()); row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(10));
         LinearLayout words = column();
         words.addView(ui.text(MaintenanceView.taskName(interval.task), 15, false));
