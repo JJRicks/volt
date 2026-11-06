@@ -81,6 +81,8 @@ public final class ScooterService extends Service {
     private String trendProfile = "", recordingError;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
+    /** Opt-in copies of finished rides to the rider's folder (RideAutoExport); null when the service never started. */
+    private RideAutoExportRunner rideAutoExport;
     static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
@@ -130,7 +132,8 @@ public final class ScooterService extends Service {
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
-            rides = new RideStore(new File(getFilesDir(), "rides"));
+            // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
+            rides = new RideStore(new File(getFilesDir(), "rides"), true);
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
@@ -144,6 +147,9 @@ public final class ScooterService extends Service {
         wakeLock.setReferenceCounted(false);
         visible=uiVisible;running=this;settings.registerOnSharedPreferenceChangeListener(settingsChanged);ble.visibility(visible,isRecording()||isChargeRecording()||holding(),backgroundDeadlineMs);
         applyLocale();
+        rideAutoExport=new RideAutoExportRunner(this,settings,handler,this::rideAutoExportFinished);
+        // Rides an earlier pass could not copy (folder gone, storage full, process ended) are retried at start.
+        startRideAutoExport();
     }
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration){
         super.onConfigurationChanged(configuration);applyLocale();
@@ -204,8 +210,21 @@ public final class ScooterService extends Service {
         else if("STOP_CHARGE_ALARM".equals(action))stopChargeAlarm();
         else if("DISMISS_CHARGE_ALERT".equals(action))dismissChargeAlert();
         else if("STOP_ALERT_WATCH".equals(action))skipChargeAlert();
-        else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
-        applyWorkPolicy(!stopAction||isRecording());return isRecording()?START_STICKY:START_NOT_STICKY;
+        else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
+        applyWorkPolicy(!stopAction||isRecording());warmRides();return isRecording()?START_STICKY:START_NOT_STICKY;
+    }
+    private boolean ridesWarming;
+    /**
+     * Owner, Nov 5: launch and connect first, then load rides. Runs once, after the first start command has begun the
+     * connection: a low-priority worker reads every finished ride into the store's cache, so Rides opens from memory.
+     */
+    private void warmRides(){
+        if(ridesWarming||rides==null)return;ridesWarming=true;final RideStore store=rides;
+        Thread worker=new Thread(()->{
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try{store.list();}catch(IOException|RuntimeException unavailable){}
+        },"ride-cache");
+        worker.setDaemon(true);worker.start();
     }
     @Override public IBinder onBind(Intent intent){return guardedLifecycle?null:binder;}
     public void listen(Runnable listener){listeners.add(listener);}public void unlisten(Runnable listener){listeners.remove(listener);}
@@ -226,7 +245,7 @@ public final class ScooterService extends Service {
     public String dataMaintenanceUnavailable() {
         if (destroyed || dataMaintenance || DataMaintenance.active()) return T.serviceMaintenanceInProgress();
         if (isRecording() || isChargeRecording()) return T.serviceStopRecordingFirst();
-        if (phoneSaving() || phoneRecorder != null) return T.serviceWaitPhoneSaving();
+        if (phoneSaving() || phoneRecorder != null || rideAutoExportBusy()) return T.serviceWaitPhoneSaving();
         if (chargeExporting) return T.serviceFinishChargeExport();
         if (chargeScheduleController != null && chargeScheduleController.busy()) return T.serviceWaitChargingSchedule();
         if (chargeMeasure.active()) return T.serviceWaitMeasuring();
@@ -1249,6 +1268,7 @@ public final class ScooterService extends Service {
                 || holding()
                 || chargeAlertHold()
                 || phoneSaving()
+                || rideAutoExportBusy()
                 || settings.getBoolean("background_connection", false)
                 || backgroundDeadlineMs > SystemClock.elapsedRealtime();
     }
@@ -1287,6 +1307,11 @@ public final class ScooterService extends Service {
                     long remaining = backgroundDeadlineMs - SystemClock.elapsedRealtime();
                     if (remaining > 0) {
                         handler.postDelayed(this, remaining);
+                        return;
+                    }
+                    // An automatic ride copy finishes first; the deadline itself is neither moved nor cancelled.
+                    if (rideAutoExportBusy()) {
+                        handler.postDelayed(this, 1000);
                         return;
                     }
                     stopIdleWork();
@@ -1396,6 +1421,31 @@ public final class ScooterService extends Service {
         }catch(RuntimeException unavailable){}
     }
     private void cancelAutoStopNotice(){cancelNotice(AUTO_STOP_NOTICE);}
+    /**
+     * A stopped ride's files are complete: its phone journal finished saving (stopPhoneRecording's completion),
+     * or it had no phone recorder (then synchronously, from stopRide, before its applyWorkPolicy). Main thread.
+     * A destroyed service skips it; the ride is still in the stored waiting list, so the next start retries it.
+     */
+    private void rideFullySaved(){if(destroyed)return;startRideAutoExport();}
+    /** The keep-alive for an automatic ride copy: like phoneSaving(), and separate from the idle timeout. */
+    private boolean rideAutoExportBusy(){return rideAutoExport!=null&&rideAutoExport.busy();}
+    /** The rider chose the folder again (RideAutoExportPickerActivity): retry what is waiting. Main thread. */
+    void rideAutoExportFolderChosen(){startRideAutoExport();}
+    /**
+     * Starts a pass over the waiting rides. Never during backup or restore, and not while a phone journal is
+     * still saving: its completion (rideFullySaved) calls here again.
+     */
+    private void startRideAutoExport(){
+        if(destroyed||dataMaintenance||DataMaintenance.active()||rideAutoExport==null||phoneSaving())return;
+        rideAutoExport.start(rides,phoneRides);
+    }
+    /** Main thread, after each pass. A failure is the stored id; the saved ride is never touched. */
+    private void rideAutoExportFinished(RideAutoExport.Problem before,RideAutoExport.Problem after,boolean again){
+        if(destroyed)return;
+        if(again)startRideAutoExport();
+        applyWorkPolicy(false);
+        changed();
+    }
     private void startPhoneRecording(){
         if (simulating()) return;
         if(phoneRides==null||!isRecording()||phoneRecorder!=null)return;
@@ -1412,7 +1462,12 @@ public final class ScooterService extends Service {
                 gps,
                 settings.getBoolean("phone_motion", true));
     }
-    private void stopPhoneRecording(){if(phoneRecorder!=null){PhoneRideRecorder finishing=phoneRecorder;phoneRecorder=null;phoneSavingCount++;finishing.stop(()->handler.post(()->{phoneSavingCount=Math.max(0,phoneSavingCount-1);phoneFinalStatus=finishing.status();phoneFinalFlags=finishing.statusFlags();if(!destroyed){if(!isRecording()&&!phoneSaving()&&wakeLock.isHeld())wakeLock.release();applyWorkPolicy(false);changed();}}));}phoneLocationForeground=false;}
+    private void stopPhoneRecording(){if(phoneRecorder!=null){PhoneRideRecorder finishing=phoneRecorder;phoneRecorder=null;phoneSavingCount++;finishing.stop(()->handler.post(()->{phoneSavingCount=Math.max(0,phoneSavingCount-1);phoneFinalStatus=finishing.status();phoneFinalFlags=finishing.statusFlags();if(!destroyed){rideFullySaved();if(!isRecording()&&!phoneSaving()&&wakeLock.isHeld())wakeLock.release();applyWorkPolicy(false);changed();}}));}
+        // No phone recorder (simulation, no phone storage): the ride's files are already complete. Start the copy
+        // now, not posted: its busy() hold must exist before stopRide's applyWorkPolicy, or a hidden idle service
+        // drops the foreground and stops itself before the copy starts.
+        else rideFullySaved();
+        phoneLocationForeground=false;}
     private void recordPhoneTelemetry(long now){
         if (simulating()) return;
         if(phoneRecorder==null)return;Telemetry.Metric speedMetric=null,volts=null,amps=null,battery=null;
@@ -2213,6 +2268,7 @@ public final class ScooterService extends Service {
         if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel();}
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
+        if(rideAutoExport!=null)rideAutoExport.shutdown();
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureClosed());}destroyed=true;stopChargeAlarm();finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{
                 rides.markGap(
                         System.currentTimeMillis(), SystemClock.elapsedRealtime(), "Service ended");

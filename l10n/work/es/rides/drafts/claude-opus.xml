@@ -152,6 +152,17 @@
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Ruta</string>
     <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Teléfono y ruta</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">Distancia GPS</string>
+    <string name="rides_gps_no_fixes" volt:src="a46667ac4335a821606c9ce1cffd8bbfaaca8ae1">Sin puntos GPS</string>
+    <plurals name="rides_gps_fixes" volt:src="8299da934c42b476c3f35c579377d8238c2e2e48">
+        <item quantity="one">%1$s punto GPS</item>
+        <item quantity="many">%1$s puntos GPS</item>
+        <item quantity="other">%1$s puntos GPS</item>
+    </plurals>
+    <plurals name="rides_gps_dropped" volt:src="c3b24f910e7a641b3186cec3c2fc1e0c157aebc0">
+        <item quantity="one">" · %1$s descartado"</item>
+        <item quantity="many">" · %1$s descartados"</item>
+        <item quantity="other">" · %1$s descartados"</item>
+    </plurals>
     <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Ascenso / descenso</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Aceleración</string>
     <string name="rides_gps_speed_change" volt:src="a15e78f916dd0aff03e2124b76da4f735b3a4a34">Cambio de velocidad GPS · mín. / máx.</string>

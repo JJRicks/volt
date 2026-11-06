@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="rides_gps_no_fixes" volt:src="a46667ac4335a821606c9ce1cffd8bbfaaca8ae1">Sin posiciones GPS</string>
+    <plurals name="rides_gps_fixes" volt:src="8299da934c42b476c3f35c579377d8238c2e2e48">
+        <item quantity="one">%1$s posición</item>
+        <item quantity="many">%1$s posiciones</item>
+        <item quantity="other">%1$s posiciones</item>
+    </plurals>
+    <plurals name="rides_gps_dropped" volt:src="c3b24f910e7a641b3186cec3c2fc1e0c157aebc0">
+        <item quantity="one">" · %1$s descartada"</item>
+        <item quantity="many">" · %1$s descartadas"</item>
+        <item quantity="other">" · %1$s descartadas"</item>
+    </plurals>
     <string name="rides_live_recording" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Grabando</string>
     <string name="rides_live_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
     <string name="rides_live_power_now" volt:src="9afa9d3c1e3f7ceba6c4539bcfc4697d7282adba">W ahora</string>

@@ -23,6 +23,8 @@ public final class LearnedRangeEstimate {
     private static final long DAY = 86400000L, ENDPOINT_MS = 3000;
     /** Longest silent link + disconnect grace accepted after an automatic parked stop (about 25 s in practice). */
     static final long PARKED_TAIL_MS = 60000;
+    /** The same allowance after a went-quiet stop: the longest quiet wait plus the silent link and a tick. */
+    static final long QUIET_TAIL_MS = RideAutoStopPolicy.QUIET_LONG_MS + 30000;
     private LearnedRangeEstimate() {}
 
     /** Compact evidence from a full, completed journal; no raw route or owner data retained. */
@@ -290,11 +292,12 @@ public final class LearnedRangeEstimate {
             if (electrical < MIN_ELECTRICAL_COVERAGE || speed < MIN_ELECTRICAL_COVERAGE || s.netConsumptionWh <= 0) return null;
             return s.netConsumptionWh / electrical;
         }
-        /** A ride Volt ended after a parked Bluetooth loss: its tail holds no distance or battery use. */
+        /** A ride Volt ended after a parked or went-quiet Bluetooth loss: its tail holds no distance or battery use. */
         private boolean parkedTail(RideStore.Summary s) {
+            long allowed = RideStore.STOP_AUTO_QUIET.equals(s.stopReason) ? QUIET_TAIL_MS : PARKED_TAIL_MS;
             return s.automaticStop && complete != null && !s.recovered && s.clockDiscontinuities == 0
                     && s.gapCount == complete.segment + 1L && s.elapsedMs >= complete.elapsedMs
-                    && s.elapsedMs - complete.elapsedMs <= PARKED_TAIL_MS;
+                    && s.elapsedMs - complete.elapsedMs <= allowed;
         }
         private String rejection(RideStore.Summary s) {
             if (s == null || s.active) return "Recording is unfinished";

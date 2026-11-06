@@ -49,6 +49,10 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `developer_options` | Boolean | global | Durable | Seven-tap unlock. |
 | `range_learned_intro_seen` | Boolean | global | Durable | Learned-range introduction shown. |
 | `ride_auto_stop` | Boolean | global | Durable | Conservatively end forgotten rides (added by the ride auto-stop work; registered ahead of it). |
+| `ride_auto_export_route_csv`, `ride_auto_export_json` | Boolean | global | Durable | Copy each finished ride's Route CSV, and its ride JSON, to the folder below. Default off. RideAutoExport. A restored choice with no folder on this phone waits until one is chosen. |
+| `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when both copies are turned off. |
+| `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when both copies are turned off. |
+| `ride_auto_export_problem` | String | global | Pending | Why rides are waiting: `folder` (no folder, or it or its grant is gone) or `save` (a write failed). Absent when nothing failed. |
 | `dashboard_columns` | Integer | global | Durable | Column choice shared by every scooter's dashboard. DashboardConfig. |
 | `dashboard_v1_<pid>` | String (JSON) | per scooter | Durable | Active dashboard: widgets, parameters, notes and a cell for every column count (folded and unfolded layouts live inside each widget). |
 | `dashboard_slot_v1_<pid>_<0..2>` | String (JSON) | per scooter | Durable | Saved layout slots. |

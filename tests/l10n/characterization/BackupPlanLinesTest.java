@@ -57,7 +57,7 @@ public final class BackupPlanLinesTest {
 
             BackupTestStore phone = BackupArchiveTest.phone(new File(root, "replace"));
             lines("Replace everything", BackupArchive.plan(phone, phone.stage(complete), BackupTestStore.all(), true, Collections.<String, String>emptyMap()),
-                    "Replaces everything on this phone", "Scooters & setup keys: 2 scooters", "Dashboards: 2 scooters", "App preferences: 11 settings",
+                    "Replaces everything on this phone", "Scooters & setup keys: 2 scooters", "Dashboards: 2 scooters", "App preferences: 13 settings",
                     "Rides: 3 rides", "Charges: 2 charges", "Readings history: 2 scooters", "Scooter preferences: 2 scooters", "Online map: on");
 
             BackupTestStore merge = BackupArchiveTest.phone(new File(root, "merge"));
@@ -65,11 +65,11 @@ public final class BackupPlanLinesTest {
             BackupArchive.Plan merged = BackupArchive.plan(merge, merge.stage(complete), BackupTestStore.all(), false, chosen);
             lines("Merge", merged,
                     "“Fold UT5” → Phone UT5", "Scooters: adds 1 · 1 already here", "Dashboards: replaces layouts for Phone UT5, Spare",
-                    "App preferences: replaces 11 settings", "Rides: 3 new · 0 already here · 0 kept here", "Charges: 2 new · 0 already here · 0 kept here",
+                    "App preferences: replaces 13 settings", "Rides: 3 new · 0 already here · 0 kept here", "Charges: 2 new · 0 already here · 0 kept here",
                     "Readings history: adds to 2 scooters", "Scooter preferences: replaces settings for Phone UT5, Spare", "Online map: on");
             BackupTransaction.apply(merge, merged);
             lines("Repeated merge", merge.plan(merge.stage(complete), BackupTestStore.all(), false, null),
-                    "“Fold UT5” → Phone UT5", "Scooters: adds 0 · 2 already here", "Dashboards: replaces layouts for Phone UT5, Spare", "App preferences: replaces 11 settings",
+                    "“Fold UT5” → Phone UT5", "Scooters: adds 0 · 2 already here", "Dashboards: replaces layouts for Phone UT5, Spare", "App preferences: replaces 13 settings",
                     "Rides: 0 new · 3 already here · 0 kept here", "Charges: 0 new · 2 already here · 0 kept here", "Readings history: adds to 2 scooters",
                     "Scooter preferences: replaces settings for Phone UT5, Spare", "Online map: on");
 
@@ -77,7 +77,7 @@ public final class BackupPlanLinesTest {
             chosen.put(A, BackupArchive.SKIP); chosen.put(B, BackupArchive.SKIP);
             lines("Every scooter skipped", BackupArchive.plan(skipAll, skipAll.stage(complete), BackupTestStore.all(), false, chosen),
                     "Scooters: adds 0 · 0 already here", "2 scooters skipped · not restored", "Dashboards: nothing to replace",
-                    "Dashboards for 2 scooters skipped · not restored", "App preferences: replaces 11 settings", "Rides: 0 new · 0 already here · 0 kept here",
+                    "Dashboards for 2 scooters skipped · not restored", "App preferences: replaces 13 settings", "Rides: 0 new · 0 already here · 0 kept here",
                     "3 rides skipped · scooter not restored", "Charges: 0 new · 0 already here · 0 kept here", "2 charges skipped · scooter not restored",
                     "Readings history: nothing to add", "Readings for 2 scooters skipped · not restored", "Scooter preferences: nothing to replace",
                     "Scooter preferences for 2 scooters skipped · not restored", "Online map: on");
@@ -86,7 +86,7 @@ public final class BackupPlanLinesTest {
             chosen.put(A, C); chosen.put(B, BackupArchive.SKIP);
             lines("One scooter skipped", BackupArchive.plan(skipOne, skipOne.stage(complete), BackupTestStore.all(), false, chosen),
                     "“Fold UT5” → Phone UT5", "Scooters: adds 0 · 1 already here", "1 scooter skipped · not restored", "Dashboards: replaces layouts for Phone UT5",
-                    "Dashboards for 1 scooter skipped · not restored", "App preferences: replaces 11 settings", "Rides: 2 new · 0 already here · 0 kept here",
+                    "Dashboards for 1 scooter skipped · not restored", "App preferences: replaces 13 settings", "Rides: 2 new · 0 already here · 0 kept here",
                     "1 ride skipped · scooter not restored", "Charges: 1 new · 0 already here · 0 kept here", "1 charge skipped · scooter not restored",
                     "Readings history: adds to 1 scooter", "Readings for 1 scooter skipped · not restored", "Scooter preferences: replaces settings for Phone UT5",
                     "Scooter preferences for 1 scooter skipped · not restored", "Online map: on");
@@ -105,7 +105,7 @@ public final class BackupPlanLinesTest {
                     "Dashboards: nothing to replace", "Dashboards for 2 scooters skipped · not restored", "Rides: 0 new · 0 already here · 0 kept here",
                     "3 rides skipped · scooter not restored");
             lines("App preferences only", fresh.plan(fresh.stage(source.export(set(BackupRegistry.PREFERENCES))), set(BackupRegistry.PREFERENCES), false, null),
-                    "App preferences: replaces 11 settings", "Online map: on");
+                    "App preferences: replaces 13 settings", "Online map: on");
 
             BackupTestStore oneSetting = new BackupTestStore(new File(root, "one-setting-source"));
             oneSetting.put("app_settings", "theme", "light");

@@ -25,12 +25,12 @@ javac --release 8 -encoding UTF-8 \
     "$SCRIPT_DIR/MapTilesValidation.java" "$SCRIPT_DIR/RouteGestureValidation.java" "$SCRIPT_DIR/DashboardSlotsValidation.java" \
     "$SCRIPT_DIR/DashboardTransferValidation.java" "$SCRIPT_DIR/AppDataBackupValidation.java" "$SCRIPT_DIR/AppDataMaintenanceValidation.java" "$SCRIPT_DIR/BackupUiValidation.java" "$SCRIPT_DIR/RideBackupValidation.java" "$SCRIPT_DIR/FullBackupJourneyValidation.java" "$SCRIPT_DIR/BackupInventoryValidation.java" "$SCRIPT_DIR/BackupScenarioValidation.java" \
     "$SCRIPT_DIR/ResponsiveDashboardValidation.java" "$SCRIPT_DIR/DeveloperSettingsValidation.java" \
-    "$SCRIPT_DIR/LiveStatsValidation.java" "$SCRIPT_DIR/RidesAnalysisValidation.java" \
+    "$SCRIPT_DIR/LiveStatsValidation.java" "$SCRIPT_DIR/RidesAnalysisValidation.java" "$SCRIPT_DIR/RidesTimingValidation.java" \
     "$SCRIPT_DIR/BatteryWidgetValidation.java" "$SCRIPT_DIR/CapacityWidgetValidation.java" "$SCRIPT_DIR/LearnedRangeValidation.java" \
     "$SCRIPT_DIR/ChargeCaptureValidation.java" "$SCRIPT_DIR/ChargeEstimateValidation.java" "$SCRIPT_DIR/ChargeScheduleValidation.java" "$SCRIPT_DIR/ChargeScheduleWireValidation.java" \
     "$SCRIPT_DIR/QuickHapticsValidation.java" "$SCRIPT_DIR/ConnectionHapticsValidation.java" \
     "$SCRIPT_DIR/MotionPolishValidation.java" \
-    "$SCRIPT_DIR/RideAutoStopValidation.java" \
+    "$SCRIPT_DIR/RideAutoStopValidation.java" "$SCRIPT_DIR/RideAutoExportValidation.java" \
     "$SCRIPT_DIR/ReportInviteValidation.java" "$SCRIPT_DIR/UpdateCheckValidation.java" "$SCRIPT_DIR/ReportShortcutsValidation.java" "$SCRIPT_DIR/ReportDiagnosticsValidation.java" "$SCRIPT_DIR/MoreMenuValidation.java" "$SCRIPT_DIR/OwnerModelValidation.java" "$SCRIPT_DIR/ModelHomeValidation.java" "$SCRIPT_DIR/CompatibilityGatingValidation.java" "$SCRIPT_DIR/Ut5SimulationScreens.java" \
     "$SCRIPT_DIR/GuidedTestValidation.java" \
     "$SCRIPT_DIR/CompatControlsValidation.java" "$SCRIPT_DIR/ChargeAlertValidation.java" \
