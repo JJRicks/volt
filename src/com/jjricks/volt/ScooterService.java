@@ -1139,13 +1139,15 @@ public final class ScooterService extends Service {
         int red=android.graphics.Color.rgb(0xE3,0x2B,0x2F);
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
-        if(live.progress>=0)builder.setProgress(live.max,live.progress,false);
+        // Android 16 and later, where allowed: the same card asked to be a Live Update, with ProgressStyle's bar.
+        boolean promoted=promoteChargeLive(builder,live,capture);
+        if(!promoted&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         // Android ticks this countdown in the header by itself; Volt reposts only when a whole minute or percent changes.
         if(live.countdownEndWallMs>0)builder.setWhen(live.countdownEndWallMs).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
         else builder.setShowWhen(false);
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
         if(capture!=null)big.setSummaryText(capture);
-        builder.setStyle(big);
+        if(!promoted)builder.setStyle(big);
         if(live.publicTitle==null)return;
         Notification.Builder lock=new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification).setColor(red)
                 .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
@@ -1154,6 +1156,101 @@ public final class ScooterService extends Service {
         if(live.countdownEndWallMs>0)lock.setWhen(live.countdownEndWallMs).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
         else lock.setShowWhen(false);
         builder.setPublicVersion(lock.build());
+    }
+    // ---- Live Update promotion (ChargeLiveUpdate; Android 16 and later) ----------------------------------
+
+    /** The last card was asked to be promoted, and whether Android found it promotable; the developer row's last outcome. */
+    private boolean liveUpdateAsked,liveUpdatePromotable;
+    private ChargeLiveUpdate.Status liveUpdateLast;
+    private static boolean liveUpdateLooked;
+    private static String liveUpdateExtra;
+    private static java.lang.reflect.Method liveUpdateMethod;
+    /**
+     * Android's own promotion request, where this Android has one: the Notification.EXTRA_REQUEST_PROMOTED_ONGOING
+     * key and Builder.setRequestPromotedOngoing(boolean), both newer than the SDK Volt builds with, so they are
+     * found by name (compared in lower case) and read from the platform rather than spelled out here.
+     */
+    private static synchronized void lookUpLiveUpdate(){
+        if(liveUpdateLooked)return;
+        liveUpdateLooked=true;
+        if(Build.VERSION.SDK_INT<ChargeLiveUpdate.SDK)return;
+        try{
+            for(java.lang.reflect.Field field:Notification.class.getFields())
+                if(field.getType()==String.class&&java.lang.reflect.Modifier.isStatic(field.getModifiers())
+                        &&field.getName().toLowerCase(Locale.ROOT).equals("extra_request_promoted_ongoing"))liveUpdateExtra=(String)field.get(null);
+            for(java.lang.reflect.Method method:Notification.Builder.class.getMethods())
+                if(method.getName().toLowerCase(Locale.ROOT).equals("setrequestpromotedongoing")&&method.getParameterCount()==1
+                        &&method.getParameterTypes()[0]==boolean.class)liveUpdateMethod=method;
+        }catch(ReflectiveOperationException|RuntimeException|LinkageError unavailable){liveUpdateExtra=null;liveUpdateMethod=null;}
+    }
+    /** This Android can be asked to promote a notification. */
+    static boolean liveUpdateRequestAvailable(){lookUpLiveUpdate();return liveUpdateExtra!=null||liveUpdateMethod!=null;}
+    /** Live Updates are allowed for Volt in Android's settings (always false before Android 16). */
+    boolean liveUpdateAllowed(){
+        if(Build.VERSION.SDK_INT<ChargeLiveUpdate.SDK)return false;
+        try{return getSystemService(NotificationManager.class).canPostPromotedNotifications();}
+        catch(RuntimeException|LinkageError unknown){return false;}
+    }
+    /**
+     * Asks Android to promote the live card: ProgressStyle's bar, the chip's short text and the request. Returns false,
+     * with the builder as it was, when Volt doesn't ask (ChargeLiveUpdate.promote) or anything fails; the card is then
+     * the plain one, exactly as before.
+     */
+    private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
+        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),capture!=null))return false;
+        ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
+        ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
+        try{
+            List<Notification.ProgressStyle.Segment> segments=new ArrayList<>();
+            for(ChargeLiveUpdate.Segment part:bar.segments)segments.add(new Notification.ProgressStyle.Segment(part.length).setColor(liveUpdateColor(part.role)));
+            List<Notification.ProgressStyle.Point> points=new ArrayList<>();
+            for(ChargeLiveUpdate.Point mark:bar.points)points.add(new Notification.ProgressStyle.Point(mark.position).setColor(liveUpdateColor(mark.role)));
+            Notification.ProgressStyle style=new Notification.ProgressStyle().setProgressSegments(segments).setProgressPoints(points)
+                    .setProgress(bar.progress).setProgressIndeterminate(bar.indeterminate)
+                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification))
+                    .setProgressStartIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_scooter_small));
+            builder.setStyle(style);
+            if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
+            if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
+            if(liveUpdateExtra!=null){Bundle request=new Bundle();request.putBoolean(liveUpdateExtra,true);builder.addExtras(request);}
+            liveUpdateAsked=true;
+            return true;
+        }catch(ReflectiveOperationException|RuntimeException|LinkageError failed){
+            try{
+                builder.setStyle(null);builder.setShortCriticalText(null);
+                if(liveUpdateExtra!=null)builder.getExtras().remove(liveUpdateExtra);
+                if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,false);
+            }catch(ReflectiveOperationException|RuntimeException|LinkageError ignored){}
+            liveUpdateAsked=false;
+            return false;
+        }
+    }
+    /** Volt's palette on the bar: red to the target (as the Battery cell), orange while held, greys past the limit or out of reach. */
+    private static int liveUpdateColor(ChargeLiveUpdate.Role role){
+        switch(role){
+            case HELD:case ALERT:return android.graphics.Color.rgb(0xE8,0xA2,0x3A);
+            case STALE:return android.graphics.Color.rgb(0x87,0x89,0x82);
+            case PAST_LIMIT:return android.graphics.Color.rgb(0x9A,0x9C,0x95);
+            case LIMIT:return android.graphics.Color.rgb(0x5F,0xCB,0x7E);
+            default:return android.graphics.Color.rgb(0xE3,0x2B,0x2F);
+        }
+    }
+    /** After each connection notice is built: Android's own verdict on whether the live card could be promoted. */
+    private void liveUpdateBuilt(Notification notice){
+        liveUpdatePromotable=false;
+        if(!liveUpdateAsked||Build.VERSION.SDK_INT<ChargeLiveUpdate.SDK)return;
+        try{liveUpdatePromotable=notice.hasPromotableCharacteristics();}catch(RuntimeException|LinkageError unknown){}
+    }
+    /** For More › Developer options: whether the live card is (or the last one was) a Live Update. */
+    public ChargeLiveUpdate.Status liveUpdateStatus(){
+        boolean showing=!destroyed&&liveUpdateAsked&&chargeLiveShown(),promoted=false;
+        if(showing)try{
+            for(android.service.notification.StatusBarNotification n:getSystemService(NotificationManager.class).getActiveNotifications())
+                if(n.getId()==71&&(n.getNotification().flags&Notification.FLAG_PROMOTED_ONGOING)!=0)promoted=true;
+        }catch(RuntimeException unknown){}
+        ChargeLiveUpdate.Status status=ChargeLiveUpdate.status(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),showing,promoted,liveUpdatePromotable,liveUpdateLast);
+        if(showing)liveUpdateLast=status;
+        return status;
     }
     /** Charging finished at its target out of sight: one quiet notice, then the hold ends like any other. */
     private void chargeLiveDoneNotice(ChargeLiveHold.Facts facts){
@@ -2450,6 +2547,7 @@ public final class ScooterService extends Service {
         if (progress >= 0) builder.setProgress(target, progress, false);
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
+        liveUpdateAsked = false;
         if (live != null) chargeLiveCard(builder, live, isChargeRecording() ? chargeCaptureStatus() : null);
         if(Build.VERSION.SDK_INT>=31&&keepsWorking())
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
@@ -2462,7 +2560,9 @@ public final class ScooterService extends Service {
                     new Notification.Action.Builder(
                                     null, liveStop || alarming ? T.serviceActionStop() : watching ? T.serviceActionStopWatching() : measuring ? T.serviceActionScheduleNow() : testing ? T.serviceActionCancelTest() : isChargeRecording() ? T.serviceActionStopCharge() : isRecording() ? T.serviceActionStopRecording() : T.serviceActionDisconnect(), stop)
                             .build());
-        return builder.build();
+        Notification notice = builder.build();
+        liveUpdateBuilt(notice);
+        return notice;
     }
     /** "UT5 MAX · 82%": the connected notification names the scooter and its charge. */
     private String connectedText() {
