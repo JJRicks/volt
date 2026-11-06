@@ -8,8 +8,8 @@ import java.util.Locale;
  * each method below is the head expression of its consumer, compared with the English the old
  * strings built (the characterization copies where one exists, the old concatenation otherwise) at
  * every quantity where an English or Slavic plural rule changes form. The owner-approved singulars
- * (l10n/english-changes.tsv) are the one difference: "1 local sample", "1 recording stored" and
- * "1 percentage point".
+ * (l10n/english-changes.tsv) are the one difference: "1 local sample", "1 recording stored",
+ * "1 percentage point" and "1 qualified stock charge recording".
  */
 public final class FixedCountPluralsTest {
     private static int checks;
@@ -44,6 +44,11 @@ public final class FixedCountPluralsTest {
                 : T.ridesBatteryDropDescriptionCount(Math.round(Math.abs(batteryDropPercent)), Math.round(Math.abs(batteryDropPercent))));
     }
 
+    // MoreScreen.refreshChargeCurve()'s description once the charger is known, at head.
+    static String qualified(boolean stock, int qualified) {
+        return stock ? T.moreDevCurvesStockCount(qualified, Fmt.integer(qualified)) : T.moreDevCurvesFastCount(qualified, Fmt.integer(qualified));
+    }
+
     /** The base's English with the "one" items the catalog now has at a count of 1 (l10n/english-changes.tsv). */
     static String singular(String base, long count) {
         if (count != 1) return base;
@@ -57,6 +62,11 @@ public final class FixedCountPluralsTest {
             {" 1 recordings stored", " 1 recording stored"},
             {" 1 percentage points", " 1 percentage point"},
     };
+
+    /** The base's saved-curves description, which the plural twins say in the singular for 1. */
+    static String singularQualified(String base, int count) {
+        return count == 1 ? base.replaceFirst(" charge recordings$", " charge recording") : base;
+    }
 
     // DashboardScreen's charging hero stage description, at head.
     static String hero(double level, boolean hasLimit, double limit) {
@@ -128,6 +138,8 @@ public final class FixedCountPluralsTest {
             for (boolean gain : new boolean[]{true, false})
                 for (double delta : new double[]{n, n + 0.4, n - 0.6, -n})
                     same(singular(RidesEnglishTest.battery(gain, delta), Math.round(Math.abs(delta))), battery(gain, delta), "battery " + delta);
+            for (boolean stock : new boolean[]{true, false})
+                same(singularQualified(MoreScreenTextTest.Base.qualified(i, stock), i), qualified(stock, i), "qualified " + n);
         }
         for (int whole = 0; whole <= 100; whole++)
             for (double level : new double[]{whole, whole + 0.4, whole - 0.5}) {
@@ -164,6 +176,9 @@ public final class FixedCountPluralsTest {
         same("Battery gain, 1 percentage point", battery(true, 1), "gain singular");
         same("Battery drop, 1 percentage point", battery(false, 0.6), "drop singular");
         same("Battery drop, 2 percentage points", battery(false, 2), "drop plural");
+        same("1 qualified stock charge recording", qualified(true, 1), "stock curves singular");
+        same("1 qualified high-speed charge recording", qualified(false, 1), "fast curves singular");
+        same("12 qualified stock charge recordings", qualified(true, 12), "stock curves plural");
         same("1 fix", T.ridesGpsFixes(1, "1"), "GPS fixes singular");
         same("2 fixes", T.ridesGpsFixes(2, "2"), "GPS fixes plural");
     }

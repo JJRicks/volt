@@ -195,3 +195,4 @@ ui_live_stats_disconnected	-	Live Stats, disconnected	Live Stats, not connected	
 # Code changes outside the catalog (D1), approved with the rest; reverse them in the code:
 # BackupActivity restoreCategories and fresh: the backup's date uses DisplayTime.dateTime (Volt's 12/24-hour setting) instead of java.text.DateFormat MEDIUM/SHORT.
 # QuickAccessGrid tileSpokenName (D3): TalkBack names the Maximum speed setting tile by the control's full name, controls_feature_maximum_speed (Maximum speed, unchanged), instead of the tile label, which is now the abbreviated Max. speed.
+# MoreScreen refreshChargeCurve (singulars, owner approved the English fixes 2026-11-05): the saved charge curves card's screen-reader text uses the new plurals more_dev_curves_stock_count and more_dev_curves_fast_count, which say "1 qualified stock charge recording" at 1, instead of the strings more_dev_curves_stock and more_dev_curves_fast (unchanged, kept for B18's ledger row).

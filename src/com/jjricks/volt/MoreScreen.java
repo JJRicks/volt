@@ -2399,7 +2399,7 @@ public final class MoreScreen implements AppScreen {
         chargeCurveValue.setTextColor(qualified > 0 ? ui.accent : ui.muted);
         chargeCurveScope.setText(scope);chargeCurveScope.setVisibility(scope.isEmpty() ? View.GONE : View.VISIBLE);
         chargeCurve.setContentDescription(qualified < 0 ? T.moreDevCurvesLoading() : effective == null ? T.moreDevCurvesNotApplied()
-                : (effective == ChargeSessionStore.Charger.STOCK ? T.moreDevCurvesStock(Fmt.integer(qualified)) : T.moreDevCurvesFast(Fmt.integer(qualified))));
+                : (effective == ChargeSessionStore.Charger.STOCK ? T.moreDevCurvesStockCount(qualified, Fmt.integer(qualified)) : T.moreDevCurvesFastCount(qualified, Fmt.integer(qualified))));
         chargeCurve.setTooltipText(T.moreDevCurvesTooltip());
     }
     private void setChildrenEnabled(View view,boolean enabled){
