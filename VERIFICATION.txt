@@ -16,15 +16,38 @@ November 6, 2026
   only, with synthetic rides and Bluetooth off: about 0.3 s to the first
   frame with 41 one-hour rides, from about 4 s. The service start command
   stands in for connection start; it is not a connection time.
-- TODO: run-release-sweep.py on the release candidate, including the
-  rides-timing gate (cold launch and two Rides opens against RELEASE_BUDGETS).
-- TODO: ship_check --release --aapt required on the release commit (no
-  shipped language may fall back to English).
-- TODO: VOLT_RELEASE=1 bash build.sh, and the commit it printed:
-  <commit>. Signing certificate compared with the 1.11.1 release: <result>.
-- TODO: owner-present hardware sweep (run-hardware-sweep.py --parked), parked
-  since 1.11.0: <result>.
-- TODO: real-phone checks only the owner can do:
+- Release candidate checks on the final tree (main after #283 plus this
+  release's docs; the app tree is unchanged from the swept build):
+  - ship_check --release --aapt required: PASS, Spanish 0 of 3773 keys
+    falling back, aapt compiling 3990 Spanish texts exactly.
+  - Pinned Shizuku dependencies verified; tests/run.sh passes (155 suites,
+    about 1.98 million checks); owner-capture guard (11), capture-owner (22)
+    and hardware-sweep (14) tests pass.
+  - VOLT_RELEASE=1 bash build.sh with a local contributor key: versionName
+    1.12.0 (no -dev), versionCode 55. The swept build (commit 561e7f1) and the
+    rebuild on the final tree (commit 6161773, after #283 changed only
+    android-tests/) have identical contents apart from META-INF.
+- run-release-sweep.py on that swept build (Medium Phone API 36.1 emulator,
+  synthetic data, Bluetooth off): 74 of 78 steps passed on the first run.
+  - responsive, responsive-modes and charge-capture failed in both the first
+    run and a rerun. Each was a validation outdated by a reviewed change: the
+    short status rung without the words "last seen" (#211), and charge
+    recordings showing the live charging card (#250). #283 updated both
+    validations; with it, all three pass on the final tree.
+  - motion-polish hung once in am instrument for 600 s (its 344x882 light glow
+    case) while the Mac was loaded. It passed in the rerun and again on the
+    final tree.
+  - rides-timing passed (best of two cold starts, slowest case): first frame
+    181 ms and service start command 157 ms (budgets 1.5 s), Rides first row
+    61 ms and longest main-thread message 50 ms cold, 40 ms warm (budget 1 s).
+    The service start command stands in for connection start; it is not a
+    connection time.
+  - locale-es reports (report only, not gating): no unfilled placeholders,
+    glued pieces or direction problems. At 725 dp two More-list labels break
+    mid-word in Spanish («Controles experimentales», «Buscar automáticamente»).
+- No owner-present hardware sweep yet (run-hardware-sweep.py --parked, parked
+  since 1.11.0). The owner runs it before publishing.
+- Real-phone checks only the owner can do, not yet done:
   - the live charging card in the background through a real charge;
   - a maintenance reminder notification after a reboot, and under battery
     saver;
@@ -32,7 +55,7 @@ November 6, 2026
   - riding mode brightness in sunlight;
   - the connection notice staying Connected with Volt out of sight;
   - riding mode night vision: brightness and the fade in real darkness and in
-    sunlight (owner only, real phone).
+    sunlight.
 - Physical scope: riding mode, live charging, maintenance reminders, the
   Scooter tab editor and the launch timing are tested on emulators and in
   JVM suites, not yet on a real phone with a scooter.
