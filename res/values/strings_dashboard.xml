@@ -596,9 +596,13 @@
     <string name="dashboard_status_connected" volt:screen="Home header" volt:purpose="status">Connected</string>
     <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
     <string name="dashboard_status_connected_mode" volt:screen="Home header" volt:purpose="status">Connected · %1$s</string>
-    <string name="dashboard_status_disconnected" volt:screen="Home header" volt:purpose="status">Disconnected</string>
+    <string name="dashboard_status_disconnected" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Disconnected</string>
+    <!-- The narrow-label ladder's short rung of Disconnected, when the full word does not fit the line at the readable size. -->
+    <string name="dashboard_status_disconnected_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Disconnected</string>
     <!-- %1$s is when the scooter was last connected ("14:05", "03 NOV · 14:05"). -->
-    <string name="dashboard_status_disconnected_seen" volt:screen="Home header" volt:purpose="status">Disconnected · last seen %1$s</string>
+    <string name="dashboard_status_disconnected_seen" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Disconnected · last seen %1$s</string>
+    <!-- The short rung of the line above, when it does not fit: %1$s is the same time. Narrower still, the line shows Disconnected. -->
+    <string name="dashboard_status_disconnected_seen_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Disconnected · %1$s</string>
     <!-- The status line as a screen reader says it; a tap opens the connection details. -->
     <string name="dashboard_status_spoken_connected" volt:screen="Home header" volt:purpose="accessibility description">Connected. Connection details</string>
     <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
