@@ -66,21 +66,29 @@ public final class LiveRangeEstimator {
         final Integer lowestSeenPercent;
         /** DISTANCE model only: its remaining km, shown as an approximate fallback. */
         private final LearnedRangeEstimate.Result distance;
-        private Prior(Double whPerKm, Table table, Integer lowestSeen, LearnedRangeEstimate.Result distance) {
-            this.whPerKm = whPerKm; this.table = table; lowestSeenPercent = lowestSeen; this.distance = distance;
+        interface Learned { Double remainingKm(Double percent); }
+        /** The learned model's own remaining range from past rides, either model; never this ride's pace. */
+        private final Learned learned;
+        private Prior(Double whPerKm, Table table, Integer lowestSeen, LearnedRangeEstimate.Result distance, Learned learned) {
+            this.whPerKm = whPerKm; this.table = table; lowestSeenPercent = lowestSeen; this.distance = distance; this.learned = learned;
         }
         /** Null when the learned model has no ready result. */
         public static Prior of(final LearnedRangeEstimate.Result r) {
             if (r == null || r.status != LearnedRangeEstimate.Status.READY) return null;
             if (r.model == LearnedRangeEstimate.Model.ENERGY && r.whPerKm != null && r.whPerKm > 0)
-                return new Prior(r.whPerKm, new Table() { public Double energyLeftWh(double p) { return r.energyLeftWh(p); } }, r.lowestSeenPercent(), null);
-            return new Prior(null, null, null, r);
+                return new Prior(r.whPerKm, new Table() { public Double energyLeftWh(double p) { return r.energyLeftWh(p); } }, r.lowestSeenPercent(), null, r::remainingKm);
+            return new Prior(null, null, null, r, r::remainingKm);
         }
         /** A linear battery of fullWh at whPerKm: tests, replays and simulation (never persisted). */
         static Prior synthetic(double whPerKm, final double fullWh, Integer lowestSeen) {
             return new Prior(whPerKm, new Table() {
                 public Double energyLeftWh(double p) { return p >= 0 && p <= 100 ? (Double) (fullWh * p / 100) : null; }
-            }, lowestSeen, null);
+            }, lowestSeen, null, p -> p == null || !Double.isFinite(p) || p < 0 || p > 100 ? null : (Double) (fullWh * p / 100 / whPerKm));
+        }
+        /** Volt's learned remaining km at a battery reading (Home's learned range); null without one. */
+        Double learnedKm(Double percent) {
+            Double km = percent == null || learned == null ? null : learned.remainingKm(percent);
+            return km == null || !Double.isFinite(km) || km < 0 ? null : km;
         }
         boolean energy() { return table != null; }
         Double energyAt(double percent) { return table.energyLeftWh(Math.max(0, Math.min(100, percent))); }

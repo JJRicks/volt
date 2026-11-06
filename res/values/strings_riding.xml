@@ -129,4 +129,41 @@
     <string name="riding_trace_now" volt:screen="Riding mode live chart" volt:purpose="label" volt:max="60dp@13sp">now</string>
     <!-- Spoken for Trace's chart. -->
     <string name="riding_trace_description" volt:screen="Riding mode live chart" volt:purpose="accessibility description">Speed and power over the last minute</string>
+    <!-- The riding layout editor (opened from the tune button while stopped). Heading over the list of the frame's spots and what each one shows. -->
+    <string name="riding_editor_spots" volt:screen="Riding layout editor" volt:purpose="section heading">What each spot shows</string>
+    <!-- Heading over the frame's switches (power bar, chips, tenths). -->
+    <string name="riding_editor_options" volt:screen="Riding layout editor" volt:purpose="section heading">Options</string>
+    <!-- A button: puts the frame on show back to its shipped choices; %1$s is the frame's name, "Reset Halo to default". The other frames keep theirs. -->
+    <string name="riding_editor_reset" volt:screen="Riding layout editor" volt:purpose="button">Reset %1$s to default</string>
+    <!-- Spoken for a spot's row: %1$s is the spot, %2$s what it shows, "Big number, shows Speed". -->
+    <string name="riding_editor_spot_spoken" volt:screen="Riding layout editor" volt:purpose="accessibility description">%1$s, shows %2$s</string>
+    <!-- Spots: the places in a frame. The one huge number. -->
+    <string name="riding_spot_big" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Big number</string>
+    <!-- Halo's arc around the big number. -->
+    <string name="riding_spot_ring" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Ring</string>
+    <!-- The wide reading under the big number (Range at this pace by default). -->
+    <string name="riding_spot_highlight" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Highlight</string>
+    <!-- A regular reading cell; %1$s is its number, "Tile 2". -->
+    <string name="riding_spot_tile" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Tile %1$s</string>
+    <!-- One of Halo's small readings side by side in a strip; %1$s is its number, "Small reading 1". -->
+    <string name="riding_spot_strip" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Small reading %1$s</string>
+    <!-- A small rounded chip beside the gauges (drive mode, battery temperature, clock); %1$s is its number, "Chip 2". -->
+    <string name="riding_spot_chip" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Chip %1$s</string>
+    <!-- Trace's live chart across the screen. -->
+    <string name="riding_spot_chart" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Chart</string>
+    <!-- What the ring can show: speed, with a tick at this ride's top speed. -->
+    <string name="riding_content_ring_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed + max</string>
+    <!-- What the chart can show: both lines, power only, or speed only. -->
+    <string name="riding_content_trace_speed_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed and power</string>
+    <string name="riding_content_trace_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Power only</string>
+    <string name="riding_content_trace_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed only</string>
+    <!-- A switch: the tall bar at the left edge that shows power. -->
+    <string name="riding_switch_power_bar" volt:screen="Riding layout editor" volt:purpose="switch">Power bar</string>
+    <string name="riding_switch_power_bar_summary" volt:screen="Riding layout editor" volt:purpose="summary">Left edge: red for power, green for regen</string>
+    <!-- A switch: the small chips (drive mode, battery temperature, clock). -->
+    <string name="riding_switch_chips" volt:screen="Riding layout editor" volt:purpose="switch">Chips</string>
+    <string name="riding_switch_chips_summary" volt:screen="Riding layout editor" volt:purpose="summary">Drive mode, battery temperature and the clock</string>
+    <!-- A switch: show speed and range to one decimal place (18.4 rather than 18). On by default (owner). -->
+    <string name="riding_switch_tenths" volt:screen="Riding layout editor" volt:purpose="switch">Tenths</string>
+    <string name="riding_switch_tenths_summary" volt:screen="Riding layout editor" volt:purpose="summary">Speed and range to one decimal place</string>
 </resources>
