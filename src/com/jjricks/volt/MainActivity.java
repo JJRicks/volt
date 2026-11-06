@@ -2811,6 +2811,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
         showEmailSheet(subject,body,report,null,null);return true;
     }
+    /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
+    @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
     static final String REPORT_DIAGNOSTICS="report_diagnostics";
     /** The open diagnostics preview, over the email sheet. */
