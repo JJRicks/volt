@@ -252,10 +252,10 @@
     <string name="dashboard_note" volt:screen="Note widget options" volt:purpose="title">Note</string>
     <!-- The ride recorder widget's title and button. -->
     <string name="dashboard_record_ride" volt:screen="Home ride recorder widget" volt:purpose="button">Record ride</string>
-    <!-- The ride recorder's button on a one-row card too narrow for "Record ride": the shorter
-         rung of that label. Below this width the card shows the red disc alone. Spoken text stays
-         the full "Start recording". -->
-    <string name="dashboard_record_short" volt:screen="Narrow Home ride recorder widget" volt:purpose="button" volt:max="56dp@15sp">Record</string>
+    <!-- The ride recorder's button on a one-row card too narrow for "Record ride" (or for
+         "Starting…" right after a tap): the shorter rung of that label. Where even this does not
+         fit, the card shows the red disc alone. Spoken text stays the full "Start recording". -->
+    <string name="dashboard_record_short" volt:screen="Narrow Home ride recorder widget" volt:purpose="button" volt:max="60dp@15sp">Record</string>
     <!-- Spoken for the recorder's arrow, which opens the ride list. -->
     <string name="dashboard_view_rides" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">View rides</string>
     <!-- Spoken for a reading the scooter has not sent: %1$s is the reading's name. -->
@@ -391,9 +391,10 @@
     <string name="dashboard_measuring" volt:screen="Home ride recorder widget" volt:purpose="status">Measuring…</string>
     <string name="dashboard_saving_ride" volt:screen="Home ride recorder widget" volt:purpose="status">Saving the last ride…</string>
     <string name="dashboard_connecting" volt:screen="Home ride recorder widget" volt:purpose="status">Connecting…</string>
-    <!-- Shown on the ride recorder for a moment right after a tap, until the ride is recording.
-         It replaces "Record ride" on the same line, also on narrow one-row cards. -->
-    <string name="dashboard_recorder_starting" volt:screen="Home ride recorder widget" volt:purpose="state word" volt:max="72dp@15sp">Starting…</string>
+    <!-- Shown on the ride recorder for a moment right after a tap, until Rides opens and the ride
+         is recording. It replaces "Record ride" on the same line; a card too narrow for it keeps
+         the short "Record". Also spoken. -->
+    <string name="dashboard_recorder_starting" volt:screen="Home ride recorder widget" volt:purpose="state word" volt:max="80dp@15sp">Starting…</string>
     <!-- Spoken for the recorder's button when not recording. -->
     <string name="dashboard_record_saving" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Saving the last ride</string>
     <string name="dashboard_start_recording" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Start recording</string>

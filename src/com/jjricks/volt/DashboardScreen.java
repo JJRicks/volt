@@ -1908,6 +1908,8 @@ public final class DashboardScreen implements AppScreen {
         boolean recorderStarting;
         /** Room (px) for the recorder's one-line title on a short card, or -1 while it may wrap. */
         int recorderRoom = -1;
+        /** The title rung the last measure laid out: 0 full, 1 short, -1 the disc alone. */
+        int recorderRung;
         /** The recording's elapsed time as shown ("12:48"), or null when not recording. */
         String recorderClock;
         FrameLayout photoPane;
@@ -2531,23 +2533,26 @@ public final class DashboardScreen implements AppScreen {
         /**
          * Shows the recorder's title, on a short card the first rung that fits on one line: the full
          * label, then a shorter one (the bare time while recording). False when neither fits, and
-         * the disc stands alone. The spoken label stays the full one.
+         * the disc stands alone. The spoken label stays the full one. The title fills its column, so
+         * a new text alone never re-measures the card: outside a measure, a change of rung asks for one.
          */
-        private boolean showRecorderTitle() {
+        private boolean showRecorderTitle() { return showRecorderTitle(false); }
+
+        private boolean showRecorderTitle(boolean measuring) {
             String full = recorderClock != null ? T.dashboardRecordingClock(recorderClock)
                     : recorderStarting ? T.dashboardRecorderStarting() : T.dashboardRecordRide();
-            String brief = recorderClock != null ? recorderClock
-                    : recorderStarting ? full : T.dashboardRecordShort();
-            CharSequence shown = full;
-            boolean fits = true;
+            // "Starting…" too wide for the card keeps the short label, so the word never vanishes on a tap.
+            String brief = recorderClock != null ? recorderClock : T.dashboardRecordShort();
+            int rung = 0;
             if (recorderRoom >= 0) {
                 android.graphics.Paint paint = rideTitle.getPaint();
-                int rung = TileRung.first(new float[] {paint.measureText(full), paint.measureText(brief)}, recorderRoom);
-                fits = rung >= 0;
-                shown = rung == 1 ? brief : full;
+                rung = TileRung.first(new float[] {paint.measureText(full), paint.measureText(brief)}, recorderRoom);
             }
+            CharSequence shown = rung == 1 ? brief : full;
             if (TileRung.needsSet(shown, rideTitle.getText())) rideTitle.setText(shown);
-            return fits;
+            if (measuring) recorderRung = rung;
+            else if (rung != recorderRung && recorder != null) recorder.requestLayout();
+            return rung >= 0;
         }
 
         /** Disc and words side by side, stacking on narrow cards so the words stay readable. */
@@ -2574,7 +2579,7 @@ public final class DashboardScreen implements AppScreen {
                 // 28 dp disc (12 dp gap, 4 dp end padding; 1 px for rounding), else the disc alone.
                 // A taller card may wrap the full title, and needs 92 dp for words beside the disc.
                 recorderRoom = compactRecorder ? Math.max(0, availableWidth - ui.dp(44) - 1) : -1;
-                boolean fits = showRecorderTitle();
+                boolean fits = showRecorderTitle(true);
                 boolean iconOnly = compactRecorder ? !fits : availableWidth < ui.dp(92 * ui.textScale
                         * getResources().getConfiguration().fontScale);
                 boolean narrow = !compactRecorder && MeasureSpec.getSize(widthSpec) < ui.dp(170 * ui.textScale);
