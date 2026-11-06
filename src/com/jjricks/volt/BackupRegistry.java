@@ -60,6 +60,10 @@ final class BackupRegistry {
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);
         exclude(app, "ride_auto_export_pending", String.class, PENDING);
         exclude(app, "ride_auto_export_problem", String.class, PENDING);
+        // Ride details' Export ride data sheet (RideExportFiles): the remembered formats travel; the last folder is only
+        // the picker's starting place on this phone.
+        add(app, "ride_export_choice", String.class, PREFERENCES);
+        exclude(app, "ride_export_folder_hint", String.class, PERMISSION);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);

@@ -1138,7 +1138,7 @@ public final class RidesScreen implements AppScreen {
 
         TextView csv = ui.secondaryButton(T.ridesExportCsv(), () -> exportCsv(id)); iconize(csv, "download");
         csv.setContentDescription(T.ridesExportCsvDescription());
-        TextView json = ui.secondaryButton(T.ridesExportJson(), () -> host.saveText("ride-" + id.substring(0, 8) + "-analysis.json", "application/json", s.toJson())); iconize(json, "download");
+        TextView json = ui.secondaryButton(T.ridesExportJson(), () -> exportJson(id, s)); iconize(json, "download");
         json.setContentDescription(T.ridesExportJsonDescription());
         body.addView(pair(csv, json));
         TextView delete = ui.dangerButton(T.ridesDeleteRide(), () -> confirmDelete(id, s.label, afterDelete));
@@ -1390,9 +1390,10 @@ public final class RidesScreen implements AppScreen {
     private void rawPhoneFallback(String id) {
         show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, T.ridesExportRaw()))
                 .setItems(new String[]{T.ridesExportPhoneJournal(), T.ridesExportMotionCsv()}, (d, which) -> {
-                    File file = which == 0 ? service.phoneRides.rawCsv(id) : service.phoneRides.motionCsv(id);
-                    if (!file.isFile()) { host.toast(T.ridesToastNoPhoneData()); return; }
-                    host.saveFile("ride-" + id.substring(0, Math.min(8, id.length())) + (which == 0 ? "-phone.csv" : "-motion.csv"), "text/csv", file);
+                    RideExportFiles.Format format = which == 0 ? RideExportFiles.Format.PHONE_RAW : RideExportFiles.Format.MOTION_RAW;
+                    // A raw file only fails when it was never written (RideExportFiles.Missing).
+                    try { saveOne(format, id, null, null); }
+                    catch (IOException missing) { host.toast(T.ridesToastNoPhoneData()); }
                 }).setNegativeButton(T.commonClose(), null).create(), DIALOG, null);
     }
     private void presentPhoneRide(PhoneRideStore.Track track) {
@@ -1595,28 +1596,31 @@ public final class RidesScreen implements AppScreen {
     }
     private void exportPhone(PhoneRideStore.Track track) {
         String[] labels = {T.ridesExportRouteCsv(), T.ridesExportGpx(), T.ridesExportPhoneRaw(), T.ridesExportMotionRaw(), T.ridesExportAllJson()};
+        RideExportFiles.Format[] formats = {RideExportFiles.Format.ROUTE_CSV, RideExportFiles.Format.GPX, RideExportFiles.Format.PHONE_RAW, RideExportFiles.Format.MOTION_RAW, RideExportFiles.Format.COMBINED_JSON};
         show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, T.ridesExportPhone())).setItems(labels, (dialog, which) -> {
-            String prefix = "ride-" + track.id.substring(0, Math.min(8, track.id.length()));
             try {
-                if (which == 0) host.saveText(prefix + "-route.csv", "text/csv", track.toCsv());
-                else if (which == 1) host.saveText(prefix + ".gpx", "application/gpx+xml", track.toGpx());
-                else if (which == 2 || which == 3) {
-                    File file = which == 2 ? service.phoneRides.rawCsv(track.id) : service.phoneRides.motionCsv(track.id);
-                    if (!file.isFile()) { host.toast(T.ridesToastNoPhoneData()); return; }
-                    host.saveFile(prefix + (which == 2 ? "-phone.csv" : "-motion.csv"), "text/csv", file);
-                } else {
-                    RideStore.Summary summary = service.rides.get(track.id);
-                    host.saveText(prefix + "-combined.json", "application/json", RideAutoExport.combinedJson(summary, track));
-                }
-            } catch (IOException e) { host.toast(T.ridesToastExportFailed()); }
+                RideExportFiles.Format format = formats[which];
+                saveOne(format, track.id, format == RideExportFiles.Format.COMBINED_JSON ? service.rides.get(track.id) : null, track);
+            } catch (RideExportFiles.Missing missing) { host.toast(T.ridesToastNoPhoneData()); }
+            catch (IOException e) { host.toast(T.ridesToastExportFailed()); }
         }).setNegativeButton(T.commonCancel(), null).create(), DIALOG, null);
+    }
+    /** Ride details, Export JSON: the ride's analysis. */
+    private void exportJson(String id, RideStore.Summary s) {
+        try { saveOne(RideExportFiles.Format.ANALYSIS_JSON, id, s, null); }
+        catch (IOException unreachable) { /* the analysis is already in memory */ }
+    }
+    /** Hands one export to Android's Save dialog: text through saveText, a file through saveFile, as each button always did. */
+    private void saveOne(RideExportFiles.Format format, String id, RideStore.Summary summary, PhoneRideStore.Track track) throws IOException {
+        RideExportFiles.Payload payload = RideExportFiles.payload(format, id, service.rides, summary, service.phoneRides, track, host.activity().getCacheDir());
+        String name = RideExportFiles.name(format, id);
+        if (payload.text != null) host.saveText(name, format.mime, payload.text);
+        else host.saveFile(name, format.mime, payload.file);
     }
 
     private void exportCsv(String id) {
-        try {
-            File output = new File(host.activity().getCacheDir(), "ride-" + id + ".csv"); service.rides.exportCsv(id, output);
-            host.saveFile("ride-" + id.substring(0, 8) + "-sensors.csv", "text/csv", output);
-        } catch (IOException e) { host.toast(T.ridesToastExportCsvFailed()); }
+        try { saveOne(RideExportFiles.Format.SENSOR_CSV, id, null, null); }
+        catch (IOException e) { host.toast(T.ridesToastExportCsvFailed()); }
     }
     private void confirmDelete(String id, String label, Runnable deleted) {
         // Delete is disabled while sensor files are saving; these guards only cover a race.
