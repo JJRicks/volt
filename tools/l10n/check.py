@@ -20,7 +20,8 @@ Checks, per key (a plural is checked per quantity):
   placeholders  the same %n$ placeholders with the same conversions, and %% where English has it;
                 only positional forms and %%; a plural category that covers more than one number
                 (every one but n=1-only "one" and the like) keeps the count
-  numbers       every number written in the English appears in the target (any script's digits)
+  numbers       every number written in the English appears in the target (any script's digits;
+                "1,024" in the English may be 1024, 1.024, 1,024 or 1 024 with a space, U+00A0 or U+202F)
   plurals       every CLDR category the language needs is present
   escapes       the draft's spelling is one aapt stores exactly (apostrophes, quotes, escapes), and
                 there are no control characters
@@ -189,6 +190,33 @@ def strip_placeholders(text):
     return gen_catalog.PLACEHOLDER.sub(" ", text)
 
 
+# An English number with comma thousands groups ("1,024", "12,345.6"): one number, not 1 and 024.
+ENGLISH_GROUPED = re.compile(r"(?<![0-9])(?<![0-9],)[0-9]{1,3}(?:,[0-9]{3})+(?![0-9])(?!,[0-9])")
+# The same number in a translation, grouped by one separator throughout: . , space, U+00A0 or U+202F.
+TARGET_GROUPED = re.compile(r"(?<!\d)(?<!\d[., \u00a0\u202f])\d{1,3}([., \u00a0\u202f])\d{3}(?:\1\d{3})*(?!\d)(?!\1\d)")
+
+
+def ascii_digits(text):
+    return "".join(str(unicodedata.digit(ch)) for ch in text if unicodedata.category(ch) == "Nd")
+
+
+def compare_numbers(reference, text):
+    """(lost, added): Counters of the English's numbers missing from text, and of text's not in it.
+
+    A number the English writes with comma thousands groups counts as one number, and the target may
+    write the same value with no separator or grouped by . , space, U+00A0 or U+202F (Spanish style
+    wants "1024"). Only such values are read whole in the target; any other digits are compared run by
+    run as before, so a decimal comma still matches an English decimal point.
+    """
+    grouped = set(m.group(0).replace(",", "") for m in ENGLISH_GROUPED.finditer(reference))
+    source = collections.Counter(numbers(ENGLISH_GROUPED.sub(lambda m: m.group(0).replace(",", ""), reference)))
+    if grouped:
+        text = TARGET_GROUPED.sub(
+            lambda m: ascii_digits(m.group(0)) if ascii_digits(m.group(0)) in grouped else m.group(0), text)
+    target = collections.Counter(numbers(text))
+    return source - target, target - source
+
+
 def numbers(text):
     """Runs of decimal digits in any script, as ASCII strings."""
     out, run = [], []
@@ -351,12 +379,10 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
         elif text.count("%") != reference.count("%"):
             out.append(finding("placeholders", WARN, "a different number of % signs (formatted=\"false\")", q))
         # numbers
-        source_numbers = collections.Counter(numbers(strip_placeholders(reference) if formatted else reference))
-        target_numbers = collections.Counter(numbers(strip_placeholders(text) if formatted else text))
-        lost = source_numbers - target_numbers
+        lost, added = compare_numbers(strip_placeholders(reference) if formatted else reference,
+                                      strip_placeholders(text) if formatted else text)
         if lost:
             out.append(finding("numbers", ERROR, "numbers %s from the English are missing" % _list(lost.elements()), q))
-        added = target_numbers - source_numbers
         if added:
             out.append(finding("numbers", WARN, "numbers %s are not in the English" % _list(added.elements()), q))
         # dnt and markup
