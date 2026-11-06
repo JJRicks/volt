@@ -260,11 +260,15 @@ class DraftTest(Base):
         self.assertEqual(draft["usage"]["output_tokens_details.reasoning_tokens"], 5)
         self.assertEqual(draft["rows"]["charger"]["term"], "cargador | cargadores")  # spaces around | tidied
         runs = translib.read_jsonl(self.paths.work("es", "glossary", "runs.jsonl"))
-        self.assertEqual(runs[-1]["stage"], "glossary-draft")
-        self.assertEqual(runs[-1]["usage"]["total_tokens"], 120)
+        # The response's usage is its own api-call row, written before the reply is parsed; the step row
+        # only counts its calls, so nothing is summed twice.
+        self.assertEqual((runs[-2]["stage"], runs[-2]["step"]), ("api-call", "glossary-draft"))
+        self.assertEqual(runs[-2]["usage"]["total_tokens"], 120)
+        self.assertEqual((runs[-1]["stage"], runs[-1]["calls"]), ("glossary-draft", 1))
+        self.assertNotIn("usage", runs[-1])
         self.run_ok("draft", "google", "--tag", "es", "--model", "gemini-3.8-flash")
         runs = translib.read_jsonl(self.paths.work("es", "glossary", "runs.jsonl"))
-        self.assertEqual(runs[-1]["usage"]["promptTokenCount"], 90)
+        self.assertEqual(runs[-2]["usage"]["promptTokenCount"], 90)
         self.assertEqual(runs[-1]["model_reported"], "gemini-3.8-flash-001")
         self.assertIs(providers.call.__name__, "call")  # the usage recorder is removed again
         self.assert_no_secret()

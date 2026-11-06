@@ -333,15 +333,15 @@ final class QuickAccessGrid extends ViewGroup {
             ((LinearLayout.LayoutParams)label.getLayoutParams()).topMargin = ui.dp(compact ? 2 : 4);
             ((LinearLayout.LayoutParams)value.getLayoutParams()).topMargin = ui.dp(2);
             label.setTextSize((compact ? 11 : 12) * ui.textScale);
+            // Up to two lines of whole words, never a smaller size: the name, then its short rung, then the icon alone.
+            int room = width - getPaddingLeft() - getPaddingRight();
+            String full = entry.label().render(), brief = entry.shortLabel().render();
+            CharSequence rung = StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null;
+            if (rung == null) label.setVisibility(GONE);
+            else if (TileRung.needsSet(rung, label.getText())) label.setText(rung);
             value.setTextSize((compact ? 10 : 11) * ui.textScale);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-            // Two lines are preferred; long labels may grow instead of being truncated.
-            if (label.getLineCount() > 2) {
-                label.setTextSize(10 * ui.textScale);
-                measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-            }
         }
     }
 
