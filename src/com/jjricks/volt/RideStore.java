@@ -343,8 +343,9 @@ public final class RideStore {
      * is left for later; list() on a worker then reads it into the cache. Any other tail is replayed now, as before.
      *
      * indexDirectory: where finished rides' summaries are saved (no-backup storage; null for none). With deferFinished,
-     * each deferred journal whose saved entry still matches is seeded from it (a few hundred bytes, never the journal),
-     * so the first Rides open after a restart replays only rides that are new or changed.
+     * the index's own thread then seeds the cache from each deferred journal's saved entry that still matches (a few
+     * hundred bytes, never the journal), so the first Rides open after a restart replays only new or changed rides.
+     * The seed never runs on the caller's thread: the service start does exactly the work it did before.
      */
     public RideStore(File directory, boolean deferFinished, File indexDirectory) throws IOException {
         if (directory == null) throw new IllegalArgumentException("Ride directory required");
@@ -355,9 +356,10 @@ public final class RideStore {
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list ride directory");
         java.util.HashSet<String> journals = new java.util.HashSet<>();
+        final ArrayList<File> deferred = new ArrayList<>();
         for (File file : files) if (isJournal(file)) {
             journals.add(journalId(file));
-            if (deferFinished && endsFinished(file)) { seedSaved(file); continue; }
+            if (deferFinished && endsFinished(file)) { deferred.add(file); continue; }
             long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
             if (candidate == null) continue;
@@ -366,7 +368,10 @@ public final class RideStore {
                 if (file.length() == length && file.lastModified() == modified) cacheFinished(candidate.id, length, modified, candidate);
             } else if (active == null || candidate.startWall > active.startWall) active = candidate;
         }
-        if (index != null) index.prune(journals);
+        if (index != null) {
+            if (!deferred.isEmpty()) index.submit(() -> { for (File file : deferred) seedSaved(file); });
+            index.prune(journals);
+        }
         if (active != null) {
             repairTail(file(active.id));
             append(file(active.id), row("RECOVER", active.lastWall, active.lastMono, "", "", "", "", "", "", "", "", "", "Recorder process restarted"));
@@ -374,18 +379,35 @@ public final class RideStore {
         }
     }
 
-    /** Seeds the cache from a finished journal's saved summary when it matches; a miss is replayed later as before. */
+    /** Seeds the cache from a deferred (finished-looking) journal's saved summary when it matches. */
     private void seedSaved(File file) {
-        if (index == null) return;
         String id = journalId(file);
         long length = file.length(), modified = file.lastModified();
+        synchronized (this) {
+            CachedAnalysis cached = analysisCache.get(id);
+            if (cached != null && cached.matches(length, modified)) return;
+        }
+        readSaved(id, length, modified);
+    }
+    /**
+     * A cache entry (summary only) from the index for this journal state, or null: no index, no matching entry, or a
+     * damaged one. Callers check the journal ends finished first, so an unfinished journal is never served from disk.
+     */
+    private CachedAnalysis readSaved(String id, long length, long modified) {
+        if (index == null) return null;
         byte[] state = index.readState(id, length, modified);
-        if (state == null) return;
+        if (state == null) return null;
         Accumulator saved;
-        try { saved = decodeState(state, id); } catch (IOException | RuntimeException damaged) { return; }
-        if (saved == null) return;
-        putAnalysis(id, new CachedAnalysis(length, modified, new Summary(saved)));
+        try { saved = decodeState(state, id); } catch (IOException | RuntimeException damaged) { return null; }
+        if (saved == null) return null;
+        CachedAnalysis entry = new CachedAnalysis(length, modified, new Summary(saved));
+        putAnalysis(id, entry);
         index.markSaved(id, length, modified);
+        return entry;
+    }
+    /** readSaved() for a journal a worker is about to replay, once its tail shows it finished. */
+    private CachedAnalysis savedEntry(String id, File source, long length, long modified) {
+        return index == null || !endsFinished(source) ? null : readSaved(id, length, modified);
     }
     /**
      * Caches a finished journal's analysis, read while its length and modified time stayed as given, and saves it to
@@ -579,6 +601,8 @@ public final class RideStore {
             CachedSummary cached = summaryCache.get(id);
             if (cached != null && cached.matches(length, modified)) return cached.summary;
         }
+        CachedAnalysis saved = savedEntry(id, source, length, modified);
+        if (saved != null) return saved.summary;
         Accumulator parsed;
         try { parsed = read(source); }
         catch (IOException e) { if (!source.exists()) { forget(id); return null; } throw e; }
@@ -663,6 +687,7 @@ public final class RideStore {
             }
             long length = source.length(), modified = source.lastModified();
             boolean matches = cached != null && cached.matches(length, modified);
+            if (!matches && (cached = savedEntry(id, source, length, modified)) != null) matches = true;
             AnalysisSnapshot snapshot = matches ? cached.snapshot : null;
             if (snapshot == null && matches) snapshot = savedPreview(id, cached);
             if (snapshot == null) {
@@ -753,6 +778,7 @@ public final class RideStore {
         long length = source.length(), modified = source.lastModified();
         boolean preview = maxPoints >= MAX_TREND_POINTS;
         boolean matches = preview && cached != null && cached.matches(length, modified);
+        if (preview && !matches && (cached = savedEntry(id, source, length, modified)) != null) matches = true;
         AnalysisSnapshot hit = matches ? cached.snapshot : null;
         if (hit == null && matches) hit = savedPreview(id, cached);
         if (hit != null) return hit.points;

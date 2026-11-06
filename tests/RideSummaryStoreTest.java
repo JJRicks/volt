@@ -123,13 +123,18 @@ public final class RideSummaryStoreTest {
         long before = replays();
         RideStore first = new RideStore(rides, true, index);
         check(replays() == before, "a cold start reads no journal");
+        first.flushIndex();
         check(first.listCached() == null, "a changed ride keeps Rides waiting for the worker");
         before = replays();
         check(first.list().size() == 6 && replays() - before == 2, "only the renamed and merged rides are replayed");
         first.flushIndex();
         // Cold start 2: everything is saved now.
         before = replays();
+        RideStore racing = new RideStore(rides, true, index);
+        check(racing.list().size() == 6 && replays() == before, "a worker's list() right after the start replays nothing, seeded or not");
         RideStore cold = new RideStore(rides, true, index);
+        check(replays() == before, "the seed runs on the index thread and reads no journal");
+        cold.flushIndex();
         List<RideStore.Summary> cached = cold.listCached();
         check(cached != null && cached.size() == 6, "after a restart, Rides draws at once from saved summaries");
         List<RideStore.Summary> listed = cold.list();
@@ -193,6 +198,7 @@ public final class RideSummaryStoreTest {
         cold.flushIndex();
         before = replays();
         RideStore again = new RideStore(rides, true, index);
+        again.flushIndex();
         check(again.listCached() != null && replays() - before == 1, "the misses were saved again (the NOTE-tailed journal still replays at start)");
         // Version bump and preview size, directly.
         File folder = directory("version");
@@ -224,6 +230,7 @@ public final class RideSummaryStoreTest {
         long before = replays();
         RideStore cold = new RideStore(rides, true, index);
         check(replays() == before, "damaged entries never crash a cold start");
+        cold.flushIndex();
         check(cold.listCached() == null, "damaged summaries are not trusted");
         before = replays();
         check(cold.list().size() == 6 && replays() - before == 4, "a flipped byte, a truncated, an empty and a foreign entry each replay once");
@@ -234,6 +241,7 @@ public final class RideSummaryStoreTest {
         cold.flushIndex();
         before = replays();
         RideStore rebuilt = new RideStore(rides, true, index);
+        rebuilt.flushIndex();
         check(rebuilt.listCached() != null, "every damaged entry was rebuilt");
         for (String id : ids) rebuilt.trend(id, RideStore.MAX_TREND_POINTS);
         check(replays() == before, "rebuilt entries serve the list and previews without a replay");
@@ -262,6 +270,7 @@ public final class RideSummaryStoreTest {
         check(cold.stop(WALL + 400000, 400000) != null, "the recovered ride stops normally");
         cold.flushIndex();
         RideStore after = new RideStore(rides, true, index);
+        after.flushIndex();
         sameSummary(after.listCached().get(0), RideStore.inspectJournal(journal), "the re-finished ride is saved again");
     }
 
