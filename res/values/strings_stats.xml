@@ -301,7 +301,7 @@
     <string name="stats_row_long_range_mode" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Long range</string>
     <string name="stats_row_overspeed_control" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Overspeed control</string>
     <string name="stats_row_overspeed_alert" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Overspeed alert</string>
-    <string name="stats_row_drive_speed_limit" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Drive speed limit</string>
+    <string name="stats_row_drive_speed_limit" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name" volt:dnt="Drive">Drive speed limit</string>
     <string name="stats_row_battery_serial_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Battery serial</string>
     <string name="stats_row_lock_push_warning" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Lock movement</string>
     <string name="stats_row_hide_e9" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">E9 flag</string>
