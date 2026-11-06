@@ -741,9 +741,10 @@ final class RidingScreen implements AppScreen {
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
                         scooter == null || scooter.stale, units);
                 s.icon = "route";
-                if (range.kind == RidingFocus.RangeKind.SCOOTER)
+                // The label names whose estimate it is; a chosen source keeps its name with no reading.
+                if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))
                     s.rungs = new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
-                else if (range.kind == RidingFocus.RangeKind.VOLT)
+                else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))
                     s.rungs = new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
                 else s.rungs = new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
                 if (range.kind == RidingFocus.RangeKind.ALMOST_EMPTY) {

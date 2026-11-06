@@ -141,7 +141,8 @@ final class RidingFocus {
      * @param scooterStale true when that reading is older than its interval allows
      */
     static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale, String units) {
-        if (RidingLayout.RANGE_SCOOTER.equals(content) || RidingLayout.RANGE_VOLT.equals(content)) return scooter(scooterKm, scooterStale, units);
+        if (RidingLayout.RANGE_SCOOTER.equals(content)) return scooter(scooterKm, scooterStale, units);
+        if (RidingLayout.RANGE_VOLT.equals(content)) return volt(live);
         if (live != null) {
             switch (live.state) {
                 case ALMOST_EMPTY: return new Range(RangeKind.ALMOST_EMPTY, null, 0, false, true, live.stale);
@@ -156,6 +157,26 @@ final class RidingFocus {
             }
         }
         return scooter(scooterKm, scooterStale, units);
+    }
+
+    /**
+     * Volt's range: Volt's own estimate only, never the scooter's. That is the live energy model's
+     * figure where it runs, otherwise the learned distance model's approximate whole number; with
+     * neither it shows nothing.
+     */
+    private static Range volt(RangeReadout.Value live) {
+        if (live == null) return new Range(RangeKind.NONE, null, 0, false, false, false);
+        switch (live.state) {
+            case ALMOST_EMPTY: return new Range(RangeKind.ALMOST_EMPTY, null, 0, false, true, live.stale);
+            case LIVE: case SETTLING: case LOW:
+                if (live.primary != null) return new Range(RangeKind.VOLT, live.primary, live.decimals, live.approx, live.amber, live.held || live.stale);
+                break;
+            case NO_HISTORY:
+                if (live.primary != null) return new Range(RangeKind.VOLT, live.primary, 0, true, false, live.stale);
+                break;
+            default: break;
+        }
+        return new Range(RangeKind.NONE, null, 0, false, false, false);
     }
 
     private static Range scooter(Double km, boolean stale, String units) {

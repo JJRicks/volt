@@ -60,22 +60,24 @@ final class RidingLayoutSheet {
         }
         content.addView(spots);
 
-        List<String> switches = RidingEditor.switches(frame);
-        if (!switches.isEmpty()) content.addView(ui.sectionLabel(T.ridingEditorOptions()));
-        for (String id : switches) {
-            content.addView(ui.toggleRow(switchName(id), Ui.NO_ICON, switchSummary(id), editor.on(id), true, on -> {
-                editor.set(id, on);
-                // Chips switched off take their rows away; the rest of the editor stays as it is.
-                if (RidingLayout.CHIPS.equals(id)) content.post(this::render);
-            }));
-        }
-
         TextView reset = ui.secondaryButton(T.ridingEditorReset(frameName(frame)), () -> {
             editor.reset();
             open = null;
             render();
         });
         reset.setEnabled(editor.canReset());
+
+        List<String> switches = RidingEditor.switches(frame);
+        if (!switches.isEmpty()) content.addView(ui.sectionLabel(T.ridingEditorOptions()));
+        for (String id : switches) {
+            content.addView(ui.toggleRow(switchName(id), Ui.NO_ICON, switchSummary(id), editor.on(id), true, on -> {
+                editor.set(id, on);
+                // Every switch can make the frame differ from its defaults, or match them again.
+                reset.setEnabled(editor.canReset());
+                // Chips switched off take their rows away; the rest of the editor stays as it is.
+                if (RidingLayout.CHIPS.equals(id)) content.post(this::render);
+            }));
+        }
         content.addView(reset);
         content.addView(ui.button(T.commonDone(), () -> done.save(editor.working())));
     }

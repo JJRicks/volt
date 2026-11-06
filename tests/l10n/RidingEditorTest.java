@@ -26,6 +26,8 @@ public final class RidingEditorTest {
             editor();
             memoryAndReset();
             tenths();
+            resetSwitches();
+            voltRange();
             disc();
             done();
             english();
@@ -35,7 +37,7 @@ public final class RidingEditorTest {
             Locale.setDefault(saved);
         }
         System.out.println("RidingEditorTest: " + checks + " checks passed (working copy, spots and choices, per-frame memory, "
-                + "Reset, tenths, disc motion and taps, Done while stopped, English, source)");
+                + "Reset, tenths, Reset after each switch, Volt's range, disc motion and taps, Done while stopped, English, source)");
     }
 
     private static void editor() {
@@ -108,6 +110,55 @@ public final class RidingEditorTest {
         check(old.on(RidingLayout.HALO, RidingLayout.TENTHS) && !old.on(RidingLayout.HALO, RidingLayout.CHIPS), "a layout saved before tenths keeps them on");
     }
 
+    /** Reset follows every switch both ways: on once the frame differs, off once the last change is undone. */
+    private static void resetSwitches() {
+        for (String frame : RidingLayout.FRAMES) {
+            RidingEditor e = new RidingEditor(new RidingLayout());
+            e.showFrame(frame);
+            for (String id : RidingEditor.switches(frame)) {
+                check(!e.canReset(), frame + ": Reset off at the defaults, before " + id);
+                e.set(id, false);
+                check(e.canReset(), frame + ": Reset on after switching " + id + " off");
+                e.set(id, true);
+                check(!e.canReset(), frame + ": Reset off again once " + id + " is back on");
+            }
+            e.set(RidingLayout.TENTHS, false);
+            e.set(RidingLayout.POWER_BAR, false);
+            e.set(RidingLayout.TENTHS, true);
+            check(e.canReset(), frame + ": still on while the power bar differs");
+            e.set(RidingLayout.POWER_BAR, true);
+            check(!e.canReset(), frame + ": off once the last change is undone");
+        }
+    }
+
+    private static RangeReadout.Value readout(RangeReadout.State state, Double primary, int decimals, boolean approx) {
+        return new RangeReadout.Value(state, primary, null, false, decimals, approx, false, false, false);
+    }
+
+    /** Volt's range chosen in the editor shows Volt's own estimate, never the scooter's, with distinct values. */
+    private static void voltRange() {
+        RidingEditor e = new RidingEditor(new RidingLayout());
+        e.showFrame(RidingLayout.HALO);
+        check(RidingEditor.choices(RidingLayout.frameDef(RidingLayout.HALO).spot("highlight")).contains(RidingLayout.RANGE_VOLT), "Volt's range is offered");
+        check(e.choose("highlight", RidingLayout.RANGE_VOLT), "Volt's range chosen");
+        String content = RidingLayout.parse(e.working().toJson()).content(RidingLayout.HALO, "highlight");
+        check(RidingLayout.RANGE_VOLT.equals(content), "Volt's range is saved");
+        double scooterKm = 38.4;
+        RidingFocus.Range learned = RidingFocus.range(content, readout(RangeReadout.State.NO_HISTORY, 21.0, 0, true), scooterKm, false, "km");
+        check(learned.kind == RidingFocus.RangeKind.VOLT && near(learned.value, 21) && learned.approx, "the learned estimate, 21, not the scooter's 38: " + learned.kind + " " + learned.value);
+        RidingFocus.Range live = RidingFocus.range(content, readout(RangeReadout.State.LIVE, 17.3, 1, false), scooterKm, false, "km");
+        check(live.kind == RidingFocus.RangeKind.VOLT && near(live.value, 17.3) && live.decimals == 1, "the live energy model's estimate: " + live.value);
+        RidingFocus.Range noEstimate = RidingFocus.range(content, readout(RangeReadout.State.NO_HISTORY, null, 0, false), scooterKm, false, "km");
+        check(noEstimate.kind == RidingFocus.RangeKind.NONE && noEstimate.value == null, "no Volt estimate: no reading, never the scooter's");
+        check(RidingFocus.range(content, null, scooterKm, false, "km").kind == RidingFocus.RangeKind.NONE, "before the first feed: no reading");
+        check(RidingFocus.range(content, readout(RangeReadout.State.HIDDEN, null, 0, false), scooterKm, false, "km").kind == RidingFocus.RangeKind.NONE, "charging: no reading");
+        check(RidingFocus.range(content, readout(RangeReadout.State.ALMOST_EMPTY, null, 0, false), scooterKm, false, "km").kind == RidingFocus.RangeKind.ALMOST_EMPTY, "almost empty still says so");
+        RidingFocus.Range scooter = RidingFocus.range(RidingLayout.RANGE_SCOOTER, readout(RangeReadout.State.NO_HISTORY, 21.0, 0, true), scooterKm, false, "km");
+        check(scooter.kind == RidingFocus.RangeKind.SCOOTER && near(scooter.value, 38), "the scooter's range stays the scooter's");
+        RidingFocus.Range pace = RidingFocus.range(RidingLayout.RANGE_AT_PACE, readout(RangeReadout.State.NO_HISTORY, null, 0, false), scooterKm, false, "km");
+        check(pace.kind == RidingFocus.RangeKind.SCOOTER, "Range at this pace still falls back to the scooter's, labelled as such");
+    }
+
     private static void disc() {
         RidingDisc d = new RidingDisc();
         check(!d.visible() && !d.takesTaps(), "the disc starts gone");
@@ -164,6 +215,10 @@ public final class RidingEditorTest {
         check(screen.contains("new RidingLayoutSheet(") && screen.contains("sheetState.accept(stopped("), "the tune disc opens the editor; Done follows the sheet rules");
         check(screen.contains("layout.on(RidingLayout.TENTHS) && (speed.tenths"), "speed tenths follow the switch");
         check(screen.contains("units, layout.on(RidingLayout.TENTHS));"), "range tenths follow the switch");
+        int toggle = sheet.indexOf("editor.set(id, on);");
+        check(toggle > 0 && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) > toggle
+                && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) < sheet.indexOf("content.addView(reset);"), "every switch refreshes Reset");
+        check(screen.contains("content.equals(RidingLayout.RANGE_VOLT)"), "Volt's range keeps its name with no reading");
         check(motion.contains("Ui.motionEnabled()") && motion.contains("disc.setClickable(shown);"), "the motion honours animations off and stops taps");
         for (String s : new String[]{sheet, motion, read("src/com/jjricks/volt/RidingEditor.java")}) {
             check(!s.contains(".send(") && !s.contains("write("), "the editor sends nothing");
