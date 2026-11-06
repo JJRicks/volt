@@ -61,10 +61,10 @@ final class RidingScreen implements AppScreen {
     private final NumberView watts;
     /** Labels, units and dividers: the static chrome RidingBurnIn dims on a long ride. */
     private final List<View> chrome = new ArrayList<>();
-    /** Brightness, rotation lock and hidden status bar while riding mode is open (its slider sits below). */
-    private final RidingDisplay display;
     private long powerSampleMs = -1;
     private boolean closed;
+    /** Brightness, rotation lock and hidden status bar while riding mode is open (its slider sits below). */
+    private final RidingDisplay display;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
         this.host = host;
