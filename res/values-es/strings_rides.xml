@@ -304,6 +304,20 @@
     <string name="rides_phone_route">Teléfono y ruta</string>
     <!-- src:223d805773db84cf33b85903488bda3471aace74 -->
     <string name="rides_tile_gps_distance">Distancia GPS</string>
+    <!-- src:a46667ac4335a821606c9ce1cffd8bbfaaca8ae1 -->
+    <string name="rides_gps_no_fixes">Sin puntos GPS</string>
+    <!-- src:8299da934c42b476c3f35c579377d8238c2e2e48 -->
+    <plurals name="rides_gps_fixes">
+        <item quantity="one">%1$s punto</item>
+        <item quantity="many">%1$s puntos</item>
+        <item quantity="other">%1$s puntos</item>
+    </plurals>
+    <!-- src:c3b24f910e7a641b3186cec3c2fc1e0c157aebc0 -->
+    <plurals name="rides_gps_dropped">
+        <item quantity="one">" · %1$s descartado"</item>
+        <item quantity="many">" · %1$s descartados"</item>
+        <item quantity="other">" · %1$s descartados"</item>
+    </plurals>
     <!-- src:94a90cb58cb78abf1b4a4341edbda52048cbade0 -->
     <string name="rides_tile_ascent_descent">Ascenso / descenso</string>
     <!-- src:698e6ba4cfef83cc36e197154706cb78257f84b6 -->

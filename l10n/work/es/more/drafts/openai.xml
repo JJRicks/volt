@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
+        <item quantity="one">Cantidad guardada: %1$s</item>
+        <item quantity="many">Cantidad guardada: %1$s</item>
+        <item quantity="other">Cantidad guardada: %1$s</item>
+    </plurals>
+    <string name="more_history_storage_description" volt:src="368a9ccd675caf48fa9414bc33a6e309f0863242">Almacenamiento local, espacio usado: %1$s. %2$s</string>
+    <string name="more_history_samples_description" volt:src="24417f4f329a26b3fc6be52a69fd54f123243261">Datos guardados: muestras detalladas: %1$s; resúmenes por minuto: %2$s; resúmenes diarios: %3$s.</string>
     <string name="more_language_in_progress" volt:src="92a742d14aed5f09ecbe985c533b94a9fc10d212">En proceso</string>
     <string name="more_language_in_progress_description" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, en proceso</string>
     <string name="more_title" volt:src="17d5c3c485c5a79c9f4347c053466c35512e698c">Más</string>
