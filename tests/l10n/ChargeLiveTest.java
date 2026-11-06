@@ -20,6 +20,9 @@ public final class ChargeLiveTest {
         holdDisconnect();
         holdCapAndEnd();
         holdStop();
+        holdStopPerScooter();
+        holdStopRestored();
+        doneNoticeAnnounced();
         state();
         System.out.println("ChargeLiveTest: " + checks + " checks passed");
     }
@@ -153,6 +156,104 @@ public final class ChargeLiveTest {
         brief.step(2 * MIN, charging(30));
         brief.step(2 * MIN + ChargeLiveHold.STOP_MS + S, charging(31));
         check(!brief.leave(10 * MIN, charging(31)), "a short charger cut-out is still the stopped charge");
+    }
+
+    private static ChargeLiveHold.Facts on(String profile, int pct) { return new ChargeLiveHold.Facts(true, true, true, false, pct, 80, profile); }
+    private static ChargeLiveHold.Facts off(String profile, int pct) { return new ChargeLiveHold.Facts(true, true, false, false, pct, 80, profile); }
+
+    /** Round 2 (Codex): Stop belongs to the scooter it was pressed for; switching either way carries nothing over. */
+    private static void holdStopPerScooter() {
+        ChargeLiveHold h = new ChargeLiveHold();
+        long t = 5 * H;
+        check(h.leave(t, on("a", 70)), "scooter A arms");
+        h.stop(70, "a", t);
+        h.shown();
+        // A -> B: B charging at 80% (A's level was 70%) arms; A's Stop doesn't reach it.
+        h.step(t + MIN, on("b", 80));
+        check(h.leave(t + 2 * MIN, on("b", 80)), "after Stop on A, a charging scooter B arms");
+        h.shown();
+        // B's readings, even off for long, don't end A's stopped charge.
+        h.step(t + 3 * MIN, off("b", 81));
+        h.step(t + 3 * MIN + ChargeLiveHold.STOP_MS + S, off("b", 81));
+        check(h.stopped(t + 10 * MIN) != null && "a".equals(h.stopped(t + 10 * MIN).profile), "B's readings leave A's Stop in place");
+        // B -> A: A's charge is still the stopped one.
+        check(!h.leave(t + 11 * MIN, on("a", 72)), "back on A, its stopped charge still doesn't arm");
+        // A's own level drop ends A's stopped charge.
+        h.step(t + 12 * MIN, on("a", 50));
+        check(h.stopped(t + 12 * MIN) == null, "A's own two-point drop ends A's Stop");
+        check(h.leave(t + 13 * MIN, on("a", 50)), "A's next charge arms");
+        // Stop on B, then A arms and B still doesn't.
+        h.stop(60, "b", t + 14 * MIN);
+        check(h.leave(t + 15 * MIN, on("a", 51)), "after Stop on B, A arms");
+        h.shown();
+        check(!h.leave(t + 16 * MIN, on("b", 61)), "B stays stopped");
+        // A Stop with no scooter (an old caller) only matches no scooter.
+        ChargeLiveHold anon = new ChargeLiveHold();
+        anon.stop(40);
+        check(anon.leave(MIN, on("a", 40)), "a Stop for no scooter doesn't stop a named one");
+    }
+
+    /** Round 2 (Codex): the Stop outlives the service. A new hold restored from what the old one stored doesn't arm. */
+    private static void holdStopRestored() {
+        ChargeLiveHold old = new ChargeLiveHold();
+        long t = 3 * H;
+        old.leave(t, on("a", 64));
+        old.stop(64, "a", t);
+        old.step(t + 20 * MIN, on("a", 68));
+        ChargeLiveHold.Stopped saved = old.stopped(t + 30 * MIN);
+        check(saved != null && "a".equals(saved.profile) && saved.best == 68 && saved.ageMs == 30 * MIN, "the stored Stop: scooter, best level, age");
+        // The service and its hold are recreated; the new monotonic clock reads something else entirely.
+        long mono = 40 * MIN;
+        ChargeLiveHold fresh = new ChargeLiveHold();
+        check(fresh.leave(mono, on("a", 69)), "control: a fresh hold without the stored Stop arms");
+        fresh = new ChargeLiveHold();
+        fresh.restoreStopped(saved.profile, saved.best, saved.ageMs + 5 * MIN, mono);
+        check(!fresh.leave(mono, on("a", 69)), "a recreated service doesn't arm the stopped charge again");
+        check(fresh.leave(mono + S, on("b", 69)), "the restored Stop is still only A's");
+        fresh.shown();
+        // The restored best still decides a new charge: a two-point drop below 68 clears it.
+        fresh.step(mono + 2 * S, on("a", 66));
+        check(fresh.leave(mono + 3 * S, on("a", 66)), "after restore, a two-point drop is a new charge");
+        // The documented end by charger off works after a restore too.
+        ChargeLiveHold off = new ChargeLiveHold();
+        off.restoreStopped("a", 70, MIN, mono);
+        off.step(mono + S, off("a", 70));
+        off.step(mono + ChargeLiveHold.STOP_MS + 2 * S, off("a", 70));
+        check(off.leave(mono + ChargeLiveHold.STOP_MS + 3 * S, on("a", 70)), "after restore, charging off past 3 minutes ends the Stop");
+        // Bounded: 12 hours at most, in memory or restored; a stored age from the future or nonsense is ignored.
+        ChargeLiveHold aged = new ChargeLiveHold();
+        aged.restoreStopped("a", 70, ChargeLiveHold.HOLD_MS, mono);
+        check(aged.stopped(mono) == null && aged.leave(mono, on("a", 70)), "a stored Stop 12 hours old is over");
+        ChargeLiveHold future = new ChargeLiveHold();
+        future.restoreStopped("a", 70, -MIN, mono);
+        check(future.stopped(mono) == null, "a stored Stop from the future is ignored");
+        ChargeLiveHold nobody = new ChargeLiveHold();
+        nobody.restoreStopped("", 70, MIN, mono);
+        check(nobody.stopped(mono) == null, "a stored Stop without a scooter is ignored");
+        ChargeLiveHold mem = new ChargeLiveHold();
+        mem.leave(t, on("a", 20));
+        mem.stop(20, "a", t);
+        check(!mem.leave(t + ChargeLiveHold.HOLD_MS - S, on("a", 21)), "a Stop counts just under 12 hours");
+        check(mem.leave(t + ChargeLiveHold.HOLD_MS, on("a", 21)), "and ends at 12 hours");
+        check(mem.stopped(t + ChargeLiveHold.HOLD_MS) == null, "nothing left to store");
+    }
+
+    /** Round 2 (Codex): only a matching, current, still-showing completion alert stands in for the done notice. */
+    private static void doneNoticeAnnounced() {
+        // full, charge, alertLevel, doneLevel, sameScooter, thisCharge, showing
+        check(ChargeLiveHold.alreadyAnnounced(true, false, 100, 100, true, true, true), "Full alert for this scooter and charge, showing: no repeat");
+        check(ChargeLiveHold.alreadyAnnounced(false, true, 100, 100, true, true, true), "a charge alert at 100% announced a full finish");
+        check(ChargeLiveHold.alreadyAnnounced(false, true, 85, 80, true, true, true), "a charge alert at or past the finish level announced it");
+        check(!ChargeLiveHold.alreadyAnnounced(false, true, 80, 100, true, true, true), "a charge alert at 80% didn't announce a full finish");
+        check(!ChargeLiveHold.alreadyAnnounced(false, false, 20, 100, true, true, true), "a low battery alert never stands in for completion");
+        check(!ChargeLiveHold.alreadyAnnounced(true, false, 100, 100, false, true, true), "another scooter's alert doesn't count");
+        check(!ChargeLiveHold.alreadyAnnounced(true, false, 100, 100, true, false, true), "an alert from an earlier charge doesn't count");
+        check(!ChargeLiveHold.alreadyAnnounced(true, false, 100, 100, true, true, false), "an alert swiped away or gone doesn't count");
+        for (int bits = 0; bits < 1 << 5; bits++) {
+            boolean full = bit(bits, 0), charge = bit(bits, 1), same = bit(bits, 2), now = bit(bits, 3), showing = bit(bits, 4);
+            boolean got = ChargeLiveHold.alreadyAnnounced(full, charge, 100, 100, same, now, showing);
+            check(got == ((full || charge) && same && now && showing), "announced only with a completion alert, same scooter, this charge, showing: " + Integer.toBinaryString(bits));
+        }
     }
 
     // ---- ChargeLiveState --------------------------------------------------------------------------------
