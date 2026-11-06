@@ -483,6 +483,21 @@ class LintRepoTest(unittest.TestCase):
         self.assertEqual([(f.rule, f.value) for f in hardcoded_lint.findings(source)],
                          [("multiword", "Unrestricted ✓"), ("multiword", "☆ Star readings")])
 
+    def test_a_word_beside_the_spinner_mark_is_multiword(self):
+        # The Home header's Connecting… status: the English literal with U+FFFC is a finding; the catalog word with
+        # the mark appended in code is not.
+        source = ('class A { CharSequence a = new SpannableString("Connecting…  ￼");\n'
+                  ' CharSequence b = new SpannableString(T.bleStatusConnecting() + "  \\uFFFC"); }')
+        self.assertEqual([(f.rule, f.value) for f in hardcoded_lint.findings(source)],
+                         [("multiword", "Connecting…  ￼")])
+
+    def test_the_dashboard_baseline_no_longer_allows_the_connecting_literal(self):
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        path = os.path.join(root, "l10n", "baseline", "DashboardScreen.txt")
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                self.assertNotIn("Connecting", f.read())
+
     def test_helper_labels_are_findings(self):
         """Findings 9 and 23: single-word labels passed to Volt's own helpers."""
         self.repo.write("src/com/jjricks/volt/Clean.java", java_class("Clean", '    void a(Ui ui) { ui.button("Done", null); }'))
