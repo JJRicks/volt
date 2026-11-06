@@ -63,7 +63,7 @@ final class RidingScreen implements AppScreen {
     private final List<View> chrome = new ArrayList<>();
     private long powerSampleMs = -1;
     private boolean closed;
-    /** Brightness, rotation lock and hidden status bar while riding mode is open (its slider sits below). */
+    /** Brightness and the rotation lock while riding mode is open (its slider sits below). */
     private final RidingDisplay display;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
