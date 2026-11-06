@@ -26,6 +26,10 @@
     <string name="maintenance_manual_title" volt:src="f8a7800c1b2608a82f975b7e2f762214ca0ec5d8">Del manual de %1$s</string>
     <string name="maintenance_manual_title_unknown" volt:src="9c163ea2a1b2ad0475c71179b0ce2d2654b9da59">Del manual</string>
     <string name="maintenance_manual_none" volt:src="03f659b8e00e9ca5fade2ab6775e480f34d36363">Aún no hay intervalos registrados. Volt solo muestra los intervalos del manual junto con la página de donde proceden, así que por ahora tú eliges la frecuencia.</string>
+    <string name="maintenance_manual_listed" volt:src="6fe6759c5cdefa83eda8b55809fa7aaac4b2884d">Lo que recomienda el manual. Agrega uno para recibir un recordatorio.</string>
+    <string name="maintenance_manual_source" volt:src="536a37aa8fc0739fcb32c88ddb59b52a9e1380fc">%1$s (%2$s), pág. %3$s</string>
+    <string name="maintenance_manual_add" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Agregar</string>
+    <string name="maintenance_manual_added" volt:src="8cd3db4cf159ed1f6fbf53d2face254189c232ef">Agregado</string>
     <string name="maintenance_manual_unknown" volt:src="482974707753e3476207b7426e32b4f266abe3b3">Modelo desconocido. Volt podrá mostrar los intervalos del manual una vez que sepa qué modelo es.</string>
     <string name="maintenance_history" volt:src="2deed1ef9f0ed4e22b4caa9f0fa01a841518d557">Historial</string>
     <plurals name="maintenance_history_done" volt:src="a11b919e8001bc0f8d2c1bd600cc5b407c213078">
@@ -36,6 +40,7 @@
     <string name="maintenance_history_none" volt:src="04cd9da553dfa69d35d68b98ebd7dbf4243ba18c">Ninguna revisión realizada todavía.</string>
     <string name="maintenance_stale" volt:src="7d21a0a84f05a330d6fb0c2bcd4630a0da8caa78">La última lectura del odómetro fue el %1$s. Los viajes realizados desde entonces se contarán cuando Volt se conecte de nuevo.</string>
     <string name="maintenance_reset" volt:src="2112883eafe451e0996b7e081ceef0efcf31c01f">El odómetro retrocedió (¿pantalla nueva, controlador nuevo o un reinicio?). Los recordatorios por distancia siguen contando desde aquí.</string>
+    <string name="maintenance_distance_next" volt:src="8b40298cfdfba790a58baf2f29eaf7876c2ca160">La distancia se cuenta a partir de la próxima conexión.</string>
     <string name="maintenance_never_read" volt:src="c3c8bac70f46aa28046200ad44f68f67d68d51f1">Conecta el patinete una vez para que Volt pueda leer el odómetro.</string>
     <string name="maintenance_whole_km" volt:src="feac7ec65a71dc220fc5c431fd1c4c2ea88836da">Este patinete indica solo kilómetros enteros. Si recorre más de 255 km entre conexiones, la distancia puede quedarse corta.</string>
     <string name="maintenance_badge_due" volt:src="13d916781834a30aebd921740d4e2b81b4d8d244" volt:attempt="2">VENCIDO</string>
@@ -136,8 +141,10 @@
     <string name="maintenance_name_hint" volt:src="d0d9cac759507466483efea80c4b1f01ed03b377">Escribe un nombre o elige uno</string>
     <string name="maintenance_name_empty" volt:src="1d685e7b88d30570a2577163cd07f14ed2282049">Escribe un nombre o elige uno.</string>
     <string name="maintenance_task_tire_pressure" volt:src="9565b01a1f1ae7a5c09b7c6448331a60ede9b912">Presión de los neumáticos</string>
+    <string name="maintenance_task_tire_tread" volt:src="c8816a6b3386c2dd9cb9fe115372bc6fdc157fb6">Banda de rodadura</string>
     <string name="maintenance_task_brakes" volt:src="5bf9d3b57b098ef52f7d25ebc1f04c233cd1feff">Frenos</string>
     <string name="maintenance_task_bolts_folding" volt:src="4262da6df44354aea9089ef1a1a0519bc0e0dfed">Tornillos y plegado</string>
+    <string name="maintenance_task_steering" volt:src="e98a0af8d76acc15916a240b98cff347f4184d81">Dirección</string>
     <string name="maintenance_task_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luces</string>
     <string name="maintenance_task_clean_dry" volt:src="a06a0040875049932e540c01a1d941b790cdb5ab">Limpieza y secado</string>
     <string name="maintenance_task_battery_storage" volt:src="948167902527851b6ee6a93d4d96d69ec87c1237">Almacenamiento de la batería</string>
