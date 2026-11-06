@@ -44,6 +44,8 @@ for name in RideAutoStopPolicy; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
 done
 sources+=("$TEST_DIR/RideAutoStopStoreTest.java")
+# Saved ride summaries for a fast first Rides open (RideSummaryStore; RideStore and RideArchive are above).
+sources+=("$APP_DIR/src/com/jjricks/volt/RideSummaryStore.java" "$TEST_DIR/RideSummaryStoreTest.java")
 # The hardware check's Rides first-open timing helper (android-tests, no Android types).
 sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimingTest.java")
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
@@ -124,6 +126,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideSummaryStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidesOpenTimingTest
 
 # Unified backup suites.

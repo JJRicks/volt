@@ -47,6 +47,10 @@
         <activity android:name=".RideAutoExportPickerActivity" android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
+        <!-- Saves several of one ride's export files into one picked folder (Rides, Export ride data); no views of its own. -->
+        <activity android:name=".RideExportFolderActivity" android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
         <uses-library android:name="androidx.window.extensions" android:required="false" />
         <service android:name=".ScooterService" android:exported="false" android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|location" />

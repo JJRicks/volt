@@ -60,7 +60,16 @@ final class BackupRegistry {
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);
         exclude(app, "ride_auto_export_pending", String.class, PENDING);
         exclude(app, "ride_auto_export_problem", String.class, PENDING);
+        // Ride details' Export ride data sheet (RideExportFiles): the remembered formats travel; the last folder is only
+        // the picker's starting place on this phone.
+        add(app, "ride_export_choice", String.class, PREFERENCES);
+        exclude(app, "ride_export_folder_hint", String.class, PERMISSION);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
+        add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
+        add(app, "charge_live_lock_detail", String.class, PREFERENCES);
+        // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
+        exclude(app, "charge_live_stopped", String.class, DEVICE);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);
@@ -143,6 +152,8 @@ final class BackupRegistry {
         // Guided setting test records stay on this phone (decision D4): never exported, cleared or replaced.
         {"no_backup/compat-tests", null, "Guided-test records of this installation"}, {"no_backup/compat-tests.tmp", null, "Guided-test records of this installation"},
         {"no_backup/app-data-transfer", null, PENDING}, {"no_backup/ride-transfer", null, PENDING},
+        // Saved ride summaries (RideSummaryStore): a rebuildable cache of this installation's journals, never exported or restored.
+        {"no_backup/rides-index", null, DEVICE},
         {"cache/", null, "Disposable cache"}, {"shared_prefs/", null, "Preferences are classified key by key"},
     };
     /** Category of a storage root, null for an excluded root, or IllegalArgumentException if unclassified. */
