@@ -188,6 +188,16 @@ Scooters without a charge limit setting, such as the GT3 Max, show **Charge aler
 
 **Phones that close apps in the background.** Xiaomi (MIUI/HyperOS) and some other phones stop background apps on their own, which ends the watch. In Volt's app settings (the sheet's **App settings** link), set battery use or battery saver to **No restrictions**; on Xiaomi, also allow **Autostart**. Volt asks for no new permission for alerts.
 
+### Live charging
+
+**Scooter → Battery → Live charging** shows a charge in a notification and on the lock screen after you leave Volt. It is on to start; the sheet's switch turns it off. It holds the connection only when both are true at the moment you leave Volt: the scooter is still connected, and it is charging or a **Charge done by** or **Scheduled charging** start time is set. A charge that starts after you've left doesn't start the card.
+
+- **What it shows.** The title is the target and the level, for example **Charging to 80% · 72%** (or **Charging · 63%** without a charge limit). The text is the time left and the finish time, for example **≈ 38m left · done 10:42 PM · 412 W**, or **Estimating time left** before Volt has an estimate. A bar runs from 0 to the charge limit, and Android's header counts down to the finish. The scooter's name sits in the header. While a schedule waits, the card reads **Starts 3:40 AM · 41%** with **Charge done by 7:00 AM** or **Scheduled charging**. Volt reads the battery about every 15 seconds, the same reads as the app makes; it sends nothing to the scooter.
+- **When it ends.** The card ends when the charge reaches the limit (or 99–100% without one; Volt then posts one short **Charged to 80%** notice, unless that scooter's battery alert for this charge is already showing), when charging stops for more than 3 minutes, after 12 hours, or when you tap **Stop** on the card. **Stop** only ends Volt's card for the rest of this scooter's charge (even if Android restarts Volt meanwhile, for up to 12 hours); it doesn't stop charging or send any command. Another scooter's charge isn't affected. If the scooter goes out of reach, the card reads **Last seen 72%** with **Out of reach · reconnecting**; if it doesn't come back within about 20 seconds, the card goes away and Volt disconnects as usual.
+- **On the lock screen.** **Details** shows the whole card, with the scooter's name and the charging power. **Level** shows only the level and times. **Hidden** shows Android's "contents hidden" only.
+- **While it shows,** Volt stays connected, so other apps, the official one included, can't connect to the scooter. Open the official app after tapping **Stop**.
+- A charge recording shows the same card while it records. A ride recording, phone saving, a battery alert waiting for this charge, or a playing alarm keeps its own notification instead; the hold still ends on the same rules. The card needs Volt's notifications; with them off, the sheet offers **Allow**.
+
 ## Last-known readings and connected history
 
 Last-known stats and settings stay on the phone for the selected scooter. Grey values are historical; a grey lock state is unverified until you reconnect. Only fresh authenticated scooter state enables setting changes.
@@ -315,6 +325,13 @@ Map settings also selects the provider: USGS Topo, OpenStreetMap or custom HTTPS
 Map requests disclose the viewed area and IP address to the selected provider; credentials and ride journals are not uploaded. No city/route prefetch or bulk download is offered.
 
 Old recordings have no phone route to reconstruct. Exported route/phone files contain coordinates; raw motion includes device axes, gravity-free acceleration, earth-frame acceleration when orientation is available, and rotation quaternion. GPX exports positions/time only because Android GNSS altitude is referenced to an ellipsoid; altitude and its accuracy remain in CSV/JSON. Raw journals remain available if a large file cannot be previewed.
+
+**Export ride data**, near the bottom of ride details, saves any of the ride's files. Its sheet has a checkbox for each one, with the file's name under it:
+
+- **Scooter recording:** **Sensor CSV** (every scooter reading, `ride-<first 8 of id>-sensors.csv`) and **Analysis JSON** (`-analysis.json`).
+- **Phone recording**, for a ride with phone data: **Route CSV**, **GPX**, **Phone raw CSV**, **Motion raw CSV** and **Scooter and phone JSON** (`-combined.json`, both parts in one file). A file that can't be made now is greyed out and says why: still saving, no GPS fixes, a recording that couldn't be read, or a raw file the ride never wrote.
+
+Check one file and Android's Save dialog asks where to put it, and you can rename it. Check several and Android's folder picker asks once; Volt then saves each file in that folder under its usual name, and a file of the same name already there is kept (Android names the new one `(1)`). On Android 11 and later the picker won't let you use the Download folder itself or the top of the phone's storage: pick or create a folder inside them, such as `Download/Volt`. Volt keeps no access to the folder afterwards; next time the picker starts there. The sheet remembers what you checked. The files are the same as before the sheet replaced the separate Export CSV, Export JSON and Export phone data buttons, and the Phone data files button under a route that couldn't load opens the same sheet. Ride auto-save is separate and unchanged.
 
 ## Troubleshooting
 
