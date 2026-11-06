@@ -96,6 +96,13 @@ final class BackupRegistry {
         add(app, RidingBars.HIDE_STATUS_BAR_KEY, Boolean.class, PREFERENCES);
         // Volt auto's learned levels belong to this phone's light sensor and screen.
         for (String key : RidingBrightness.BAND_KEYS) exclude(app, key, Float.class, DEVICE);
+        // Night vision's choices (NightSchedule) are app preferences. The answer about using the last
+        // ride's area for sunset stays with this phone: a restored phone asks again.
+        add(app, NightSchedule.MODE_KEY, String.class, PREFERENCES);
+        add(app, NightSchedule.SCHEDULE_KEY, String.class, PREFERENCES);
+        add(app, NightSchedule.START_KEY, Integer.class, PREFERENCES);
+        add(app, NightSchedule.END_KEY, Integer.class, PREFERENCES);
+        exclude(app, NightSchedule.AREA_KEY, String.class, DEVICE);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);

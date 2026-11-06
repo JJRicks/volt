@@ -1054,6 +1054,7 @@ public final class MoreScreen implements AppScreen {
         segmentedField(T.ridingDisplayBrightness(), RidingBrightness.MODE_KEY, labels, values, RidingBrightness.PHONE);
         segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
                 new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
+        nightPreferences();
         View gap = new View(host.activity());
         cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout box = group();
@@ -1078,6 +1079,125 @@ public final class MoreScreen implements AppScreen {
         };
         valueRefreshers.add(showReset[0]);
         note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
+    }
+    /**
+     * Night vision (ride-display plan, PR 3): Off · On · Scheduled, then sunset to sunrise or custom
+     * times. Sunset from the last ride's area needs the rider's yes first (owner Q21 A); without it the
+     * time zone's city is used. Both are worked out on the phone.
+     */
+    private void nightPreferences() {
+        segmentedField(T.ridingNightVision(), NightSchedule.MODE_KEY, new String[]{T.ridingNightOff(), T.ridingNightOn(), T.ridingNightScheduled()},
+                new String[]{NightSchedule.OFF, NightSchedule.ON, NightSchedule.SCHEDULED}, NightSchedule.OFF, this::nightAsk);
+        segmentedField(T.ridingNightSchedule(), NightSchedule.SCHEDULE_KEY, new String[]{T.ridingNightSun(), T.ridingNightCustom()},
+                new String[]{NightSchedule.SUN, NightSchedule.CUSTOM}, NightSchedule.SUN, this::nightAsk);
+        // segmentedField adds its caption, then its selector.
+        View schedule = cardDestination.getChildAt(cardDestination.getChildCount() - 1);
+        View scheduleCaption = cardDestination.getChildAt(cardDestination.getChildCount() - 2);
+        View gap = new View(host.activity());
+        cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
+        LinearLayout box = group();
+        box.setTag("preference_riding_night");
+        Row from = row(box, "pin", T.ridingNightFrom(), null, this::nightConsent);
+        from.view.setTag("preference_riding_night_from");
+        Row starts = row(box, "clock", T.ridingNightStarts(), null, () -> nightTime(NightSchedule.START_KEY, NightSchedule.START_DEFAULT, T.ridingNightStarts()));
+        starts.view.setTag("preference_riding_night_starts");
+        Row ends = row(box, "clock", T.ridingNightEnds(), null, () -> nightTime(NightSchedule.END_KEY, NightSchedule.END_DEFAULT, T.ridingNightEnds()));
+        ends.view.setTag("preference_riding_night_ends");
+        TextView next = ui.caption("");
+        next.setPadding(0, ui.dp(7), 0, 0);
+        next.setTag("preference_riding_night_next");
+        box.addView(next);
+        note(box, T.ridingNightNote());
+        Runnable refresh = () -> {
+            boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(settings().getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
+            boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(settings().getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
+            schedule.setVisibility(scheduled ? View.VISIBLE : View.GONE);
+            scheduleCaption.setVisibility(scheduled ? View.VISIBLE : View.GONE);
+            long now = System.currentTimeMillis();
+            NightSchedule.State state = RidingNight.state(host.activity(), settings(), now);
+            boolean custom = scheduled && (!sun || state.source == NightSchedule.Source.NONE);
+            shownRows(box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
+            boolean ride = RidingNight.usesRideArea(settings());
+            from.value(ride ? T.ridingNightFromRide() : T.ridingNightFromZone());
+            from.sub(state.source == NightSchedule.Source.RIDE ? T.ridingNightSourceRide()
+                    : state.source == NightSchedule.Source.NONE ? T.ridingNightSourceNone()
+                    : ride ? T.ridingNightSourceRideNone() : T.ridingNightSourceZone());
+            starts.value(nightClock(settings().getInt(NightSchedule.START_KEY, NightSchedule.START_DEFAULT), NightSchedule.START_DEFAULT));
+            ends.value(nightClock(settings().getInt(NightSchedule.END_KEY, NightSchedule.END_DEFAULT), NightSchedule.END_DEFAULT));
+            String text = !scheduled ? "" : state.nextMs > 0 && state.nextMs - now < 86_400_000L
+                    ? (state.night ? T.ridingNightNextOff(DisplayTime.clock(host.activity(), settings(), state.nextMs))
+                            : T.ridingNightNextOn(DisplayTime.clock(host.activity(), settings(), state.nextMs)))
+                    : state.today == SunTimes.Day.Kind.ALWAYS_DAY ? T.ridingNightNoSunset()
+                    : state.today == SunTimes.Day.Kind.ALWAYS_NIGHT ? T.ridingNightNoSunrise() : "";
+            next.setText(text);
+            next.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+        };
+        refresh.run();
+        valueRefreshers.add(refresh);
+        // The ride's area is read in the background (it's never stored); the caption follows once it's known.
+        if (RidingNight.usesRideArea(settings())) RidingNight.readRideArea(host.activity(), () -> { if (!closed) refresh.run(); });
+    }
+    /** Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. */
+    private static void shownRows(LinearLayout box, View[] rows, boolean[] shown) {
+        boolean above = false;
+        for (int i = 0; i < rows.length; i++) {
+            rows[i].setVisibility(shown[i] ? View.VISIBLE : View.GONE);
+            int at = box.indexOfChild(rows[i]);
+            if (at > 0 && i > 0) box.getChildAt(at - 1).setVisibility(shown[i] && above ? View.VISIBLE : View.GONE);
+            above |= shown[i];
+        }
+    }
+    /** Asks about the ride's area the first time sunset to sunrise is scheduled. */
+    private void nightAsk() {
+        boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(settings().getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
+        boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(settings().getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
+        if (scheduled && sun && !settings().contains(NightSchedule.AREA_KEY)) nightConsent();
+    }
+    /** The brief consent sheet: use the last ride's area (rounded, on the phone) or the time zone. */
+    private void nightConsent() {
+        if (closed) return;
+        AlertDialog[] self = new AlertDialog[1];
+        LinearLayout body = host.sheetContent(T.ridingNightConsentTitle(), T.ridingNightConsentBody(), () -> { if (self[0] != null) self[0].dismiss(); });
+        body.setTag("riding_night_consent");
+        TextView allow = ui.button(T.ridingNightConsentAllow(), () -> {
+            settings().edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_ALLOW).apply();
+            if (self[0] != null) self[0].dismiss();
+            RidingNight.readRideArea(host.activity(), () -> { if (!closed) host.redraw(); });
+        });
+        allow.setTag("riding_night_consent_allow");
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
+        space.topMargin = ui.dp(16);
+        body.addView(allow, space);
+        TextView zone = ui.secondaryButton(T.ridingNightConsentZone(), () -> {
+            settings().edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_DECLINE).apply();
+            if (self[0] != null) self[0].dismiss();
+        });
+        zone.setTag("riding_night_consent_zone");
+        LinearLayout.LayoutParams under = new LinearLayout.LayoutParams(-1, -2);
+        under.topMargin = ui.dp(8);
+        body.addView(zone, under);
+        AlertDialog dialog = host.showSheet(body);
+        self[0] = dialog;
+        dialogs.add(dialog);
+        dialog.setOnDismissListener(x -> dialogs.remove(dialog));
+    }
+    /** A custom time's picker, in the phone's 12 or 24 hour clock. */
+    private void nightTime(String key, int fallback, String title) {
+        if (closed) return;
+        int minutes = NightSchedule.minutes(settings().getInt(key, fallback), fallback);
+        android.app.TimePickerDialog picker = new android.app.TimePickerDialog(host.activity(), (view, hour, minute) -> {
+            if (!closed) settings().edit().putInt(key, hour * 60 + minute).apply();
+        }, minutes / 60, minutes % 60, DisplayTime.is24Hour(host.activity(), settings()));
+        picker.setTitle(title);
+        dialogs.add(picker);
+        picker.setOnDismissListener(x -> dialogs.remove(picker));
+        picker.show();
+    }
+    /** A custom time as the phone's clock shows it today. */
+    private String nightClock(int stored, int fallback) {
+        int minutes = NightSchedule.minutes(stored, fallback);
+        long wall = java.time.LocalDate.now().atTime(minutes / 60, minutes % 60).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return DisplayTime.clock(host.activity(), settings(), wall);
     }
     private boolean batteryUnrestricted() {
         try {
@@ -1156,6 +1276,10 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"system", "12h", "24h"}, "system");
     }
     private void segmentedField(String title, String key, String[] labels, String[] values, String fallback) {
+        segmentedField(title, key, labels, values, fallback, null);
+    }
+    /** changed runs after the rider picks a different value. */
+    private void segmentedField(String title, String key, String[] labels, String[] values, String fallback, Runnable changed) {
         TextView caption = ui.text(title, 12.5f, false); caption.setTextColor(ui.muted);
         caption.setPadding(ui.dp(2), ui.dp(12), ui.dp(2), ui.dp(6));
         cardDestination.addView(caption);
@@ -1165,6 +1289,7 @@ public final class MoreScreen implements AppScreen {
             // MainActivity coalesces theme and display-unit rebuilds after the 190ms slide. A second
             // immediate rebuild here would destroy the animation (and the user's scroll position).
             if (key.equals("time_format")) host.redraw();
+            if (changed != null) changed.run();
         });
         selector.setTag("preference-selector-" + key);
         Runnable restyle = () -> {
