@@ -280,6 +280,8 @@
     <string name="controls_experimental_traction_control" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns traction control off. Ride gently on wet or loose ground until you know how it behaves.</string>
     <!-- Shown before trying a kick-start speed under 3 km/h. -->
     <string name="controls_experimental_start_speed" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.</string>
+    <!-- Shown before trying a kick-start speed under 3 km/h where the official app offers only 3 to 5 km/h in the scooter's region. "P" is the letter the scooter's display shows while it won't drive. -->
+    <string name="controls_experimental_start_speed_region" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.</string>
     <!-- Shown before trying energy recovery off. -->
     <string name="controls_experimental_energy_recovery" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns energy recovery off, so your brakes do more of the stopping.</string>
     <!-- Shown before trying a custom speed cap. "Top speed" and "Set back" name a setting and a button on the same screen. -->
