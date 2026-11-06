@@ -462,9 +462,38 @@ public final class RideStore {
             Summary summary = get(id); if (summary != null) result.add(summary);
         }
         retainCached(existing);
-        Collections.sort(result, new Comparator<Summary>() { public int compare(Summary a, Summary b) {
-            return a.startWallMs < b.startWallMs ? 1 : a.startWallMs == b.startWallMs ? a.id.compareTo(b.id) : -1;
-        }});
+        Collections.sort(result, NEWEST_FIRST);
+        return Collections.unmodifiableList(result);
+    }
+    private static final Comparator<Summary> NEWEST_FIRST = new Comparator<Summary>() { public int compare(Summary a, Summary b) {
+        return a.startWallMs < b.startWallMs ? 1 : a.startWallMs == b.startWallMs ? a.id.compareTo(b.id) : -1;
+    }};
+    /**
+     * list() from memory alone, for the UI thread: null when any journal would need a replay (a cold cache, a
+     * changed file, or a journal that can't be read) or the folder can't be listed. No I/O beyond listing the folder and each file's length and
+     * modified time; it never fills or trims the cache, so a miss leaves the work to list() on a worker.
+     */
+    public List<Summary> listCached() {
+        File[] files = directory.listFiles();
+        // list() reports a folder that can't be listed.
+        if (files == null) return null;
+        ArrayList<Summary> result = new ArrayList<Summary>();
+        for (File f : files) if (isJournal(f)) {
+            String id = f.getName().substring(0, f.getName().length() - 4);
+            synchronized (this) { if (active != null && active.id.equals(id)) { result.add(new Summary(active)); continue; } }
+            long length = f.length(), modified = f.lastModified();
+            if (!f.isFile()) continue;
+            Summary hit = null;
+            synchronized (this) {
+                CachedAnalysis analysis = analysisCache.get(id);
+                if (analysis != null && analysis.matches(length, modified)) hit = analysis.summary;
+                CachedSummary cached = hit == null ? summaryCache.get(id) : null;
+                if (cached != null && cached.matches(length, modified)) hit = cached.summary;
+            }
+            if (hit == null) return null;
+            result.add(hit);
+        }
+        Collections.sort(result, NEWEST_FIRST);
         return Collections.unmodifiableList(result);
     }
     /**
@@ -589,6 +618,18 @@ public final class RideStore {
             if (preview) return replayed.points;
         }
         return trendPoints(parsed, maxPoints);
+    }
+    /** trend(id, MAX_TREND_POINTS) from memory alone, for the UI thread: null when it would need a replay. */
+    public List<Point> trendCached(String id) {
+        File source = file(id);
+        CachedAnalysis cached;
+        synchronized (this) {
+            if (active != null && active.id.equals(id)) return trendPoints(active, MAX_TREND_POINTS);
+            cached = analysisCache.get(id);
+        }
+        if (cached == null || !cached.matches(source.length(), source.lastModified())) return null;
+        AnalysisSnapshot hit = cached.snapshot;
+        return hit == null ? null : hit.points;
     }
     /** Replay a finished journal without the preview cap or holding the recorder monitor. */
     public List<Point> fullTrend(String id) throws IOException {

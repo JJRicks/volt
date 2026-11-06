@@ -76,6 +76,8 @@
     <string name="rides_show_more" volt:screen="Rides, history" volt:purpose="label">Show more recordings</string>
     <string name="rides_no_rides_yet" volt:screen="Rides, history" volt:purpose="label">No rides yet</string>
     <string name="rides_history_unreadable" volt:screen="Rides, history" volt:purpose="label">Could not read saved rides</string>
+    <!-- Spoken by screen readers for the placeholder rows shown while saved rides load; the rows show no text. -->
+    <string name="rides_history_loading" volt:screen="Rides, history" volt:purpose="accessibility description">Loading rides…</string>
     <string name="rides_compare_two_selected" volt:screen="Rides, history" volt:purpose="label">Compare two rides, 2 rides selected</string>
     <!-- The compare row's value when two rides are chosen, "2" being the count: keep the check mark. Screen readers say rides_compare_two_selected instead. -->
     <string name="rides_compare_two_selected_value" volt:screen="Rides, history" volt:purpose="status" volt:dnt="✓">2 ✓</string>
