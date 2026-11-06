@@ -4,3 +4,11 @@
 {"draft":"claude-opus","keys":6,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"82d9bbcadb08","stage":"audit-compare","when":"2026-11-05T09:44:29Z"}
 {"draft":"claude-opus","flagged":0,"keys":48,"reader":"claude-opus-5-5","stage":"audit-record","when":"2026-11-05T09:45:33Z"}
 {"chunks":1,"draft":"claude-opus","keys":11,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"29a2054ca449","stage":"import-chunks","when":"2026-11-05T23:48:56Z"}
+{"chunk":0,"draft":"openai","keys":40,"model":"gpt-6.1-terra","model_reported":"gpt-6.1-terra","provider":"openai","received":40,"stage":"draft","when":"2026-11-05T23:50:55Z"}
+{"chunk":1,"draft":"openai","keys":40,"model":"gpt-6.1-terra","model_reported":"gpt-6.1-terra","provider":"openai","received":40,"stage":"draft","when":"2026-11-05T23:51:07Z"}
+{"chunk":2,"draft":"openai","keys":19,"model":"gpt-6.1-terra","model_reported":"gpt-6.1-terra","provider":"openai","received":19,"stage":"draft","when":"2026-11-05T23:51:15Z"}
+{"chunk":0,"draft":"google","keys":40,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":40,"stage":"draft","when":"2026-11-05T23:51:47Z"}
+{"chunk":1,"draft":"google","keys":40,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":40,"stage":"draft","when":"2026-11-05T23:52:15Z"}
+{"chunk":2,"draft":"google","keys":19,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":19,"stage":"draft","when":"2026-11-05T23:52:32Z"}
+{"keys":29,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":29,"stage":"backtranslate","when":"2026-11-05T23:56:08Z"}
+{"keys":48,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":48,"stage":"backtranslate","usage":{"input_tokens":1859,"input_tokens_details.cache_write_tokens":1484,"input_tokens_details.cached_tokens":0,"output_tokens":767,"output_tokens_details.reasoning_tokens":0,"total_tokens":2626},"when":"2026-11-06T00:04:48Z"}
