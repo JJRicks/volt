@@ -9,7 +9,7 @@
     <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Em direto</string>
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viagens</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viagens</string>
-    <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Definições de condução</string>
+    <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be" volt:attempt="2">Condução</string>
     <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Condução</string>
     <string name="dashboard_model_qa_battery_settings" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Definições da bateria</string>
     <string name="dashboard_model_qa_battery_settings_short" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Bateria</string>
@@ -19,7 +19,7 @@
     <string name="dashboard_model_qa_star_lights_short" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc" volt:attempt="2">Luz de estrela</string>
     <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Ecrã e som</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Ecrã e som</string>
-    <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN e proximidade</string>
+    <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d" volt:attempt="2">PIN</string>
     <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN</string>
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nome da trotinete</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac" volt:attempt="2">Nome</string>
