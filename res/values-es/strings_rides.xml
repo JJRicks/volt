@@ -276,12 +276,6 @@
     <string name="rides_barometer_gps">Altitud GPS</string>
     <!-- src:8337e6aef20a803da91fe49b791d096252c862c2 -->
     <string name="rides_motion_sensors">Sensores de movimiento</string>
-    <!-- src:8873f4e013ee7c1631bbf61f7ab11077288e8259 -->
-    <string name="rides_placement">Posición del teléfono</string>
-    <!-- src:f928c0209b032c066f7f6ee1d2f36c9c333048f1 -->
-    <string name="rides_placement_mounted">En el soporte</string>
-    <!-- src:2ac8cb6061edf1343c371eb85db4343a6925e072 -->
-    <string name="rides_placement_pocket">En el bolsillo</string>
     <!-- src:efd3a6bcca502f5a762556240783831388032412 -->
     <string name="rides_lab_badge">LAB</string>
     <!-- src:0994f6a9797bdd25261ae70f05536de724a83b9e -->
@@ -506,10 +500,6 @@
     <string name="rides_direction_split_description">Sentido de la corriente confirmado durante %1$s, sin confirmar durante %2$s</string>
     <!-- src:550602e28c6658e848285df423a96bb5370f3597 -->
     <string name="rides_switch_experimental">%1$s, experimental</string>
-    <!-- src:0da6397d66a04b55d5e92af104c32be6f65dfeb2 -->
-    <string name="rides_motion_note_mounted">En el soporte · %1$s muestras</string>
-    <!-- src:8676b714e0d2c5c6748cd6691ed92a60a436de5d -->
-    <string name="rides_motion_note_pocket">En el bolsillo · %1$s muestras</string>
     <!-- src:5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48 -->
     <string name="rides_legend_power">Magnitud de potencia · azul 0 → amarillo %1$s · gris: sin datos</string>
     <!-- src:d2bbc7dc058d59c3937733aa1c71014ccaead1a6 -->

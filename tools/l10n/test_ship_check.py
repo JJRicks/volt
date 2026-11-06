@@ -85,18 +85,27 @@ class Base(unittest.TestCase):
         self.repo.write("res/xml/locales_config.xml", locales_config("en", "es"))
         self.repo.write("AndroidManifest.xml", MANIFEST % NAMED)
 
-    def run_tool(self):
+    def run_tool(self, *extra):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            code = ship_check.main(["--root", self.repo.root, "--aapt", "off"])
+            code = ship_check.main(["--root", self.repo.root, "--aapt", "off"] + list(extra))
         return code, out.getvalue() + err.getvalue()
 
-    def assert_fails(self, *expected):
-        code, out = self.run_tool()
+    def assert_fails(self, *expected, release=False):
+        code, out = self.run_tool(*(["--release"] if release else []))
         self.assertEqual(code, 1, out)
         for text in expected:
             self.assertIn(text, out)
         self.assertIn("ship_check: FAILED", out)
+        return out
+
+    def assert_passes_with_fallback(self, count):
+        """Pull request mode: English fallback is a reference line, never a failure."""
+        code, out = self.run_tool()
+        self.assertEqual(code, 0, out)
+        self.assertIn("es (values-es): %d of 13 keys fall back to English" % count, out)
+        self.assertIn("reference only; a release needs 0", out)
+        self.assertIn("ship_check: PASS", out)
         return out
 
 
@@ -169,12 +178,21 @@ class ShippedLanguageTest(Base):
         self.repo.write(path, self.repo.read(path).replace(">Cancel<", ">Cancel now<"))
         self.assert_fails("common_cancel: stale: the English changed")
 
-    def test_merging_again_clears_a_stale_hash_but_the_bar_still_counts_it(self):
+    def test_a_stale_hash_fails_in_release_mode_too(self):
+        self.ship_spanish()
+        path = "res/values/strings_common.xml"
+        self.repo.write(path, self.repo.read(path).replace(">Cancel<", ">Cancel now<"))
+        self.assert_fails("common_cancel: stale: the English changed", release=True)
+
+    def test_merging_again_clears_a_stale_hash_and_the_fallback_still_counts_it(self):
         self.ship_spanish()
         path = "res/values/strings_common.xml"
         self.repo.write(path, self.repo.read(path).replace(">Cancel<", ">Cancel now<"))
         merge.merge_area(self.paths, "es", "common")
-        out = self.assert_fails("es is under the beta bar", "1 of 13 keys")
+        out = self.assert_passes_with_fallback(1)
+        self.assertNotIn("stale", out)
+        out = self.assert_fails("es is not fully translated", "1 key(s) fall back to English",
+                                "common_cancel (the English changed since the decision)", release=True)
         self.assertNotIn("stale", out)
 
     def test_a_beta_language_with_no_folder(self):
@@ -184,22 +202,51 @@ class ShippedLanguageTest(Base):
         self.repo.write("AndroidManifest.xml", MANIFEST % NAMED)
         self.assert_fails("res/values-es has no text, but es has status beta")
 
-    def test_a_language_under_the_bar(self):
-        # One ordinary key of 13 is over 2%; everything else about the language is right.
+    def test_a_language_over_the_beta_bar_passes_a_pull_request(self):
+        # One ordinary key of 13 is over the 2% beta bar; everything else about the language is right.
         self.ship_spanish(fallback=("common_cancel",))
-        out = self.assert_fails("es is under the beta bar", "1 of 13 keys fall back", "beta bar: FAIL")
+        out = self.assert_passes_with_fallback(1)
+        self.assertIn("(7.69%)", out)
+        self.assertNotIn("problem:", out)
+
+    def test_release_mode_fails_on_any_fallback_and_names_the_keys(self):
+        self.ship_spanish(fallback=("common_cancel",))
+        out = self.assert_fails("es is not fully translated, so no release ships",
+                                "1 key(s) fall back to English: common_cancel (falls back to English)",
+                                "translate them first", "release mode: a release needs 0", release=True)
         self.assertEqual(out.count("problem:"), 1, out)
+
+    def test_release_mode_passes_with_no_fallback(self):
+        for status in ("beta", "stable"):
+            self.ship_spanish(status=status)
+            code, out = self.run_tool("--release")
+            self.assertEqual(code, 0, out)
+            self.assertIn("ship_check: %s: es (values-es): 0 of 13 keys fall back" % status, out)
+            self.assertIn("ship_check: PASS", out)
+
+    def test_release_mode_lists_the_first_keys_and_counts_the_rest(self):
+        self.ship_spanish(fallback=("common_cancel", "ble_searching"))
+        with unittest.mock.patch.object(ship_check, "RELEASE_KEYS_SHOWN", 1):
+            out = self.assert_fails("2 key(s) fall back to English", "and 1 more", release=True)
+        self.assertEqual(len(re.findall(r"common_cancel|ble_searching", out.split("problem:")[1])), 1, out)
+
+    def test_the_count_matches_the_beta_bar(self):
+        self.ship_spanish(fallback=("common_cancel", "ble_unlock"))
+        _, lines = ship_check.council.beta_report(self.paths, "es")
+        total, fallback, _ = ship_check.fallback_report(self.paths, "es")
+        self.assertIn("%d of %d keys fall back" % (len(fallback), total), lines[0])
 
     def test_a_lock_key_falling_back(self):
         self.ship_spanish(fallback=("ble_unlock",))
-        self.assert_fails("lock or alarm keys falling back", "ble_unlock (lock)")
+        self.assert_passes_with_fallback(1)
+        self.assert_fails("ble_unlock (falls back to English; lock)", release=True)
 
-    def assert_left_to_english(self, key, why, problem="lock or alarm keys falling back"):
-        """A translated decision merge.py refuses: not in the folder, counted by the bar, and named."""
+    def assert_left_to_english(self, key, why):
+        """A translated decision merge.py refuses: not in the folder, counted as fallback, and named in release mode."""
         self.assertNotIn('name="%s"' % key, "".join(
             self.repo.read(os.path.join("res/values-es", f)) for f in os.listdir(self.repo.path("res/values-es"))))
-        self.assert_fails("1 of 13 keys fall back", problem, "translated decisions merge.py leaves to English",
-                          "%s (%s)" % (key, why))
+        self.assert_passes_with_fallback(1)
+        self.assert_fails("1 key(s) fall back to English", "%s (%s" % (key, why), release=True)
 
     def test_a_lock_key_merge_refuses_to_write(self):
         self.ship_spanish()
@@ -216,20 +263,18 @@ class ShippedLanguageTest(Base):
     def test_a_blank_ordinary_key_falls_back_and_counts(self):
         self.ship_spanish()
         self.edit_decision("common", "common_cancel", text=" ")
-        self.assert_left_to_english("common_cancel", "the decision's text is blank", "es is under the beta bar")
+        self.assert_left_to_english("common_cancel", "the decision's text is blank")
 
     def test_a_plural_with_a_form_missing(self):
         self.ship_spanish()
         self.edit_decision("common", "common_scooters_skipped", text={"other": "%1$d patinetes omitidos"})
-        self.assert_left_to_english("common_scooters_skipped", "missing plural forms one, many",
-                                    "es is under the beta bar")
+        self.assert_left_to_english("common_scooters_skipped", "missing plural forms one, many")
 
     def test_a_plural_with_a_blank_form(self):
         self.ship_spanish()
         self.edit_decision("common", "common_scooters_skipped", text={
             "one": "", "many": "%1$d de patinetes omitidos", "other": "%1$d patinetes omitidos"})
-        self.assert_left_to_english("common_scooters_skipped", "the decision's text is blank",
-                                    "es is under the beta bar")
+        self.assert_left_to_english("common_scooters_skipped", "the decision's text is blank")
 
     def test_a_plural_category_added_after_the_decisions(self):
         """No decision is edited: the language simply needs a form it does not have."""
@@ -237,7 +282,7 @@ class ShippedLanguageTest(Base):
         self.repo.write("l10n/lang/es.tsv", re.sub(r"(?m)^plurals\t.*$", "plurals\tone,few,many,other",
                                                    self.repo.read("l10n/lang/es.tsv")))
         self.merge_all()
-        self.assert_left_to_english("common_scooters_skipped", "missing plural forms few", "es is under the beta bar")
+        self.assert_left_to_english("common_scooters_skipped", "missing plural forms few")
 
     def test_a_blank_string_written_by_hand(self):
         self.ship_spanish()
@@ -249,16 +294,16 @@ class ShippedLanguageTest(Base):
         self.ship_spanish()
         for outcome in ("agreed", "judged"):
             self.edit_decision("ble", "ble_unlock", outcome=outcome)
-            out = self.assert_fails("not safety-agreed", "ble_unlock (lock)", "0 of 13 keys fall back")
-            self.assertNotIn("falling back", out)
+            for release in (False, True):
+                self.assert_fails("not safety-agreed", "ble_unlock (lock)", "0 of 13 keys fall back", release=release)
         self.edit_decision("ble", "ble_unlock", outcome="safety-agreed")
         self.assertEqual(self.run_tool()[0], 0)
 
-    def test_the_bar_reads_only_recorded_decisions(self):
-        """No decisions at all is a language under the bar, not a request for keys."""
+    def test_the_fallback_reads_only_recorded_decisions(self):
+        """No decisions at all is fallback, not a request for keys."""
         self.ship_spanish()
         os.remove(self.paths.decisions("es", "ble"))
-        self.assert_fails("es is under the beta bar")
+        self.assert_fails("ble_unlock (no decision; lock)", "ble_searching (no decision)", release=True)
 
     def test_no_l10n_tag(self):
         self.ship_spanish()

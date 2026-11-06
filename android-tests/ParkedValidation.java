@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,7 +24,7 @@ import com.jjricks.volt.*;
 public final class ParkedValidation extends Instrumentation {
     private Bundle args;private volatile ScooterService service;private final JSONArray results=new JSONArray();private boolean bound;private Boolean originalBackground;
     private Activity launchedActivity;private Map<String,Object> smokePreferences;private boolean smokeMode,reconnectAfterSmoke;
-    private static final String[] SMOKE_PREFS={"background_connection","auto_connect","controls_section","controls_query","stats_section","stats_query","stats_favourites","stats_favourites_only","more_section"};
+    private static final String[] SMOKE_PREFS={"background_connection","auto_connect","scooter_section","stats_section","stats_query","stats_favourites","stats_favourites_only","more_section"};
     private static final Set<String> LINE_KEYS=new HashSet<>(Arrays.asList("line_light","line_pattern","line_color","line_boost_color"));
     private static final Set<String> STAR_KEYS=new HashSet<>(Arrays.asList("star_light","star_pattern","star_color","star_boost_color"));
     @Override public void onCreate(Bundle args){this.args=args==null?new Bundle():args;start();}
@@ -41,7 +42,7 @@ public final class ParkedValidation extends Instrumentation {
             runMain(()->service.ble.refresh(true));Thread.sleep(2200);
         }
         if(mode.equals("navigation")){
-            navigationSmoke(activity);output.putString("navigation","All five tabs, 7 Controls / 4 Stats / 6 More sections, search and optional favourite passed without scooter mutations");
+            output.putString("navigation",navigationSmoke(activity,output));
         }else if(mode.equals("background")){
             backgroundSmoke();output.putString("background","Full 10s grace, cancelled old deadline, fresh second pause, hard cutoff, late hidden start and connecting cutoff checked");
         }else if(mode.equals("bgreset")){
@@ -137,85 +138,178 @@ public final class ParkedValidation extends Instrumentation {
         if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){EditText found=findInput(group.getChildAt(i),description);if(found!=null)return found;}}
         return null;
     }
-    private void clickSection(Activity activity,String section)throws Exception{
-        runMain(()->{ScrollView scroll=(ScrollView)field(activity,"scroll");scroll.scrollTo(0,0);View tab=findText(screenView(activity),section);require(tab!=null&&tab.isClickable(),"Visible section picker missing: "+section);tab.performClick();});waitForIdleSync();
+    private Object call(Object target,String name,Class<?>[] types,Object... values){
+        for(Class<?> type=target.getClass();type!=null;type=type.getSuperclass())try{java.lang.reflect.Method m=type.getDeclaredMethod(name,types);m.setAccessible(true);return m.invoke(target,values);}catch(NoSuchMethodException ignored){}catch(ReflectiveOperationException e){throw new IllegalStateException("Cannot call "+name,e);}
+        throw new IllegalStateException("Missing validation method: "+name);
     }
-    /** Opens a More submenu from its menu row: on a phone Back first returns to the menu; the wide layout keeps it beside the submenu. */
+    /** Section changes animate, and a Visibility transition keeps the leaving section VISIBLE until it ends; retry the check until it holds. */
+    private void eventually(Runnable check)throws Exception{
+        long deadline=SystemClock.elapsedRealtime()+3000;
+        for(;;){try{runMain(check);return;}catch(RuntimeException e){if(SystemClock.elapsedRealtime()>deadline)throw e;}Thread.sleep(50);}
+    }
+    /** Stats › a section, through its section selector (tag live-stats-sections) as a tap would, never by matching tab text. */
+    @SuppressWarnings("unchecked") private void clickStatsSection(Activity activity,String section)throws Exception{
+        runMain(()->{Object stats=currentScreen(activity);View selector=(View)field(stats,"sectionTabs");require("live-stats-sections".equals(selector.getTag())&&selector.isShown(),"Stats section selector missing");
+            List<String> order=Arrays.asList((String[])field(stats,statsWide(stats)?"WIDE_SECTIONS":"SECTIONS"));List<TextView> choices=(List<TextView>)field(field(selector,"track"),"choices");
+            int index=order.indexOf(section);require(index>=0&&choices.size()==order.size(),"Stats selector does not offer "+section);View choice=choices.get(index);require(choice.isShown()&&choice.isClickable(),"Stats selector choice not reachable: "+section);choice.performClick();});
+        waitForIdleSync();
+        eventually(()->{Object stats=currentScreen(activity);require(section.equals(field(stats,"selectedSection")),"Stats selector did not select "+section);assertStatsSections(stats,section);});
+    }
+    /** Back to the More menu (Units and Compatibility first return to their parent), then opens a submenu from its menu row; the wide layout keeps the menu beside the submenu. */
     private void clickMoreSection(Activity activity,String label)throws Exception{
         runMain(()->{Object more=currentScreen(activity);
-            try{java.lang.reflect.Method back=more.getClass().getDeclaredMethod("back");back.setAccessible(true);back.invoke(more);}catch(ReflectiveOperationException e){throw new IllegalStateException("Cannot invoke More Back",e);}
+            for(int i=0;i<3&&Boolean.TRUE.equals(call(more,"back",new Class<?>[0]));i++){}
             View row=findText(screenView(activity),label);require(row!=null,"Visible More menu row missing: "+label);
             while(!row.isClickable()&&row.getParent() instanceof View)row=(View)row.getParent();
             require(row.isClickable(),"More menu row is not clickable: "+label);row.performClick();});
         waitForIdleSync();
     }
+    /** A row inside the open More submenu, by its tag. */
+    private void clickMoreTagged(Activity activity,String tag)throws Exception{
+        runMain(()->{View row=screenView(activity).findViewWithTag(tag);require(row!=null&&row.isShown()&&row.isClickable(),"More row missing: "+tag);row.performClick();});
+        waitForIdleSync();
+    }
     private void require(boolean condition,String failure){if(!condition)throw new IllegalStateException(failure);}
     private void assertNoUserRecording(){require(service!=null&&!service.isRecording(),"Smoke test stopped: a user recording is active; no stop/disconnect was requested");require(service.ble.pending()==null,"Smoke test stopped: a scooter change is pending");}
-    @SuppressWarnings("unchecked") private void assertSectionMap(Object screen,String selected,int size){
-        Map<String,View> sections=(Map<String,View>)field(screen,"sections");require(sections.size()==size,"Unexpected section catalogue size");
+    @SuppressWarnings("unchecked") private void assertSectionMap(Object screen,String selected,Set<String> expected){
+        Map<String,View> sections=(Map<String,View>)field(screen,"sections");require(sections.keySet().equals(expected),"More sections "+sections.keySet()+" do not match the screen's own rules "+expected);
+        require(selected.equals(field(screen,"selectedSection")),"More did not open "+selected);
         for(Map.Entry<String,View> section:sections.entrySet())require(section.getValue().getVisibility()==(section.getKey().equals(selected)?View.VISIBLE:View.GONE),"Wrong section visibility: "+section.getKey()+" while "+selected+" selected");
     }
     /** The screen's own rule for whether this scooter offers a row (an Experimental controls row such as the UT5 MAX's acceleration is not). */
-    private boolean rowOffered(Object screen,String key){
-        try{java.lang.reflect.Method offered=screen.getClass().getDeclaredMethod("rowOffered",String.class);offered.setAccessible(true);return Boolean.TRUE.equals(offered.invoke(screen,key));}
-        catch(ReflectiveOperationException e){throw new IllegalStateException("Cannot inspect rowOffered",e);}
-    }
+    private boolean rowOffered(Object screen,String key){return Boolean.TRUE.equals(call(screen,"rowOffered",new Class<?>[]{String.class},key));}
     /** Scooter tab: null is the main page, "lights" the Lights page, otherwise a search query. */
-    @SuppressWarnings("unchecked") private void assertControls(Object screen,String mode){
-        List<Object> rows=(List<Object>)field(screen,"rows");int shown=0,offeredLights=0;
+    @SuppressWarnings("unchecked") private void assertControls(Activity activity,String mode){
+        Object screen=currentScreen(activity);List<Object> rows=(List<Object>)field(screen,"rows");int shown=0,offeredLights=0;boolean zones=false;
+        // The UT5 MAX keeps a maximum_speed row (not offered) behind the top speed card; another model's speed table is an ordinary row.
+        boolean topSpeedCard=Boolean.TRUE.equals(call(screen,"topSpeedCard",new Class<?>[0]));
         for(Object row:rows){
             ScooterCommands.Feature feature=(ScooterCommands.Feature)field(row,"feature");View card=(View)field(row,"card");
-            require(!feature.key.equals("maximum_speed"),"Maximum speed belongs to the top speed card, not a settings row");
+            if(topSpeedCard&&feature.key.equals("maximum_speed"))require(!card.isShown(),"Maximum speed belongs to the top speed card, not a settings row");
             boolean zone=LINE_KEYS.contains(feature.key)||STAR_KEYS.contains(feature.key),light=zone||feature.key.equals("headlight")||feature.key.equals("auto_sensor");
-            boolean offered=rowOffered(screen,feature.key);if(offered&&light)offeredLights++;
+            boolean offered=rowOffered(screen,feature.key);if(offered&&light)offeredLights++;if(zone&&offered)zones=true;
             boolean expected=offered&&(mode==null?!zone:mode.equals("lights")?light:mode.equals("kickstart")&&feature.key.equals("start_speed"));
             require(card.isShown()==expected,"Unexpected control row visibility: "+feature.key+(offered?"":" (not offered here)"));if(card.isShown())shown++;
         }
-        View topSpeed=(View)field(field(screen,"topSpeed"),"card");require(topSpeed.isShown()==(mode==null),"Unexpected top speed card visibility");
+        View topSpeed=(View)field(field(screen,"topSpeed"),"card");require(topSpeed.isShown()==(mode==null&&topSpeedCard),"Unexpected top speed card visibility");
         if(mode==null)require(shown>0,"Scooter page has no settings rows");
         else if(mode.equals("lights"))require(shown==offeredLights,"Lights page must show every offered headlight and zone control");
         else if(mode.equals("kickstart"))require(shown==1,"Kickstart search must show exactly the start-speed control");
         else require(shown==0,"No-match query left a control visible");
         Map<View,String[]> extras=(Map<View,String[]>)field(screen,"extras");View headlightRow=(View)field(screen,"headlightRow");
-        // The read-only headlight row (switched by the power button) belongs to the Lights page only.
-        // Battery alert rows show only for models without a native charge limit (never the UT5 MAX).
-        for(Map.Entry<View,String[]> e:extras.entrySet())require(e.getKey().isShown()==(e.getKey()==headlightRow?"lights".equals(mode)
-                :mode==null&&(!"charge-alert".equals(e.getKey().getTag())||service.chargeAlertsOffered())),"Unexpected extra settings row visibility");
-        if("lights".equals(mode))require(findText(headlightRow,"Power button")!=null,"Lights page headlight row lost its Power button value");
+        // The read-only headlight row (switched by the power button) belongs to the Lights page only. The other extra rows
+        // are main-page rows, each behind the screen's own rule for this scooter: the zones link only with line or star
+        // lights, clock sync and the schedule test where offered, Charge done by and the battery alerts by model.
+        View zonesRow=(View)field(screen,"zonesRow"),clockRow=(View)field(field(screen,"clockLine"),"card"),testRow=(View)field(field(field(screen,"scheduleTest"),"row"),"card");
+        boolean clock=Boolean.TRUE.equals(call(screen,"offered",new Class<?>[]{String.class},"clock_sync")),test=Boolean.TRUE.equals(call(activity,"scheduleTestOffered",new Class<?>[0]));
+        boolean doneBy=Boolean.TRUE.equals(call(activity,"chargeDoneOffered",new Class<?>[0])),alerts=Boolean.TRUE.equals(call(activity,"chargeAlertsOffered",new Class<?>[0]));
+        for(Map.Entry<View,String[]> e:extras.entrySet()){View row=e.getKey();Object tag=row.getTag();
+            boolean expected=row==headlightRow?"lights".equals(mode):mode!=null?false:row==zonesRow?zones:row==clockRow?clock:row==testRow?test
+                    :"charge-done-by".equals(tag)?doneBy:"charge-alert".equals(tag)?alerts:true;
+            require(row.isShown()==expected,"Unexpected extra settings row visibility: "+e.getValue()[1]+(mode==null?" on the main page":" in "+mode));}
+        if("lights".equals(mode))require(findText(headlightRow,T.mainRowHeadlightValue())!=null,"Lights page headlight row lost its Power button value");
     }
+    /** Setting groups the Scooter main page shows (Ride, Battery, ...): only the ones with a row for this scooter. */
+    @SuppressWarnings("unchecked") private int shownControlGroups(Object screen){int shown=0;for(View group:((Map<String,View>)field(screen,"sections")).values())if(group.isShown())shown++;return shown;}
     /** Wide Stats keeps Readings in its own right-hand pane, so it has no Readings tab and that section is always shown. */
     private boolean statsWide(Object screen){return Boolean.TRUE.equals(field(screen,"wide"));}
     private void assertStatsSections(Object screen,String selected){
         String[] names={"Overview","Readings","Charts","Diagnostics"};String[] fields={"overviewSection","readingsSection","chartsSection","diagnosticsSection"};boolean wide=statsWide(screen);
-        for(int i=0;i<names.length;i++){boolean shown=names[i].equals(selected)||wide&&names[i].equals("Readings");require(((View)field(screen,fields[i])).getVisibility()==(shown?View.VISIBLE:View.GONE),"Unexpected Stats section visibility: "+names[i]);}
+        for(int i=0;i<names.length;i++){boolean shown=names[i].equals(selected)||wide&&names[i].equals("Readings");require(((View)field(screen,fields[i])).getVisibility()==(shown?View.VISIBLE:View.GONE),"Unexpected Stats section visibility: "+names[i]+" while "+selected+" selected");}
     }
     private long mutations(){return ((Number)field(service.ble,"mutationSequence")).longValue();}
-    private void navigationSmoke(Activity activity)throws Exception{
-        AtomicReference<Long> initial=new AtomicReference<>();runMain(()->{assertNoUserRecording();initial.set(mutations());service.settings.edit().putString("controls_query","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
-        for(String page:new String[]{"home","controls","stats","rides","more"}){navigate(activity,page);status("Read-only navigation: "+page);}
+    /** Every tab and section, read only; returns the summary line and records the counts actually seen. */
+    @SuppressWarnings("unchecked") private String navigationSmoke(Activity activity,Bundle output)throws Exception{
+        AtomicReference<Long> initial=new AtomicReference<>();runMain(()->{assertNoUserRecording();initial.set(mutations());service.settings.edit().putString("scooter_section","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
+        JSONObject rides=null;
+        for(String page:new String[]{"home","controls","stats","rides","more"}){
+            if(page.equals("rides")){rides=timeRidesOpen(activity);output.putString("rides_first_open",rides.toString());status("Read-only navigation: rides "+rides);continue;}
+            navigate(activity,page);status("Read-only navigation: "+page);
+        }
         navigate(activity,"controls");
-        runMain(()->assertControls(currentScreen(activity),null));
-        runMain(()->{EditText input=findInput(screenView(activity),"Search scooter settings");require(input!=null,"Controls search missing");input.setText("kickstart");assertControls(currentScreen(activity),"kickstart");input.setText("no-match");assertControls(currentScreen(activity),"no-match");require(findText(screenView(activity),"No matching settings")!=null,"No-match explanation missing");input.setText("");});
-        runMain(()->selectOnMain(activity,"lights"));waitForIdleSync();runMain(()->assertControls(currentScreen(activity),"lights"));
-        runMain(()->{Object controls=currentScreen(activity);try{java.lang.reflect.Method back=controls.getClass().getDeclaredMethod("back");back.setAccessible(true);require(Boolean.TRUE.equals(back.invoke(controls)),"Lights page Back was not handled");}catch(ReflectiveOperationException e){throw new IllegalStateException("Cannot invoke Lights Back",e);}});
-        waitForIdleSync();runMain(()->assertControls(currentScreen(activity),null));render(activity,"navigation-controls.png");
+        AtomicReference<Integer> groups=new AtomicReference<>();
+        runMain(()->{assertControls(activity,null);groups.set(shownControlGroups(currentScreen(activity)));});
+        runMain(()->{EditText input=findInput(screenView(activity),T.mainControlsSearchDescription());require(input!=null,"Controls search missing");input.setText("kickstart");assertControls(activity,"kickstart");input.setText("no-match");assertControls(activity,"no-match");require(findText(screenView(activity),T.mainSearchNone())!=null,"No-match explanation missing");input.setText("");});
+        runMain(()->selectOnMain(activity,"lights"));waitForIdleSync();runMain(()->assertControls(activity,"lights"));
+        runMain(()->require(Boolean.TRUE.equals(call(currentScreen(activity),"back",new Class<?>[0])),"Lights page Back was not handled"));
+        waitForIdleSync();runMain(()->assertControls(activity,null));render(activity,"navigation-controls.png");
         navigate(activity,"stats");
-        AtomicReference<Boolean> wideStats=new AtomicReference<>();runMain(()->wideStats.set(statsWide(currentScreen(activity))));
-        for(String section:new String[]{"Overview","Readings","Charts","Diagnostics"}){if(wideStats.get()&&section.equals("Readings"))continue;clickSection(activity,section);runMain(()->assertStatsSections(currentScreen(activity),section));}
-        if(wideStats.get())runMain(()->require(findText(screenView(activity),"Readings")==null,"Wide Stats must not offer a Readings tab beside the Readings pane"));
-        else clickSection(activity,"Readings");
-        runMain(()->{EditText input=findInput(screenView(activity),"Search scooter measurements");require(input!=null,"Stats search missing");input.setText("voltage");require(findText(screenView(activity),"Battery voltage")!=null,"Voltage search result missing");
-            Map<?,?> rows=(Map<?,?>)field(currentScreen(activity),"rows");Object voltage=rows.get("voltage_v");require(voltage!=null,"Voltage favourite row missing");View star=(View)field(voltage,"star");require(star.isShown(),"Voltage favourite is not reachable");star.performClick();star.performClick();});
-        render(activity,"navigation-stats-readings.png");runMain(()->{EditText input=findInput(screenView(activity),"Search scooter measurements");input.setText("");require(input.getText().length()==0&&"".equals(field(currentScreen(activity),"query")),"Clearing Stats search did not clear its input/query");});clickSection(activity,"Overview");render(activity,"navigation-stats-overview.png");
-        navigate(activity,"more");for(String[] section:new String[][]{{"App","App preferences"},{"Scooters","My scooters"},{"Security","PIN & proximity unlock"},{"Lab","Experimental controls"},{"Compatibility","Compatibility"},{"Data","Data & history"},{"About","About & permissions"}}){clickMoreSection(activity,section[1]);runMain(()->assertSectionMap(currentScreen(activity),section[0],8));}
-        clickMoreSection(activity,"App preferences");render(activity,"navigation-more-app.png");
+        AtomicReference<Boolean> wideStats=new AtomicReference<>();AtomicReference<Integer> statsTabs=new AtomicReference<>();
+        runMain(()->{Object stats=currentScreen(activity);wideStats.set(statsWide(stats));List<TextView> choices=(List<TextView>)field(field(field(stats,"sectionTabs"),"track"),"choices");statsTabs.set(choices.size());
+            if(wideStats.get())for(TextView choice:choices)require(!T.statsTabReadings().contentEquals(choice.getText()),"Wide Stats must not offer a Readings tab beside the Readings pane");});
+        Set<String> statsSeen=new LinkedHashSet<>();
+        for(String section:new String[]{"Overview","Readings","Charts","Diagnostics"}){if(wideStats.get()&&section.equals("Readings"))continue;clickStatsSection(activity,section);statsSeen.add(section);if(wideStats.get())statsSeen.add("Readings");}
+        if(!wideStats.get())clickStatsSection(activity,"Readings");
+        runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());require(input!=null,"Stats search missing");input.setText("voltage");
+            Map<?,?> rows=(Map<?,?>)field(currentScreen(activity),"rows");Object voltage=rows.get("voltage_v");require(voltage!=null,"Voltage favourite row missing");require(((View)field(voltage,"layout")).isShown(),"Voltage search result missing");View star=(View)field(voltage,"star");require(star.isShown(),"Voltage favourite is not reachable");star.performClick();star.performClick();});
+        render(activity,"navigation-stats-readings.png");runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());input.setText("");require(input.getText().length()==0&&"".equals(field(currentScreen(activity),"query")),"Clearing Stats search did not clear its input/query");});clickStatsSection(activity,"Overview");render(activity,"navigation-stats-overview.png");
+        navigate(activity,"more");
+        // The expected sections come from the screen's own rules: Developer only with developer options on; Units always; Compatibility with developer options on or a test recovery pending.
+        List<String[]> menu=new ArrayList<>();Set<String> expected=new LinkedHashSet<>();AtomicReference<Boolean> compatibility=new AtomicReference<>();
+        runMain(()->{Object more=currentScreen(activity);String[] ids=(String[])field(more,"SECTIONS");int[] labels=(int[])field(more,"SECTION_LABEL_IDS");require(ids.length==labels.length,"More menu labels out of step with its sections");
+            for(int i=0;i<ids.length;i++)if(Boolean.TRUE.equals(call(more,"knownSection",new Class<?>[]{String.class},ids[i]))){menu.add(new String[]{ids[i],T.render(labels[i])});expected.add(ids[i]);}
+            expected.add("Units");compatibility.set(Boolean.TRUE.equals(call(more,"knownSection",new Class<?>[]{String.class},"Compatibility")));if(compatibility.get())expected.add("Compatibility");});
+        String appLabel=null,developerLabel=null;Set<String> moreSeen=new LinkedHashSet<>();
+        for(String[] section:menu){
+            if(section[0].equals("App"))appLabel=section[1];if(section[0].equals("Developer"))developerLabel=section[1];
+            clickMoreSection(activity,section[1]);eventually(()->assertSectionMap(currentScreen(activity),section[0],expected));moreSeen.add(section[0]);
+        }
+        require(appLabel!=null,"More menu has no App preferences row");
+        clickMoreSection(activity,appLabel);clickMoreTagged(activity,"preference-units-menu");eventually(()->assertSectionMap(currentScreen(activity),"Units",expected));moreSeen.add("Units");
+        if(compatibility.get()){
+            if(developerLabel!=null){clickMoreSection(activity,developerLabel);clickMoreTagged(activity,"developer-compatibility-check");}
+            // Without developer options, Compatibility is the recovery-only route an unfinished test opens; open it the same way.
+            else runMain(()->call(currentScreen(activity),"selectSection",new Class<?>[]{String.class},"Compatibility"));
+            waitForIdleSync();eventually(()->assertSectionMap(currentScreen(activity),"Compatibility",expected));moreSeen.add("Compatibility");
+        }
+        require(moreSeen.equals(expected),"More sections visited "+moreSeen+" but the screen has "+expected);
+        clickMoreSection(activity,appLabel);render(activity,"navigation-more-app.png");
         runMain(()->require(mutations()==initial.get(),"Navigation/search/favourite actions submitted a scooter mutation"));
         offlineSliderCancel(activity);
         runMain(()->require(mutations()==initial.get(),"Slider cancellation submitted a scooter mutation"));
-        navigate(activity,"home");JSONObject evidence=new JSONObject();evidence.put("mode","navigation");evidence.put("tabs",5);evidence.put("controls_groups",8);evidence.put("stats_sections",4);evidence.put("more_sections",8);evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row present, slider only in the connected edit sheet; no mutation");results.put(evidence);
+        navigate(activity,"home");JSONObject evidence=new JSONObject();evidence.put("mode","navigation");evidence.put("tabs",5);evidence.put("controls_groups",groups.get());evidence.put("stats_wide",wideStats.get());evidence.put("stats_tabs",statsTabs.get());evidence.put("stats_sections",statsSeen.size());evidence.put("more_sections",moreSeen.size());evidence.put("more_section_ids",new JSONArray(moreSeen));evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row present, slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);results.put(evidence);
+        return "All five tabs, "+groups.get()+" Scooter groups / "+statsSeen.size()+" Stats sections ("+statsTabs.get()+" tabs) / "+moreSeen.size()+" More sections, search and optional favourite passed without scooter mutations";
+    }
+    /**
+     * Rides' first open, timed read-only from the tab tap (MainActivity.select, as the tab bar calls it) to the first frame,
+     * and to the first frame drawn once the history rows are built, with the longest main-thread message in that time.
+     * Only timings, the saved-ride count and message class names are recorded; no ride is read or copied.
+     */
+    private static final long RIDES_WAIT_MS=120_000;
+    /** Main thread: whether Rides is showing with its history rows built (the list or its empty card, not skeleton rows). */
+    private boolean historyBuilt(Activity activity){Object screen=field(activity,"screen");return screen!=null&&screen.getClass().getSimpleName().equals("RidesScreen")&&!((String)field(screen,"historySignature")).isEmpty();}
+    private JSONObject timeRidesOpen(Activity activity)throws Exception{
+        List<long[]> messages=new ArrayList<>();List<String> labels=new ArrayList<>();
+        long[] opened=new long[1];String[] dispatching=new String[1];
+        android.util.Printer printer=line->{long now=SystemClock.uptimeMillis();
+            if(line.startsWith(">>>>> Dispatching to ")){opened[0]=now;dispatching[0]=line.substring(21);}
+            else if(line.startsWith("<<<<< Finished")&&dispatching[0]!=null){synchronized(messages){messages.add(new long[]{opened[0],now});labels.add(dispatching[0]);}dispatching[0]=null;}};
+        // Set on main at the tap; the listener runs on main at draw time and asks then whether this frame has the rows.
+        AtomicReference<RidesOpenTiming> clock=new AtomicReference<>();
+        ViewTreeObserver.OnDrawListener drawn=()->{RidesOpenTiming open=clock.get();if(open!=null)open.onDraw(SystemClock.uptimeMillis(),historyBuilt(activity));};View decor=activity.getWindow().getDecorView();
+        AtomicReference<Boolean> cached=new AtomicReference<>();long[] tap=new long[1];boolean rows;JSONObject timing=new JSONObject();
+        try{
+            // The logger is on before the tap's own message, so the tab switch itself is measured.
+            runMain(()->{assertNoUserRecording();cached.set(service.rides!=null&&service.rides.listCached()!=null);decor.getViewTreeObserver().addOnDrawListener(drawn);Looper.getMainLooper().setMessageLogging(printer);});
+            runMain(()->{tap[0]=SystemClock.uptimeMillis();clock.set(new RidesOpenTiming(tap[0]));selectOnMain(activity,"rides");});
+            // A cold first read of long rides runs on a worker behind skeleton rows; on a busy emulator it has taken 50 s.
+            // A slower read is recorded, not failed: this step checks navigation, and the timing is evidence.
+            rows=clock.get().awaitRows(RIDES_WAIT_MS);
+            SystemClock.sleep(Math.max(500,tap[0]+2500-SystemClock.uptimeMillis()));
+        }finally{runMain(()->{Looper.getMainLooper().setMessageLogging(null);if(decor.getViewTreeObserver().isAlive())decor.getViewTreeObserver().removeOnDrawListener(drawn);});}
+        long end=SystemClock.uptimeMillis(),longest=-1;String longestLabel="";Long firstFrame=clock.get().tapToFirstFrame(),rowsFrame=clock.get().tapToRows();
+        synchronized(messages){for(int i=0;i<messages.size();i++){long[] m=messages.get(i);if(m[0]>=tap[0]-1&&m[0]<end&&m[1]-m[0]>longest){longest=m[1]-m[0];longestLabel=labels.get(i);}}}
+        Object rides=field(activity,"screen");
+        timing.put("saved_rides",(int)field(rides,"savedCount"));timing.put("list_cached_before_tap",cached.get());
+        timing.put("process_age_ms",tap[0]-android.os.Process.getStartUptimeMillis());
+        timing.put("tap_to_first_frame_ms",firstFrame==null?JSONObject.NULL:firstFrame);
+        timing.put("tap_to_history_rows_ms",rowsFrame==null?JSONObject.NULL:rowsFrame);if(!rows)timing.put("history_rows","not drawn within "+RIDES_WAIT_MS/1000+" s");
+        timing.put("longest_main_message_ms",longest);timing.put("longest_main_message",longestLabel.replaceAll("\\{[0-9a-f]+\\}|@[0-9a-f]+",""));
+        runMain(()->require("rides".equals(field(activity,"selectedPage")),"Navigation did not select rides"));waitForIdleSync();
+        return timing;
     }
     @SuppressWarnings("unchecked") private void offlineSliderCancel(Activity activity)throws Exception{
-        runMain(()->{assertNoUserRecording();reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("controls_query","").putString("controls_section","Ride").commit();});
+        runMain(()->{assertNoUserRecording();reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("scooter_section","").commit();});
         navigate(activity,"controls");
         runMain(()->{
             require(service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),"Slider cancel regression requires no live GATT");

@@ -1297,11 +1297,6 @@ public final class RidesScreen implements AppScreen {
         switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
-        TextView placementLabel = ui.caption(T.ridesPlacement()); placementLabel.setPadding(ui.dp(4), ui.dp(4), 0, ui.dp(6)); content.addView(placementLabel);
-        SegmentedSelector placement = new SegmentedSelector(ui, T.ridesPlacement(), new String[]{T.ridesPlacementMounted(), T.ridesPlacementPocket()},
-                choice -> preferences.edit().putString("phone_placement", choice == 0 ? "mounted" : "pocket").apply());
-        placement.select("mounted".equals(preferences.getString("phone_placement", "pocket")) ? 0 : 1, false);
-        content.addView(placement);
         ScrollView scroller = new ScrollView(host.activity()); scroller.addView(content); insetBottom(scroller);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).create();
         close.setOnClickListener(v -> dialog.dismiss());
@@ -1441,7 +1436,7 @@ public final class RidesScreen implements AppScreen {
         valueRow(movement, T.ridesScooterSpeedChange(), acceleration(track.minScooterAccelerationMps2) + " / " + acceleration(track.maxScooterAccelerationMps2));
         valueRow(movement, T.ridesLinearPeak(), acceleration(track.maxLinearAccelerationMps2));
         bottom.addView(movement);
-        note(bottom, ("mounted".equals(track.placement) ? T.ridesMotionNoteMounted(String.format(Locale.US, "%,d", track.motionSampleCount)) : T.ridesMotionNotePocket(String.format(Locale.US, "%,d", track.motionSampleCount))));
+        note(bottom, T.ridesMotionSamples(track.motionSampleCount, Fmt.groupedInteger(Locale.US, track.motionSampleCount)));
         TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, "download");
         bottom.addView(export);
         return ride;

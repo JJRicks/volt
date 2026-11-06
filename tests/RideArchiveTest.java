@@ -31,7 +31,7 @@ public final class RideArchiveTest {
         rides.setNotes("Synthetic note\nsecond line");
         for(int i=0;i<1250;i++){Map<String,RideStore.Sample> samples=new LinkedHashMap<>();samples.put("speed_kmh",new RideStore.Sample(12,i*1000));samples.put("odometer_km",new RideStore.Sample(i/1000d,i*1000));samples.put("battery_percent",new RideStore.Sample(80-i/100d,i*1000));rides.sample(1000000+i*1000,i*1000,samples);}
         rides.stop(2250000,1250000);rides.rename(id,"Renamed ride 🛴");
-        if(phone){PhoneRideStore sensors=new PhoneRideStore(new File(storage.files(),"phone-rides"));sensors.start(id,1000000,0,"pocket");
+        if(phone){PhoneRideStore sensors=new PhoneRideStore(new File(storage.files(),"phone-rides"));sensors.start(id,1000000,0);
             sensors.appendBatch(id,PhoneRideStore.row("GPS",1001000,1000,1,2,3,4,5,6,7),"1000,1,2,3,4,5,6,7,8,9,0,0,0,1,3\n");sensors.stop(id,2250000,1250000);}
         return id;
     }

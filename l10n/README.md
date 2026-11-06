@@ -1301,7 +1301,9 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    it across every area. It counts what `merge.py` writes, so a key whose English changed after its
    decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
    or alarm key must also be `safety-agreed` or `safety-judged`, which Claude's drafts alone never reach.
-   Releases still need the owner's explicit authorization.
+   Releases still need the owner's explicit authorization. A release also needs **zero** fallback
+   in every shipped language (owner, 2026-11-06): `ship_check.py --release` enforces it (RELEASING.md),
+   and `VOLT_RELEASE=1 bash build.sh` runs it and refuses to build when it fails.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
@@ -1311,29 +1313,34 @@ decisions (and merge again), never straight into `res/values-<qual>/`.
 
 The `core-tests` job's "Localization proof gates" step runs `python3 tools/l10n/ship_check.py` on every
 push and pull request.
-It looks only at committed files and never needs a key or the network; the beta bar comes from the
-recorded decisions. It fails when:
+It looks only at committed files and never needs a key or the network; the fallback count comes from the
+recorded decisions. It prints each shipped language's English fallback share as a reference line only:
+being over the beta bar no longer fails a pull request. It fails when:
 
 - a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
 - that text fails `merge.py`'s validation (above), including a stale `src` hash, a blank text or a
   missing `l10n_tag`;
 - that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
   a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
-- that language is under the beta bar (`council.py beta`);
+- a lock or alarm key of that language is translated but not `safety-agreed` or `safety-judged`;
 - that language has no line in `res/xml/locales_config.xml`, or `AndroidManifest.xml` has no
   `android:localeConfig`;
 - a `res/values-*` folder holds text and its language is not listed or does not have status `beta` or
   `stable`, `locales_config.xml` lists a language that does not ship, or the manifest names
   `localeConfig` while only English ships.
 
+`ship_check.py --release` (a release step in RELEASING.md) runs every check above and also fails when
+any shipped language has a key falling back to English, counted as `council.py beta` counts them. It
+prints the count and the first 20 key names, for the translation top-up that comes first.
+
 A language at `draft` or `held` is not read, so it can't fail the step unless its text has reached
 `res/`. While nothing ships, the step says that it checked no translated text and passes.
 
 An English change therefore fails CI for every shipped language that translates that key. Run
-`merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
-the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). `CatalogCheckTest`
-(in `tests/run.sh`) keeps the same folder rules for the real tree's `strings*.xml` files; `ship_check.py`
-also reads a language folder's other XML files.
+`merge.py --tag <tag> --all`, which drops the key to English (a reference line on pull requests, a
+release failure until it is translated again); re-run the council for the changed keys when you can
+(plan 7.2 step 8). `CatalogCheckTest` (in `tests/run.sh`) keeps the same folder rules for the real
+tree's `strings*.xml` files; `ship_check.py` also reads a language folder's other XML files.
 
 What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
 providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local

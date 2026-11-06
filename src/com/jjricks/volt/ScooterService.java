@@ -1502,7 +1502,6 @@ public final class ScooterService extends Service {
         phoneFinalFlags=null;
         phoneRecorder.start(
                 rides.activeId(),
-                settings.getString("phone_placement", "pocket"),
                 gps,
                 settings.getBoolean("phone_motion", true));
     }
