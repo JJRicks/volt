@@ -115,6 +115,10 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             require(!((View)field(screen(), "view")).isShown(), "Live controls still shown while editing");
             require(editorOrder().indexOf(ABOVE) < editorOrder().indexOf(MOVED), "Editor order " + editorOrder());
             require(editorOrder().contains(TOP_SPEED), "Top speed is not its own section in the editor: " + editorOrder());
+            // Maintenance (#257) names its own label; the editor must show that name, not the section id.
+            require(editorOrder().contains("maintenance"), "No Maintenance section in the editor: " + editorOrder());
+            String said = String.valueOf(header("maintenance").getContentDescription());
+            require(said.startsWith("Maintenance section, "), "Maintenance header says " + said);
         });
         screenshot("editor");
         int up = getTargetContext().getResources().getIdentifier("reorder_move_up", "id", PKG);
