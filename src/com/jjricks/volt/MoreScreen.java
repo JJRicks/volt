@@ -65,8 +65,14 @@ public final class MoreScreen implements AppScreen {
     /** Wide mode only: each pane scrolls on its own. */
     private ScrollView menuScroll, sectionScroll;
     private final Row[] menuRows = new Row[SECTIONS.length];
-    /** Wide layout: every row in the left (menu) pane, which Panes widens until their longest words fit. */
+    /** Wide layout: every row in the left (menu) pane, whose longest title words Panes checks. */
     private final List<RowLine> menuPaneRows = new ArrayList<>();
+    /** The window size, text size and language at which a menu word could not fit: More uses one pane there. */
+    private static String onePaneAt = "";
+    private String layoutKey() {
+        android.content.res.Configuration c = host.activity().getResources().getConfiguration();
+        return c.screenWidthDp + "x" + c.screenHeightDp + "@" + ui.textScale * c.fontScale + "/" + Fmt.displayLocale().toLanguageTag();
+    }
     private LinearLayout cardDestination, onboardingCard, sectionMenu, indexView, sectionHeader;
     private View sectionBack;
     private TextView sectionTitle, sectionBackLabel;
@@ -151,7 +157,7 @@ public final class MoreScreen implements AppScreen {
     MoreScreen(ScreenHost host, String initialSection) {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
-        wide = !standalone && ui.wideLayout();
+        wide = !standalone && ui.wideLayout() && !layoutKey().equals(onePaneAt);
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();
@@ -405,15 +411,14 @@ public final class MoreScreen implements AppScreen {
      * Menu on the left, submenu on the right, 20dp apart. The gap sits on the window's centre line, where
      * a book-posture hinge falls, so no row lies under the fold; this also gives the menu the narrower
      * column of the approved mockup. Each pane keeps a usable minimum width.
-     * The narrow-label ladder: when a menu row's longest title word cannot fit, in any language, the menu
-     * widens off the centre line until it does, as far as the submenu's minimum allows; past that, the row's
-     * decorative icon steps aside (RowLine). Titles that already fit, such as English, keep the centred split.
+     * The narrow-label ladder keeps menu titles whole without moving that gap: when a row's longest title
+     * word cannot fit beside its icon, the decorative icon steps aside (RowLine); when it still cannot fit,
+     * More takes its one-pane (phone) layout at this window size, text size and language (onePaneAt).
      */
     private final class Panes extends LinearLayout {
         final View first, gutter, second;
         int split = -1;
-        /** Menu width at which every menu row's longest title word fits beside its icon (0: no need). */
-        int wordsNeed;
+        private boolean onePaneAsked;
         Panes(View left, View right) {
             super(host.activity()); setOrientation(HORIZONTAL); setBaselineAligned(false);
             first = left; second = right; gutter = new View(host.activity());
@@ -430,7 +435,7 @@ public final class MoreScreen implements AppScreen {
                 // Layout position, not on-screen position: a tab transition slides this page in,
                 // and measuring mid-slide used to leave the menu narrow until the next layout.
                 want = window.getWidth() / 2 - gap / 2 - Ui.layoutLeftInWindow(this);
-            return Math.max(min, Math.min(max, Math.max(want, wordsNeed)));
+            return Math.max(min, Math.min(max, want));
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int size = MeasureSpec.getSize(widthSpec), gap = ui.dp(20);
@@ -438,22 +443,21 @@ public final class MoreScreen implements AppScreen {
             ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
             ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, size - split - gap);
             super.onMeasure(widthSpec, heightSpec);
-            // Each row's chrome (padding, icon, value, chevron) is fixed, so its title grows one for one
-            // with the menu: the menu width a row needs is its longest word plus that chrome.
-            int need = 0;
+        }
+        /**
+         * The ladder's last rung: a menu title word too wide for its row even without the icon. Remember this
+         * window size, text size and language and rebuild once with More in one pane. The phone layout never
+         * checks again, so the two layouts can't alternate; another size, text size or language tries two panes.
+         */
+        private void onePaneIfWordsBreak() {
+            if (onePaneAsked || closed) return;
             for (RowLine line : menuPaneRows) {
                 if (!shownWithin(line, this) || line.getMeasuredWidth() == 0) continue;
-                int word = line.longestWord();
-                if (word > 0) need = Math.max(need, split - line.titleRoomWithIcon() + word);
+                if (line.longestWord() <= line.titleRoomAtMost()) continue;
+                onePaneAsked = true; onePaneAt = layoutKey();
+                post(() -> { if (!closed) host.rebuild(); });
+                return;
             }
-            if (need == wordsNeed) return;
-            wordsNeed = need;
-            int wanted = split(size);
-            if (wanted == split) return;
-            split = wanted;
-            ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
-            ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, size - split - gap);
-            super.onMeasure(widthSpec, heightSpec);
         }
         /** Visible all the way up to root, so this measure pass sized it. */
         private boolean shownWithin(View view, View root) {
@@ -474,6 +478,7 @@ public final class MoreScreen implements AppScreen {
                 second.measure(MeasureSpec.makeMeasureSpec(Math.max(0, width - split - gap), MeasureSpec.EXACTLY), height);
             }
             super.onLayout(changed, l, t, r, b);
+            onePaneIfWordsBreak();
         }
     }
 
@@ -568,6 +573,10 @@ public final class MoreScreen implements AppScreen {
             if (row.title == null) return 0;
             CharSequence text = fallback != null ? fallback : row.title.getText();
             return longestUnbreakable(text, row.title.getPaint());
+        }
+        /** Room the title can get at most: without the icon, unless it is a numbered step that always stays. */
+        int titleRoomAtMost() {
+            return titleRoomWithIcon() + (row.icon != null && row.icon.step == null ? iconRoom() : 0);
         }
         /** Room the title gets with the icon beside it, from the last measure. */
         int titleRoomWithIcon() {
