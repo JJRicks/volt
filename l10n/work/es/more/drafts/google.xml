@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">
+        <item quantity="one">%1$s grabación de carga válida con cargador original</item>
+        <item quantity="many">%1$s grabaciones de carga válidas con cargador original</item>
+        <item quantity="other">%1$s grabaciones de carga válidas con cargador original</item>
+    </plurals>
+    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e">
+        <item quantity="one">%1$s grabación de carga válida con cargador rápido</item>
+        <item quantity="many">%1$s grabaciones de carga válidas con cargador rápido</item>
+        <item quantity="other">%1$s grabaciones de carga válidas con cargador rápido</item>
+    </plurals>
     <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
         <item quantity="one">%1$s guardado</item>
         <item quantity="many">%1$s guardados</item>

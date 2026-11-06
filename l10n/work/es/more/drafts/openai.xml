@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">
+        <item quantity="one">%1$s grabación de carga con el cargador original que cumple los requisitos</item>
+        <item quantity="many">%1$s grabaciones de carga con el cargador original que cumplen los requisitos</item>
+        <item quantity="other">%1$s grabaciones de carga con el cargador original que cumplen los requisitos</item>
+    </plurals>
+    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e">
+        <item quantity="one">%1$s grabación de carga con el cargador rápido que cumple los requisitos</item>
+        <item quantity="many">%1$s grabaciones de carga con el cargador rápido que cumplen los requisitos</item>
+        <item quantity="other">%1$s grabaciones de carga con el cargador rápido que cumplen los requisitos</item>
+    </plurals>
     <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
         <item quantity="one">Cantidad guardada: %1$s</item>
         <item quantity="many">Cantidad guardada: %1$s</item>
