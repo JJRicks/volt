@@ -32,7 +32,25 @@ final class MaintenanceKeeper {
     private final Map<String, MaintenanceDistance> pending = new HashMap<>();
     private final Map<String, String> pendingOn = new HashMap<>();
 
+    /** Told after the page changed a scope's document, or a scooter was forgotten (MaintenanceNotify cancels or re-plans). */
+    interface Listener { void changed(String scope, boolean forgotten); }
+    private Listener listener;
+    /** The simulator's device-only notification bookkeeping, by scope. */
+    private final Map<String, String> memorySeen = new HashMap<>();
+
     MaintenanceKeeper(Storage storage) { this.storage = storage; }
+
+    void listen(Listener listener) { this.listener = listener; }
+
+    /** The profile id a scope belongs to (a simulation scope belongs to the profile it was made for). */
+    static String profileOf(String scope) { return simulation(scope) ? scope.substring(SIMULATION.length()) : scope; }
+
+    /** The scope's "already notified" bookkeeping (maintenance_seen_, never backed up), or null. */
+    String seen(String scope) { return simulation(scope) ? memorySeen.get(scope) : storage.read(MaintenanceStore.seenKey(scope)); }
+
+    void seen(String scope, String text) {
+        if (simulation(scope)) memorySeen.put(scope, text); else storage.write(MaintenanceStore.seenKey(scope), text);
+    }
 
     /** The memory-only scope the simulator uses for a profile (or none). */
     static String simulationScope(String profileId) { return SIMULATION + (profileId == null ? "" : profileId); }
@@ -63,6 +81,7 @@ final class MaintenanceKeeper {
         change.accept(s);
         store(scope, MaintenanceStore.encode(s));
         forgetPending(scope);
+        if (listener != null) listener.changed(scope, false);
     }
 
     /**
@@ -97,6 +116,8 @@ final class MaintenanceKeeper {
         forgetPending(profileId);
         storage.remove(MaintenanceStore.key(profileId));
         storage.remove(MaintenanceStore.seenKey(profileId));
+        memorySeen.remove(simulationScope(profileId));
+        if (listener != null) listener.changed(profileId, true);
     }
 
     /** The row's and the tab dot's counts for a scope. */

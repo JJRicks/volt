@@ -158,6 +158,9 @@ public final class ScooterService extends Service {
         settings = getSharedPreferences("app_settings", MODE_PRIVATE);
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
+        maintenanceNotices = new MaintenanceNotices(this, profiles);
+        maintenance.listen(this::maintenanceChanged);
+        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
@@ -204,6 +207,7 @@ public final class ScooterService extends Service {
             try{
                 NotificationManager manager=getSystemService(NotificationManager.class);
                 if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);
+                MaintenanceNotices.relabel(manager);
             }catch(RuntimeException unavailable){}
             return;
         }
@@ -213,6 +217,7 @@ public final class ScooterService extends Service {
             NotificationChannel scooter=manager.getNotificationChannel("scooter");
             if(scooter!=null){scooter.setName(T.serviceChannelScooter());manager.createNotificationChannel(scooter);}
             if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);
+            MaintenanceNotices.relabel(manager);
         }catch(RuntimeException unavailable){}
         if(relabel)relabelAlertNotice();
         updateNotification();changed();
@@ -1546,13 +1551,18 @@ public final class ScooterService extends Service {
         return (plan.doneByEnabled||plan.manualEnabled)&&plan.startWallMs>0
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
+    /**
+     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
+     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
+     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
         if(ble==null||profiles==null)return c;
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.ready()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
@@ -1587,7 +1597,7 @@ public final class ScooterService extends Service {
     }
     private Double freshScheduleNumber(Telemetry.Metric metric,long now){
         return metric!=null&&metric.numericValue!=null&&Double.isFinite(metric.numericValue)
-                &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=10_000?metric.numericValue:null;
+                &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=ble.readingFreshMs(10_000)?metric.numericValue:null;
     }
 
     private void resetChargeEstimateContext(){
@@ -1635,7 +1645,7 @@ public final class ScooterService extends Service {
         for(String key:new String[]{"charging_state","battery_percent","voltage_v","current_a","rated_capacity_ah"}){
             Telemetry.Metric metric=values.get(key);
             if(metric==null||metric.numericValue==null||!Double.isFinite(metric.numericValue)||metric.updatedMs<=0
-                    ||now<metric.updatedMs||now-metric.updatedMs>TelemetryHistory.freshnessMs(key))return false;
+                    ||now<metric.updatedMs||now-metric.updatedMs>ble.readingFreshMs(TelemetryHistory.freshnessMs(key)))return false;
         }
         return values.get("charging_state").numericValue==1d
                 &&values.get("voltage_v").updatedMs==values.get("current_a").updatedMs;
@@ -2075,6 +2085,8 @@ public final class ScooterService extends Service {
     public MaintenanceKeeper maintenance;
     private String maintenanceFed = "";
     private long maintenanceReadingMs = -1;
+    private MaintenanceNotices maintenanceNotices;
+    private boolean maintenanceRecording;
 
     private MaintenanceKeeper.Storage maintenanceStorage() {
         return new MaintenanceKeeper.Storage() {
@@ -2106,8 +2118,15 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile connected = ble.profile();
         boolean valid = !scope.isEmpty() && ble.connected()
                 && (simulating() || connected != null && connected.id.equals(activeProfileId()));
+        boolean recording = isRecording();
+        // A ride that just ended: what it rode may have made a check due.
+        if (maintenanceRecording && !recording && valid) checkMaintenance(scope);
+        maintenanceRecording = recording;
         if (!valid || !scope.equals(maintenanceFed)) {
             if (!maintenanceFed.isEmpty()) maintenance.flush(maintenanceFed);
+            // The connection ended: one check with the distance it counted. A simulation's notice goes with the simulation.
+            if (!maintenanceFed.isEmpty() && MaintenanceKeeper.simulation(maintenanceFed)) { if (maintenanceNotices != null) maintenanceNotices.cancel(maintenanceFed); }
+            else if (!maintenanceFed.isEmpty()) checkMaintenance(maintenanceFed);
             maintenanceFed = valid ? scope : "";
             maintenanceReadingMs = -1;
             if (!valid) return;
@@ -2115,9 +2134,35 @@ public final class ScooterService extends Service {
         Telemetry.Metric odometer = null;
         for (Telemetry.Metric metric : ble.telemetry.metrics()) if (metric.key.equals(MaintenanceView.ODOMETER)) odometer = metric;
         if (odometer == null || odometer.numericValue == null || odometer.updatedMs < 0 || odometer.updatedMs == maintenanceReadingMs) return;
+        boolean first = maintenanceReadingMs < 0;
         maintenanceReadingMs = odometer.updatedMs;
         int bits = simulating() ? MaintenanceDistance.BITS_32 : ble.telemetry.odometerBits();
-        maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
+        MaintenanceDistance.Outcome outcome = maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
+        // Connected (the first reading brings rides counted since the last connection), or a new reading while reminders are on.
+        if (first || outcome != null) checkMaintenance(scope);
+    }
+
+    /** One maintenance check for a scope (MaintenanceNotify): posts what newly became due. */
+    private void checkMaintenance(String scope) {
+        if (maintenance == null || maintenanceNotices == null) return;
+        MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), false, this::maintenanceLive, maintenanceNotices);
+    }
+
+    private boolean maintenanceLive() { return !destroyed && !dataMaintenance && !DataMaintenance.active(); }
+
+    /**
+     * The Maintenance page changed a scope's reminders, or a scooter was forgotten: a quiet check (what is due
+     * counts as seen, the notice goes), then the daily job is planned or cancelled.
+     */
+    private void maintenanceChanged(String scope, boolean forgotten) {
+        if (maintenance == null || maintenanceNotices == null) return;
+        if (forgotten) {
+            maintenanceNotices.cancel(scope);
+            maintenanceNotices.cancel(MaintenanceKeeper.simulationScope(scope));
+        } else {
+            MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), true, this::maintenanceLive, maintenanceNotices);
+        }
+        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
     }
 
     private String activeProfileId(){ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
@@ -2185,7 +2230,7 @@ public final class ScooterService extends Service {
                             && id.equals(observedProfile)
                             && source != null
                             && now >= source
-                            && now - source <= TelemetryHistory.freshnessMs(metric.key);
+                            && now - source <= ble.readingFreshMs(TelemetryHistory.freshnessMs(metric.key));
             result.put(
                     metric.key,
                     new TelemetryHistory.Reading(
@@ -2620,7 +2665,8 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
-                                : ble.ready() ? T.serviceNoticeConnected() : "Volt";
+                                : ble.linked() ? T.serviceNoticeConnected() : "Volt";
+        // linked(), not ready(): out of sight status comes every 15 s, and the notice must not read the gaps as lost (StatusCadence).
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,
         // distance beside a running clock while recording, a progress bar while a ride is saved.
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
@@ -2632,7 +2678,7 @@ public final class ScooterService extends Service {
                         ? null
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
-                                : ble.ready() ? connectedText() : ble.displayMessage();
+                                : ble.linked() ? connectedText() : ble.displayMessage();
         if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();

@@ -4,6 +4,8 @@ import java.io.File;
 /** Shared native screen contract; connection ownership remains in the service. */
 public interface ScreenHost {
     Activity activity(); Ui ui(); ScooterService service();
+    /** The activity is resumed right now. False by default, so a host that doesn't say keeps riding mode's display paused. */
+    default boolean resumed() { return false; }
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }

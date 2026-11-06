@@ -202,6 +202,13 @@ final class MaintenanceStore {
         return fallback;
     }
 
+    /** A BackupJson value model as JSON text (MaintenanceNotify's device-only bookkeeping uses it too). */
+    static String json(Object v) {
+        StringBuilder out = new StringBuilder();
+        write(out, v);
+        return out.toString();
+    }
+
     /** Writes the BackupJson value model back as JSON. Non-finite numbers become null. */
     private static void write(StringBuilder out, Object v) {
         if (v == null || v == BackupJson.NULL) out.append("null");

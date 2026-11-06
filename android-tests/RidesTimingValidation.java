@@ -100,7 +100,10 @@ public final class RidesTimingValidation extends Instrumentation {
             result.putLong("launch_first_frame_ms", firstDraw - t0);
             result.putLong("launch_service_create_start_ms", create[0] - t0);
             result.putLong("launch_service_create_ms", create[1] - create[0]);
-            result.putLong("launch_connect_start_ms", command[0] - t0);
+            // SERVICE_ARGS, the service's start command: where Volt would begin connecting. This fixture keeps
+            // Bluetooth off and auto_connect false, so no connection is attempted; it is a proxy, not a connection time.
+            result.putLong("launch_service_start_command_ms", command[0] - t0);
+            result.putLong("launch_connect_start_ms", command[0] - t0); // the old name of the same proxy
             result.putLong("launch_service_bound_ms", serviceReady - t0);
             result.putString("launch_service_create_before_first_frame", Boolean.toString(create[0] < firstDraw));
             putLongest(result, "launch", t0, t0 + 3000);
@@ -110,9 +113,12 @@ public final class RidesTimingValidation extends Instrumentation {
                 final MainActivity shown = activity;
                 main(() -> invoke(shown, "select", new Class[]{String.class}, "home")); SystemClock.sleep(1500);
                 long[] selected = new long[2];
-                main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); selected[1] = SystemClock.uptimeMillis(); });
-                // The rows may arrive after the first frame (skeleton rows while a worker reads the rides).
-                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 20000);
+                // select_delay_ms (test only, the release gate's own check): a deliberately slow selection inside the same dispatch.
+                long delay = Long.parseLong(args.getString("select_delay_ms", "0"));
+                main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); if (delay > 0) SystemClock.sleep(delay); selected[1] = SystemClock.uptimeMillis(); });
+                // The rows may arrive after the first frame (skeleton rows while a worker reads the rides). On a busy
+                // emulator the background read of 41 one-hour rides took over 20 s; the rows only have to arrive (not gated).
+                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 60000);
                 SystemClock.sleep(2500);
                 Object screen = field(activity, "screen");
                 check(screen.getClass().getSimpleName().equals("RidesScreen"), "Rides is showing");
@@ -222,12 +228,16 @@ public final class RidesTimingValidation extends Instrumentation {
         synchronized (messages) { for (long[] m : messages) if (m[0] >= from && m[0] < to) total += m[1] - m[0]; }
         return total;
     }
+    /**
+     * The longest main-thread message overlapping the window, including the one already running at its start (the
+     * dispatch that records the Rides tap begins just before it). -1 when none was seen: the gate treats that as missing.
+     */
     private void putLongest(Bundle result, String prefix, long from, long to) {
         long longest = -1; String label = "";
         synchronized (messages) {
             for (int i = 0; i < messages.size(); i++) {
                 long[] m = messages.get(i);
-                if (m[0] >= from && m[0] < to && m[1] - m[0] > longest) { longest = m[1] - m[0]; label = labels.get(i); }
+                if (m[1] >= from && m[0] < to && m[1] - m[0] > longest) { longest = m[1] - m[0]; label = labels.get(i); }
             }
         }
         result.putLong(prefix + "_longest_main_message_ms", longest);

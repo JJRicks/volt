@@ -231,16 +231,31 @@ public final class MainActivity extends Activity implements ScreenHost {
         else selectedPage="home";
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
+        // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
+        MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE)selectedPage=MaintenanceScreen.PAGE;
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
         if(saved==null&&UpdateCheckJob.opened(getIntent()))openUpdateCheck(false);
         rebuild();
+        maintenanceTapOther(tap);
     }
-    /** The automatic update check's notice was tapped while Volt was open. */
+    /** A notice for a saved scooter that isn't the active one: say which, and never switch scooters. */
+    private void maintenanceTapOther(MaintenanceNotices.Tap tap){
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OTHER)toast(T.maintenanceNoticeOther(tap.name));
+    }
+    /** A notice was tapped while Volt was open: the automatic update check's, or a maintenance notice. */
     @Override protected void onNewIntent(Intent intent){
-        super.onNewIntent(intent);
-        if(!startupRedirect&&preferences!=null&&UpdateCheckJob.opened(intent))openUpdateCheck(true);
+        super.onNewIntent(intent);setIntent(intent);
+        if(startupRedirect||preferences==null)return;
+        if(UpdateCheckJob.opened(intent)){openUpdateCheck(true);return;}
+        MaintenanceNotices.Tap tap=MaintenanceNotices.tapped(intent,preferences,scooterService!=null&&scooterService.profiles!=null?scooterService.profiles:new ScooterProfiles(this));
+        if(tap==null)return;
+        if(tap.route!=MaintenanceNotify.Route.OPEN_PAGE){maintenanceTapOther(tap);return;}
+        // Focus mode stays up; the page opens when the Scooter tab is next shown.
+        if(riding!=null||onboarding!=null)return;
+        captureScroll();selectedPage=MaintenanceScreen.PAGE;preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
     /** More's menu, then the manual update check's dialog once More is on screen (showUpdateCheck). */
     private void openUpdateCheck(boolean now){
@@ -342,6 +357,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }catch(Exception e){binding=false;toast(T.mainServiceFailed());}
     }
     @Override public Activity activity(){return this;}
+    @Override public boolean resumed(){return resumed;}
     @Override public Ui ui(){return design;}
     @Override public ScooterService service(){return scooterService;}
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}

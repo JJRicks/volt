@@ -86,6 +86,8 @@ final class RidingScreen implements AppScreen {
     /** The layout picker's sheet, owned here so a rebuild or a resumed ride can close it. */
     private final RidingFrames.PickerSheet sheetState = new RidingFrames.PickerSheet();
     private AlertDialog sheet;
+    /** Brightness and the rotation lock while riding mode is open (its slider sits below). */
+    private final RidingDisplay display;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
         this.host = host;
@@ -216,6 +218,8 @@ final class RidingScreen implements AppScreen {
         if (layout.on(RidingLayout.POWER_BAR)) contentSize.setMarginStart(ui.dp(16));
         body.addView(content, contentSize);
         frame.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
+        display = new RidingDisplay(host.activity(), ui, preferences, host.resumed());
+        frame.addView(display.controls(), RidingDisplay.slot(ui));
         // The big watt number sits on the bar's zero line, so the eye always finds it in the same place.
         body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> bar.post(this::alignZero));
         refresh();
@@ -557,6 +561,7 @@ final class RidingScreen implements AppScreen {
         // Rotation, folding and every rebuild close this screen: its sheet goes with it.
         sheetState.close();
         dismissSheet();
+        display.detach();
     }
 
     /**

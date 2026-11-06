@@ -89,6 +89,13 @@ final class BackupRegistry {
         // Riding mode's layout and its power bar's observed scale go with the dashboards (RidingConfig).
         prefix(app, "riding_layout_v1_", String.class, DASHBOARDS, true);
         prefix(app, "riding_power_scale_v1_", String.class, DASHBOARDS, true);
+        // Riding mode's screen choices (RidingBrightness, RidingRotation) are app preferences.
+        add(app, RidingBrightness.MODE_KEY, String.class, PREFERENCES);
+        add(app, RidingBrightness.FIXED_KEY, Float.class, PREFERENCES);
+        add(app, RidingRotation.KEY, String.class, PREFERENCES);
+        add(app, RidingBars.HIDE_STATUS_BAR_KEY, Boolean.class, PREFERENCES);
+        // Volt auto's learned levels belong to this phone's light sensor and screen.
+        for (String key : RidingBrightness.BAND_KEYS) exclude(app, key, Float.class, DEVICE);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);
