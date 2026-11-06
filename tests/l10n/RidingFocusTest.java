@@ -25,13 +25,14 @@ public final class RidingFocusTest {
             range();
             session();
             scripts();
+            priorDelivery();
             english();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
         System.out.println("RidingFocusTest: " + checks + " checks passed (arrangement, large text, link, segments, band ticks, "
-                + "clock and tenths, RIDE label, range fallbacks, simulated session, scripts, English)");
+                + "clock and tenths, RIDE label, range fallbacks, simulated session, scripts, prior delivery, English)");
     }
 
     private static void arrangement() {
@@ -191,6 +192,57 @@ public final class RidingFocusTest {
             sim.tick(telemetry, 9000);
         }
         check(java.util.Objects.equals(lock, sim.featureValue("lock")), "scripts never touch the lock");
+    }
+
+    /** The learned prior lands whether the service answers at once (cached) or later; a late answer for a closed session or another scooter is dropped. */
+    private static void priorDelivery() {
+        LiveRangeEstimator.Prior prior = LiveRangeEstimator.Prior.synthetic(18, 1000, null);
+        String[] active = {"p1"};
+        RidingSession cached = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        cached.requestPrior(answer -> answer.accept(prior), () -> active[0]);
+        check(cached.priorSet(), "a cached answer delivered at once lands");
+        ScooterSimulation sim = new ScooterSimulation();
+        sim.setScript(ScooterSimulation.RIDING);
+        run(sim, new Telemetry(), cached, 1000, 120_000);
+        check(RidingFocus.range(RidingLayout.RANGE_AT_PACE, cached.range(), 36.0, false, "km").kind == RidingFocus.RangeKind.AT_PACE,
+                "with the cached prior, Range at this pace runs");
+
+        java.util.List<java.util.function.Consumer<LiveRangeEstimator.Prior>> pending = new java.util.ArrayList<>();
+        RidingSession later = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        later.requestPrior(pending::add, () -> active[0]);
+        check(!later.priorSet() && pending.size() == 1, "nothing yet while the answer is computed");
+        pending.get(0).accept(prior);
+        check(later.priorSet(), "a later answer lands");
+
+        RidingSession closed = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        closed.requestPrior(pending::add, () -> active[0]);
+        closed.close();
+        pending.get(1).accept(prior);
+        check(closed.closed() && !closed.priorSet(), "a late answer for a closed session is dropped");
+
+        RidingSession switched = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        switched.requestPrior(pending::add, () -> active[0]);
+        active[0] = "p2";
+        pending.get(2).accept(prior);
+        check(!switched.priorSet(), "a late answer after a scooter switch is dropped");
+        RidingSession gone = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        gone.requestPrior(answer -> answer.accept(prior), () -> null);
+        check(!gone.priorSet(), "no active session (the activity is gone): dropped");
+
+        // MainActivity makes the session the open one before asking, so a cached answer's guard sees it (Codex, #254).
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        int start = main.indexOf("private void openRidingSession(){");
+        int end = main.indexOf("\n    }", start);
+        check(start >= 0 && end > start, "openRidingSession exists");
+        String body = main.substring(start, end);
+        int assign = body.indexOf("riding=session;"), request = body.indexOf("session.requestPrior(");
+        check(assign >= 0 && request > assign, "riding is assigned before the prior is requested");
+        check(!main.contains("riding=newRidingSession()"), "no caller assigns the session after its request");
+    }
+
+    private static String read(String path) {
+        try { return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("read " + path, e); }
     }
 
     private static void english() {

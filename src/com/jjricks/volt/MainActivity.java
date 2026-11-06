@@ -395,7 +395,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;riding=newRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;openRidingSession();}
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
@@ -473,21 +473,26 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Opens riding mode. It only reads: it never records (owner Q12 A), sends a command or touches the lock. */
     @Override public void openRiding(){
         if(scooterService==null||riding!=null||onboarding!=null)return;
-        captureScroll();riding=newRidingSession();transitionRebuild(0);
+        captureScroll();openRidingSession();transitionRebuild(0);
     }
-    private RidingSession newRidingSession(){
-        ScooterProfiles.Profile profile=scooterService.profiles==null?null:scooterService.profiles.active();
-        String id=profile==null?"unconfigured":profile.id;
+    /** Creates the session, makes it the open one, then asks for its prior: a cached answer arrives at once. */
+    private void openRidingSession(){
+        String id=ridingProfileId();
         RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime());
+        riding=session;
         if(scooterService.simulating()){
             // Sample data has no ride history: a synthetic battery model, so Range at this pace shows (never persisted).
             session.setPrior(LiveRangeEstimator.Prior.synthetic(18,1000,null));
-        }else scooterService.requestLearnedRangeEstimate(result->{if(!destroyed&&riding==session&&!session.priorSet())session.setPrior(LiveRangeEstimator.Prior.of(result));});
-        return session;
+        }else session.requestPrior(answer->scooterService.requestLearnedRangeEstimate(result->answer.accept(LiveRangeEstimator.Prior.of(result))),
+                ()->destroyed||scooterService==null||riding!=session?null:ridingProfileId());
+    }
+    private String ridingProfileId(){
+        ScooterProfiles.Profile profile=scooterService.profiles==null?null:scooterService.profiles.active();
+        return profile==null?"unconfigured":profile.id;
     }
     private void closeRiding(){
         if(riding==null)return;
-        riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
     }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){

@@ -1,6 +1,8 @@
 package com.jjricks.volt;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * One open riding mode: its live values, the live range ("Range at this pace") and the battery
@@ -19,7 +21,7 @@ final class RidingSession {
     private RangeReadout.Value range;
     private long fedMs = -1;
     private RidingValues.Band band;
-    private boolean bandDropped, priorSet;
+    private boolean bandDropped, priorSet, closed;
 
     RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs) {
         this.profileId = profileId == null ? "" : profileId;
@@ -30,6 +32,22 @@ final class RidingSession {
     /** The learned model's battery table and starting energy per km; null leaves the live range without a model. */
     void setPrior(LiveRangeEstimator.Prior prior) { estimator.reset(prior); priorSet = true; }
     boolean priorSet() { return priorSet; }
+
+    /**
+     * Asks once for the learned model's prior. The answer may come at once (a cached result) or later;
+     * either way it lands on this session, unless the session has closed, already has a prior, or the
+     * active scooter is no longer this session's.
+     *
+     * @param request hands a callback to whatever computes the prior
+     * @param activeProfile the active scooter's profile id now, or null when nothing should land
+     */
+    void requestPrior(Consumer<Consumer<LiveRangeEstimator.Prior>> request, Supplier<String> activeProfile) {
+        request.accept(prior -> { if (!closed && !priorSet && profileId.equals(activeProfile.get())) setPrior(prior); });
+    }
+
+    /** Riding mode left: a late prior is dropped. */
+    void close() { closed = true; }
+    boolean closed() { return closed; }
 
     /**
      * Feeds a telemetry snapshot. The live range learns only from new readings, timed by when they were
