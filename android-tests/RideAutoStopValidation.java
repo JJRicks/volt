@@ -171,7 +171,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         main(() -> { invoke(activity, "select", new Class[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
         View root = activity.getWindow().getDecorView();
         TextView title = text(root, "End rides automatically"); check(title != null, "End rides automatically row present");
-        TextView sub = text(root, "When the scooter turns off, or stays out of reach for 5 min"); check(sub != null, "Row explains the rule");
+        TextView sub = text(root, "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min"); check(sub != null, "Row explains the rule");
         View row = (View) title.getParent().getParent(); Switch toggle = find(row, Switch.class); check(toggle != null, "Row has a switch");
         TextView heading = text(root, "Connection & recording"); check(heading != null, "Connection & recording heading present");
         centre(row);
