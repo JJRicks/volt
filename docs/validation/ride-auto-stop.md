@@ -164,7 +164,7 @@ reaches the automatic ride copy.
 
 `android-tests/RideAutoStopValidation` (`run-ride-auto-stop.py`, disposable
 emulator only, Bluetooth off, synthetic journals) at 344×882 dp dark/100% and
-light/140%, 725×604 dp light/140% and dark/100%, 66 checks each:
+light/140%, 725×604 dp light/140% and dark/100%, 99 checks each:
 
 - Three journals ended with `AUTO_PARKED_DISCONNECT` and one with the same tail
   stopped by hand. Ride details show **Saved automatically** (fully visible,
@@ -176,7 +176,24 @@ light/140%, 725×604 dp light/140% and dark/100%, 66 checks each:
   12 km over 24 battery points (50 km), so the tail adds nothing.
 - Full app backup type check accepts a boolean `ride_auto_stop` and rejects a
   string or integer.
-- **End parked rides** is on by default, readable beside its switch, clear of
+- Went quiet, on the service's own policy and tick (a live ride in the
+  service's store, the policy fed its link events through reflection; the
+  emulator has no scooter to reconnect):
+  - an authenticated reconnect 40 s into a walking-pace quiet window cancels
+    it: still recording at 66 s, and the rider's Stop ends it as before;
+  - phone Bluetooth off at riding speed (its last frame placed 295 s back)
+    ends at 5 min with `AUTO_QUIET_DISCONNECT`, the phone flag, no disconnect
+    code and the "Phone Bluetooth stayed off" notice;
+  - a walking-pace power-off is still recording at 58 s and ended by 64 s
+    (56–64 s after the last frame), stores the token, the last reading and a
+    shown end at the last reading before the raw end, and posts **Ride saved
+    automatically** with "Scooter turned off or out of range. Ended at …, its
+    last reading.";
+  - the automatic copy ran from that stop (`stopRide` → `rideFullySaved` →
+    `startRideAutoExport`): with a JSON copy on and no folder, the ride stays
+    waiting with its problem stored;
+  - the pill's spoken description names the quiet stop.
+- **End rides automatically** is on by default, readable beside its switch, clear of
   the navigation bar; a tap turns it off and `app_settings.xml` stores it, and
   it survives leaving and reopening the section.
 - The service's own notice method posts **Ride saved automatically** with the
@@ -197,6 +214,13 @@ The emulator has no scooter, so these remain covered only by
 - Process interruption while disconnected: the recovered ride keeps recording
   and is not ended automatically.
 - Reconnect inside the grace keeps the same ride.
+- A real scooter switched off at walking pace: the disconnect code Android
+  reports, and whether the 12 s silent-link watchdog or a native disconnect
+  comes first.
+- How often a stopped or walking UT5 MAX pushes speed. The owner's ride
+  718c0766 has 140 s of voltage with no speed (about 2.3 W) before his own
+  Stop, with at most 6.6 s uncovered, so the link never dropped. Both rules
+  need a link loss, so this PR would not have ended that ride.
 
 Physical, with the owner present: how often the UT5 MAX sends `0x91`/`0x92`
 while parked (parked-only controls already depend on it within 6 s), and the
