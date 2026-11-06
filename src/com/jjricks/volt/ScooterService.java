@@ -133,6 +133,7 @@ public final class ScooterService extends Service {
             guardedLifecycle = destroyed = true; stopSelf(); return;
         }
         settings = getSharedPreferences("app_settings", MODE_PRIVATE);
+        maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
@@ -1627,7 +1628,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();updateChargeAlerts();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();updateChargeAlerts();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -1658,6 +1659,57 @@ public final class ScooterService extends Service {
             try { ble.set("range_algorithm", target, MutationGate.Origin.AUTOMATIC_RANGE_FOLLOW); } finally { selectingRange = false; }
         }
     }
+    // ---- Maintenance reminders (MaintenanceKeeper) ----
+
+    /** Each scooter's maintenance reminders; null until the service starts. */
+    public MaintenanceKeeper maintenance;
+    private String maintenanceFed = "";
+    private long maintenanceReadingMs = -1;
+
+    private MaintenanceKeeper.Storage maintenanceStorage() {
+        return new MaintenanceKeeper.Storage() {
+            @Override public String read(String key) { return settings.getString(key, null); }
+            @Override public void write(String key, String value) { settings.edit().putString(key, value).apply(); }
+            @Override public void remove(String key) { settings.edit().remove(key).apply(); }
+        };
+    }
+
+    /**
+     * The scope the Maintenance page and the Scooter tab's dot use: the active scooter's profile id, or its
+     * memory-only simulation scope while simulating (the simulator's odometer never reaches real reminders).
+     * Empty without an active scooter.
+     */
+    public String maintenanceScope() {
+        String id = activeProfileId();
+        if (id.isEmpty()) return "";
+        return simulating() ? MaintenanceKeeper.simulationScope(id) : id;
+    }
+
+    /**
+     * Feeds the connected scooter's odometer into its maintenance count, once per new reading. Only the
+     * scooter Volt is connected to counts, and only readings from this connection (Telemetry clears on
+     * connect). Read only: no command is sent. When the connection ends, distance not yet written is.
+     */
+    private void observeMaintenance() {
+        if (maintenance == null || destroyed || dataMaintenance || ble == null) return;
+        String scope = maintenanceScope();
+        ScooterProfiles.Profile connected = ble.profile();
+        boolean valid = !scope.isEmpty() && ble.connected()
+                && (simulating() || connected != null && connected.id.equals(activeProfileId()));
+        if (!valid || !scope.equals(maintenanceFed)) {
+            if (!maintenanceFed.isEmpty()) maintenance.flush(maintenanceFed);
+            maintenanceFed = valid ? scope : "";
+            maintenanceReadingMs = -1;
+            if (!valid) return;
+        }
+        Telemetry.Metric odometer = null;
+        for (Telemetry.Metric metric : ble.telemetry.metrics()) if (metric.key.equals(MaintenanceView.ODOMETER)) odometer = metric;
+        if (odometer == null || odometer.numericValue == null || odometer.updatedMs < 0 || odometer.updatedMs == maintenanceReadingMs) return;
+        maintenanceReadingMs = odometer.updatedMs;
+        int bits = simulating() ? MaintenanceDistance.BITS_32 : ble.telemetry.odometerBits();
+        maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
+    }
+
     private String activeProfileId(){ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
         return profile == null ? "" : profile.id;
     }
@@ -2313,6 +2365,7 @@ public final class ScooterService extends Service {
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
         if(rideAutoExport!=null)rideAutoExport.shutdown();
+        if(maintenance!=null&&!maintenanceFed.isEmpty()&&!dataMaintenance)maintenance.flush(maintenanceFed);
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureClosed());}destroyed=true;stopChargeAlarm();finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{
                 rides.markGap(
                         System.currentTimeMillis(), SystemClock.elapsedRealtime(), "Service ended");
