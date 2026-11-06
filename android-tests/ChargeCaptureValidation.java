@@ -75,7 +75,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(service.chargeCharger()==null&&service.effectiveChargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED,
                         "Capture label overwrote Automatic or failed to supply its confirmed charger");
                 Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
-                require("Charge recording is active".contentEquals(notice.extras.getCharSequence(Notification.EXTRA_TITLE)),"Notification lost capture state");
+                requireCaptureNotice(notice,"local sample","Notification lost capture state");
                 require(notice.actions!=null&&notice.actions.length==1&&"Stop charge recording".contentEquals(notice.actions[0].title),"Notification lacks Stop capture action");
                 // Postpone the unrelated disconnected-frame handler so the notification action,
                 // rather than automatic disconnect cleanup, must close this synthetic journal.
@@ -380,7 +380,8 @@ public final class ChargeCaptureValidation extends Instrumentation {
             require(service.isChargeRecording()&&service.workAllowed()&&service.backgroundDeadlineMs()==0,"Recovery lost recording work admission");
             require(((android.os.PowerManager.WakeLock)field(service,"wakeLock")).isHeld(),"Recovery dropped CPU wake lock");
             Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
-            require(notice.extras.getCharSequence(Notification.EXTRA_TITLE).toString().contains("reconnecting"),"Recovery notice did not identify reconnecting state");
+            requireCaptureNotice(notice,"Reconnecting","Recovery notice did not identify reconnecting state");
+            require(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_TEXT)).contains("reconnecting"),"Recovery card did not say it is reconnecting");
             require((notice.flags&Notification.FLAG_ONGOING_EVENT)!=0&&notice.actions.length==1&&notice.actions[0].title.toString().equals("Stop charge recording"),"Recovery notice lost persistent Stop action");
             require(store().sampleCount()==1,"Waiting fabricated a sample");
             long resumedAt=lost+20000;
@@ -446,7 +447,8 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(store().chargerStopped(System.currentTimeMillis(),at)==ChargeSessionStore.ChargerOff.PAUSED,"A charger cutout did not open a charger pause");
                 require(store().chargerPaused()&&service.isChargeRecording()&&service.chargeCaptureStatus().endsWith("charger stopped · waiting for it to resume"),"Charger pause status missing: "+service.chargeCaptureStatus());
                 Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
-                require(notice.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("charger stopped · waiting for it to resume")&&notice.actions[0].title.toString().equals("Stop charge recording"),"Charger pause notice lost its state or Stop action");
+                requireCaptureNotice(notice,"charger stopped · waiting for it to resume","Charger pause notice lost its state");
+                require(notice.actions[0].title.toString().equals("Stop charge recording"),"Charger pause notice lost its Stop action");
                 require(store().chargerStopped(System.currentTimeMillis()+20000,at+20000)==ChargeSessionStore.ChargerOff.WAITING&&store().lastFreshMono()==at+20000,"Waiting for the charger did not keep the capture fresh");
                 // A Bluetooth loss during the wait goes through the service's recovery, and the scooter returns still off.
                 ChargeRecoveryPolicy policy=recoveryPolicy();setField(service,"chargeRecovery",policy);
@@ -485,7 +487,8 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 long at=SystemClock.elapsedRealtime();store().pause(System.currentTimeMillis(),at);
                 require(store().paused()&&service.isChargeRecording()&&service.chargeCaptureStatus().endsWith("paused until the scheduled start"),"Paused capture status missing: "+service.chargeCaptureStatus());
                 Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
-                require(notice.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("paused until the scheduled start")&&notice.actions[0].title.toString().equals("Stop charge recording"),"Paused capture notice lost its state or Stop action");
+                requireCaptureNotice(notice,"paused until the scheduled start","Paused capture notice lost its state");
+                require(notice.actions[0].title.toString().equals("Stop charge recording"),"Paused capture notice lost its Stop action");
                 store().heartbeat(at+20000);require(store().lastFreshMono()==at+20000,"Paused heartbeat did not keep the capture fresh");
                 store().resume(System.currentTimeMillis()+30000,at+30000);
                 require(store().sample(sampleFrame(at+31000,51,-2))&&!store().paused(),"Charging after the pause did not resume the same journal");
@@ -544,6 +547,17 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed",failure.get());}
     private void settle(){waitForIdleSync();SystemClock.sleep(350);waitForIdleSync();}
     private void await(BooleanSupplier test,String message){long until=SystemClock.uptimeMillis()+10000;while(!test.getAsBoolean()&&SystemClock.uptimeMillis()<until)SystemClock.sleep(40);require(test.getAsBoolean(),message);}
+    /**
+     * A recording's notice is the live charging card (#250: "Charge recordings show the same card, with the recording's
+     * status as the summary"): the card's title, and the recording's own status, containing state, as its summary.
+     */
+    private void requireCaptureNotice(Notification notice,String state,String message){
+        String status=service.chargeCaptureStatus();
+        Object card=field(service,"chargeLiveBuilt");
+        require(card!=null&&String.valueOf(field(card,"title")).contentEquals(notice.extras.getCharSequence(Notification.EXTRA_TITLE)),message+": not the live charging card");
+        require(status.contains(state)&&status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
+                message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
+    }
     private void require(boolean condition,String message){checks++;if(!condition)throw new IllegalStateException(message);}
     private Object field(Object target,String name){try{Class<?> type=target.getClass();while(type!=null){try{Field f=type.getDeclaredField(name);f.setAccessible(true);return f.get(target);}catch(NoSuchFieldException missing){type=type.getSuperclass();}}throw new NoSuchFieldException(name);}catch(Exception e){throw new IllegalStateException(name,e);}}
     private void setField(Object target,String name,Object value){try{Field field=target.getClass().getDeclaredField(name);field.setAccessible(true);field.set(target,value);}catch(Exception e){throw new IllegalStateException(name,e);}}
