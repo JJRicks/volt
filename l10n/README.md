@@ -1233,6 +1233,12 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    word that is not in the English is an error in a non-Latin language, except an acronym or a
    name in `LATIN_LOANS`, which warns. `checks.jsonl` records each finding; a failed key goes back to
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
+   `redraft openai|google` also sends back, in the same calls and also as attempt 2, each needed key
+   the provider left out of its draft; a key the redraft still gets no usable text of is listed in
+   that redraft's `runs.jsonl` row (`missing`) and is never sent again (a new full `draft` of that
+   provider starts over). A provider that has had both attempts at a key, and whose draft of it is
+   still missing or still failing, is **excused**: it no longer blocks the key (owner, 2026-11-05:
+   the council lifts quality; it does not chase one stubborn translator). See step 5.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
    session, which picks or merges; a merged text must pass the checks again. A pick names the draft
@@ -1255,8 +1261,14 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    with the judged text and its back-translation, and the judge confirms it on a later line of
    `judge.jsonl` exactly as for an agreed text (`safety-judged`). The latest pick or merge is the
    judged text: a new one, or a picked draft that changed, needs a new back-translation and a new
-   confirm, and the judge can never confirm a text it has not seen back-translated. A key with a
-   provider's draft missing, or no passing draft, still falls back. Either way the back-translation
+   confirm, and the judge can never confirm a text it has not seen back-translated. A key with no
+   passing draft still falls back, and so does one with a provider's draft missing while that
+   provider has its retry left. **Once that provider is excused** (step 3: still no draft after its
+   draft and its redraft), the key is judged in the same way from the other two providers' drafts,
+   which must include at least two passing drafts from different providers (with fewer, English
+   stays); the judge request and the decision name the excused provider and why in `excused`, and
+   the decision's reason says so. A provider whose draft still fails after its redraft is also listed
+   in `excused`; its failing draft never blocked a judged key. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1736,10 +1748,14 @@ change a check inside a language or batch pull request.
   (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
   translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
-  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
+  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `excused` (for a safety key whose drafts
+  are not unanimous: `{<provider>: <why>}` for each provider excused after both attempts, else `{}`),
+  `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
-  key). `prompts/` (with its request records) and `replies/` are regenerated and not committed
+  key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
+  and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
+  attempts). `prompts/` (with its request records) and `replies/` are regenerated and not committed
   (`l10n/.gitignore`); a reply whose request record is gone is refused, so prompt again.
 
 The B0b-harness pull request still has to add the `tests/run.sh` hook and
