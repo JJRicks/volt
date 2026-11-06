@@ -18,6 +18,19 @@ final class DashboardWords {
         return lastSeen != null ? T.dashboardStatusDisconnectedSeen(lastSeen) : T.dashboardStatusDisconnected();
     }
 
+    /**
+     * statusLine's narrow-label ladder, full line first (Ui.statusRungs shows the first that fits): the drive mode
+     * drops before the word Connected does, and the words last seen before the time does.
+     */
+    static String[] statusRungs(boolean ready, String mode, String lastSeen) {
+        String full = statusLine(ready, mode, lastSeen);
+        if (ready) return mode != null ? new String[]{full, T.dashboardStatusConnected()} : new String[]{full};
+        return lastSeen != null
+                ? new String[]{full, T.dashboardStatusDisconnectedSeenShort(lastSeen), T.dashboardStatusDisconnected(),
+                        T.dashboardStatusDisconnectedShort()}
+                : new String[]{full, T.dashboardStatusDisconnectedShort()};
+    }
+
     /** The status line's spoken form; lastSeen (or null) only when neither ready nor connecting. */
     static String statusSpoken(boolean ready, boolean connecting, String mode, String lastSeen) {
         if (ready) return mode != null ? T.dashboardStatusSpokenConnectedMode(mode) : T.dashboardStatusSpokenConnected();

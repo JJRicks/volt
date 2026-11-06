@@ -784,11 +784,11 @@ public final class DashboardScreen implements AppScreen {
             if (value.matches("[A-Z]+"))
                 mode = value.charAt(0) + value.substring(1).toLowerCase(Locale.ROOT);
         }
-        if (connecting) status.setText(connectingLabel());
+        if (connecting) ui.statusRungs(status, connectingLabel());
         status.setClickable(true);
         boolean seen = !ready && lastConnected > 0;
         if (!connecting)
-            status.setText(DashboardWords.statusLine(ready, mode, seen
+            ui.statusRungs(status, DashboardWords.statusRungs(ready, mode, seen
                     ? DisplayTime.recent(host.activity(), preferences, lastConnected, System.currentTimeMillis()) : null));
         status.setContentDescription(DashboardWords.statusSpoken(ready, connecting, mode, seen && !connecting
                 ? DisplayTime.dateTime(host.activity(), preferences, lastConnected) : null));
@@ -3023,6 +3023,8 @@ public final class DashboardScreen implements AppScreen {
                     head.setGravity(inline ? Gravity.CENTER_VERTICAL : Gravity.START);
                     head.setVisibility(next == VALUE ? GONE : VISIBLE);
                     icon.setVisibility(next <= INLINE ? VISIBLE : GONE);
+                    // A name that cannot fit leaves this icon alone; with the icon hidden it shows its own.
+                    if (name instanceof DashboardCaption) ((DashboardCaption) name).iconBeside(next <= INLINE);
                     LinearLayout.LayoutParams iconSize = (LinearLayout.LayoutParams) icon.getLayoutParams();
                     iconSize.width = iconSize.height = ui.dp(inline ? 15 : 18);
                     iconSize.setMarginEnd(inline ? ui.dp(6) : 0);
@@ -3513,6 +3515,8 @@ public final class DashboardScreen implements AppScreen {
             boolean sameAsHeader = anyStale && headerSeenMs > 0 && when(oldest).equals(when(headerSeenMs));
             boolean aged = !newHome(widget.type) && anyStale && !sameAsHeader;
             footer.setText(aged ? shortAge(oldest) : "");
+            // A card too narrow for its age keeps the clock alone; the description keeps the age.
+            ui.statusRungs(footer, footer.getText());
             footer.setContentDescription(aged ? T.dashboardLastSeen(when(oldest)) : "");
             footer.setTooltipText(aged ? T.dashboardLastSeen(when(oldest)) : null);
             footer.setVisibility(aged ? View.VISIBLE : View.GONE);
