@@ -808,10 +808,20 @@
     <string name="more_dev_curves_loading" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves loading</string>
     <!-- Screen-reader text while the charger is unknown. -->
     <string name="more_dev_curves_not_applied" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves not applied until the charger is known</string>
-    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
-    <string name="more_dev_curves_stock" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified stock charge recordings</string>
-    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
-    <string name="more_dev_curves_fast" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified high-speed charge recordings</string>
+    <!-- Unused since more_dev_curves_stock_count: kept for B18's ledger row, no need to translate. -->
+    <string name="more_dev_curves_stock" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">%1$s qualified stock charge recordings</string>
+    <!-- Unused since more_dev_curves_fast_count: kept for B18's ledger row, no need to translate. -->
+    <string name="more_dev_curves_fast" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">%1$s qualified high-speed charge recordings</string>
+    <!-- Screen-reader text of the charge curves card with the stock charger. %1$s is how many recordings qualify, and picks the plural form. -->
+    <plurals name="more_dev_curves_stock_count" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">
+        <item quantity="one">%1$s qualified stock charge recording</item>
+        <item quantity="other">%1$s qualified stock charge recordings</item>
+    </plurals>
+    <!-- Screen-reader text of the charge curves card with the high-speed charger. %1$s is how many recordings qualify, and picks the plural form. -->
+    <plurals name="more_dev_curves_fast_count" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">
+        <item quantity="one">%1$s qualified high-speed charge recording</item>
+        <item quantity="other">%1$s qualified high-speed charge recordings</item>
+    </plurals>
     <!-- Tooltip of the charge curves card. -->
     <string name="more_dev_curves_tooltip" volt:screen="Developer options" volt:purpose="tooltip" volt:safety="charge">A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings.</string>
     <!-- Row: show the full licence texts (they stay in English). -->

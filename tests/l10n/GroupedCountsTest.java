@@ -11,7 +11,8 @@ import java.util.Locale;
  * compared):
  *  - each history kind's "%,d saved" count;
  *  - the storage card's screen-reader text, the template around the samples sentence;
- *  - the GPS caption: no fixes, the kept fixes ("1 fixes" stays) and the glued dropped clause;
+ *  - the GPS caption: no fixes, the kept fixes ("1 fix" since the owner-approved singular) and the glued
+ *    dropped clause;
  *  - each key follows the installed text source.
  */
 public final class GroupedCountsTest {
@@ -56,11 +57,16 @@ public final class GroupedCountsTest {
             if (n > Integer.MAX_VALUE) continue;
             for (long d : COUNTS) {
                 if (d > Integer.MAX_VALUE) continue;
-                equal(GroupedCountsEnglishTest.Base.fixes((int) n, (int) d), caption((int) n, (int) d), "GPS caption at " + n + ", " + d + " dropped");
+                equal(singular(GroupedCountsEnglishTest.Base.fixes((int) n, (int) d), (int) n), caption((int) n, (int) d), "GPS caption at " + n + ", " + d + " dropped");
             }
         }
-        equal("1 fixes", caption(1, 0), "the base's own English at one fix");
+        equal("1 fix", caption(1, 0), "the singular at one fix");
         equal(GroupedCountsEnglishTest.Base.fixes(Integer.MAX_VALUE, Integer.MAX_VALUE), caption(Integer.MAX_VALUE, Integer.MAX_VALUE), "GPS caption at the int limit");
+    }
+
+    /** The base's GPS caption with the English "one" item the catalog now has (l10n/english-changes.tsv). */
+    private static String singular(String base, int locationCount) {
+        return locationCount == 1 ? base.replaceFirst("^1 fixes", "1 fix") : base;
     }
 
     /** RidesScreen.phoneRide's caption at head, with dropped = rejected locations + rejected elevations. */

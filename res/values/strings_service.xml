@@ -79,32 +79,32 @@
     <string name="service_charge_stock_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · paused until the scheduled start</string>
     <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_stock_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · %1$s local samples</string>
-    <!-- %1$s is the number of readings saved so far, and picks the plural form. English still says "1 local samples"; a later English fix will change that one item. -->
-    <plurals name="service_charge_stock_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">Stock charger · %1$s local samples</item>
+    <!-- %1$s is the number of readings saved so far, and picks the plural form. -->
+    <plurals name="service_charge_stock_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">
+        <item quantity="one">Stock charger · %1$s local sample</item>
         <item quantity="other">Stock charger · %1$s local samples</item>
     </plurals>
     <string name="service_charge_fast_charger_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · charger stopped · waiting for it to resume</string>
     <string name="service_charge_fast_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · paused until the scheduled start</string>
     <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_fast_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · %1$s local samples</string>
-    <!-- %1$s is the number of readings saved so far, and picks the plural form. English still says "1 local samples"; a later English fix will change that one item. -->
-    <plurals name="service_charge_fast_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">High-speed charger · %1$s local samples</item>
+    <!-- %1$s is the number of readings saved so far, and picks the plural form. -->
+    <plurals name="service_charge_fast_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">
+        <item quantity="one">High-speed charger · %1$s local sample</item>
         <item quantity="other">High-speed charger · %1$s local samples</item>
     </plurals>
     <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_unknown" volt:screen="More › Developer › Charge recording" volt:purpose="summary">Not applied until the charger is known · %1$s recordings stored</string>
-    <!-- Which charges the estimates learn from. %1$s is the number of recordings stored for every scooter and charger, and picks the plural form. English still says "1 recordings stored"; a later English fix will change that one item. -->
-    <plurals name="service_charge_learning_unknown_count" volt:screen="More › Developer › Charge recording" volt:purpose="summary" volt:english-fix="pending">
-        <item quantity="one">Not applied until the charger is known · %1$s recordings stored</item>
+    <!-- Which charges the estimates learn from. %1$s is the number of recordings stored for every scooter and charger, and picks the plural form. -->
+    <plurals name="service_charge_learning_unknown_count" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">Not applied until the charger is known · %1$s recording stored</item>
         <item quantity="other">Not applied until the charger is known · %1$s recordings stored</item>
     </plurals>
     <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_fast_one" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified high-speed charge · %2$s recordings stored</string>
-    <!-- How many charge recordings are stored (%2$s of service_charge_learning_fast_count and _stock_count): %1$s is the number, and picks the plural form. English still says "1 recordings stored"; a later English fix will change that one item. -->
-    <plurals name="service_charge_recordings_stored" volt:screen="More › Developer › Charge recording" volt:purpose="summary" volt:english-fix="pending">
-        <item quantity="one">%1$s recordings stored</item>
+    <!-- How many charge recordings are stored (%2$s of service_charge_learning_fast_count and _stock_count): %1$s is the number, and picks the plural form. -->
+    <plurals name="service_charge_recordings_stored" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">%1$s recording stored</item>
         <item quantity="other">%1$s recordings stored</item>
     </plurals>
     <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
