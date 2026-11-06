@@ -110,6 +110,7 @@ STEPS = [
     runner('guided-queue', 'run-guided-tests.py', [], '--mode', 'queue'),
     runner('compat-gating', 'run-compat-gating.py', ['CompatibilityGatingValidation']),
     runner('compat-controls', 'run-compat-gating.py', ['CompatControlsValidation'], '--mode', 'controls'),
+    runner('compat-menu-edit', 'run-compat-gating.py', ['ScooterMenuEditValidation'], '--mode', 'menu-edit'),
     runner('compat-ut5-screens', 'run-compat-gating.py', ['Ut5SimulationScreens'], '--mode', 'ut5-screens'),
     runner('compat-import-name', 'run-compat-gating.py', [], '--mode', 'import-name'),
     runner('compat-owner-profiles', 'run-compat-gating.py', [], '--mode', 'owner-profiles'),
