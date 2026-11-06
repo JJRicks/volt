@@ -60,6 +60,9 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/Char
 sources+=("$APP_DIR/src/com/jjricks/volt/NotificationPacer.java" "$TEST_DIR/NotificationPacerTest.java")
 # Riding mode's live range: estimator, calm readout and synthetic rides (docs/validation/live-range.md).
 sources+=("$APP_DIR/src/com/jjricks/volt/LiveRangeEstimator.java" "$APP_DIR/src/com/jjricks/volt/RangeReadout.java" "$TEST_DIR/LiveRangeScenarios.java" "$TEST_DIR/LiveRangeEstimatorTest.java")
+# Maintenance reminders core: manual intervals, the forward-only odometer, due-ness and storage (maintenance plan, PR 1).
+for name in MaintenanceDistance MaintenancePolicy MaintenanceStore; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+sources+=("$APP_DIR/src/com/jjricks/volt/MaintenanceDefaults.java" "$TEST_DIR/MaintenanceBackupTest.java")
 # Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
 # that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
 # ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
@@ -127,6 +130,10 @@ backup_java=(java)
 for name in BackupArchiveTest BackupPlanTest BackupTransactionTest; do
     (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name")
 done
+
+# Maintenance reminders (MaintenanceStoreTest uses the compat suites' NaveeModels; the backup round trip uses the backup stores).
+for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done
+(cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.MaintenanceBackupTest)
 
 # From the repo root: ModelRegistryTest checks the bundled model photos.
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done
