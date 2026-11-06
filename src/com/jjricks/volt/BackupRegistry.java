@@ -136,6 +136,8 @@ final class BackupRegistry {
         // Guided setting test records stay on this phone (decision D4): never exported, cleared or replaced.
         {"no_backup/compat-tests", null, "Guided-test records of this installation"}, {"no_backup/compat-tests.tmp", null, "Guided-test records of this installation"},
         {"no_backup/app-data-transfer", null, PENDING}, {"no_backup/ride-transfer", null, PENDING},
+        // Saved ride summaries (RideSummaryStore): a rebuildable cache of the journals, never exported or restored.
+        {"no_backup/rides-index", null, "Rebuildable ride summary cache"},
         {"cache/", null, "Disposable cache"}, {"shared_prefs/", null, "Preferences are classified key by key"},
     };
     /** Category of a storage root, null for an excluded root, or IllegalArgumentException if unclassified. */
