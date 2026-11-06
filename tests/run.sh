@@ -30,8 +30,9 @@ sources+=("$APP_DIR/src/com/jjricks/volt/RouteSpeedScale.java" "$TEST_DIR/RouteS
 sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSliderTrailTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
-# Riding mode core: layouts, live values and gauge smoothing (riding-mode plan, PR 1).
-for name in RidingLayout RidingValues GaugeSmoother; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
@@ -106,7 +107,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
-for name in RidingLayout RidingValues GaugeSmoother; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 
