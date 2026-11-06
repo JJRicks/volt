@@ -40,6 +40,7 @@ public final class UpdateRunsTest {
             boolean[] closed = {false};
             if (!run.onAbort(() -> { aborts++; closed[0] = true; if (held != null) held.countDown(); }))
                 throw new java.util.concurrent.CancellationException();
+            if (!run.send()) throw new java.util.concurrent.CancellationException();
             requests++;
             if (fetching != null) fetching.countDown();
             if (held != null) await(held);
@@ -172,12 +173,12 @@ public final class UpdateRunsTest {
     /** The manual Check for updates keeps its own path: it never goes through UpdateRuns or the job's guard. */
     private static void manualCheckApart() throws Exception {
         String more = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MoreScreen.java")), StandardCharsets.UTF_8);
-        check(!more.contains("UpdateRuns") && !more.contains("UpdateCheckJob.runs(") && !more.contains("UpdateCheck.opened"), "MoreScreen's manual check doesn't share the job's run guard");
+        check(!more.contains("UpdateRuns") && !more.contains("UpdateCheckJob.runs(") && !more.contains("UpdateCheck.fetch(") && !more.contains("UpdateCheck.gate"), "MoreScreen's manual check doesn't share the job's run guard");
         String job = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/UpdateCheckJob.java")), StandardCharsets.UTF_8);
         int cancel = job.indexOf("static void cancel(Context context) {");
         check(cancel > 0 && job.indexOf("runs(context).revoke();", cancel) > cancel
                 && job.indexOf("runs(context).revoke();", cancel) < job.indexOf("jobs.cancel(JOB_ID)", cancel), "turning off revokes the running check before cancelling the job");
-        check(job.contains("UpdateCheck.opened.set(") && job.contains("finally { UpdateCheck.opened.remove(); }"), "the abort hook is set only around the job's own request");
+        check(job.contains("UpdateCheck.fetch(run, UpdateCheck.ENDPOINT"), "the job's request goes through the run's gate");
         check(job.contains("if (!owner.finish(mine)) return;") && job.contains("runs(this).stop(stopped)"), "the job finishes and retries only through UpdateRuns");
     }
 

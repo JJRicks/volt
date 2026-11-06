@@ -85,14 +85,10 @@ public final class UpdateCheckJob extends JobService {
         @Override public long last() { return settings(context).getLong(UpdateSchedule.LAST, 0); }
         @Override public String newer(UpdateRuns.Run run) throws Exception {
             String installed = AppVersion.name(context);
-            // A revoke or stop while the request is out closes its connection; one before it connects stops it.
-            UpdateCheck.opened.set(connection -> {
-                if (!run.onAbort(connection::disconnect)) throw new java.util.concurrent.CancellationException();
-            });
-            try {
-                UpdateCheck.Result result = UpdateCheck.evaluate(installed, UpdateCheck.fetcher.get(UpdateCheck.ENDPOINT, UpdateCheck.userAgent(installed)));
-                return result.outcome == UpdateCheck.Outcome.AVAILABLE ? result.latest : null;
-            } finally { UpdateCheck.opened.remove(); }
+            // UpdateCheck.fetch gates the request by this run: no request once it is revoked or stopped before the
+            // send decision; after it, the connection is closed and the result discarded.
+            UpdateCheck.Result result = UpdateCheck.evaluate(installed, UpdateCheck.fetch(run, UpdateCheck.ENDPOINT, UpdateCheck.userAgent(installed)));
+            return result.outcome == UpdateCheck.Outcome.AVAILABLE ? result.latest : null;
         }
         @Override public void saveLast(long now) { settings(context).edit().putLong(UpdateSchedule.LAST, now).apply(); }
         @Override public String told() { return settings(context).getString(UpdateSchedule.TOLD, ""); }

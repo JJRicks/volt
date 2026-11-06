@@ -6,3 +6,6 @@ src/com/jjricks/volt/UpdateRuns.java
 src/com/jjricks/volt/VersionName.java
 tests/l10n/UpdateScheduleTest.java
 tests/l10n/UpdateRunsTest.java
+# The real request path (UpdateCheck.fetch and https) against a local server, at each cancellation point.
+src/com/jjricks/volt/UpdateCheck.java
+tests/l10n/UpdateFetchTest.java

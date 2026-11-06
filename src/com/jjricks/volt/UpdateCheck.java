@@ -25,10 +25,24 @@ final class UpdateCheck {
     /** Replaced only by tests, which never reach the network. */
     static Fetcher fetcher = UpdateCheck::https;
     /**
-     * The automatic check's abort hook (UpdateCheckJob): handed this thread's connection before it connects, so a
-     * revoked or stopped run can close it. It may throw to stop the request before it goes out. Unset for the manual check.
+     * The automatic check's gate around this thread's request (UpdateCheckJob, through fetch): open runs before the
+     * connection connects, send after connect() opened it (TCP and TLS; a GET writes no HTTP request there, on the
+     * JVM or Android's OkHttp) and before the request is written. Either may throw to stop the request. Unset for
+     * the manual check, which connects as before.
      */
-    static final ThreadLocal<java.util.function.Consumer<HttpURLConnection>> opened = new ThreadLocal<>();
+    interface Gate { void open(HttpURLConnection connection) throws IOException; void send() throws IOException; }
+    static final ThreadLocal<Gate> gate = new ThreadLocal<>();
+
+    /** The automatic check's request for an admitted run: the manual check's fetch, gated by the run (UpdateRuns). */
+    static String fetch(UpdateRuns.Run run, String address, String userAgent) throws IOException {
+        gate.set(new Gate() {
+            @Override public void open(HttpURLConnection connection) throws IOException {
+                if (!run.onAbort(connection::disconnect)) throw new java.io.InterruptedIOException();
+            }
+            @Override public void send() throws IOException { if (!run.send()) throw new java.io.InterruptedIOException(); }
+        });
+        try { return fetcher.get(address, userAgent); } finally { gate.remove(); }
+    }
 
     /**
      * The line shown above a new release's notes, which come from GitHub in English: empty while Volt is English
@@ -104,12 +118,12 @@ final class UpdateCheck {
         if (!address.startsWith("https://")) throw new IOException("Only HTTPS");
         HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
         try {
-            java.util.function.Consumer<HttpURLConnection> hook = opened.get();
-            if (hook != null) hook.accept(connection);
             connection.setConnectTimeout(8000); connection.setReadTimeout(8000);
             connection.setInstanceFollowRedirects(false); connection.setUseCaches(false);
             connection.setRequestProperty("Accept", "application/vnd.github+json");
             connection.setRequestProperty("User-Agent", userAgent);
+            Gate automatic = gate.get();
+            if (automatic != null) { automatic.open(connection); connection.connect(); automatic.send(); }
             if (connection.getResponseCode() != 200) throw new IOException("HTTP " + connection.getResponseCode());
             try (InputStream in = connection.getInputStream()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] chunk = new byte[8192]; int n;

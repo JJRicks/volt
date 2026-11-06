@@ -7,9 +7,11 @@ package com.jjricks.volt;
  * result, posts no notice, never reports itself finished and schedules nothing. The manual Check for updates
  * does not go through here.
  *
- * The request is admitted under the lock revoke and stop take: a revoke or stop before admission means no request;
- * one after it is ordered after it, closes the request through its abort hook (outside the lock) and voids its
- * result. The lock is never held across the network, so the switch's cancel on the UI thread never waits on it.
+ * The request is admitted under the lock revoke and stop take, and decided again once its connection is open (send):
+ * a revoke or stop before admission means no network at all; one before the send decision closes the bare
+ * connection with no HTTP request written; one after it can't recall a request already on the wire, so it closes
+ * the connection through the abort hook (outside the lock) and the result is discarded. The lock is never held
+ * across the network, so the switch's cancel on the UI thread never waits on it.
  */
 final class UpdateRuns {
     /** What a run touches; UpdateCheckJob backs it with app_settings, GitHub and the notification manager. */
@@ -19,7 +21,8 @@ final class UpdateRuns {
         long last();
         /**
          * The manual check's request, for an admitted run: the newer release's version, null when there is none;
-         * throws when unreachable or aborted. It hands its connection's close to run.onAbort before connecting.
+         * throws when unreachable or aborted. UpdateCheck.fetch gates it: run.onAbort before connecting, run.send
+         * after the connection opens and before the request is written.
          */
         String newer(Run run) throws Exception;
         void saveLast(long now);
@@ -41,6 +44,12 @@ final class UpdateRuns {
          * is out. False when the run is already void: the request must not go out.
          */
         boolean onAbort(Runnable hook) { return owner.abortWith(this, hook); }
+        /**
+         * The send decision, after the connection opened (TCP and TLS, no HTTP request yet) and before the request
+         * is written: false when the run went void meanwhile, and the request must not be sent. A revoke or stop
+         * after a true is a request already on the wire: the abort hook closes it and its result is discarded.
+         */
+        boolean send() { return owner.sending(this); }
     }
 
     private final Host host;
@@ -73,6 +82,7 @@ final class UpdateRuns {
         run.abort = hook;
         return true;
     }
+    private synchronized boolean sending(Run run) { return run == inFlight && live(run); }
     private Runnable takeAbort(Run run) { Runnable abort = run.abort; run.abort = null; return abort; }
 
     /** The check itself, on the job's worker thread: a request at most once a day, a notice at most once per version. */
