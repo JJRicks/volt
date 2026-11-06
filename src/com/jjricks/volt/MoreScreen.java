@@ -1188,13 +1188,13 @@ public final class MoreScreen implements AppScreen {
             ((LinearLayout.LayoutParams) historyBarRest.getLayoutParams()).weight = 1f - share;
             historyBar.requestLayout();
             long[] rows = {storage.detailedRows, storage.minuteRows, storage.dailyRows};
-            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(String.format(Locale.US, "%,d saved", rows[i]));
+            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i])));
             historyStatus.setText(storage.status == null ? "" : storage.status);
             // Shown in the current language; storage.status stays TelemetryHistory's English id (statusMsg's English is the id).
             if (storage.status != null) historyStatus.setText(storage.statusMsg().toString());
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
-            historyStorageCard.setContentDescription("Local storage, " + used + " used. "
-                    + String.format(Locale.US, "%,d detailed, %,d minute and %,d daily samples saved.", rows[0], rows[1], rows[2]));
+            historyStorageCard.setContentDescription(T.moreHistoryStorageDescription(used,
+                    T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
             dataIndexRow.value(mib(storage.bytes));
         });
     }

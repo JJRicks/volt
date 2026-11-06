@@ -200,6 +200,18 @@
     <string name="rides_route" volt:screen="Rides, phone and route" volt:purpose="label">Route</string>
     <string name="rides_phone_route" volt:screen="Rides, phone and route" volt:purpose="label">Phone &amp; route</string>
     <string name="rides_tile_gps_distance" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS distance</string>
+    <!-- Caption under Phone & route when the ride's phone track kept no GPS fix. -->
+    <string name="rides_gps_no_fixes" volt:screen="Rides, phone and route" volt:purpose="caption" volt:dnt="GPS">No GPS fixes</string>
+    <!-- Caption under Phone & route: how many GPS fixes the ride's phone track kept. %1$s is the count, already grouped ("1,234"), and picks the plural form. English still says "1 fixes"; a later English fix will change that one item. -->
+    <plurals name="rides_gps_fixes" volt:screen="Rides, phone and route" volt:purpose="caption" volt:english-fix="pending">
+        <item quantity="one">%1$s fixes</item>
+        <item quantity="other">%1$s fixes</item>
+    </plurals>
+    <!-- Glued straight onto the end of rides_gps_fixes when some readings were dropped ("1,234 fixes · 12 dropped"), so it starts with its own space and separator. %1$s is how many GPS fixes and elevation readings were dropped, already grouped, and picks the plural form. -->
+    <plurals name="rides_gps_dropped" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">" · %1$s dropped"</item>
+        <item quantity="other">" · %1$s dropped"</item>
+    </plurals>
     <string name="rides_tile_ascent_descent" volt:screen="Rides, phone and route" volt:purpose="label">Ascent / descent</string>
     <string name="rides_acceleration" volt:screen="Rides, phone and route" volt:purpose="label">Acceleration</string>
     <string name="rides_gps_speed_change" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS speed change · min / max</string>
