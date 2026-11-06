@@ -13,8 +13,9 @@ package com.jjricks.volt;
  * It ends when the scooter stays disconnected for RECONNECT_MS, when charging finishes at the limit,
  * when charging stays off (with no schedule waiting) for more than STOP_MS, after HOLD_MS, when the
  * setting is turned off, or on Stop. Stop also keeps it from arming again for the rest of this charge, for that
- * scooter only (Facts.profile), and for HOLD_MS at most. The service stores that Stop (stopped()) on the device
- * and hands it back to a new service (restoreStopped), so a recreated service doesn't arm the same charge again.
+ * scooter only (Facts.profile), and for HOLD_MS at most. Each scooter's Stop is its own (up to MAX_STOPS of them):
+ * a Stop on one never replaces or ends another's. The service stores them (stopped()) on the device and hands
+ * them back to a new service (restoreStopped), so a recreated service doesn't arm the same charge again.
  */
 public final class ChargeLiveHold {
     /** Owner: a scooter that doesn't reconnect within about 15 to 20 seconds ends the card. */
@@ -50,10 +51,15 @@ public final class ChargeLiveHold {
         Stopped(String profile, int best, long ageMs) { this.profile = profile;this.best = best;this.ageMs = ageMs; }
     }
 
-    private boolean active, reconnecting, stoppedCharge;
-    private long since, lostSince, offSince, stoppedOffSince, stoppedAt;
-    private int stoppedBest = -1;
-    private String stoppedProfile = "";
+    /** Scooters whose Stop still counts at once; the oldest Stop goes first past this. */
+    public static final int MAX_STOPS = 8;
+    /** One scooter's Stop: the best level seen since, when it was pressed, and since when charging has been off. */
+    private static final class Stop { int best;long at, offSince; }
+
+    private boolean active, reconnecting;
+    private long since, lostSince, offSince;
+    /** By profile id, oldest Stop first. */
+    private final java.util.LinkedHashMap<String, Stop> stops = new java.util.LinkedHashMap<>();
 
     /** Holding now. */
     public boolean active() { return active; }
@@ -71,7 +77,7 @@ public final class ChargeLiveHold {
     /** The owner left Volt. Returns whether the hold armed. */
     public boolean leave(long nowMono, Facts f) {
         observeStopped(nowMono, f);
-        boolean stopped = stoppedCharge && stoppedProfile.equals(f.profile);
+        boolean stopped = stops.containsKey(f.profile);
         active = f.enabled && f.connected && !stopped && (Boolean.TRUE.equals(f.charging) || f.scheduled);
         if (active) { since = nowMono;lostSince = offSince = 0;reconnecting = false; }
         return active;
@@ -82,19 +88,32 @@ public final class ChargeLiveHold {
     public void stop(Integer percent) { stop(percent, null, 0); }
     /** Stop for the scooter with this profile id, at nowMono. */
     public void stop(Integer percent, String profile, long nowMono) {
-        active = reconnecting = false;stoppedCharge = true;stoppedOffSince = 0;stoppedBest = percent == null ? -1 : percent;
-        stoppedProfile = profile == null ? "" : profile;stoppedAt = nowMono;
+        active = reconnecting = false;
+        put(profile == null ? "" : profile, percent == null ? -1 : percent, nowMono);
     }
-    /** The Stop that still counts, for the service to store; null when none. */
-    public Stopped stopped(long nowMono) {
-        if (stoppedCharge && (nowMono < stoppedAt || nowMono - stoppedAt >= HOLD_MS)) clearStopped();
-        return stoppedCharge ? new Stopped(stoppedProfile, stoppedBest, nowMono - stoppedAt) : null;
+    /** Every Stop that still counts, oldest first, for the service to store; empty when none. */
+    public java.util.List<Stopped> stopped(long nowMono) {
+        prune(nowMono);
+        java.util.ArrayList<Stopped> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, Stop> e : stops.entrySet()) out.add(new Stopped(e.getKey(), e.getValue().best, nowMono - e.getValue().at));
+        return out;
     }
     /** A new service takes back a stored Stop pressed ageMs ago; one older than HOLD_MS (or from the future) is over. */
     public void restoreStopped(String profile, int best, long ageMs, long nowMono) {
         if (ageMs < 0 || ageMs >= HOLD_MS || profile == null || profile.isEmpty()) return;
-        stoppedCharge = true;stoppedProfile = profile;stoppedBest = best < 0 || best > 100 ? -1 : best;
-        stoppedOffSince = 0;stoppedAt = nowMono - ageMs;
+        put(profile, best < 0 || best > 100 ? -1 : best, nowMono - ageMs);
+    }
+    /** Adds or replaces one scooter's Stop as the newest, dropping the oldest past MAX_STOPS. */
+    private void put(String profile, int best, long at) {
+        stops.remove(profile);
+        Stop stop = new Stop();stop.best = best;stop.at = at;
+        stops.put(profile, stop);
+        java.util.Iterator<String> oldest = stops.keySet().iterator();
+        while (stops.size() > MAX_STOPS) { oldest.next();oldest.remove(); }
+    }
+    /** Ends every Stop pressed HOLD_MS ago or more (or, after a clock change, in the future). */
+    private void prune(long nowMono) {
+        stops.values().removeIf(stop -> nowMono < stop.at || nowMono - stop.at >= HOLD_MS);
     }
 
     /** One evaluation; any End other than NONE has just ended the hold. */
@@ -126,18 +145,17 @@ public final class ChargeLiveHold {
 
     /** A stopped charge is over once charging stays off (nothing scheduled) past STOP_MS, or the level drops two points. */
     private void observeStopped(long nowMono, Facts f) {
-        if (!stoppedCharge) return;
-        if (nowMono < stoppedAt || nowMono - stoppedAt >= HOLD_MS) { clearStopped();return; }
-        // Another scooter's readings say nothing about the stopped charge.
-        if (!f.connected || !stoppedProfile.equals(f.profile)) return;
-        if (f.percent != null && stoppedBest >= 0 && f.percent < stoppedBest - 1) { clearStopped();return; }
-        if (f.percent != null && f.percent > stoppedBest) stoppedBest = f.percent;
+        prune(nowMono);
+        // Only the selected scooter's own readings say anything about its stopped charge.
+        Stop stop = f.connected ? stops.get(f.profile) : null;
+        if (stop == null) return;
+        if (f.percent != null && stop.best >= 0 && f.percent < stop.best - 1) { stops.remove(f.profile);return; }
+        if (f.percent != null && f.percent > stop.best) stop.best = f.percent;
         if (Boolean.FALSE.equals(f.charging) && !f.scheduled) {
-            if (stoppedOffSince == 0 || nowMono < stoppedOffSince) stoppedOffSince = nowMono;
-            else if (nowMono - stoppedOffSince > STOP_MS) clearStopped();
-        } else if (Boolean.TRUE.equals(f.charging)) stoppedOffSince = 0;
+            if (stop.offSince == 0 || nowMono < stop.offSince) stop.offSince = nowMono;
+            else if (nowMono - stop.offSince > STOP_MS) stops.remove(f.profile);
+        } else if (Boolean.TRUE.equals(f.charging)) stop.offSince = 0;
     }
-    private void clearStopped() { stoppedCharge = false;stoppedOffSince = stoppedAt = 0;stoppedBest = -1;stoppedProfile = ""; }
 
     /**
      * Whether a battery alert already announced this finish, so the done notice would repeat it: a Full alert, or a

@@ -64,9 +64,7 @@ final class BackupRegistry {
         add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
         add(app, "charge_live_lock_detail", String.class, PREFERENCES);
         // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
-        exclude(app, "charge_live_stopped_profile", String.class, DEVICE);
-        exclude(app, "charge_live_stopped_best", Integer.class, DEVICE);
-        exclude(app, "charge_live_stopped_wall", Long.class, DEVICE);
+        exclude(app, "charge_live_stopped", String.class, DEVICE);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);

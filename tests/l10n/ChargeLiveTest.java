@@ -22,6 +22,7 @@ public final class ChargeLiveTest {
         holdStop();
         holdStopPerScooter();
         holdStopRestored();
+        holdStopEachScooter();
         doneNoticeAnnounced();
         state();
         System.out.println("ChargeLiveTest: " + checks + " checks passed");
@@ -175,12 +176,12 @@ public final class ChargeLiveTest {
         // B's readings, even off for long, don't end A's stopped charge.
         h.step(t + 3 * MIN, off("b", 81));
         h.step(t + 3 * MIN + ChargeLiveHold.STOP_MS + S, off("b", 81));
-        check(h.stopped(t + 10 * MIN) != null && "a".equals(h.stopped(t + 10 * MIN).profile), "B's readings leave A's Stop in place");
+        check(only(h.stopped(t + 10 * MIN)) != null && "a".equals(only(h.stopped(t + 10 * MIN)).profile), "B's readings leave A's Stop in place");
         // B -> A: A's charge is still the stopped one.
         check(!h.leave(t + 11 * MIN, on("a", 72)), "back on A, its stopped charge still doesn't arm");
         // A's own level drop ends A's stopped charge.
         h.step(t + 12 * MIN, on("a", 50));
-        check(h.stopped(t + 12 * MIN) == null, "A's own two-point drop ends A's Stop");
+        check(only(h.stopped(t + 12 * MIN)) == null, "A's own two-point drop ends A's Stop");
         check(h.leave(t + 13 * MIN, on("a", 50)), "A's next charge arms");
         // Stop on B, then A arms and B still doesn't.
         h.stop(60, "b", t + 14 * MIN);
@@ -200,7 +201,7 @@ public final class ChargeLiveTest {
         old.leave(t, on("a", 64));
         old.stop(64, "a", t);
         old.step(t + 20 * MIN, on("a", 68));
-        ChargeLiveHold.Stopped saved = old.stopped(t + 30 * MIN);
+        ChargeLiveHold.Stopped saved = only(old.stopped(t + 30 * MIN));
         check(saved != null && "a".equals(saved.profile) && saved.best == 68 && saved.ageMs == 30 * MIN, "the stored Stop: scooter, best level, age");
         // The service and its hold are recreated; the new monotonic clock reads something else entirely.
         long mono = 40 * MIN;
@@ -223,19 +224,89 @@ public final class ChargeLiveTest {
         // Bounded: 12 hours at most, in memory or restored; a stored age from the future or nonsense is ignored.
         ChargeLiveHold aged = new ChargeLiveHold();
         aged.restoreStopped("a", 70, ChargeLiveHold.HOLD_MS, mono);
-        check(aged.stopped(mono) == null && aged.leave(mono, on("a", 70)), "a stored Stop 12 hours old is over");
+        check(only(aged.stopped(mono)) == null && aged.leave(mono, on("a", 70)), "a stored Stop 12 hours old is over");
         ChargeLiveHold future = new ChargeLiveHold();
         future.restoreStopped("a", 70, -MIN, mono);
-        check(future.stopped(mono) == null, "a stored Stop from the future is ignored");
+        check(only(future.stopped(mono)) == null, "a stored Stop from the future is ignored");
         ChargeLiveHold nobody = new ChargeLiveHold();
         nobody.restoreStopped("", 70, MIN, mono);
-        check(nobody.stopped(mono) == null, "a stored Stop without a scooter is ignored");
+        check(only(nobody.stopped(mono)) == null, "a stored Stop without a scooter is ignored");
         ChargeLiveHold mem = new ChargeLiveHold();
         mem.leave(t, on("a", 20));
         mem.stop(20, "a", t);
         check(!mem.leave(t + ChargeLiveHold.HOLD_MS - S, on("a", 21)), "a Stop counts just under 12 hours");
         check(mem.leave(t + ChargeLiveHold.HOLD_MS, on("a", 21)), "and ends at 12 hours");
-        check(mem.stopped(t + ChargeLiveHold.HOLD_MS) == null, "nothing left to store");
+        check(only(mem.stopped(t + ChargeLiveHold.HOLD_MS)) == null, "nothing left to store");
+    }
+
+    /** At most one stored Stop expected: it, or null. */
+    private static ChargeLiveHold.Stopped only(java.util.List<ChargeLiveHold.Stopped> stopped) {
+        check(stopped.size() <= 1, "expected at most one Stop, got " + stopped.size());
+        return stopped.isEmpty() ? null : stopped.get(0);
+    }
+    /** What the service does on recreation: a fresh hold given back every stored Stop, aged by the time between. */
+    private static ChargeLiveHold recreate(ChargeLiveHold old, long oldMono, long gapMs, long newMono) {
+        ChargeLiveHold fresh = new ChargeLiveHold();
+        for (ChargeLiveHold.Stopped stop : old.stopped(oldMono)) fresh.restoreStopped(stop.profile, stop.best, stop.ageMs + gapMs, newMono);
+        return fresh;
+    }
+
+    /** Round 3 (Codex): each scooter keeps its own Stop; a second Stop on another scooter never replaces the first. */
+    private static void holdStopEachScooter() {
+        long t = 2 * H;
+        ChargeLiveHold h = new ChargeLiveHold();
+        check(h.leave(t, on("a", 60)), "A arms");
+        h.stop(60, "a", t);
+        h.shown();
+        check(h.leave(t + MIN, on("b", 40)), "B arms after Stop on A");
+        h.stop(40, "b", t + MIN);
+        h.shown();
+        check(h.stopped(t + 2 * MIN).size() == 2, "both Stops are kept");
+        check(!h.leave(t + 3 * MIN, on("a", 62)), "A Stop, B Stop, back to A: A still doesn't arm");
+        check(!h.leave(t + 4 * MIN, on("b", 42)), "and back to B: B still doesn't arm");
+        check(h.leave(t + 5 * MIN, on("c", 50)), "a third scooter arms");
+        h.shown();
+
+        // Recreated: both Stops come back, each with its own age.
+        long mono = 7 * MIN;
+        ChargeLiveHold re = recreate(h, t + 6 * MIN, 2 * MIN, mono);
+        java.util.List<ChargeLiveHold.Stopped> back = re.stopped(mono);
+        check(back.size() == 2 && "a".equals(back.get(0).profile) && "b".equals(back.get(1).profile), "recreation keeps both Stops, oldest first");
+        check(back.get(0).ageMs == 8 * MIN && back.get(1).ageMs == 7 * MIN, "each Stop keeps its own age");
+        check(!re.leave(mono + S, on("a", 63)), "after recreation, A doesn't arm");
+        check(!re.leave(mono + 2 * S, on("b", 43)), "after recreation, B doesn't arm");
+        re.shown();
+
+        // One scooter's own charge end clears only its own Stop.
+        re.step(mono + 3 * S, on("b", 20));
+        check(re.leave(mono + 4 * S, on("b", 20)), "B's own level drop ends B's Stop");
+        re.shown();
+        check(!re.leave(mono + 5 * S, on("a", 63)), "A's Stop outlives B's end");
+        ChargeLiveHold.Facts offA = off("a", 64);
+        re.step(mono + 6 * S, offA);
+        re.step(mono + 7 * S + ChargeLiveHold.STOP_MS, offA);
+        check(re.leave(mono + 8 * S + ChargeLiveHold.STOP_MS, on("a", 64)), "A's own charger-off end ends A's Stop");
+
+        // Each Stop expires on its own 12 hours.
+        ChargeLiveHold ages = new ChargeLiveHold();
+        ages.stop(50, "a", t);
+        ages.stop(50, "b", t + 6 * H);
+        java.util.List<ChargeLiveHold.Stopped> left = ages.stopped(t + ChargeLiveHold.HOLD_MS);
+        check(left.size() == 1 && "b".equals(left.get(0).profile), "A's Stop ends at its 12 hours, B's stays");
+        check(ages.leave(t + ChargeLiveHold.HOLD_MS + S, on("a", 50)) , "A arms after its 12 hours");
+        ages.shown();
+        check(!ages.leave(t + ChargeLiveHold.HOLD_MS + 2 * S, on("b", 50)), "B still doesn't");
+        ChargeLiveHold agedRe = recreate(ages, t + ChargeLiveHold.HOLD_MS + 3 * S, 6 * H, 10 * MIN);
+        check(agedRe.stopped(10 * MIN).isEmpty(), "B's Stop is over 12 hours after it, across recreation too");
+
+        // Bounded: the ninth Stop drops the oldest; a repeated Stop on a scooter moves it to newest without growing.
+        ChargeLiveHold many = new ChargeLiveHold();
+        for (int i = 0; i <= ChargeLiveHold.MAX_STOPS; i++) many.stop(30, "s" + i, t + i * S);
+        java.util.List<ChargeLiveHold.Stopped> kept = many.stopped(t + MIN);
+        check(kept.size() == ChargeLiveHold.MAX_STOPS && "s1".equals(kept.get(0).profile), "at most MAX_STOPS Stops; the oldest goes first");
+        many.stop(31, "s1", t + 2 * MIN);
+        kept = many.stopped(t + 3 * MIN);
+        check(kept.size() == ChargeLiveHold.MAX_STOPS && "s2".equals(kept.get(0).profile) && "s1".equals(kept.get(kept.size() - 1).profile), "a repeated Stop replaces that scooter's own");
     }
 
     /** Round 2 (Codex): only a matching, current, still-showing completion alert stands in for the done notice. */

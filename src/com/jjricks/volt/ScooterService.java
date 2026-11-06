@@ -108,8 +108,11 @@ public final class ScooterService extends Service {
     static final String STOP_CHARGE_LIVE="stop_charge_live";
     static final String CHARGE_LIVE_ENABLED="charge_live_enabled";
     static final String CHARGE_LIVE_LOCK_DETAIL="charge_live_lock_detail";
-    /** The card's Stop for one scooter's charge, kept on this device so a recreated service doesn't arm it again (not backed up). */
-    static final String CHARGE_LIVE_STOPPED_PROFILE="charge_live_stopped_profile",CHARGE_LIVE_STOPPED_BEST="charge_live_stopped_best",CHARGE_LIVE_STOPPED_WALL="charge_live_stopped_wall";
+    /**
+     * The card's Stops, one per scooter whose charge it was pressed for, kept on this device so a recreated service
+     * doesn't arm them again (not backed up): a JSON object of profile id to {"best": level, "wall": when pressed}.
+     */
+    static final String CHARGE_LIVE_STOPPED="charge_live_stopped";
     private boolean chargeLiveRestored;
     private java.util.List<Object> chargeLiveSaved;
     /** When the current hold armed (wall clock), for telling this charge's battery alert from an older one; 0 for none. */
@@ -1028,27 +1031,34 @@ public final class ScooterService extends Service {
         if(chargeLive.leave(SystemClock.elapsedRealtime(),chargeLiveFacts()))chargeLiveArmedWall=System.currentTimeMillis();
         chargeLiveKey=null;saveChargeLiveStopped();
     }
-    /** Once per service: takes back a Stop the last service stored for this device (ChargeLiveHold bounds its age). */
+    /** Once per service: takes back the Stops the last service stored for this device (ChargeLiveHold bounds their age and number). */
     private void restoreChargeLiveStopped(){
         if(chargeLiveRestored||settings==null)return;
         chargeLiveRestored=true;
-        String profile=settings.getString(CHARGE_LIVE_STOPPED_PROFILE,null);
-        if(profile!=null)chargeLive.restoreStopped(profile,settings.getInt(CHARGE_LIVE_STOPPED_BEST,-1),
-                System.currentTimeMillis()-settings.getLong(CHARGE_LIVE_STOPPED_WALL,0),SystemClock.elapsedRealtime());
+        long nowWall=System.currentTimeMillis(),nowMono=SystemClock.elapsedRealtime();
+        String saved=settings.getString(CHARGE_LIVE_STOPPED,null);
+        if(saved!=null)try{
+            JSONObject stored=new JSONObject(saved);
+            for(Iterator<String> ids=stored.keys();ids.hasNext();){
+                String id=ids.next();JSONObject stop=stored.optJSONObject(id);
+                if(stop!=null&&stop.has("wall"))chargeLive.restoreStopped(id,stop.optInt("best",-1),nowWall-stop.optLong("wall",0),nowMono);
+            }
+        }catch(JSONException damaged){}// Nothing usable: no Stop to keep.
         saveChargeLiveStopped();
     }
-    /** Stores the Stop that still counts, or removes it once the charge is over; writes only when it changed. */
+    /** Stores the Stops that still count, or removes the entry once none does; writes only when they changed. */
     private void saveChargeLiveStopped(){
         if(settings==null||!chargeLiveRestored)return;
-        ChargeLiveHold.Stopped stopped=chargeLive.stopped(SystemClock.elapsedRealtime());
-        java.util.List<Object> key=stopped==null?java.util.Collections.emptyList():java.util.Arrays.asList(stopped.profile,stopped.best);
+        List<ChargeLiveHold.Stopped> stopped=chargeLive.stopped(SystemClock.elapsedRealtime());
+        List<Object> key=new ArrayList<>();
+        for(ChargeLiveHold.Stopped stop:stopped){key.add(stop.profile);key.add(stop.best);}
         if(key.equals(chargeLiveSaved))return;
         chargeLiveSaved=key;
-        SharedPreferences.Editor edit=settings.edit();
-        if(stopped==null)edit.remove(CHARGE_LIVE_STOPPED_PROFILE).remove(CHARGE_LIVE_STOPPED_BEST).remove(CHARGE_LIVE_STOPPED_WALL);
-        else edit.putString(CHARGE_LIVE_STOPPED_PROFILE,stopped.profile).putInt(CHARGE_LIVE_STOPPED_BEST,stopped.best)
-                .putLong(CHARGE_LIVE_STOPPED_WALL,System.currentTimeMillis()-stopped.ageMs);
-        edit.apply();
+        if(stopped.isEmpty()){settings.edit().remove(CHARGE_LIVE_STOPPED).apply();return;}
+        JSONObject out=new JSONObject();long nowWall=System.currentTimeMillis();
+        try{for(ChargeLiveHold.Stopped stop:stopped)out.put(stop.profile,new JSONObject().put("best",stop.best).put("wall",nowWall-stop.ageMs));}
+        catch(JSONException impossible){return;}
+        settings.edit().putString(CHARGE_LIVE_STOPPED,out.toString()).apply();
     }
     /** Stop on the card: Volt's own hold and card end. No scooter command is sent. */
     private void stopChargeLive(){
