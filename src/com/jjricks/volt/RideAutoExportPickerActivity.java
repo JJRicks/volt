@@ -62,6 +62,7 @@ public final class RideAutoExportPickerActivity extends Activity {
 
     /** No folder was kept; the setting stays as it was. */
     private void refused(Refusal why) {
+        android.widget.Toast.makeText(getApplicationContext(), why == Refusal.NO_PICKER ? T.moreAutoSaveNoPicker() : T.moreAutoSaveNotKept(), android.widget.Toast.LENGTH_LONG).show();
         android.util.Log.w("Volt", "Ride auto-export picker: " + why);
     }
 

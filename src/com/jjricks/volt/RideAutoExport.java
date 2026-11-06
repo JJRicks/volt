@@ -71,6 +71,29 @@ final class RideAutoExport {
         return RowState.SAVING;
     }
 
+    /**
+     * Whether a pass's failure posts the notice: never while Volt is visible (the row shows it), and once per run of
+     * one stored failure kind. before is the stored failure when the pass started; notified is what notifiedAfter kept
+     * from earlier passes in this service run. A failure first stored while Volt was open was never posted, so the
+     * same failure on a later hidden ride still is. With nothing stored before the pass, notified is stale (both
+     * switches off clear the stored failure without a pass), and a hidden failure always posts.
+     */
+    static boolean notifies(Problem before, Problem after, Problem notified, boolean visible) {
+        if (after == Problem.NONE || visible) return false;
+        return before == Problem.NONE || after != notified;
+    }
+
+    /**
+     * The posted kind to keep after a pass: the kind it just posted, NONE after a success, and NONE when the stored
+     * failure changed kind without a notice (Volt was visible), since the kind posted before then no longer applies.
+     * Otherwise the stored failure carried on unchanged, and so does what was posted for it.
+     */
+    static Problem notifiedAfter(Problem before, Problem after, Problem notified, boolean visible) {
+        if (after == Problem.NONE) return Problem.NONE;
+        if (notifies(before, after, notified, visible)) return after;
+        return after != before ? Problem.NONE : notified;
+    }
+
     /** The manual exports' name prefix: ride-&lt;first 8 characters of the id&gt;. */
     private static String prefix(String rideId) { return "ride-" + rideId.substring(0, Math.min(8, rideId.length())); }
     /** Rides, Export phone data, Route CSV. */
