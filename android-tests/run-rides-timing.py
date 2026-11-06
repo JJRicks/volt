@@ -28,7 +28,8 @@ output = pathlib.Path(args.out).resolve()
 output.mkdir(parents=True, exist_ok=True)
 CLASS = "com.jjricks.volt.tests/com.jjricks.volt.tests.RidesTimingValidation"
 # Plan budgets (quick-fixes PR 1): first row within 300 ms cold and 150 ms warm, no main-thread stall over 250 ms.
-BUDGETS = {"rides_cold_first_row_ms": 300, "rides_warm_first_row_ms": 150,
+# first_row is the first frame after the tap (skeleton rows when the list loads on a worker); rows is the real rows.
+BUDGETS = {"rides_cold_first_row_ms": 300, "rides_warm_first_row_ms": 150, "rides_warm_rows_ms": 150,
            "rides_cold_longest_main_message_ms": 250, "rides_warm_longest_main_message_ms": 250}
 
 
