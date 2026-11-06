@@ -1000,7 +1000,8 @@ public final class ScooterService extends Service {
     /** The battery reads Volt already makes, as the hold sees them: fresh and from the selected scooter, else null. */
     private ChargeLiveHold.Facts chargeLiveFacts(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active(),bound=ble==null?null:ble.profile();
-        boolean connected=!destroyed&&ble!=null&&!simulating()&&profile!=null&&ble.ready()&&bound!=null&&bound.id.equals(profile.id);
+        // linked(), not ready(): out of sight status comes every 15 s, and ready()'s 7 s window would read that as out of reach.
+        boolean connected=!destroyed&&ble!=null&&!simulating()&&profile!=null&&ble.linked()&&bound!=null&&bound.id.equals(profile.id);
         Telemetry.Metric state=null,soc=null,limit=null;
         if(connected)for(Telemetry.Metric m:ble.telemetry.metrics()){
             if(m.key.equals("charging_state"))state=m;
@@ -1336,7 +1337,7 @@ public final class ScooterService extends Service {
             if(alertPolicy!=null&&(profile==null||simulating()||!alertPolicy.settings().any()||!ChargeAlertPolicy.offered(alertDescriptor(profile))))alertPolicy.idle();
             else if(alertPolicy!=null){
                 ScooterProfiles.Profile bound=ble.profile();
-                ChargeAlertPolicy.Link link=ble.ready()&&bound!=null&&bound.id.equals(profile.id)?ChargeAlertPolicy.Link.CONNECTED
+                ChargeAlertPolicy.Link link=ble.linked()&&bound!=null&&bound.id.equals(profile.id)?ChargeAlertPolicy.Link.CONNECTED
                         :ble.recoverableConnectionLoss()&&ble.permissions()&&ble.bluetoothEnabled()?ChargeAlertPolicy.Link.RECONNECTING:ChargeAlertPolicy.Link.LOST;
                 Telemetry.Metric state=null,soc=null;
                 for(Telemetry.Metric m:ble.telemetry.metrics()){if(m.key.equals("charging_state"))state=m;else if(m.key.equals("battery_percent"))soc=m;}
@@ -1598,9 +1599,12 @@ public final class ScooterService extends Service {
                 &&now-value.mono<=TelemetryHistory.freshnessMs(key);
     }
 
-    /** Losing readiness or charging freshness invalidates grace even when no widget is open. */
+    /**
+     * Losing readiness or charging freshness invalidates grace even when no widget is open. linked(), so a background
+     * link between its 15 s status reads keeps the gate: the live card's time left must not switch estimates every poll.
+     */
     private boolean canRetainStockReference(){
-        if(destroyed||simulating()||ble==null||!ble.ready()||profiles.active()==null||ble.profile()==null
+        if(destroyed||simulating()||ble==null||!ble.linked()||profiles.active()==null||ble.profile()==null
                 ||!profiles.active().id.equals(ble.profile().id))return false;
         long now=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> values=new HashMap<>();
