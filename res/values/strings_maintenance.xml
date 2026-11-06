@@ -47,6 +47,11 @@
     <string name="maintenance_manual_title" volt:screen="Maintenance" volt:purpose="section label">From the %1$s manual</string>
     <string name="maintenance_manual_title_unknown" volt:screen="Maintenance" volt:purpose="section label">From the manual</string>
     <string name="maintenance_manual_none" volt:screen="Maintenance" volt:purpose="explanation">No intervals listed yet. Volt lists a manual\'s intervals only with the page they come from, so for now you choose how often.</string>
+    <string name="maintenance_manual_listed" volt:screen="Maintenance" volt:purpose="explanation">What the manual recommends. Add one to get a reminder for it.</string>
+    <!-- %1$s is the manual's title, %2$s its edition or date, %3$s the page, as printed. -->
+    <string name="maintenance_manual_source" volt:screen="Maintenance" volt:purpose="source caption">%1$s (%2$s), p. %3$s</string>
+    <string name="maintenance_manual_add" volt:screen="Maintenance" volt:purpose="button">Add</string>
+    <string name="maintenance_manual_added" volt:screen="Maintenance" volt:purpose="button state">Added</string>
     <string name="maintenance_manual_unknown" volt:screen="Maintenance" volt:purpose="explanation">Unknown model. Volt can list a manual\'s intervals once it knows which model this is.</string>
     <string name="maintenance_history" volt:screen="Maintenance" volt:purpose="section label">History</string>
     <plurals name="maintenance_history_done" volt:screen="Maintenance" volt:purpose="status">
@@ -168,8 +173,10 @@
     <string name="maintenance_name_empty" volt:screen="Add reminder" volt:purpose="field error">Enter a name or pick one.</string>
     <!-- Suggested task names (owner answer Q42). Names only: Volt never suggests how often. -->
     <string name="maintenance_task_tire_pressure" volt:screen="Maintenance" volt:purpose="task name">Tire pressure</string>
+    <string name="maintenance_task_tire_tread" volt:screen="Maintenance" volt:purpose="task name">Tire tread</string>
     <string name="maintenance_task_brakes" volt:screen="Maintenance" volt:purpose="task name">Brakes</string>
     <string name="maintenance_task_bolts_folding" volt:screen="Maintenance" volt:purpose="task name">Bolts &amp; folding</string>
+    <string name="maintenance_task_steering" volt:screen="Maintenance" volt:purpose="task name">Steering</string>
     <string name="maintenance_task_lights" volt:screen="Maintenance" volt:purpose="task name">Lights</string>
     <string name="maintenance_task_clean_dry" volt:screen="Maintenance" volt:purpose="task name">Clean &amp; dry</string>
     <string name="maintenance_task_battery_storage" volt:screen="Maintenance" volt:purpose="task name">Battery storage</string>
