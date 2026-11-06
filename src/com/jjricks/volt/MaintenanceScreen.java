@@ -51,7 +51,8 @@ final class MaintenanceScreen {
     private static final String TAG_SWITCH = "maintenance_switch", TAG_ADD = "maintenance_add", TAG_SAVE = "maintenance_save",
             TAG_NAME = "maintenance_name", TAG_DISTANCE = "maintenance_distance", TAG_TIME = "maintenance_time",
             TAG_DONE = "maintenance_mark_done", TAG_SNOOZE = "maintenance_snooze", TAG_DUE = "maintenance_due_card",
-            TAG_CONFIRM = "maintenance_confirm", TAG_DELETE = "maintenance_delete", TAG_EDIT = "maintenance_edit";
+            TAG_CONFIRM = "maintenance_confirm", TAG_DELETE = "maintenance_delete", TAG_EDIT = "maintenance_edit",
+            TAG_MODE = "maintenance_mode", TAG_UNIT = "maintenance_unit", TAG_CHANGE = "maintenance_change";
 
     private final ScreenHost host;
     private final Ui ui;
@@ -531,7 +532,7 @@ final class MaintenanceScreen {
         TextView[] unitChips = new TextView[3];
         for (int i = 0; i < 3; i++) {
             int value = unitValues[i];
-            unitChips[i] = ui.chip(unitNames[i], unit[0] == value, null);
+            unitChips[i] = ui.chip(unitNames[i], unit[0] == value, null); unitChips[i].setTag(TAG_UNIT + value);
             unitChips[i].setOnClickListener(v -> { unit[0] = value; for (int j = 0; j < 3; j++) ui.styleChip(unitChips[j], unitValues[j] == value); });
             units3.addView(unitChips[i]);
         }
@@ -580,7 +581,7 @@ final class MaintenanceScreen {
         };
         for (int i = 0; i < 3; i++) {
             int index = i;
-            modeChips[i] = ui.chip(modeNames[i], mode[0] == i, () -> { mode[0] = index; showMode.run(); });
+            modeChips[i] = ui.chip(modeNames[i], mode[0] == i, () -> { mode[0] = index; showMode.run(); }); modeChips[i].setTag(TAG_MODE + i);
             // Distance and Either need an odometer reading first; time reminders always work.
             boolean allowed = i == 1 || read || existing != null && existing.byDistance();
             modeChips[i].setEnabled(allowed); if (!allowed) modeChips[i].setAlpha(0.45f);
@@ -712,7 +713,7 @@ final class MaintenanceScreen {
         final long[] when = {System.currentTimeMillis()};
         final boolean[] earlier = {false};
         LinearLayout pastBox = column(); pastBox.setVisibility(View.GONE);
-        TextView change = pill(T.maintenanceChange(), null, false, null);
+        TextView change = pill(T.maintenanceChange(), null, false, null); change.setTag(TAG_CHANGE);
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, -2); cp.topMargin = ui.dp(8); content.addView(change, cp);
         pastBox.addView(fieldLabel(T.maintenanceDate()));
         TextView dateButton = ui.secondaryButton(date(when[0]), null);
@@ -806,6 +807,7 @@ final class MaintenanceScreen {
 
     private static final WeakHashMap<View, Drawable> DOTS = new WeakHashMap<>();
     private static final WeakHashMap<View, CharSequence> SPOKEN = new WeakHashMap<>();
+    private static final WeakHashMap<View, View.OnLayoutChangeListener> PLACERS = new WeakHashMap<>();
 
     /**
      * Shows or hides a small red dot on the Scooter tab (owner answer Q39 B). On the phone's raised Scooter
@@ -818,7 +820,7 @@ final class MaintenanceScreen {
         if (!SPOKEN.containsKey(tab)) SPOKEN.put(tab, tab.getContentDescription());
         CharSequence label = SPOKEN.get(tab);
         if (!due) {
-            if (dot != null) { tab.getOverlay().remove(dot); DOTS.remove(tab); }
+            if (dot != null) { tab.getOverlay().remove(dot); DOTS.remove(tab); tab.removeOnLayoutChangeListener(PLACERS.remove(tab)); }
             tab.setContentDescription(label);
             return;
         }
@@ -826,7 +828,6 @@ final class MaintenanceScreen {
         if (dot != null) return;
         GradientDrawable made = new GradientDrawable(); made.setShape(GradientDrawable.OVAL); made.setColor(ui.accent); made.setStroke(ui.dp(2), ui.bg);
         DOTS.put(tab, made);
-        tab.getOverlay().add(made);
         Runnable place = () -> {
             View icon = !corner && tab instanceof ViewGroup && ((ViewGroup) tab).getChildCount() > 0 ? ((ViewGroup) tab).getChildAt(0) : tab;
             int size = ui.dp(12);
@@ -835,8 +836,12 @@ final class MaintenanceScreen {
             if (icon == tab) { x = rtl ? ui.dp(2) : tab.getWidth() - size - ui.dp(2); y = ui.dp(2); }
             else { x = rtl ? icon.getLeft() - size / 2 : icon.getRight() - size / 2; y = Math.max(0, icon.getTop() - size / 3); }
             made.setBounds(x, y, x + size, y + size);
+            tab.invalidate();
         };
-        tab.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> place.run());
+        // Bounds first: the overlay redraws only the area the drawable covers when it is added.
         place.run();
+        tab.getOverlay().add(made);
+        View.OnLayoutChangeListener placer = (v, l, t, r, b, ol, ot, or, ob) -> place.run();
+        PLACERS.put(tab, placer); tab.addOnLayoutChangeListener(placer);
     }
 }
