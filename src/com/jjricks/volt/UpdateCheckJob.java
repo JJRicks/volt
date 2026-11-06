@@ -88,8 +88,12 @@ public final class UpdateCheckJob extends JobService {
         settings.edit().putLong(UpdateSchedule.LAST, now).apply();
         if (result == null || result.outcome != UpdateCheck.Outcome.AVAILABLE) return;
         String told = settings.getString(UpdateSchedule.TOLD, "");
-        if (UpdateSchedule.announce(result.latest, told) && notifyAvailable(context, result.latest))
-            settings.edit().putString(UpdateSchedule.TOLD, result.latest).apply();
+        if (UpdateSchedule.announce(result.latest, told) && notifyAvailable(context, result.latest)) seen(settings, result.latest);
+    }
+
+    /** The owner saw this version (a notice, or the manual check's dialog): it is not announced again. */
+    static void seen(SharedPreferences settings, String latest) {
+        settings.edit().putString(UpdateSchedule.TOLD, UpdateSchedule.told(latest, settings.getString(UpdateSchedule.TOLD, ""))).apply();
     }
 
     /** Posts the quiet notice; false when Android would not show it, so the next day's check can try again. */

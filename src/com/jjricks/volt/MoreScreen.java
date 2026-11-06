@@ -2249,8 +2249,7 @@ public final class MoreScreen implements AppScreen {
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
             // Seen here: the automatic check does not announce this version again.
-            SharedPreferences settings = settings();
-            settings.edit().putString(UpdateSchedule.TOLD, UpdateSchedule.told(r.latest, settings.getString(UpdateSchedule.TOLD, ""))).apply();
+            UpdateCheckJob.seen(settings(), r.latest);
             box = dialogBox(T.moreUpdateAvailable(r.latest), T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
