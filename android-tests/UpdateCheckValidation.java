@@ -68,6 +68,8 @@ public final class UpdateCheckValidation extends Instrumentation {
                 }
             });
             main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(more(), "selectSection", new Class<?>[]{String.class}, "About"); more().refresh(); });
+            // Check for updates now sits in More's own Updates section, in the menu: on a phone, Back from About shows it.
+            main(() -> more().back());
             await(() -> tag("check-updates") != null && tag("check-updates").isShown(), "Check for updates is not in About & permissions");
 
             reply.set(release("v9.9.9", PAGE));

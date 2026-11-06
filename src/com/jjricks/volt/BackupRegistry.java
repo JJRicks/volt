@@ -65,6 +65,10 @@ final class BackupRegistry {
         add(app, "ride_export_choice", String.class, PREFERENCES);
         exclude(app, "ride_export_folder_hint", String.class, PERMISSION);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // The automatic update check (UpdateCheckJob): the switch travels; when it last ran and what it announced stay here.
+        add(app, "update_auto_check", Boolean.class, PREFERENCES);
+        exclude(app, "update_auto_last", Long.class, DEVICE);
+        exclude(app, "update_auto_told", String.class, DEVICE);
         // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
         add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
         add(app, "charge_live_lock_detail", String.class, PREFERENCES);

@@ -234,8 +234,25 @@ public final class MainActivity extends Activity implements ScreenHost {
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
+        if(saved==null&&UpdateCheckJob.opened(getIntent()))openUpdateCheck(false);
         rebuild();
     }
+    /** The automatic update check's notice was tapped while Volt was open. */
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        if(!startupRedirect&&preferences!=null&&UpdateCheckJob.opened(intent))openUpdateCheck(true);
+    }
+    /** More's menu, then the manual update check's dialog once More is on screen (showUpdateCheck). */
+    private void openUpdateCheck(boolean now){
+        updateCheckPending=true;
+        if(now)openMoreSection("");
+        else{selectedPage="more";preferences.edit().putString("more_section","").apply();}
+    }
+    private void showUpdateCheck(){
+        if(!updateCheckPending||!(screen instanceof MoreScreen))return;
+        updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
+    }
+    private boolean updateCheckPending;
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
@@ -463,6 +480,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         styleSystemBars();
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
         rebuilding=false;redraw();
+        showUpdateCheck();
     }
     private void styleSystemBars(){
         // Samsung's Window getter can dereference a missing decor during onCreate.
