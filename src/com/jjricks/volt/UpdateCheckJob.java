@@ -20,7 +20,8 @@ import android.content.SharedPreferences;
  * quiet notification on its own low-importance channel; tapping it opens MainActivity, which runs the manual check's
  * dialog. No push service, no Firebase.
  *
- * The job is not persisted, so Volt needs no boot permission: VoltApp re-schedules it (sync) whenever Volt's process
+ * Its network constraint needs ACCESS_NETWORK_STATE, an install-time permission with no prompt. The job is not
+ * persisted, so Volt needs no boot permission: VoltApp re-schedules it (sync) whenever Volt's process
  * starts, so after a phone restart the daily check resumes the next time Volt runs.
  */
 public final class UpdateCheckJob extends JobService {
@@ -47,16 +48,20 @@ public final class UpdateCheckJob extends JobService {
             if (!enabled(settings)) jobs.cancel(JOB_ID);
             else if (jobs.getPendingJob(JOB_ID) == null) schedule(context, settings);
         } catch (RuntimeException unavailable) {
-            // JobScheduler can refuse (too many jobs); the switch stays as it is and the next start tries again.
+            // As in schedule: the next start tries again.
         }
     }
-    /** The next check: once the day since the last one has passed, on any network. */
+    /** The next check: once the day since the last one has passed, on any network (ACCESS_NETWORK_STATE, no prompt). Never throws. */
     static void schedule(Context context, SharedPreferences settings) {
         JobScheduler jobs = context.getSystemService(JobScheduler.class);
         if (jobs == null) return;
         long wait = UpdateSchedule.wait(settings.getLong(UpdateSchedule.LAST, 0), System.currentTimeMillis());
-        jobs.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(context, UpdateCheckJob.class))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setMinimumLatency(wait).build());
+        try {
+            jobs.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(context, UpdateCheckJob.class))
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setMinimumLatency(wait).build());
+        } catch (RuntimeException refused) {
+            // JobScheduler can refuse (too many jobs); the switch stays on and the next process start tries again (sync).
+        }
     }
     static void cancel(Context context) {
         JobScheduler jobs = context.getSystemService(JobScheduler.class);
