@@ -238,6 +238,7 @@ public final class RidingBrightnessTest {
     }
 
     private static void rotation() {
+        check(!RidingBars.hidesStatusBar(null) && !RidingBars.hidesStatusBar(false) && RidingBars.hidesStatusBar(true), "Hide status bar is off unless chosen");
         check(RidingRotation.locks(null) && RidingRotation.locks(RidingRotation.LOCK), "Lock on open is the default (owner Q14 A)");
         check(!RidingRotation.locks(RidingRotation.FOLLOW), "Follow phone turns");
         check(RidingRotation.locks("portrait"), "unknown locks");
@@ -259,7 +260,7 @@ public final class RidingBrightnessTest {
         String display = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingDisplay.java")), StandardCharsets.UTF_8);
         check(display.contains("attributes.screenBrightness"), "RidingDisplay sets the window's brightness");
         // The status bar stays by default (#254); only the owner's setting hides it, and leaving shows it again.
-        check(display.contains("preferences.getBoolean(HIDE_STATUS_BAR_KEY, false)"), "Hide status bar is off by default");
+        check(display.contains("preferences.getBoolean(RidingBars.HIDE_STATUS_BAR_KEY, false)"), "Hide status bar is off by default");
         check(display.contains("if (hidesStatusBar) statusBar(true);"), "leaving shows the status bar it hid");
     }
 

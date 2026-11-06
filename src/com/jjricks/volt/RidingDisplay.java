@@ -35,8 +35,6 @@ import android.widget.LinearLayout;
  * resumed and Volt auto is chosen.
  */
 final class RidingDisplay {
-    /** More → Riding mode: hide the status bar too (default off). */
-    static final String HIDE_STATUS_BAR_KEY = "riding_hide_status_bar";
     /** The one attached display: a rebuild's old screen can't undo the new one's window state. */
     private static RidingDisplay current;
 
@@ -106,7 +104,7 @@ final class RidingDisplay {
         previousOrientation = activity.getRequestedOrientation();
         if (RidingRotation.locks(preferences.getString(RidingRotation.KEY, RidingRotation.LOCK)))
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
-        hidesStatusBar = preferences.getBoolean(HIDE_STATUS_BAR_KEY, false);
+        hidesStatusBar = preferences.getBoolean(RidingBars.HIDE_STATUS_BAR_KEY, false);
         // Like MainActivity's bar styling, this waits until the screen is attached (Samsung's decor getter).
         if (hidesStatusBar) controls.post(() -> { if (!detached && current == this) statusBar(false); });
         activity.getApplication().registerActivityLifecycleCallbacks(lifecycle);

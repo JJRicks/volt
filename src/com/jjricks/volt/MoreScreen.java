@@ -1059,7 +1059,7 @@ public final class MoreScreen implements AppScreen {
         box.setTag("preference_riding_display");
         // Off by default: the status bar keeps the phone's clock and battery (#254). Applies on the next entry.
         Row hideBar = preferenceToggle(box, "screen", T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(),
-                RidingDisplay.HIDE_STATUS_BAR_KEY, false);
+                RidingBars.HIDE_STATUS_BAR_KEY, false);
         hideBar.view.setTag("preference_riding_hide_status_bar");
         RidingBrightness.Store store = RidingDisplay.settings(settings());
         Runnable[] showReset = new Runnable[1];
