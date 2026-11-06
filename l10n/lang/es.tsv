@@ -1,11 +1,11 @@
-# Spanish (es). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# Spanish (es). Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/es/); ships as beta.
 # percent_style has a no-break space (U+00A0) between the number and the sign, so a label can't wrap them apart. decimal_style is an example of the separators; four-digit numbers take no separator in text (1234,5).
 field	value
 tag	es
 folder	values-es
 endonym	Español
 wave	pilot
-status	draft
+status	beta
 formality	tú
 plurals	one,many,other
 quote_style	«…» “…”
