@@ -23,8 +23,11 @@ final class ScooterMenuLayout {
     /** Per scooter in app_settings, like the dashboard ({@code dashboard_v1_<pid>}); BackupRegistry. */
     static final String PREFIX = "scooter_menu_v1_";
     static final int VERSION = 1;
-    /** The top speed card is a one-row section of its own (owner, Q36 A). */
-    static final String TOP_SPEED_SECTION = "Top speed", TOP_SPEED = "top_speed";
+    /**
+     * The top speed card is a one-row section of its own (owner, Q36 A). Other section ids are the groups'
+     * English names (MainActivity.settingsGroups); this one is new, so it is a plain id. PR 2 names it on screen.
+     */
+    static final String TOP_SPEED_SECTION = "speed", TOP_SPEED = "top_speed";
     /** Ids of the hand-built rows; feature rows use their feature key. "Done by" rows follow their parent. */
     static final String HEADLIGHT_INFO = "headlight_info", LIGHT_ZONES = "light_zones", CLOCK_SYNC = "clock_sync", SCHEDULE_TEST = "schedule_test",
             CHARGER = "charger", CHARGE_ALERT = "charge_alert", LOW_ALERT = "low_alert", SECURITY_LINK = "security_link", SCOOTER_NAME = "scooter_name";

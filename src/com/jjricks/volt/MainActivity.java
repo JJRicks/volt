@@ -1520,7 +1520,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         private void menuRow(String id,View card){menuViews.put(id,card);menuIds.put(card,id);}
         /** The Lights page's line and star zones: not part of the menu layout (owner, Q38 B), they always follow Lights. */
-        private boolean zoneSection(String name){return name.equals("Line lights")||name.equals("Star lights");}
+        private boolean zoneSection(String name){for(String zone:zoneSections())if(zone.equals(name))return true;return false;}
+        private String[] zoneSections(){return new String[]{M.mainGroupLineLights().english(),M.mainGroupStarLights().english()};}
         /** Loads the active scooter's menu layout when the scooter changes; true when it did. */
         private boolean syncMenu(){
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();String id=profile==null?"":profile.id;
@@ -1572,7 +1573,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(name.equals(ScooterMenuLayout.TOP_SPEED_SECTION)){names.add(name);out.add(topSpeed.card);continue;}
                 if(!sections.containsKey(name))continue;
                 names.add(name);out.add(sections.get(name));
-                if(name.equals(GROUP_LIGHTS))for(String zone:new String[]{"Line lights","Star lights"}){names.add(zone);out.add(sections.get(zone));}
+                if(name.equals(GROUP_LIGHTS))for(String zone:zoneSections()){names.add(zone);out.add(sections.get(zone));}
             }
             return out;
         }

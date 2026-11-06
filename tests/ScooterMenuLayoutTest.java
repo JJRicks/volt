@@ -21,7 +21,7 @@ public final class ScooterMenuLayoutTest {
     /** Shaped like today's Scooter page (ControlsScreen builds the real one from its own code order). */
     private static LinkedHashMap<String, List<String>> today() {
         LinkedHashMap<String, List<String>> d = new LinkedHashMap<>();
-        d.put("Top speed", Collections.singletonList("top_speed"));
+        d.put("speed", Collections.singletonList("top_speed"));
         d.put("Ride", Arrays.asList("cruise_control", "energy_recovery", "traction_control", "hill_start_assist", "start_speed", "maximum_speed"));
         d.put("Battery", Arrays.asList("charge_limit", "low_power", "timed_charging", "charge_start", "clock_sync", "schedule_test", "charger", "charge_alert", "low_alert"));
         d.put("Lights", Arrays.asList("headlight_info", "auto_sensor", "headlight", "light_zones"));
@@ -51,11 +51,11 @@ public final class ScooterMenuLayoutTest {
 
     private static void changes() {
         ScooterMenuLayout layout = ScooterMenuLayout.defaults(today());
-        check(!layout.moveSection("Top speed", -1), "the first section can't move up");
+        check(!layout.moveSection("speed", -1), "the first section can't move up");
         check(!layout.moveSection("Profile", 1), "the last section can't move down");
         check(!layout.moveSection("Nowhere", 1), "an unknown section doesn't move");
-        check(layout.moveSection("Battery", -1) && layout.sections().subList(0, 3).equals(Arrays.asList("Top speed", "Battery", "Ride")), "Battery moves above Ride");
-        check(layout.moveSectionTo("Top speed", 2) && layout.sections().subList(0, 3).equals(Arrays.asList("Battery", "Ride", "Top speed")), "Top speed moves below Ride (its own section)");
+        check(layout.moveSection("Battery", -1) && layout.sections().subList(0, 3).equals(Arrays.asList("speed", "Battery", "Ride")), "Battery moves above Ride");
+        check(layout.moveSectionTo("speed", 2) && layout.sections().subList(0, 3).equals(Arrays.asList("Battery", "Ride", "speed")), "Top speed moves below Ride (its own section)");
         check(layout.moveSection("Profile", -99) && layout.sections().get(0).equals("Profile"), "moves clamp at the top");
         check(layout.moveSection("Profile", 99) && layout.sections().get(layout.sections().size() - 1).equals("Profile"), "and at the bottom");
         check(layout.moveRow("Ride", "traction_control", -2) && layout.rows("Ride").get(0).equals("traction_control"), "a row moves within its section");
@@ -67,7 +67,7 @@ public final class ScooterMenuLayoutTest {
         // Nothing is locked from hiding (owner, Q33 A), not even Security.
         check(layout.hide("Security") && layout.sectionHidden("Security") && !layout.hide("Security"), "a section hides once");
         check(layout.hide("security_link") && layout.hide("hill_descent_control") == false, "a row hides; an id this menu lacks doesn't");
-        check(layout.hide("top_speed") && layout.hidden("Top speed", "top_speed"), "the top speed card hides");
+        check(layout.hide("top_speed") && layout.hidden("speed", "top_speed"), "the top speed card hides");
         check(layout.hidden("Security", "lock_expiry") && !layout.rowHidden("lock_expiry"), "a hidden section hides its rows without flagging them");
         check(layout.hiddenCount(new HashSet<>(layout.known())) == 2 && layout.hiddenCount(new HashSet<>(Arrays.asList("cruise_control"))) == 0, "a hidden section counts once, a hidden row outside it once; only offered rows count");
         List<String> securityRows = new ArrayList<>(layout.rows("Security"));
@@ -105,7 +105,7 @@ public final class ScooterMenuLayoutTest {
         // A newer app: a row after energy_recovery, one after a hidden row, one with no predecessor, one whose
         // predecessor was removed, a new section after Lights, and a removed row (start_speed).
         LinkedHashMap<String, List<String>> next = new LinkedHashMap<>();
-        next.put("Top speed", Collections.singletonList("top_speed"));
+        next.put("speed", Collections.singletonList("top_speed"));
         next.put("Ride", Arrays.asList("first_new", "cruise_control", "energy_recovery", "after_energy", "traction_control", "hill_start_assist", "after_hidden", "maximum_speed"));
         next.put("Battery", Arrays.asList("charge_limit", "low_power", "timed_charging", "charge_start", "clock_sync", "schedule_test", "charger", "charge_alert", "low_alert"));
         next.put("Lights", Arrays.asList("headlight_info", "auto_sensor", "headlight", "light_zones"));
@@ -119,7 +119,7 @@ public final class ScooterMenuLayoutTest {
         check(!layout.rowHidden("after_hidden") && layout.rowHidden("hill_start_assist"), "a new row is shown; the saved hidden row stays hidden");
         check(!layout.rows("Ride").contains("start_speed"), "a removed row leaves the order");
         check(layout.known().contains("start_speed") && layout.known().contains("lab_row"), "known keeps removed ids and gains new ones");
-        check(layout.sections().equals(Arrays.asList("Top speed", "Profile", "Ride", "Battery", "Lights", "Lab", "Dashboard & sound", "Security")), "a new section lands after its default predecessor: " + layout.sections());
+        check(layout.sections().equals(Arrays.asList("speed", "Profile", "Ride", "Battery", "Lights", "Lab", "Dashboard & sound", "Security")), "a new section lands after its default predecessor: " + layout.sections());
 
         // A new row whose default predecessor is itself gone: it walks further back.
         LinkedHashMap<String, List<String>> later = new LinkedHashMap<>(old);
@@ -149,8 +149,8 @@ public final class ScooterMenuLayoutTest {
             ScooterMenuLayout layout = ScooterMenuLayout.resolve(d, bad);
             check(layout.isDefault(), "unreadable or foreign text gives the default menu: " + bad);
         }
-        ScooterMenuLayout odd = ScooterMenuLayout.resolve(d, "{\"v\":1,\"sections\":[\"Ride\",3,\"\",\"Ride\",\"Top speed\"],\"rows\":{\"Ride\":[\"maximum_speed\",\"cruise_control\",null],\"Nowhere\":[\"x\"]},\"hiddenRows\":[\"turn_sound\",5]}");
-        check(odd.sections().indexOf("Ride") < odd.sections().indexOf("Top speed") && odd.rows("Ride").get(0).equals("maximum_speed") && odd.rowHidden("turn_sound"), "stray values are skipped, the rest applies: " + odd.sections());
+        ScooterMenuLayout odd = ScooterMenuLayout.resolve(d, "{\"v\":1,\"sections\":[\"Ride\",3,\"\",\"Ride\",\"speed\"],\"rows\":{\"Ride\":[\"maximum_speed\",\"cruise_control\",null],\"Nowhere\":[\"x\"]},\"hiddenRows\":[\"turn_sound\",5]}");
+        check(odd.sections().indexOf("Ride") < odd.sections().indexOf("speed") && odd.rows("Ride").get(0).equals("maximum_speed") && odd.rowHidden("turn_sound"), "stray values are skipped, the rest applies: " + odd.sections());
     }
 
     private static void wideColumns() {
@@ -159,7 +159,7 @@ public final class ScooterMenuLayoutTest {
         layout.hide("Ride");
         check(layout.wideLeftCount() == 3, "a hidden first section doesn't fill the left column");
         layout.reset();
-        layout.moveSection("Top speed", 3);
+        layout.moveSection("speed", 3);
         check(layout.wideLeftCount() == 1, "Ride first: only Ride on the left");
     }
 
