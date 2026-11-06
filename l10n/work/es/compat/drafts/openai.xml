@@ -193,7 +193,7 @@
     <string name="compat_field_slope_assist" volt:src="40df7d5e809b5d5f4d2b7142e582bdbf1428792a">Ajustes de asistencia</string>
     <string name="compat_field_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modo de gran autonomía</string>
     <string name="compat_field_overspeed_control" volt:src="62129dd7be5c7491da7c0e3dd74368ed8b8bb65d">Control activo de exceso de velocidad</string>
-    <string name="compat_field_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90">Límite de velocidad del modo de conducción</string>
+    <string name="compat_field_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90" volt:attempt="2">Límite de velocidad del modo de conducción Drive</string>
     <string name="compat_field_lighting_byte" volt:src="06ce2a818c8506cd9f1252d5101ef27182dd50d2">Byte de iluminación %1$d (en bruto)</string>
     <string name="compat_field_osa_flag" volt:src="a8c63a17cda5b5a245b36b12949fb5ee4297731e">Indicador OSA (sin interpretar)</string>
     <string name="compat_field_byte_41" volt:src="e7691a3e7f7d2fe48c8452a0ed69afc4c9e58658">Byte 41 (sin leer)</string>
