@@ -52,6 +52,8 @@ final class RidingLayout {
             TRACE_SPEED = "trace_speed", RECORD = "record", STATUS = "status";
     // Switches.
     static final String POWER_BAR = "power_bar", CHIPS = "chips";
+    /** Speed and range to tenths: on by default, with a switch in the layout editor (owner, Q23 B). */
+    static final String TENTHS = "tenths";
 
     /** One content item and the spot kinds that can hold it. */
     static final class Content {
@@ -133,7 +135,7 @@ final class RidingLayout {
                 spot("tile_2", Kind.TILE, TRIP),
                 spot("tile_3", Kind.TILE, RIDE_TIME),
                 spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE)},
-                new String[]{POWER_BAR}, new boolean[]{true}));
+                new String[]{POWER_BAR, TENTHS}, new boolean[]{true, true}));
         // Halo (concept-a-halo): speed in the ring, range under it, two tiles, a strip and chips.
         FRAME_DEFS.put(HALO, new Frame(HALO, new Spot[]{
                 spot("top", Kind.TOP, STATUS),
@@ -147,7 +149,7 @@ final class RidingLayout {
                 spot("chip_1", Kind.CHIP, DRIVE_MODE),
                 spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE),
                 spot("chip_3", Kind.CHIP, CLOCK)},
-                new String[]{POWER_BAR, CHIPS}, new boolean[]{true, true}));
+                new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
         // Trace (concept-c-trace): a 60 s chart across the screen under the big number.
         FRAME_DEFS.put(TRACE, new Frame(TRACE, new Spot[]{
                 spot("top", Kind.TOP, STATUS),
@@ -158,7 +160,7 @@ final class RidingLayout {
                 spot("trace", Kind.TRACE, TRACE_SPEED_POWER),
                 spot("chip_1", Kind.CHIP, DRIVE_MODE),
                 spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE)},
-                new String[]{POWER_BAR, CHIPS}, new boolean[]{true, true}));
+                new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
     }
 
     static Frame frameDef(String id) { return id == null ? null : FRAME_DEFS.get(id); }
