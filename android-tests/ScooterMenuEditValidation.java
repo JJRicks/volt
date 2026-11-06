@@ -40,6 +40,8 @@ import com.jjricks.volt.ScooterService;
  * touch drag moves it; the eye hides a row with an Undo
  * notice; Done shows the new order and the hidden row on the live page; rotation and an Activity rebuild keep the
  * editor open and the layout; Reset with Undo, Add back and Back. The editor sends no scooter command.
+ * After Done, the live page's edges (PR 3): the "1 setting hidden \u00b7 Edit" footer opens the editor, and search finds
+ * hidden settings with a Hidden caption.
  */
 public final class ScooterMenuEditValidation extends Instrumentation {
     private static final String PKG = "com.jjricks.volt";
@@ -66,6 +68,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             hideRow();
             rotateWhileEditing();
             done();
+            footerAndSearch();
             rebuildKeepsLayout();
             resetAndUndo();
             addBack();
@@ -273,6 +276,84 @@ public final class ScooterMenuEditValidation extends Instrumentation {
         });
         screenshot("live-edited");
         checks.add("Done: the live page shows " + MOVED + " before " + ABOVE + " and no " + ROW + " row; the editing flag clears");
+    }
+
+    // PR 3, the edges: the live page's footer and search over hidden settings.
+    private void footerAndSearch() throws Exception {
+        String dot = " \u00b7 ";
+        main(() -> {
+            require(footer().getVisibility() == View.VISIBLE, "No hidden-settings footer on the live page");
+            require(footer().getText().toString().equals("1 setting hidden" + dot + "Edit"), "Footer says " + footer().getText());
+            require(String.valueOf(footer().getContentDescription()).equals("1 setting hidden. Edit menu"), "Footer is read as " + footer().getContentDescription());
+            require(footer().getParent() == field(screen(), "page"), "Footer is not under the whole page");
+            View caption = card(ROW).findViewWithTag("menu_hidden_caption");
+            require(caption == null || caption.getVisibility() != View.VISIBLE, "Hidden caption outside a search");
+        });
+        main(() -> ((android.widget.ScrollView)field(activity, "scroll")).fullScroll(View.FOCUS_DOWN)); settle();
+        main(() -> require(footer().isShown() && onScreen(footer()), "Footer is not at the bottom of the page"));
+        screenshot("live-footer");
+        // Search still finds the hidden row: it says Hidden, and its control works.
+        main(() -> searchField().setText("traction")); settle();
+        main(() -> {
+            require(card(ROW).getVisibility() == View.VISIBLE, ROW + " not found by search");
+            View caption = card(ROW).findViewWithTag("menu_hidden_caption");
+            require(caption != null && caption.isShown(), "No Hidden caption on " + ROW);
+            require(((android.widget.TextView)caption).getText().toString().equals("Hidden"), "Caption says " + ((android.widget.TextView)caption).getText());
+            require(((View)field(row(ROW), "action")).isEnabled(), ROW + " is not usable from search");
+            require(footer().getVisibility() != View.VISIBLE, "Footer shown during a search");
+            require(editAction().getVisibility() != View.VISIBLE, "Pencil shown during a search");
+        });
+        main(() -> ((android.widget.ScrollView)field(activity, "scroll")).scrollTo(0, 0)); settle();
+        screenshot("search-hidden");
+        // A shown row found by the same kind of search has no caption.
+        main(() -> searchField().setText("cruise")); settle();
+        main(() -> {
+            require(card("cruise_control").getVisibility() == View.VISIBLE, "cruise_control not found by search");
+            View caption = card("cruise_control").findViewWithTag("menu_hidden_caption");
+            require(caption == null || caption.getVisibility() != View.VISIBLE, "Hidden caption on a shown row");
+        });
+        // A hidden section: search finds its rows, each captioned; the footer counts its rows.
+        main(() -> { invoke(menu(), "hide", new Class<?>[]{String.class}, "Battery"); invoke(screen(), "applyFilter"); });
+        main(() -> searchField().setText("charge")); settle();
+        main(() -> {
+            require(card("charge_limit").getVisibility() == View.VISIBLE, "charge_limit in a hidden section not found by search");
+            View caption = card("charge_limit").findViewWithTag("menu_hidden_caption");
+            require(caption != null && caption.isShown(), "No Hidden caption in a hidden section");
+        });
+        screenshot("search-hidden-section");
+        main(() -> invoke(screen(), "clearSearch")); settle();
+        main(() -> {
+            require(card("charge_limit").getVisibility() != View.VISIBLE, "Hidden section shown after the search");
+            String said = footer().getText().toString();
+            require(said.matches("[0-9]+ settings hidden" + dot + "Edit") && Integer.parseInt(said.split(" ")[0]) > 2, "Footer with a hidden section says " + said);
+        });
+        main(() -> { invoke(menu(), "show", new Class<?>[]{String.class}, "Battery"); invoke(screen(), "applyFilter"); }); settle();
+        main(() -> {
+            require(card(ROW).getVisibility() != View.VISIBLE, ROW + " shown after the search");
+            require(footer().getVisibility() == View.VISIBLE && footer().getText().toString().startsWith("1 setting hidden"), "Footer after the search says " + footer().getText());
+        });
+        // Not on the Lights page.
+        main(() -> invoke(screen(), "showLights")); settle(); SystemClock.sleep(400); settle();
+        main(() -> require(footer().getVisibility() != View.VISIBLE, "Footer shown on the Lights page"));
+        main(() -> invoke(screen(), "showMain")); settle(); SystemClock.sleep(400); settle();
+        main(() -> require(footer().getVisibility() == View.VISIBLE, "Footer did not come back on the main page"));
+        // The footer opens the editor; Done closes it again.
+        main(() -> require(footer().performClick(), "Footer did not click"));
+        await(() -> editor() != null && editorView().isShown(), "Footer did not open the editor");
+        settle();
+        main(() -> require(footer().getVisibility() != View.VISIBLE && settings().getBoolean("scooter_menu_editing", false), "Footer stayed while editing"));
+        main(() -> editAction().performClick());
+        await(() -> editor() == null && ((View)field(screen(), "view")).isShown(), "Done did not close the editor");
+        settle(); SystemClock.sleep(400); settle();
+        checks.add("Footer: '1 setting hidden \u00b7 Edit' under the whole page, not on Lights or during a search; it opens the editor");
+        checks.add("Search finds the hidden row and a hidden section's rows with a Hidden caption, the control usable; shown rows have none");
+    }
+    private android.widget.TextView footer() { return (android.widget.TextView)field(screen(), "menuFooter"); }
+    private android.widget.EditText searchField() { return (android.widget.EditText)field(screen(), "search"); }
+    private View card(String key) { return (View)field(row(key), "card"); }
+    private boolean onScreen(View view) {
+        android.graphics.Rect seen = new android.graphics.Rect();
+        return view.getGlobalVisibleRect(seen) && seen.height() == view.getHeight();
     }
 
     private void rebuildKeepsLayout() throws Exception {
