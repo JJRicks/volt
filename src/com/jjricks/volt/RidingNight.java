@@ -1,15 +1,20 @@
 package com.jjricks.volt;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import java.io.File;
@@ -33,6 +38,11 @@ import java.util.WeakHashMap;
  *
  * Sunset comes from NightPlaces: the last ride's area once the rider has agreed in settings, otherwise
  * the time zone's reference city. The ride's area is read in the background and kept in memory only.
+ *
+ * Switching fades (NightFade, owner Nov 6): the layer's matrix and the window level blend over about
+ * half a second. When a Light app needs the other palette, a snapshot of the old screen sits on the
+ * window's overlay and fades out over the rebuilt one. With the system's animations off, or on opening,
+ * it switches at once, so riding mode opened at night is red from its first frame.
  */
 final class RidingNight {
     /** The moon's choice for each open riding mode: it survives rebuilds and ends with the visit. */
@@ -40,6 +50,17 @@ final class RidingNight {
     private static Map<String, double[]> zones;
     private static volatile NightSchedule.Place rideArea;
     private static volatile boolean rideAreaRead;
+    /** A fade carried across a palette rebuild: the old screen's look and its brightness amount. */
+    private static final Map<RidingSession, Crossfade> crossfades = Collections.synchronizedMap(new WeakHashMap<>());
+
+    private static final class Crossfade {
+        final float from, to;
+        final Bitmap snapshot;
+        final int left, top;
+        Crossfade(float from, float to, Bitmap snapshot, int left, int top) {
+            this.from = from; this.to = to; this.snapshot = snapshot; this.left = left; this.top = top;
+        }
+    }
 
     private static final long RECHECK_MS = 60 * 60_000L;
 
@@ -53,6 +74,10 @@ final class RidingNight {
     private final FrameLayout button;
     private final Moon moon;
     private boolean shown, detached;
+    /** What the layer and the window show now (0 normal, 1 night vision, between while fading). */
+    private float layer, bright;
+    private ValueAnimator fade;
+    private BitmapDrawable cover;
 
     private final Runnable recheck = this::evaluate;
 
@@ -73,7 +98,10 @@ final class RidingNight {
         moon = new Moon(context);
         button.addView(moon, new FrameLayout.LayoutParams(ui.dp(26), ui.dp(26), Gravity.CENTER));
         shown = shown(context, preferences, session, System.currentTimeMillis());
-        apply();
+        Crossfade carried = session == null ? null : crossfades.remove(session);
+        marks();
+        if (carried != null && carried.to == (shown ? 1 : 0) && !instant()) crossfade(carried);
+        else { if (carried != null) carried.snapshot.recycle(); look(shown ? 1 : 0, shown ? 1 : 0); }
         schedule();
         // Read each time riding mode opens, so a newer ride (or deleted rides) counts at once.
         if (usesRideArea(preferences)) readRideArea(context, this::evaluate);
@@ -92,6 +120,7 @@ final class RidingNight {
     void detach() {
         detached = true;
         handler.removeCallbacks(recheck);
+        endFade();
     }
 
     /** The palette riding mode is built with: dark whenever night vision shows, even in a Light app. */
@@ -184,23 +213,120 @@ final class RidingNight {
         if (now != shown) {
             shown = now;
             // A Light app's riding mode needs the dark palette under the layer, or a light one without it.
-            if (ui.dark != (now || host.ui().dark)) { detached = true; handler.removeCallbacks(recheck); root.post(host::rebuild); return; }
-            apply();
+            if (ui.dark != (now || host.ui().dark)) { rebuild(now); return; }
+            marks();
+            fadeTo(now ? 1 : 0);
         }
         schedule();
     }
 
-    private void apply() {
-        if (shown) {
-            Paint paint = new Paint();
-            paint.setColorFilter(new ColorMatrixColorFilter(NightVision.MATRIX));
-            root.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
-        } else root.setLayerType(View.LAYER_TYPE_NONE, null);
-        display.night(shown);
+    /** The moon and its description follow the choice at once; the look fades after them. */
+    private void marks() {
         moon.on = shown;
         moon.invalidate();
         button.setContentDescription(shown ? T.ridingNightButtonOn() : T.ridingNightButtonOff());
         button.setSelected(shown);
+    }
+
+    /** The layer's colour at one amount and the window level at another (they differ in a crossfade). */
+    private void look(float layerAmount, float brightAmount) {
+        layer = NightFade.clamp(layerAmount);
+        bright = NightFade.clamp(brightAmount);
+        if (layer <= 0) root.setLayerType(View.LAYER_TYPE_NONE, null);
+        else {
+            Paint paint = new Paint();
+            paint.setColorFilter(new ColorMatrixColorFilter(NightFade.matrix(layer)));
+            if (root.getLayerType() == View.LAYER_TYPE_HARDWARE) root.setLayerPaint(paint);
+            else root.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
+        }
+        display.night(bright);
+    }
+
+    /** The system's animations off: switch at once. */
+    private boolean instant() {
+        float scale = Settings.Global.getFloat(host.activity().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+        return NightFade.instant(scale);
+    }
+
+    /** Same palette: blend the layer and the level from where they are now. */
+    private void fadeTo(float target) {
+        endFade();
+        float fromLayer = layer, fromBright = bright;
+        if (instant()) { look(target, target); return; }
+        fade = ValueAnimator.ofFloat(0, 1);
+        fade.setDuration(NightFade.FADE_MS);
+        fade.addUpdateListener(a -> {
+            if (detached) return;
+            float p = (Float) a.getAnimatedValue();
+            look(NightFade.between(fromLayer, target, p), NightFade.between(fromBright, target, p));
+        });
+        fade.start();
+    }
+
+    /**
+     * A Light app's riding mode needs the other palette: keep a picture of this screen as it looks now
+     * (the layer's colour put back on it, since a software draw skips the layer), then rebuild.
+     */
+    private void rebuild(boolean now) {
+        detached = true;
+        handler.removeCallbacks(recheck);
+        float fromBright = bright, fromLayer = layer;
+        endFade();
+        if (session != null && !instant() && root.getWidth() > 0 && root.getHeight() > 0) {
+            try {
+                Bitmap picture = Bitmap.createBitmap(root.getWidth(), root.getHeight(), Bitmap.Config.ARGB_8888);
+                root.draw(new Canvas(picture));
+                if (fromLayer > 0) {
+                    Bitmap tinted = Bitmap.createBitmap(picture.getWidth(), picture.getHeight(), Bitmap.Config.ARGB_8888);
+                    Paint paint = new Paint();
+                    paint.setColorFilter(new ColorMatrixColorFilter(NightFade.matrix(fromLayer)));
+                    new Canvas(tinted).drawBitmap(picture, 0, 0, paint);
+                    picture.recycle();
+                    picture = tinted;
+                }
+                int[] at = new int[2];
+                root.getLocationInWindow(at);
+                Crossfade old = crossfades.put(session, new Crossfade(fromBright, now ? 1 : 0, picture, at[0], at[1]));
+                if (old != null) old.snapshot.recycle();
+            } catch (OutOfMemoryError | RuntimeException ignored) {
+                // No picture (memory, or a view a software canvas can't draw): the rebuilt screen just appears.
+            }
+        }
+        root.post(host::rebuild);
+    }
+
+    /** After a palette rebuild: this screen is already in its final look; the old picture fades out over it. */
+    private void crossfade(Crossfade carried) {
+        look(carried.to, carried.from);
+        View decor = host.activity().getWindow().getDecorView();
+        if (!(decor instanceof ViewGroup)) { carried.snapshot.recycle(); look(carried.to, carried.to); return; }
+        BitmapDrawable picture = new BitmapDrawable(host.activity().getResources(), carried.snapshot);
+        picture.setBounds(carried.left, carried.top, carried.left + carried.snapshot.getWidth(), carried.top + carried.snapshot.getHeight());
+        ((ViewGroup) decor).getOverlay().add(picture);
+        cover = picture;
+        fade = ValueAnimator.ofFloat(0, 1);
+        fade.setDuration(NightFade.FADE_MS);
+        fade.addUpdateListener(a -> {
+            if (detached) return;
+            float p = (Float) a.getAnimatedValue();
+            picture.setAlpha(Math.round(255 * (1 - p)));
+            look(carried.to, NightFade.between(carried.from, carried.to, p));
+            if (p >= 1) removeCover();
+        });
+        fade.start();
+    }
+
+    private void endFade() {
+        if (fade != null) { ValueAnimator running = fade; fade = null; running.removeAllUpdateListeners(); running.cancel(); }
+        removeCover();
+    }
+
+    private void removeCover() {
+        if (cover == null) return;
+        View decor = host.activity().getWindow().getDecorView();
+        if (decor instanceof ViewGroup) ((ViewGroup) decor).getOverlay().remove(cover);
+        if (cover.getBitmap() != null) cover.getBitmap().recycle();
+        cover = null;
     }
 
     /** One callback at the next switch (or the moon's end), checked again at least hourly for clock changes. */

@@ -50,7 +50,8 @@ final class RidingDisplay {
     /** The owner's Hide status bar setting, or night vision (the red layer can't reach the status bar). */
     private boolean hidesStatusBar;
     private final boolean statusBarSetting;
-    private boolean night;
+    /** Night vision's amount: 0 the normal look, 1 full night vision, between while it fades (NightFade). */
+    private float night;
     private final RidingDisplayState state;
     private boolean listening;
 
@@ -120,16 +121,18 @@ final class RidingDisplay {
     }
 
     /**
-     * Night vision (RidingNight): Volt auto and Fixed use the night range (NightVision.level), and the
-     * status bar hides while it's on. Phone keeps Android's brightness.
+     * Night vision (RidingNight): Volt auto and Fixed use the night range (NightVision.level), blended by
+     * the amount while night vision fades (NightFade.level), and the status bar hides while any of it
+     * shows. Phone keeps Android's brightness.
      */
-    void night(boolean on) {
-        if (night == on || state.detached()) return;
-        night = on;
+    void night(float amount) {
+        amount = NightFade.clamp(amount);
+        if (night == amount || state.detached()) return;
+        night = amount;
         float level = brightness.applied();
         // Only while resumed: start() sends the level again on the next resume.
         if (!Float.isNaN(level) && state.active()) window(level);
-        boolean hide = statusBarSetting || on;
+        boolean hide = statusBarSetting || amount > 0;
         if (hide != hidesStatusBar) {
             hidesStatusBar = hide;
             controls.post(() -> { if (!state.detached() && current == this) statusBar(!hide); });
@@ -188,7 +191,7 @@ final class RidingDisplay {
     private void window(float level) {
         if (activity.isDestroyed()) return;
         WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
-        if (night) level = NightVision.level(level);
+        level = NightFade.level(level, night);
         attributes.screenBrightness = level < 0 ? WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE : level;
         activity.getWindow().setAttributes(attributes);
     }

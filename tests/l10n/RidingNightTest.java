@@ -35,7 +35,14 @@ public final class RidingNightTest {
 
         String night = read("src/com/jjricks/volt/RidingNight.java");
         has(night, "View.LAYER_TYPE_HARDWARE", "RidingNight");
-        has(night, "new ColorMatrixColorFilter(NightVision.MATRIX)", "RidingNight");
+        has(night, "new ColorMatrixColorFilter(NightFade.matrix(layer))", "RidingNight");
+        has(night, "Settings.Global.ANIMATOR_DURATION_SCALE", "RidingNight");
+        has(night, "NightFade.instant(scale)", "RidingNight");
+        has(night, "fade.setDuration(NightFade.FADE_MS)", "RidingNight");
+        has(night, "getOverlay().add(picture)", "RidingNight");
+        // Opening with night vision on: the final look at once, never a fade from the normal look.
+        has(night, "else { if (carried != null) carried.snapshot.recycle(); look(shown ? 1 : 0, shown ? 1 : 0); }", "RidingNight");
+        has(night, "handler.removeCallbacks(recheck);\n        endFade();", "RidingNight");
         has(night, "display.night(", "RidingNight");
         has(night, "new WeakHashMap<", "RidingNight");
         has(night, "NightSchedule.tap(", "RidingNight");
@@ -47,8 +54,9 @@ public final class RidingNightTest {
         check(!night.contains(".putString(") && !night.contains(".putFloat("), "RidingNight must not store the ride area");
 
         String display = read("src/com/jjricks/volt/RidingDisplay.java");
-        has(display, "void night(boolean on)", "RidingDisplay");
-        has(display, "NightVision.level(level)", "RidingDisplay");
+        has(display, "void night(float amount)", "RidingDisplay");
+        has(display, "boolean hide = statusBarSetting || amount > 0;", "RidingDisplay");
+        has(display, "level = NightFade.level(level, night);", "RidingDisplay");
 
         String more = read("src/com/jjricks/volt/MoreScreen.java");
         for (String key : new String[] {"riding_night_off", "riding_night_on", "riding_night_scheduled", "riding_night_sun",
