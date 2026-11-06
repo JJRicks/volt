@@ -16,8 +16,9 @@ final class MaintenanceDefaults {
      * the screen shows each through its catalog string. A reminder with any other name stores the
      * typed text and an empty task id.
      */
-    static final String TIRE_PRESSURE = "tire_pressure", TIRE_TREAD = "tire_tread", BRAKES = "brakes", BOLTS_FOLDING = "bolts_folding",
-            STEERING = "steering", LIGHTS = "lights", CLEAN_DRY = "clean_dry", BATTERY_STORAGE = "battery_storage";
+    static final String TIRE_PRESSURE = "tire_pressure", BRAKES = "brakes", BOLTS_FOLDING = "bolts_folding", LIGHTS = "lights",
+            CLEAN_DRY = "clean_dry", BATTERY_STORAGE = "battery_storage";
+    static final String TIRE_TREAD = "tire_tread", STEERING = "steering";
     /**
      * The tasks the add sheet offers and an interval may name. TIRE_TREAD and STEERING have their names
      * already and join this list with the first manual entries that use them.

@@ -503,7 +503,8 @@ final class MaintenanceScreen {
         EditText name = field(T.maintenanceNameHint(), false); name.setTag(TAG_NAME);
         name.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MaintenancePolicy.MAX_NAME)});
         content.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        final String[] task = {shown == null ? "" : shown.task};
+        final String[] task = {existing == null ? "" : existing.task};
+        if (existing == null && suggested != null) task[0] = suggested.task;
         final boolean[] typing = {true};
         if (shown != null) { typing[0] = false; name.setText(MaintenanceView.name(shown)); typing[0] = true; }
         Flow tasks = new Flow(); List<TextView> taskChips = new ArrayList<>();
