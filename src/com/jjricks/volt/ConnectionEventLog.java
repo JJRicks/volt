@@ -47,6 +47,20 @@ public final class ConnectionEventLog {
             Reason.CHARGE_RECOVERY_STARTED, Reason.CHARGE_RECOVERY_RESUMED, Reason.CHARGE_RECOVERY_TIMEOUT,
             Reason.CHARGE_STOPPED, Reason.CHARGE_WRONG_SCOOTER, Reason.CHARGE_RECOVERY_CANCELLED));
     /**
+     * True when the latest transport event is the phone's Bluetooth switching off, apart from charge
+     * events and the reconnect attempts after it. BleController's retry flag is then still the one that
+     * adapter-off failure set, not a verdict on the reconnect, which has not failed yet.
+     */
+    public static boolean adapterOffLast(List<Record> records) {
+        if (records == null) return false;
+        for (int i = records.size() - 1; i >= 0; i--) {
+            Reason reason = records.get(i).reason;
+            if (CHARGE_EVENTS.contains(reason) || reason == Reason.CONNECT_ATTEMPT) continue;
+            return reason == Reason.ADAPTER_OFF;
+        }
+        return false;
+    }
+    /**
      * The native disconnect code of the first loss at or after {@code sinceElapsedMs} (the last frame
      * heard), or -1 when that loss was something else (a silent link, Bluetooth switched off) or a
      * reconnect attempt came first. Records are in the order they happened.

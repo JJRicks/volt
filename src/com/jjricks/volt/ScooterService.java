@@ -1397,7 +1397,7 @@ public final class ScooterService extends Service {
         }
         if(ble.connected()){ScooterProfiles.Profile bound=ble.profile();
             rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus());}
-        else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss()));
+        else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
     }
     /** Called from the tick only. The policy instance and ride id must both still be current. */
     private void autoStopRide(RideAutoStopPolicy policy){autoStopRide(policy,RideStore.STOP_AUTO_PARKED);}

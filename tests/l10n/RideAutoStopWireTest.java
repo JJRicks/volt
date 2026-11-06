@@ -32,6 +32,7 @@ public final class RideAutoStopWireTest {
             reconnectInsideTheWindowKeepsRecording();
             ridingSpeedWaitsFiveMinutes();
             phoneBluetoothOffEndsAfterFiveMinutes();
+            bluetoothBackOnBeforeTheScooter();
             parkedRuleStillWins();
             settingOffCancels();
             text();
@@ -49,6 +50,18 @@ public final class RideAutoStopWireTest {
         check(RideAutoStopPolicy.loss(true, false, false) == RideAutoStopPolicy.Loss.PHONE_BLUETOOTH_OFF, "Bluetooth switched off on the phone");
         check(RideAutoStopPolicy.loss(true, false, true) == RideAutoStopPolicy.Loss.PHONE_BLUETOOTH_OFF, "Bluetooth off wins over a stale retry flag");
         check(RideAutoStopPolicy.loss(false, false, true) == RideAutoStopPolicy.Loss.UNRECOVERABLE, "no permission cancels");
+        check(RideAutoStopPolicy.loss(true, true, false, true) == RideAutoStopPolicy.Loss.RECOVERABLE, "Bluetooth back on: the adapter-off flag is not a verdict");
+        check(RideAutoStopPolicy.loss(false, true, false, true) == RideAutoStopPolicy.Loss.UNRECOVERABLE, "no permission still cancels after adapter off");
+        check(RideAutoStopPolicy.loss(true, false, false, true) == RideAutoStopPolicy.Loss.PHONE_BLUETOOTH_OFF, "still off is still phone Bluetooth off");
+        List<ConnectionEventLog.Record> log = new ArrayList<>();
+        check(!ConnectionEventLog.adapterOffLast(log) && !ConnectionEventLog.adapterOffLast(null), "no events, no adapter off");
+        log.add(record(1000, ConnectionEventLog.Reason.AUTHENTICATED_READY, -1)); log.add(record(2000, ConnectionEventLog.Reason.ADAPTER_OFF, 10));
+        log.add(record(3000, ConnectionEventLog.Reason.CHARGE_STOPPED, -1)); log.add(record(4000, ConnectionEventLog.Reason.CONNECT_ATTEMPT, -1));
+        check(ConnectionEventLog.adapterOffLast(log), "adapter off stays latest through charge events and reconnect attempts");
+        log.add(record(5000, ConnectionEventLog.Reason.AUTHENTICATION_FAILED, -1));
+        check(!ConnectionEventLog.adapterOffLast(log), "a failed reconnect is the latest event");
+        log.add(record(6000, ConnectionEventLog.Reason.CONNECT_ATTEMPT, -1)); log.add(record(7000, ConnectionEventLog.Reason.BACKGROUND_PAUSE, -1));
+        check(!ConnectionEventLog.adapterOffLast(log), "a background pause is the latest event");
     }
 
     private static ConnectionEventLog.Record record(long elapsed, ConnectionEventLog.Reason reason, int code) {
@@ -76,6 +89,8 @@ public final class RideAutoStopWireTest {
         boolean connected = true, permissions = true, bluetooth = true, recoverable = true, gapMarked, autoStop = true;
         long now, lastFrame, motion; int speedRaw, driving, transport = 1;
         String stoppedWith; long stoppedAt = -1; RideStore.Summary saved;
+        /** BleController's connection event log, oldest first. */
+        final List<ConnectionEventLog.Record> events = new ArrayList<>();
         Service(String label, long start) throws IOException {
             File dir = Files.createTempDirectory("volt-autostop-wire").toFile(); folders.add(dir);
             rides = new RideStore(dir); now = start; id = rides.start(PROFILE, label, WALL0 + now, now);
@@ -106,8 +121,13 @@ public final class RideAutoStopWireTest {
             if (policy == null) policy = new RideAutoStopPolicy(id, PROFILE, SERIAL);
             if (!autoStop) { policy.reset(); return; }
             if (connected) policy.connected(now, PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving);
-            else policy.disconnected(now, RideAutoStopPolicy.loss(permissions, bluetooth, recoverable));
+            else policy.disconnected(now, loss());
         }
+        /** The loss ScooterService.observeRideAutoStop hands the policy (serviceWiring checks the service line). */
+        RideAutoStopPolicy.Loss loss() { return RideAutoStopPolicy.loss(permissions, bluetooth, recoverable, ConnectionEventLog.adapterOffLast(events)); }
+        /** BleController.failed(...): sets the retry flag and records the event. */
+        void failed(ConnectionEventLog.Reason reason, boolean retry) { connected = false; recoverable = retry; event(reason); }
+        void event(ConnectionEventLog.Reason reason) { events.add(record(now, reason, -1)); }
         void stop(String reason) throws IOException { saved = rides.stop(WALL0 + now, now, reason); stoppedWith = reason; stoppedAt = now; policy = null; }
         void run(long untilMs) throws IOException { while (now < untilMs) tick(); }
         /** Riding pushes at 1 Hz until {@code untilMs}. */
@@ -180,6 +200,43 @@ public final class RideAutoStopWireTest {
         check(walking.stoppedAt == walked + 60000 && !walking.saved.stopPhoneBluetoothOff, "Bluetooth off never lengthens a running slow countdown");
     }
 
+    /**
+     * Phone Bluetooth off, then on again while the scooter is still unavailable. BleController's
+     * STATE_OFF failure leaves its retry flag false while STATE_ON reconnects; that leftover flag
+     * must not read as an unrecoverable loss and clear the 5 min countdown.
+     */
+    private static void bluetoothBackOnBeforeTheScooter() throws IOException {
+        for (String outcome : new String[]{"retry fails", "owner check fails", "permission revoked", "reconnects", "nothing"}) {
+            Service s = new Service("Bluetooth back on: " + outcome, 10000);
+            s.ride(250, 1, 200000);
+            long last = s.lastFrame;
+            s.bluetooth = false; s.failed(ConnectionEventLog.Reason.ADAPTER_OFF, false);
+            s.run(last + 30000);
+            check(s.policy.quiet() == RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF, outcome + ": phone Bluetooth off counts down 5 min");
+            // STATE_ON: BleController.connectLast() starts a reconnect; recoverableConnectionLoss stays false.
+            s.bluetooth = true; s.event(ConnectionEventLog.Reason.CONNECT_ATTEMPT);
+            s.run(last + 60000);
+            check(s.stoppedAt < 0 && s.policy.quiet() == RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF && s.policy.quietSince() == last,
+                    outcome + ": Bluetooth back on keeps the countdown while the reconnect runs");
+            switch (outcome) {
+                case "retry fails": s.failed(ConnectionEventLog.Reason.CONNECT_TIMEOUT, true); break;
+                case "owner check fails": s.failed(ConnectionEventLog.Reason.AUTHENTICATION_FAILED, false); break;
+                case "permission revoked": s.permissions = false; break;
+                case "reconnects": s.connected = true; s.transport = 2; s.event(ConnectionEventLog.Reason.AUTHENTICATED_READY); s.ride(250, 1, last + 302000); break;
+                default: break;
+            }
+            s.run(last + 302000);
+            if (outcome.equals("retry fails") || outcome.equals("nothing"))
+                check(s.stoppedAt == last + 300000 && s.saved.stopPhoneBluetoothOff, outcome + ": ends 5 min after the last frame, marked phone Bluetooth off");
+            else if (outcome.equals("reconnects"))
+                check(s.stoppedAt < 0 && s.connected && !s.policy.armed(), "reconnects: the authenticated reconnect cancels it, riding on past the old deadline");
+            else {
+                s.run(last + 900000);
+                check(s.stoppedAt < 0 && !s.policy.armed(), outcome + ": a real unrecoverable loss still cancels");
+            }
+        }
+    }
+
     private static void parkedRuleStillWins() throws IOException {
         Service s = new Service("Parked", 10000);
         s.ride(200, 1, 100000);
@@ -224,7 +281,7 @@ public final class RideAutoStopWireTest {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
         check(src.contains("if (autoStop != null && autoStop.due(autoNow)) autoStopRide(autoStop);\n                    else autoStopQuiet(autoStop, autoNow);"),
                 "the tick checks the parked rule, then the quiet countdown");
-        check(src.contains("rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss()));"),
+        check(src.contains("rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));"),
                 "the service reports Bluetooth off as its own loss");
         String auto = between(src, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
         check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("ble.connected())return;"),
