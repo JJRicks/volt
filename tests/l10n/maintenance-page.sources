@@ -1,0 +1,9 @@
+# Maintenance plan, PR 2: the Maintenance page's keeper and text. tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/MaintenancePageTest.java
+src/com/jjricks/volt/MaintenanceKeeper.java
+src/com/jjricks/volt/MaintenanceView.java
+src/com/jjricks/volt/MaintenancePolicy.java
+src/com/jjricks/volt/MaintenanceDistance.java
+src/com/jjricks/volt/MaintenanceStore.java
+src/com/jjricks/volt/MaintenanceDefaults.java
