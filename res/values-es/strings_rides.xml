@@ -306,12 +306,6 @@
     <string name="rides_tile_gps_distance">Distancia GPS</string>
     <!-- src:a46667ac4335a821606c9ce1cffd8bbfaaca8ae1 -->
     <string name="rides_gps_no_fixes">Sin puntos GPS</string>
-    <!-- src:8299da934c42b476c3f35c579377d8238c2e2e48 -->
-    <plurals name="rides_gps_fixes">
-        <item quantity="one">%1$s punto</item>
-        <item quantity="many">%1$s puntos</item>
-        <item quantity="other">%1$s puntos</item>
-    </plurals>
     <!-- src:c3b24f910e7a641b3186cec3c2fc1e0c157aebc0 -->
     <plurals name="rides_gps_dropped">
         <item quantity="one">" · %1$s descartado"</item>
@@ -484,20 +478,8 @@
     <string name="rides_compare_chosen">%1$d de 2 viajes elegidos</string>
     <!-- src:a2fd7ce14cbdbfb701a85f1dac84a9073a986037 -->
     <string name="rides_battery_gain_description">Aumento de batería, %1$d puntos porcentuales</string>
-    <!-- src:e6fb2ca68c17dcbfb100e55013afa429f26d04fc -->
-    <plurals name="rides_battery_gain_description_count">
-        <item quantity="one">Aumento de batería, %1$d punto porcentual</item>
-        <item quantity="many">Aumento de batería, %1$d puntos porcentuales</item>
-        <item quantity="other">Aumento de batería, %1$d puntos porcentuales</item>
-    </plurals>
     <!-- src:37e945858bdbf1baa3433ae959e03f54cb85d93a -->
     <string name="rides_battery_drop_description">Caída de batería, %1$d puntos porcentuales</string>
-    <!-- src:8fc45bb4b5f123cd829f3941ff03fa98e328480f -->
-    <plurals name="rides_battery_drop_description_count">
-        <item quantity="one">Caída de batería, %1$d punto porcentual</item>
-        <item quantity="many">Caída de batería, %1$d puntos porcentuales</item>
-        <item quantity="other">Caída de batería, %1$d puntos porcentuales</item>
-    </plurals>
     <!-- src:6397385545235cfd0802d0d904d29ca00d4d4e48 -->
     <string name="rides_direction_confirmed_for">Confirmado durante %1$s</string>
     <!-- src:9ce5d8f1683e985f7364a439ce1952f014406e06 -->
