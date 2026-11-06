@@ -13,13 +13,16 @@ public final class RidingValuesTest {
         sign();
         staleness();
         intervals();
+        signCorrection();
         efficiency();
+        sharedCoverage();
         energyAndScale();
         trace();
+        directionHistory();
         timers();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -78,7 +81,10 @@ public final class RidingValuesTest {
         values.update(telemetry.metrics());
         // GT3 Max reported 254: Telemetry keeps it raw but riding mode treats it as unknown.
         values.sample("current_sign_state", 254, 0x79, 6500);
-        check(values.direction() == RidingValues.Direction.UNKNOWN, "a sign byte other than 0/1 is unknown, never a guess");
+        check(values.signState() == RidingValues.Direction.UNKNOWN, "a sign byte other than 0/1 is unknown, never a guess");
+        check(values.power(5100).direction == RidingValues.Direction.DRAW, "and it doesn't reinterpret the draw already measured");
+        values.sample("power_w", 300, 0x72, 7000);
+        check(values.power(7100).direction == RidingValues.Direction.UNKNOWN, "the next reading after it is unknown");
     }
 
     private static void staleness() {
@@ -189,7 +195,126 @@ public final class RidingValuesTest {
         values.sample("power_w", -200, 0x72, 150_000);
         check(values.powerTrace(150_000, 60_000).get(0).value == 200, "power trace is unsigned while the direction is unknown");
         values.sample("current_sign_state", 1, 0x79, 150_500);
-        check(values.powerTrace(150_000, 60_000).get(0).value == -200, "and signed once confirmed");
+        check(values.powerTrace(150_000, 60_000).get(0).value == 200, "a later sign alone doesn't reinterpret it");
+        values.sample("power_w", -200, 0x72, 150_000);
+        check(values.powerTrace(150_000, 60_000).get(0).value == -200, "Telemetry re-signing that same measurement does");
+    }
+
+    /** Telemetry re-signs current and power after 0x79 but keeps the measurement time (Codex #228 review). */
+    private static void signCorrection() {
+        Telemetry telemetry = new Telemetry();
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        telemetry.accept(0x72, batteryRead(72, 50000, 3600), 1000);
+        values.update(telemetry.metrics());
+        long interval = values.intervalMs("power_w");
+        telemetry.accept(0x79, signs(0, 1), 1500);
+        values.update(telemetry.metrics());
+        double telemetryW = 0;
+        for (Telemetry.Metric m : telemetry.metrics()) if (m.key.equals("power_w")) telemetryW = m.numericValue;
+        RidingValues.Power power = values.power(1600);
+        check(near(telemetryW, -180, 0.01) && power.watts != null && near(power.watts, telemetryW, 0.01) && power.direction == RidingValues.Direction.REGEN,
+                "a sign correction follows Telemetry: " + telemetryW + " vs " + power.watts + " " + power.direction);
+        check(near(power.peakRegenW, 180, 0.01) && power.peakDrawW == 0, "the corrected reading is regen, not draw, in the peaks");
+        RidingValues.Reading r = values.reading("power_w", 1600);
+        check(r.updatedMs == 1000 && values.intervalMs("power_w") == interval, "a correction isn't a new measurement: time and cadence stay");
+        check(values.powerTrace(1600, 60_000).size() == 1 && values.powerTrace(1600, 60_000).get(0).value == -180, "nor a new trace point");
+        values.update(telemetry.metrics());
+        check(values.rideEnergyWh() == 0, "a lone sample has no energy, corrected or not");
+
+        // Energy: a correction redoes its own segment once, never adds a second one.
+        Telemetry ride = new Telemetry();
+        RidingValues energy = new RidingValues();
+        energy.setNominalIntervals(1000, 2000);
+        ride.accept(0x79, signs(0, 0), 0);
+        ride.accept(0x72, batteryRead(72, 50000, 3600), 1000);
+        energy.update(ride.metrics());
+        ride.accept(0x72, batteryRead(72, 50000, 3600), 3000);
+        energy.update(ride.metrics());
+        check(near(energy.rideEnergyWh(), 180 * 2 / 3600.0, 1e-9), "two seconds at 180 W: " + energy.rideEnergyWh());
+        ride.accept(0x79, signs(0, 1), 3500);
+        energy.update(ride.metrics());
+        energy.update(ride.metrics());
+        check(near(energy.rideEnergyWh(), 0, 1e-9), "re-signed to -180 W the segment averages to 0, counted once: " + energy.rideEnergyWh());
+        check(energy.power(3600).peakDrawW == 180 && near(energy.power(3600).peakRegenW, 180, 0.01), "the earlier draw stays draw; the corrected one is regen");
+        check(energy.reading("power_w", 3600).updatedMs == 3000, "still measured at 3 s");
+
+        // The same value re-fed is not a correction; neither is an unknown sign.
+        RidingValues same = new RidingValues();
+        same.sample("current_sign_state", 0, 0x79, 0);
+        same.sample("power_w", 500, 0x72, 1000);
+        same.sample("power_w", 500, 0x72, 1000);
+        check(same.power(1100).peakDrawW == 500 && same.rideEnergyWh() == 0, "a repeated sample changes nothing");
+        same.sample("current_sign_state", 254, 0x79, 1500);
+        same.sample("power_w", 500, 0x72, 1000);
+        check(same.power(1600).direction == RidingValues.Direction.DRAW, "an unknown sign never demotes a confirmed reading");
+        // A corrected speed (same time, new value) updates the reading and its trace point only.
+        same.sample("speed_kmh", 18, 0x92, 1000);
+        same.sample("speed_kmh", 18.4, 0x92, 1000);
+        check(near(same.speed(1100).kmh, 18.4, 1e-9) && same.speedTrace(1100, 60_000).size() == 1 && near(same.speedTrace(1100, 60_000).get(0).value, 18.4, 1e-9), "a corrected speed replaces its point");
+    }
+
+    /** Energy and distance come from the same covered stretches (Codex #228 review). */
+    private static void sharedCoverage() {
+        // 400 W at 20 km/h with power reports at 8-16 s dropped: 20 Wh/km over what was observed.
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        values.sample("current_sign_state", 0, 0x79, 0);
+        for (long t = 0; t <= 30_000; t += 1000) {
+            values.sample("speed_kmh", 20, 0x92, t);
+            if (t % 2000 == 0 && (t < 8000 || t > 16_000)) values.sample("power_w", 400, 0x72, t);
+        }
+        RidingValues.Efficiency e = values.efficiency(30_000);
+        check(e.whPerKm != null && near(e.whPerKm, 20, 1e-9) && near(e.coverage, 0.8, 1e-9), "unequal gaps: " + e.whPerKm + " at " + e.coverage);
+        // Power is uncovered 12-18 s and speed 20-26 s: each alone covers 80 %, together only 60 %.
+        RidingValues disjoint = new RidingValues();
+        disjoint.setNominalIntervals(1000, 2000);
+        disjoint.sample("current_sign_state", 0, 0x79, 0);
+        for (long t = 0; t <= 30_000; t += 1000) {
+            if (t < 18_000 || t >= 26_000) disjoint.sample("speed_kmh", 20, 0x92, t);
+            if (t % 2000 == 0 && (t < 8000 || t > 16_000)) disjoint.sample("power_w", 400, 0x72, t);
+        }
+        RidingValues.Efficiency d = disjoint.efficiency(30_000);
+        check(d.whPerKm == null && near(d.coverage, 0.6, 1e-9), "disjoint gaps gate on the shared 60 %: " + d.coverage);
+        // Changing speed and power in step: the ratio uses matching stretches only.
+        RidingValues varying = new RidingValues();
+        varying.setNominalIntervals(1000, 1000);
+        varying.sample("current_sign_state", 0, 0x79, 0);
+        for (long t = 0; t <= 30_000; t += 1000) {
+            boolean fast = t >= 15_000;
+            varying.sample("speed_kmh", fast ? 30 : 10, 0x92, t);
+            // Power drops out for 4 s in the slow half.
+            if (t < 4000 || t > 8000) varying.sample("power_w", fast ? 900 : 100, 0x72, t);
+        }
+        RidingValues.Efficiency v = varying.efficiency(30_000);
+        // Power holds 3 s, so it covers 0-6 s and 9-30 s: 12 s slow (100 W, 10 km/h) and 15 s fast (900 W, 30 km/h).
+        double wh = (100 * 12 + 900 * 15) / 3600.0, km = (10 * 12 + 30 * 15) / 3600.0;
+        check(near(v.coverage, 0.9, 1e-9), "shared coverage 27 of 30 s: " + v.coverage);
+        check(v.whPerKm != null && near(v.whPerKm, wh / km, 1e-9), "matching stretches: " + v.whPerKm + " vs " + wh / km);
+    }
+
+    /** Each sample keeps the direction it was measured under (Codex #228 review). */
+    private static void directionHistory() {
+        RidingValues late = new RidingValues();
+        late.setNominalIntervals(1000, 2000);
+        for (long t = 0; t <= 40_000; t += 1000) { late.sample("speed_kmh", 20, 0x92, t); if (t % 2000 == 0) late.sample("power_w", 400, 0x72, t); }
+        check(!late.efficiency(40_000).directionConfirmed, "no sign: unconfirmed");
+        late.sample("current_sign_state", 0, 0x79, 40_001);
+        check(!late.efficiency(40_001).directionConfirmed, "a late first sign doesn't confirm the window measured before it");
+        for (long t = 41_000; t <= 80_000; t += 1000) { late.sample("speed_kmh", 20, 0x92, t); if (t % 2000 == 0) late.sample("power_w", 400, 0x72, t); }
+        check(late.efficiency(80_000).directionConfirmed, "a window measured under it is confirmed");
+        check(!late.efficiency(60_000).directionConfirmed, "a window straddling it isn't");
+
+        RidingValues regen = new RidingValues();
+        regen.setNominalIntervals(1000, 2000);
+        regen.sample("current_sign_state", 1, 0x79, 0);
+        for (long t = 0; t <= 10_000; t += 2000) regen.sample("power_w", -300, 0x72, t);
+        regen.sample("current_sign_state", 254, 0x79, 10_500);
+        for (long t = 12_000; t <= 20_000; t += 2000) regen.sample("power_w", 300, 0x72, t);
+        List<RidingValues.TracePoint> points = regen.powerTrace(20_000, 60_000);
+        check(points.get(0).value == -300 && points.get(5).value == -300, "an unknown sign leaves earlier confirmed regen signed");
+        check(points.get(6).value == 300 && regen.power(20_000).direction == RidingValues.Direction.UNKNOWN, "later readings are unsigned magnitudes");
+        check(regen.power(20_000).peakRegenW == 300, "and earlier regen peaks stay");
     }
 
     private static void timers() {

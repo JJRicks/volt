@@ -152,11 +152,16 @@ final class RidingValues {
 
     private final Map<String, Track> tracks = new HashMap<>();
     private long rideNominalMs = RIDE_NOMINAL_MS, electricalNominalMs = RECORDING_ELECTRICAL_MS;
+    /** Times as {ms, 1 after a gap}; values as {value} for speed and {watts, Direction ordinal} for power. */
     private final ArrayDeque<long[]> speedSamples = new ArrayDeque<>(), powerSamples = new ArrayDeque<>();
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
     private boolean scaleChanged;
     private double rideEnergyWh, peakDrawW, peakRegenW;
+    /** What the latest power sample added, so a sign correction can redo it without double-counting. */
+    private double lastSegmentWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
+    private double lastSegmentPreviousW;
+    private long lastSegmentPreviousMs = -1;
     private Double lastSpeedKmh;
     private boolean lastSpeedTenths;
     private Long recordingStartMs;
@@ -199,7 +204,7 @@ final class RidingValues {
     /** The reading a range spot shows, or null for a content that isn't a range. */
     Range range(String contentId, long nowMs) { RangeSource s = ranges.get(contentId); return s == null ? null : s.range(nowMs); }
 
-    /** Feeds every reading in a Telemetry snapshot. Readings already seen are skipped. */
+    /** Feeds every reading in a Telemetry snapshot. Readings already seen add nothing; a re-signed one is a correction. */
     void update(List<Telemetry.Metric> metrics) {
         // The sign first, so power in the same snapshot is read with the direction it was measured under.
         for (int pass = 0; pass < 2; pass++)
@@ -208,12 +213,17 @@ final class RidingValues {
                     sample(m.key, m.numericValue, m.sourceCmd, m.updatedMs);
     }
 
-    /** One reading. A sample no newer than the last one for its key is ignored. */
+    /**
+     * One reading. A sample older than the last one for its key is ignored. One with the same
+     * time is a correction (Telemetry re-signs current and power after a 0x79 reply but keeps the
+     * measurement time): it replaces the value without counting as a new measurement.
+     */
     void sample(String key, double value, int sourceCmd, long updatedMs) {
         if (!KEYS.contains(key) || !Double.isFinite(value) || updatedMs < 0) return;
         Track t = tracks.get(key);
         if (t == null) { t = new Track(); t.nominalMs = nominal(key); t.intervalMs = t.nominalMs; tracks.put(key, t); }
-        else if (updatedMs <= t.updatedMs) return;
+        else if (updatedMs < t.updatedMs) return;
+        else if (updatedMs == t.updatedMs) { correct(key, value, t); return; }
         long previous = t.updatedMs;
         if (previous >= 0) {
             long gap = updatedMs - previous;
@@ -224,7 +234,7 @@ final class RidingValues {
         t.value = value; t.updatedMs = updatedMs; t.sourceCmd = sourceCmd;
         if (key.equals(SPEED_KEY)) {
             lastSpeedKmh = value; lastSpeedTenths = sourceCmd == EXPANDED_RIDE_REPORT;
-            append(speedSamples, speedValues, updatedMs, value, gapMs(t));
+            append(speedSamples, speedValues, updatedMs, new double[]{value}, gapMs(t));
         } else if (key.equals(POWER_KEY)) {
             powerSample(value, updatedMs, previous, t);
         } else if (key.equals(TRIP_MINUTES_KEY)) {
@@ -234,14 +244,51 @@ final class RidingValues {
     private static double clampInterval(double ms) { return Math.max(MIN_INTERVAL_MS, Math.min(MAX_INTERVAL_MS, ms)); }
     private static long gapMs(Track t) { return Math.max(MIN_GAP_MS, (long) (GAP_INTERVALS * Math.max(t.intervalMs, t.nominalMs))); }
 
-    private void powerSample(double watts, long updatedMs, long previousMs, Track t) {
-        Direction direction = direction();
-        if (!powerValues.isEmpty()) {
-            double previousW = powerValues.peekLast()[0];
-            long gap = updatedMs - previousMs;
-            if (previousMs >= 0 && gap > 0 && gap <= gapMs(t)) rideEnergyWh += (previousW + watts) / 2 * gap / 3_600_000.0;
+    /**
+     * A same-time sample. For power it is a correction only under a known sign, when the value or
+     * its direction changed; it redoes that one sample's energy, peaks and scale, and never moves
+     * the reading's time or interval. An unknown sign corrects nothing. Other keys take a changed value.
+     */
+    private void correct(String key, double value, Track t) {
+        if (key.equals(POWER_KEY)) {
+            if (powerValues.isEmpty() || powerSamples.peekLast()[0] != t.updatedMs) return;
+            double[] last = powerValues.peekLast();
+            Direction now = signDirection(value);
+            if (now == Direction.UNKNOWN || (value == last[0] && now.ordinal() == (int) last[1])) return;
+            t.value = value;
+            last[0] = value;
+            last[1] = now.ordinal();
+            rideEnergyWh -= lastSegmentWh;
+            peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW;
+            double drawW = scale.drawW, regenW = scale.regenW;
+            scale.drawW = scaleDrawBeforeW; scale.regenW = scaleRegenBeforeW;
+            applyPower(value, now, t.updatedMs, lastSegmentPreviousMs, lastSegmentPreviousW);
+            scaleChanged |= scale.drawW != drawW || scale.regenW != regenW;
+            return;
         }
-        append(powerSamples, powerValues, updatedMs, watts, gapMs(t));
+        if (value == t.value) return;
+        t.value = value;
+        if (key.equals(SPEED_KEY)) {
+            lastSpeedKmh = value;
+            if (!speedValues.isEmpty() && speedSamples.peekLast()[0] == t.updatedMs) speedValues.peekLast()[0] = value;
+        }
+    }
+
+    private void powerSample(double watts, long updatedMs, long previousMs, Track t) {
+        Direction direction = signDirection(watts);
+        boolean joined = !powerValues.isEmpty() && previousMs >= 0 && updatedMs - previousMs > 0 && updatedMs - previousMs <= gapMs(t);
+        double previousW = powerValues.isEmpty() ? 0 : powerValues.peekLast()[0];
+        append(powerSamples, powerValues, updatedMs, new double[]{watts, direction.ordinal()}, gapMs(t));
+        peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW;
+        scaleDrawBeforeW = scale.drawW; scaleRegenBeforeW = scale.regenW;
+        lastSegmentPreviousW = previousW;
+        applyPower(watts, direction, updatedMs, joined ? previousMs : -1, previousW);
+    }
+    /** Energy since the previous sample (when joined), peaks and scale for one power sample. */
+    private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW) {
+        lastSegmentPreviousMs = previousMs;
+        lastSegmentWh = previousMs < 0 ? 0 : (previousW + watts) / 2 * (updatedMs - previousMs) / 3_600_000.0;
+        rideEnergyWh += lastSegmentWh;
         // Peaks ignore the same decoding glitches the scale ignores.
         if (direction == Direction.REGEN && -watts <= PowerScale.REGEN_CAP_W) peakRegenW = Math.max(peakRegenW, -watts);
         else if (direction == Direction.DRAW && watts <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, watts);
@@ -258,10 +305,10 @@ final class RidingValues {
         else tripStartMs = Math.max(earliest, Math.min(latest, tripStartMs));
     }
 
-    private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double v, long gapMs) {
+    private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double[] v, long gapMs) {
         boolean gap = !times.isEmpty() && t - times.peekLast()[0] > gapMs;
         times.addLast(new long[]{t, gap ? 1 : 0});
-        values.addLast(new double[]{v});
+        values.addLast(v);
         while (!times.isEmpty() && t - times.peekFirst()[0] > TRACE_KEEP_MS) { times.removeFirst(); values.removeFirst(); }
     }
 
@@ -281,13 +328,22 @@ final class RidingValues {
         return new Speed(gone ? null : r.value, lastSpeedKmh, lastSpeedTenths, r.stale || gone);
     }
 
-    /** Regen only when the current's direction is confirmed by the 0x79 sign state. */
-    Direction direction() {
+    /** True while the latest 0x79 sign state is a known 0 or 1. */
+    private boolean signKnown() {
         Track sign = tracks.get(SIGN_KEY);
-        Track power = tracks.get(POWER_KEY);
-        if (sign == null || (sign.value != 0 && sign.value != 1)) return Direction.UNKNOWN;
-        return power != null && power.value < 0 ? Direction.REGEN : Direction.DRAW;
+        return sign != null && (sign.value == 0 || sign.value == 1);
     }
+    private Direction signDirection(double watts) { return !signKnown() ? Direction.UNKNOWN : watts < 0 ? Direction.REGEN : Direction.DRAW; }
+
+    /**
+     * The direction of the latest power reading, as stored when it was measured (or corrected).
+     * A later sign never reinterprets it. UNKNOWN before any power or without a 0x79 sign.
+     */
+    Direction direction() {
+        return powerValues.isEmpty() ? Direction.UNKNOWN : Direction.values()[(int) powerValues.peekLast()[1]];
+    }
+    /** The direction a new power reading would be read under: UNKNOWN until the 0x79 sign is a known 0 or 1. */
+    Direction signState() { return signDirection(0); }
 
     Power power(long nowMs) {
         Reading r = reading(POWER_KEY, nowMs);
@@ -308,58 +364,69 @@ final class RidingValues {
 
     /**
      * Wh per km over the last 30 s. Power and speed each hold their value until the next sample,
-     * at most one gap allowance; the result needs both to cover 80 % of the window.
+     * at most one gap allowance. Energy and distance are both integrated only where both signals
+     * are held, and that shared time must cover 80 % of the window. The direction is confirmed
+     * only when every power sample in that shared time was measured under a known sign.
      */
     Efficiency efficiency(long nowMs) {
         long from = nowMs - EFFICIENCY_WINDOW_MS;
         Track pt = tracks.get(POWER_KEY), st = tracks.get(SPEED_KEY);
-        if (pt == null || st == null) return new Efficiency(null, 0, direction() != Direction.UNKNOWN);
-        double[] energy = integrate(powerSamples, powerValues, from, nowMs, gapMs(pt));
-        double[] distance = integrate(speedSamples, speedValues, from, nowMs, gapMs(st));
-        double coverage = Math.min(energy[1], distance[1]) / EFFICIENCY_WINDOW_MS;
-        boolean confirmed = direction() != Direction.UNKNOWN;
-        double km = distance[0] / 3_600_000.0, wh = energy[0] / 3_600_000.0;
+        if (pt == null || st == null) return new Efficiency(null, 0, false);
+        List<double[]> power = held(powerSamples, powerValues, from, nowMs, gapMs(pt));
+        List<double[]> speed = held(speedSamples, speedValues, from, nowMs, gapMs(st));
+        double energy = 0, distance = 0, covered = 0;
+        boolean confirmed = true;
+        for (int i = 0, j = 0; i < power.size() && j < speed.size(); ) {
+            double[] p = power.get(i), s = speed.get(j);
+            double a = Math.max(p[0], s[0]), b = Math.min(p[1], s[1]);
+            if (b > a) {
+                energy += p[2] * (b - a); distance += s[2] * (b - a); covered += b - a;
+                confirmed &= p[3] != Direction.UNKNOWN.ordinal();
+            }
+            if (p[1] <= s[1]) i++; else j++;
+        }
+        confirmed &= covered > 0;
+        double coverage = covered / EFFICIENCY_WINDOW_MS;
+        double km = distance / 3_600_000.0, wh = energy / 3_600_000.0;
         if (coverage < EFFICIENCY_COVERAGE || km < EFFICIENCY_MIN_KM) return new Efficiency(null, coverage, confirmed);
         return new Efficiency(wh / km, coverage, confirmed);
     }
 
-    /** {sum of value x ms, covered ms} for a sample-and-hold signal inside [from, to]. */
-    private static double[] integrate(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long from, long to, long holdMs) {
-        double sum = 0, covered = 0;
+    /**
+     * The held stretches of a sample-and-hold signal inside [from, to], oldest first, as
+     * {start, end, value, extra}: extra is the sample's second field (the power direction) or -1.
+     */
+    private static List<double[]> held(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long from, long to, long holdMs) {
+        List<double[]> out = new ArrayList<>();
         Iterator<long[]> ti = times.iterator();
         Iterator<double[]> vi = values.iterator();
         long[] previous = null;
-        double previousValue = 0;
+        double[] previousValue = null;
         while (true) {
             long[] next = ti.hasNext() ? ti.next() : null;
-            double nextValue = next == null ? 0 : vi.next()[0];
+            double[] nextValue = next == null ? null : vi.next();
             if (previous != null) {
                 long end = Math.min(next == null ? to : next[0], previous[0] + holdMs);
                 long a = Math.max(from, previous[0]), b = Math.min(to, end);
-                if (b > a) { sum += previousValue * (b - a); covered += b - a; }
+                if (b > a) out.add(new double[]{a, b, previousValue[0], previousValue.length > 1 ? previousValue[1] : -1});
             }
             if (next == null) break;
             previous = next; previousValue = nextValue;
         }
-        return new double[]{sum, covered};
+        return out;
     }
 
     /** Speed (km/h) points for the trace, oldest first, within the window. */
     List<TracePoint> speedTrace(long nowMs, long windowMs) { return trace(speedSamples, speedValues, nowMs, windowMs); }
-    /** Power (W) points for the trace, signed only when the direction is confirmed. */
-    List<TracePoint> powerTrace(long nowMs, long windowMs) {
-        List<TracePoint> raw = trace(powerSamples, powerValues, nowMs, windowMs);
-        if (direction() != Direction.UNKNOWN) return raw;
-        List<TracePoint> out = new ArrayList<>(raw.size());
-        for (TracePoint p : raw) out.add(new TracePoint(p.t, Math.abs(p.value), p.gapBefore));
-        return out;
-    }
+    /** Power (W) points for the trace: each signed only when its own sample's direction was confirmed. */
+    List<TracePoint> powerTrace(long nowMs, long windowMs) { return trace(powerSamples, powerValues, nowMs, windowMs); }
     private static List<TracePoint> trace(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long nowMs, long windowMs) {
         List<TracePoint> out = new ArrayList<>();
         Iterator<double[]> vi = values.iterator();
         boolean first = true;
         for (long[] t : times) {
-            double v = vi.next()[0];
+            double[] sample = vi.next();
+            double v = sample.length > 1 && sample[1] == Direction.UNKNOWN.ordinal() ? Math.abs(sample[0]) : sample[0];
             if (t[0] < nowMs - windowMs || t[0] > nowMs) continue;
             out.add(new TracePoint(t[0], v, !first && t[1] == 1));
             first = false;
