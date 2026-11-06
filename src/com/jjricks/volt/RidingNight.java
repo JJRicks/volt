@@ -56,6 +56,7 @@ final class RidingNight {
     private static final class Crossfade {
         final float from, to;
         final Bitmap snapshot;
+        /** Where the picture sat in the window. */
         final int left, top;
         Crossfade(float from, float to, Bitmap snapshot, int left, int top) {
             this.from = from; this.to = to; this.snapshot = snapshot; this.left = left; this.top = top;
@@ -239,7 +240,7 @@ final class RidingNight {
             if (root.getLayerType() == View.LAYER_TYPE_HARDWARE) root.setLayerPaint(paint);
             else root.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
         }
-        display.night(bright);
+        display.night(bright, shown);
     }
 
     /** The system's animations off: switch at once. */
@@ -310,6 +311,13 @@ final class RidingNight {
             if (detached) return;
             float p = (Float) a.getAnimatedValue();
             picture.setAlpha(Math.round(255 * (1 - p)));
+            // The status bar shows or hides as the fade starts, which moves and resizes riding mode: the
+            // old picture follows the new screen's bounds, so the top bar and the slider stay lined up.
+            if (root.isAttachedToWindow() && root.getWidth() > 0 && root.getHeight() > 0) {
+                int[] at = new int[2];
+                root.getLocationInWindow(at);
+                picture.setBounds(at[0], at[1], at[0] + root.getWidth(), at[1] + root.getHeight());
+            }
             look(carried.to, NightFade.between(carried.from, carried.to, p));
             if (p >= 1) removeCover();
         });

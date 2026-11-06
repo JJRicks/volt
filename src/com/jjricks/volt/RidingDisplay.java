@@ -122,17 +122,20 @@ final class RidingDisplay {
 
     /**
      * Night vision (RidingNight): Volt auto and Fixed use the night range (NightVision.level), blended by
-     * the amount while night vision fades (NightFade.level), and the status bar hides while any of it
-     * shows. Phone keeps Android's brightness.
+     * the amount while night vision fades (NightFade.level). The status bar follows where the fade is
+     * going ({@code on}), so the layout moves once, at the start, under the fade. Phone keeps Android's
+     * brightness.
      */
-    void night(float amount) {
+    void night(float amount, boolean on) {
         amount = NightFade.clamp(amount);
-        if (night == amount || state.detached()) return;
-        night = amount;
-        float level = brightness.applied();
-        // Only while resumed: start() sends the level again on the next resume.
-        if (!Float.isNaN(level) && state.active()) window(level);
-        boolean hide = statusBarSetting || amount > 0;
+        if (state.detached()) return;
+        if (night != amount) {
+            night = amount;
+            float level = brightness.applied();
+            // Only while resumed: start() sends the level again on the next resume.
+            if (!Float.isNaN(level) && state.active()) window(level);
+        }
+        boolean hide = statusBarSetting || on;
         if (hide != hidesStatusBar) {
             hidesStatusBar = hide;
             controls.post(() -> { if (!state.detached() && current == this) statusBar(!hide); });

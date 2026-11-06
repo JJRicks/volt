@@ -54,8 +54,8 @@ public final class RidingNightTest {
         check(!night.contains(".putString(") && !night.contains(".putFloat("), "RidingNight must not store the ride area");
 
         String display = read("src/com/jjricks/volt/RidingDisplay.java");
-        has(display, "void night(float amount)", "RidingDisplay");
-        has(display, "boolean hide = statusBarSetting || amount > 0;", "RidingDisplay");
+        has(display, "void night(float amount, boolean on)", "RidingDisplay");
+        has(display, "boolean hide = statusBarSetting || on;", "RidingDisplay");
         has(display, "level = NightFade.level(level, night);", "RidingDisplay");
 
         String more = read("src/com/jjricks/volt/MoreScreen.java");
