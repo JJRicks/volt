@@ -102,7 +102,7 @@ public final class ScooterService extends Service {
     /** Live charging (ChargeLiveHold, ChargeLiveState): the hold, its card's last shown key, and its one done notice. */
     private final ChargeLiveHold chargeLive=new ChargeLiveHold();
     private boolean chargeLiveHeld,chargeLiveUpdating;
-    private java.util.List<Object> chargeLiveKey;
+    private final ChargeLiveState.Reposts chargeLiveReposts=new ChargeLiveState.Reposts();
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
     /** The card's Disconnect (Stop before 2026-11-06): ends Volt's own hold and card, and never sends the scooter anything. */
     static final String STOP_CHARGE_LIVE="stop_charge_live";
@@ -995,7 +995,7 @@ public final class ScooterService extends Service {
     public void setChargeLiveDetail(ChargeLiveState.Detail detail){
         if(destroyed||dataMaintenance||settings==null||detail==null)return;
         settings.edit().putString(CHARGE_LIVE_LOCK_DETAIL,detail.id).apply();
-        chargeLiveKey=null;updateNotification();changed();
+        chargeLiveReposts.reset();updateNotification();changed();
     }
     /** The card can show: app notifications on and the connection channel not blocked. */
     public boolean chargeLiveAllowed(){return notificationsAllowed();}
@@ -1037,7 +1037,7 @@ public final class ScooterService extends Service {
         if(destroyed||simulating()||settings==null||profiles==null||ble==null){chargeLive.shown();return;}
         restoreChargeLiveStopped();
         if(chargeLive.leave(SystemClock.elapsedRealtime(),chargeLiveFacts()))chargeLiveArmedWall=System.currentTimeMillis();
-        chargeLiveKey=null;saveChargeLiveStopped();
+        chargeLiveReposts.reset();saveChargeLiveStopped();
     }
     /**
      * Volt's screen is in front (uiVisible; a service recreated in the background never gets here): the hold ends,
@@ -1119,13 +1119,13 @@ public final class ScooterService extends Service {
             boolean held=chargeLiveHold();
             if(held!=chargeLiveHeld){
                 if(!held)captureLiveUpdate();// the card's last moment: keep Android's verdict for the developer row
-                chargeLiveHeld=held;chargeLiveKey=null;
+                chargeLiveHeld=held;chargeLiveReposts.reset();
                 // Out of sight, the end of the hold is like leaving Volt: the usual ten seconds, then sleep.
                 if(!held&&!visible)stopAfterChargeLive();
                 applyWorkPolicy(false);updateNotification();
             }else if(chargeLiveShown()){
                 ChargeLiveState live=chargeLiveState();
-                if(!live.dedupeKey.equals(chargeLiveKey)){chargeLiveKey=live.dedupeKey;updateNotification();}
+                if(chargeLiveReposts.due(live,SystemClock.elapsedRealtime()))updateNotification();
             }
         }finally{chargeLiveUpdating=false;}
     }

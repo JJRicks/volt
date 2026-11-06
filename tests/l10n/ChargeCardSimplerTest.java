@@ -40,6 +40,7 @@ public final class ChargeCardSimplerTest {
     public static void main(String[] args) throws Exception {
         text();
         reposts();
+        powerReposts();
         action();
         service();
         rearm();
@@ -89,6 +90,80 @@ public final class ChargeCardSimplerTest {
         later.minutesLeft = 40.0;
         check(!a.dedupeKey.equals(ChargeLiveState.of(later, CLOCK_24).dedupeKey), "a later finish time reposts");
         check(!a.dedupeKey.equals(ChargeLiveState.of(input(null, 400.0, ChargeLiveState.Detail.DETAILS), CLOCK_24).dedupeKey), "losing the estimate reposts");
+    }
+
+    /** One reading: 99% (no limit), done at the same time, power w, wallMin minutes after NOW. */
+    private static ChargeLiveState at99(Double w, long wallMin) {
+        ChargeLiveState.Input in = input(30.0 - wallMin, w, ChargeLiveState.Detail.DETAILS);
+        in.percent = 99;in.limit = null;in.nowWall = NOW + wallMin * MIN;
+        return ChargeLiveState.of(in, CLOCK_24);
+    }
+
+    /**
+     * Codex, review of #274 (P2): the shown power must reach the card when percent and Done stay the same. A big
+     * change or a lost or regained reading reposts; a few watts of wobble don't; a burst is paced.
+     */
+    private static void powerReposts() {
+        long S = 1000L;
+        // Codex's case: 120 W, then 20 W five minutes later, same percent and Done.
+        ChargeLiveState a = at99(120.0, 0), b = at99(20.0, 5);
+        check(a.title.equals(b.title) && a.text.contains("120 W") && b.text.contains("20 W") && !a.text.equals(b.text), "the case: same percent and Done, other power");
+        check(a.dedupeKey.equals(b.dedupeKey), "the key itself still leaves the watt value out");
+        ChargeLiveState.Reposts r = new ChargeLiveState.Reposts();
+        check(r.due(a, 0), "the first check posts");
+        check(!r.due(a, 15 * S), "nothing changed: no repost");
+        check(r.due(b, 5 * 60 * S), "120 W → 20 W at the same percent and Done: the card updates");
+
+        // Small wobble: 120 → 123 W (and 128, under 10 W) never reposts, however long it lasts.
+        r = new ChargeLiveState.Reposts();r.due(a, 0);
+        check(!r.due(at99(123.0, 1), 60 * S) && !r.due(at99(128.0, 2), 10 * 60 * S), "120 W → 123 W or 128 W: no repost");
+        check(!r.due(at99(131.0, 3), 11 * 60 * S), "120 W → 131 W (11 W but 9%): no repost");
+        check(r.due(at99(132.0, 3), 11 * 60 * S), "120 W → 132 W (12 W, 10%): reposts");
+        // At 400 W, 10 W isn't enough: 10% of the shown value is 40 W.
+        r = new ChargeLiveState.Reposts();r.due(at99(400.0, 0), 0);
+        check(!r.due(at99(435.0, 1), 60 * S) && r.due(at99(440.0, 2), 120 * S), "400 W: 435 W doesn't repost, 440 W does");
+        check(!r.due(at99(440.0, 3), 180 * S), "it now counts from the shown 440 W");
+
+        // Lost and regained readings update at once, even inside the pace.
+        r = new ChargeLiveState.Reposts();r.due(a, 0);
+        ChargeLiveState none = at99(null, 0);
+        check(!none.text.contains(" W") && !a.dedupeKey.equals(none.dedupeKey), "no reading: a different key");
+        check(r.due(none, 1 * S), "power → none: updates at once");
+        check(!r.due(none, 40 * S), "still none: nothing");
+        check(r.due(at99(118.0, 1), 41 * S), "none → power: updates at once");
+        check(r.due(at99(0.4, 1), 42 * S), "under 1 W is no reading: updates at once");
+
+        // A burst: a reading every second swinging 100 W ↔ 300 W for 5 minutes posts at most once per 30 s.
+        r = new ChargeLiveState.Reposts();r.due(at99(100.0, 0), 0);
+        int posts = 0;long lastPost = 0;boolean spaced = true;
+        for (long t = 1; t <= 300; t++) {
+            if (r.due(at99(t % 2 == 0 ? 100.0 : 300.0, 0), t * S)) { posts++; spaced &= t * S - lastPost >= ChargeLiveState.Reposts.POWER_PACE_MS; lastPost = t * S; }
+        }
+        check(posts >= 5 && posts <= 300 / 30 && spaced, "a burst of power changes stays within one repost per 30 s: " + posts);
+
+        // Percent and Done changes stay immediate, inside the pace.
+        r = new ChargeLiveState.Reposts();r.due(a, 0);
+        ChargeLiveState.Input pct = input(30.0, 120.0, ChargeLiveState.Detail.DETAILS);pct.limit = null;pct.percent = 100;
+        check(r.due(ChargeLiveState.of(pct, CLOCK_24), 2 * S), "a new percent: at once");
+        ChargeLiveState.Input later = input(40.0, 120.0, ChargeLiveState.Detail.DETAILS);later.limit = null;later.percent = 100;
+        ChargeLiveState l = ChargeLiveState.of(later, CLOCK_24);
+        check(!l.text.equals(ChargeLiveState.of(pct, CLOCK_24).text) && r.due(l, 3 * S), "a new finish time: at once");
+        check(!r.due(l, 4 * S), "the same again: nothing");
+        r.reset();
+        check(r.due(l, 5 * S), "after reset (new hold, new lock screen choice): the next check posts");
+        // Not charging: no power on the card, so a power reading never reposts it.
+        ChargeLiveState.Input lost = input(38.0, 412.0, ChargeLiveState.Detail.DETAILS);lost.reconnecting = true;
+        ChargeLiveState.Input lost2 = input(38.0, 90.0, ChargeLiveState.Detail.DETAILS);lost2.reconnecting = true;
+        r = new ChargeLiveState.Reposts();r.due(ChargeLiveState.of(lost, CLOCK_24), 0);
+        check(ChargeLiveState.of(lost, CLOCK_24).watts == null && !r.due(ChargeLiveState.of(lost2, CLOCK_24), 10 * 60 * S), "reconnecting shows no power: no power reposts");
+
+        // The service's hold-only path goes through Reposts; nothing else changed around it.
+        String src;
+        try { src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        check(src.contains("}else if(chargeLiveShown()){\n                ChargeLiveState live=chargeLiveState();\n                if(chargeLiveReposts.due(live,SystemClock.elapsedRealtime()))updateNotification();"), "updateChargeLive asks Reposts on the handler's clock");
+        check(!src.contains("chargeLiveKey") && src.split("chargeLiveReposts\\.reset\\(\\)", -1).length - 1 == 3, "the three places that forgot the key now reset Reposts");
+        check(src.contains("!(chargeLiveShown() && !isChargeRecording())"), "the periodic repost still skips the hold-only card (Reposts covers it)");
     }
 
     private static void action() {

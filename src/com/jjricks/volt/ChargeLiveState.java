@@ -48,18 +48,23 @@ public final class ChargeLiveState {
     public final String title, text, subText, publicTitle, publicText, publicSubText;
     /** The bar: 0 to max (the limit, or 100), filled to progress; progress is -1 without a level. */
     public final int progress, max;
-    /** Equal (equals) unless what the card shows changes: a whole percent, the finish time, the state, the limit or the name. */
+    /**
+     * Equal (equals) unless what the card shows changes: a whole percent, the finish time, the state, the limit,
+     * the name, or whether a power reading is shown. The power's value is left out; {@link Reposts} paces it.
+     */
     public final java.util.List<Object> dedupeKey;
+    /** The charging power the card shows, in whole watts; null when it shows none (no reading, or not charging). */
+    public final Integer watts;
     public final Detail detail;
     /** The battery level shown (0 to 100), the last one seen while out of reach; null without one. */
     public final Integer percent;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
-            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent) {
+            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent, Integer watts) {
         this.kind = kind;this.title = title;this.text = text;this.subText = subText;this.publicTitle = publicTitle;
         this.publicText = publicText;this.publicSubText = publicSubText;this.progress = progress;this.max = max;
         this.dedupeKey = dedupeKey;this.detail = detail;
-        this.percent = percent;
+        this.percent = percent;this.watts = watts;
     }
 
     /** clock formats a wall time as the phone's clock (DisplayTime.clock in the service). */
@@ -103,10 +108,44 @@ public final class ChargeLiveState {
         String publicText = detail == Detail.HIDDEN ? null : detail == Detail.LEVEL ? plain : text;
         String publicSub = detail == Detail.DETAILS ? name : null;
         int progress = pct == null ? -1 : Math.min(max, pct);
-        // Power is left out: a watt reading that wiggles never reposts the card (it shows the latest power when it does).
+        // The power's value is left out: a watt reading that wiggles doesn't repost the card (Reposts paces a real change).
+        // Whether one is shown is in: losing the reading or getting it back reposts at once.
         // The finish time as shown, not the minutes left: a minute that passes with the same finish time changes nothing.
-        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name);
-        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct);
+        Integer shownWatts = kind == Kind.CHARGING ? watts : null;
+        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name, shownWatts != null);
+        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct, shownWatts);
+    }
+
+    /**
+     * When the shown card is reposted (Codex review of #274): at once when its dedupe key changes; for the power
+     * alone, when it moved by at least POWER_MIN_W and POWER_MIN_SHARE of the shown value, and at most once per
+     * POWER_PACE_MS since the card was last posted. So a big change or a lost or regained reading reaches the card,
+     * a few watts of wobble don't, and a burst of readings costs one repost per pace. Not thread-safe; the service
+     * calls it on its handler.
+     */
+    public static final class Reposts {
+        public static final int POWER_MIN_W = 10;
+        public static final double POWER_MIN_SHARE = 0.10;
+        public static final long POWER_PACE_MS = 30_000L;
+        private java.util.List<Object> key;
+        private Integer watts;
+        private long postedMs;
+
+        /** True when the card should be posted again now; it then counts as posted at nowMs. */
+        public boolean due(ChargeLiveState live, long nowMs) {
+            boolean due = key == null || !live.dedupeKey.equals(key) || powerMoved(watts, live.watts, nowMs - postedMs);
+            if (due) { key = live.dedupeKey; watts = live.watts; postedMs = nowMs; }
+            return due;
+        }
+
+        /** Forget the last post (a new hold, a new lock screen choice): the next check posts. */
+        public void reset() { key = null; }
+
+        static boolean powerMoved(Integer shown, Integer now, long sinceMs) {
+            if (shown == null || now == null) return shown != now;
+            int moved = Math.abs(now - shown);
+            return sinceMs >= POWER_PACE_MS && moved >= POWER_MIN_W && moved >= POWER_MIN_SHARE * shown;
+        }
     }
 
     /** The card's one action: it ends Volt's hold and lets the connection go, and never touches charging (owner, 2026-11-06). */
