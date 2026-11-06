@@ -2280,7 +2280,7 @@ public final class MoreScreen implements AppScreen {
                 () -> selectSection("Compatibility")).view.setTag("developer-compatibility-check");
         // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
         liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
-        liveUpdateRow.view.setTag("developer-live-update");
+        liveUpdateRow.view.setTag("developer_live_update");
         LinearLayout controls = group();
         simulationRow = toggleRow(controls, "scooter", T.moreDevSimulate(), null, enabled -> {
             ScooterService s = service();
