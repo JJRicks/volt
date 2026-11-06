@@ -96,8 +96,6 @@ public final class OnboardingScreen implements AppScreen {
             "Run helper", "Import", "Nearby devices", "Connect scooter"};
     private static final String COMMAND = "python3 setup/capture-owner.py --push";
     private static final int MAX_WIDTH_DP = 560;
-    /** Unfolded and other wide screens put the step list beside the current step (MainActivity's threshold). */
-    private static final int WIDE_DP = 650;
     /**
      * The seven step names from the catalog, deferred (rendered where shown: the step list and its
      * spoken rows), by index. STEP_NAMES above is their English and no longer shown; G1 cannot yet
@@ -499,8 +497,8 @@ public final class OnboardingScreen implements AppScreen {
         footer = column();
         footer.setPadding(0, ui.dp(4), 0, 0);
         page.addView(footer, new LinearLayout.LayoutParams(-1, -2));
-        boolean split = header && number(step) > 0
-                && host.activity().getResources().getConfiguration().screenWidthDp >= WIDE_DP;
+        // Unfolded and other wide screens put the step list beside the current step (MainActivity's rule).
+        boolean split = header && number(step) > 0 && ui.wideLayout();
         if (split) {
             FrameLayout detail = new FrameLayout(host.activity());
             detail.addView(page, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER_HORIZONTAL));

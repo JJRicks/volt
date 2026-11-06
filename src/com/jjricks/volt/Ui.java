@@ -90,6 +90,16 @@ public final class Ui {
     public Typeface semibold() { return SEMIBOLD; }
     public Typeface bold() { return BOLD; }
     public int dp(float value) { return Math.round(value * density); }
+
+    /**
+     * Whether this window gets Volt's wide layout: its width over the text scale (Text size times the
+     * system font scale) reaches 650 dp. Every wide-or-phone choice asks this, so the side rail, More's
+     * two columns, Rides, Stats, the dashboard and onboarding always agree. See {@link WideLayout}.
+     */
+    public boolean wideLayout() {
+        android.content.res.Configuration configuration = context.getResources().getConfiguration();
+        return WideLayout.wide(configuration.screenWidthDp, textScale * configuration.fontScale);
+    }
     public float sp(float value) { return value * context.getResources().getDisplayMetrics().scaledDensity * textScale; }
     /** Shared motion policy, including Android's accessibility/remove-animation setting. */
     public static boolean motionEnabled() { return android.animation.ValueAnimator.areAnimatorsEnabled(); }

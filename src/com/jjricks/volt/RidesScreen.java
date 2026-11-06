@@ -112,8 +112,8 @@ public final class RidesScreen implements AppScreen {
         selected = new LinkedHashSet<String>(preferences.getStringSet("ride_comparison", new LinkedHashSet<String>()));
         chartKey = preferences.getString("ride_chart_key", "power_w");
         selectedRide = preferences.getString("ride_selected", "");
-        // Same trigger as the activity's side rail, so two panes appear exactly when the rail does.
-        wide = host.activity().getResources().getConfiguration().screenWidthDp >= 650;
+        // Same rule as the activity's side rail (Ui.wideLayout), so two panes appear exactly when the rail does.
+        wide = ui.wideLayout();
         scroll = new MapTouchScroll(); scroll.setFillViewport(true); scroll.setClipToPadding(false);
         page = vertical(); page.setPadding(wide ? 0 : ui.dp(18), ui.dp(6), wide ? 0 : ui.dp(18), ui.dp(24)); scroll.addView(page);
 
