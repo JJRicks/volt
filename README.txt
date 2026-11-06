@@ -18,6 +18,7 @@ are also available. See the setup guide for requirements and validation limits.
 
 Read PRIVACY.md for local storage, optional online maps and sensitive exports.
 Keep owner setup files private and back up before clearing app data.
+Volt is in English and Spanish (beta); more languages are in progress.
 CHANGELOG.md lists updates; SECURITY.md explains sensitive reporting.
 
 Application source: MIT. Third-party and image notices: NOTICE.
