@@ -86,6 +86,8 @@ final class RidingScreen implements AppScreen {
     /** The layout picker's sheet, owned here so a rebuild or a resumed ride can close it. */
     private final RidingFrames.PickerSheet sheetState = new RidingFrames.PickerSheet();
     private AlertDialog sheet;
+    /** The tune disc's motion as it appears and goes (owner, Nov 6). */
+    private RidingDiscMotion disc;
     /** Brightness and the rotation lock while riding mode is open (its slider sits below). */
     private final RidingDisplay display;
 
@@ -173,12 +175,13 @@ final class RidingScreen implements AppScreen {
         picker.setClickable(true);
         picker.setFocusable(true);
         picker.setContentDescription(T.ridingLayoutChoose());
-        picker.setOnClickListener(v -> choose());
+        picker.setOnClickListener(v -> { if (disc != null && disc.takesTaps()) edit(); });
         picker.addView(ui.icon("tune", 24, ui.text), new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
         picker.setVisibility(View.GONE);
         LinearLayout.LayoutParams pickerSize = new LinearLayout.LayoutParams(ui.dp(TOUCH_DP), ui.dp(TOUCH_DP));
         pickerSize.setMarginStart(ui.dp(10));
         top.addView(picker, pickerSize);
+        disc = new RidingDiscMotion(picker);
         LinearLayout.LayoutParams topSize = new LinearLayout.LayoutParams(-1, -2);
         topSize.bottomMargin = ui.dp(side ? 10 : 14);
         frame.addView(top, topSize);
@@ -480,65 +483,6 @@ final class RidingScreen implements AppScreen {
 
     private int cardColor() { return ui.dark ? ui.surface : ui.raised; }
 
-    /**
-     * The layout picker: a plain list of the three frames for now (the full editor comes later). A
-     * choice is saved for this scooter and the screen rebuilt in the new frame; the ride's readings
-     * carry over, since they live in the session.
-     */
-    private void choose() {
-        if (closed || host.activity() == null || sheet != null) return;
-        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
-        Context context = host.activity();
-        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
-        body.setTag("riding_layout_sheet");
-        LinearLayout options = ui.groupCard();
-        String[] names = {T.ridingFrameFocus(), T.ridingFrameHalo(), T.ridingFrameTrace()};
-        String[] summaries = {T.ridingFrameFocusSummary(), T.ridingFrameHaloSummary(), T.ridingFrameTraceSummary()};
-        for (int i = 0; i < RidingLayout.FRAMES.length; i++) {
-            final String id = RidingLayout.FRAMES[i];
-            boolean selected = id.equals(frameId);
-            LinearLayout option = new LinearLayout(context);
-            option.setOrientation(LinearLayout.HORIZONTAL);
-            option.setGravity(Gravity.CENTER_VERTICAL);
-            option.setMinimumHeight(ui.dp(TOUCH_DP));
-            option.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(10));
-            option.setTag(id);
-            LinearLayout words = column();
-            TextView name = ui.text(names[i], 16, true);
-            if (selected) name.setTextColor(ui.accent);
-            words.addView(name);
-            words.addView(ui.caption(summaries[i]));
-            option.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-            if (selected) {
-                LinearLayout.LayoutParams check = new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22));
-                check.setMarginStart(ui.dp(10));
-                option.addView(ui.icon("check", 22, ui.accent), check);
-            }
-            option.setFocusable(true);
-            option.setClickable(true);
-            option.setSelected(selected);
-            if (Build.VERSION.SDK_INT >= 30 && selected) option.setStateDescription(T.commonSelected());
-            option.setOnClickListener(v -> {
-                // Only this screen's sheet, and only while still stopped: a stale or moving choice saves nothing.
-                boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
-                dismissSheet();
-                if (!accepted) return;
-                RidingLayout saved = config.layout();
-                if (!RidingFrames.choose(saved, id)) return;
-                config.save(saved);
-                // After the dismissal, on the activity's window: the sheet's own views are detached by then.
-                host.activity().getWindow().getDecorView().post(() -> { if (!closed) host.rebuild(); });
-            });
-            if (i > 0) ui.divider(options);
-            options.addView(option, new LinearLayout.LayoutParams(-1, -2));
-        }
-        body.addView(options, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog shown = host.showSheet(body);
-        if (shown == null) { sheetState.dismissed(); return; }
-        sheet = shown;
-        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
-    }
-
     /** Closes the picker sheet if it's showing; safe while the activity is going away. */
     private void dismissSheet() {
         AlertDialog d = sheet;
@@ -561,7 +505,38 @@ final class RidingScreen implements AppScreen {
         // Rotation, folding and every rebuild close this screen: its sheet goes with it.
         sheetState.close();
         dismissSheet();
+        if (disc != null) disc.stop();
         display.detach();
+    }
+
+    /**
+     * The layout editor (RidingLayoutSheet), opened from the tune disc while stopped. Done saves for
+     * this scooter and rebuilds the screen in the edited layout; the ride's readings carry over, since
+     * they live in the session.
+     */
+    private void edit() {
+        if (closed || host.activity() == null || sheet != null) return;
+        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
+        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
+        body.setTag("riding_layout_editor");
+        new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
+        AlertDialog shown = host.showSheet(body);
+        if (shown == null) { sheetState.dismissed(); return; }
+        sheet = shown;
+        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
+    }
+
+    /**
+     * The editor's Done: saved for this scooter and the screen rebuilt with it, but only on this
+     * screen's sheet while still stopped (#265's rules); a stale or moving Done saves nothing.
+     */
+    private void saveLayout(RidingLayout edited) {
+        boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
+        dismissSheet();
+        if (!accepted || edited.toJson().equals(config.layout().toJson())) return;
+        config.save(edited);
+        // After the dismissal, on the activity's window: the sheet's own views are detached by then.
+        host.activity().getWindow().getDecorView().post(() -> { if (!closed) host.rebuild(); });
     }
 
     /**
@@ -593,7 +568,7 @@ final class RidingScreen implements AppScreen {
             session.values.setRecordingStart(ride == null ? null : ride.startMonotonicMs);
             recordingKm = ride == null ? null : ride.distanceKm;
             Double charging = ble.telemetry.number("charging_state");
-            session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, true);
+            session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
         }
         if (session.takeBandDrop()) Haptics.tick(view);
@@ -607,8 +582,7 @@ final class RidingScreen implements AppScreen {
         if (trace != null) trace.show(now, units);
         // The picker shows only while stopped (Q17 A): a moving rider sees no control but back.
         boolean stoppedNow = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
-        int shown = stoppedNow ? View.VISIBLE : View.GONE;
-        if (picker.getVisibility() != shown) picker.setVisibility(shown);
+        disc.show(stoppedNow);
         // A sheet opened while stopped closes once riding resumes; its choices can't be tapped mid-ride.
         if (sheetState.update(stoppedNow)) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
@@ -752,7 +726,7 @@ final class RidingScreen implements AppScreen {
                 if (speed.kmh == null) { none(s); break; }
                 double value = speedIn(speed.kmh, units);
                 // Tenths only where the scooter sends them (0x92) or the simulator does; never invented.
-                boolean tenths = speed.tenths || (service != null && service.simulating());
+                boolean tenths = layout.on(RidingLayout.TENTHS) && (speed.tenths || (service != null && service.simulating()));
                 if (tenths) {
                     long[] parts = RidingFocus.tenths(value);
                     s.main = Fmt.integer(parts[0]);
@@ -764,12 +738,15 @@ final class RidingScreen implements AppScreen {
             }
             case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
                 RidingValues.Reading scooter = v.reading(RidingValues.SCOOTER_RANGE_KEY, now);
+                RidingValues.Reading battery = v.reading(RidingValues.BATTERY_KEY, now);
+                Double percent = battery == null ? null : battery.value;
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
-                        scooter == null || scooter.stale, units);
+                        scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
                 s.icon = "route";
-                if (range.kind == RidingFocus.RangeKind.SCOOTER)
+                // The label names whose estimate it is; a chosen source keeps its name with no reading.
+                if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))
                     s.rungs = new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
-                else if (range.kind == RidingFocus.RangeKind.VOLT)
+                else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))
                     s.rungs = new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
                 else s.rungs = new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
                 if (range.kind == RidingFocus.RangeKind.ALMOST_EMPTY) {

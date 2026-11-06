@@ -22,6 +22,7 @@ final class RidingSession {
     private long fedMs = -1;
     private RidingValues.Band band;
     private boolean bandDropped, priorSet, closed;
+    private LiveRangeEstimator.Prior prior;
 
     RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs) {
         this.profileId = profileId == null ? "" : profileId;
@@ -30,7 +31,10 @@ final class RidingSession {
     }
 
     /** The learned model's battery table and starting energy per km; null leaves the live range without a model. */
-    void setPrior(LiveRangeEstimator.Prior prior) { estimator.reset(prior); priorSet = true; }
+    void setPrior(LiveRangeEstimator.Prior prior) { this.prior = prior; estimator.reset(prior); priorSet = true; }
+
+    /** Volt's range: the learned model's remaining km at this battery reading, from past rides; null without either. */
+    Double learnedKm(Double batteryPercent) { return prior == null ? null : prior.learnedKm(batteryPercent); }
     boolean priorSet() { return priorSet; }
 
     /**

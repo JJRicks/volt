@@ -141,7 +141,20 @@ final class RidingFocus {
      * @param scooterStale true when that reading is older than its interval allows
      */
     static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale, String units) {
-        if (RidingLayout.RANGE_SCOOTER.equals(content) || RidingLayout.RANGE_VOLT.equals(content)) return scooter(scooterKm, scooterStale, units);
+        return range(content, live, scooterKm, scooterStale, null, null, false, units);
+    }
+
+    /**
+     * As above, with Volt's learned range for the Volt's range content.
+     *
+     * @param learnedKm the learned model's remaining km at this battery reading (past rides, not this ride's pace), or null
+     * @param batteryPercent the battery reading it was taken at, or null
+     * @param batteryStale true when that reading is older than its interval allows
+     */
+    static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale,
+            Double learnedKm, Double batteryPercent, boolean batteryStale, String units) {
+        if (RidingLayout.RANGE_SCOOTER.equals(content)) return scooter(scooterKm, scooterStale, units);
+        if (RidingLayout.RANGE_VOLT.equals(content)) return volt(learnedKm, batteryPercent, batteryStale, units);
         if (live != null) {
             switch (live.state) {
                 case ALMOST_EMPTY: return new Range(RangeKind.ALMOST_EMPTY, null, 0, false, true, live.stale);
@@ -156,6 +169,18 @@ final class RidingFocus {
             }
         }
         return scooter(scooterKm, scooterStale, units);
+    }
+
+    /**
+     * Volt's range: the learned model's remaining range from past rides at this battery reading, as an
+     * approximate whole number. Never this ride's pace and never the scooter's own estimate; without a
+     * learned result or a battery reading it shows nothing.
+     */
+    private static Range volt(Double learnedKm, Double batteryPercent, boolean stale, String units) {
+        if (batteryPercent == null || learnedKm == null || !Double.isFinite(learnedKm) || learnedKm < 0)
+            return new Range(RangeKind.NONE, null, 0, false, false, false);
+        if (batteryPercent < RangeReadout.EMPTY_PERCENT) return new Range(RangeKind.ALMOST_EMPTY, null, 0, false, true, stale);
+        return new Range(RangeKind.VOLT, (double) Math.round(distance(learnedKm, units)), 0, true, false, stale);
     }
 
     private static Range scooter(Double km, boolean stale, String units) {
