@@ -346,6 +346,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
+        if (chargeLiveSheet != null) chargeLiveSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
         boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
         if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -1389,6 +1390,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final SettingLine clockLine,chargerLine;
         private final ScheduleTestRow scheduleTest;
         private final ChargeAlertRow chargeAlert,lowAlert;
+        private final ChargeLiveRow chargeLive;
         private final TopSpeedCard topSpeed;
         /** Menu layout (ScooterMenuLayout): each row's id, the "Done by" row glued under its parent, today's order and this scooter's layout. */
         private final java.util.HashMap<String,View> menuViews=new java.util.HashMap<>();
@@ -1491,6 +1493,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             addRow("Battery",chargeAlert.row.card);extras.put(chargeAlert.row.card,new String[]{"Battery","charge alert battery alerts level reached full charged notify notification alarm sound"});
             shownExtras.put(chargeAlert.row.card,new String[]{T.mainSearchChargeAlert(),T.mainAlertCharge()});
             addRow("Battery",lowAlert.row.card);extras.put(lowAlert.row.card,new String[]{"Battery","low battery alert battery alerts notify notification alarm sound"});
+            // Live charging: every model, shown under the Battery section; search finds it by its shown name.
+            chargeLive=new ChargeLiveRow();
+            String batteryGroup=groupOf(ScooterCommands.find("charge_limit"));
+            addRow(batteryGroup,chargeLive.row.card);extras.put(chargeLive.row.card,new String[]{batteryGroup,M.chargeLiveRow().english()});
+            shownExtras.put(chargeLive.row.card,new String[]{T.chargeLiveRow()});
             SettingLine security=new SettingLine("shield",T.mainRowSecurity(),null);security.chevron(()->openMoreSection("Security"));
             addRow("Security",security.card);extras.put(security.card,new String[]{"Security","pin password proximity unlock pairing bluetooth bond security"});
             SettingLine identity=new SettingLine("pencil",T.mainRenameTitle(),null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
@@ -1665,7 +1672,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(syncMenu())applyFilter();
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
-            scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();
+            scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();chargeLive.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
                     ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING);
@@ -2017,6 +2024,90 @@ public final class MainActivity extends Activity implements ScreenHost {
             String subKind=sub!=null&&on&&chargeAlertBlocked(a)==null?WATCHING:null;
             row.setSub(sub);row.sub.setTextColor(sub!=null&&!WATCHING.equals(subKind)?design.danger:design.muted);
             row.line.setContentDescription(sub==null?T.mainLabelValue(low?T.mainAlertLow():T.mainAlertCharge(),value):T.mainLabelValueDetail(low?T.mainAlertLow():T.mainAlertCharge(),value,sub));
+        }
+    }
+    /** Scooter › Battery › Live charging: On or Off, and why the card can't show when notifications are off. */
+    private final class ChargeLiveRow {
+        final SettingLine row;
+        ChargeLiveRow(){
+            row=new SettingLine("bolt",M.chargeLiveRow(),null);
+            row.card.setTag("charge_live");row.line.setTag("charge_live_row");row.value.setTag("charge_live_value");
+            row.chevron(MainActivity.this::showChargeLive);
+        }
+        void refresh(){
+            boolean on=scooterService==null||scooterService.chargeLiveEnabled();
+            String value=on?T.commonOn():T.commonOff();
+            String sub=on&&scooterService!=null&&!scooterService.chargeLiveAllowed()?T.mainAlertNotificationsOff():null;
+            if(!value.contentEquals(row.value.getText()))row.value.setText(value);
+            row.setSub(sub);row.sub.setTextColor(design.danger);
+            row.line.setContentDescription(sub==null?T.mainLabelValue(T.chargeLiveRow(),value):T.mainLabelValueDetail(T.chargeLiveRow(),value,sub));
+        }
+    }
+    private ChargeLiveSheet chargeLiveSheet;
+    private void showChargeLive(){
+        if(scooterService==null)return;
+        if(controlDialog!=null)controlDialog.dismiss();
+        chargeLiveSheet=new ChargeLiveSheet();
+    }
+    /** Volt's own choices for live charging, saved as they change; nothing here sends a scooter command. */
+    private final class ChargeLiveSheet {
+        final AlertDialog dialog;
+        final Switch toggle;
+        final SegmentedSelector lock;
+        final LinearLayout permission;
+        ChargeLiveSheet(){
+            final AlertDialog[] self=new AlertDialog[1];
+            LinearLayout body=sheetContent(T.chargeLiveRow(),T.chargeLiveIntro(),
+                    ()->{if(self[0]!=null)self[0].dismiss();});
+            body.setTag("charge_live_sheet");
+            LinearLayout card=design.groupCard();body.addView(card,new LinearLayout.LayoutParams(-1,-2));
+            SettingLine line=new SettingLine("bolt",M.chargeLiveRow(),M.chargeLiveSwitchDetail());
+            toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));toggle.setMinimumWidth(design.dp(54));
+            design.styleSwitch(toggle);toggle.setTag("charge_live_switch");toggle.setContentDescription(line.name.getText());
+            toggle.setOnClickListener(v->save());
+            LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-2,-2);tp.leftMargin=design.dp(10);line.line.addView(toggle,tp);
+            line.line.setClickable(true);line.line.setFocusable(true);line.line.setBackground(rowRipple());line.line.setOnClickListener(v->toggle.performClick());
+            card.addView(line.card);
+            body.addView(design.sectionLabel(T.chargeLiveLockTitle()));
+            lock=new SegmentedSelector(design,T.chargeLiveLockTitle(),new String[]{T.chargeLiveLockDetails(),T.chargeLiveLockLevel(),T.chargeLiveLockHidden()},choice->{
+                if(scooterService==null){dialog().dismiss();return;}
+                scooterService.setChargeLiveDetail(ChargeLiveState.Detail.values()[choice]);
+            });
+            lock.setTag("charge_live_lock");
+            body.addView(lock,new LinearLayout.LayoutParams(-1,-2));
+            TextView note=design.caption(T.chargeLiveLockNote());
+            note.setPadding(design.dp(4),design.dp(12),design.dp(4),0);body.addView(note);
+            // Notifications off: the card can't show, so say so and take the owner to the one place that fixes it.
+            permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge_live_permission");
+            permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
+            permission.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
+            TextView permissionText=design.text(T.chargeLivePerm(),13,false);
+            LinearLayout.LayoutParams pw=new LinearLayout.LayoutParams(0,-2,1);pw.rightMargin=design.dp(8);permission.addView(permissionText,pw);
+            TextView allow=pill(T.mainAlertAllow(),MainActivity.this::allowChargeAlertNotifications);allow.setContentDescription(T.mainAlertAllowDescription());
+            permission.addView(allow);
+            LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=design.dp(12);body.addView(permission,pp);
+            TextView when=design.caption(T.chargeLiveWhen());
+            when.setPadding(design.dp(4),design.dp(12),design.dp(4),0);body.addView(when);
+            dialog=showSheet(body);self[0]=dialog;controlDialog=dialog;
+            dialog.setOnDismissListener(d->{if(chargeLiveSheet==this)chargeLiveSheet=null;if(controlDialog==dialog)controlDialog=null;redraw();});
+            refresh();
+        }
+        AlertDialog dialog(){return dialog;}
+        void save(){
+            if(destroyed||scooterService==null){dialog.dismiss();return;}
+            boolean on=toggle.isChecked();
+            scooterService.setChargeLiveEnabled(on);
+            // Turning it on with notifications off asks for them once, as the battery alerts do.
+            if(on&&!scooterService.chargeLiveAllowed())allowChargeAlertNotifications();
+            refresh();redraw();
+        }
+        void refresh(){
+            if(destroyed||scooterService==null){dialog.dismiss();return;}
+            boolean on=scooterService.chargeLiveEnabled();
+            toggle.setChecked(on);
+            lock.select(scooterService.chargeLiveDetail().ordinal(),false);
+            lock.setAlpha(on?1f:0.5f);
+            permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
     }
     private ChargeAlertSheet chargeAlertSheet;
