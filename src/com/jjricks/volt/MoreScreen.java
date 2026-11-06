@@ -105,7 +105,7 @@ public final class MoreScreen implements AppScreen {
     private Row onboardingImport, onboardingNearby, onboardingConnect;
     private final List<Row> lockedProfileRows = new ArrayList<>();
     private Row nearbyRow, locationRow, notificationRow;
-    private Row developerIndexRow, simulationRow, simulationModelRow;
+    private Row developerIndexRow, simulationRow, simulationModelRow, liveUpdateRow;
     /** Developer simulator models: "" is the UT5 MAX simulator; the others are synthetic advertised IDs. */
     private static final String[] SIMULATION_MODELS = {"", "24431", "39991"};
     private static final String[] SIMULATION_MODEL_NAMES = {"UT5 MAX", "Mapped model (synthetic 24431)", "Unknown model (synthetic 39991)"};
@@ -149,7 +149,7 @@ public final class MoreScreen implements AppScreen {
     MoreScreen(ScreenHost host, String initialSection) {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
-        wide = !standalone && host.activity().getResources().getConfiguration().screenWidthDp >= 650;
+        wide = !standalone && ui.wideLayout();
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();
@@ -190,6 +190,7 @@ public final class MoreScreen implements AppScreen {
                 row.view.setTag("developer-options-menu");
             }
         }
+        updates();
         TextView footer = ui.text(T.moreFooter(AppVersion.name(host.activity())), 11.5f, false);
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
@@ -955,6 +956,7 @@ public final class MoreScreen implements AppScreen {
             if (current && s.simulating()) s.setSimulation(false);
             if (current) s.ble.disconnect();
             s.profiles.remove(id);
+            if (s.maintenance != null) s.maintenance.forget(id);
             if (current) s.ble.profileSelected();
             dialog.dismiss(); host.redraw();
         });
@@ -964,33 +966,41 @@ public final class MoreScreen implements AppScreen {
     // ---- App preferences ----------------------------------------------------------------
 
     /**
-     * The Language row (plan 5.1), directly below Appearance, offered only once a language other than
-     * English ships, or with the pseudo APK while Developer options are on. The card is built here but
-     * stays out of the section until offered: a GONE child would still take a child slot and shift every
-     * later sibling's index, so English view trees must not hold it at all.
+     * The Language row (plan 5.1), first in the display card with Units and Text size, offered only once a
+     * language other than English ships, or with the pseudo APK while Developer options are on. The row is
+     * built here, in a holder of its own that is never attached, and stays out of the card until offered:
+     * a GONE child would still take a child slot and shift every later sibling's index, so view trees
+     * without the row must not hold it, or its divider, at all.
      */
-    private void languageRow() {
-        LinearLayout section = cardDestination;
-        LinearLayout language = ui.groupCard();
-        language.setTag("preference_language");
-        Row row = row(language, "text", T.moreLanguageTitle(), null,
+    private void languageRow(LinearLayout display) {
+        LinearLayout holder = column();
+        Row row = row(holder, "globe", T.moreLanguageTitle(), null,
                 () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
+        View language = row.view;
+        language.setTag("preference_language");
+        holder.removeView(language);
+        View divider = new View(host.activity());
+        divider.setBackgroundColor(ui.raised);
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
-            if (offered) row.value(LanguageSheet.value(host.activity()));
-            placeLanguageRow(section, language, offered);
+            // The current language goes under the title, as Android's own language setting shows it: the
+            // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
+            // at large text sizes.
+            if (offered) row.sub(LanguageSheet.value(host.activity()));
+            placeLanguageRow(display, language, divider, offered, ui.dp(1));
         });
     }
 
-    /** Attaches the Language card below the first selector (Appearance) once, and detaches it when not offered. */
-    private static void placeLanguageRow(LinearLayout section, View language, boolean offered) {
-        boolean attached = language.getParent() == section;
-        if (!offered) { if (attached) section.removeView(language); return; }
+    /**
+     * Attaches the Language row, then a divider, at the top of the display card once, and detaches both
+     * when not offered. The divider matches Ui.divider: the card's raised colour, 1 dp tall.
+     */
+    private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line) {
+        boolean attached = language.getParent() == display;
+        if (!offered) { if (attached) { display.removeView(divider); display.removeView(language); } return; }
         if (attached) return;
-        int below = section.getChildCount();
-        for (int i = 0; i < section.getChildCount(); i++)
-            if (section.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
-        section.addView(language, below);
+        display.addView(language, 0, new LinearLayout.LayoutParams(-1, -2));
+        display.addView(divider, 1, new LinearLayout.LayoutParams(-1, line));
     }
 
     private void preferences() {
@@ -1000,9 +1010,9 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
-        languageRow();
         LinearLayout display = group();
         display.setTag("preference-display-options");
+        languageRow(display);
         Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
         units.view.setTag("preference-units-menu");
         valueRefreshers.add(() -> units.value(unitsSummary()));
@@ -1031,6 +1041,163 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
+        ridingPreferences();
+    }
+    /** Riding mode's screen: brightness (Phone by default, owner Q20 A) and the rotation lock (Q14 A). */
+    private void ridingPreferences() {
+        label(T.ridingDisplaySection());
+        boolean sensor = RidingDisplay.hasLightSensor(host.activity());
+        String[] labels = sensor ? new String[]{T.ridingDisplayPhone(), T.ridingDisplayAuto(), T.ridingDisplayFixed()}
+                : new String[]{T.ridingDisplayPhone(), T.ridingDisplayFixed()};
+        String[] values = sensor ? new String[]{RidingBrightness.PHONE, RidingBrightness.AUTO, RidingBrightness.FIXED}
+                : new String[]{RidingBrightness.PHONE, RidingBrightness.FIXED};
+        segmentedField(T.ridingDisplayBrightness(), RidingBrightness.MODE_KEY, labels, values, RidingBrightness.PHONE);
+        segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
+                new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
+        nightPreferences();
+        View gap = new View(host.activity());
+        cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
+        LinearLayout box = group();
+        box.setTag("preference_riding_display");
+        // Off by default: the status bar keeps the phone's clock and battery (#254). Applies on the next entry.
+        Row hideBar = preferenceToggle(box, "screen", T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(),
+                RidingBars.HIDE_STATUS_BAR_KEY, false);
+        hideBar.view.setTag("preference_riding_hide_status_bar");
+        RidingBrightness.Store store = RidingDisplay.settings(settings());
+        Runnable[] showReset = new Runnable[1];
+        Row reset = row(box, "settings", T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
+            RidingBrightness.forget(store);
+            host.toast(T.ridingDisplayResetDone());
+            showReset[0].run();
+        });
+        reset.view.setTag("preference_riding_brightness_reset");
+        View resetDivider = box.getChildAt(box.indexOfChild(reset.view) - 1);
+        showReset[0] = () -> {
+            int shown = RidingBrightness.learned(store) ? View.VISIBLE : View.GONE;
+            reset.view.setVisibility(shown);
+            resetDivider.setVisibility(shown);
+        };
+        valueRefreshers.add(showReset[0]);
+        note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
+    }
+    /**
+     * Night vision (ride-display plan, PR 3): Off · On · Scheduled, then sunset to sunrise or custom
+     * times. Sunset from the last ride's area needs the rider's yes first (owner Q21 A); without it the
+     * time zone's city is used. Both are worked out on the phone.
+     */
+    private void nightPreferences() {
+        segmentedField(T.ridingNightVision(), NightSchedule.MODE_KEY, new String[]{T.ridingNightOff(), T.ridingNightOn(), T.ridingNightScheduled()},
+                new String[]{NightSchedule.OFF, NightSchedule.ON, NightSchedule.SCHEDULED}, NightSchedule.OFF, this::nightAsk);
+        segmentedField(T.ridingNightSchedule(), NightSchedule.SCHEDULE_KEY, new String[]{T.ridingNightSun(), T.ridingNightCustom()},
+                new String[]{NightSchedule.SUN, NightSchedule.CUSTOM}, NightSchedule.SUN, this::nightAsk);
+        // segmentedField adds its caption, then its selector.
+        View schedule = cardDestination.getChildAt(cardDestination.getChildCount() - 1);
+        View scheduleCaption = cardDestination.getChildAt(cardDestination.getChildCount() - 2);
+        View gap = new View(host.activity());
+        cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
+        LinearLayout box = group();
+        box.setTag("preference_riding_night");
+        Row from = row(box, "route", T.ridingNightFrom(), null, this::nightConsent);
+        from.view.setTag("preference_riding_night_from");
+        Row starts = row(box, "clock", T.ridingNightStarts(), null, () -> nightTime(NightSchedule.START_KEY, NightSchedule.START_DEFAULT, T.ridingNightStarts()));
+        starts.view.setTag("preference_riding_night_starts");
+        Row ends = row(box, "clock", T.ridingNightEnds(), null, () -> nightTime(NightSchedule.END_KEY, NightSchedule.END_DEFAULT, T.ridingNightEnds()));
+        ends.view.setTag("preference_riding_night_ends");
+        TextView next = ui.caption("");
+        next.setPadding(0, ui.dp(7), 0, 0);
+        next.setTag("preference_riding_night_next");
+        box.addView(next);
+        note(box, T.ridingNightNote());
+        Runnable refresh = () -> {
+            boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(settings().getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
+            boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(settings().getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
+            schedule.setVisibility(scheduled ? View.VISIBLE : View.GONE);
+            scheduleCaption.setVisibility(scheduled ? View.VISIBLE : View.GONE);
+            long now = System.currentTimeMillis();
+            NightSchedule.State state = RidingNight.state(host.activity(), settings(), now);
+            boolean custom = scheduled && (!sun || state.source == NightSchedule.Source.NONE);
+            shownRows(box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
+            boolean ride = RidingNight.usesRideArea(settings());
+            from.value(ride ? T.ridingNightFromRide() : T.ridingNightFromZone());
+            from.sub(state.source == NightSchedule.Source.RIDE ? T.ridingNightSourceRide()
+                    : state.source == NightSchedule.Source.NONE ? T.ridingNightSourceNone()
+                    : ride ? T.ridingNightSourceRideNone() : T.ridingNightSourceZone());
+            starts.value(nightClock(settings().getInt(NightSchedule.START_KEY, NightSchedule.START_DEFAULT), NightSchedule.START_DEFAULT));
+            ends.value(nightClock(settings().getInt(NightSchedule.END_KEY, NightSchedule.END_DEFAULT), NightSchedule.END_DEFAULT));
+            String text = !scheduled ? "" : state.nextMs > 0 && state.nextMs - now < 86_400_000L
+                    ? (state.night ? T.ridingNightNextOff(DisplayTime.clock(host.activity(), settings(), state.nextMs))
+                            : T.ridingNightNextOn(DisplayTime.clock(host.activity(), settings(), state.nextMs)))
+                    : state.today == SunTimes.Day.Kind.ALWAYS_DAY ? T.ridingNightNoSunset()
+                    : state.today == SunTimes.Day.Kind.ALWAYS_NIGHT ? T.ridingNightNoSunrise() : "";
+            next.setText(text);
+            next.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+        };
+        refresh.run();
+        valueRefreshers.add(refresh);
+        // The ride's area is read in the background (it's never stored); the caption follows once it's known.
+        if (RidingNight.usesRideArea(settings())) RidingNight.readRideArea(host.activity(), () -> { if (!closed) refresh.run(); });
+    }
+    /** Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. */
+    private static void shownRows(LinearLayout box, View[] rows, boolean[] shown) {
+        boolean above = false;
+        for (int i = 0; i < rows.length; i++) {
+            rows[i].setVisibility(shown[i] ? View.VISIBLE : View.GONE);
+            int at = box.indexOfChild(rows[i]);
+            if (at > 0 && i > 0) box.getChildAt(at - 1).setVisibility(shown[i] && above ? View.VISIBLE : View.GONE);
+            above |= shown[i];
+        }
+    }
+    /** Asks about the ride's area the first time sunset to sunrise is scheduled. */
+    private void nightAsk() {
+        boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(settings().getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
+        boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(settings().getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
+        if (scheduled && sun && !settings().contains(NightSchedule.AREA_KEY)) nightConsent();
+    }
+    /** The brief consent sheet: use the last ride's area (rounded, on the phone) or the time zone. */
+    private void nightConsent() {
+        if (closed) return;
+        AlertDialog[] self = new AlertDialog[1];
+        LinearLayout body = host.sheetContent(T.ridingNightConsentTitle(), T.ridingNightConsentBody(), () -> { if (self[0] != null) self[0].dismiss(); });
+        body.setTag("riding_night_consent");
+        TextView allow = ui.button(T.ridingNightConsentAllow(), () -> {
+            settings().edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_ALLOW).apply();
+            if (self[0] != null) self[0].dismiss();
+            RidingNight.readRideArea(host.activity(), () -> { if (!closed) host.redraw(); });
+        });
+        allow.setTag("riding_night_consent_allow");
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
+        space.topMargin = ui.dp(16);
+        body.addView(allow, space);
+        TextView zone = ui.secondaryButton(T.ridingNightConsentZone(), () -> {
+            settings().edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_DECLINE).apply();
+            if (self[0] != null) self[0].dismiss();
+        });
+        zone.setTag("riding_night_consent_zone");
+        LinearLayout.LayoutParams under = new LinearLayout.LayoutParams(-1, -2);
+        under.topMargin = ui.dp(8);
+        body.addView(zone, under);
+        AlertDialog dialog = host.showSheet(body);
+        self[0] = dialog;
+        dialogs.add(dialog);
+        dialog.setOnDismissListener(x -> dialogs.remove(dialog));
+    }
+    /** A custom time's picker, in the phone's 12 or 24 hour clock. */
+    private void nightTime(String key, int fallback, String title) {
+        if (closed) return;
+        int minutes = NightSchedule.minutes(settings().getInt(key, fallback), fallback);
+        android.app.TimePickerDialog picker = new android.app.TimePickerDialog(host.activity(), (view, hour, minute) -> {
+            if (!closed) settings().edit().putInt(key, hour * 60 + minute).apply();
+        }, minutes / 60, minutes % 60, DisplayTime.is24Hour(host.activity(), settings()));
+        picker.setTitle(title);
+        dialogs.add(picker);
+        picker.setOnDismissListener(x -> dialogs.remove(picker));
+        picker.show();
+    }
+    /** A custom time as the phone's clock shows it today. */
+    private String nightClock(int stored, int fallback) {
+        int minutes = NightSchedule.minutes(stored, fallback);
+        long wall = java.time.LocalDate.now().atTime(minutes / 60, minutes % 60).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return DisplayTime.clock(host.activity(), settings(), wall);
     }
     private boolean batteryUnrestricted() {
         try {
@@ -1056,6 +1223,20 @@ public final class MoreScreen implements AppScreen {
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);
         if (dialog != null) dialog.setOnDismissListener(d -> { if (!closed) refresh(); });
+    }
+    /** Android 16's per-app Live Updates setting; Volt's notification settings where that page is missing. */
+    private void openLiveUpdateSettings() {
+        if (Build.VERSION.SDK_INT >= ChargeLiveUpdate.SDK) {
+            android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS);
+            intent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, host.activity().getPackageName());
+            if (startAndroidSettings(intent)) return;
+        }
+        openAndroidSettings(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+    }
+    private boolean liveUpdateAllowed() {
+        if (Build.VERSION.SDK_INT < ChargeLiveUpdate.SDK) return false;
+        try { return host.activity().getSystemService(android.app.NotificationManager.class).canPostPromotedNotifications(); }
+        catch (RuntimeException | LinkageError unknown) { return false; }
     }
     private void openAndroidSettings(String action){
         android.content.Intent intent=new android.content.Intent(action);
@@ -1095,6 +1276,10 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"system", "12h", "24h"}, "system");
     }
     private void segmentedField(String title, String key, String[] labels, String[] values, String fallback) {
+        segmentedField(title, key, labels, values, fallback, null);
+    }
+    /** changed runs after the rider picks a different value. */
+    private void segmentedField(String title, String key, String[] labels, String[] values, String fallback, Runnable changed) {
         TextView caption = ui.text(title, 12.5f, false); caption.setTextColor(ui.muted);
         caption.setPadding(ui.dp(2), ui.dp(12), ui.dp(2), ui.dp(6));
         cardDestination.addView(caption);
@@ -1104,6 +1289,7 @@ public final class MoreScreen implements AppScreen {
             // MainActivity coalesces theme and display-unit rebuilds after the 190ms slide. A second
             // immediate rebuild here would destroy the animation (and the user's scroll position).
             if (key.equals("time_format")) host.redraw();
+            if (changed != null) changed.run();
         });
         selector.setTag("preference-selector-" + key);
         Runnable restyle = () -> {
@@ -1131,6 +1317,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout recording = group();
         Row history = preferenceToggle(recording, "history", T.moreHistorySave(), T.moreHistoryWhileConnected(), "history_enabled", true);
         valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? T.moreHistoryWhileConnected() : T.moreHistoryOffKept()));
+        autoSaveGroup();
 
         LinearLayout storage = ui.card(); historyStorageCard = storage; cardDestination.addView(storage);
         LinearLayout head = row();
@@ -1164,6 +1351,63 @@ public final class MoreScreen implements AppScreen {
         dangerRow(clear, T.moreHistoryClearScooter(), () -> clearHistory(false));
         dangerRow(clear, T.moreHistoryClearAll(), () -> clearHistory(true));
     }
+    /**
+     * Ride auto-save (RideAutoExport), off by default: one switch per file type and one folder row both share.
+     * Turning a type on with no usable folder opens the folder picker (RideAutoExportPickerActivity); the switch
+     * shows on only once a folder is kept. The folder row shows where files go, or the one stored failure, and
+     * opens the picker to change the folder without touching either switch. While both are off it stays in
+     * place, greyed out. ScooterService does the copying.
+     */
+    private void autoSaveGroup() {
+        label(T.moreAutoSaveHeading());
+        LinearLayout box = group();
+        autoSaveSwitch(box, "route", T.moreAutoSaveRouteCsv(), T.moreAutoSaveRouteCsvSub(), RideAutoExport.ROUTE_CSV);
+        autoSaveSwitch(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), RideAutoExport.JSON);
+        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+            if (RideAutoExportFolder.anyOn(settings())) chooseAutoSaveFolder(null);
+        });
+        valueRefreshers.add(() -> {
+            RideAutoExport.RowState state = autoSaveFolderState();
+            folder.enabled(state != RideAutoExport.RowState.OFF);
+            folder.view.setClickable(state != RideAutoExport.RowState.OFF);
+            folder.sub(autoSaveFolderLine(state));
+            boolean warn = state == RideAutoExport.RowState.CHOOSE_FOLDER || state == RideAutoExport.RowState.FOLDER_PROBLEM || state == RideAutoExport.RowState.SAVE_PROBLEM;
+            folder.sub.setTextColor(warn ? ui.orange : state == RideAutoExport.RowState.OFF ? ui.dim : ui.muted);
+        });
+        footnote(T.moreAutoSaveFolderNote());
+    }
+    private void autoSaveSwitch(LinearLayout box, String icon, String title, String sub, String key) {
+        Row[] self = new Row[1];
+        self[0] = toggleRow(box, icon, title, sub, on -> {
+            if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(key); }
+            else { RideAutoExportFolder.set(host.activity(), settings(), key, on); host.redraw(); }
+        });
+        valueRefreshers.add(() -> refreshSwitch(self[0], settings().getBoolean(key, false), true));
+    }
+    /** The folder row's state: either type on decides it, with the one stored folder, grant and failure id. */
+    private RideAutoExport.RowState autoSaveFolderState() {
+        SharedPreferences settings = settings();
+        android.net.Uri chosen = RideAutoExportFolder.chosen(settings);
+        return RideAutoExport.rowState(RideAutoExportFolder.anyOn(settings), chosen != null,
+                RideAutoExportFolder.granted(host.activity(), chosen), RideAutoExportFolder.problem(settings));
+    }
+    /** The folder row's sub-label for a state; the folder's own path is a value, shown as the phone names it. */
+    private String autoSaveFolderLine(RideAutoExport.RowState state) {
+        switch (state) {
+            case CHOOSE_FOLDER: return T.moreAutoSaveChooseFolder();
+            case FOLDER_PROBLEM: return T.moreAutoSaveFolderProblem();
+            case SAVE_PROBLEM: return T.moreAutoSaveSaveProblem();
+            case SAVING:
+                String folder = RideAutoExportFolder.label(RideAutoExportFolder.chosen(settings()));
+                return folder == null ? T.moreAutoSaveSavingChosen() : T.moreAutoSaveSavingTo(folder);
+            default: return T.moreAutoSaveNoFolder();
+        }
+    }
+    /** typeKey: the type to turn on once a folder is kept, or null to change the folder only. */
+    private void chooseAutoSaveFolder(String typeKey) {
+        try { host.activity().startActivity(RideAutoExportPickerActivity.intent(host.activity(), typeKey)); }
+        catch (RuntimeException missing) { host.toast(T.moreAutoSaveNoPicker()); }
+    }
     private void refreshHistoryStorage() {
         if (historyUsage == null || service() == null || service().history == null || historyStoragePending) return;
         long now = android.os.SystemClock.elapsedRealtime();
@@ -1180,13 +1424,13 @@ public final class MoreScreen implements AppScreen {
             ((LinearLayout.LayoutParams) historyBarRest.getLayoutParams()).weight = 1f - share;
             historyBar.requestLayout();
             long[] rows = {storage.detailedRows, storage.minuteRows, storage.dailyRows};
-            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(String.format(Locale.US, "%,d saved", rows[i]));
+            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i])));
             historyStatus.setText(storage.status == null ? "" : storage.status);
             // Shown in the current language; storage.status stays TelemetryHistory's English id (statusMsg's English is the id).
             if (storage.status != null) historyStatus.setText(storage.statusMsg().toString());
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
-            historyStorageCard.setContentDescription("Local storage, " + used + " used. "
-                    + String.format(Locale.US, "%,d detailed, %,d minute and %,d daily samples saved.", rows[0], rows[1], rows[2]));
+            historyStorageCard.setContentDescription(T.moreHistoryStorageDescription(used,
+                    T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
             dataIndexRow.value(mib(storage.bytes));
         });
     }
@@ -1579,8 +1823,8 @@ public final class MoreScreen implements AppScreen {
         if (!signature.equals(labSignature)) { labSignature = signature; buildLab(r, d, tryable, verify, absent); }
         boolean experimental = !tryable.isEmpty() || absent.stream().anyMatch(labKeys::contains), rows = experimental || !verify.isEmpty() || !absent.isEmpty();
         labTitle.setText(experimental ? T.moreLabUntested() : rows ? T.moreLabHelpVerify() : T.moreLabNothing());
-        labIntro.setText(experimental ? "The official app doesn't offer these for " + labModel(d) + ". Try one while parked; Volt reads it back."
-                : rows ? "The official app offers these for " + labModel(d) + ", but Volt hasn't tested them there. Try one while parked; Volt reads it back." : labEmpty(r, d));
+        labIntro.setText(experimental ? T.moreLabIntroUntested(labModel(d))
+                : rows ? T.moreLabIntroVerify(labModel(d)) : labEmpty(r, d));
         boolean offeredElsewhere = r.layer == ModelRegistry.Layer.OEM_GROUP || r.layer == ModelRegistry.Layer.UT5_MAX;
         String kept = rows ? T.moreLabKept() : "";
         labFoot.setText((r.layer == ModelRegistry.Layer.OEM_GROUP
@@ -1623,7 +1867,7 @@ public final class MoreScreen implements AppScreen {
     private static String labEmpty(ModelRegistry.Resolution r, DeviceDescriptor d) {
         switch (r.layer) {
             case UNSUPPORTED_PRODUCT: case UNSUPPORTED_TRANSPORT: return T.moreLabEmptyProduct();
-            case OEM_GROUP: return "Nothing to try on " + labModel(d) + ": the official app already offers the controls Volt could try. They're in Scooter settings.";
+            case OEM_GROUP: return T.moreLabEmptyOem(labModel(d));
             case UT5_MAX: return T.moreLabEmptyUt5();
             default:
                 if (r.conflict) return T.moreLabEmptyConflict();
@@ -1634,8 +1878,8 @@ public final class MoreScreen implements AppScreen {
     }
     /** "the UT5 MAX", "the N65i", "Model 24431" or "your model". */
     private static String labModel(DeviceDescriptor d) {
-        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return "the " + name;
-        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? "your model" : line;
+        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return T.moreLabModelNamed(name);
+        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? T.moreLabModelYours() : line;
     }
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
@@ -1867,7 +2111,7 @@ public final class MoreScreen implements AppScreen {
             caution.setBackground(ui.shape(Ui.withAlpha(ui.orange, ui.dark ? 26 : 18), 18, Ui.withAlpha(ui.orange, ui.dark ? 80 : 70)));
             caution.addView(ui.icon("lab", 22, ui.orange), new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
             LinearLayout cw = column();
-            cw.addView(ui.text((verify ? "Unverified on " : "Untested on ") + labModel(ble.descriptor()), 15, true));
+            cw.addView(ui.text(verify ? T.moreLabSheetUnverified(labModel(ble.descriptor())) : T.moreLabSheetUntested(labModel(ble.descriptor())), 15, true));
             TextView why = ui.text(verify ? T.moreLabVerifyWhy()
                     : labWhy(f.key, ble.descriptor()), 13.5f, false);
             why.setTextColor(ui.muted); why.setPadding(0, ui.dp(4), 0, 0); cw.addView(why);
@@ -2018,7 +2262,7 @@ public final class MoreScreen implements AppScreen {
             go.setText(selected == null ? (refused ? T.commonTryAgain() : T.moreLabTry()) : current != null && selected.equals(current) ? T.moreLabAlready(labValue(feature, d, selected))
                     : (refused ? T.moreLabTryAgainValue(labValue(feature, d, selected)) : T.moreLabTryValue(labValue(feature, d, selected))));
             go.setContentDescription(go.getText()); go.setEnabled(d.available() && !busy && change);
-            String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected) : null;
+            String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected, ble.descriptor()) : null;
             // From a setting shown but not offered here (kick-start below 3 km/h), a try moves to an offered value for good.
             if (caution == null && change && d.variant != null && !d.variant.allows(current) && d.variant.shows(current))
                 caution = T.moreLabCantSetBack(labValue(feature, d, current));
@@ -2042,6 +2286,8 @@ public final class MoreScreen implements AppScreen {
     }
     /** Where the official app offers this control instead (OEM tables), in plain words. */
     private static String labWhy(String key, DeviceDescriptor d) {
+        // A lower kick-start try beside the region's 3–5 km/h Scooter settings row: the official app does offer it here.
+        if (key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(d)) return T.moreLabWhyRegionStart();
         int[] n = ModelRegistry.offeredElsewhere(key, d);
         return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])
                 : T.moreLabWhyNone();
@@ -2078,8 +2324,6 @@ public final class MoreScreen implements AppScreen {
         TextView about = ui.caption(T.moreAboutTagline());
         about.setPadding(0, ui.dp(6), 0, 0); c.addView(about);
         cardDestination.addView(c);
-        LinearLayout updates = group();
-        row(updates, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates).view.setTag("check-updates");
         label(T.moreAboutPermissions());
         LinearLayout permissions = group();
         nearbyRow = row(permissions, "bluetooth", M.moreAboutNearby(), M.moreAboutNearbySub(), host::requestBluetooth);
@@ -2098,8 +2342,65 @@ public final class MoreScreen implements AppScreen {
         row(more, "bluetooth", T.moreAboutConnect(), null, host::connect);
     }
 
+    // ---- Updates ------------------------------------------------------------------------
+
+    /**
+     * More's own Updates section, in the menu above the version line (owner, Nov 5): the opt-in automatic check,
+     * at most once a day in the background (UpdateCheckJob), and the manual check.
+     */
+    private void updates() {
+        label(T.moreUpdatesTitle());
+        LinearLayout box = group();
+        if (wide) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
+        Row[] auto = new Row[1];
+        auto[0] = toggleRow(box, "clock", T.moreUpdatesAuto(), T.moreUpdatesAutoSub(), on -> automaticUpdates(auto[0], on));
+        auto[0].view.setTag("update_auto");
+        // The narrow-label ladder: the full title in up to two lines, else the short one under the Updates header;
+        // the title and the switch keep the full wording as their spoken text.
+        StatusRungs ladder = new StatusRungs(auto[0].title); ladder.maxLines = 2;
+        auto[0].title.addOnLayoutChangeListener(ladder);
+        ladder.show(new CharSequence[]{T.moreUpdatesAuto(), T.moreUpdatesAutoShort()});
+        valueRefreshers.add(() -> {
+            refreshSwitch(auto[0], UpdateCheckJob.enabled(settings()), true);
+            auto[0].toggle.setContentDescription(T.morePlain(T.moreUpdatesAuto()));
+        });
+        Row check = row(box, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates);
+        check.view.setTag("check-updates");
+        // The wide menu pads every row alike, as the section rows above.
+        if (wide) for (Row row : new Row[]{auto[0], check}) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
+    }
+    /** The switch: on asks GitHub's consent first (once, as the manual check does), then schedules the daily job. */
+    private void automaticUpdates(Row row, boolean on) {
+        if (closed) return;
+        SharedPreferences settings = settings();
+        if (!on) {
+            settings.edit().putBoolean(UpdateSchedule.AUTO, false).apply();
+            UpdateCheckJob.cancel(host.activity()); refreshSwitch(row, false, true); return;
+        }
+        Runnable enable = () -> {
+            settings.edit().putBoolean(UpdateCheck.CONSENT, true).putBoolean(UpdateSchedule.AUTO, true).apply();
+            UpdateCheckJob.schedule(host.activity(), settings); refreshSwitch(row, true, true);
+            askNotificationPermission();
+        };
+        if (settings.getBoolean(UpdateCheck.CONSENT, false)) { enable.run(); return; }
+        refreshSwitch(row, false, true);
+        LinearLayout box = dialogBox(T.moreUpdateAskTitle(),
+                T.moreUpdateAskBody());
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> { dialog.dismiss(); enable.run(); });
+        show(dialog);
+    }
+    /** Android 13 and later: the notice needs the notification permission; Android asks only if it may still ask. */
+    private void askNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        if (host.activity().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+        host.activity().requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, UPDATE_NOTICE_PERMISSION);
+    }
+    /** Its own request code; MainActivity ignores the answer, and the job checks the permission when it posts. */
+    private static final int UPDATE_NOTICE_PERMISSION = 5626;
+
     /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs. */
-    private void checkForUpdates() {
+    void checkForUpdates() {
         if (closed) return;
         SharedPreferences settings = service().settings;
         if (settings.getBoolean(UpdateCheck.CONSENT, false)) { runUpdateCheck(); return; }
@@ -2132,6 +2433,8 @@ public final class MoreScreen implements AppScreen {
         LinearLayout box;
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
+            // Seen here: the automatic check does not announce this version again.
+            UpdateCheckJob.seen(settings(), r.latest);
             box = dialogBox(T.moreUpdateAvailable(r.latest), T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
@@ -2196,6 +2499,9 @@ public final class MoreScreen implements AppScreen {
         LinearLayout diagnostics = group();
         row(diagnostics, "check", T.moreDevCompat(), T.moreDevCompatSub(),
                 () -> selectSection("Compatibility")).view.setTag("developer-compatibility-check");
+        // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
+        liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
+        liveUpdateRow.view.setTag("developer_live_update");
         LinearLayout controls = group();
         simulationRow = toggleRow(controls, "scooter", T.moreDevSimulate(), null, enabled -> {
             ScooterService s = service();
@@ -2305,6 +2611,11 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service();
         boolean enabled = developerEnabled();
         boolean simulating = s != null && s.simulating();
+        if (liveUpdateRow != null) {
+            ChargeLiveUpdate.Status live = s != null ? s.liveUpdateStatus()
+                    : ChargeLiveUpdate.status(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), liveUpdateAllowed(), false, false, false, null);
+            liveUpdateRow.sub(ChargeLiveUpdate.label(live));
+        }
         if (developerIndexRow != null) {
             developerIndexRow.view.setVisibility(enabled ? View.VISIBLE : View.GONE);
             developerIndexRow.value(simulating ? T.moreDevSimulating() : null);
@@ -2391,7 +2702,7 @@ public final class MoreScreen implements AppScreen {
         chargeCurveValue.setTextColor(qualified > 0 ? ui.accent : ui.muted);
         chargeCurveScope.setText(scope);chargeCurveScope.setVisibility(scope.isEmpty() ? View.GONE : View.VISIBLE);
         chargeCurve.setContentDescription(qualified < 0 ? T.moreDevCurvesLoading() : effective == null ? T.moreDevCurvesNotApplied()
-                : (effective == ChargeSessionStore.Charger.STOCK ? T.moreDevCurvesStock(Fmt.integer(qualified)) : T.moreDevCurvesFast(Fmt.integer(qualified))));
+                : (effective == ChargeSessionStore.Charger.STOCK ? T.moreDevCurvesStockCount(qualified, Fmt.integer(qualified)) : T.moreDevCurvesFastCount(qualified, Fmt.integer(qualified))));
         chargeCurve.setTooltipText(T.moreDevCurvesTooltip());
     }
     private void setChildrenEnabled(View view,boolean enabled){

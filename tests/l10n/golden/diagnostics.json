@@ -12,7 +12,7 @@
     "format": "volt-compat-report-v1",
     "report_id": "beece3a4170dbcc4",
     "app_version": "1.11.1",
-    "registry_version": 18,
+    "registry_version": 19,
     "device": {
       "pid": "25462",
       "pid_prefix": "2546",

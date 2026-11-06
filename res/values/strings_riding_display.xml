@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riding mode's screen (RidingDisplay): its brightness while riding mode is open, and the rotation
+  lock. "Phone" leaves brightness to Android; "Volt auto" follows the light sensor and learns from the
+  rider's − and + on the slider at the bottom of riding mode; "Fixed" keeps one level. Volt only sets
+  riding mode's own window: the phone's brightness comes back on leaving, and Android's brightness
+  setting never changes.
+
+  The settings live in More → App preferences. Segment labels share a 344 dp wide phone's card three
+  ways (about 96 dp each at 14 sp) or two ways (about 148 dp).
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Section label in App preferences, above the riding-mode screen settings. -->
+    <string name="riding_display_section" volt:screen="App preferences" volt:purpose="label">Riding mode</string>
+    <!-- Caption above the three brightness choices. -->
+    <string name="riding_display_brightness" volt:screen="App preferences" volt:purpose="label">Screen brightness</string>
+    <!-- Brightness choice: the phone's own brightness, as Android sets it (the default). -->
+    <string name="riding_display_phone" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">Phone</string>
+    <!-- Brightness choice: Volt follows the light sensor and learns the rider's corrections. -->
+    <string name="riding_display_auto" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">Volt auto</string>
+    <!-- Brightness choice: one level the rider sets with the slider in riding mode. -->
+    <string name="riding_display_fixed" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">Fixed</string>
+    <!-- Caption above the rotation choices. -->
+    <string name="riding_display_rotation" volt:screen="App preferences" volt:purpose="label">Screen rotation</string>
+    <!-- Rotation choice: riding mode stays the way the phone was held when it opened (the default). -->
+    <string name="riding_display_rotation_lock" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Lock on open</string>
+    <!-- Rotation choice: riding mode turns with the phone. -->
+    <string name="riding_display_rotation_follow" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Follow phone</string>
+    <!-- Switch row: riding mode hides the phone's status bar too (off by default, so the clock and battery show). -->
+    <string name="riding_display_hide_status_bar" volt:screen="App preferences" volt:purpose="row">Hide status bar</string>
+    <string name="riding_display_hide_status_bar_sub" volt:screen="App preferences" volt:purpose="caption">Clock and battery hidden while riding</string>
+    <!-- Note under the choices on a phone with a light sensor. -->
+    <string name="riding_display_note" volt:screen="App preferences" volt:purpose="caption">In Volt auto, the − and + at the bottom of riding mode teach Volt your level for the light you are in. Your phone\'s brightness comes back when you leave riding mode.</string>
+    <!-- The same note on a phone without a light sensor, where Volt auto is not offered. -->
+    <string name="riding_display_note_no_sensor" volt:screen="App preferences" volt:purpose="caption">Fixed sets the level with the − and + at the bottom of riding mode. This phone has no light sensor, so Volt auto is not offered. Your phone\'s brightness comes back when you leave riding mode.</string>
+    <!-- Row that forgets every Volt auto correction; shown only once there are some. -->
+    <string name="riding_display_reset" volt:screen="App preferences" volt:purpose="row">Reset Volt auto brightness</string>
+    <string name="riding_display_reset_sub" volt:screen="App preferences" volt:purpose="caption">Forget the levels you taught it</string>
+    <!-- Toast after the reset. -->
+    <string name="riding_display_reset_done" volt:screen="App preferences" volt:purpose="toast">Volt auto brightness reset</string>
+    <!-- Spoken for the round − and + buttons beside riding mode's brightness slider. -->
+    <string name="riding_brightness_dimmer" volt:screen="Riding mode brightness slider" volt:purpose="accessibility description">Dimmer</string>
+    <string name="riding_brightness_brighter" volt:screen="Riding mode brightness slider" volt:purpose="accessibility description">Brighter</string>
+</resources>

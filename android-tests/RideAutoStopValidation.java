@@ -19,8 +19,12 @@ import com.jjricks.volt.*;
 
 /**
  * Disposable empty emulator only. Synthetic journals that ended with the automatic parked stop:
- * ride details pill, End parked rides preference, ride backup round trip, learned-range screening
- * and the Ride saved automatically notice. Never connects Bluetooth or starts a ride.
+ * ride details pill, End rides automatically preference, ride backup round trip, learned-range screening
+ * and the Ride saved automatically notice. Then the went-quiet rule through the service's real tick:
+ * synthetic recordings (started in the service's own RideStore, never through Bluetooth) whose policy
+ * is fed a scripted scooter trace, then left to the tick: a walking power-off ends after about a
+ * minute, a reconnect inside the window keeps recording, and the phone's Bluetooth off ends after
+ * 5 minutes (time-shifted). Never connects Bluetooth.
  */
 public final class RideAutoStopValidation extends Instrumentation {
     private Bundle args; private MainActivity activity; private int checks; private final List<String> screenshots = new ArrayList<>();
@@ -46,6 +50,12 @@ public final class RideAutoStopValidation extends Instrumentation {
             details();
             preference();
             notice();
+            if (!"0".equals(args.getString("live", "1"))) {
+                reconnectKeepsRecording();
+                phoneBluetoothOff();
+                String quiet = walkingPowerOff();
+                quietDetails(quiet);
+            }
             check(!activity.service().ble.connected() && !activity.service().isRecording(), "No scooter connection or active recording");
             // The census for the runner's shade screenshot (run-ride-auto-stop.py moves it beside the PNG).
             TextCensus.writeNotifications(this, new File(new File(context.getExternalFilesDir(null), "auto-stop-validation"), args.getString("variant", "auto-stop") + "-notification-shade.png"));
@@ -114,7 +124,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         call(archive, null, "apply", new Class<?>[]{storageType, planType}, storage, again);
     }
 
-    /** Full app backups reject a mistyped End parked rides value before replacing live state. */
+    /** Full app backups reject a mistyped End rides automatically value before replacing live state. */
     private void preferenceTypes() throws Exception {
         Class<?> archive = Class.forName("com.jjricks.volt.AppDataArchive");
         for (Object value : new Object[]{Boolean.TRUE, Boolean.FALSE, "true", 1}) {
@@ -160,8 +170,8 @@ public final class RideAutoStopValidation extends Instrumentation {
         check(!settings.contains(ScooterServiceKeys.AUTO_STOP), "Preference absent on a fresh install");
         main(() -> { invoke(activity, "select", new Class[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
         View root = activity.getWindow().getDecorView();
-        TextView title = text(root, "End parked rides"); check(title != null, "End parked rides row present");
-        TextView sub = text(root, "10 s after Bluetooth drops while parked"); check(sub != null, "Row explains the rule");
+        TextView title = text(root, "End rides automatically"); check(title != null, "End rides automatically row present");
+        TextView sub = text(root, "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min"); check(sub != null, "Row explains the rule");
         View row = (View) title.getParent().getParent(); Switch toggle = find(row, Switch.class); check(toggle != null, "Row has a switch");
         TextView heading = text(root, "Connection & recording"); check(heading != null, "Connection & recording heading present");
         centre(row);
@@ -169,7 +179,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         Rect t = new Rect(), s = new Rect(), w = new Rect(); title.getGlobalVisibleRect(t); sub.getGlobalVisibleRect(s); toggle.getGlobalVisibleRect(w);
         check(t.right <= w.left && s.right <= w.left && t.bottom <= s.top + 1, "Title, detail and switch do not overlap");
         check(toggle.isChecked() && toggle.isEnabled() && toggle.getHeight() >= activity.ui().dp(48), "Default on, enabled, 48dp switch target");
-        check("End parked rides".contentEquals(toggle.getContentDescription()), "Switch is named for screen readers");
+        check("End rides automatically".contentEquals(toggle.getContentDescription()), "Switch is named for screen readers");
         screenshot("preference-on");
         main(row::performClick); settle();
         check(!toggle.isChecked() && settings.contains(ScooterServiceKeys.AUTO_STOP) && !settings.getBoolean(ScooterServiceKeys.AUTO_STOP, true), "Row tap turns the preference off");
@@ -177,7 +187,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         await(() -> { try { return new String(Files.readAllBytes(xml.toPath()), "UTF-8").contains("name=\"ride_auto_stop\" value=\"false\""); } catch (IOException e) { return false; } }, "Off choice written to disk");
         screenshot("preference-off");
         main(() -> { invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "Data"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
-        Switch again = find((View) text(activity.getWindow().getDecorView(), "End parked rides").getParent().getParent(), Switch.class);
+        Switch again = find((View) text(activity.getWindow().getDecorView(), "End rides automatically").getParent().getParent(), Switch.class);
         check(again != null && !again.isChecked(), "Reopened section still shows off");
         main(() -> ((View) again.getParent()).performClick()); settle();
         check(again.isChecked() && settings.getBoolean(ScooterServiceKeys.AUTO_STOP, false), "Turning it back on persists");
@@ -213,6 +223,116 @@ public final class RideAutoStopValidation extends Instrumentation {
         await(() -> notice(manager) != null, "Notice reposted for the shade capture");
     }
     private static StatusBarNotification notice(NotificationManager manager) { for (StatusBarNotification n : manager.getActiveNotifications()) if (n.getId() == 72) return n; return null; }
+
+    // ---- Went quiet, through the service's tick -----------------------------------------------------
+
+    private static final String SERIAL = "N2546000000001";
+    /**
+     * Starts a recording in the service's own RideStore, as RideAutoExportValidation does, with synthetic
+     * scooter samples up to {@code lastFrame}, and hands the tick a policy fed the same scripted trace: 1 Hz
+     * pushes at {@code speedRaw}, then the loss. The service then runs as on a phone whose scooter went quiet.
+     */
+    private RideAutoStopPolicy liveRide(String label, long startAgo, long lastAgo, int speedRaw, RideAutoStopPolicy.Loss loss) throws Exception {
+        ScooterService service = activity.service(); AtomicReference<RideAutoStopPolicy> made = new AtomicReference<>();
+        main(() -> {
+            try {
+                check(!service.isRecording() && !service.ble.connected(), "No recording or connection before " + label);
+                service.profiles.active().serial = SERIAL; set(service, "gapMarked", false);
+                long now = SystemClock.elapsedRealtime(), wall = System.currentTimeMillis(), start = now - startAgo, last = now - lastAgo;
+                check(start > 0, "Emulator uptime covers the synthetic ride");
+                String id = service.rides.start(profileId, label, wall - startAgo, start);
+                for (long t = start; t <= last; t += 1000) service.rides.sample(wall - (now - t), t, values(speedRaw / 10.0, 70, 110, t));
+                RideAutoStopPolicy policy = new RideAutoStopPolicy(id, profileId, SERIAL);
+                for (long t = Math.max(start, last - 20000); t <= last; t += 1000) policy.connected(t, profileId, SERIAL, 1, t, t, speedRaw, 1);
+                policy.disconnected(now, loss);
+                set(service, "rideAutoStop", policy); set(service, "rideAutoStopDisconnects", service.ble.intentionalDisconnectSequence());
+                invoke(service, "applyWorkPolicy", new Class[]{boolean.class}, false);
+                made.set(policy);
+            } catch (Exception e) { throw new IllegalStateException(e); }
+        });
+        check(activity.service().isRecording(), label + " is recording");
+        return made.get();
+    }
+    private RideStore.Summary awaitStopped(String id, long deadlineMono, String what) throws Exception {
+        while (SystemClock.elapsedRealtime() < deadlineMono && activity.service().isRecording()) SystemClock.sleep(100);
+        check(!activity.service().isRecording(), what);
+        return activity.service().rides.get(id);
+    }
+    private String noticeText() {
+        StatusBarNotification n = notice(getTargetContext().getSystemService(NotificationManager.class));
+        return n == null ? null : String.valueOf(n.getNotification().extras.getCharSequence(Notification.EXTRA_TEXT));
+    }
+    private String clock(long wall) { return DisplayTime.clock(getTargetContext(), getTargetContext().getSharedPreferences("app_settings", 0), wall); }
+
+    /** The phone's Bluetooth off (the emulator's is off): 5 min from the last frame, time-shifted so it is due in ~5 s. */
+    private void phoneBluetoothOff() throws Exception {
+        RideAutoStopPolicy policy = liveRide("Phone Bluetooth off", 330000, 295000, 200, RideAutoStopPolicy.Loss.PHONE_BLUETOOTH_OFF);
+        check(policy.quiet() == RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF, "Phone Bluetooth off counts down 5 min");
+        long due = policy.quietSince() + RideAutoStopPolicy.QUIET_LONG_MS;
+        RideStore.Summary s = awaitStopped(policy.rideId, due + 4000, "Phone Bluetooth off ride ended by the tick");
+        check(RideStore.STOP_AUTO_QUIET.equals(s.stopReason) && s.automaticStop && s.stopPhoneBluetoothOff && s.stopDisconnectCode == -1, "Quiet stop marked phone Bluetooth off");
+        await(() -> ("Phone Bluetooth off · Phone Bluetooth stayed off. Ended at " + clock(s.shownEndWallMs) + ", its last reading.").equals(noticeText()), "Phone Bluetooth notice: " + noticeText());
+    }
+
+    /** A walking power-off, then an authenticated reconnect at 40 s: no end at 60 s; the rider's Stop ends it. */
+    private void reconnectKeepsRecording() throws Exception {
+        RideAutoStopPolicy policy = liveRide("Short drop", 120000, 12000, 30, RideAutoStopPolicy.Loss.RECOVERABLE);
+        check(policy.quiet() == RideAutoStopPolicy.Quiet.SLOW, "Walking pace takes the 1 min countdown");
+        long last = policy.quietSince();
+        while (SystemClock.elapsedRealtime() < last + 40000) SystemClock.sleep(200);
+        // The authenticated reconnect the transport would report (the emulator has no scooter to reconnect to).
+        main(() -> { long now = SystemClock.elapsedRealtime(); policy.connected(now, profileId, SERIAL, 2, now, now, 0, 0); check(!policy.armed(), "Reconnect cancels the countdown"); });
+        while (SystemClock.elapsedRealtime() < last + 66000) SystemClock.sleep(200);
+        check(activity.service().isRecording() && policy.quiet() != RideAutoStopPolicy.Quiet.SLOW, "Still recording 66 s after the first loss: the reconnect kept the ride");
+        main(() -> activity.service().stopRide());
+        RideStore.Summary s = activity.service().rides.get(policy.rideId);
+        check(!activity.service().isRecording() && !s.automaticStop && "".equals(s.stopReason), "The rider's Stop ends it as before");
+    }
+
+    /** Walking at 3 km/h, then silence: the tick ends the ride ~60 s after the last frame through stopRide, and the copy hook runs. */
+    private String walkingPowerOff() throws Exception {
+        Context context = getTargetContext(); SharedPreferences settings = context.getSharedPreferences("app_settings", 0);
+        Class<?> folder = Class.forName("com.jjricks.volt.RideAutoExportFolder");
+        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, String.class, boolean.class}, context, settings, "ride_auto_export_json", true);
+        RideAutoStopPolicy policy = liveRide("Walk to the rack", 180000, 12000, 30, RideAutoStopPolicy.Loss.RECOVERABLE);
+        call(folder, null, "queue", new Class<?>[]{SharedPreferences.class, String.class}, settings, policy.rideId);
+        check(!settings.contains("ride_auto_export_problem"), "No automatic copy has run yet");
+        long last = policy.quietSince();
+        check(policy.quiet() == RideAutoStopPolicy.Quiet.SLOW && policy.remainingMs(SystemClock.elapsedRealtime()) <= 49000, "1 min countdown from the last frame");
+        while (SystemClock.elapsedRealtime() < last + 58000) SystemClock.sleep(200);
+        check(activity.service().isRecording(), "Still recording 58 s after the last frame");
+        long stopWall = System.currentTimeMillis();
+        RideStore.Summary s = awaitStopped(policy.rideId, last + 64000, "Ended by the tick within 64 s");
+        long after = s.endWallMs - (s.shownEndWallMs);
+        check(RideStore.STOP_AUTO_QUIET.equals(s.stopReason) && s.automaticStop && !s.stopPhoneBluetoothOff, "Went-quiet stop token");
+        check(s.stopLastReadingMonotonicMs > 0 && s.stopLastReadingMonotonicMs <= last + RideStore.MAX_SENSOR_AGE_MS, "Last reading saved");
+        check(s.shownEndWallMs < s.endWallMs && s.shownElapsedMs < s.elapsedMs && s.shownGapCount == 0 && s.gapCount >= 1, "Shown end is the last reading, raw end kept");
+        check(after >= 56000 && after <= 64000 && s.endWallMs >= stopWall, "Saved about a minute after the last reading: " + after + " ms");
+        check(s.toJson().contains("\"stopReason\":\"automatic_quiet_disconnect\""), "Analysis JSON names the stop");
+        String expected = "Walk to the rack · Scooter turned off or out of range. Ended at " + clock(s.shownEndWallMs) + ", its last reading.";
+        await(() -> expected.equals(noticeText()), "Quiet notice names the ride, the reason and the shown end: " + noticeText());
+        Notification n = notice(context.getSystemService(NotificationManager.class)).getNotification();
+        check("Ride saved automatically".contentEquals(n.extras.getCharSequence(Notification.EXTRA_TITLE)) && expected.contentEquals(n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)), "Title and expanded text");
+        // stopRide's rideFullySaved → startRideAutoExport ran: the ride's JSON needs a folder and none is chosen, so the pass
+        // leaves the ride waiting with its problem.
+        await(() -> settings.contains("ride_auto_export_problem") && settings.getString("ride_auto_export_pending", "").contains(policy.rideId), "Automatic ride copy ran after the automatic end");
+        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, String.class, boolean.class}, context, settings, "ride_auto_export_json", false);
+        return policy.rideId;
+    }
+
+    private void quietDetails(String id) throws Exception {
+        main(() -> invoke(activity, "select", new Class[]{String.class}, "rides")); settle();
+        RidesScreen screen = (RidesScreen) field(activity, "screen"); boolean wide = (boolean) field(screen, "wide");
+        main(() -> invoke(screen, wide ? "selectRide" : "showDetails", new Class[]{String.class}, id)); settle();
+        TextView pill = text(rideRoot(screen), "Saved automatically"); check(pill != null, "Quiet ride shows Saved automatically");
+        check("Saved automatically after the scooter turned off or went out of range".contentEquals(pill.getContentDescription()), "Pill names the quiet reason for screen readers");
+        main(() -> pill.requestRectangleOnScreen(new Rect(0, -activity.ui().dp(160), pill.getWidth(), pill.getHeight() + activity.ui().dp(120)), true)); settle();
+        fullyShown(pill, "Quiet ride pill");
+        screenshot("details-quiet");
+        if (!wide) { main(() -> { List<?> dialogs = (List<?>) field(screen, "dialogs"); for (Object d : new ArrayList<>(dialogs)) ((AlertDialog) d).dismiss(); }); settle(); }
+        screenshot("history-quiet");
+    }
+    private static void set(Object target, String name, Object value) { try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); f.set(target, value); } catch (Exception e) { throw new IllegalStateException(name, e); } }
 
     private void fullyShown(View view, String what) {
         Rect r = new Rect(); check(view.isShown() && view.getGlobalVisibleRect(r) && r.width() == view.getWidth() && r.height() == view.getHeight(), what + " fully visible, not clipped");

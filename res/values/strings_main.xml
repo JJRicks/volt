@@ -369,23 +369,23 @@
     <string name="main_join_note" volt:screen="Scooter tab rows" volt:purpose="caption">%1$s · %2$s</string>
 
     <!-- ===== Top speed card ===== -->
-    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Maximum speed · Sport</string>
-    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported</string>
-    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported, last seen setting</string>
-    <string name="main_speed_confirming" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
-    <string name="main_speed_confirming_visible" volt:screen="Top speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
+    <string name="main_speed_title" volt:screen="Scooter tab, Maximum speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Maximum speed · Sport</string>
+    <string name="main_speed_not_reported" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported</string>
+    <string name="main_speed_not_reported_seen" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported, last seen setting</string>
+    <string name="main_speed_confirming" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
+    <string name="main_speed_confirming_visible" volt:screen="Scooter tab, Maximum speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s</string>
+    <string name="main_speed_value" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s, last seen setting</string>
+    <string name="main_speed_value_seen" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s, last seen setting</string>
     <!-- %1$s is whole km/h. If the unit word changes with the number in your language, write the symbol km/h instead of the word. -->
-    <string name="main_speed_spoken_km" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometers per hour</string>
+    <string name="main_speed_spoken_km" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometers per hour</string>
     <!-- %1$s is whole mph, %2$s the exact km/h value the scooter is sent. If the unit words change with the number in your language, write the symbols mph and km/h instead of the words. -->
-    <string name="main_speed_spoken_mi" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometers per hour</string>
+    <string name="main_speed_spoken_mi" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometers per hour</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_set" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Set maximum speed to %1$s</string>
+    <string name="main_speed_set" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">Set maximum speed to %1$s</string>
     <!-- %1$s is the exact km/h. Keep the unit symbols. -->
-    <string name="main_speed_unit_dual" volt:screen="Top speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
+    <string name="main_speed_unit_dual" volt:screen="Scooter tab, Maximum speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
 
     <!-- ===== Report sheets ===== -->
     <string name="main_report_invite_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="MAC|PIN">No serial, MAC, owner key, PIN, names or routes are included.</string>

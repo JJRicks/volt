@@ -1,0 +1,8 @@
+# Live charging (charging-live plan, PR 1). tests/run.sh compiles every path listed in tests/l10n/*.sources and
+# runs each tests/l10n/**Test.java from the repository root. ChargeLiveTest covers the hold (ChargeLiveHold), the
+# card (ChargeLiveState) and WorkReasons, the one list of reasons ScooterService keeps working for.
+# ChargeAlertPolicy is in tests/run.sh's own list.
+src/com/jjricks/volt/ChargeLiveHold.java
+src/com/jjricks/volt/ChargeLiveState.java
+src/com/jjricks/volt/WorkReasons.java
+tests/l10n/ChargeLiveTest.java

@@ -28,6 +28,12 @@ public final class RideStoreTest {
         renamePreservesMeasurements();
         fullDetailPreservesUnthinnedSamples();
         completedTrendReusesCachedPreview();
+        serviceStartReadIsKept();
+        analysisSnapshotsFillTheListCache();
+        longHistoryNeverRereadsEveryRide();
+        unfinishedJournalsAreNeverServedAsFinished();
+        listReplayDoesNotBlockRecording();
+        deferredStartReadsOnlyUnfinishedJournals();
         System.out.println("RideStoreTest: " + assertions + " assertions passed");
     }
     private static File directory() throws Exception { return Files.createTempDirectory("navee-rides-test-").toFile(); }
@@ -351,6 +357,142 @@ public final class RideStoreTest {
         check(changed != first && sameTrend(first, changed), "A journal changed by another store is replayed again");
         store.delete(id);
         check(store.trend(id, 600).isEmpty(), "A deleted ride has no preview");
+    }
+    /** K finished one-sample-a-second rides, each stopped; returns their ids. */
+    private static List<String> finishedRides(RideStore store, int count, int frames) throws Exception {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int k = 0; k < count; k++) {
+            long wall = WALL + k * 86400000L;
+            String id = store.start("UT5", "Ride " + k, wall, 0);
+            for (int i = 0; i < frames; i++) store.sample(wall + i * 1000L, i * 1000L, snapshot(i * 1000L, 100 + i % 5, 20, i * .001));
+            store.stop(wall + frames * 1000L, frames * 1000L);
+            ids.add(id);
+        }
+        return ids;
+    }
+    private static long replays() { return RideStore.replays.get(); }
+    private static void serviceStartReadIsKept() throws Exception {
+        File dir = directory(); List<String> ids = finishedRides(new RideStore(dir), 5, 120);
+        long before = replays();
+        RideStore store = new RideStore(dir);
+        check(replays() - before == 5, "The service-start read replays each journal once");
+        before = replays();
+        List<RideStore.Summary> list = store.list();
+        List<RideStore.Point> trend = store.trend(ids.get(2), 600);
+        check(replays() == before && list.size() == 5, "After service start, list() and trend() replay nothing");
+        for (RideStore.Summary s : list)
+            check(s.toJson().equals(RideStore.inspectJournal(new File(dir, s.id + ".csv")).toJson()), "Kept summary equals a fresh replay");
+        File copy = directory();
+        for (String id : ids) Files.copy(new File(dir, id + ".csv").toPath(), new File(copy, id + ".csv").toPath());
+        RideStore other = new RideStore(copy);
+        File touched = new File(copy, ids.get(2) + ".csv");
+        check(touched.setLastModified(touched.lastModified() + 5000), "Fixture changes the modified time");
+        before = replays();
+        check(sameTrend(trend, other.trend(ids.get(2), 600)) && replays() - before == 1, "A changed modified time replays, and the kept preview equals it");
+        before = replays(); other.get(ids.get(2)); other.list();
+        check(replays() == before, "The replayed journal is cached again");
+        Files.write(touched.toPath(), "\n".getBytes(StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
+        before = replays(); other.get(ids.get(2));
+        check(replays() - before == 1, "A changed length replays");
+        store.rename(ids.get(0), "Renamed");
+        before = replays();
+        check(store.get(ids.get(0)).label.equals("Renamed") && replays() - before == 1, "A rename replays that ride once");
+        check(store.delete(ids.get(1)) && store.get(ids.get(1)) == null && store.list().size() == 4, "A deleted ride leaves the cache");
+    }
+    private static void analysisSnapshotsFillTheListCache() throws Exception {
+        RideStore store = new RideStore(directory()); finishedRides(store, 4, 30);
+        long before = replays();
+        check(store.analysisSnapshots("UT5", 0).size() == 4 && replays() - before == 4, "Rides recorded in this process are replayed once for analysis");
+        before = replays();
+        check(store.list().size() == 4 && replays() == before, "After analysisSnapshots(), list() replays nothing");
+    }
+    private static void longHistoryNeverRereadsEveryRide() throws Exception {
+        File dir = directory(); List<String> ids = finishedRides(new RideStore(dir), 300, 2);
+        RideStore store = new RideStore(dir);
+        long before = replays();
+        store.list(); store.list();
+        check(replays() == before, "With 300 rides, list() replays nothing, even twice");
+        for (String id : ids) store.trend(id, 600);
+        long previews = replays() - before;
+        check(previews >= 300 - RideStore.PREVIEW_CAP && previews <= 300, "Only previews past the cap are replayed (" + previews + ")");
+        before = replays();
+        check(store.list().size() == 300 && replays() == before, "Trimmed previews keep their summaries");
+        String recent = ids.get(ids.size() - 1);
+        before = replays(); store.trend(recent, 600);
+        check(replays() == before, "The most recently used preview stays cached");
+    }
+    private static void unfinishedJournalsAreNeverServedAsFinished() throws Exception {
+        File dir = directory(), older = directory(), newer = directory();
+        RideStore first = new RideStore(older); String stale = first.start("UT5", "Older unfinished", WALL, 0);
+        first.sample(WALL, 0, snapshot(0, 100, 20, 1));
+        RideStore second = new RideStore(newer); String recent = second.start("UT5", "Newer unfinished", WALL + 60000, 0);
+        second.sample(WALL + 60000, 0, snapshot(0, 100, 20, 1));
+        Files.copy(new File(older, stale + ".csv").toPath(), new File(dir, stale + ".csv").toPath());
+        Files.copy(new File(newer, recent + ".csv").toPath(), new File(dir, recent + ".csv").toPath());
+        RideStore store = new RideStore(dir);
+        check(recent.equals(store.activeId()), "The newest unfinished journal is recovered as the active ride");
+        long before = replays();
+        RideStore.Summary summary = store.get(stale); store.get(stale);
+        check(summary != null && summary.active && replays() - before == 1, "An older unfinished journal's summary is cached by its file stamp");
+        before = replays(); store.trend(stale, 600); store.trend(stale, 600);
+        check(replays() - before == 2, "An unfinished journal's preview is never cached as finished");
+        check(store.analysisSnapshots("UT5", 0).stream().noneMatch(s -> s.summary.id.equals(stale)), "Analysis never includes an unfinished journal");
+        store.stop(WALL + 70000, 10000);
+    }
+    private static void listReplayDoesNotBlockRecording() throws Exception {
+        File dir = directory(); RideStore setup = new RideStore(dir); String finished = finishedRides(setup, 1, 20).get(0);
+        RideStore store = new RideStore(dir);
+        File source = new File(dir, finished + ".csv");
+        check(source.setLastModified(source.lastModified() + 5000), "Fixture forces one cache miss");
+        store.start("UT5", "Recording", WALL + 9 * 86400000L, 0);
+        java.util.concurrent.CountDownLatch entered = new java.util.concurrent.CountDownLatch(1), release = new java.util.concurrent.CountDownLatch(1);
+        Thread lister = new Thread(() -> { try { store.list(); } catch (Exception e) { throw new RuntimeException(e); } }, "lister");
+        RideStore.replayHook = () -> {
+            if (!Thread.currentThread().getName().equals("lister")) return;
+            entered.countDown();
+            try { release.await(5, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        };
+        try {
+            lister.start();
+            check(entered.await(5, java.util.concurrent.TimeUnit.SECONDS), "list() is replaying");
+            Thread recorder = new Thread(() -> { try { store.sample(WALL + 9 * 86400000L + 1000, 1000, snapshot(1000, 100, 20, 1)); } catch (Exception e) { throw new RuntimeException(e); } });
+            recorder.start(); recorder.join(2000);
+            check(!recorder.isAlive(), "A sample is written while list() replays a journal");
+        } finally { release.countDown(); RideStore.replayHook = null; }
+        lister.join(5000);
+        check(!lister.isAlive() && store.activeSummary().sampleCount == 1, "list() finishes and the sample was kept");
+        store.stop(WALL + 9 * 86400000L + 2000, 2000);
+    }
+    private static void deferredStartReadsOnlyUnfinishedJournals() throws Exception {
+        File dir = directory(); RideStore setup = new RideStore(dir);
+        List<String> ids = finishedRides(setup, 3, 400);
+        File f0 = new File(dir, ids.get(0) + ".csv"), f1 = new File(dir, ids.get(1) + ".csv"), f2 = new File(dir, ids.get(2) + ".csv");
+        check(f0.length() > 16384 && RideStore.endsFinished(f0), "A long finished journal ends finished");
+        setup.rename(ids.get(1), "Campus loop");
+        check(RideStore.endsFinished(f1), "Plain renames after STOP still end finished");
+        setup.rename(ids.get(2), "Campus, return");
+        check(!RideStore.endsFinished(f2), "A quoted rename is replayed instead of trusted");
+        String auto = setup.start("UT5", "Parked", WALL + 5 * 86400000L, 0); setup.sample(WALL + 5 * 86400000L, 0, snapshot(0, 100, 20, 1));
+        setup.stop(WALL + 5 * 86400000L + 1000, 1000, RideStore.STOP_AUTO_PARKED);
+        check(RideStore.endsFinished(new File(dir, auto + ".csv")), "An automatic parked stop ends finished");
+        String open = setup.start("UT5", "Still recording", WALL + 6 * 86400000L, 0);
+        setup.sample(WALL + 6 * 86400000L, 0, snapshot(0, 100, 20, 1));
+        File openFile = new File(dir, open + ".csv");
+        check(!RideStore.endsFinished(openFile), "An unfinished journal never ends finished");
+        File empty = new File(dir, java.util.UUID.randomUUID() + ".csv"); Files.write(empty.toPath(), new byte[0]);
+        check(!RideStore.endsFinished(empty), "An empty journal is replayed");
+        File cut = directory(); File partial = new File(cut, ids.get(0) + ".csv"); Files.copy(f0.toPath(), partial.toPath());
+        Files.write(partial.toPath(), "1,RENAME,2026".getBytes(StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
+        check(!RideStore.endsFinished(partial), "A partial last row is replayed");
+        long before = replays();
+        RideStore deferred = new RideStore(dir, true);
+        check(open.equals(deferred.activeId()) && replays() - before == 3, "A deferred start replays only the open, quoted and empty journals and recovers the same ride");
+        check(empty.delete(), "Fixture removes the unreadable journal");
+        before = replays();
+        check(deferred.list().size() == 5 && replays() - before == 3, "The worker's list() reads the deferred journals once");
+        before = replays(); deferred.list();
+        check(replays() == before, "Then Rides opens from the cache");
+        deferred.stop(WALL + 6 * 86400000L + 2000, 2000);
     }
     private static boolean sameTrend(List<RideStore.Point> a, List<RideStore.Point> b) {
         if (a.size() != b.size()) return false;

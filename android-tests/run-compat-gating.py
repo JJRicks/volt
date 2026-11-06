@@ -18,7 +18,7 @@ parser.add_argument('--serial', required=True)
 parser.add_argument('--app', type=Path, required=True)
 parser.add_argument('--runner', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
-parser.add_argument('--mode', default='gating', choices=('gating', 'ut5-screens', 'import-name', 'owner-profiles', 'controls'))
+parser.add_argument('--mode', default='gating', choices=('gating', 'ut5-screens', 'import-name', 'owner-profiles', 'controls', 'menu-edit'))
 parser.add_argument('--case', action='append', help='widthxheight:theme:system-font-scale[:app-text-scale]')
 args = parser.parse_args()
 if not re.fullmatch(r'emulator-\d+', args.serial):
@@ -45,7 +45,7 @@ run('install', '--no-incremental', str(args.runner.resolve()))
 run('shell', 'cmd', 'bluetooth_manager', 'disable')
 runner = {'gating': 'CompatibilityGatingValidation', 'ut5-screens': 'Ut5SimulationScreens',
           'import-name': 'CompatibilityGatingValidation', 'owner-profiles': 'CompatibilityGatingValidation',
-          'controls': 'CompatControlsValidation'}[args.mode]
+          'controls': 'CompatControlsValidation', 'menu-edit': 'ScooterMenuEditValidation'}[args.mode]
 results = []
 # A fixed status-bar clock keeps screenshots from two builds comparable pixel by pixel.
 run('shell', 'settings', 'put', 'global', 'sysui_demo_allowed', '1', check=False)
@@ -54,7 +54,8 @@ for command in (['-e', 'command', 'enter'], ['-e', 'command', 'clock', '-e', 'hh
                 ['-e', 'command', 'notifications', '-e', 'visible', 'false']):
     run('shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', *command, check=False)
 try:
-    for case in args.case or ['344x882:dark:1', '725x604:light:1.4']:
+    # 725x604 at 1x keeps the wide layout (rail, two columns); at 1.4x it is the phone layout (WideLayout: width over text scale).
+    for case in args.case or ['344x882:dark:1', '725x604:light:1', '725x604:light:1.4']:
         fields = case.split(':')
         width, height = map(int, fields[0].split('x')); theme, font = fields[1:3]
         text = fields[3] if len(fields) > 3 else '1'

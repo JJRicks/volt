@@ -1,0 +1,5 @@
+# The Home header's Connecting… status comes from the catalog (ble_status_connecting) outside English.
+tests/l10n/ConnectingLabelTest.java
+src/com/jjricks/volt/DashboardWords.java
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/Formatted.java

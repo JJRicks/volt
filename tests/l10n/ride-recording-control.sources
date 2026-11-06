@@ -1,0 +1,4 @@
+# The shared ride start and stop (RideRecordingControl): the start checks in order, their messages,
+# the location step and stop, with a fake service. Rides, the Home recorder card and riding mode use it.
+src/com/jjricks/volt/RideRecordingControl.java
+tests/l10n/RideRecordingControlTest.java

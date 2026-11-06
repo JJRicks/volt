@@ -403,9 +403,14 @@ How `ledger_check.py` (G1) reads it:
 - A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
   count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
   a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
-- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
-  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
-  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A `format` row's `%d` or `%,d` may carry `"quantity": true` when its key is a plural: head passes the
+  base argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`, or
+  `T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i]))` for `%,d`), and every English
+  item must print the one sentence `String.format` printed at every count, so `one` cannot say "1 ride"
+  here either. The number itself goes through the `Fmt` call `FMT_SPECS` pairs with the specifier, so
+  a `%,d` quantity printed with `Fmt.integer` or `Fmt.grouped` fails; FmtLegacyTest compares
+  `Fmt.groupedInteger` with `%,d` at the counts a plural samples and at grouped ones (1234, 1000000).
+  A decimal (`%.1f`, `%,.0f`) never takes `"quantity"`.
 - A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
   string with a `removed` row). The statement must be one declarator, with only literals, numbers,
   names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
@@ -436,7 +441,8 @@ How `ledger_check.py` (G1) reads it:
     out, and each `value` is the argument that specifier formats at the merge base;
   - each specifier's `as` is the `Fmt` call `FMT_SPECS` in `ledger_check.py` pairs with it, with the
     `String.format` call's locale: `%.Nf` is `Fmt.decimal(<locale>, <value>, N)`, `%,.Nf` is
-    `Fmt.grouped(<locale>, <value>, N)` and `%d` is `Fmt.integer(<value>)` (only with `Locale.US`,
+    `Fmt.grouped(<locale>, <value>, N)`, `%,d` is `Fmt.groupedInteger(<locale>, <value>)` and `%d` is
+    `Fmt.integer(<value>)` (only with `Locale.US`,
     `Locale.ROOT` or `Locale.ENGLISH`, since `%d` prints the locale's digits). A plain `%s` (or
     `%n$s`) prints its argument as it is, so its `as` is the `value` itself, with only string
     literals in it turned into `T.<key>()` calls: `"%.2f %s"` with `metric ? "mph" : "mi"` becomes
@@ -1233,6 +1239,12 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    word that is not in the English is an error in a non-Latin language, except an acronym or a
    name in `LATIN_LOANS`, which warns. `checks.jsonl` records each finding; a failed key goes back to
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
+   `redraft openai|google` also sends back, in the same calls and also as attempt 2, each needed key
+   the provider left out of its draft; a key the redraft still gets no usable text of is listed in
+   that redraft's `runs.jsonl` row (`missing`) and is never sent again (a new full `draft` of that
+   provider starts over). A provider that has had both attempts at a key, and whose draft of it is
+   still missing or still failing, is **excused**: it no longer blocks the key (owner, 2026-11-05:
+   the council lifts quality; it does not chase one stubborn translator). See step 5.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
    session, which picks or merges; a merged text must pass the checks again. A pick names the draft
@@ -1243,7 +1255,9 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
 5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
    every drafter agrees**, with drafts from all three providers that all pass the checks, a model
    that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
-   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   (`safety-agreed`); `backtranslate` sends such a key only while it has no current back-translation
+   of exactly the agreed text by a model that drafted nothing, so a later run does not reword one the
+   judge already confirmed. **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
    such a key always fell back), with drafts from all three providers and at least one passing,
    `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
    or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
@@ -1253,8 +1267,14 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    with the judged text and its back-translation, and the judge confirms it on a later line of
    `judge.jsonl` exactly as for an agreed text (`safety-judged`). The latest pick or merge is the
    judged text: a new one, or a picked draft that changed, needs a new back-translation and a new
-   confirm, and the judge can never confirm a text it has not seen back-translated. A key with a
-   provider's draft missing, or no passing draft, still falls back. Either way the back-translation
+   confirm, and the judge can never confirm a text it has not seen back-translated. A key with no
+   passing draft still falls back, and so does one with a provider's draft missing while that
+   provider has its retry left. **Once that provider is excused** (step 3: still no draft after its
+   draft and its redraft), the key is judged in the same way from the other two providers' drafts,
+   which must include at least two passing drafts from different providers (with fewer, English
+   stays); the judge request and the decision name the excused provider and why in `excused`, and
+   the decision's reason says so. A provider whose draft still fails after its redraft is also listed
+   in `excused`; its failing draft never blocked a judged key. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1281,7 +1301,9 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    it across every area. It counts what `merge.py` writes, so a key whose English changed after its
    decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
    or alarm key must also be `safety-agreed` or `safety-judged`, which Claude's drafts alone never reach.
-   Releases still need the owner's explicit authorization.
+   Releases still need the owner's explicit authorization. A release also needs **zero** fallback
+   in every shipped language (owner, 2026-11-06): `ship_check.py --release` enforces it (RELEASING.md),
+   and `VOLT_RELEASE=1 bash build.sh` runs it and refuses to build when it fails.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
@@ -1291,29 +1313,34 @@ decisions (and merge again), never straight into `res/values-<qual>/`.
 
 The `core-tests` job's "Localization proof gates" step runs `python3 tools/l10n/ship_check.py` on every
 push and pull request.
-It looks only at committed files and never needs a key or the network; the beta bar comes from the
-recorded decisions. It fails when:
+It looks only at committed files and never needs a key or the network; the fallback count comes from the
+recorded decisions. It prints each shipped language's English fallback share as a reference line only:
+being over the beta bar no longer fails a pull request. It fails when:
 
 - a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
 - that text fails `merge.py`'s validation (above), including a stale `src` hash, a blank text or a
   missing `l10n_tag`;
 - that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
   a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
-- that language is under the beta bar (`council.py beta`);
+- a lock or alarm key of that language is translated but not `safety-agreed` or `safety-judged`;
 - that language has no line in `res/xml/locales_config.xml`, or `AndroidManifest.xml` has no
   `android:localeConfig`;
 - a `res/values-*` folder holds text and its language is not listed or does not have status `beta` or
   `stable`, `locales_config.xml` lists a language that does not ship, or the manifest names
   `localeConfig` while only English ships.
 
+`ship_check.py --release` (a release step in RELEASING.md) runs every check above and also fails when
+any shipped language has a key falling back to English, counted as `council.py beta` counts them. It
+prints the count and the first 20 key names, for the translation top-up that comes first.
+
 A language at `draft` or `held` is not read, so it can't fail the step unless its text has reached
 `res/`. While nothing ships, the step says that it checked no translated text and passes.
 
 An English change therefore fails CI for every shipped language that translates that key. Run
-`merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
-the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). `CatalogCheckTest`
-(in `tests/run.sh`) keeps the same folder rules for the real tree's `strings*.xml` files; `ship_check.py`
-also reads a language folder's other XML files.
+`merge.py --tag <tag> --all`, which drops the key to English (a reference line on pull requests, a
+release failure until it is translated again); re-run the council for the changed keys when you can
+(plan 7.2 step 8). `CatalogCheckTest` (in `tests/run.sh`) keeps the same folder rules for the real
+tree's `strings*.xml` files; `ship_check.py` also reads a language folder's other XML files.
 
 What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
 providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local
@@ -1734,10 +1761,14 @@ change a check inside a language or batch pull request.
   (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
   translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
-  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
+  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `excused` (for a safety key whose drafts
+  are not unanimous: `{<provider>: <why>}` for each provider excused after both attempts, else `{}`),
+  `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
-  key). `prompts/` (with its request records) and `replies/` are regenerated and not committed
+  key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
+  and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
+  attempts). `prompts/` (with its request records) and `replies/` are regenerated and not committed
   (`l10n/.gitignore`); a reply whose request record is gone is refused, so prompt again.
 
 The B0b-harness pull request still has to add the `tests/run.sh` hook and

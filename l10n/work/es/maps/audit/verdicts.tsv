@@ -1,0 +1,5 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	ok	problem	draft	reader	source_sha1	target_sha1	back_sha1
+maps_consent_title	yes		claude-opus	claude-opus-5-5	9d5d38d3390d33f87884334bad629831625fab66	8a6455773ab6f3bfc7bbf3c13a1f1d400a61d157	629ed7b866740d1060e982bb148e59cc7e834e64
+maps_consent_message	yes		claude-opus	claude-opus-5-5	b826270566cbba2f841d30cf31ced27900e91af0	797a6e068e43fa850a71e3b92ebe8138b77d2583	6b38bb1a379f5384cda3b31a4fe5059cb240d284
+maps_consent_enable	yes		claude-opus	claude-opus-5-5	bb9ac0845ace7f8b7f2e08bf11f66831ce335172	3a1d473ab753146a0ff0130a8c8a918c13c26a6c	46729dd6c90b168d083cd744fe2454259ee73dc6
