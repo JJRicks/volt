@@ -19,7 +19,7 @@ environment; see providers.py for how they are kept out of every output.
   council.py redraft openai|google --tag es --area common
                                                         send failed keys back once (attempt 2)
   council.py backtranslate openai|google --tag es --area common
-                                                        back-translate agreed safety keys, and judged
+                                                        back-translate agreed safety keys and judged
                                                         safety texts not yet back-translated, with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
@@ -28,6 +28,8 @@ environment; see providers.py for how they are kept out of every output.
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
+  council.py usage --tag es [--area A] [--since 2026-11-05T00:00:00Z] [--json]
+                                                        the providers' reported tokens, summed per model
   council.py drafts-status --tag es [--name N] [--json]  per area: keys, drafted, stale, missing, failing checks,
                                                         safety, audited, flagged (reads; never writes)
   council.py audit-prompt --tag es --area common --name N [--chunk-keys K] [--top-up]
@@ -128,6 +130,26 @@ MODEL_FIELDS = ("key", "kind", "english", "placeholders", "screen", "purpose", "
 
 def now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def generate_logged(paths, tag, area, step, provider, model, system, prompt, **fields):
+    """providers.generate, writing one api-call row to runs.jsonl for each provider response the moment it
+    arrives, before its reply is parsed or checked, so a step that fails later still counts what it was billed.
+    These rows are the only ones that carry usage; a step's own row records how many calls it made.
+    (text, reported model id, that call's usage or None)."""
+    usage = None
+    with providers.recorded_responses() as responses:
+        try:
+            text, reported = providers.generate(provider, model, system, prompt)
+        finally:
+            for response in responses:
+                one = providers.usage_of(response)
+                if one:
+                    usage = providers.add_usage(usage or collections.OrderedDict(), one)
+                log_run(paths, tag, area, collections.OrderedDict(
+                    [("stage", "api-call"), ("step", step), ("provider", provider), ("model", model)]
+                    + list(fields.items()) + [("usage", one)]))
+    return text, reported, usage
 
 
 def log_run(paths, tag, area, row):
@@ -336,14 +358,16 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style="standa
     system = instructions(pack, style)
     collected, reported, problems = [], None, []
     for index, chunk in enumerate(chunks(pack, entries)):
-        text, reported = providers.generate(provider, model, system, user_prompt(pack, chunk))
+        text, reported, _ = generate_logged(paths, tag, area, "draft", provider, model, system,
+                                            user_prompt(pack, chunk), draft=name, chunk=index, keys=len(chunk))
         strings = reply_strings(providers.parse_json_reply(text))
         got, chunk_problems = replies_to_entries(pack, strings, [e["key"] for e in chunk])
         collected.extend(got)
         problems.extend(chunk_problems)
         log_run(paths, tag, area, collections.OrderedDict([
             ("stage", "draft"), ("draft", name), ("provider", provider), ("model", model),
-            ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got))]))
+            ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got)),
+            ("calls", 1)]))
     path = save_draft(paths, pack, name, model, reported, collected, style, replace=True)
     out.write("%s: %d of %d keys drafted by %s%s\n" % (paths.rel(path), len(collected), len(entries), model,
                                                        " (reported %s)" % reported if reported != model else ""))
@@ -373,10 +397,13 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         return None
     by_key = dict((e["key"], e) for e in pack["entries"])
     entries = [by_key[k] for k in failed if k in by_key]
-    collected, reported = [], draft.model_reported
-    for chunk in chunks(pack, entries):
-        text, reported = providers.generate(provider, draft.model, instructions(pack, draft.prompt or "standard"),
-                                            user_prompt(pack, chunk, failed))
+    collected, reported, calls = [], draft.model_reported, 0
+    for index, chunk in enumerate(chunks(pack, entries)):
+        text, reported, _ = generate_logged(paths, tag, area, "redraft", provider, draft.model,
+                                            instructions(pack, draft.prompt or "standard"),
+                                            user_prompt(pack, chunk, failed), draft=name, chunk=index,
+                                            keys=len(chunk))
+        calls += 1
         got, problems = replies_to_entries(pack, reply_strings(providers.parse_json_reply(text)),
                                            [e["key"] for e in chunk])
         collected.extend(got)
@@ -385,7 +412,7 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
     save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "redraft"), ("draft", name), ("provider", provider), ("model", draft.model),
-        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected))]))
+        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected)), ("calls", calls)]))
     out.write("%s: redrafted %d keys (attempt %d); run check again\n" % (name, len(collected), MAX_ATTEMPTS))
     return path
 
@@ -1224,6 +1251,46 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
     return row
 
 
+def usage_summary(paths, tag, area=None, since=None):
+    """{"<provider> <model>": {"calls", "unrecorded", <summed token counts>}} from the runs.jsonl files of a
+    language (every area, the glossary round included), or of one area; since is an ISO time (UTC).
+
+    Usage comes from api-call rows (one per provider response, written as it arrived) and from older step rows
+    that carried their own usage. A step row with neither usage nor a calls count predates usage logging and
+    counts as one unrecorded call; a step row with a calls count is covered by its api-call rows."""
+    base = os.path.dirname(paths.work(tag, "x"))
+    areas = [area] if area else sorted(a for a in os.listdir(base) if os.path.isdir(os.path.join(base, a))) \
+        if os.path.isdir(base) else []
+    totals = {}
+    for name in areas:
+        for row in translib.read_jsonl(paths.work(tag, name, "runs.jsonl")):
+            if row.get("provider") not in providers.KEY_ENV or (since and row.get("when", "") < since):
+                continue
+            billed = row.get("stage") == "api-call" or isinstance(row.get("usage"), dict)
+            if not billed and "calls" in row:
+                continue
+            total = totals.setdefault("%s %s" % (row["provider"], row.get("model")),
+                                      collections.OrderedDict([("calls", 0), ("unrecorded", 0)]))
+            total["calls"] += 1
+            if isinstance(row.get("usage"), dict):
+                providers.add_usage(total, row["usage"])
+            else:
+                total["unrecorded"] += 1
+    return collections.OrderedDict(sorted(totals.items()))
+
+
+def print_usage(totals, out=None):
+    out = out or sys.stdout
+    if not totals:
+        out.write("no API runs\n")
+    for name, total in totals.items():
+        out.write("%s: %d calls%s\n" % (name, total["calls"], " (%d logged no usage)" % total["unrecorded"]
+                                       if total["unrecorded"] else ""))
+        for field, value in total.items():
+            if field not in ("calls", "unrecorded"):
+                out.write("  %s %d\n" % (field, value))
+
+
 def drafts_status(paths, tag, names=None, use_java=True):
     translib.load_language(paths, tag)
     sources, _ = translib.load_source(paths)
@@ -1333,24 +1400,26 @@ def independent_backtranslator(model, model_reported, drafters):
 def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset()):
     """The safety keys to back-translate, as KeyStates whose agreed field is the text to back-translate.
 
-    Every unanimous safety key, with its agreed text (as before 2026-11-05). Then, for a safety key
-    whose drafts disagree, the text the judge picked or merged (judged: judged_safety_texts()), with
-    the state's agreed field replaced by that text; when backs (load_backtranslations()) is given, a
-    judged text that already has a current back-translation of exactly that text is left out, but only
+    Every unanimous safety key, with its agreed text. Then, for a safety key whose drafts disagree,
+    the text the judge picked or merged (judged: judged_safety_texts()), with the state's agreed field
+    replaced by that text. When backs (load_backtranslations()) is given, a key (unanimous or judged)
+    whose text already has a current back-translation of exactly that text is left out, but only
     while that back-translation's model is still independent of drafters (all_drafter_models()): one
-    whose model drafted in the area since is queued again, for a model that drafted nothing to replace.
+    whose model drafted in the area since, or one of older English or another text, is queued again,
+    for a model that drafted nothing to replace. Re-sending a back-translated key would only reword
+    it and leave the judge's confirm (which names the back text) stale.
     """
     out = collections.OrderedDict()
     for key, state in states.items():
         if not state.entry.get("safety"):
             continue
         if state.unanimous:
-            out[key] = state
-            continue
-        items = (judged or {}).get(key, (None, None))[0]
-        if items is None:
-            continue
-        target = state._replace(agreed=items)
+            target = state
+        else:
+            items = (judged or {}).get(key, (None, None))[0]
+            if items is None:
+                continue
+            target = state._replace(agreed=items)
         back = current_backtranslation(target, backs.get(key)) if backs is not None else None
         if back is not None and independent_backtranslator(back.get("model"), back.get("model_reported"),
                                                            drafters):
@@ -1474,17 +1543,19 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
         out.write("no safety keys to back-translate\n")
         return 0
     model = pick_model(provider, "backtranslate", model, prefer, avoid=drafters)
-    stored, reported = 0, model
+    stored, reported, calls = 0, model, 0
     keys = list(targets)
     for start in range(0, len(keys), CHUNK):
         part = collections.OrderedDict((k, targets[k]) for k in keys[start:start + CHUNK])
-        text, reported = providers.generate(provider, model, backtranslate_instructions(pack),
-                                            backtranslate_prompt(pack, part))
+        text, reported, _ = generate_logged(paths, tag, area, "backtranslate", provider, model,
+                                            backtranslate_instructions(pack), backtranslate_prompt(pack, part),
+                                            chunk=start // CHUNK, keys=len(part))
+        calls += 1
         stored += store_backtranslation(paths, pack, part, reply_strings(providers.parse_json_reply(text)),
                                         provider, model, reported, drafters)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "backtranslate"), ("provider", provider), ("model", model), ("model_reported", reported),
-        ("keys", len(keys)), ("received", stored)]))
+        ("keys", len(keys)), ("received", stored), ("calls", calls)]))
     out.write("back-translated %d of %d safety keys with %s\n" % (stored, len(keys), model))
     return stored
 
@@ -2228,6 +2299,11 @@ def main(argv=None):
     p.add_argument("--tag", required=True)
     p.add_argument("--name", action="append", help="only drafts/claude-<name>.xml (default: every claude-* draft)")
     p.add_argument("--json", action="store_true")
+    p = sub.add_parser("usage", help="the token counts the providers reported, summed per model (never writes)")
+    p.add_argument("--tag", required=True)
+    p.add_argument("--area", help="one area (default: every area, the glossary round included)")
+    p.add_argument("--since", help="only runs at or after this UTC time, as runs.jsonl writes it")
+    p.add_argument("--json", action="store_true")
     p = sub.add_parser("glossary-check", help="validate l10n/glossary/<tag>.tsv against en.tsv, or en.tsv itself")
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--tag")
@@ -2328,6 +2404,13 @@ def main(argv=None):
             else:
                 print_drafts_status(status)
             return 1 if status["errors"] else 0
+        if args.command == "usage":
+            totals = usage_summary(paths, args.tag, args.area, args.since)
+            if args.json:
+                print(json.dumps(totals, indent=1))
+            else:
+                print_usage(totals)
+            return 0
         if args.command == "glossary-check":
             return glossary_check(paths, "en" if args.english else args.tag)
     except providers.ProviderError as error:

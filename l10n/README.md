@@ -1174,6 +1174,7 @@ python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then
 python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
+python3 tools/l10n/council.py usage --tag $T                         # the tokens each model was billed for
 ```
 
 1. **Pack** (`pack.py`): for each UI string of `res/values/strings_<area>.xml` (never
@@ -1191,7 +1192,18 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    flash that did not draft, then flash-lite). The patterns name each line, so a newer version
    of the same line is picked when it appears, and never a top-end line (pro, argon). It then drafts in JSON mode
    (OpenAI's Responses API, `"store": false`; Gemini's `generateContent`). Each draft records the
-   exact model id, and the id the API reported. Claude drafts come from Claude Code agents, each
+   exact model id, and the id the API reported. Each provider response (draft, redraft,
+   back-translation, glossary draft, retries included) gets its own `api-call` row in `runs.jsonl`
+   the moment it arrives, before its reply is parsed or checked, with the token counts the provider
+   reported (`usage`, flattened: OpenAI's `input_tokens`, `input_tokens_details.cached_tokens`,
+   `output_tokens` and `output_tokens_details.reasoning_tokens`; Gemini's `promptTokenCount`,
+   `candidatesTokenCount` and `thoughtsTokenCount`, which Google bills as output). So a step that
+   fails on a later chunk, or on a reply it cannot use, still counts what it was billed; the step's
+   own row (written only when it succeeds) records how many `calls` it made and carries no usage, so
+   nothing is summed twice. A 2xx reply that is not JSON at all cannot report usage. `council.py
+   usage --tag <tag> [--area A] [--since <UTC time>] [--json]` sums the calls per model over the
+   language's areas, the glossary round included, and counts the calls that logged none (rows from
+   before usage logging count as one such call each). Claude drafts come from Claude Code agents, each
    in its own session with a different configuration (`--style` `context-first`,
    `glossary-first` or `draft-review`, on different models): `council.py prompt` writes the
    agent's instructions; the agent writes its JSON reply and runs `council.py import-claude ...
@@ -1231,7 +1243,9 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
    every drafter agrees**, with drafts from all three providers that all pass the checks, a model
    that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
-   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   (`safety-agreed`); `backtranslate` sends such a key only while it has no current back-translation
+   of exactly the agreed text by a model that drafted nothing, so a later run does not reword one the
+   judge already confirmed. **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
    such a key always fell back), with drafts from all three providers and at least one passing,
    `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
    or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
@@ -1407,7 +1421,7 @@ python3 tools/l10n/council.py glossary-check --tag $T
    round only, by design: a decided row's evidence is its `decisions.jsonl` record.
 
 Files, under `l10n/work/<tag>/glossary/`: `drafts/openai.json`, `drafts/google.json`, `runs.jsonl`
-(each provider call, with its token usage), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
+(an `api-call` row per provider response, with its token usage, and a row per draft), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
 `replies/judge.<set>/` and `decisions.jsonl`. When no `claude-only` row is left, the string debate
 starts as above: `pack.py` again for every area, `check`, and the redrafts.
 
