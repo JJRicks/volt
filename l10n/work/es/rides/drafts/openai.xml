@@ -2,10 +2,10 @@
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
     <string name="rides_gps_no_fixes" volt:src="a46667ac4335a821606c9ce1cffd8bbfaaca8ae1">Sin posiciones GPS</string>
-    <plurals name="rides_gps_fixes" volt:src="8299da934c42b476c3f35c579377d8238c2e2e48">
-        <item quantity="one">%1$s posición</item>
-        <item quantity="many">%1$s posiciones</item>
-        <item quantity="other">%1$s posiciones</item>
+    <plurals name="rides_gps_fixes" volt:src="614e7ac3cce3d02b4c5fefcc641a4107299875a2">
+        <item quantity="one">%1$s punto GPS</item>
+        <item quantity="many">%1$s puntos GPS</item>
+        <item quantity="other">%1$s puntos GPS</item>
     </plurals>
     <plurals name="rides_gps_dropped" volt:src="c3b24f910e7a641b3186cec3c2fc1e0c157aebc0">
         <item quantity="one">" · %1$s descartada"</item>
@@ -252,16 +252,16 @@
     <string name="rides_compare_two_saved" volt:src="b3e7e0eb46a4aebaad05254b195a312a2ec1a68c">Comparar dos viajes, viajes guardados: %1$d de 2</string>
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">Viajes elegidos: %1$d de 2</string>
     <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Aumento de batería: %1$d puntos porcentuales</string>
-    <plurals name="rides_battery_gain_description_count" volt:src="e6fb2ca68c17dcbfb100e55013afa429f26d04fc">
-        <item quantity="one">Aumento de batería: %1$d punto porcentual</item>
-        <item quantity="many">Aumento de batería: %1$d puntos porcentuales</item>
-        <item quantity="other">Aumento de batería: %1$d puntos porcentuales</item>
+    <plurals name="rides_battery_gain_description_count" volt:src="5dc5ceca7de82e548da35c2040a15638c76284cc">
+        <item quantity="one">Aumento del nivel de batería, %1$d punto porcentual</item>
+        <item quantity="many">Aumento del nivel de batería, %1$d puntos porcentuales</item>
+        <item quantity="other">Aumento del nivel de batería, %1$d puntos porcentuales</item>
     </plurals>
     <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Descenso de batería: %1$d puntos porcentuales</string>
-    <plurals name="rides_battery_drop_description_count" volt:src="8fc45bb4b5f123cd829f3941ff03fa98e328480f">
-        <item quantity="one">Descenso de batería: %1$d punto porcentual</item>
-        <item quantity="many">Descenso de batería: %1$d puntos porcentuales</item>
-        <item quantity="other">Descenso de batería: %1$d puntos porcentuales</item>
+    <plurals name="rides_battery_drop_description_count" volt:src="bf48bffa26436a38fa16d2e7931011baa20ea33f">
+        <item quantity="one">Descenso del nivel de batería, %1$d punto porcentual</item>
+        <item quantity="many">Descenso del nivel de batería, %1$d puntos porcentuales</item>
+        <item quantity="other">Descenso del nivel de batería, %1$d puntos porcentuales</item>
     </plurals>
     <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Confirmado durante %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Sin confirmar durante %1$s</string>

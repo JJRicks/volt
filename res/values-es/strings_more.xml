@@ -732,6 +732,18 @@
     <string name="more_dev_curves_stock">%1$s grabaciones de carga válidas con cargador original</string>
     <!-- src:0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc -->
     <string name="more_dev_curves_fast">%1$s grabaciones de carga válidas con cargador rápido</string>
+    <!-- src:1330fd7aee2810153c45f34fbc14a61b214930ee -->
+    <plurals name="more_dev_curves_stock_count">
+        <item quantity="one">%1$s grabación de carga válida con cargador original</item>
+        <item quantity="many">%1$s grabaciones de carga válidas con cargador original</item>
+        <item quantity="other">%1$s grabaciones de carga válidas con cargador original</item>
+    </plurals>
+    <!-- src:ce7a7ee380a8db0a09e9b337513b03e171480d5e -->
+    <plurals name="more_dev_curves_fast_count">
+        <item quantity="one">%1$s grabación de carga válida con cargador rápido</item>
+        <item quantity="many">%1$s grabaciones de carga válidas con cargador rápido</item>
+        <item quantity="other">%1$s grabaciones de carga válidas con cargador rápido</item>
+    </plurals>
     <!-- src:ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8 -->
     <string name="more_dev_curves_tooltip">Una carga completada puede afinar su tramo final. Otros tramos necesitan dos grabaciones coincidentes. Las estimaciones dependen de la cobertura y la potencia en vivo; las estimaciones del UT5 MAX con cargador original y rápido también funcionan sin grabaciones.</string>
     <!-- src:1de6c31331adab8a77537e9baa9a179cd8de467b -->
