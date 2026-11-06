@@ -647,6 +647,32 @@ public final class Ui {
     }
     /** Height the floating tab bar needs, so scrolling pages can pad their bottom edge. */
     public int floatingNavHeight() { return dp(72); }
+    /**
+     * The round pencil that opens an editor in a page header, or the red {@code done} pill that replaces it while
+     * editing (Home's dashboard, the Scooter tab's menu). {@code target} is the 48 dp touch target; its content
+     * description is the caller's.
+     */
+    public void editToggle(android.widget.FrameLayout target, boolean editing, String done) {
+        target.removeAllViews();
+        if (editing) {
+            TextView pill = text(done, 14, true);
+            pill.setTextColor(onAccent); pill.setGravity(Gravity.CENTER); pill.setMinHeight(dp(38));
+            pill.setPadding(dp(20), dp(6), dp(20), dp(6)); pill.setBackground(shape(accent, 100, 0));
+            target.addView(pill, new android.widget.FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+            target.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(Color.WHITE, 45)), null, shape(Color.WHITE, 100, 0)));
+        } else {
+            android.widget.FrameLayout disc = new android.widget.FrameLayout(context);
+            disc.setBackground(editDisc());
+            disc.addView(icon("pencil", 17, text), new android.widget.FrameLayout.LayoutParams(dp(17), dp(17), Gravity.CENTER));
+            target.addView(disc, new android.widget.FrameLayout.LayoutParams(dp(38), dp(38), Gravity.CENTER));
+            target.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 35)), null, editDisc()));
+        }
+    }
+    private GradientDrawable editDisc() {
+        GradientDrawable disc = new GradientDrawable();
+        disc.setShape(GradientDrawable.OVAL); disc.setColor(dark ? surface : raised);
+        return disc;
+    }
     public GradientDrawable shape(int fill, float radius, int border) {
         GradientDrawable drawable = new GradientDrawable(); drawable.setColor(fill); drawable.setCornerRadius(dp(radius));
         if (border != 0) drawable.setStroke(dp(1), border); return drawable;
@@ -1178,6 +1204,13 @@ public final class Ui {
                 p.moveTo(key.equals("back") ? 15 : 9, 5); p.lineTo(key.equals("back") ? 8 : 16, 12); p.lineTo(key.equals("back") ? 15 : 9, 19); canvas.drawPath(p, paint);
             } else if (key.equals("search")) {
                 canvas.drawCircle(10.5f, 10.5f, 6.5f, paint); canvas.drawLine(15.5f, 15.5f, 20.5f, 20.5f, paint);
+            } else if (key.equals("eye") || key.equals("eye_off")) {
+                p.moveTo(2, 12); p.quadTo(12, 2.5f, 22, 12); p.quadTo(12, 21.5f, 2, 12); p.close(); canvas.drawPath(p, paint);
+                canvas.drawCircle(12, 12, 3.2f, paint);
+                if (key.equals("eye_off")) canvas.drawLine(4, 4, 20, 20, paint);
+            } else if (key.equals("restore")) {
+                canvas.drawArc(new RectF(4, 4, 20, 20), -150, 150, false, paint); canvas.drawArc(new RectF(4, 4, 20, 20), 30, 150, false, paint);
+                p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
             } else {

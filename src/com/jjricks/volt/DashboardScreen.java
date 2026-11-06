@@ -669,26 +669,8 @@ public final class DashboardScreen implements AppScreen {
         tiles.clear();
         grid.removeAllViews();
         actions.clearLock();
-        edit.removeAllViews();
-        if (editing) {
-            // A red Done pill replaces the round pencil.
-            TextView done = ui.text(T.commonDone(), 14, true);
-            done.setTextColor(ui.onAccent);
-            done.setGravity(Gravity.CENTER);
-            done.setMinHeight(ui.dp(38));
-            done.setPadding(ui.dp(20), ui.dp(6), ui.dp(20), ui.dp(6));
-            done.setBackground(ui.shape(ui.accent, 100, 0));
-            edit.addView(done, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
-            edit.setBackground(ripple(Ui.withAlpha(Color.WHITE, 45), null, ui.shape(Color.WHITE, 100, 0)));
-        } else {
-            FrameLayout disc = new FrameLayout(host.activity());
-            disc.setBackground(roundDisc());
-            disc.addView(
-                    new GlyphView("pencil", ui.text),
-                    new FrameLayout.LayoutParams(ui.dp(17), ui.dp(17), Gravity.CENTER));
-            edit.addView(disc, new FrameLayout.LayoutParams(ui.dp(38), ui.dp(38), Gravity.CENTER));
-            edit.setBackground(ripple(Ui.withAlpha(ui.accent, 35), null, roundDisc()));
-        }
+        // A red Done pill replaces the round pencil.
+        ui.editToggle(edit, editing, T.commonDone());
         edit.setContentDescription(editing ? T.dashboardFinishEditing() : T.dashboardEditDashboard());
         updateHistoryControls();
         renameControl.setVisibility(
