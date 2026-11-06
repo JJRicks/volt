@@ -175,7 +175,7 @@ final class RidingScreen implements AppScreen {
         picker.setClickable(true);
         picker.setFocusable(true);
         picker.setContentDescription(T.ridingLayoutChoose());
-        picker.setOnClickListener(v -> { if (disc != null && disc.takesTaps()) choose(); });
+        picker.setOnClickListener(v -> { if (disc != null && disc.takesTaps()) edit(); });
         picker.addView(ui.icon("tune", 24, ui.text), new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
         picker.setVisibility(View.GONE);
         LinearLayout.LayoutParams pickerSize = new LinearLayout.LayoutParams(ui.dp(TOUCH_DP), ui.dp(TOUCH_DP));
@@ -483,36 +483,6 @@ final class RidingScreen implements AppScreen {
 
     private int cardColor() { return ui.dark ? ui.surface : ui.raised; }
 
-    /**
-     * The layout editor (RidingLayoutSheet), opened from the tune disc while stopped. Done saves for
-     * this scooter and rebuilds the screen in the edited layout; the ride's readings carry over, since
-     * they live in the session.
-     */
-    private void choose() {
-        if (closed || host.activity() == null || sheet != null) return;
-        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
-        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
-        new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
-        body.setTag("riding_layout_sheet");
-        AlertDialog shown = host.showSheet(body);
-        if (shown == null) { sheetState.dismissed(); return; }
-        sheet = shown;
-        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
-    }
-
-    /**
-     * The editor's Done: saved for this scooter and the screen rebuilt with it, but only on this
-     * screen's sheet while still stopped (#265's rules); a stale or moving Done saves nothing.
-     */
-    private void saveLayout(RidingLayout edited) {
-        boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
-        dismissSheet();
-        if (!accepted || edited.toJson().equals(config.layout().toJson())) return;
-        config.save(edited);
-        // After the dismissal, on the activity's window: the sheet's own views are detached by then.
-        host.activity().getWindow().getDecorView().post(() -> { if (!closed) host.rebuild(); });
-    }
-
     /** Closes the picker sheet if it's showing; safe while the activity is going away. */
     private void dismissSheet() {
         AlertDialog d = sheet;
@@ -537,6 +507,36 @@ final class RidingScreen implements AppScreen {
         dismissSheet();
         if (disc != null) disc.stop();
         display.detach();
+    }
+
+    /**
+     * The layout editor (RidingLayoutSheet), opened from the tune disc while stopped. Done saves for
+     * this scooter and rebuilds the screen in the edited layout; the ride's readings carry over, since
+     * they live in the session.
+     */
+    private void edit() {
+        if (closed || host.activity() == null || sheet != null) return;
+        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
+        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
+        body.setTag("riding_layout_editor");
+        new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
+        AlertDialog shown = host.showSheet(body);
+        if (shown == null) { sheetState.dismissed(); return; }
+        sheet = shown;
+        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
+    }
+
+    /**
+     * The editor's Done: saved for this scooter and the screen rebuilt with it, but only on this
+     * screen's sheet while still stopped (#265's rules); a stale or moving Done saves nothing.
+     */
+    private void saveLayout(RidingLayout edited) {
+        boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
+        dismissSheet();
+        if (!accepted || edited.toJson().equals(config.layout().toJson())) return;
+        config.save(edited);
+        // After the dismissal, on the activity's window: the sheet's own views are detached by then.
+        host.activity().getWindow().getDecorView().post(() -> { if (!closed) host.rebuild(); });
     }
 
     /**

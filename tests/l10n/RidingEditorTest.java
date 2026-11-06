@@ -160,7 +160,7 @@ public final class RidingEditorTest {
         String screen = read("src/com/jjricks/volt/RidingScreen.java"), sheet = read("src/com/jjricks/volt/RidingLayoutSheet.java"),
                 motion = read("src/com/jjricks/volt/RidingDiscMotion.java");
         check(screen.contains("disc.show(stoppedNow);"), "the disc follows the stopped state");
-        check(screen.contains("if (disc != null && disc.takesTaps()) choose();"), "a tap while the disc hides opens nothing");
+        check(screen.contains("if (disc != null && disc.takesTaps()) edit();"), "a tap while the disc hides opens nothing");
         check(screen.contains("new RidingLayoutSheet(") && screen.contains("sheetState.accept(stopped("), "the tune disc opens the editor; Done follows the sheet rules");
         check(screen.contains("layout.on(RidingLayout.TENTHS) && (speed.tenths"), "speed tenths follow the switch");
         check(screen.contains("units, layout.on(RidingLayout.TENTHS));"), "range tenths follow the switch");
