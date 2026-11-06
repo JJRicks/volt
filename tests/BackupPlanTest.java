@@ -170,12 +170,14 @@ public final class BackupPlanTest {
         BackupArchive.Plan plan = BackupArchive.plan(phone, prepared, BackupTestStore.all(), false, chosen);
         check(plan.lines.contains("Scooters: adds 1 · 1 already here") && plan.lines.contains("Dashboards: replaces layouts for Phone UT5, Spare") && plan.lines.contains("Rides: 3 new · 0 already here · 0 kept here")
                 && plan.lines.contains("Charges: 2 new · 0 already here · 0 kept here") && plan.lines.contains("Readings history: adds to 2 scooters") && plan.lines.contains("Online map: on")
-                && plan.lines.contains("App preferences: replaces 11 settings"), "preview lines per category: " + plan.lines);
+                && plan.lines.contains("App preferences: replaces 13 settings"), "preview lines per category: " + plan.lines);
         Map<String, Map<String, Object>> before = phone.preferences();
         BackupTransaction.apply(phone, plan);
         Map<String, Map<String, Object>> after = phone.preferences(); Map<String, Object> app = after.get("app_settings");
         check("light".equals(app.get("theme")) && !app.containsKey("stats_chart_window") && !app.containsKey("keep_screen_awake") && Boolean.TRUE.equals(app.get("ride_auto_stop")), "App preferences: the backup wins and keys it lacks go back to default");
         check(app.get("last_page").equals("home") && app.get("more_away_boot").equals(9), "device keys stay");
+        check(Boolean.TRUE.equals(app.get("ride_auto_export_route_csv")) && Boolean.FALSE.equals(app.get("ride_auto_export_json")), "both automatic ride copy choices travel");
+        check(!app.containsKey("ride_auto_export_folder") && !app.containsKey("ride_auto_export_pending") && !app.containsKey("ride_auto_export_problem"), "the folder grant, waiting rides and last problem stay on the phone that had them");
         check(app.get("dashboard_v1_" + C).equals("[{\"id\":\"w-a\"}]") && !app.containsKey("dashboard_slot_v1_" + C + "_1") && app.get("dashboard_slot_v1_" + C + "_2").equals("slot two a") && !app.containsKey("dashboard_restore_undo_v1_" + C)
                 && app.get("dashboard_v1_" + B).equals("[{\"id\":\"w-b\"}]") && Integer.valueOf(4).equals(app.get("dashboard_columns")), "Dashboards replace each mapped scooter's dashboard and slots and drop its undo");
         check("other scooter's dashboard".equals(app.get("dashboard_v1_d0000000-0000-4000-8000-00000000000d")), "an unmapped scooter's dashboard stays");
@@ -259,7 +261,7 @@ public final class BackupPlanTest {
         check(!BackupTransaction.needsRecovery(fresh), "a cancelled review leaves no staging");
         BackupArchive.Prepared onlyPrefs = fresh.stage(source.export(set(BackupRegistry.PREFERENCES)));
         BackupArchive.Plan prefs = fresh.plan(onlyPrefs, set(BackupRegistry.PREFERENCES), false, null);
-        check(onlyPrefs.sources.isEmpty() && prefs.lines.get(0).equals("App preferences: replaces 11 settings") && prefs.lines.contains("Online map: on"), "an App-preferences-only file carries no scooter table and says the online map will be on: " + prefs.lines);
+        check(onlyPrefs.sources.isEmpty() && prefs.lines.get(0).equals("App preferences: replaces 13 settings") && prefs.lines.contains("Online map: on"), "an App-preferences-only file carries no scooter table and says the online map will be on: " + prefs.lines);
         BackupTransaction.apply(fresh, prefs);
         check(Boolean.TRUE.equals(fresh.preferences().get("app_settings").get("map_basemap_enabled")) && Boolean.TRUE.equals(fresh.preferences().get("app_settings").get("map_basemap_explained")), "the online map choice is restored as recorded");
     }

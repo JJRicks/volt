@@ -363,7 +363,8 @@
     <string name="compat_field_slope_assist" volt:screen="Compatibility fields" volt:purpose="label">Assist settings</string>
     <string name="compat_field_long_range_mode" volt:screen="Compatibility fields" volt:purpose="label">Long range mode</string>
     <string name="compat_field_overspeed_control" volt:screen="Compatibility fields" volt:purpose="label">Overspeed active control</string>
-    <string name="compat_field_drive_speed_limit" volt:screen="Compatibility fields" volt:purpose="label">Drive mode speed limit</string>
+    <!-- The speed cap for the scooter's Drive mode (a mode name: keep it as the scooter shows it). -->
+    <string name="compat_field_drive_speed_limit" volt:screen="Compatibility fields" volt:purpose="label" volt:dnt="Drive">Drive mode speed limit</string>
     <!-- A status byte about lighting that Volt has not mapped on this model, shown raw. %1$d is its offset in the reply. -->
     <string name="compat_field_lighting_byte" volt:screen="Compatibility fields" volt:purpose="label">Lighting byte %1$d (raw)</string>
     <!-- A status flag (OSA) whose meaning Volt has not mapped. -->

@@ -2,8 +2,8 @@
 <!--
   The Rides screen (batch B15): the live recording card, saved ride history, ride details, the
   phone sensors sheet, the phone track and route map panel, exports, delete and the two-ride
-  comparison. The English must stay exactly what the source said before the batch (G1, G2),
-  including its known bugs ("1 fixes", "1 percentage points").
+  comparison. The English must stay exactly what the source said before the batch (G1, G2), except
+  the owner-approved changes in l10n/english-changes.tsv (such as "1 fix" and "1 percentage point").
 
   Unit symbols (km, mi, km/h, mph, Wh, W, V, m/s², g, ft, m) stay the international symbols in
   every language; the words around them are translated. GPS, CSV, JSON, GPX and Bluetooth are
@@ -76,6 +76,8 @@
     <string name="rides_show_more" volt:screen="Rides, history" volt:purpose="label">Show more recordings</string>
     <string name="rides_no_rides_yet" volt:screen="Rides, history" volt:purpose="label">No rides yet</string>
     <string name="rides_history_unreadable" volt:screen="Rides, history" volt:purpose="label">Could not read saved rides</string>
+    <!-- Spoken by screen readers for the placeholder rows shown while saved rides load; the rows show no text. -->
+    <string name="rides_history_loading" volt:screen="Rides, history" volt:purpose="accessibility description">Loading rides…</string>
     <string name="rides_compare_two_selected" volt:screen="Rides, history" volt:purpose="label">Compare two rides, 2 rides selected</string>
     <!-- The compare row's value when two rides are chosen, "2" being the count: keep the check mark. Screen readers say rides_compare_two_selected instead. -->
     <string name="rides_compare_two_selected_value" volt:screen="Rides, history" volt:purpose="status" volt:dnt="✓">2 ✓</string>
@@ -159,11 +161,21 @@
     <string name="rides_temperature" volt:screen="Rides, ride details" volt:purpose="label">Temperature</string>
     <string name="rides_saved_automatically" volt:screen="Rides, ride details" volt:purpose="label">Saved automatically</string>
     <string name="rides_saved_automatically_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="Bluetooth">Saved automatically after Bluetooth was lost while parked</string>
+    <!-- Screen-reader text of the Saved automatically pill when the scooter stopped answering (switched off or out of range) and Volt ended the ride after waiting. -->
+    <string name="rides_saved_automatically_quiet_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after the scooter turned off or went out of range</string>
+    <!-- Screen-reader text of the Saved automatically pill when the phone's own Bluetooth stayed off and Volt ended the ride after 5 minutes. -->
+    <string name="rides_saved_automatically_phone_bluetooth_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride" volt:dnt="Bluetooth">Saved automatically after the phone\'s Bluetooth stayed off</string>
+    <!-- Screen-reader text of the Saved automatically pill when the scooter stayed connected but showed no movement for 10 minutes and Volt ended the ride. Spoken only, so no width budget. -->
+    <string name="rides_saved_automatically_no_motion_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after 10 minutes with no movement</string>
     <string name="rides_notes_section" volt:screen="Rides, ride details" volt:purpose="label">Notes</string>
-    <string name="rides_export_csv" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
-    <string name="rides_export_csv_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
-    <string name="rides_export_json" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="JSON">Export JSON</string>
-    <string name="rides_export_json_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="JSON">Export ride analysis JSON</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_csv" translatable="false" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_csv_description" translatable="false" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_json" translatable="false" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="JSON">Export JSON</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_json_description" translatable="false" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="JSON">Export ride analysis JSON</string>
     <string name="rides_delete_ride" volt:screen="Rides, ride details" volt:purpose="label">Delete ride</string>
     <string name="rides_reason_no_odometer" volt:screen="Rides, ride details" volt:purpose="reason">No odometer distance</string>
     <string name="rides_reason_too_short" volt:screen="Rides, ride details" volt:purpose="reason">Too short</string>
@@ -183,29 +195,46 @@
     <!-- Elevation comes from GPS altitude (the phone has no barometer). -->
     <string name="rides_barometer_gps" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="GPS">GPS altitude</string>
     <string name="rides_motion_sensors" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Motion sensors</string>
-    <string name="rides_placement" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Phone placement</string>
-    <!-- Phone placement: mounted on the handlebar. -->
-    <string name="rides_placement_mounted" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Mounted</string>
-    <!-- Phone placement: in a pocket or bag. -->
-    <string name="rides_placement_pocket" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
+    <!-- No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Phone placement</string>
+    <!-- Phone placement: mounted on the handlebar. No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement_mounted" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Mounted</string>
+    <!-- Phone placement: in a pocket or bag. No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement_pocket" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
     <!-- A small all-caps badge on experimental settings. Keep it very short. -->
     <string name="rides_lab_badge" volt:screen="Rides, phone sensors sheet" volt:purpose="label">LAB</string>
     <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Experimental</string>
     <string name="rides_changes_next_ride" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Changes apply to the next ride</string>
     <string name="rides_toast_no_browser" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No browser available.</string>
-    <string name="rides_export_raw" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
-    <string name="rides_export_phone_journal" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Phone journal CSV</string>
-    <string name="rides_export_motion_csv" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Motion CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_raw" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_phone_journal" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Phone journal CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_motion_csv" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Motion CSV</string>
     <string name="rides_toast_no_phone_data" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No phone data recorded for this ride.</string>
     <string name="rides_route" volt:screen="Rides, phone and route" volt:purpose="label">Route</string>
     <string name="rides_phone_route" volt:screen="Rides, phone and route" volt:purpose="label">Phone &amp; route</string>
     <string name="rides_tile_gps_distance" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS distance</string>
+    <!-- Caption under Phone & route when the ride's phone track kept no GPS fix. -->
+    <string name="rides_gps_no_fixes" volt:screen="Rides, phone and route" volt:purpose="caption" volt:dnt="GPS">No GPS fixes</string>
+    <!-- Caption under Phone & route: how many GPS fixes the ride's phone track kept. %1$s is the count, already grouped ("1,234"), and picks the plural form. -->
+    <plurals name="rides_gps_fixes" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">%1$s fix</item>
+        <item quantity="other">%1$s fixes</item>
+    </plurals>
+    <!-- Glued straight onto the end of rides_gps_fixes when some readings were dropped ("1,234 fixes · 12 dropped"), so it starts with its own space and separator. %1$s is how many GPS fixes and elevation readings were dropped, already grouped, and picks the plural form. -->
+    <plurals name="rides_gps_dropped" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">" · %1$s dropped"</item>
+        <item quantity="other">" · %1$s dropped"</item>
+    </plurals>
     <string name="rides_tile_ascent_descent" volt:screen="Rides, phone and route" volt:purpose="label">Ascent / descent</string>
     <string name="rides_acceleration" volt:screen="Rides, phone and route" volt:purpose="label">Acceleration</string>
     <string name="rides_gps_speed_change" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS speed change · min / max</string>
     <string name="rides_scooter_speed_change" volt:screen="Rides, phone and route" volt:purpose="label">Scooter speed change · min / max</string>
     <string name="rides_linear_peak" volt:screen="Rides, phone and route" volt:purpose="label">Phone linear acceleration · peak</string>
-    <string name="rides_export_phone" volt:screen="Rides, phone and route" volt:purpose="option">Export phone data</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_phone" translatable="false" volt:screen="Rides, phone and route" volt:purpose="option">Export phone data</string>
     <string name="rides_route_selection_description" volt:screen="Rides, phone and route" volt:purpose="accessibility description">Selected route measurements</string>
     <string name="rides_route_color" volt:screen="Rides, phone and route" volt:purpose="label">Route color</string>
     <string name="rides_route_color_power" volt:screen="Rides, phone and route" volt:purpose="option">Power</string>
@@ -242,9 +271,54 @@
     <string name="rides_export_gpx" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="GPX">GPX</string>
     <string name="rides_export_phone_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Phone raw CSV</string>
     <string name="rides_export_motion_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Motion raw CSV</string>
-    <string name="rides_export_all_json" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_all_json" translatable="false" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
     <string name="rides_toast_export_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not export this ride.</string>
     <string name="rides_toast_export_csv_failed" volt:screen="Rides, export and delete" volt:purpose="error" volt:dnt="CSV">Could not export the ride CSV.</string>
+    <!-- Ride details' one export button; it opens the Export ride data sheet. Full-width, but the wide layout's
+         detail pane can be narrow at large text: the short rung, then the download icon alone, follow. -->
+    <string name="rides_export_data" volt:screen="Rides, ride details" volt:purpose="button" volt:ladder="full" volt:max="296dp@14sp">Export ride data</string>
+    <string name="rides_export_data_short" volt:screen="Rides, ride details" volt:purpose="button" volt:ladder="short" volt:max="96dp@14sp">Export</string>
+    <!-- Export ride data sheet: the heading over the scooter's two files (its sensor journal and analysis). -->
+    <string name="rides_export_section_scooter" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Scooter recording</string>
+    <!-- Export ride data sheet: the heading over the five files from the phone's own sensors. -->
+    <string name="rides_export_section_phone" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Phone recording</string>
+    <!-- Checkbox: every scooter reading of the ride, as the CSV journal Volt recorded. The file name shows under it. -->
+    <string name="rides_export_sensor_csv" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="CSV" volt:max="240dp@15sp">Sensor CSV</string>
+    <!-- Checkbox: the ride's analysis (energy, coverage, distance) as JSON. -->
+    <string name="rides_export_analysis_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Analysis JSON</string>
+    <!-- Checkbox: one JSON file holding the scooter analysis and the phone recording together. -->
+    <string name="rides_export_combined_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Scooter and phone JSON</string>
+    <!-- Under a greyed-out checkbox: the phone's files for this ride are still being written. -->
+    <string name="rides_export_reason_saving" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">Still saving</string>
+    <!-- Under the greyed-out Route CSV and GPX checkboxes: the phone recorded no GPS position, so there is no route. -->
+    <string name="rides_export_reason_no_fixes" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:dnt="GPS" volt:max="264dp@13sp">No GPS fixes in this ride</string>
+    <!-- Under a greyed-out checkbox: the phone's journal could not be read, so this file cannot be made. -->
+    <string name="rides_export_reason_unreadable" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">The phone recording could not be read</string>
+    <!-- Under a greyed-out raw file checkbox: this file was never written for the ride. -->
+    <string name="rides_export_reason_not_recorded" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">Not recorded for this ride</string>
+    <!-- Spoken for a greyed-out checkbox: %1$s is its label (rides_export_sensor_csv and the others), %2$s why it is greyed out (rides_export_reason_saving and the others). -->
+    <string name="rides_export_unavailable_description" volt:screen="Rides, export ride data sheet" volt:purpose="accessibility description">%1$s, unavailable: %2$s</string>
+    <!-- Below the checkboxes when exactly one is checked: Android's Save dialog follows. -->
+    <string name="rides_export_hint_one" volt:screen="Rides, export ride data sheet" volt:purpose="caption" volt:dnt="Android">Android asks where to save the file.</string>
+    <!-- Below the checkboxes when two or more are checked: Android's folder picker follows, then Volt writes each file there. -->
+    <string name="rides_export_hint_several" volt:screen="Rides, export ride data sheet" volt:purpose="caption" volt:dnt="Android|Volt">Android asks for a folder, and Volt saves each file there.</string>
+    <!-- Below the checkboxes when none is checked; the Export button is greyed out. -->
+    <string name="rides_export_hint_none" volt:screen="Rides, export ride data sheet" volt:purpose="caption">Choose at least one file.</string>
+    <!-- The sheet's main button. -->
+    <string name="rides_export_action" volt:screen="Rides, export ride data sheet" volt:purpose="button" volt:max="296dp@14sp">Export</string>
+    <!-- Toast after a several-file export: %1$d files were saved in the chosen folder. -->
+    <plurals name="rides_toast_export_saved" volt:screen="Rides, export ride data sheet" volt:purpose="message">
+        <item quantity="one">Saved %1$d file.</item>
+        <item quantity="other">Saved %1$d files.</item>
+    </plurals>
+    <!-- Toast after a several-file export where some failed: %1$d saved of %2$d chosen; the plural follows %2$d. -->
+    <plurals name="rides_toast_export_partial" volt:screen="Rides, export ride data sheet" volt:purpose="error">
+        <item quantity="one">Saved %1$d of %2$d file. Try again for the rest.</item>
+        <item quantity="other">Saved %1$d of %2$d files. Try again for the rest.</item>
+    </plurals>
+    <string name="rides_toast_export_folder_failed" volt:screen="Rides, export ride data sheet" volt:purpose="error">Could not save to that folder.</string>
+    <string name="rides_toast_export_no_picker" volt:screen="Rides, export ride data sheet" volt:purpose="error">No folder picker is available on this phone.</string>
     <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Deletes its route and sensor data. Can\'t undo.</string>
     <!-- Cancels deleting the ride. -->
     <string name="rides_delete_keep" volt:screen="Rides, export and delete" volt:purpose="label">Keep ride</string>
@@ -324,16 +398,16 @@
     <string name="rides_compare_chosen" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$d of 2 rides chosen</string>
     <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_gain_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery gain, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
-    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">Battery gain, %1$d percentage points</item>
+    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. -->
+    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description">
+        <item quantity="one">Battery gain, %1$d percentage point</item>
         <item quantity="other">Battery gain, %1$d percentage points</item>
     </plurals>
     <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_drop_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery drop, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
-    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">Battery drop, %1$d percentage points</item>
+    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. -->
+    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description">
+        <item quantity="one">Battery drop, %1$d percentage point</item>
         <item quantity="other">Battery drop, %1$d percentage points</item>
     </plurals>
     <!-- Under the direction bar: the current direction was confirmed for %1$s ("12m 05s"). -->
@@ -345,11 +419,16 @@
     <!-- Spoken for an experimental switch: %1$s is the switch's title (rides_motion_sensors). -->
     <string name="rides_switch_experimental" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">%1$s, experimental</string>
     <!-- Motion note: the phone was mounted; %1$s motion samples (formatted, "1,200"). English says
-         "samples" for 1. -->
-    <string name="rides_motion_note_mounted" volt:screen="Rides, phone and route" volt:purpose="caption">Mounted · %1$s samples</string>
+         "samples" for 1. No screen shows this since rides_motion_samples replaced it, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_motion_note_mounted" translatable="false" volt:screen="Rides, phone and route" volt:purpose="caption">Mounted · %1$s samples</string>
     <!-- Motion note: the phone was in a pocket; %1$s motion samples (formatted). English says
-         "samples" for 1. -->
-    <string name="rides_motion_note_pocket" volt:screen="Rides, phone and route" volt:purpose="caption">Pocket · %1$s samples</string>
+         "samples" for 1. No screen shows this since rides_motion_samples replaced it, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_motion_note_pocket" translatable="false" volt:screen="Rides, phone and route" volt:purpose="caption">Pocket · %1$s samples</string>
+    <!-- Caption under Phone & route's motion values: how many motion sensor samples the phone recorded. %1$s is the count, already grouped ("1,200"), and picks the plural form. -->
+    <plurals name="rides_motion_samples" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">%1$s motion sample</item>
+        <item quantity="other">%1$s motion samples</item>
+    </plurals>
     <!-- Spoken route color legend for power: %1$s is the top of the scale ("1.2 kW"). -->
     <string name="rides_legend_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power magnitude · blue 0 → yellow %1$s · gray: missing</string>
     <!-- Spoken route color legend for elevation: %1$s the lowest and %2$s the highest height ("120 ft"). -->

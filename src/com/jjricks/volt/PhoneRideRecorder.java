@@ -156,7 +156,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
      * gpsEnabled must only be true after the service successfully enters location foreground mode.
      */
     public synchronized void start(
-            String id, String placement, boolean gpsEnabled, boolean motionEnabled) {
+            String id, boolean gpsEnabled, boolean motionEnabled) {
         if (active) return;
         if (thread != null) throw new IllegalStateException("Recorder already used");
         this.id = id;
@@ -174,8 +174,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                         store.start(
                                 id,
                                 System.currentTimeMillis(),
-                                SystemClock.elapsedRealtime(),
-                                placement);
+                                SystemClock.elapsedRealtime());
                     } catch (IOException e) {
                         storageError = "Phone sensor storage unavailable";
                         active = false;

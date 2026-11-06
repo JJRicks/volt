@@ -13,7 +13,8 @@ import java.util.Random;
  *  - CompatibilityLabels.field prints CompatibilityReport.fieldLabel for every offset and layer, and follows the
  *    source, while fieldLabel stays English;
  *  - the panel's journal note is TestJournal.UNAVAILABLE_NOTE in English;
- *  - the "in English" lines stay empty while Volt is English (so English screens are unchanged);
+ *  - the "in English" lines stay empty while Volt is English or the language isn't shipped (so English screens
+ *    are unchanged), and show in every shipped language;
  *  - the counts and the plural print what the source printed at every quantity.
  * "Follows the source" is checked with a key-echo source that answers every id with its marked key.
  */
@@ -23,11 +24,16 @@ public final class CompatibilityDisplayTest {
     private static final long SEEN = 100000, NOW = SEEN + 1000, WALL = 1700000000000L;
 
     /** Answers every id with its key between marks, and says the text is Spanish. */
-    private static final T.Source ECHO = new T.Source() {
-        @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
-        @Override public String plural(int id, long quantity) { return "⟦" + T.key(id) + "⟧"; }
-        @Override public String language() { return "es"; }
-    };
+    private static final T.Source ECHO = echo("es");
+
+    /** A key-echo source that says its text is in the given language. */
+    private static T.Source echo(String language) {
+        return new T.Source() {
+            @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
+            @Override public String plural(int id, long quantity) { return "⟦" + T.key(id) + "⟧"; }
+            @Override public String language() { return language; }
+        };
+    }
 
     public static void main(String[] args) throws Exception {
         T.install(null);
@@ -42,9 +48,18 @@ public final class CompatibilityDisplayTest {
                     "the in-English lines' English");
             plurals();
             walks();
-            T.install(ECHO);
-            // An unshipped language (Spanish is not beta or stable yet) keeps every screen English, these lines too.
-            check(UpdateCheck.notesLanguageNote().isEmpty() && Fmt.legacy(), "no release-notes language line while no language ships");
+            // A language Volt doesn't ship (no l10n/lang file, or one still draft) keeps every screen English, these
+            // lines too. "zz" never has a lang file.
+            T.install(echo("zz"));
+            check(UpdateCheck.notesLanguageNote().isEmpty() && Fmt.legacy(), "no release-notes language line for a language Volt doesn't ship");
+            // A shipped language (beta or stable) formats as itself and says the release notes stay English.
+            for (int i = 0; i < AppLanguages.size(); i++) {
+                String tag = AppLanguages.tag(i);
+                if (!AppLanguages.shipped(i) || AppLanguages.ENGLISH.equals(tag)) continue;
+                T.install(echo(tag));
+                check(!Fmt.legacy() && UpdateCheck.notesLanguageNote().equals(T.compatUpdateNotesInEnglish()),
+                        "the release-notes language line in " + tag);
+            }
         } finally {
             T.install(null);
         }

@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.11.1 (versionCode 54)
+Current version: 1.12.0 (versionCode 55)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -12,7 +12,7 @@ sound and range estimate (changed, read back, seen, restored) and traction contr
 See VERIFICATION.txt for dated checks and the exact physical test scope.
 
 The app talks directly to the scooter over Bluetooth. Optional map tiles and
-the manual Check for updates use internet; authentication, controls and
+the update checks (manual, or opt-in once a day) use internet; authentication, controls and
 recording require no server. First-time owner setup is covered in SETUP.txt.
 
 Historical 1.0.0 release: compact-card value fitting, a quieter reconnect haptic pattern,
@@ -25,7 +25,32 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.11.1
+NEW IN 1.12.0
+------------
+- Volt opens instantly: it starts connecting first and loads rides in the
+  background (about 0.3 s to the first screen, from about 4 s with a long ride
+  history, on an emulator). Rides never freezes while it reads, and after a
+  restart it opens from saved ride summaries.
+- Riding mode: Home's RIDE button opens a full-screen view (Focus, Halo or
+  Trace) with big speed, range at this pace, battery and power. It has its
+  own brightness and rotation lock, a layout editor, and night vision on a
+  sunset-to-sunrise or custom schedule. It sends no scooter command.
+- Live charging: after you leave Volt during a charge, a live card on the
+  lock screen and in notifications shows the level, the finish time and the
+  power, with Disconnect; on Android 16 and later it can be a Live Update.
+- Maintenance reminders by distance or time (Scooter > Maintenance), with a
+  quiet notification when a check is due.
+- Arrange the Scooter tab: reorder, hide and add back its sections and
+  settings, per scooter.
+- Spanish (beta), and a Language row with Units and Text size.
+- More > Updates with an opt-in daily update check; one Export ride data
+  button; ride auto-save to a folder; rides end on their own when the scooter
+  is switched off, out of reach or parked for 10 minutes.
+- The whole Ride recorder card starts a ride, right on Home. Wide screens with
+  large text use the phone layout, and narrow labels step down to a shorter
+  word or an icon instead of shrinking. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 1.11.1
 ------------
 - Owner setup with Use Shizuku on this phone now works on Android 11. Its
   log reader can't filter by app, so the capture never found the owner
@@ -622,6 +647,50 @@ Five main tabs: Home, Scooter, Stats, Rides and More. Scooter contains grouped
 settings and the Lights destination for tail/automatic, line and star lighting.
 Rename the local scooter profile in Scooter or with its widget pencil while
 editing Home.
+The Scooter tab's pencil arranges its sections and settings for each scooter:
+drag or Move up/down within a section, hide with Undo, Add back and Reset. The
+tab then ends with "N settings hidden · Edit", and search still finds hidden
+settings, marked Hidden. Hiding never changes or sends a setting. Wide screens
+balance the two columns by row count. Lights and Quick access keep their own
+order. Maintenance (Scooter > Maintenance > Reminders, off by default) keeps
+local reminders by distance, time or either, counted from odometer readings the
+scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
+Scooter tab dot and an optional quiet notification once per due cycle (a daily
+JobScheduler check for time reminders; no push service). Where a NAVEE manual
+states a schedule (GT3, ST3, V25/V40/V50, S40/S60, S65C and K100 series; not
+the UT5 MAX, whose quick guide has none), the page lists each interval with
+the manual and page, and Add prefills a reminder from it. Emulator- and JVM-tested; a reminder after a
+reboot or under battery saver is not yet checked on a real phone.
+
+Riding mode (Home's RIDE button) is a full-screen, read-only view that keeps the
+screen on and hides the navigation bar. Focus (the default), Halo (a speedometer
+ring with max and average) and Trace (the last minute of speed, draw and regen)
+show speed, Range at this pace (from recent energy per km at cruising speed,
+falling back to Volt's or the scooter's range), battery, trip, ride time,
+battery temperature and power; the layout picker shows only while stopped.
+Stale values dim, and speed shows a dash after 6 s without a reading.
+More > App preferences > Riding mode sets brightness (Phone by default, Volt
+auto from the light sensor with learned per-band offsets, or Fixed), rotation
+(Lock on open or Follow phone) and Hide status bar (off by default). It never
+writes Android's brightness setting, sends no scooter command and has no lock
+control. The tune disc (shown while stopped, sliding in and out over 220 ms)
+opens the layout editor: drawn previews of the three frames, what each spot
+shows, and per-frame Power bar, Chips and Tenths switches, saved per scooter
+only on Done, with Reset for the frame on show. Volt's range there is the
+learned estimate from past rides. Night vision (moon button; More > App
+preferences > Riding mode > Night vision: Off, On or Scheduled) draws riding
+mode red on black, rescales Volt auto and Fixed brightness to a dim night
+range, hides the status bar and fades over about 450 ms. Scheduled uses sunset
+to sunrise, computed on the phone from the last recorded ride's area (rounded
+to about 10 km, after asking) or the time zone, or custom times; a moon tap
+lasts until the next switch. Nothing is sent. Tested with simulated samples
+on emulators only.
+
+Wide layouts need a window at least 650 dp wide after dividing by the text size
+(Volt's Text size times the system font scale), so a 725 dp unfolded phone uses
+the phone layout from about 1.12x text. In cramped spots labels follow full,
+short, then icon, instead of breaking a word or ending in an ellipsis (status
+lines stay at 12 sp or larger); screen readers hear the full label.
 
 Home supports 15 widget types: Lock & connection, Your scooter, Battery overview,
 Big reading, Gauge, Live trend, History chart, Reading list, Trip overview,
@@ -756,8 +825,12 @@ Card contents adapt to the available width/height: narrow rows stack, numeric
 text fits within readable font limits and graphics use the available space.
 Short content stays balanced within the card. Saved card geometry is preserved.
 Swipe anywhere within overflowing widget content to scroll it. Your scooter,
-Lock & connection and Gauge have practical minimum heights. Wide Ride recorder
-cards can use one row; narrow Quick access rails can use three.
+Lock & connection and Gauge have practical minimum heights. Ride recorder
+cards can use one row from half width (112 dp), stepping Record ride down to
+Record and then the disc alone; narrow Quick access rails can use three. A tap
+anywhere on a ready Ride recorder card starts a ride on Home, showing Starting…
+on the next frame; the disc still stops it in one tap. When Reading tiles leave
+the last row part-filled, the last tile spans the rest of the row.
 
 Lock & connection uses a taller centered slider, slightly inset from the card
 edges; narrow cards give it the full available width. One concise status shows
@@ -933,6 +1006,23 @@ observed 100% finish provides a reference and prediction error; incomplete
 recordings and lower cutoffs are never compared to a guessed completion time.
 Older journals have no historical predictions; estimates are not backfilled.
 
+Live charging (Scooter > Battery > Live charging, on by default) starts only
+when you leave Volt while the scooter is connected and charging, or a Charge
+done by or Scheduled charging start is set. Volt's connection notice becomes a
+card with the level, target, finish time and power; the lock screen shows
+Details, Level or Hidden. It ends at the limit (or 99%), after 3 minutes without
+charging or with stale readings, after 12 hours, about 18 s out of reach, or on
+Disconnect, which keeps the card off for that scooter's charge, even across a
+service restart, until Volt is opened again. While it shows, other apps,
+the official one included, can't connect. On Android 16 and later Volt asks for
+a Live Update (status-bar chip and segmented bar); More > Developer options >
+Live Update status reports the outcome. It keeps only the battery reads Volt
+already makes and sends no new scooter command. Out of sight, the card, the
+connection notice and Charge done by / Scheduled charging read the scooter on
+the 15 s background cadence without treating the gap as a lost link; schedule
+writes still need a status reading under 7 s old. Emulator- and JVM-tested;
+the background card on a real phone is still to be checked.
+
 
 PHONE RECORDING AND ROUTE MAPS
 
@@ -950,6 +1040,15 @@ whole route. Center, zoom, overlay and inspected point survive opening/closing
 the expanded view. Pinch, pan, zoom buttons and inspection work in either view.
 Phone raw, linear and earth-frame
 acceleration are retained in CSV when the relevant sensors are available.
+Auto-save rides (More > Data & history > Ride auto-save, off by default): Auto-save
+Route CSV and Auto-save ride JSON copy each ride you end into one folder chosen once through
+Android's folder picker, byte for byte the Route CSV and All (JSON) exports (Export
+JSON for a ride with no phone recording). Names come from the ride id; a hidden
+file is renamed into place, unchanged files are left alone and no "(1)" copies
+are made. Failed copies wait and retry after the next ride, at app start and when
+the folder is chosen again; the Folder row shows the folder or the failure, and one notification per
+kind is posted while Volt is hidden. Emulator-validated; not yet on a phone with
+a real ride.
 
 A shared ride graph supports power, wheel/GPS speed, voltage, battery, relative
 elevation, GPS acceleration and instantaneous energy per distance. Tap/slide for

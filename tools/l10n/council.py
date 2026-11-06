@@ -17,9 +17,9 @@ environment; see providers.py for how they are kept out of every output.
   council.py draft openai|google --tag es --area common  draft with the provider's API
   council.py check --tag es --area common               checks.jsonl (tools/l10n/check.py)
   council.py redraft openai|google --tag es --area common
-                                                        send failed keys back once (attempt 2)
+                                                        send failed and missing keys back once (attempt 2)
   council.py backtranslate openai|google --tag es --area common
-                                                        back-translate agreed safety keys, and judged
+                                                        back-translate agreed safety keys and judged
                                                         safety texts not yet back-translated, with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
@@ -72,7 +72,14 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
                            confirm (safety keys): every item of SAFETY_CONFIRMATIONS set to true,
                            text the confirmed text and back the back-translation the judge saw,
                            both copied from the request; they must match the current ones.
-  runs.jsonl               one line per provider call or import: stage, provider, model ids, keys.
+  runs.jsonl               one line per provider call or import: stage, provider, model ids, keys. A
+                           redraft row's missing ({key: source_sha1}) lists the keys it asked for and got
+                           no usable text of: they have had both attempts and are never sent again.
+
+A provider that has had both attempts at a key (its draft and its redraft) and whose draft of it is
+still missing or still failing is excused: it no longer blocks a safety key, which is then judged from
+the other drafts (at least two passing, from different providers), back-translated and confirmed as
+any judged safety key. Decisions and judge requests name it in excused.
   audit/compare.tsv, audit/verdicts.tsv
                            the safety audit's QA record of a Claude-only draft (see audit_prompt());
                            only drafts-status reads them.
@@ -216,8 +223,12 @@ def user_prompt(pack, entries, findings_by_key=None, with_src=False):
     findings_by_key = findings_by_key or {}
     head = ("Translate these %d strings from %s (area %s)." % (len(entries), pack["source_file"], pack["area"]))
     if findings_by_key:
-        head += (" Your earlier draft of these strings failed the automated checks listed under failed_checks; "
-                 "fix them.")
+        if all(e["key"] in findings_by_key for e in entries):
+            head += (" Your earlier draft of these strings failed the automated checks listed under failed_checks; "
+                     "fix them.")
+        else:
+            head += (" Your earlier draft of the strings with failed_checks failed those automated checks; fix "
+                     "them. The others were missing from your earlier reply.")
     body = [model_view(e, findings_by_key.get(e["key"]), with_src) for e in entries]
     return head + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1)
 
@@ -385,18 +396,44 @@ def failed_keys(paths, tag, area, name):
     return out
 
 
+def retried_missing(paths, tag, area):
+    """{draft name: {key: source_sha1}}: the keys each API draft's redraft (attempt 2) asked for and got
+    no usable text of, from the redraft rows of runs.jsonl. A later full draft of that name (its draft
+    rows) starts again with none. A key listed for the current English has had both attempts."""
+    out = {}
+    for row in translib.read_jsonl(paths.work(tag, area, "runs.jsonl")):
+        name = row.get("draft")
+        if not name:
+            continue
+        if row.get("stage") == "draft":
+            out[name] = {}
+        elif row.get("stage") == "redraft" and isinstance(row.get("missing"), dict):
+            out.setdefault(name, {}).update(row["missing"])
+    return out
+
+
 def api_redraft(paths, provider, tag, area, name=None, out=None):
+    """Send a draft's failed first attempts (checks.jsonl) and the needed keys its draft lacks back
+    once, as attempt 2, in the same calls. A key the redraft asked for and got no usable text of is
+    recorded as missing in the redraft's runs.jsonl row and is never sent again (see retried_missing())."""
     out = out or sys.stdout
     pack = packlib.load_pack(paths, tag, area)
     name = name or provider
     path = os.path.join(paths.drafts(tag, area), name + ".xml")
     draft = translib.read_draft(path)
-    failed = failed_keys(paths, tag, area, name)
-    if not failed:
-        out.write("%s: no failed first attempts to send back (run check first)\n" % name)
-        return None
     by_key = dict((e["key"], e) for e in pack["entries"])
-    entries = [by_key[k] for k in failed if k in by_key]
+    retried = retried_missing(paths, tag, area).get(name, {})
+    failed = collections.OrderedDict(
+        (k, v) for k, v in failed_keys(paths, tag, area, name).items()
+        if k in by_key and retried.get(k) != by_key[k]["source_sha1"])
+    lacking = [e["key"] for e in needed_entries(pack)
+               if e["key"] not in draft.entries and e["key"] not in failed
+               and retried.get(e["key"]) != e["source_sha1"]]
+    if not failed and not lacking:
+        out.write("%s: no failed first attempts or missing keys to send back (run check first)\n" % name)
+        return None
+    wanted = set(failed) | set(lacking)
+    entries = [e for e in pack["entries"] if e["key"] in wanted]
     collected, reported, calls = [], draft.model_reported, 0
     for index, chunk in enumerate(chunks(pack, entries)):
         text, reported, _ = generate_logged(paths, tag, area, "redraft", provider, draft.model,
@@ -410,10 +447,15 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         for problem in problems:
             out.write("  %s\n" % problem)
     save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS)
+    received = set(k for k, _, _, _, _ in collected)
+    missing = collections.OrderedDict((e["key"], e["source_sha1"]) for e in entries if e["key"] not in received)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "redraft"), ("draft", name), ("provider", provider), ("model", draft.model),
-        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected)), ("calls", calls)]))
-    out.write("%s: redrafted %d keys (attempt %d); run check again\n" % (name, len(collected), MAX_ATTEMPTS))
+        ("model_reported", reported), ("keys", len(entries)), ("failed", len(failed)), ("lacking", len(lacking)),
+        ("received", len(collected)), ("missing", missing), ("calls", calls)]))
+    out.write("%s: redrafted %d keys (attempt %d; %d failed, %d missing before)%s; run check again\n" % (
+        name, len(collected), MAX_ATTEMPTS, len(failed), len(lacking),
+        ", %d still missing (no further attempt)" % len(missing) if missing else ""))
     return path
 
 
@@ -1330,7 +1372,9 @@ def print_drafts_status(status, out=None):
 
 Candidate = collections.namedtuple("Candidate", "draft provider model model_reported attempt items findings ok")
 # stale: [{draft, provider, model, src, why}] for draft entries of other English (or of unknown English).
-KeyState = collections.namedtuple("KeyState", "entry candidates passing agreed unanimous providers stale")
+# excused: {provider: why} for each provider that has had both attempts at the key (its draft and its
+# redraft) and whose draft of it is still missing or still failing (see excused_providers()).
+KeyState = collections.namedtuple("KeyState", "entry candidates passing agreed unanimous providers stale excused")
 
 
 def analyze(paths, pack, drafts=None, use_java=True):
@@ -1343,6 +1387,7 @@ def analyze(paths, pack, drafts=None, use_java=True):
     drafts = translib.list_drafts(paths, pack["tag"], pack["area"]) if drafts is None else drafts
     font = fontmetrics.Font(paths.font())
     measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
+    retried = retried_missing(paths, pack["tag"], pack["area"])
     results = {}
     for draft in drafts:
         results[draft.name] = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
@@ -1370,8 +1415,40 @@ def analyze(paths, pack, drafts=None, use_java=True):
         unanimous = (bool(candidates) and len(passing) == len(candidates) and len(values) == 1
                      and set(c.provider for c in candidates) >= set(translib.PROVIDERS))
         states[key] = KeyState(entry, candidates, passing, agreed, unanimous,
-                               sorted(set(c.provider for c in candidates)), stale)
+                               sorted(set(c.provider for c in candidates)), stale,
+                               excused_providers(entry, drafts, candidates, retried))
     return states
+
+
+def excused_providers(entry, drafts, candidates, retried):
+    """{provider: why} for each provider that no longer blocks this key (owner, 2026-11-05: the council
+    lifts quality; it does not chase a stubborn translator). A provider is excused when it has a draft
+    in the area, none of its drafts passes for this key, and every one of them has had both attempts:
+    its entry fails at volt:attempt="2", or its redraft asked for the key and got no usable text
+    (retried: retried_missing()). Before that, nothing is excused and the key waits as before."""
+    key, sha = entry["key"], entry["source_sha1"]
+    by_draft = dict((c.draft, c) for c in candidates)
+    out = collections.OrderedDict()
+    for provider in translib.PROVIDERS:
+        mine = [d for d in drafts if d.provider == provider]
+        if not mine:
+            continue
+        whys = []
+        for draft in mine:
+            c = by_draft.get(draft.name)
+            if c is not None and c.ok:
+                whys = None
+                break
+            if retried.get(draft.name, {}).get(key) == sha:
+                whys.append("%s: no usable text after its redraft" % draft.name)
+            elif c is not None and c.attempt >= MAX_ATTEMPTS:
+                whys.append("%s: still fails the checks after its redraft" % draft.name)
+            else:
+                whys = None  # a retry is left
+                break
+        if whys:
+            out[provider] = "; ".join(whys)
+    return out
 
 
 def representative(candidates):
@@ -1400,24 +1477,26 @@ def independent_backtranslator(model, model_reported, drafters):
 def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset()):
     """The safety keys to back-translate, as KeyStates whose agreed field is the text to back-translate.
 
-    Every unanimous safety key, with its agreed text (as before 2026-11-05). Then, for a safety key
-    whose drafts disagree, the text the judge picked or merged (judged: judged_safety_texts()), with
-    the state's agreed field replaced by that text; when backs (load_backtranslations()) is given, a
-    judged text that already has a current back-translation of exactly that text is left out, but only
+    Every unanimous safety key, with its agreed text. Then, for a safety key whose drafts disagree,
+    the text the judge picked or merged (judged: judged_safety_texts()), with the state's agreed field
+    replaced by that text. When backs (load_backtranslations()) is given, a key (unanimous or judged)
+    whose text already has a current back-translation of exactly that text is left out, but only
     while that back-translation's model is still independent of drafters (all_drafter_models()): one
-    whose model drafted in the area since is queued again, for a model that drafted nothing to replace.
+    whose model drafted in the area since, or one of older English or another text, is queued again,
+    for a model that drafted nothing to replace. Re-sending a back-translated key would only reword
+    it and leave the judge's confirm (which names the back text) stale.
     """
     out = collections.OrderedDict()
     for key, state in states.items():
         if not state.entry.get("safety"):
             continue
         if state.unanimous:
-            out[key] = state
-            continue
-        items = (judged or {}).get(key, (None, None))[0]
-        if items is None:
-            continue
-        target = state._replace(agreed=items)
+            target = state
+        else:
+            items = (judged or {}).get(key, (None, None))[0]
+            if items is None:
+                continue
+            target = state._replace(agreed=items)
         back = current_backtranslation(target, backs.get(key)) if backs is not None else None
         if back is not None and independent_backtranslator(back.get("model"), back.get("model_reported"),
                                                            drafters):
@@ -1428,9 +1507,17 @@ def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset(
 
 def judgeable_safety(state):
     """A safety key whose drafts disagree (or one failed), with drafts from every provider and at least
-    one passing: the judge may pick or merge its text (owner decision of 2026-11-05)."""
-    return bool(state.entry.get("safety") and state.candidates and not state.unanimous and state.passing
-                and set(state.providers) >= set(translib.PROVIDERS))
+    one passing: the judge may pick or merge its text (owner decision of 2026-11-05).
+
+    A provider whose draft of the key is still missing after both attempts is excused (excused_providers())
+    and no longer blocks it; the key is then judged from the other drafts, which must include at least two
+    passing drafts from different providers. A provider with no draft and a retry left still blocks."""
+    if not (state.entry.get("safety") and state.candidates and not state.unanimous and state.passing):
+        return False
+    absent = set(translib.PROVIDERS) - set(state.providers)
+    if not absent:
+        return True
+    return absent <= set(state.excused) and len(set(c.provider for c in state.passing)) >= 2
 
 
 def load_selections(paths, pack):
@@ -1764,7 +1851,7 @@ def judge_requests(paths, tag, area, use_java=True):
             reason, text = "safety-confirmation", state.agreed
         elif safety:
             if key not in judged:
-                continue  # a provider's draft is missing or none passes: English stays
+                continue  # a provider's draft is missing with a retry left, or too few pass: English stays
             items = judged[key][0]
             if items is None:
                 reason, confirming = "safety-disagreement", False
@@ -1786,6 +1873,8 @@ def judge_requests(paths, tag, area, use_java=True):
                 ("text", translib.text_value(entry["kind"], c.items)), ("ok", c.ok),
                 ("findings", [f for f in c.findings if f["severity"] != checklib.INFO])]) for c in state.candidates]),
             ("backtranslation", back),
+            ("excused", collections.OrderedDict(state.excused) if safety and not state.unanimous
+             else collections.OrderedDict()),
             ("verdicts", ["confirm", "fallback"] if confirming else ["pick", "merge", "fallback"]),
             ("confirm", list(SAFETY_CONFIRMATIONS) if confirming else [])]))
     return pack, rows
@@ -1817,9 +1906,10 @@ def write_judge_requests(paths, tag, area, use_java=True):
         "never/always are not inverted; \"unverified\" or \"unknown\" never reads as confirmed; numbers, units and "
         "the named action are unchanged; \"not affiliated with NAVEE\" is not softened; and the back-translation "
         "keeps the meaning. Otherwise answer fallback: the English stays, which is safe.",
-        "- safety-disagreement: a safety key whose drafters disagree. Pick the passing draft that keeps the "
-        "English meaning exactly, or merge a better text from the drafts, as for a disagreement; or answer "
-        "fallback. Your text is not used yet: a model that drafted nothing back-translates it, and the key comes "
+        "- safety-disagreement: a safety key whose drafters disagree, or one whose excused provider (the request's "
+        "excused field) still has no draft, or a failing one, after both attempts. Pick the passing draft that "
+        "keeps the English meaning exactly, or merge a better text from the drafts, as for a disagreement; or "
+        "answer fallback. Your text is not used yet: a model that drafted nothing back-translates it, and the key comes "
         "back to you as safety-judged-confirmation.",
         "- safety-judged-confirmation: the request's text is the text you picked or merged, and backtranslation "
         "is its back-translation. Confirm or fall back exactly as for safety-confirmation, copying the request's "
@@ -1871,7 +1961,9 @@ def decide(paths, tag, area, final=False, use_java=True):
     every drafter, from all three providers, wrote the same way, whose drafts all pass, whose
     back-translation by a model that drafted nothing was made from that text, and which the judge
     confirmed item by item, naming that text and that back-translation), safety-judged (a volt:safety
-    key whose drafts, from all three providers, disagree, where the judge picked a passing draft or
+    key whose drafts, from all three providers, disagree, or whose drafts come from the other two
+    providers, at least two of them passing, because the third is excused (excused_providers(): still
+    no draft after both attempts; named in the row's excused and reason), where the judge picked a passing draft or
     merged a text that passes the checks, a model that drafted nothing back-translated exactly that
     text, and the judge then confirmed that text and that back-translation item by item: the owner's
     decision of 2026-11-05), or fallback-english (the key is left out of values-<qual>). A ladder
@@ -1906,6 +1998,8 @@ def decide(paths, tag, area, final=False, use_java=True):
             ("outcome", outcome), ("text", translib.text_value(entry["kind"], items) if items else None),
             ("reason", reason), ("alternatives", _alternatives(entry, state) if state else []),
             ("stale_drafts", stale),
+            ("excused", collections.OrderedDict(state.excused) if state and entry.get("safety")
+             and not state.unanimous else collections.OrderedDict()),
             ("models", collections.OrderedDict([
                 ("drafters", drafter_ids), ("judge", judge.get("model") if judge else None),
                 ("backtranslator", back.get("model") if back else None)])),
@@ -1930,10 +2024,18 @@ def decide(paths, tag, area, final=False, use_java=True):
         if entry.get("safety"):
             if not state.unanimous:
                 missing = set(translib.PROVIDERS) - set(state.providers)
-                why = ("no draft from %s" % ", ".join(sorted(missing)) if missing else
+                blocking = missing - set(state.excused)
+                absent = ", ".join(sorted(missing))
+                why = ("no draft from %s" % ", ".join(sorted(blocking)) if blocking else
                        "no draft passed the checks" if not state.passing else
+                       "no draft from %s, and fewer than two passing drafts from different providers without it"
+                       % absent if missing and len(set(c.provider for c in state.passing)) < 2 else
+                       "no draft from %s after both attempts; judged from the other drafts" % absent if missing else
                        "a draft failed the checks" if len(state.passing) < len(state.candidates) else
                        "the drafters disagree")
+                if state.excused:
+                    why = "%s (excused after both attempts: %s)" % (why, "; ".join(
+                        "%s, %s" % (p, w) for p, w in state.excused.items()))
                 if key not in judged:
                     rows[key] = row(entry, state, "fallback-english", "safety: %s" % why)
                 else:

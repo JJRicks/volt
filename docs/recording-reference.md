@@ -88,7 +88,9 @@ for the evidence threshold, fallback and limitations.
    notification and a renewed bounded CPU wake lock. App preferences > Background
    recording explains Android notification and battery settings. Keep-screen-awake
    is optional. Real manufacturer battery policy remains a testing limit.
-4. Stop to save the session. New sessions preserve previous sessions.
+4. Stop to save the session. New sessions preserve previous sessions. With
+   [Auto-save rides](#auto-save-rides) on, the saved ride is then copied to your
+   folder; a failed copy never changes the saved ride.
 5. Open details for coverage, moving/stationary throughput, voltage/temperature
    ranges, speed, power, charts and export. Choose two rides to compare.
    Deleting a saved recording asks for confirmation.
@@ -131,8 +133,12 @@ color. Units change labels only. Segments are not joined across gaps.
 
 ## Ride exports and journal format
 
-CSV/JSON exports use Android's file picker; you choose the destination. Volt does
-not upload them. A cloud-backed document provider controls any subsequent sync.
+Ride details' **Export ride data** sheet saves one file through Android's file picker,
+where you choose the destination and name, or several at once into one folder you pick
+through Android's folder picker (no access is kept afterwards). Auto-save
+rides (below) writes to one folder you chose once through Android's folder picker.
+Volt does not upload them. A cloud-backed document provider controls any subsequent
+sync.
 See [Privacy](../PRIVACY.md#exports-are-different) before sharing an export.
 
 The long-form scooter sensor CSV includes schema version, UTC date,
@@ -141,16 +147,84 @@ command, sensor time/age, current-direction interpretation and recording events.
 `BEGIN` / `SENSOR` / `COMMIT` preserve sample boundaries; only committed frames
 are accepted during replay. `GAP` / `HEARTBEAT` / `RECOVER` describe missing
 exposure and process recovery without inventing samples. A `STOP` row's details
-column is empty when the rider stopped, or `AUTO_PARKED_DISCONNECT` when Volt
-ended the ride automatically; older readers ignore it. Analysis JSON contains
+column is empty when the rider stopped, `AUTO_PARKED_DISCONNECT` when Volt
+ended the ride after a parked loss, or `AUTO_QUIET_DISCONNECT;last=<monotonic ms
+of the last real reading, -1 none>;code=<native disconnect code, -1
+unknown>` (plus `;phone_bt=off` when the phone's Bluetooth was off) when Volt
+ended it after the scooter went quiet, or `automatic_no_motion` when the
+connected scooter showed no motion for 10 minutes; older readers ignore it, or
+read the last two as a rider's stop. The STOP row keeps the real time it was written; the
+shown end (`shownEndWallMs`, `shownElapsedMs` in analysis JSON, `stopReason`
+`automatic_quiet_disconnect`) is the last real reading, or the last motion for
+`automatic_no_motion`. Analysis JSON contains
 unit-explicit quantities, coverage and session metadata. `null` means
 insufficient evidence, not zero.
+
+| Export ride data checkbox | File | Type |
+|---|---|---|
+| Sensor CSV | `ride-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
+| Analysis JSON | `ride-<first 8 of id>-analysis.json` | `application/json` |
+| Route CSV | `ride-<first 8 of id>-route.csv` | `text/csv` |
+| GPX | `ride-<first 8 of id>.gpx` | `application/gpx+xml` |
+| Phone raw CSV | `ride-<first 8 of id>-phone.csv` | `text/csv`, the phone journal as recorded |
+| Motion raw CSV | `ride-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
+| Scooter and phone JSON | `ride-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
+
+Each file is byte for byte what the separate Export CSV, Export JSON and Export phone
+data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
+choice is `ride_export_choice`.
 
 Phone and motion journals are separate from the scooter journal. Combined JSON
 can include precise route coordinates; GPX contains time and position. Inline
 charts keep a lightweight selection of real samples, while fullscreen ride
 charts load the complete committed source. Viewport drawing retains peaks and
 gaps efficiently. Raw journals remain available for export.
+
+
+### Auto-save rides
+
+**More → Data & history → Ride auto-save** has two switches, **Auto-save Route CSV**
+and **Auto-save ride JSON** (both off by default; `ride_auto_export_route_csv` and `ride_auto_export_json`) copy each
+ride you end into one folder, and a **Folder** row:
+
+| Switch | File | Contents |
+|---|---|---|
+| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export ride data → Route CSV. Not written for a ride with no GPS fixes |
+| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export ride data → Scooter and phone JSON (formerly Export phone data → All (JSON)): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
+| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte Export ride data → Analysis JSON |
+
+- **Folder.** Turning the first switch on opens Android's folder picker. Volt keeps
+  a read and write grant for that folder only and asks for no storage permission.
+  The **Folder** row shows where files go (`Saving to Download/VoltRides`, or
+  **Saving to your chosen folder** when the provider names no path); tap it to
+  choose another folder without changing either switch. A new folder is used for
+  rides saved from then on; files already saved are not moved. Turning both
+  switches off gives the grant back and forgets any rides still waiting; the
+  **Folder** row then stays in place, greyed out, with **No folder chosen yet**.
+- **Which rides.** Every ride Volt saves when it ends: Stop in Volt or in the
+  notification, the automatic end for parked rides, and a ride revived after Volt
+  restarted and stopped later. Older rides aren't copied. Copies start once the
+  phone journal has finished saving.
+- **Names and replacing.** Names come from the ride id only, never its label. Each
+  file is written as a hidden `.<name>.partial` and then renamed. An identical file
+  already there is left alone, a different one is replaced, and Volt never creates
+  a `name (1)` copy.
+- **Failures.** A copy only reads the ride, so a failure never changes it. A ride
+  leaves the waiting list once every switched-on file is written. Volt tries again
+  after the next ride, when it starts and when a folder is chosen again; the
+  switches never turn themselves off. The **Folder** row shows **Couldn't save the last ride.
+  Choose the folder again.** (folder deleted or access lost) or **… Volt will try
+  again.** (a write failed). While Volt is in the background, one notification is
+  posted per kind of failure, until the kind changes (also while Volt is open) or a
+  copy succeeds. A failure that first happens while Volt is open shows only on the
+  row, so the same failure on a later ride in the background still posts one. A
+  success is silent.
+- **Running.** A copy keeps Volt's service running until it ends, separately from
+  the ten-second idle timeout, and backup and restore wait for it. None starts
+  during a backup or restore.
+- **Backup.** The two switches travel with App preferences; the folder, the
+  waiting list and the last failure stay on the phone. On a restored phone the
+  **Folder** row shows **Choose a folder to start saving**, and rides wait until a folder is chosen.
 
 ## Background connections and foldable phones
 
@@ -177,12 +251,24 @@ again.
 Ride and charge recording are independent of this idle option. Their service
 and ongoing Stop notification remain while hidden, with a renewed CPU wake lock.
 Ride recording can reconnect, recording Bluetooth loss as gaps. A forgotten ride
-ends itself: when fresh scooter reports showed it stopped for a few seconds and
-Bluetooth then stays lost for 10 seconds, Volt saves the ride through the normal
-Stop path and posts "Ride saved automatically". Losses while moving, without
-fresh speed, after a process restart or after an explicit Disconnect keep
-recording as before. App preferences > End parked rides turns this off. Exact
-rules: [ride auto-end](validation/ride-auto-stop.md). An explicitly
+ends itself, through the normal Stop path, with a "Ride saved automatically"
+notice that names the time of the last reading (the last movement for the
+no-motion rule):
+- when fresh scooter reports showed it stopped for a few seconds and Bluetooth
+  then stays lost for 10 seconds;
+- when the scooter goes quiet (switched off or out of range) and stays
+  unreachable for 1 minute after its last frame at walking pace or a stop
+  (6.4 km/h or less), or 5 minutes after it otherwise (riding speed, no fresh
+  speed, or after a process restart);
+- when the phone's Bluetooth is switched off and stays off for 5 minutes;
+- when the scooter stays connected but shows no motion for 10 minutes: no
+  speed above 0, no driving, no odometer or trip going up. Missing speed
+  reports count as no motion. A disconnection hands over to the rules above.
+
+Any authenticated reconnect inside the wait keeps the same ride. An explicit
+Disconnect, revoked permissions or a profile change keep recording as before.
+App preferences > End rides automatically turns this off. Exact rules:
+[ride auto-end](validation/ride-auto-stop.md). An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from

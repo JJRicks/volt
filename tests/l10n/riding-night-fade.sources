@@ -1,0 +1,5 @@
+# Night vision's fade (owner, Nov 6): NightFadeTest checks the blend of the colour matrix and the window
+# level, their end points, that a fade never brightens the screen past either end, and the instant
+# switch with the system's animations off. NightVision and BrightnessCurve come from riding-night.sources.
+src/com/jjricks/volt/NightFade.java
+tests/l10n/NightFadeTest.java

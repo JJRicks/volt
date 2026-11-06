@@ -36,9 +36,9 @@ public final class RidesAnalysisValidation extends Instrumentation {
             if (args.getString("start_only", "false").equals("true")) { result.putString("result", "PASS"); return; }
             main(() -> invoke(screen, "phoneOptions", new Class[0])); settle();
             AlertDialog optionsDialog = (AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1);
-            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) != null, "Phone placement uses sliding selector"); text(options, "Mounted").performClick(); check(activity.service().settings.getString("phone_placement", "").equals("mounted"), "Placement saves immediately"); text(options, "Pocket").performClick(); optionsDialog.dismiss(); });
+            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors sheet has no placement choice"); optionsDialog.dismiss(); });
             settle(); check(!optionsDialog.isShowing(), "Phone options sheet closed before reading the ride");
-            if (context.getResources().getConfiguration().screenWidthDp < 650) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
+            if (!Boolean.TRUE.equals(field(screen, "wide"))) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
             settle();
             check(text(screen.view(), "Energy direction") == null, "Redundant current-direction selection removed");
             View root = root(); check(find(root, RideChartView.class) != null, "Unified chart exists");
@@ -129,7 +129,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         List<String> created = new ArrayList<>(); ScooterProfiles.Profile profile = service.profiles.active();
         String serial = profile.serial, pid = profile.advertisedPid;
         try {
-            main(() -> { screen.beginRecording(); check(!service.isRecording(), "Home record still requires a ready connection"); });
+            main(() -> { homeStart(); check(!service.isRecording(), "Home record still requires a ready connection"); });
             main(() -> {
                 syntheticReady(profile); profile.serial = "S2538SYNTHETIC"; profile.advertisedPid = "2538";
                 service.ble.telemetry.accept(0x70, new byte[]{0, 0, 3}, SystemClock.elapsedRealtime());
@@ -140,7 +140,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 check(started.label.endsWith(" - SPORT") && !started.label.contains("Old manually"), "Actual journal uses fresh model-aware mode instead of the previous manual label");
                 check(started.label.equals(DisplayTime.rideName(activity, settings, started.startWallMs, "SPORT")), "Actual journal gets its date and time at capture start");
                 check(((List<?>)field(screen, "dialogs")).isEmpty() && find(screen.view(), EditText.class) == null, "Record opens no pre-start naming dialog or text editor");
-                screen.beginRecording(); check(started.id.equals(service.rides.activeId()), "Repeated Home Record leaves the existing recording intact");
+                homeStart(); check(started.id.equals(service.rides.activeId()), "Repeated Home Record leaves the existing recording intact");
             }); settle(); awaitPhoneSensorsStarted(); screenshot("immediate-ride-recording");
             main(() -> service.stopRide()); awaitPhoneSave();
             final String first = created.get(0);
@@ -155,10 +155,12 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 service.ble.telemetry.accept(0x70, new byte[]{0, 0, 2}, SystemClock.elapsedRealtime());
                 invoke(activity, "select", new Class[]{String.class}, "home");
                 DashboardScreen home = (DashboardScreen)field(activity, "screen");
-                ((DashboardScreen.Actions)field(home, "actions")).startRide(); screen = (RidesScreen)field(activity, "screen");
+                ((DashboardScreen.Actions)field(home, "actions")).startRide();
                 check(service.isRecording() && service.rides.activeSummary().label.endsWith(" - ECO"), "Actual dashboard callback starts immediately with the newly reported mode");
+                check(field(activity, "screen") == home, "Home's start stays on Home, with no Rides-tab hop (owner Q1 B)");
                 created.add(service.rides.activeId()); check(((List<?>)field(screen, "dialogs")).isEmpty(), "Dashboard start has no extra naming step");
                 service.stopRide();
+                invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen)field(activity, "screen");
             }); awaitPhoneSave();
             main(() -> {
                 setField(service.ble, "statusMs", SystemClock.elapsedRealtime());
@@ -179,9 +181,9 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 check(((String)invoke(screen, "defaultRideName", new Class[0])).split(" - ", -1).length == 2, "Another connected profile cannot provide the new ride's mode");
                 setField(service.ble, "profile", profile); service.ble.telemetry.clear();
                 check(((String)invoke(screen, "defaultRideName", new Class[0])).split(" - ", -1).length == 2, "Missing mode is omitted without a placeholder or trailing separator");
-                setField(service, "phoneSavingCount", 1); screen.beginRecording(); check(!service.isRecording(), "Pending sensor save still blocks a new ride"); setField(service, "phoneSavingCount", 0);
+                setField(service, "phoneSavingCount", 1); homeStart(); check(!service.isRecording(), "Pending sensor save still blocks a new ride"); setField(service, "phoneSavingCount", 0);
                 setField(service.ble, "gatt", null); service.ble.disconnect();
-                settings.edit().putBoolean("developer_options", true).commit(); check(service.setSimulation(true), "Developer simulation fixture enabled"); screen.beginRecording(); check(!service.isRecording() && service.simulating(), "Home cannot start a simulated ride or silently exit simulation");
+                settings.edit().putBoolean("developer_options", true).commit(); check(service.setSimulation(true), "Developer simulation fixture enabled"); homeStart(); check(!service.isRecording() && service.simulating(), "Home cannot start a simulated ride or silently exit simulation");
                 service.setSimulation(false); screen = (RidesScreen)field(activity, "screen");
             });
         } finally {
@@ -194,12 +196,20 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen)field(activity, "screen");
                 // Expanded layouts use their real detail pane; opening a compact-only dialog here
                 // left an extra window under the next Phone sensors sheet.
-                if (activity.getResources().getConfiguration().screenWidthDp >= 650) invoke(screen, "selectRide", new Class[]{String.class}, id);
+                if (Boolean.TRUE.equals(field(screen, "wide"))) invoke(screen, "selectRide", new Class[]{String.class}, id);
             }); settle();
         }
         check(!service.ble.connected() && !service.isRecording(), "Immediate-start fixture leaves no connection or capture running");
     }
     /** Ready-state fixture only: Bluetooth stays disabled, with no writer, poll or remote GATT service. */
+    /** Home's start (RideRecordingApp.of(host).start(), package-private): the shared control, wherever the app is. */
+    void homeStart() {
+        try {
+            Method of = Class.forName("com.jjricks.volt.RideRecordingApp").getDeclaredMethod("of", ScreenHost.class); of.setAccessible(true);
+            Object control = of.invoke(null, activity);
+            Method start = control.getClass().getDeclaredMethod("start"); start.setAccessible(true); start.invoke(control);
+        } catch (Exception e) { throw new IllegalStateException("Home start unavailable", e); }
+    }
     void syntheticReady(ScooterProfiles.Profile profile) {
         try {
             Class<?> unsafe = Class.forName("sun.misc.Unsafe"); Field singleton = unsafe.getDeclaredField("theUnsafe"); singleton.setAccessible(true);
@@ -399,7 +409,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 5000000;
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(),"rides"));
         String longId = synthetic.start("fixture","Long full-detail fixture",wall,1000);
-        service.phoneRides.start(longId,wall,1000,"pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(longId,wall,1000); StringBuilder phone = new StringBuilder();
         for(int i=0;i<4096;i++) {
             long mono=1000+i*1000L; Map<String,RideStore.Sample> row=new LinkedHashMap<>();
             row.put("voltage_v",new RideStore.Sample(50d,"","V",0x72,mono)); row.put("current_a",new RideStore.Sample((i==1235?3456d:100d)/50,"","A",0x72,mono));
@@ -470,7 +480,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 3000000;
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(), "rides"));
         String speedId = synthetic.start("fixture", "Stops and gap · synthetic", wall, 1000);
-        service.phoneRides.start(speedId, wall, 1000, "pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(speedId, wall, 1000); StringBuilder phone = new StringBuilder();
         double lat = 43.82, lon = -111.78;
         for (int i = 0; i < 300; i++) {
             long mono = 1000 + i * 1000L;
@@ -613,10 +623,15 @@ public final class RidesAnalysisValidation extends Instrumentation {
         main(()->((AlertDialog)((List<?>)field(screen,"dialogs")).get(0)).dismiss());
         ScooterService service=activity.service();String legacy=service.rides.start("fixture","Scooter only",System.currentTimeMillis(),900000);service.rides.stop(System.currentTimeMillis()+1000,901000);
         for(int attempt=0;attempt<2;attempt++){
-            if(attempt==1){service.phoneRides.start(legacy,System.currentTimeMillis(),900000,"pocket");service.phoneRides.stop(legacy,System.currentTimeMillis()+1000,901000);}
+            if(attempt==1){service.phoneRides.start(legacy,System.currentTimeMillis(),900000);service.phoneRides.stop(legacy,System.currentTimeMillis()+1000,901000);}
             main(()->invoke(screen,"showDetails",new Class[]{String.class},legacy));settle();
-            check(text(root(),"Phone & route")==null&&text(root(),"Export phone data")==null,"Empty phone data has no placeholder stats or export block");
-            main(()->((AlertDialog)((List<?>)field(screen,"dialogs")).get(0)).dismiss());
+            check(text(root(),"Phone & route")==null,"Empty phone data has no placeholder stats");
+            // The phone export block is now the Export ride data sheet's Phone recording group (#253): hidden for this ride.
+            View export=byDescription(root(),"Export ride data");check(export!=null,"Ride details keep the Export ride data button");
+            main(export::performClick);
+            long shown=SystemClock.uptimeMillis()+5000;while(text(root(),"Sensor CSV")==null&&SystemClock.uptimeMillis()<shown)settle();
+            check(text(root(),"Sensor CSV")!=null&&text(root(),"Route CSV")==null&&text(root(),"Motion raw CSV")==null&&text(root(),"Scooter and phone JSON")==null,"Empty phone data has no phone export rows");
+            main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }
     }
     void verifyGestures(RideChartView chart) {
@@ -830,7 +845,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         // a service tick can add real-time disconnect heartbeats to the synthetic timeline.
         RideStore synthetic = new RideStore(new File(getTargetContext().getFilesDir(), "rides"));
         id = synthetic.start("fixture", "Campus hill · synthetic", wall, 1000); synthetic.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
-        service.phoneRides.start(id, wall, 1000, "pocket"); StringBuilder phone = new StringBuilder();
+        service.phoneRides.start(id, wall, 1000); StringBuilder phone = new StringBuilder();
         for (int i = 0; i < 240; i++) {
             long mono = 1000 + i * 1000; double speed = 20 + 4 * Math.sin(i / 15.0), watts = 600 + 500 * Math.sin(i / 20.0);
             Map<String,RideStore.Sample> row = new LinkedHashMap<>(); row.put("voltage_v", new RideStore.Sample(50d, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(watts / 50, "", "A", 0x72, mono));

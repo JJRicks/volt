@@ -85,6 +85,16 @@ public final class FmtLegacyTest {
             decimalParity(half, 2, where);
             decimalParity(Math.round(value * 10) / 10d + .05, 1, where);
         }
+        for (long value : new long[]{0, 1, -1, 7, 999, 1000, -1000, 1234567, -1234567, Integer.MAX_VALUE, Integer.MIN_VALUE,
+                (1L << 53) + 1, Long.MAX_VALUE, Long.MIN_VALUE}) {
+            check(Fmt.groupedInteger(Locale.US, value).equals(String.format(Locale.US, "%,d", value)), where + ": " + value + " grouped as %,d");
+            check(Fmt.groupedInteger(Locale.getDefault(), value).equals(String.format(Locale.getDefault(), "%,d", value)),
+                    where + ": " + value + " grouped as %,d in the default locale");
+        }
+        // A %,d plural's quantity: the counts a plural row samples, and the first ones that group.
+        for (long value : new long[]{2, 11, 21, 100, 1234, 9999, 10000, 21000, 100000, 1000000, 1234567890L}) {
+            check(Fmt.groupedInteger(Locale.US, value).equals(String.format(Locale.US, "%,d", value)), where + ": count " + value + " grouped as %,d");
+        }
         for (long value : new long[]{0, 1, -1, 7, 1234567, -1234567, Integer.MAX_VALUE, Integer.MIN_VALUE, Long.MAX_VALUE, Long.MIN_VALUE}) {
             check(Fmt.integer(value).equals("" + value), where + ": " + value + " as concatenation writes it");
             check(Fmt.integerNumber(value).toString().equals("" + value), where + ": " + value + " as structured text");

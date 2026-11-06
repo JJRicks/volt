@@ -1,0 +1,4 @@
+# Riding mode's night vision, the UI half (ride-display plan, PR 3). RidingNightTest source-checks the wiring:
+# the moon button and colour layer in RidingScreen, the night brightness range in RidingDisplay, the
+# Off · On · Scheduled settings and consent sheet in MoreScreen, the backup entries and the string keys.
+tests/l10n/RidingNightTest.java

@@ -4,6 +4,8 @@ import java.io.File;
 /** Shared native screen contract; connection ownership remains in the service. */
 public interface ScreenHost {
     Activity activity(); Ui ui(); ScooterService service();
+    /** The activity is resumed right now. False by default, so a host that doesn't say keeps riding mode's display paused. */
+    default boolean resumed() { return false; }
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }
@@ -26,8 +28,12 @@ public interface ScreenHost {
     default void importDashboardLayouts() { }
     /** Opens the owner's email app with a draft to Volt's report address; false when no app can. */
     default boolean emailVolt(String subject, String body) { return false; }
+    /** Opens the owner's email app with a plain draft to Volt's report address, with no sheet and nothing attached; false when no app can. */
+    default boolean emailDraft(String subject, String body) { return false; }
     /** Asks which scooter this is (and optionally its drive modes), then drafts the finished check's report to Volt's report address. */
     default void emailReport(CompatibilityReport report) { }
     /** Asks which listed NAVEE model this scooter is and keeps the answer on its profile. */
     default void chooseScooterModel(String profileId) { }
+    /** Opens riding mode (Home's RIDE button). It only reads; it never records or sends a command. */
+    default void openRiding() { }
 }
