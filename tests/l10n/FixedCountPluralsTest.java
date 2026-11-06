@@ -7,7 +7,9 @@ import java.util.Locale;
  * number (Home, the service and Rides). English must print exactly what it printed before:
  * each method below is the head expression of its consumer, compared with the English the old
  * strings built (the characterization copies where one exists, the old concatenation otherwise) at
- * every quantity where an English or Slavic plural rule changes form.
+ * every quantity where an English or Slavic plural rule changes form. The owner-approved singulars
+ * (l10n/english-changes.tsv) are the one difference: "1 local sample", "1 recording stored" and
+ * "1 percentage point".
  */
 public final class FixedCountPluralsTest {
     private static int checks;
@@ -41,6 +43,20 @@ public final class FixedCountPluralsTest {
         return (batteryGain ? T.ridesBatteryGainDescriptionCount(Math.round(Math.abs(batteryDropPercent)), Math.round(Math.abs(batteryDropPercent)))
                 : T.ridesBatteryDropDescriptionCount(Math.round(Math.abs(batteryDropPercent)), Math.round(Math.abs(batteryDropPercent))));
     }
+
+    /** The base's English with the "one" items the catalog now has at a count of 1 (l10n/english-changes.tsv). */
+    static String singular(String base, long count) {
+        if (count != 1) return base;
+        for (String[] one : ONE)
+            if (base.endsWith(one[0])) return base.substring(0, base.length() - one[0].length()) + one[1];
+        return base;
+    }
+
+    private static final String[][] ONE = {
+            {" 1 local samples", " 1 local sample"},
+            {" 1 recordings stored", " 1 recording stored"},
+            {" 1 percentage points", " 1 percentage point"},
+    };
 
     // DashboardScreen's charging hero stage description, at head.
     static String hero(double level, boolean hasLimit, double limit) {
@@ -97,20 +113,21 @@ public final class FixedCountPluralsTest {
     }
 
     private static void run() {
+        singulars();
         for (long n : COUNTS) {
             int i = (int) n;
             for (boolean stock : new boolean[]{true, false})
-                same(ServiceEnglishTest.recordingStatus(stock, false, false, i), recordingStatus(stock, i), "recording " + n);
+                same(singular(ServiceEnglishTest.recordingStatus(stock, false, false, i), i), recordingStatus(stock, i), "recording " + n);
             for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, ChargeSessionStore.Charger.HIGH_SPEED, ChargeSessionStore.Charger.STOCK})
                 for (int qualified : new int[]{0, 1, 2, 5, 21}) {
-                    same(ServiceEnglishTest.learningSummary(charger, qualified, false, i), learningSummary(charger, qualified, i), "learning " + qualified + "/" + n);
+                    same(singular(ServiceEnglishTest.learningSummary(charger, qualified, false, i), i), learningSummary(charger, qualified, i), "learning " + qualified + "/" + n);
                     same(ServiceEnglishTest.learningSummary(charger, qualified, true, i), learningSummary(charger, qualified, null), "learning no snapshot " + qualified);
                 }
             for (int sign : new int[]{-1, 1})
                 same(ServiceEnglishTest.testText(ChargeScheduleTest.Outcome.PASSED, sign * i, true, null, null), passed(sign * i), "passed " + sign * n);
             for (boolean gain : new boolean[]{true, false})
                 for (double delta : new double[]{n, n + 0.4, n - 0.6, -n})
-                    same(RidesEnglishTest.battery(gain, delta), battery(gain, delta), "battery " + delta);
+                    same(singular(RidesEnglishTest.battery(gain, delta), Math.round(Math.abs(delta))), battery(gain, delta), "battery " + delta);
         }
         for (int whole = 0; whole <= 100; whole++)
             for (double level : new double[]{whole, whole + 0.4, whole - 0.5}) {
@@ -135,6 +152,20 @@ public final class FixedCountPluralsTest {
                         for (boolean live : new boolean[]{false, true})
                             same(oldCell(level, detail, charging, live), cell(level, detail, charging, live), "old cell " + level);
             }
+    }
+
+    // The owner-approved singulars at 1, spelled out, and the plural at 2 next to each.
+    private static void singulars() {
+        same("Stock charger · 1 local sample", recordingStatus(true, 1), "recording singular");
+        same("High-speed charger · 2 local samples", recordingStatus(false, 2), "recording plural");
+        same("Not applied until the charger is known · 1 recording stored", learningSummary(null, 0, 1), "unknown singular");
+        same("1 qualified stock charge · 1 recording stored", learningSummary(ChargeSessionStore.Charger.STOCK, 1, 1), "stored singular");
+        same("2 qualified high-speed charges · 2 recordings stored", learningSummary(ChargeSessionStore.Charger.HIGH_SPEED, 2, 2), "stored plural");
+        same("Battery gain, 1 percentage point", battery(true, 1), "gain singular");
+        same("Battery drop, 1 percentage point", battery(false, 0.6), "drop singular");
+        same("Battery drop, 2 percentage points", battery(false, 2), "drop plural");
+        same("1 fix", T.ridesGpsFixes(1, "1"), "GPS fixes singular");
+        same("2 fixes", T.ridesGpsFixes(2, "2"), "GPS fixes plural");
     }
 
     private static void same(String expected, String actual, String what) {

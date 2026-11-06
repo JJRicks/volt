@@ -2,8 +2,8 @@
 <!--
   The Rides screen (batch B15): the live recording card, saved ride history, ride details, the
   phone sensors sheet, the phone track and route map panel, exports, delete and the two-ride
-  comparison. The English must stay exactly what the source said before the batch (G1, G2),
-  including its known bugs ("1 fixes", "1 percentage points").
+  comparison. The English must stay exactly what the source said before the batch (G1, G2), except
+  the owner-approved changes in l10n/english-changes.tsv (such as "1 fix" and "1 percentage point").
 
   Unit symbols (km, mi, km/h, mph, Wh, W, V, m/s², g, ft, m) stay the international symbols in
   every language; the words around them are translated. GPS, CSV, JSON, GPX and Bluetooth are
@@ -202,9 +202,9 @@
     <string name="rides_tile_gps_distance" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS distance</string>
     <!-- Caption under Phone & route when the ride's phone track kept no GPS fix. -->
     <string name="rides_gps_no_fixes" volt:screen="Rides, phone and route" volt:purpose="caption" volt:dnt="GPS">No GPS fixes</string>
-    <!-- Caption under Phone & route: how many GPS fixes the ride's phone track kept. %1$s is the count, already grouped ("1,234"), and picks the plural form. English still says "1 fixes"; a later English fix will change that one item. -->
-    <plurals name="rides_gps_fixes" volt:screen="Rides, phone and route" volt:purpose="caption" volt:english-fix="pending">
-        <item quantity="one">%1$s fixes</item>
+    <!-- Caption under Phone & route: how many GPS fixes the ride's phone track kept. %1$s is the count, already grouped ("1,234"), and picks the plural form. -->
+    <plurals name="rides_gps_fixes" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">%1$s fix</item>
         <item quantity="other">%1$s fixes</item>
     </plurals>
     <!-- Glued straight onto the end of rides_gps_fixes when some readings were dropped ("1,234 fixes · 12 dropped"), so it starts with its own space and separator. %1$s is how many GPS fixes and elevation readings were dropped, already grouped, and picks the plural form. -->
@@ -336,16 +336,16 @@
     <string name="rides_compare_chosen" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$d of 2 rides chosen</string>
     <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_gain_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery gain, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
-    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">Battery gain, %1$d percentage points</item>
+    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. -->
+    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description">
+        <item quantity="one">Battery gain, %1$d percentage point</item>
         <item quantity="other">Battery gain, %1$d percentage points</item>
     </plurals>
     <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_drop_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery drop, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
-    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">Battery drop, %1$d percentage points</item>
+    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. -->
+    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description">
+        <item quantity="one">Battery drop, %1$d percentage point</item>
         <item quantity="other">Battery drop, %1$d percentage points</item>
     </plurals>
     <!-- Under the direction bar: the current direction was confirmed for %1$s ("12m 05s"). -->
