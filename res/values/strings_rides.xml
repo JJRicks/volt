@@ -189,11 +189,12 @@
     <!-- Elevation comes from GPS altitude (the phone has no barometer). -->
     <string name="rides_barometer_gps" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="GPS">GPS altitude</string>
     <string name="rides_motion_sensors" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Motion sensors</string>
-    <string name="rides_placement" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Phone placement</string>
-    <!-- Phone placement: mounted on the handlebar. -->
-    <string name="rides_placement_mounted" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Mounted</string>
-    <!-- Phone placement: in a pocket or bag. -->
-    <string name="rides_placement_pocket" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
+    <!-- No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Phone placement</string>
+    <!-- Phone placement: mounted on the handlebar. No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement_mounted" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Mounted</string>
+    <!-- Phone placement: in a pocket or bag. No screen shows this since the phone placement choice was removed, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_placement_pocket" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
     <!-- A small all-caps badge on experimental settings. Keep it very short. -->
     <string name="rides_lab_badge" volt:screen="Rides, phone sensors sheet" volt:purpose="label">LAB</string>
     <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Experimental</string>
@@ -363,11 +364,16 @@
     <!-- Spoken for an experimental switch: %1$s is the switch's title (rides_motion_sensors). -->
     <string name="rides_switch_experimental" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">%1$s, experimental</string>
     <!-- Motion note: the phone was mounted; %1$s motion samples (formatted, "1,200"). English says
-         "samples" for 1. -->
-    <string name="rides_motion_note_mounted" volt:screen="Rides, phone and route" volt:purpose="caption">Mounted · %1$s samples</string>
+         "samples" for 1. No screen shows this since rides_motion_samples replaced it, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_motion_note_mounted" translatable="false" volt:screen="Rides, phone and route" volt:purpose="caption">Mounted · %1$s samples</string>
     <!-- Motion note: the phone was in a pocket; %1$s motion samples (formatted). English says
-         "samples" for 1. -->
-    <string name="rides_motion_note_pocket" volt:screen="Rides, phone and route" volt:purpose="caption">Pocket · %1$s samples</string>
+         "samples" for 1. No screen shows this since rides_motion_samples replaced it, so it is not translated. Only B15's ledger and its tests still read it (l10n/pending/placement-followups.md). -->
+    <string name="rides_motion_note_pocket" translatable="false" volt:screen="Rides, phone and route" volt:purpose="caption">Pocket · %1$s samples</string>
+    <!-- Caption under Phone & route's motion values: how many motion sensor samples the phone recorded. %1$s is the count, already grouped ("1,200"), and picks the plural form. -->
+    <plurals name="rides_motion_samples" volt:screen="Rides, phone and route" volt:purpose="caption">
+        <item quantity="one">%1$s motion sample</item>
+        <item quantity="other">%1$s motion samples</item>
+    </plurals>
     <!-- Spoken route color legend for power: %1$s is the top of the scale ("1.2 kW"). -->
     <string name="rides_legend_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power magnitude · blue 0 → yellow %1$s · gray: missing</string>
     <!-- Spoken route color legend for elevation: %1$s the lowest and %2$s the highest height ("120 ft"). -->

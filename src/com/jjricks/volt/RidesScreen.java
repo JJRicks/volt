@@ -1436,8 +1436,7 @@ public final class RidesScreen implements AppScreen {
         valueRow(movement, T.ridesScooterSpeedChange(), acceleration(track.minScooterAccelerationMps2) + " / " + acceleration(track.maxScooterAccelerationMps2));
         valueRow(movement, T.ridesLinearPeak(), acceleration(track.maxLinearAccelerationMps2));
         bottom.addView(movement);
-        // Placement is no longer told apart here. A catalog change replaces this caption with one that names no placement.
-        note(bottom, T.ridesMotionNotePocket(Fmt.groupedInteger(Locale.US, track.motionSampleCount)));
+        note(bottom, T.ridesMotionSamples(track.motionSampleCount, Fmt.groupedInteger(Locale.US, track.motionSampleCount)));
         TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, "download");
         bottom.addView(export);
         return ride;
