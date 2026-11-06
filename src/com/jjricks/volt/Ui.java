@@ -156,14 +156,14 @@ public final class Ui {
         if (ladder == null) ladder = ladder(view, false);
         ladder.show(rungs);
     }
-    private final java.util.WeakHashMap<TextView, StatusRungs> ladders = new java.util.WeakHashMap<>();
+    /** Each line's ladder; the view holds it as its layout listener, the cache holds neither strongly. */
+    private final LadderCache<TextView, StatusRungs> ladders = new LadderCache<>();
     private StatusRungs ladder(TextView view, boolean iconBeside) {
-        StatusRungs ladder = ladders.get(view);
-        if (ladder == null) {
-            ladder = new StatusRungs(view);
-            ladders.put(view, ladder);
-            view.addOnLayoutChangeListener(ladder);
-        }
+        StatusRungs ladder = ladders.of(view, line -> {
+            StatusRungs made = new StatusRungs(line);
+            line.addOnLayoutChangeListener(made);
+            return made;
+        });
         ladder.iconBeside = iconBeside;
         return ladder;
     }

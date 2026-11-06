@@ -13,6 +13,10 @@ import java.io.File;
  *     connection lines' shorter forms.
  *   - The five sites in source: no auto-size below Ui.READABLE_FLOOR_SP, no 10 sp Quick access fallback, a
  *     rail caption of up to two whole-word lines, a one-line reading caption that ends at an icon, and a lock switch with no blank word.
+ *   - LadderCache, Ui's view-to-ladder cache: a dropped view is collected although its ladder refers back to it
+ *     and the view holds the ladder (the real shape: StatusRungs.view and the view's layout listener), while a
+ *     view still in use keeps the one ladder made for it. A control shows the check catches the old shape, a
+ *     WeakHashMap holding the ladder itself.
  * Runs from the repository root (it reads sources).
  */
 public final class NarrowLabelLadderTest {
@@ -35,7 +39,8 @@ public final class NarrowLabelLadderTest {
             T.install(null);
         }
         sources();
-        System.out.println("NarrowLabelLadderTest: " + checks + " checks passed (rung choice, status ladders, English rungs, sites)");
+        collection();
+        System.out.println("NarrowLabelLadderTest: " + checks + " checks passed (rung choice, status ladders, English rungs, sites, ladder cache collection)");
     }
 
     private static void first() {
@@ -98,6 +103,9 @@ public final class NarrowLabelLadderTest {
         check(fit.contains("int floor = Math.round(sp(READABLE_FLOOR_SP));") && !fit.contains("sp(7)"),
                 "fitStatusLine auto-sizes no lower than the readable floor");
         check(ui.contains("public static final float READABLE_FLOOR_SP = 12;"), "the readable floor is 12 sp");
+        check(ui.contains("private final LadderCache<TextView, StatusRungs> ladders = new LadderCache<>();")
+                        && !ui.contains("WeakHashMap<TextView, StatusRungs>"),
+                "Ui keeps its ladders in LadderCache, never a map holding the ladder (and so its view) strongly");
         check(body(read("StatusRungs.java"), "private void fit()").contains("TileRung.first(widths, room)"),
                 "status lines pick with TileRung.first");
         String nav = body(ui, "public View nav(String label, String shortLabel,");
@@ -120,6 +128,69 @@ public final class NarrowLabelLadderTest {
         check(main.contains("if(arrow&&lockRung(rungs,lockRoom(true,w,geometry))<0)arrow=false;"),
                 "the switch's decorative arrow goes before its word does");
         check(main.contains("else drawLockWord(canvas,rungs,"), "the switch never draws an empty word");
+    }
+
+    /** A view: it holds its listeners, as an Android view holds its layout listeners. */
+    private static final class FakeView { final java.util.List<Object> listeners = new java.util.ArrayList<>(); }
+    /** A ladder: it refers back to its view, as StatusRungs.view does. */
+    private static final class FakeLadder { final FakeView view; FakeLadder(FakeView view) { this.view = view; } }
+
+    private static final int VIEWS = 100, KEPT = 10;
+
+    private static void collection() {
+        LadderCache<FakeView, FakeLadder> cache = new LadderCache<>();
+        FakeView[] kept = new FakeView[KEPT];
+        FakeLadder[] keptLadders = new FakeLadder[KEPT];
+        java.util.List<java.lang.ref.WeakReference<FakeView>> dropped = register(cache, kept, keptLadders);
+        int alive = collect(dropped, 200);
+        check(alive == 0, "LadderCache lets dropped views go: " + alive + " of " + dropped.size() + " still alive");
+        for (int i = 0; i < KEPT; i++) {
+            check(cache.get(kept[i]) == keptLadders[i], "a view in use keeps its ladder");
+            check(cache.of(kept[i], view -> { throw new AssertionError("a second ladder for one view"); }) == keptLadders[i],
+                    "a view in use is not given a second ladder");
+        }
+        // Control: the cache before the fix (a WeakHashMap holding the ladder itself) keeps every view alive, so
+        // the check above would catch it.
+        java.util.WeakHashMap<FakeView, FakeLadder> strong = new java.util.WeakHashMap<>();
+        java.util.List<java.lang.ref.WeakReference<FakeView>> held = registerStrong(strong);
+        check(collect(held, 5) == VIEWS, "control: a WeakHashMap holding the ladder itself keeps its views alive");
+        check(strong.size() == VIEWS, "control: its entries stay");
+    }
+
+    private static java.util.List<java.lang.ref.WeakReference<FakeView>> register(LadderCache<FakeView, FakeLadder> cache,
+            FakeView[] kept, FakeLadder[] keptLadders) {
+        java.util.List<java.lang.ref.WeakReference<FakeView>> dropped = new java.util.ArrayList<>();
+        for (int i = 0; i < VIEWS + KEPT; i++) {
+            FakeView view = new FakeView();
+            FakeLadder ladder = cache.of(view, line -> { FakeLadder made = new FakeLadder(line); line.listeners.add(made); return made; });
+            if (i < KEPT) { kept[i] = view; keptLadders[i] = ladder; }
+            else dropped.add(new java.lang.ref.WeakReference<>(view));
+        }
+        return dropped;
+    }
+
+    private static java.util.List<java.lang.ref.WeakReference<FakeView>> registerStrong(java.util.WeakHashMap<FakeView, FakeLadder> map) {
+        java.util.List<java.lang.ref.WeakReference<FakeView>> held = new java.util.ArrayList<>();
+        for (int i = 0; i < VIEWS; i++) {
+            FakeView view = new FakeView();
+            FakeLadder ladder = new FakeLadder(view);
+            view.listeners.add(ladder);
+            map.put(view, ladder);
+            held.add(new java.lang.ref.WeakReference<>(view));
+        }
+        return held;
+    }
+
+    /** Asks for collection at most rounds times (20 ms apart) and returns how many referents are still alive. */
+    private static int collect(java.util.List<java.lang.ref.WeakReference<FakeView>> refs, int rounds) {
+        int alive = refs.size();
+        for (int round = 0; round < rounds && alive > 0; round++) {
+            System.gc();
+            try { Thread.sleep(20); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+            alive = 0;
+            for (java.lang.ref.WeakReference<FakeView> ref : refs) if (ref.get() != null) alive++;
+        }
+        return alive;
     }
 
     private static String read(String name) {

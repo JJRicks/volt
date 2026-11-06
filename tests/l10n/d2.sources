@@ -4,3 +4,4 @@
 tests/l10n/NarrowLabelLadderTest.java
 src/com/jjricks/volt/TileRung.java
 src/com/jjricks/volt/DashboardWords.java
+src/com/jjricks/volt/LadderCache.java
