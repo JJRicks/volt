@@ -83,6 +83,8 @@ public final class ScooterService extends Service {
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
     /** Opt-in copies of finished rides to the rider's folder (RideAutoExport); null when the service never started. */
     private RideAutoExportRunner rideAutoExport;
+    /** A failed automatic ride copy, posted only while Volt is hidden (rideAutoExportFinished). */
+    private static final int AUTO_EXPORT_NOTICE = 78;
     static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
@@ -231,7 +233,8 @@ public final class ScooterService extends Service {
     public String dataMaintenanceUnavailable() {
         if (destroyed || dataMaintenance || DataMaintenance.active()) return T.serviceMaintenanceInProgress();
         if (isRecording() || isChargeRecording()) return T.serviceStopRecordingFirst();
-        if (phoneSaving() || phoneRecorder != null || rideAutoExportBusy()) return T.serviceWaitPhoneSaving();
+        if (rideAutoExportBusy()) return T.serviceWaitAutoSave();
+        if (phoneSaving() || phoneRecorder != null) return T.serviceWaitPhoneSaving();
         if (chargeExporting) return T.serviceFinishChargeExport();
         if (chargeScheduleController != null && chargeScheduleController.busy()) return T.serviceWaitChargingSchedule();
         if (chargeMeasure.active()) return T.serviceWaitMeasuring();
@@ -1358,10 +1361,16 @@ public final class ScooterService extends Service {
 
     public void stopRide(){stopRide("");}
     /** The one stop/save path: rider, notification and automatic stops share error handling, sensor drain and wake-lock release. */
-    private boolean stopRide(String reason){if(!isRecording())return false;rideAutoStop=null;try{rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+    private boolean stopRide(String reason){if(!isRecording())return false;rideAutoStop=null;
+        // rides.stop clears the active id: keep it for the automatic copy.
+        String stopping=rides.activeId();
+        try{rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
             recordingError =
                     "Storage full · free space, then Retry save";
-            android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
+            android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
+        // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved).
+        RideAutoExportFolder.queue(settings,stopping);
+        stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /**
      * Feeds the forgotten-ride policy from the current authenticated transport, never from cached
      * readings. Runs on every BLE change (so a loss is seen as it happens) and every service tick,
@@ -1429,8 +1438,23 @@ public final class ScooterService extends Service {
     private void rideAutoExportFinished(RideAutoExport.Problem before,RideAutoExport.Problem after,boolean again){
         if(destroyed)return;
         if(again)startRideAutoExport();
+        // A success is silent and clears an earlier failure notice. A failure shows on the settings row from the stored
+        // id; while Volt is hidden it also posts once per failure kind, until the kind changes or a copy succeeds.
+        if(after==RideAutoExport.Problem.NONE)cancelNotice(AUTO_EXPORT_NOTICE);
+        else if(after!=before&&!visible)showAutoExportNotice(after);
         applyWorkPolicy(false);
         changed();
+    }
+    /** Rendered at the post, on the main thread, from the failure id. */
+    private void showAutoExportNotice(RideAutoExport.Problem problem){
+        try{
+            notification();// Ensures the channel exists even if the foreground notice never posted.
+            PendingIntent open=PendingIntent.getActivity(this,10,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            String text=problem==RideAutoExport.Problem.FOLDER?T.serviceAutoSaveFolder():T.serviceAutoSaveWrite();
+            post(AUTO_EXPORT_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(T.serviceAutoSaveFailed()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
+                    .setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
+        }catch(RuntimeException unavailable){}
     }
     private void startPhoneRecording(){
         if (simulating()) return;

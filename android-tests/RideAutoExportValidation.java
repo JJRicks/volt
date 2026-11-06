@@ -75,6 +75,13 @@ public final class RideAutoExportValidation extends Instrumentation {
             grantRevokedChooseAgain();
             restoredWithoutFolder();
             bothOff();
+            uiRowsOff();
+            uiPickerFromRow();
+            uiHookStops();
+            uiFailureLineAndNotice();
+            uiRestoredWithoutFolder();
+            uiNarrowAndLargeText();
+            uiBothOffFromRows();
             check(!activity.service().ble.connected() && !activity.service().isRecording(), "No scooter connection or recording left running");
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -83,6 +90,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         } finally {
             result.putInt("checks", checks); result.putStringArrayList("screenshots", new ArrayList<>(screenshots)); result.putStringArrayList("notes", new ArrayList<>(notes));
             try { shell("input keyevent 224"); } catch (Throwable ignored) {}
+            try { shell("wm size reset"); shell("cmd statusbar collapse"); } catch (Throwable ignored) {}
             if (activity != null) main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
@@ -440,6 +448,193 @@ public final class RideAutoExportValidation extends Instrumentation {
         int before = shellText("ls " + FOLDER_PATH).split("\n").length;
         String i = recordRide("After turning off", true); stopFor(null); awaitPassDone(); rideSaved(i);
         check(!settings.contains(PENDING) && !shellText("ls " + FOLDER_PATH).contains(shortId(i)) && shellText("ls " + FOLDER_PATH).split("\n").length == before, "Nothing copied while both are off");
+    }
+
+    // ---- The settings rows, the stop hook and the failure notice (catalog text through T) ----------
+
+    private void uiRowsOff() {
+        String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
+        openDataHistory(csv);
+        check(!switchOf(csv).isChecked() && !switchOf(json).isChecked(), "Both auto-save switches off");
+        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()) && T.moreAutoSaveJsonOff().contentEquals(subOf(json).getText()), "Off captions: " + subOf(csv).getText() + " / " + subOf(json).getText());
+        View history = rowTitled(T.moreHistorySave());
+        ViewGroup group = (ViewGroup) history.getParent();
+        check(rowTitled(csv).getParent() == group && rowTitled(json).getParent() == group, "Both rows in the recording group with Save readings history");
+        check(group.indexOfChild(rowTitled(csv)) > group.indexOfChild(history) && group.indexOfChild(rowTitled(json)) > group.indexOfChild(rowTitled(csv)), "Below Save readings history, Route CSV first");
+        fullyShown(titleOf(csv), "Route CSV title"); fullyShown(titleOf(json), "Ride JSON title"); fullyShown(switchOf(csv), "Route CSV switch"); fullyShown(switchOf(json), "Ride JSON switch");
+        check(switchOf(csv).getHeight() >= dp(48) && switchOf(json).getHeight() >= dp(48), "48dp switch targets");
+        check(csv.contentEquals(switchOf(csv).getContentDescription()) && json.contentEquals(switchOf(json).getContentDescription()), "Each switch speaks its row title");
+        screenshot("01-rows-off-dark");
+        theme("light"); openDataHistory(csv); screenshot("01-rows-off-light"); theme("dark");
+    }
+
+    /** In the open folder picker, go to Download/VoltRides (it may already be open there). */
+    private void uiPickVoltRides(String shot) {
+        node("USE THIS FOLDER", 15000); SystemClock.sleep(800);
+        if (findNode("Files in " + FOLDER_NAME) == null) {
+            if (findBreadcrumb("Download")) tap(nodeExact("Download", 5000)); else tap(node("Download", 10000));
+            node("Files in Download", 10000); SystemClock.sleep(500);
+            tap(node(FOLDER_NAME, 10000));
+            node("Files in " + FOLDER_NAME, 10000); SystemClock.sleep(800);
+        }
+        if (shot != null) screenshot(shot);
+        tap(node("USE THIS FOLDER", 10000));
+        AccessibilityNodeInfo allow = node("ALLOW", 10000); SystemClock.sleep(400);
+        if (shot != null) screenshot(shot + "-allow");
+        tap(allow); awaitApp();
+    }
+
+    /** The first switch turned on opens the picker; a cancel leaves it off; the second switch uses the same folder. */
+    private void uiPickerFromRow() {
+        String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
+        openDataHistory(csv);
+        click(switchOf(csv));
+        node("USE THIS FOLDER", 15000); SystemClock.sleep(800);
+        for (int i = 0; i < 4 && pickerShown(); i++) { shell("input keyevent 4"); SystemClock.sleep(1200); }
+        awaitApp(); openDataHistory(csv);
+        check(!settings.getBoolean(ROUTE, false) && !settings.contains(FOLDER) && !switchOf(csv).isChecked(), "Cancelled picker from the row: still off");
+        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()), "Still the off caption");
+        click(switchOf(csv));
+        uiPickVoltRides("02-picker-from-row");
+        openDataHistory(csv);
+        check(settings.getBoolean(ROUTE, false) && !settings.getBoolean(JSON, false) && settings.contains(FOLDER), "Route CSV on once the folder is kept");
+        String saving = T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME);
+        check(switchOf(csv).isChecked() && saving.contentEquals(subOf(csv).getText()), "Route CSV row shows the folder: " + subOf(csv).getText());
+        check(!switchOf(json).isChecked() && T.moreAutoSaveJsonOff().contentEquals(subOf(json).getText()), "Ride JSON still off with its own caption");
+        screenshot("03-route-csv-on-dark");
+        click(switchOf(json)); SystemClock.sleep(1500);
+        check(!pickerShown() && !pickerActivityShown(), "The second switch needs no picker");
+        openDataHistory(json);
+        check(settings.getBoolean(JSON, false) && switchOf(json).isChecked() && saving.contentEquals(subOf(json).getText()) && saving.contentEquals(subOf(csv).getText()), "Both on, both rows show the one folder");
+        fullyShown(subOf(csv), "Folder line"); fullyShown(titleOf(json), "Ride JSON title while on");
+        screenshot("04-both-on-dark");
+        theme("light"); openDataHistory(json); screenshot("04-both-on-light"); theme("dark");
+    }
+
+    /** The stop hook alone (no queue here): the notification Stop while hidden, the parked auto-stop and a revived ride. */
+    private void uiHookStops() {
+        String a = recordRide("Hook: notification Stop", true);
+        hide(); screenOff();
+        Watch watch = new Watch().begin();
+        stopFromNotification(false);
+        await(() -> settings.getString(PENDING, "").isEmpty() && listing().contains(csvName(a)) && listing().contains(combinedName(a)), 25000, "The stop hook queued and copied the hidden ride");
+        awaitPassDone(); watch.end();
+        check(watch.busySamples > 0 && watch.notAllowed == 0 && watch.notForeground == 0 && watch.maintenanceOpen == 0, "Keep-alive and maintenance block during the hooked copy");
+        check(notice(78) == null, "A success posts nothing");
+        screenOnAndShow();
+        check(folderFile(csvName(a)).equals(expectedCsv(a)) && folderFile(combinedName(a)).equals(expectedCombined(a)), "Hooked copies equal the manual exports");
+        String p = recordRide("Hook: parked auto-stop", true);
+        stopOnly(RideStore.STOP_AUTO_PARKED); awaitPassDone();
+        check(listing().contains(csvName(p)) && listing().contains(combinedName(p)) && settings.getString(PENDING, "").isEmpty(), "The parked auto-stop is copied too");
+        String r = recordRide("Hook: revived ride", false, false);
+        ScooterService ended = activity.service();
+        closeVolt();
+        await(() -> (Boolean) field(ended, "destroyed"), 15000, "Service ended with the ride still open");
+        launch();
+        check(r.equals(activity.service().rides.activeId()), "The ride is revived by the new service");
+        stopOnly(null); awaitPassDone();
+        // The new service's recorder resumes with motion on, so the revived ride may carry phone samples now.
+        check((listing().contains(analysisName(r)) || listing().contains(combinedName(r))) && settings.getString(PENDING, "").isEmpty(), "A revived ride stopped later is copied: " + listing());
+        folderClean();
+    }
+
+    /** Folder gone: the row's failure line, one notification while hidden, none for a repeat or while visible. */
+    private void uiFailureLineAndNotice() {
+        String csv = T.moreAutoSaveRouteCsv();
+        shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
+        String f = recordRide("Failure while hidden", true);
+        hide();
+        stopFromNotification(false); awaitPassDone();
+        check("folder".equals(settings.getString(PROBLEM, "")) && settings.getString(PENDING, "").equals(f), "Waiting with a folder problem");
+        await(() -> notice(78) != null, 10000, "Failure notification posted while hidden");
+        Notification n = notice(78);
+        check(T.serviceAutoSaveFailed().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TITLE)) && T.serviceAutoSaveFolder().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TEXT)), "Notification title and text from the catalog");
+        check("scooter".equals(n.getChannelId()), "On the existing scooter channel");
+        shell("cmd uimode night yes"); shell("cmd statusbar expand-notifications"); SystemClock.sleep(1800);
+        screenshot("06-failure-notification-dark");
+        shell("cmd uimode night no"); SystemClock.sleep(1800);
+        screenshot("06-failure-notification-light");
+        shell("cmd statusbar collapse"); SystemClock.sleep(800);
+        dismissNotice(78);
+        screenOnAndShow();
+        String g = recordRide("Second failure, same kind", true);
+        hide();
+        stopFromNotification(false); awaitPassDone();
+        SystemClock.sleep(1500);
+        check(notice(78) == null, "At most one notification per failure kind");
+        screenOnAndShow();
+        openDataHistory(csv);
+        check(T.moreAutoSaveFolderProblem().contentEquals(subOf(csv).getText()) && T.moreAutoSaveFolderProblem().contentEquals(subOf(T.moreAutoSaveJson()).getText()), "Failure line on both rows: " + subOf(csv).getText());
+        check(switchOf(csv).isChecked(), "The setting never turns itself off");
+        fullyShown(subOf(csv), "Failure line");
+        screenshot("05-failure-line-dark");
+        theme("light"); openDataHistory(csv); screenshot("05-failure-line-light"); theme("dark");
+        shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
+        String h = recordRide("Folder back", true); stopOnly(null); awaitPassDone();
+        check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Retried at the next ride end: " + exportState());
+        check(listing().contains(csvName(f)) && listing().contains(csvName(g)) && listing().contains(csvName(h)), "All three rides copied");
+        openDataHistory(csv);
+        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(csv).getText()), "Folder line back");
+        shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
+        String v = recordRide("Failure while visible", true); stopOnly(null); awaitPassDone();
+        check("folder".equals(settings.getString(PROBLEM, "")), "Failed while visible");
+        SystemClock.sleep(1500);
+        check(notice(78) == null, "No notification while Volt is visible; the row shows it");
+        shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
+        String w = recordRide("Folder back again", false, false); stopOnly(null); awaitPassDone();
+        check(listing().contains(csvName(v)) && listing().contains(analysisName(w)) && !settings.contains(PROBLEM), "Both copied after the folder came back");
+        folderClean();
+    }
+
+    /** A restored backup: both choices on, no folder on this phone. Rides wait; choosing a folder from the row copies them. */
+    private void uiRestoredWithoutFolder() {
+        String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
+        Uri tree = Uri.parse(settings.getString(FOLDER, ""));
+        getTargetContext().getContentResolver().releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        settings.edit().remove(FOLDER).remove(PROBLEM).putBoolean(ROUTE, true).putBoolean(JSON, true).commit();
+        openDataHistory(csv);
+        check(switchOf(csv).isChecked() && switchOf(json).isChecked(), "Restored choices show on");
+        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(csv).getText()) && T.moreAutoSaveChooseFolder().contentEquals(subOf(json).getText()), "Choose a folder to start saving: " + subOf(csv).getText());
+        screenshot("07-restored-no-folder-dark");
+        theme("light"); openDataHistory(csv); screenshot("07-restored-no-folder-light"); theme("dark");
+        String r = recordRide("Restored, waiting", true); stopOnly(null); awaitPassDone();
+        check(settings.getString(PENDING, "").equals(r), "The ride waits for a folder");
+        openDataHistory(csv);
+        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(csv).getText()), "Still asks for a folder after a waiting ride");
+        click(rowTitled(csv));
+        uiPickVoltRides(null);
+        await(() -> settings.getString(PENDING, "").isEmpty() && listing().contains(csvName(r)) && listing().contains(combinedName(r)), 25000, "Choosing a folder from the row copied the waiting ride");
+        openDataHistory(csv);
+        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(csv).getText()) && switchOf(json).isChecked(), "Saving again, both still on");
+        folderClean();
+    }
+
+    /** About 327dp wide and Volt's text at 130%: titles and folder line wrap, nothing clipped. */
+    private void uiNarrowAndLargeText() {
+        String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
+        shell("wm size 900x2340"); SystemClock.sleep(1500); textScale(1.3f);
+        openDataHistory(json);
+        fullyShown(titleOf(csv), "Narrow Route CSV title"); fullyShown(titleOf(json), "Narrow ride JSON title");
+        fullyShown(subOf(csv), "Narrow folder line"); fullyShown(switchOf(csv), "Narrow switch"); fullyShown(switchOf(json), "Narrow JSON switch");
+        Rect title = new Rect(); Rect toggle = new Rect(); titleOf(json).getGlobalVisibleRect(title); switchOf(json).getGlobalVisibleRect(toggle);
+        check(title.right <= toggle.left, "Title never runs under the switch");
+        screenshot("08-narrow-large-text-dark");
+        theme("light"); openDataHistory(json); screenshot("08-narrow-large-text-light"); theme("dark");
+        textScale(1f); shell("wm size reset"); SystemClock.sleep(1500); settle();
+    }
+
+    private void uiBothOffFromRows() {
+        String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
+        openDataHistory(csv);
+        click(switchOf(csv));
+        openDataHistory(csv);
+        check(!settings.getBoolean(ROUTE, true) && settings.getBoolean(JSON, false) && settings.contains(FOLDER), "Route CSV off; JSON keeps the folder");
+        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()) && T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(json).getText()), "Off caption beside the folder line");
+        click(switchOf(json));
+        openDataHistory(csv);
+        check(!settings.contains(FOLDER) && !settings.contains(PENDING) && getTargetContext().getContentResolver().getPersistedUriPermissions().isEmpty(), "Both off from the rows: grant released, list cleared");
+        check(!switchOf(csv).isChecked() && !switchOf(json).isChecked(), "Both switches off");
+        screenshot("09-both-off-again");
     }
 
     // ---- Folder checks ---------------------------------------------------------------------------

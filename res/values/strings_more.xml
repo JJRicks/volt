@@ -226,6 +226,30 @@
     <string name="more_history_while_connected" volt:screen="Data &amp; history" volt:purpose="caption">While connected</string>
     <!-- Under the history switch when it is off: the last readings stay. -->
     <string name="more_history_off_kept" volt:screen="Data &amp; history" volt:purpose="caption">Off · last readings kept</string>
+    <!-- Switch: copy each finished ride's Route CSV (the Rides export of that name) to a folder the rider chose. "Route CSV" names that export. -->
+    <string name="more_auto_save_route_csv" volt:screen="Data &amp; history" volt:purpose="row" volt:dnt="CSV">Auto-save Route CSV</string>
+    <!-- Under the Route CSV switch when it is off. -->
+    <string name="more_auto_save_route_csv_off" volt:screen="Data &amp; history" volt:purpose="caption">Copy each ride\'s route to a folder</string>
+    <!-- Switch: copy each finished ride's data as a JSON file to the same folder. -->
+    <string name="more_auto_save_json" volt:screen="Data &amp; history" volt:purpose="row" volt:dnt="JSON">Auto-save ride JSON</string>
+    <!-- Under the ride JSON switch when it is off. -->
+    <string name="more_auto_save_json_off" volt:screen="Data &amp; history" volt:purpose="caption">Copy each ride\'s data to a folder</string>
+    <!-- Under an auto-save switch that is on. %1$s is the folder's path as the phone names it, such as Download/VoltRides. -->
+    <string name="more_auto_save_saving_to" volt:screen="Data &amp; history" volt:purpose="caption">Saving to %1$s</string>
+    <!-- Under an auto-save switch that is on, when the folder's storage gives no readable path (a cloud folder). -->
+    <string name="more_auto_save_saving_chosen" volt:screen="Data &amp; history" volt:purpose="caption">Saving to your chosen folder</string>
+    <!-- Under an auto-save switch that is on but this phone has no folder yet (a restored backup). Rides wait until one is chosen. -->
+    <string name="more_auto_save_choose_folder" volt:screen="Data &amp; history" volt:purpose="caption">Choose a folder to start saving</string>
+    <!-- Under an auto-save switch: the folder was deleted or Volt lost access to it. Tapping the row chooses it again. -->
+    <string name="more_auto_save_folder_problem" volt:screen="Data &amp; history" volt:purpose="caption">Couldn\'t save the last ride. Choose the folder again.</string>
+    <!-- Under an auto-save switch: writing to the folder failed (storage full, for example). Volt retries after the next ride and when it opens. -->
+    <string name="more_auto_save_save_problem" volt:screen="Data &amp; history" volt:purpose="caption">Couldn\'t save the last ride. Volt will try again.</string>
+    <!-- Spoken action on an auto-save switch that is on: opens the folder picker. -->
+    <string name="more_auto_save_change_folder" volt:screen="Data &amp; history" volt:purpose="action">Change folder</string>
+    <!-- Toast: the phone has no app that can pick a folder. -->
+    <string name="more_auto_save_no_picker" volt:screen="Data &amp; history" volt:purpose="toast">This phone can\'t open a folder picker.</string>
+    <!-- Toast: Android refused to let Volt keep access to the chosen folder. -->
+    <string name="more_auto_save_not_kept" volt:screen="Data &amp; history" volt:purpose="toast">Volt couldn\'t keep access to that folder. Choose another.</string>
     <!-- Card title: how much history is stored on the phone. -->
     <string name="more_history_local_storage" volt:screen="Data &amp; history" volt:purpose="label">Local storage</string>
     <!-- Shown while Volt measures the stored history. -->
