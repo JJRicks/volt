@@ -19,7 +19,7 @@ environment; see providers.py for how they are kept out of every output.
   council.py redraft openai|google --tag es --area common
                                                         send failed keys back once (attempt 2)
   council.py backtranslate openai|google --tag es --area common
-                                                        back-translate agreed safety keys, and judged
+                                                        back-translate agreed safety keys and judged
                                                         safety texts not yet back-translated, with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
@@ -1400,24 +1400,26 @@ def independent_backtranslator(model, model_reported, drafters):
 def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset()):
     """The safety keys to back-translate, as KeyStates whose agreed field is the text to back-translate.
 
-    Every unanimous safety key, with its agreed text (as before 2026-11-05). Then, for a safety key
-    whose drafts disagree, the text the judge picked or merged (judged: judged_safety_texts()), with
-    the state's agreed field replaced by that text; when backs (load_backtranslations()) is given, a
-    judged text that already has a current back-translation of exactly that text is left out, but only
+    Every unanimous safety key, with its agreed text. Then, for a safety key whose drafts disagree,
+    the text the judge picked or merged (judged: judged_safety_texts()), with the state's agreed field
+    replaced by that text. When backs (load_backtranslations()) is given, a key (unanimous or judged)
+    whose text already has a current back-translation of exactly that text is left out, but only
     while that back-translation's model is still independent of drafters (all_drafter_models()): one
-    whose model drafted in the area since is queued again, for a model that drafted nothing to replace.
+    whose model drafted in the area since, or one of older English or another text, is queued again,
+    for a model that drafted nothing to replace. Re-sending a back-translated key would only reword
+    it and leave the judge's confirm (which names the back text) stale.
     """
     out = collections.OrderedDict()
     for key, state in states.items():
         if not state.entry.get("safety"):
             continue
         if state.unanimous:
-            out[key] = state
-            continue
-        items = (judged or {}).get(key, (None, None))[0]
-        if items is None:
-            continue
-        target = state._replace(agreed=items)
+            target = state
+        else:
+            items = (judged or {}).get(key, (None, None))[0]
+            if items is None:
+                continue
+            target = state._replace(agreed=items)
         back = current_backtranslation(target, backs.get(key)) if backs is not None else None
         if back is not None and independent_backtranslator(back.get("model"), back.get("model_reported"),
                                                            drafters):

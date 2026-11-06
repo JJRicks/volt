@@ -1243,7 +1243,9 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
 5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
    every drafter agrees**, with drafts from all three providers that all pass the checks, a model
    that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
-   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   (`safety-agreed`); `backtranslate` sends such a key only while it has no current back-translation
+   of exactly the agreed text by a model that drafted nothing, so a later run does not reword one the
+   judge already confirmed. **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
    such a key always fell back), with drafts from all three providers and at least one passing,
    `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
    or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
