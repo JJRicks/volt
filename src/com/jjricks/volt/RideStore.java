@@ -45,6 +45,10 @@ public final class RideStore {
      *  disconnect code, -1 unknown>} and {@code ;phone_bt=off} when the phone's Bluetooth was off.
      *  Older builds read it as a rider's stop and ignore the parameters. */
     public static final String STOP_AUTO_QUIET = "AUTO_QUIET_DISCONNECT";
+    /** STOP details token for a ride Volt ended because the connected scooter showed no motion for
+     *  {@link RideAutoStopPolicy#NO_MOTION_MS} (rule 3). It takes no parameters: the shown end, the last
+     *  motion, comes from the journal's own samples. Older builds read it as a rider's stop. */
+    public static final String STOP_AUTO_NO_MOTION = "automatic_no_motion";
     private static final int MAX_STOP_DETAILS = 80;
     private static final int MAX_METRICS = 160;
     private static final String HEADER = "schema_version,event,recorded_utc,wall_ms,monotonic_ms,frame,key,numeric,text,unit,source_command,sensor_updated_monotonic_ms,sensor_age_ms,current_direction,details\n";
@@ -126,6 +130,12 @@ public final class RideStore {
         public final String stopReason;
         public final boolean automaticStop;
         /**
+         * Volt ended it for no motion while connected ({@link RideStore#STOP_AUTO_NO_MOTION}). Kept apart
+         * from {@link #automaticStop}, which means an end after a Bluetooth loss (the parked and quiet
+         * rules); a screen showing any automatic end checks both. The analysis JSON names it by its token.
+         */
+        public final boolean noMotionStop;
+        /**
          * What a rider sees as the end. For an automatic stop it is the last real reading (any fresh
          * scooter value), so the silent link, gap and wait after it never count; otherwise, and when
          * the ride has no reading, it equals {@link #endWallMs}, {@link #elapsedMs} and
@@ -150,15 +160,18 @@ public final class RideStore {
             boolean quiet = isQuietStop(details);
             Map<String, String> params = quiet ? stopParameters(details) : Collections.<String, String>emptyMap();
             stopReason = quiet ? STOP_AUTO_QUIET : details;
+            noMotionStop = STOP_AUTO_NO_MOTION.equals(stopReason);
             automaticStop = quiet || STOP_AUTO_PARKED.equals(stopReason);
             long last = parseLong(params.get("last"), -1);
             stopLastReadingMonotonicMs = last < -1 ? -1 : last;
             stopDisconnectCode = disconnectCode(params);
             stopPhoneBluetoothOff = "off".equals(params.get("phone_bt"));
-            boolean trim = automaticStop && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
-            shownEndWallMs = trim ? a.readingWall : a.lastWall;
-            shownElapsedMs = trim ? a.readingElapsed : a.elapsed;
-            shownGapCount = trim ? a.readingGaps : a.gaps;
+            boolean trim = (automaticStop || noMotionStop) && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
+            // A no-motion stop ends at its last motion, so the ten idle minutes never count; with no motion at all, as other automatic stops.
+            boolean still = noMotionStop && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
+            shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
+            shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
+            shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;
             confirmedDirectionCoverageMs = a.confirmedMs;
             unconfirmedDirectionCoverageMs = a.unconfirmedMs;
             movingElectricalCoverageMs = a.movingElectricalMs;
@@ -508,7 +521,7 @@ public final class RideStore {
     /** Stops at the given (current) time; the reason never moves the end or adds samples. */
     public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason) throws IOException {
         if (active == null) return null;
-        String details = STOP_AUTO_PARKED.equals(reason) ? STOP_AUTO_PARKED
+        String details = STOP_AUTO_PARKED.equals(reason) || STOP_AUTO_NO_MOTION.equals(reason) ? reason
                 : isQuietStop(reason) ? quietDetails(reason, active.readingElapsed >= 0 ? active.readingMono : -1) : "";
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
@@ -841,6 +854,9 @@ public final class RideStore {
         String stopReason = "";
         /** The last committed sample with any fresh scooter reading; elapsed -1 until one arrives. */
         long readingWall, readingMono, readingElapsed = -1, readingGaps;
+        /** The last committed sample with motion (a fresh speed above 0, driving status 1, odometer or trip going up); elapsed -1 until one. */
+        long motionWall, motionElapsed = -1, motionGaps, motionPush = -1;
+        Double previousTrip;
         CurrentDirection direction = CurrentDirection.UNCONFIRMED;
         Double startSoc, endSoc, startVoltage, minVoltage, maxVoltage, minTemperature, maxTemperature;
         Double startOdo, endOdo, maxSpeed, peakPower, maxCurrent;
@@ -884,6 +900,7 @@ public final class RideStore {
             Double odo = number(m, "odometer_km", mono);
             if (odo != null && odo < 0) odo = null;
             Double temperature = number(m, "temperature_c", mono);
+            boolean moved = motion(this, m, mono, odo);
             if (temperature != null && (temperature < -60 || temperature > 150)) temperature = null;
             if (soc != null) { if (startSoc == null) startSoc = soc; endSoc = soc; }
             if (voltage != null) { if (startVoltage == null) startVoltage = voltage;
@@ -923,6 +940,7 @@ public final class RideStore {
                     || temperature != null || chargingState != null) {
                 readingWall = wall; readingMono = mono; readingElapsed = elapsed; readingGaps = gaps;
             }
+            if (moved) { motionWall = wall; motionElapsed = elapsed; motionGaps = gaps; }
             Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, chargingState, speedMs);
             lastPoint = point;
             if (rangeInspector != null) rangeInspector.accept(point);
@@ -936,6 +954,28 @@ public final class RideStore {
             }
         }
     }
+
+    /**
+     * Rule 3's motion, judged from the journal so a reload agrees: a new speed or driving-status push
+     * (speed above 0 or status 1), or the odometer or trip above its previous fresh value. Call before
+     * endOdo moves.
+     */
+    private static boolean motion(Accumulator a, Map<String, Sample> m, long mono, Double odo) {
+        boolean moved = false;
+        Double speed = number(m, SPEED_KEY, mono), driving = number(m, DRIVING_KEY, mono);
+        Sample push = m.get(speed != null ? SPEED_KEY : DRIVING_KEY);
+        if (push != null && (speed != null || driving != null) && push.updatedMonoMs != a.motionPush) {
+            a.motionPush = push.updatedMonoMs;
+            moved = speed != null && speed > 0 && speed <= 200 || driving != null && driving == 1;
+        }
+        if (odo != null && a.endOdo != null && odo > a.endOdo + 0.000001) moved = true;
+        Double trip = number(m, TRIP_KEY, mono);
+        if (trip != null && trip >= 0) { if (a.previousTrip != null && trip > a.previousTrip + 0.000001) moved = true; a.previousTrip = trip; }
+        return moved;
+    }
+    private static final String SPEED_KEY = "speed_kmh", DRIVING_KEY = "driving_status";
+    /** Journal keys rule 3 also reads live (ScooterService), so both sides judge the same readings. */
+    static final String ODOMETER_KEY = "odometer_km", TRIP_KEY = "trip_km";
 
     /*
      * The saved form of a finished journal's analysis (RideSummaryStore). The summary is kept as the replay's final
@@ -957,6 +997,8 @@ public final class RideStore {
                 a.maxTemperature, a.startOdo, a.endOdo, a.maxSpeed, a.peakPower, a.maxCurrent}) writeOptional(out, value);
         for (double value : new double[] {a.throughputWh, a.drawWh, a.regeneratedWh, a.speedDistance, a.movingDistance,
                 a.movingThroughputWh, a.stationaryThroughputWh, a.unknownMotionThroughputWh}) out.writeDouble(value);
+        // Rule 3's last motion (the no-motion stop's shown end); a finished journal needs no other motion state.
+        for (long value : new long[] {a.motionWall, a.motionElapsed, a.motionGaps}) out.writeLong(value);
         out.flush(); return bytes.toByteArray();
     }
     /** The finished state saved by encodeState, or null when it is for another ride or not finished. */
@@ -971,6 +1013,8 @@ public final class RideStore {
         for (int i = 0; i < d.length; i++) d[i] = readOptional(in);
         double[] e = new double[8];
         for (int i = 0; i < e.length; i++) e[i] = in.readDouble();
+        long[] still = new long[3];
+        for (int i = 0; i < still.length; i++) still[i] = in.readLong();
         if (in.read() != -1) throw new IOException("trailing");
         if (!id.equals(expectedId) || !stopped) return null;
         Accumulator a = new Accumulator(id, scooterId, label, l[0], l[1]);
@@ -986,6 +1030,7 @@ public final class RideStore {
         a.peakPower = d[10]; a.maxCurrent = d[11];
         a.throughputWh = e[0]; a.drawWh = e[1]; a.regeneratedWh = e[2]; a.speedDistance = e[3]; a.movingDistance = e[4];
         a.movingThroughputWh = e[5]; a.stationaryThroughputWh = e[6]; a.unknownMotionThroughputWh = e[7];
+        a.motionWall = still[0]; a.motionElapsed = still[1]; a.motionGaps = still[2];
         return a;
     }
     /**

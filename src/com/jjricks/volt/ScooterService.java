@@ -1662,6 +1662,28 @@ public final class ScooterService extends Service {
         if(ble.connected()){ScooterProfiles.Profile bound=ble.profile();
             rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus());}
         else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
+        // Rule 3 also counts the odometer or trip going up as motion.
+        if(ble.connected())rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));
+    }
+    /** The transport's fresh odometer or trip reading in km for rule 3, NaN when missing or stale. */
+    private double rideDistance(String key,long mono){
+        Telemetry.Metric m=null;for(Telemetry.Metric metric:ble.telemetry.metrics())if(metric.key.equals(key)){m=metric;break;}
+        if(m==null||m.numericValue==null||m.updatedMs<=0||mono<m.updatedMs||mono-m.updatedMs>RideStore.MAX_SENSOR_AGE_MS)return Double.NaN;
+        return m.numericValue;
+    }
+    /**
+     * Called from the tick only, after the other rules: ends a ride whose connected scooter showed no
+     * motion for 10 minutes (rule 3). The policy saw this tick's connected observation, so a link lost
+     * since then has already stopped its countdown. Volt sends the scooter nothing.
+     */
+    private void autoStopNoMotion(RideAutoStopPolicy policy,long now){
+        if(policy==null||!policy.dueNoMotion(now))return;
+        if(destroyed||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId()))return;
+        String id=policy.rideId;
+        if(stopRide(RideStore.STOP_AUTO_NO_MOTION)){
+            if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
+            showAutoStopNotice(id,RideStore.STOP_AUTO_NO_MOTION);
+        }
     }
     /** Called from the tick only. The policy instance and ride id must both still be current. */
     private void autoStopRide(RideAutoStopPolicy policy){autoStopRide(policy,RideStore.STOP_AUTO_PARKED);}
@@ -1869,6 +1891,7 @@ public final class ScooterService extends Service {
                     RideAutoStopPolicy autoStop = rideAutoStop;
                     if (autoStop != null && autoStop.due(autoNow)) autoStopRide(autoStop);
                     else autoStopQuiet(autoStop, autoNow);
+                    if (autoStop != null && autoStop == rideAutoStop) autoStopNoMotion(autoStop, autoNow);
                     // The charge watch re-posts only when its whole-number battery level or wording changes.
                     if (mono - lastNotification > 5000 && !alertWatchShown() && !(chargeLiveShown() && !isChargeRecording())) {
                         lastNotification = mono;
