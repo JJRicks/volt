@@ -44,7 +44,7 @@ public final class PhoneRideStoreTest {
             PhoneRideStore.Track missing = store.load("missing");
             check(missing.points.isEmpty(), "Old recordings have no synthetic route");
             check(missing.distanceMeters == null, "Missing GPS is unavailable");
-            store.start("hill", 1700000000000L, 1000, "pocket");
+            store.start("hill", 1700000000000L, 1000);
             StringBuilder b = new StringBuilder();
             for (int i = 0; i <= 40; i++) {
                 long mono = 1000 + i * 1000;
@@ -82,7 +82,7 @@ public final class PhoneRideStoreTest {
             check(hill.toJson().contains("\"powerW\":1500.0"), "JSON power matching");
             check(hill.toGpx().contains("<trkseg>"), "GPX export");
             check(hill == store.load("hill"), "Unchanged track cached");
-            store.start("altitude-spike", 1700000000000L, 1000, "pocket");
+            store.start("altitude-spike", 1700000000000L, 1000);
             StringBuilder spike = new StringBuilder();
             for (int i = 0; i <= 30; i++) {
                 double altitude = i >= 5 && i <= 25 ? 1500 + 76.2 * (1 - Math.abs(i - 15) / 10.0) : 1500;
@@ -96,7 +96,7 @@ public final class PhoneRideStoreTest {
             check(rejectedAltitude.points.get(30).relativeAltitudeM != null, "Elevation recovers after return");
             check(rejectedAltitude.toCsv().contains("1576.2"), "Original altitude retained in export");
             check(rejectedAltitude.toJson().contains("rejectedElevationCount"), "Filtering disclosed in analysis");
-            store.start("pressure-spike", 1700000000000L, 1000, "pocket");
+            store.start("pressure-spike", 1700000000000L, 1000);
             StringBuilder pressureSpike = new StringBuilder();
             for (int i = 0; i <= 60; i++) {
                 double altitude = i >= 5 && i <= 45 ? 76.2 * (1 - Math.abs(i - 25) / 20.0) : 0;
@@ -109,7 +109,7 @@ public final class PhoneRideStoreTest {
             check(pressureRejected.rejectedElevationCount > 0, "Smoothed barometer ramps also checked for implausible elevation");
             check(pressureRejected.ascentMeters == null || pressureRejected.ascentMeters < 25, "250 ft pressure spike does not inflate ascent");
             check(pressureRejected.descentMeters == null || pressureRejected.descentMeters < 25, "250 ft pressure spike does not inflate descent");
-            store.start("quality", 1700000000000L, 1000, "mounted");
+            store.start("quality", 1700000000000L, 1000);
             b.setLength(0);
             b.append(gps(1000, 43.82, 2, 0, .1, 1500.0, 25.0));
             b.append(gps(2000, 43.82005, 2, 0, .1, 1550.0, 25.0));
@@ -132,7 +132,7 @@ public final class PhoneRideStoreTest {
             check(
                     count(quality.toGpx(), "<trkseg>") == 3,
                     "GPX does not bridge signal gaps/outliers");
-            store.start("accel", 1700000000000L, 1000, "pocket");
+            store.start("accel", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i < 6; i++) {
                 long mono = 1000 + i * 1000;
@@ -168,7 +168,7 @@ public final class PhoneRideStoreTest {
             check(
                     accel.points.get(accel.points.size() - 1).powerW == null,
                     "Stale underlying power never matched");
-            store.start("restart", 1700000000000L, 1000, "pocket");
+            store.start("restart", 1700000000000L, 1000);
             store.appendBatch(
                     "restart",
                     gps(1000, 43.82, 2, 5, .1, null, null)
@@ -178,18 +178,18 @@ public final class PhoneRideStoreTest {
             PhoneRideStore.Track restart = store.load("restart");
             check(restart.points.get(1).gapBefore, "Explicit restart segment");
             check(restart.distanceMeters == null, "No integration over recovery gap");
-            store.start("tail", 1700000000000L, 1000, "pocket");
+            store.start("tail", 1700000000000L, 1000);
             store.appendBatch(
                     "tail",
                     gps(1000, 43.82, 2, 5, .1, null, null) + "GPS,1700000002000,2000,43.83",
                     "");
             check(store.load("tail").locationCount == 1, "Interrupted final row ignored");
-            store.start("tail", 1700000002000L, 2000, "pocket");
+            store.start("tail", 1700000002000L, 2000);
             store.appendBatch("tail", gps(3000, 43.8201, 2, 5, .1, null, null), "");
             check(
                     store.load("tail").locationCount == 2,
                     "Recovery trims partial tail before new rows");
-            store.start("gps-height", 1700000000000L, 1000, "pocket");
+            store.start("gps-height", 1700000000000L, 1000);
             store.appendBatch(
                     "gps-height",
                     gps(1000, 43.82, 2, 5, .1, 1500.0, 2.0)
@@ -208,7 +208,7 @@ public final class PhoneRideStoreTest {
             // A 15 s GPS dropout (a tunnel) while climbing 0.1 m/s: elevation carries on from the ride's start, not 0.
             for (boolean barometer : new boolean[]{true, false}) {
                 String id = barometer ? "tunnel-barometer" : "tunnel-gps";
-                store.start(id, 1700000000000L, 1000, "pocket");
+                store.start(id, 1700000000000L, 1000);
                 StringBuilder tunnel = new StringBuilder();
                 for (int i = 0; i <= 60; i++) {
                     long mono = 1000 + i * 1000;
@@ -226,7 +226,7 @@ public final class PhoneRideStoreTest {
                 near(3.5, after.relativeAltitudeM, barometer ? .5 : .01, id + ": elevation after the dropout keeps the ride's baseline");
                 near(6, track.points.get(45).relativeAltitudeM, barometer ? .5 : .01, id + ": elevation at the end");
             }
-            store.start("uncertain-speed", 1700000000000L, 1000, "pocket");
+            store.start("uncertain-speed", 1700000000000L, 1000);
             store.appendBatch(
                     "uncertain-speed",
                     gps(1000, 43.82, 2, 0, null, null, null)
@@ -235,7 +235,7 @@ public final class PhoneRideStoreTest {
             check(
                     store.load("uncertain-speed").maxGpsAccelerationMps2 == null,
                     "Both derivative endpoints require speed accuracy");
-            store.start("stale-speed", 1700000000000L, 1000, "pocket");
+            store.start("stale-speed", 1700000000000L, 1000);
             store.appendBatch(
                     "stale-speed",
                     PhoneRideStore.row(
@@ -254,7 +254,7 @@ public final class PhoneRideStoreTest {
             check(
                     store.load("stale-speed").maxScooterAccelerationMps2 == null,
                     "Stale speed cannot create a summary peak");
-            store.start("reboot", 1700000000000L, 100000, "pocket");
+            store.start("reboot", 1700000000000L, 100000);
             store.appendBatch(
                     "reboot",
                     gps(100000, 43.82, 2, 5, .1, null, null)
@@ -276,7 +276,7 @@ public final class PhoneRideStoreTest {
                 blocked = true;
             }
             check(blocked, "Invalid ID cannot traverse private files");
-            store.start("long", 1700000000000L, 1000, "pocket");
+            store.start("long", 1700000000000L, 1000);
             StringBuilder longRows = new StringBuilder();
             for (int i = 0; i < 6500; i++) longRows.append(gps(1000 + i * 1000L, 43.82 + i * .00001, 2, i == 1235 ? 15 : 5, .1, 1500.0, 2.0));
             store.appendBatch("long", longRows.toString(), ""); store.stop("long", 1700006500000L, 6501000);
@@ -293,11 +293,45 @@ public final class PhoneRideStoreTest {
             try (RandomAccessFile oversized = new RandomAccessFile(store.rawCsv("oversized"), "rw")) { oversized.setLength(128L * 1024 * 1024 + 1); }
             boolean tooLarge = false; try { store.loadSnapshot("oversized"); } catch (IOException expected) { tooLarge = true; }
             check(tooLarge, "Oversized phone journal reports a load error instead of a silently partial full graph");
+            placement(store);
             System.out.println("PhoneRideStoreTest: " + checks + " assertions passed");
         } finally {
             File[] files = dir.listFiles();
             if (files != null) for (File f : files) f.delete();
             dir.delete();
+        }
+    }
+
+    /**
+     * Phone placement is no longer recorded. New START rows keep an empty fourth column; journals
+     * from older Volt versions keep reading "mounted" / "pocket", and the JSON keeps those values.
+     */
+    private static void placement(PhoneRideStore store) throws IOException {
+        String header = "event,wall_ms,monotonic_ms,a,b,c,d,e,f,g,h,i,j\n";
+        store.start("new-start", 1700000000000L, 1000);
+        store.appendBatch("new-start", gps(2000, 43.82, 4, 5, .5, null, null), "");
+        String raw = new String(Files.readAllBytes(store.rawCsv("new-start").toPath()), "UTF-8");
+        check(raw.startsWith(header + "START,1700000000000,1000,\n"), "New START row keeps the header and an empty fourth column: " + raw);
+        check(raw.split("\n")[1].split(",", -1).length == 4, "New START row keeps four columns");
+        PhoneRideStore.Track fresh = store.load("new-start");
+        check(fresh.placement == null, "A new ride has no placement");
+        check(fresh.toJson().contains("\"placement\":null,\"distanceMeters\":"), "JSON gives placement null for a new ride");
+        check(fresh.toJson().startsWith("{\"schemaVersion\":1,"), "Phone JSON schema version stays 1");
+        RideArchive.validateText(store.rawCsv("new-start"), false, false);
+        String[][] old = {{"old-mounted", ",mounted", "mounted"}, {"old-pocket", ",pocket", "pocket"}, {"old-missing", "", "pocket"}, {"old-other", ",handlebar", "pocket"}};
+        for (String[] item : old) {
+            Files.write(store.rawCsv(item[0]).toPath(), (header + "START,1700000000000,1000" + item[1] + "\n" + gps(2000, 43.82, 4, 5, .5, null, null)).getBytes("UTF-8"));
+            PhoneRideStore.Track track = store.load(item[0]);
+            check(item[2].equals(track.placement), item[0] + " reads as " + item[2] + ": " + track.placement);
+            check(track.toJson().contains("\"placement\":\"" + item[2] + "\",\"distanceMeters\":"), item[0] + " keeps its placement in JSON");
+            check(track.locationCount == 1, item[0] + " still reads its route");
+        }
+        RideArchive.validateText(store.rawCsv("old-mounted"), false, false);
+        RideArchive.validateText(store.rawCsv("old-pocket"), false, false);
+        for (String bad : new String[] {"old-missing", "old-other"}) {
+            boolean refused = false;
+            try { RideArchive.validateText(store.rawCsv(bad), false, false); } catch (IOException expected) { refused = true; }
+            check(refused, "Backups still refuse a START row that no Volt wrote: " + bad);
         }
     }
 

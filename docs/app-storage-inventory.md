@@ -35,7 +35,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `poll_interval_ms` | Integer | global | Durable | Telemetry refresh. |
 | `history_enabled` | Boolean | global | Durable | Save connected history. |
 | `phone_gps`, `phone_motion` | Boolean | global | Durable | Ride sidecar recording choices. |
-| `phone_placement` | String | global | Durable | `pocket`/`mounted`. |
+| `phone_placement` | String | global | Durable | Retired: no longer read or written. Older Volt wrote `pocket`/`mounted`; the key stays registered so older backups that hold it restore it. |
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
 | `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. |
