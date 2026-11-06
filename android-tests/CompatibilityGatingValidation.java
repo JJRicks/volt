@@ -283,8 +283,11 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 String status = String.valueOf(((View)field(row, "status")).getContentDescription());
                 if (tried.experimental()) {
                     listed.add(feature.key);
-                    // Anything the official app offers for this model keeps its Scooter row and never appears as an experiment.
-                    require(!(usual.support == CapabilityResolver.Support.KNOWN_ENCODING && !usual.variant.lab), label + ": offered " + feature.key + " listed as experimental");
+                    // Anything the official app offers for this model keeps its Scooter row and never appears as an experiment, except
+                    // kick-start held to 3–5 km/h by region (registry 19), which keeps its row and is also tried lower here.
+                    boolean lowStart = feature.key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(ble.descriptor());
+                    require(lowStart || !(usual.support == CapabilityResolver.Support.KNOWN_ENCODING && !usual.variant.lab), label + ": offered " + feature.key + " listed as experimental");
+                    if (lowStart) require(usual.available() && !usual.allows(2) && usual.allows(3) && java.util.Arrays.equals(tried.values(), new int[]{0, 1, 2, 3}), label + ": kick-start 3–5 km/h in Scooter settings, 0–3 km/h tried here");
                     require(status.equals("Untested on your model"), label + ": " + feature.key + " status " + status);
                 } else {
                     // Help verify: the official app offers it here and Volt hasn't verified it; its Scooter row is unchanged.
