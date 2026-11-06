@@ -1732,16 +1732,26 @@ public final class MainActivity extends Activity implements ScreenHost {
                 TextView caption=hiddenCaptions.get(card);
                 if(caption==null){
                     if(!show||!(card instanceof LinearLayout))continue;
-                    caption=hiddenCaption(card);hiddenCaptions.put(card,caption);((LinearLayout)card).addView(caption,new LinearLayout.LayoutParams(-1,-2));
+                    caption=hiddenCaption(card);hiddenCaptions.put(card,caption);
                 }
                 caption.setVisibility(show?View.VISIBLE:View.GONE);
             }
         }
-        /** A small muted line under the row, lined up with the row's name (past its icon). */
+        /**
+         * A small muted line under the row's name, where its own caption goes (a setting line's words, past its icon),
+         * or at the end of a card without one (the top speed card).
+         */
         private TextView hiddenCaption(View card){
             TextView caption=design.caption(T.menuSearchHidden());caption.setTag(ScooterMenuEditor.TAG_HIDDEN_CAPTION);
-            TextView name=firstText(card);int indent=name==null?0:name.getCompoundPaddingStart();
-            caption.setPaddingRelative(indent,0,0,design.dp(10));
+            TextView name=firstText(card);
+            android.view.ViewParent heading=name==null?null:name.getParent();android.view.ViewParent words=heading==null?null:heading.getParent();
+            if(words instanceof LinearLayout&&words!=card&&heading!=card){
+                caption.setPaddingRelative(name.getCompoundDrawablesRelative()[0]!=null?design.dp(42):0,design.dp(3),0,0);
+                ((LinearLayout)words).addView(caption,new LinearLayout.LayoutParams(-1,-2));
+            }else{
+                caption.setPaddingRelative(0,design.dp(6),0,0);
+                ((LinearLayout)card).addView(caption,new LinearLayout.LayoutParams(-1,-2));
+            }
             return caption;
         }
         private TextView firstText(View view){
