@@ -103,6 +103,22 @@ final class MaintenancePolicy {
         return r;
     }
 
+    /**
+     * Distance reminders saved before any odometer reading (a manual interval added early, a distance part
+     * added by an edit, a done marked before a reading) wait with no distance base. The first reading after
+     * that becomes their base: their distance counts from there. Reminders with a base are untouched.
+     * Returns whether any reminder changed.
+     */
+    static boolean settle(List<Reminder> reminders, double accumulatedKm) {
+        if (Double.isNaN(accumulatedKm) || Double.isInfinite(accumulatedKm)) return false;
+        boolean changed = false;
+        for (Reminder r : reminders) if (pending(r)) { r.baseAccKm = accumulatedKm; changed = true; }
+        return changed;
+    }
+
+    /** A distance reminder still waiting for its first odometer reading. */
+    static boolean pending(Reminder r) { return r.byDistance() && Double.isNaN(r.baseAccKm); }
+
     /** Adds a reminder unless the scooter already has {@link #MAX_REMINDERS} or one with its id. */
     static boolean add(List<Reminder> reminders, Reminder r) {
         if (reminders.size() >= MAX_REMINDERS) return false;

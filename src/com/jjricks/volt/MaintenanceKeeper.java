@@ -94,7 +94,9 @@ final class MaintenanceKeeper {
         if (!s.on) return null;
         MaintenanceDistance saved = MaintenanceStore.decode(text).distance;
         MaintenanceDistance.Outcome outcome = s.distance.observe(rawKm, bits, wall);
-        if (s.distance.worthSaving(saved)) { store(scope, MaintenanceStore.encode(s)); forgetPending(scope); }
+        // Reminders saved before any reading take this one as their distance base (written at once).
+        boolean settled = s.distance.everRead() && MaintenancePolicy.settle(s.reminders, s.distance.accumulatedKm);
+        if (settled || s.distance.worthSaving(saved)) { store(scope, MaintenanceStore.encode(s)); forgetPending(scope); }
         else { pending.put(scope, s.distance.copy()); pendingOn.put(scope, text); }
         return outcome;
     }

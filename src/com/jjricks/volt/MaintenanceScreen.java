@@ -231,6 +231,8 @@ final class MaintenanceScreen {
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, ui.dp(6)); bp.topMargin = ui.dp(8); bp.bottomMargin = ui.dp(6);
         row.addView(new Progress(status), bp);
         row.addView(new Pair(ui.caption(MaintenanceView.interval(r, units())), leftText(MaintenanceView.left(r, status, units(), now, MaintenanceScreen::date), status)));
+        // Saved before any odometer reading: its distance part starts counting at the next connection.
+        if (MaintenancePolicy.pending(r)) { TextView next = ui.caption(T.maintenanceDistanceNext()); next.setPadding(0, ui.dp(4), 0, 0); row.addView(next); }
         row.setClickable(true); row.setFocusable(true);
         row.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
         row.setOnClickListener(v -> detail(r.id));
@@ -525,15 +527,17 @@ final class MaintenanceScreen {
         });
         // Remind me after: Distance, Time or Either.
         content.addView(fieldLabel(T.maintenanceRemindAfter()));
-        // Distance and Either need an odometer reading, so a manual interval without one starts on Time.
-        boolean distanceOk = read || existing != null && existing.byDistance();
+        // Distance and Either need an odometer reading, except for a manual interval: it keeps its distance
+        // part, which counts from the next reading (MaintenancePolicy.settle). An edited distance reminder keeps its own.
+        boolean early = existing == null && suggested != null && suggested.byDistance() && !read;
+        boolean distanceOk = read || early || existing != null && existing.byDistance();
         int initialMode = shown == null ? (read ? 0 : 1) : !distanceOk || !shown.byDistance() ? 1 : shown.byTime() ? 2 : 0;
         final int[] mode = {initialMode};
         LinearLayout modes = new LinearLayout(host.activity());
         String[] modeNames = {T.maintenanceByDistance(), T.maintenanceByTime(), T.maintenanceByEither()};
         TextView[] modeChips = new TextView[3];
         content.addView(modes);
-        TextView reason = ui.caption(T.maintenanceNeverRead()); reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(reason);
+        TextView reason = ui.caption(early ? T.maintenanceDistanceNext() : T.maintenanceNeverRead()); reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(reason);
         TextView either = ui.caption(T.maintenanceEitherNote()); either.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(either);
         // Distance: a number in the rider's units and neutral shortcut chips.
         LinearLayout distanceBox = column();
@@ -621,12 +625,12 @@ final class MaintenanceScreen {
             int index = i;
             modeChips[i] = ui.chip(modeNames[i], mode[0] == i, () -> { mode[0] = index; showMode.run(); }); modeChips[i].setTag(TAG_MODE + i);
             // Distance and Either need an odometer reading first; time reminders always work.
-            boolean allowed = i == 1 || read || existing != null && existing.byDistance();
+            boolean allowed = i == 1 || distanceOk;
             modeChips[i].setEnabled(allowed); if (!allowed) modeChips[i].setAlpha(0.45f);
             LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(-2, -2); if (i > 0) mp.leftMargin = ui.dp(6);
             modes.addView(modeChips[i], mp);
         }
-        reason.setVisibility(read || existing != null && existing.byDistance() ? View.GONE : View.VISIBLE);
+        reason.setVisibility(read || !early && existing != null && existing.byDistance() ? View.GONE : View.VISIBLE);
         showMode.run();
         TextView save = ui.button(T.maintenanceSave(), () -> {
             String typed = name.getText().toString().trim();

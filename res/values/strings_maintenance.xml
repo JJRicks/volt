@@ -63,6 +63,7 @@
     <!-- Notes about the odometer. %1$s is a date. -->
     <string name="maintenance_stale" volt:screen="Maintenance" volt:purpose="note">The odometer was last read on %1$s. Rides since then count once Volt connects again.</string>
     <string name="maintenance_reset" volt:screen="Maintenance" volt:purpose="note">The odometer went backwards (a new dashboard or controller, or a reset?). Distance reminders keep counting from here.</string>
+    <string name="maintenance_distance_next" volt:screen="Maintenance" volt:purpose="note">Distance counts from the next connection.</string>
     <string name="maintenance_never_read" volt:screen="Maintenance" volt:purpose="reason">Connect once so Volt can read the odometer.</string>
     <string name="maintenance_whole_km" volt:screen="Add reminder" volt:purpose="note">This scooter reports whole kilometers. If it goes more than 255 km between connections, distance can come up short.</string>
 
