@@ -257,8 +257,7 @@ public final class RideStore {
     private final File directory;
     private Accumulator active;
     private CurrentDirection defaultDirection = CurrentDirection.UNCONFIRMED;
-    /** Unfinished or recovered journals only; a finished journal's summary lives in analysisCache. */
-    private final LinkedHashMap<String, CachedSummary> summaryCache = new LinkedHashMap<String, CachedSummary>(16, .75f, true);
+    private final LinkedHashMap<String, CachedSummary> summaryCache = new LinkedHashMap<String, CachedSummary>();
     /** Consistent immutable summary/trend pair for off-thread display analysis. */
     public static final class AnalysisSnapshot {
         public final Summary summary;
@@ -268,68 +267,25 @@ public final class RideStore {
             points = trendPoints(accumulator, MAX_TREND_POINTS);
         }
     }
-    /**
-     * One cache for every finished journal, keyed by its length and modified time: get(), list(), trend() and
-     * analysisSnapshots() all read it, and the constructor fills it from the read it already does at service start.
-     * Summaries are small and kept for every ride. Only the 600-point previews are capped: past PREVIEW_CAP, the least
-     * recently used entries drop their preview and keep their summary, so a long history never rereads every ride.
-     */
-    private final LinkedHashMap<String, CachedAnalysis> analysisCache = new LinkedHashMap<>(16, .75f, true);
-    static final int PREVIEW_CAP = 128;
-    private int cachedPreviews;
+    private final LinkedHashMap<String, CachedAnalysis> analysisCache = new LinkedHashMap<>();
     private static final class CachedAnalysis {
         final long length, modified;
-        final Summary summary;
-        /** Null once the preview is trimmed; the summary stays. */
-        volatile AnalysisSnapshot snapshot;
+        final AnalysisSnapshot snapshot;
         CachedAnalysis(long length, long modified, AnalysisSnapshot snapshot) {
-            this.length = length; this.modified = modified; this.snapshot = snapshot; this.summary = snapshot.summary;
-        }
-        boolean matches(long length, long modified) { return this.length == length && this.modified == modified; }
-    }
-    /** Stores a finished journal's analysis and trims the least recently used previews past PREVIEW_CAP. */
-    private synchronized void putAnalysis(String id, CachedAnalysis entry) {
-        CachedAnalysis old = analysisCache.put(id, entry);
-        if (old != null && old.snapshot != null) cachedPreviews--;
-        cachedPreviews++;
-        if (cachedPreviews <= PREVIEW_CAP) return;
-        for (CachedAnalysis eldest : analysisCache.values()) {
-            if (cachedPreviews <= PREVIEW_CAP) break;
-            if (eldest != entry && eldest.snapshot != null) { eldest.snapshot = null; cachedPreviews--; }
+            this.length = length; this.modified = modified; this.snapshot = snapshot;
         }
     }
-    private synchronized void forget(String id) {
-        CachedAnalysis old = analysisCache.remove(id);
-        if (old != null && old.snapshot != null) cachedPreviews--;
-        summaryCache.remove(id);
-    }
-    private synchronized void retainCached(java.util.Set<String> existing) {
-        summaryCache.keySet().retainAll(existing);
-        analysisCache.keySet().retainAll(existing);
-        cachedPreviews = 0;
-        for (CachedAnalysis entry : analysisCache.values()) if (entry.snapshot != null) cachedPreviews++;
-    }
-    /** Package-private for tests: how many journal replays this process has done. */
-    static final java.util.concurrent.atomic.AtomicLong replays = new java.util.concurrent.atomic.AtomicLong();
-    /** Test-only: runs at the start of each replay (for example, to hold one open). Always null in the app. */
-    static volatile Runnable replayHook;
 
     private static final class CachedSummary {
         final long length, modified;
         final Summary summary;
-        CachedSummary(long length, long modified, Summary summary) {
-            this.length = length; this.modified = modified; this.summary = summary;
+        CachedSummary(File file, Summary summary) {
+            this.length = file.length(); this.modified = file.lastModified(); this.summary = summary;
         }
-        boolean matches(long length, long modified) { return this.length == length && this.modified == modified; }
+        boolean matches(File file) { return length == file.length() && modified == file.lastModified(); }
     }
 
-    public RideStore(File directory) throws IOException { this(directory, false); }
-    /**
-     * deferFinished: replay only the journals that may be unfinished, so the service can start (and connect) without
-     * reading every saved ride first. A journal whose tail is a STOP row followed by whole RENAME rows is finished and
-     * is left for later; list() on a worker then reads it into the cache. Any other tail is replayed now, as before.
-     */
-    public RideStore(File directory, boolean deferFinished) throws IOException {
+    public RideStore(File directory) throws IOException {
         if (directory == null) throw new IllegalArgumentException("Ride directory required");
         this.directory = directory;
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Cannot create ride directory");
@@ -337,15 +293,9 @@ public final class RideStore {
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list ride directory");
         for (File file : files) if (isJournal(file)) {
-            if (deferFinished && endsFinished(file)) continue;
-            long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
-            if (candidate == null) continue;
-            // Keep this read: Rides opens from it instead of replaying every journal again.
-            if (candidate.stopped) {
-                if (file.length() == length && file.lastModified() == modified)
-                    putAnalysis(candidate.id, new CachedAnalysis(length, modified, new AnalysisSnapshot(candidate)));
-            } else if (active == null || candidate.startWall > active.startWall) active = candidate;
+            if (candidate != null && !candidate.stopped
+                    && (active == null || candidate.startWall > active.startWall)) active = candidate;
         }
         if (active != null) {
             repairTail(file(active.id));
@@ -481,54 +431,33 @@ public final class RideStore {
         repairTail(file(id));
         append(file(id), row("RENAME", ride.lastWall, ride.lastMono, "", "", "", "", "", "", "", "", "", clean));
         ride.label = clean;
-        forget(id);
+        summaryCache.remove(id); analysisCache.remove(id);
     }
 
     public synchronized String activeId() { return active == null ? null : active.id; }
     public synchronized Summary activeSummary() { return active == null ? null : new Summary(active); }
-    /**
-     * The active ride is answered from memory. A finished journal comes from the shared cache while its length and
-     * modified time match. A miss replays outside the recorder monitor, so sampling continues meanwhile.
-     */
-    public Summary get(String id) throws IOException {
+    public synchronized Summary get(String id) throws IOException {
+        if (active != null && active.id.equals(id)) return new Summary(active);
         File source = file(id);
-        synchronized (this) {
-            if (active != null && active.id.equals(id)) return new Summary(active);
+        if (!source.isFile()) { summaryCache.remove(id); return null; }
+        CachedSummary cached = summaryCache.get(id);
+        if (cached != null && cached.matches(source)) return cached.summary;
+        Accumulator a = read(source);
+        Summary summary = a == null ? null : new Summary(a);
+        if (summary != null) {
+            summaryCache.put(id, new CachedSummary(source, summary));
+            if (summaryCache.size() > 256) summaryCache.remove(summaryCache.keySet().iterator().next());
         }
-        long length = source.length(), modified = source.lastModified();
-        if (!source.isFile()) { forget(id); return null; }
-        synchronized (this) {
-            CachedAnalysis analysis = analysisCache.get(id);
-            if (analysis != null && analysis.matches(length, modified)) return analysis.summary;
-            CachedSummary cached = summaryCache.get(id);
-            if (cached != null && cached.matches(length, modified)) return cached.summary;
-        }
-        Accumulator parsed;
-        try { parsed = read(source); }
-        catch (IOException e) { if (!source.exists()) { forget(id); return null; } throw e; }
-        if (parsed == null) return null;
-        // Only an unchanged journal is cached; one that changed during the replay just misses next time.
-        if (source.length() != length || source.lastModified() != modified) return new Summary(parsed);
-        if (parsed.stopped) {
-            CachedAnalysis entry = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
-            putAnalysis(id, entry); return entry.summary;
-        }
-        Summary summary = new Summary(parsed);
-        synchronized (this) { summaryCache.put(id, new CachedSummary(length, modified, summary)); }
         return summary;
     }
-    /** Not synchronized as a whole: each get() takes the monitor only to read or fill the cache. */
-    public List<Summary> list() throws IOException {
+    public synchronized List<Summary> list() throws IOException {
         ArrayList<Summary> result = new ArrayList<Summary>();
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list rides");
-        java.util.HashSet<String> existing = new java.util.HashSet<>();
         for (File f : files) if (isJournal(f)) {
             String id = f.getName().substring(0, f.getName().length() - 4);
-            existing.add(id);
             Summary summary = get(id); if (summary != null) result.add(summary);
         }
-        retainCached(existing);
         Collections.sort(result, new Comparator<Summary>() { public int compare(Summary a, Summary b) {
             return a.startWallMs < b.startWallMs ? 1 : a.startWallMs == b.startWallMs ? a.id.compareTo(b.id) : -1;
         }});
@@ -560,21 +489,22 @@ public final class RideStore {
                 cached = analysisCache.get(id);
             }
             long length = source.length(), modified = source.lastModified();
-            AnalysisSnapshot snapshot = cached != null && cached.matches(length, modified) ? cached.snapshot : null;
-            if (snapshot == null) {
+            if (cached == null || cached.length != length || cached.modified != modified) {
                 Accumulator parsed;
                 try { parsed = read(source); }
                 catch (IOException e) { if (!source.exists()) continue; throw e; }
                 // A new active journal or an incomplete tail is not a completed snapshot.
                 if (parsed == null || !parsed.stopped) continue;
-                snapshot = new AnalysisSnapshot(parsed);
-                if (source.length() == length && source.lastModified() == modified)
-                    putAnalysis(id, new CachedAnalysis(length, modified, snapshot));
+                cached = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
+                synchronized (this) {
+                    analysisCache.put(id, cached);
+                    while (analysisCache.size() > 256) analysisCache.remove(analysisCache.keySet().iterator().next());
+                }
             }
-            if (snapshot.summary.scooterId.equals(scooterId)
-                    && snapshot.summary.endWallMs >= sinceWallMs) result.add(snapshot);
+            if (cached.snapshot.summary.scooterId.equals(scooterId)
+                    && cached.snapshot.summary.endWallMs >= sinceWallMs) result.add(cached.snapshot);
         }
-        retainCached(existing);
+        synchronized (this) { analysisCache.keySet().retainAll(existing); }
         return Collections.unmodifiableList(result);
     }
 
@@ -619,7 +549,7 @@ public final class RideStore {
     public synchronized boolean delete(String id) throws IOException {
         if (active != null && active.id.equals(id)) throw new IllegalStateException("Stop recording before deleting");
         File f = file(id); if (!f.exists()) return false;
-        if (!f.delete()) throw new IOException("Could not delete ride"); forget(id); return true;
+        if (!f.delete()) throw new IOException("Could not delete ride"); summaryCache.remove(id); analysisCache.remove(id); return true;
     }
     public synchronized void exportCsv(String id, File destination) throws IOException {
         File source = file(id);
@@ -646,14 +576,16 @@ public final class RideStore {
         }
         long length = source.length(), modified = source.lastModified();
         boolean preview = maxPoints >= MAX_TREND_POINTS;
-        AnalysisSnapshot hit = preview && cached != null && cached.matches(length, modified) ? cached.snapshot : null;
-        if (hit != null) return hit.points;
+        if (preview && cached != null && cached.length == length && cached.modified == modified) return cached.snapshot.points;
         Accumulator parsed = read(source);
         // Only an unchanged, completed journal is cached; a rename during the replay just misses next time.
         if (parsed != null && parsed.stopped && source.length() == length && source.lastModified() == modified) {
-            AnalysisSnapshot replayed = new AnalysisSnapshot(parsed);
-            putAnalysis(id, new CachedAnalysis(length, modified, replayed));
-            if (preview) return replayed.points;
+            CachedAnalysis replayed = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
+            synchronized (this) {
+                analysisCache.put(id, replayed);
+                while (analysisCache.size() > 256) analysisCache.remove(analysisCache.keySet().iterator().next());
+            }
+            if (preview) return replayed.snapshot.points;
         }
         return trendPoints(parsed, maxPoints);
     }
@@ -813,8 +745,6 @@ public final class RideStore {
     private static Accumulator read(File file, boolean keepAll) throws IOException { return read(file, keepAll, null); }
     private static Accumulator read(File file, boolean keepAll, LearnedRangeEstimate.Inspector inspector) throws IOException {
         if (!file.isFile()) return null;
-        replays.incrementAndGet();
-        Runnable hook = replayHook; if (hook != null) hook.run();
         String id = file.getName().substring(0, file.getName().length() - 4);
         Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
         Accumulator a = null;
@@ -863,36 +793,6 @@ public final class RideStore {
             }
         } finally { reader.close(); }
         return a;
-    }
-    /**
-     * True only when the journal ends with a STOP row followed by nothing but whole RENAME rows, the only rows Volt
-     * appends after STOP. A full replay of such a journal finds it finished (or unreadable without a START), never
-     * unfinished. Quotes, carriage returns, a partial last row or any other event return false, so the caller replays.
-     */
-    static boolean endsFinished(File file) {
-        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(file, "r")) {
-            long length = in.length();
-            int window = (int) Math.min(length, 16384);
-            if (window == 0) return false;
-            byte[] tail = new byte[window];
-            in.seek(length - window); in.readFully(tail);
-            String text = new String(tail, "UTF-8");
-            if (!text.endsWith("\n")) return false;
-            String[] lines = text.substring(0, text.length() - 1).split("\n", -1);
-            // The window's first line may start mid-row; it is never trusted.
-            int first = window < length ? 1 : 0;
-            for (int i = lines.length - 1; i >= first; i--) {
-                String line = lines[i];
-                if (line.indexOf('"') >= 0 || line.indexOf('\r') >= 0) return false;
-                String[] f = line.split(",", -1);
-                if (f.length != 15 || !"1".equals(f[0])) return false;
-                if ("RENAME".equals(f[1])) continue;
-                if (!"STOP".equals(f[1])) return false;
-                Long.parseLong(f[3]); Long.parseLong(f[4]);
-                return true;
-            }
-            return false;
-        } catch (IOException | RuntimeException unreadable) { return false; }
     }
     /** Read a staged journal without recovery or any writes to its containing folder. */
     static Summary inspectJournal(File source) throws IOException {

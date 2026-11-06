@@ -57,6 +57,15 @@ public final class RideAutoStopPolicy {
         /** Permission revoked, owner rejected or anything else Volt will not retry on its own. */
         UNRECOVERABLE
     }
+    /**
+     * The service's view of a loss: no Bluetooth permission is unrecoverable; the phone's Bluetooth
+     * switched off is {@link Loss#PHONE_BLUETOOTH_OFF}; otherwise the transport's own retry decision.
+     */
+    public static Loss loss(boolean permissions, boolean bluetoothEnabled, boolean recoverable) {
+        if (!permissions) return Loss.UNRECOVERABLE;
+        if (!bluetoothEnabled) return Loss.PHONE_BLUETOOTH_OFF;
+        return recoverable ? Loss.RECOVERABLE : Loss.UNRECOVERABLE;
+    }
     /** Why the quiet countdown runs. */
     public enum Quiet { NONE, SLOW, LONG, PHONE_BLUETOOTH_OFF, RESTART }
 

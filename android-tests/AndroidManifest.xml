@@ -18,7 +18,6 @@
   <instrumentation android:name="com.jjricks.volt.tests.DeveloperSettingsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated developer preview and preferences validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LiveStatsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Live Stats validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidesAnalysisValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated unified ride analysis validation" />
-  <instrumentation android:name="com.jjricks.volt.tests.RidesTimingValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator launch and Rides open timing" />
   <instrumentation android:name="com.jjricks.volt.tests.BatteryWidgetValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery widget presentation validation" />
   <instrumentation android:name="com.jjricks.volt.tests.CapacityWidgetValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated capacity widget loading validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MotionPolishValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator Battery cell, charging glow and lock trail rendering validation" />
