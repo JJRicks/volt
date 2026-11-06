@@ -237,8 +237,12 @@ public final class ScooterService extends Service {
         else if("STOP_CHARGE_ALARM".equals(action))stopChargeAlarm();
         else if("DISMISS_CHARGE_ALERT".equals(action))dismissChargeAlert();
         else if("STOP_ALERT_WATCH".equals(action))skipChargeAlert();
-        else if(STOP_CHARGE_LIVE.equals(action))stopChargeLive();
-        else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
+        else if(STOP_CHARGE_LIVE.equals(action)){
+            stopChargeLive();
+            // Background connection on (owner, 2026-11-06, "Option A"): the card's Disconnect also drops the link, as the plain notice's does.
+            if(backgroundConnection()&&noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}
+        }
+        else if("DISCONNECT".equals(action)){if(noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}}
         applyWorkPolicy(!stopAction||isRecording());warmRides();return isRecording()?START_STICKY:START_NOT_STICKY;
     }
     private boolean ridesWarming;
@@ -1074,7 +1078,18 @@ public final class ScooterService extends Service {
         catch(JSONException impossible){return;}
         settings.edit().putString(CHARGE_LIVE_STOPPED,out.toString()).apply();
     }
-    /** Disconnect on the card: Volt's own hold and card end, then the connection goes as after leaving Volt. No scooter command is sent. */
+    /**
+     * A notice's Disconnect: drops the link (no scooter command; BleController.disconnect stops reconnecting) and says
+     * whether nothing else needs the service, which then stops until something starts it again, such as opening Volt.
+     */
+    private boolean noticeDisconnect(){
+        ble.disconnect();
+        return !isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible;
+    }
+    /**
+     * Disconnect on the card: Volt's own hold and card end. No scooter command is sent. With Background connection off the
+     * connection then goes as after leaving Volt; with it on, onStartCommand drops it at once (noticeDisconnect).
+     */
     private void stopChargeLive(){
         restoreChargeLiveStopped();
         ChargeLiveHold.Facts facts=chargeLiveFacts();

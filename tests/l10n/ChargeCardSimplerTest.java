@@ -43,6 +43,7 @@ public final class ChargeCardSimplerTest {
         action();
         service();
         rearm();
+        backgroundDisconnect();
         System.out.println("ChargeCardSimplerTest: " + checks + " checks passed");
     }
 
@@ -167,6 +168,43 @@ public final class ChargeCardSimplerTest {
         check(src.contains("if(!value&&wasVisible)armChargeLive();else if(value)chargeLiveOpened();"), "applyVisibility calls it only with Volt's screen in front");
         check(src.split("chargeLive\\.opened\\(", -1).length == 2, "chargeLive.opened only from chargeLiveOpened");
         check(src.contains("visible=uiVisible;running=this;"), "a new service starts from uiVisible, false when it was recreated in the background");
+    }
+
+    /**
+     * Owner, 2026-11-06, "Option A is good": with Background connection on, the card's Disconnect also drops the link
+     * the way the plain notice's Disconnect does; opening Volt reconnects and re-arms the card.
+     */
+    private static void backgroundDisconnect() {
+        String src;
+        try { src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        String start = between(src, "public int onStartCommand(", "applyWorkPolicy(!stopAction||isRecording());");
+        String live = between(start, "else if(STOP_CHARGE_LIVE.equals(action)){", "else if(\"DISCONNECT\".equals(action))");
+        check(live.contains("stopChargeLive();") && live.indexOf("stopChargeLive();") < live.indexOf("noticeDisconnect()"), "the card's Disconnect ends the hold first");
+        check(live.contains("if(backgroundConnection()&&noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}"), "with Background connection on, it then drops the link as DISCONNECT does");
+        check(start.contains("else if(\"DISCONNECT\".equals(action)){if(noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}}"), "the plain notice's Disconnect runs the same noticeDisconnect");
+        String drop = between(src, "private boolean noticeDisconnect(){", "    }");
+        String rest = drop.replace("ble.disconnect();", "");
+        check(drop.contains("ble.disconnect();") && !rest.contains("ble.") && !rest.contains("connectLast(") && !rest.contains("write") && !rest.contains("send"), "dropping the link sends the scooter nothing");
+        check(start.contains("if(STOP_CHARGE_LIVE.equals(action))stopAction=true;"), "it is a stop action: the start doesn't reconnect");
+        String stop = between(src, "private void stopChargeLive(){", "    }");
+        check(!stop.contains("ble.") && !stop.contains("backgroundConnection"), "with Background connection off nothing changes: the hold ends, no disconnect call");
+        String after = between(src, "private void stopAfterChargeLive(){", "    }");
+        check(after.contains("if(keepsWorking()||backgroundConnection())return;") && after.contains("10000"), "off: the link still goes 10 s after the card ends");
+        // A reconnect needs Volt's screen or the background setting with the connect flag, which a stop action never passes.
+        check(src.contains("&& (visible || backgroundConnection())") && start.contains("applyVisibility(uiVisible,!stopAction)"), "the connect paths are the ones DISCONNECT already has");
+
+        // The card's side: on → Disconnect → no card; a recreated service still none; open Volt → leave → the card.
+        long t = 5 * H;
+        ChargeLiveHold h = new ChargeLiveHold();
+        check(h.leave(t, on("a", 50)), "Background connection on, leave: the card");
+        h.stop(50, "a", t + MIN);
+        check(!h.active() && !h.leave(t + 2 * MIN, on("a", 51)), "Disconnect: no card, even with the link back");
+        ChargeLiveHold re = new ChargeLiveHold();
+        for (ChargeLiveHold.Stopped st : h.stopped(t + 3 * MIN)) re.restoreStopped(st.profile, st.best, st.ageMs, 9 * MIN);
+        check(!re.leave(10 * MIN, on("a", 52)) && !re.active(), "a service recreated in the background neither shows nor holds it");
+        re.opened("a");
+        check(re.leave(11 * MIN, on("a", 52)), "open Volt (it reconnects), leave: the card is back");
     }
 
     private static String between(String text, String from, String to) {
