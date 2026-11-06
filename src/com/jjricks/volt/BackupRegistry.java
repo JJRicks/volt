@@ -70,6 +70,9 @@ final class BackupRegistry {
         prefix(app, "dashboard_v1_", String.class, DASHBOARDS, true);
         RULES.add(new Rule(app, "dashboard_slot_v1_", true, String.class, DASHBOARDS, null, true, true, false));
         prefix(app, "dashboard_empty_example_v1_", Boolean.class, DASHBOARDS, true);
+        // Riding mode's layout and its power bar's observed scale go with the dashboards (RidingConfig).
+        prefix(app, "riding_layout_v1_", String.class, DASHBOARDS, true);
+        prefix(app, "riding_power_scale_v1_", String.class, DASHBOARDS, true);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);

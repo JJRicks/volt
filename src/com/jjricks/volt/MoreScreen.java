@@ -2026,7 +2026,7 @@ public final class MoreScreen implements AppScreen {
             go.setText(selected == null ? (refused ? T.commonTryAgain() : T.moreLabTry()) : current != null && selected.equals(current) ? T.moreLabAlready(labValue(feature, d, selected))
                     : (refused ? T.moreLabTryAgainValue(labValue(feature, d, selected)) : T.moreLabTryValue(labValue(feature, d, selected))));
             go.setContentDescription(go.getText()); go.setEnabled(d.available() && !busy && change);
-            String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected) : null;
+            String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected, ble.descriptor()) : null;
             // From a setting shown but not offered here (kick-start below 3 km/h), a try moves to an offered value for good.
             if (caution == null && change && d.variant != null && !d.variant.allows(current) && d.variant.shows(current))
                 caution = T.moreLabCantSetBack(labValue(feature, d, current));
@@ -2050,6 +2050,8 @@ public final class MoreScreen implements AppScreen {
     }
     /** Where the official app offers this control instead (OEM tables), in plain words. */
     private static String labWhy(String key, DeviceDescriptor d) {
+        // A lower kick-start try beside the region's 3–5 km/h Scooter settings row: the official app does offer it here.
+        if (key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(d)) return T.moreLabWhyRegionStart();
         int[] n = ModelRegistry.offeredElsewhere(key, d);
         return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])
                 : T.moreLabWhyNone();

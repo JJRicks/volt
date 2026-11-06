@@ -58,6 +58,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `dashboard_slot_v1_<pid>_<0..2>` | String (JSON) | per scooter | Durable | Saved layout slots. |
 | `dashboard_empty_example_v1_<pid>` | Boolean | per scooter | Durable | Slot 3 intentionally empty; stops the example being reseeded. |
 | `dashboard_restore_undo_v1_<pid>` | String (JSON) | per scooter | Pending | Undo for a just-restored slot. Short-lived. |
+| `riding_layout_v1_<pid>` | String (JSON) | per scooter | Durable | Riding mode layout: the chosen frame and each frame's spot and switch choices that differ from its defaults. RidingConfig. |
+| `riding_power_scale_v1_<pid>` | String (JSON) | per scooter | Durable | Riding mode power bar scale: the observed peak draw and regen, rounded up to 250 W (`{"draw":1250,"regen":500}`). RidingConfig. |
 | `dashboard_*_unconfigured` | as above | none | Durable | Home's layout while no scooter exists (after **Skip setup**; `<pid>` = `unconfigured`). Not a scooter: backup counts and merges ignore it; only Replace everything restores it. |
 | `range_source_<pid>` | String | per scooter | Durable | `scooter`/`learned` range estimate. ScooterService. |
 | `range_follow_mode_<pid>` | Boolean | per scooter | Durable | Range follows drive mode. |
