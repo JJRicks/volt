@@ -384,7 +384,10 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
                                       strip_placeholders(text) if formatted else text)
         if lost["1"] and kind == "plural" and formatted and quantity not in single_number_categories(language["tag"]):
             count = set(placeholder_specs(english_other))
-            if count - set(placeholder_specs(reference)) and count <= set(placeholder_specs(text)):
+            # Only a 1 that stands where the English other form has its count is the spelled-out count: a 1
+            # both forms share ("after 1 minute") is a fixed value and must still appear.
+            spelled = compare_numbers(strip_placeholders(reference), strip_placeholders(english_other))[0]
+            if spelled["1"] and count - set(placeholder_specs(reference)) and count <= set(placeholder_specs(text)):
                 # The English spells this form's count as 1 ("1 widget"). Here the form covers more than one
                 # number, so it must keep the count placeholder (above), and that placeholder stands for the 1.
                 lost.subtract({"1": 1})
