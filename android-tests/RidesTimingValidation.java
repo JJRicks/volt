@@ -112,19 +112,15 @@ public final class RidesTimingValidation extends Instrumentation {
                 long[] selected = new long[2];
                 main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); selected[1] = SystemClock.uptimeMillis(); });
                 // The rows may arrive after the first frame (skeleton rows while a worker reads the rides).
+                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 20000);
+                SystemClock.sleep(2500);
                 Object screen = field(activity, "screen");
                 check(screen.getClass().getSimpleName().equals("RidesScreen"), "Rides is showing");
-                long rowsBy = SystemClock.uptimeMillis() + 20000, rows = -1;
-                while (rows < 0 && SystemClock.uptimeMillis() < rowsBy) {
-                    if (rowsShown(screen, seeded.length)) rows = SystemClock.uptimeMillis(); else SystemClock.sleep(2);
-                }
-                check(rows > 0, "History rows arrive");
-                SystemClock.sleep(Math.max(0, selected[0] + 2500 - SystemClock.uptimeMillis()));
-                check(rowsShown(screen, seeded.length) && ((android.view.ViewGroup) field(screen, "history")).getChildCount() > 0, "History rows drawn");
+                check((int) field(screen, "savedCount") == seeded.length && ((android.view.ViewGroup) field(screen, "history")).getChildCount() > 0, "History rows drawn");
                 result.putLong(pass + "_select_ms", selected[1] - selected[0]);
                 result.putLong(pass + "_busy_ms", busy(selected[1], selected[1] + 2500));
                 result.putLong(pass + "_first_row_ms", firstDrawAfter(selected[1]) - selected[0]);
-                // The first frame drawn after the real rows were built (equal to first_row when they come at once).
+                // The first frame after the real rows were built (equal to first_row when they come at once).
                 result.putLong(pass + "_rows_ms", firstDrawAfter(rows - 2) - selected[0]);
                 putLongest(result, pass, selected[0], selected[0] + 2500);
             }
@@ -199,9 +195,13 @@ public final class RidesTimingValidation extends Instrumentation {
         result.putInt("seeded_rides", count); result.putLong("seeded_bytes", bytes);
     }
 
-    /** Read from this thread while main builds the rows: a lagging read only delays rows_ms by one poll. */
-    private static boolean rowsShown(Object screen, int count) throws Exception {
-        return (int) field(screen, "savedCount") == count && !((String) field(screen, "historySignature")).isEmpty();
+    /** When the history rows were built, polled from this thread while main builds them (2 ms resolution). */
+    private static long waitForRows(Object screen, int count, long until) throws Exception {
+        while (SystemClock.uptimeMillis() < until) {
+            if ((int) field(screen, "savedCount") == count && !((String) field(screen, "historySignature")).isEmpty()) return SystemClock.uptimeMillis();
+            SystemClock.sleep(2);
+        }
+        throw new AssertionError("History rows never arrived");
     }
     private long firstDrawAfter(long time) {
         synchronized (draws) { for (long[] draw : draws) if (draw[0] >= time) return draw[0]; }
