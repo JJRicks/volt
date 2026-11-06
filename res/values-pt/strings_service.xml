@@ -26,6 +26,8 @@
     <string name="service_wait_measuring">Aguarda que «Carga pronta até» termine a medição</string>
     <!-- src:cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3 -->
     <string name="service_wait_history_cleanup">Aguarda que a limpeza do histórico termine</string>
+    <!-- src:1a4ffbad54745e7cd3400f0f48ced035c519d30a -->
+    <string name="service_finish_owner_setup">Termina primeiro a configuração do proprietário e repõe o registo de atividade da NAVEE</string>
     <!-- src:175fe362bdcdd02e7bd31d3fa05ec33ecba731ac -->
     <string name="service_finish_export">Termina primeiro a exportação atual</string>
     <!-- src:2dfb51a7a5ac2b2e64115a7bf37f054a29620048 -->

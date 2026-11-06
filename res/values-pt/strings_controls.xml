@@ -254,6 +254,8 @@
     <string name="controls_experimental_start_speed">Uma velocidade de arranque com impulso inferior a 3 km/h permite que o motor puxe a partir de parado logo que usas o acelerador.</string>
     <!-- src:d2d497d1972364eef4417e4bf90df4eb7aec3f0c -->
     <string name="controls_experimental_start_speed_region">Abaixo do intervalo oficial para esta região. Algumas trotinetes ficam presas em P ao acordar, depois de um bloqueio ou desbloqueio, até serem reiniciadas. Se a tua ficar, define 3 km/h.</string>
+    <!-- src:7f7b50de012785a2ff6e1bff2a886f3b848c6b80 -->
+    <string name="controls_experimental_energy_recovery">Isto vai deixar a recuperação de energia desativada, por isso os teus travões passam a fazer mais trabalho para parar.</string>
     <!-- src:fc6fd13ec7ff4620a356431586574897b470778c -->
     <string name="controls_experimental_speed_limit">Isto vai limitar a tua velocidade durante a condução, abaixo da definição «Velocidade máxima». «Repor» repõe a tua definição anterior.</string>
     <!-- src:aa38630dbef7eb71426a6d9f0671fe92045ce206 -->
