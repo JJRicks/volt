@@ -73,7 +73,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         try {
             admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                    .putString("theme", "dark").putString("units", "mi")
+                    .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
                     .putFloat("text_scale", Float.parseFloat(arguments.getString("text_scale", "1"))).commit(), "Fixture settings failed");
             seed();
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -100,6 +100,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 verifyCloseoutGeometry();
             } else if (mode.equals("example")) {
                 verifyAllWidgetsExample();
+            } else if (mode.equals("tiles")) {
+                verifyReadingTileSpan();
             } else if (mode.equals("compact")) {
                 verifyCompactReadingHeights();
             } else if (mode.equals("capacity")) {
@@ -167,6 +169,94 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
+    /**
+     * Reading tiles: the last tile spans a part-filled last row (ReadingSpan). Home with one to four
+     * readings, then the plan's 230 and 312 x 182 dp cards with three readings, LTR and RTL.
+     */
+    private void verifyReadingTileSpan() throws Exception {
+        String[] pool = {"power_w", "temperature_c", "battery_health_percent", "odometer_km"};
+        for (int count = 1; count <= pool.length; count++) {
+            final int shown = count;
+            main(() -> {
+                DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
+                widget.keys.clear();
+                widget.keys.addAll(Arrays.asList(pool).subList(0, shown));
+                invoke(dashboard(), "render");
+            });
+            settleMotion(); stopUiPulse();
+            main(() -> invoke(dashboard(), "refresh")); settle();
+            main(() -> {
+                View card = (View)tile("tiles");
+                ((ScrollView)field(activity, "scroll")).scrollTo(0, Math.max(0, card.getTop() - activity.ui().dp(160)));
+                overlayGeometry.add("tiles home count=" + shown + " " + assertReadingSpan(card, shown));
+            });
+            screenshot("tiles-" + count);
+        }
+        check("Home's Reading tiles with one to four readings: the last tile spans any part-filled last row, full rows unchanged");
+        main(() -> {
+            DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
+            widget.keys.clear();
+            widget.keys.addAll(Arrays.asList(pool).subList(0, 3));
+            invoke(dashboard(), "render");
+        });
+        settleMotion(); stopUiPulse();
+        main(() -> invoke(dashboard(), "refresh")); settle();
+        main(() -> {
+            View card = (View)tile("tiles");
+            int width = card.getWidth(), height = card.getHeight();
+            try {
+                for (int direction : new int[] {View.LAYOUT_DIRECTION_LTR, View.LAYOUT_DIRECTION_RTL}) {
+                    card.setLayoutDirection(direction);
+                    for (int[] size : new int[][] {{230, 182}, {312, 182}}) {
+                        measureCard(card, activity.ui().dp(size[0]), activity.ui().dp(size[1]));
+                        String rtl = direction == View.LAYOUT_DIRECTION_RTL ? "rtl" : "ltr";
+                        overlayGeometry.add("tiles card " + size[0] + "x" + size[1] + " " + rtl + " " + assertReadingSpan(card, 3));
+                        saveCardBitmap(card, "tiles-span-" + size[0] + "x" + size[1] + "-" + rtl);
+                    }
+                }
+            } finally {
+                card.setLayoutDirection(View.LAYOUT_DIRECTION_INHERIT);
+                measureCard(card, width, height);
+            }
+        });
+        check("Three Reading tiles in 230 and 312 x 182 dp cards: a wrapped third tile spans from the first tile's edge to the second's, LTR and RTL");
+    }
+
+    /** The last tile covers its own column to the row's far edge; every other tile stays one cell. */
+    private String assertReadingSpan(View card, int count) {
+        ViewGroup readings = (ViewGroup)field(card, "readingTiles");
+        require(readings.getChildCount() == count, "Reading tiles show " + readings.getChildCount() + " of " + count);
+        int columns = ((Number)field(readings, "columns")).intValue(), gap = activity.ui().dp(10);
+        boolean rtl = readings.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        View first = readings.getChildAt(0), last = readings.getChildAt(count - 1);
+        int cell = first.getWidth();
+        // The row's far edge: the last column of the first row, from one-cell stride.
+        int rowStart = rtl ? first.getRight() : first.getLeft();
+        int rowEnd = rtl ? rowStart - columns * cell - (columns - 1) * gap : rowStart + columns * cell + (columns - 1) * gap;
+        for (int i = 0; i < count - 1; i++)
+            require(readings.getChildAt(i).getWidth() == cell, "Reading tile " + i + " is not one cell wide");
+        int lastColumn = (count - 1) % columns;
+        int columnStart = rtl ? rowStart - lastColumn * (cell + gap) : rowStart + lastColumn * (cell + gap);
+        require((rtl ? last.getRight() : last.getLeft()) == columnStart, "Last Reading tile left its column");
+        require(Math.abs((rtl ? last.getLeft() : last.getRight()) - rowEnd) <= 1, "Last Reading tile does not reach the row's end edge");
+        require(Math.abs(rowEnd - (rtl ? 0 : readings.getWidth())) <= columns, "Reading tile row does not fill its card");
+        if (count > columns) {
+            View above = readings.getChildAt(count - 1 - columns);
+            require(last.getTop() > above.getBottom(), "Wrapped Reading tile overlaps the row above");
+        }
+        for (int i = 0; i < count; i++) {
+            ViewGroup tile = (ViewGroup)readings.getChildAt(i);
+            for (TextView text : texts(tile)) {
+                android.text.Layout layout = text.getLayout();
+                if (layout == null || text.getVisibility() != View.VISIBLE) continue;
+                float usable = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
+                for (int line = 0; line < layout.getLineCount(); line++)
+                    require(layout.getLineMax(line) <= usable + 1, "Reading tile text clips: " + text.getText());
+            }
+        }
+        return "columns=" + columns + " cell=" + cell + " last=" + last.getLeft() + ".." + last.getRight() + " width=" + readings.getWidth();
+    }
+
     /** Restore the shipped example; do not construct a lookalike in the fixture. */
     private void verifyAllWidgetsExample() throws Exception {
         final AtomicReference<String> savedExample = new AtomicReference<>();
