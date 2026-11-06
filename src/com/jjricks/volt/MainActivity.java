@@ -1390,6 +1390,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final ScheduleTestRow scheduleTest;
         private final ChargeAlertRow chargeAlert,lowAlert;
         private final TopSpeedCard topSpeed;
+        /** Menu layout (ScooterMenuLayout): each row's id, the "Done by" row glued under its parent, today's order and this scooter's layout. */
+        private final java.util.HashMap<String,View> menuViews=new java.util.HashMap<>();
+        private final java.util.HashMap<View,String> menuIds=new java.util.HashMap<>();
+        private final java.util.HashMap<View,View> gluedBelow=new java.util.HashMap<>(),gluedTo=new java.util.HashMap<>();
+        private final LinkedHashMap<String,java.util.List<String>> menuDefaults=new LinkedHashMap<>();
+        private ScooterMenuLayout menu;private String menuProfile;
         /** Two-column panes on wide screens; both null on a phone. */
         private final LinearLayout leftPane,rightPane;
         private boolean lights;
@@ -1442,7 +1448,6 @@ public final class MainActivity extends Activity implements ScreenHost {
                 LinearLayout body=design.groupCard();section.addView(body);
                 sections.put(name,section);bodies.put(name,body);labels.put(name,label);if(!expanded)view.addView(section);
             }
-            placeSections();
             ArrayList<ScooterCommands.Feature> ordered=new ArrayList<>();
             String[] priority={"cruise_control","energy_recovery","traction_control","hill_start_assist","parking_assist","hill_descent_control","start_speed",
                     "charge_limit","low_power","timed_charging","charge_start","auto_sensor","headlight","display_units","range_algorithm","turn_sound","lock_expiry"};
@@ -1454,10 +1459,10 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // Lock, PIN and proximity stay out of this list. Lab (experimental) controls get a row that shows only
                 // where another model maps them normally; maximum_speed's row replaces the top speed card the same way.
                 if(f.key.equals("lock")||f.key.equals("pin")||f.key.equals("proximity_key"))continue;
-                ControlRow control=new ControlRow(f);rows.add(control);addRow(groupOf(f),control.card);
+                ControlRow control=new ControlRow(f);rows.add(control);addRow(groupOf(f),control.card);menuRow(f.key,control.card);
                 if(f.key.equals("timed_charging")||f.key.equals("charge_start")){
                     ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));chargeRows.add(done);
-                    addRow("Battery",done.row.card);
+                    addRow("Battery",done.row.card);gluedBelow.put(control.card,done.row.card);gluedTo.put(done.row.card,control.card);
                     extras.put(done.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
                     shownExtras.put(done.row.card,new String[]{T.mainSearchDoneBy(),T.mainScheduleDoneBy()});
                 }
@@ -1496,8 +1501,59 @@ public final class MainActivity extends Activity implements ScreenHost {
             shownExtras.put(scheduleTest.row.card,new String[]{T.mainSearchTest(),T.mainScheduleTestRow()});
             shownExtras.put(lowAlert.row.card,new String[]{T.mainSearchLowAlert(),T.mainAlertLow()});
             shownExtras.put(security.card,new String[]{T.mainSearchSecurity(),T.mainRowSecurity()});
+            menuRow(ScooterMenuLayout.HEADLIGHT_INFO,headlightRow);menuRow(ScooterMenuLayout.LIGHT_ZONES,zonesRow);menuRow(ScooterMenuLayout.CLOCK_SYNC,clockLine.card);
+            menuRow(ScooterMenuLayout.SCHEDULE_TEST,scheduleTest.row.card);menuRow(ScooterMenuLayout.CHARGER,chargerLine.card);menuRow(ScooterMenuLayout.CHARGE_ALERT,chargeAlert.row.card);
+            menuRow(ScooterMenuLayout.LOW_ALERT,lowAlert.row.card);menuRow(ScooterMenuLayout.SECURITY_LINK,security.card);menuRow(ScooterMenuLayout.SCOOTER_NAME,identity.card);
+            menuRow(ScooterMenuLayout.TOP_SPEED,topSpeed.card);
+            // The default menu is the order just built, so a new row added the usual way gets its usual spot in a saved layout too.
+            menuDefaults.put(ScooterMenuLayout.TOP_SPEED_SECTION,java.util.Collections.singletonList(ScooterMenuLayout.TOP_SPEED));
+            for(Map.Entry<String,LinearLayout> e:bodies.entrySet()){
+                if(zoneSection(e.getKey()))continue;
+                ArrayList<String> ids=new ArrayList<>();LinearLayout body=e.getValue();
+                for(int i=0;i<body.getChildCount();i++){String id=menuIds.get(body.getChildAt(i));if(id!=null)ids.add(id);}
+                menuDefaults.put(e.getKey(),ids);
+            }
+            menu=ScooterMenuLayout.defaults(menuDefaults);
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
+            syncMenu();
             applyFilter();
+        }
+        private void menuRow(String id,View card){menuViews.put(id,card);menuIds.put(card,id);}
+        /** The Lights page's line and star zones: not part of the menu layout (owner, Q38 B), they always follow Lights. */
+        private boolean zoneSection(String name){return name.equals("Line lights")||name.equals("Star lights");}
+        /** Loads the active scooter's menu layout when the scooter changes; true when it did. */
+        private boolean syncMenu(){
+            ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();String id=profile==null?"":profile.id;
+            if(id.equals(menuProfile))return false;
+            menuProfile=id;
+            menu=ScooterMenuLayout.resolve(menuDefaults,id.isEmpty()?null:preferences.getString(ScooterMenuLayout.PREFIX+id,null));
+            for(String section:menuDefaults.keySet())if(bodies.containsKey(section))relayoutBody(section);
+            placeSections();
+            return true;
+        }
+        /** Puts a section's rows in menu order, each "Done by" row under its parent, with one divider before every row but the first. */
+        private void relayoutBody(String section){
+            LinearLayout body=bodies.get(section);ArrayList<View> current=new ArrayList<>(),wanted=new ArrayList<>();
+            java.util.HashMap<View,View> lines=new java.util.HashMap<>();
+            for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)lines.put((View)child.getTag(),child);else current.add(child);}
+            for(String id:menu.rows(section)){
+                View card=menuViews.get(id);if(card==null||!current.contains(card))continue;
+                wanted.add(card);View done=gluedBelow.get(card);if(done!=null&&current.contains(done))wanted.add(done);
+            }
+            for(View child:current)if(!wanted.contains(child))wanted.add(child);
+            if(wanted.equals(current))return;
+            body.removeAllViews();
+            for(int i=0;i<wanted.size();i++){
+                View card=wanted.get(i);
+                if(i>0){View line=lines.get(card);if(line==null){line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(card);line.setLayoutParams(new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(line);}
+                body.addView(card);
+            }
+        }
+        /** Hidden in the menu layout. Main page only, and never while searching: search still finds every setting. */
+        private boolean menuHidden(String section,View card){
+            if(lights||!normalize(query).isEmpty()||menu==null)return false;
+            View owner=gluedTo.containsKey(card)?gluedTo.get(card):card;String id=menuIds.get(owner);
+            return id!=null&&menu.hidden(section,id);
         }
         private String groupOf(ScooterCommands.Feature f){
             if(f.key.startsWith("line_"))return "Line lights";if(f.key.startsWith("star_"))return "Star lights";
@@ -1509,33 +1565,57 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean zone=group.equals("Line lights")||group.equals("Star lights");
             return lights?zone||group.equals("Lights"):!zone;
         }
+        /** The page's sections in menu order: the top speed card is one, and the line and star zones follow Lights. */
+        private ArrayList<View> sectionViews(ArrayList<String> names){
+            ArrayList<View> out=new ArrayList<>();
+            for(String name:menu.sections()){
+                if(name.equals(ScooterMenuLayout.TOP_SPEED_SECTION)){names.add(name);out.add(topSpeed.card);continue;}
+                if(!sections.containsKey(name))continue;
+                names.add(name);out.add(sections.get(name));
+                if(name.equals(GROUP_LIGHTS))for(String zone:new String[]{"Line lights","Star lights"}){names.add(zone);out.add(sections.get(zone));}
+            }
+            return out;
+        }
         /**
-         * Wide screens only: moves each group into its column for the current page. Reading order stays the
-         * phone order (left column, then right). Main page: Ride left, the rest right. Lights page: everything
-         * up to Line lights left (headlights first), Star lights onward right; searches fill the same columns.
+         * Puts the sections in menu order at the end of the page. Wide screens: each goes into its column for the
+         * current page. Reading order stays the phone order (left column, then right). Main page: the sections up to
+         * and including the first one that isn't Top speed or hidden go left (by default Top speed and Ride), the rest
+         * right. Lights page: everything up to Line lights left (headlights first), Star lights onward right; searches
+         * fill the same columns.
          */
         private void placeSections(){
-            if(leftPane==null)return;
-            for(LinearLayout section:sections.values())if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
-            for(Map.Entry<String,LinearLayout> e:sections.entrySet()){
-                String name=e.getKey();
-                boolean left=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile")):name.equals("Ride");
-                (left?leftPane:rightPane).addView(e.getValue());
+            if(menu==null)return;
+            ArrayList<String> names=new ArrayList<>();ArrayList<View> order=sectionViews(names);
+            if(leftPane==null){
+                int start=view.getChildCount()-order.size();boolean placed=start>=0;
+                for(int i=0;placed&&i<order.size();i++)placed=view.getChildAt(start+i)==order.get(i);
+                if(placed)return;
+                for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
+                for(View section:order)view.addView(section);
+                return;
+            }
+            for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
+            int leftCount=menu.wideLeftCount();
+            for(int i=0;i<order.size();i++){
+                String name=names.get(i);
+                boolean left=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile"))
+                        :menu.sections().indexOf(zoneSection(name)?GROUP_LIGHTS:name)<leftCount;
+                (left?leftPane:rightPane).addView(order.get(i));
             }
         }
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=!needle.isEmpty();int count=0;
             java.util.HashSet<String> visible=new java.util.HashSet<>();
-            for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):onPage(group));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
+            for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):onPage(group)&&!menuHidden(group,row.card));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             boolean zones=false;for(ControlRow row:rows)zones|=(row.feature.key.startsWith("line_")||row.feature.key.startsWith("star_"))&&offered(row.feature.key);
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
-                boolean match=e.getKey()==zonesRow&&(lights||!zones)||e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==headlightRow&&!lights&&!searching||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):onPage(metadata[0]);
+                boolean match=e.getKey()==zonesRow&&(lights||!zones)||e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==headlightRow&&!lights&&!searching||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):onPage(metadata[0])&&!menuHidden(metadata[0],e.getKey());
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
-            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):!lights);
+            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):!lights&&!menuHidden(ScooterMenuLayout.TOP_SPEED_SECTION,topSpeed.card));
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
             for(Map.Entry<String,LinearLayout> e:sections.entrySet()){
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
@@ -1582,6 +1662,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public View view(){return view;}
         @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}choiceSheet=null;}
         @Override public void refresh(){
+            if(syncMenu())applyFilter();
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
             scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();
