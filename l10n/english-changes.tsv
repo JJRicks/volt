@@ -159,10 +159,17 @@ readings_tyre_reminder	-	Tyre reminder (raw)	Tire reminder (raw)	owner approved 
 readings_tyre_reminder_short	-	Tyre reminder (raw)	Tire reminder (raw)	owner approved all English fixes (2026-11-05); D3: US spelling, as the rest of the catalog
 readings_value_charges	one	%1$d charges	%1$d charge	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
 readings_value_unknown_format_records	one	Unknown format %1$s · %2$d records	Unknown format %1$s · %2$d record	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+rides_battery_drop_description_count	one	Battery drop, %1$d percentage points	Battery drop, %1$d percentage point	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
+rides_battery_gain_description_count	one	Battery gain, %1$d percentage points	Battery gain, %1$d percentage point	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
 rides_delete_message	-	Route and sensor data. Can't undo.	Deletes its route and sensor data. Can't undo.	owner approved all English fixes (2026-11-05); language reviews: the noun fragment did not say anything is deleted
 rides_gaps	one	%1$d gaps	%1$d gap	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+rides_gps_fixes	one	%1$s fixes	%1$s fix	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
 rides_lab_description	-	Lab, experimental	Experimental	owner approved all English fixes (2026-11-05); D3: Experimental is the name; LAB only the visual badge; card title Controls to try
 rides_tile_max_speed	-	Max speed	Top speed	owner approved all English fixes (2026-11-05); D3: Maximum speed is the setting, Top speed the measured value, limit not cap (official Maximum Speed, Custom Speed Limit)
+service_charge_fast_samples_count	one	High-speed charger · %1$s local samples	High-speed charger · %1$s local sample	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
+service_charge_learning_unknown_count	one	Not applied until the charger is known · %1$s recordings stored	Not applied until the charger is known · %1$s recording stored	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
+service_charge_recordings_stored	one	%1$s recordings stored	%1$s recording stored	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
+service_charge_stock_samples_count	one	Stock charger · %1$s local samples	Stock charger · %1$s local sample	owner approved the English fixes (2026-11-05); the one item was a copy of the plural
 service_charge_stop_identity_changed	-	identity changed	different scooter	owner approved all English fixes (2026-11-05); language reviews: identity changed was opaque; a different scooter answered
 service_wait_charging_schedule	-	Wait for the charging schedule to finish	Wait for Volt to finish setting the charging schedule	owner approved all English fixes (2026-11-05); language reviews: means finishing setting the schedule, not the schedule running
 stats_charge_learned	one	 · %1$d learned charges	 · %1$d learned charge	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
@@ -188,3 +195,4 @@ ui_live_stats_disconnected	-	Live Stats, disconnected	Live Stats, not connected	
 # Code changes outside the catalog (D1), approved with the rest; reverse them in the code:
 # BackupActivity restoreCategories and fresh: the backup's date uses DisplayTime.dateTime (Volt's 12/24-hour setting) instead of java.text.DateFormat MEDIUM/SHORT.
 # QuickAccessGrid tileSpokenName (D3): TalkBack names the Maximum speed setting tile by the control's full name, controls_feature_maximum_speed (Maximum speed, unchanged), instead of the tile label, which is now the abbreviated Max. speed.
+# MoreScreen refreshChargeCurve (singulars, owner approved the English fixes 2026-11-05): the saved charge curves card's screen-reader text uses the new plurals more_dev_curves_stock_count and more_dev_curves_fast_count, which say "1 qualified stock charge recording" at 1, instead of the strings more_dev_curves_stock and more_dev_curves_fast (unchanged, kept for B18's ledger row).
