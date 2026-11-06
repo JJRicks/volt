@@ -56,6 +56,7 @@ Preserve the app's confirmed-state lock behavior, permission/lifecycle guards, f
 - `tests/OemControlsTest.java` holds the member/non-member tables, firmware edges, region-independent domains and the official Top speed and kick-start region rules (`officialSpeedRules`), truncated 0x70 fixtures and frozen frame hex for each mapped family.
 - `android-tests/CompatibilityGatingValidation.java` checks the UI gates with the developer simulator models (UT5 MAX, mapped 24431, unknown 39991) on a disposable emulator.
 - `android-tests/CompatControlsValidation.java` (`run-compat-gating.py --mode controls`) drives synthetic advertised IDs and a memory-only simulated serial region (`BleController.setSimulationRegion`; never applied to the UT5 MAX simulator) through the mapped families: rows and captions, choice and confirm sheets, equal choices across regions (except Top speed and kick-start's 0–2 km/h) and unchanged firmware refusals, the Lights page and Quick access tiles. It sends nothing over Bluetooth.
+- `android-tests/ScooterMenuEditValidation.java` (`run-compat-gating.py --mode menu-edit`) drives the Scooter tab's menu editor on the UT5 MAX simulator: the header pencil, a section's Move up action, fold while a grip is held, the eye with its Undo, Done and the live page's order and hidden row, rotation and an Activity rebuild while editing, Reset with Undo, Add back and Back. The editor sends no scooter command.
 
 ## Reports and local data
 

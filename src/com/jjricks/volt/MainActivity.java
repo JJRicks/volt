@@ -1676,9 +1676,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * Puts the sections in menu order at the end of the page. Wide screens: each goes into its column for the
-         * current page. Reading order stays the phone order (left column, then right). Main page: the sections up to
-         * and including the first one that isn't Top speed or hidden go left (by default Top speed and Ride), the rest
-         * right. Lights page: everything up to Line lights left (headlights first), Star lights onward right; searches
+         * current page. Reading order stays the phone order (left column, then right). Main page: a leading run of
+         * sections holding about half the shown rows goes left (ScooterMenuLayout.wideLeftCount; by default Top speed
+         * and Ride), the rest right. Lights page: everything up to Line lights left (headlights first), Star lights onward right; searches
          * fill the same columns.
          */
         private void placeSections(){
@@ -1692,15 +1692,48 @@ public final class MainActivity extends Activity implements ScreenHost {
                 for(View section:order)view.addView(section);
                 return;
             }
-            for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
-            int leftCount=menu.wideLeftCount();
+            int leftCount=menu.wideLeftCount(menuWeights());
+            ArrayList<View> left=new ArrayList<>(),right=new ArrayList<>();
             for(int i=0;i<order.size();i++){
                 String name=names.get(i);
-                boolean left=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile"))
+                boolean onLeft=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile"))
                         :menu.sections().indexOf(zoneSection(name)?GROUP_LIGHTS:name)<leftCount;
-                (left?leftPane:rightPane).addView(order.get(i));
+                (onLeft?left:right).add(order.get(i));
             }
+            if(endsWith(leftPane,left)&&endsWith(rightPane,right))return;
+            for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
+            for(View section:left)leftPane.addView(section);
+            for(View section:right)rightPane.addView(section);
         }
+        private boolean endsWith(LinearLayout pane,ArrayList<View> tail){
+            int start=pane.getChildCount()-tail.size();if(start<0)return false;
+            for(int i=0;i<tail.size();i++)if(pane.getChildAt(start+i)!=tail.get(i))return false;
+            for(int i=0;i<start;i++)if(sections.containsValue(pane.getChildAt(i))||pane.getChildAt(i)==topSpeed.card)return false;
+            return true;
+        }
+        /** Each section's shown rows on the main page, for balancing the wide columns; the top speed card is about three rows tall. */
+        private Map<String,Integer> menuWeights(){
+            java.util.HashMap<String,Integer> weights=new java.util.HashMap<>();
+            for(String section:menu.sections()){
+                int count=0;
+                for(String id:menu.rows(section))if(!menu.rowHidden(id)&&menuOffered(id))count+=id.equals(ScooterMenuLayout.TOP_SPEED)?3:gluedBelow.containsKey(menuViews.get(id))&&chargeDoneOffered()?2:1;
+                weights.put(section,count);
+            }
+            return weights;
+        }
+        /** The row shows on the main page for this model (hiding aside): the same tests applyFilter makes. */
+        private boolean menuOffered(String id){
+            View card=menuViews.get(id);if(card==null)return false;
+            if(card==topSpeed.card)return topSpeedCard();
+            if(card==headlightRow)return false;
+            if(card==zonesRow)return zonesOffered();
+            if(card==clockLine.card)return offered(KEY_CLOCK_SYNC);
+            if(card==scheduleTest.row.card)return scheduleTestOffered();
+            if(card==chargeAlert.row.card||card==lowAlert.row.card)return chargeAlertsOffered();
+            for(ControlRow row:rows)if(row.card==card)return rowOffered(row.feature.key)&&onPage(groupOf(row.feature));
+            return true;
+        }
+        private boolean zonesOffered(){boolean zones=false;for(ControlRow row:rows)zones|=(row.feature.key.startsWith("line_")||row.feature.key.startsWith("star_"))&&offered(row.feature.key);return zones;}
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=!needle.isEmpty();int count=0;
@@ -1723,6 +1756,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             String lightsLabel=lights&&!searching?T.mainGroupHeadlights():T.mainGroupLights();labels.get(GROUP_LIGHTS).setText(lightsLabel.toUpperCase(Fmt.locale(Locale.ROOT)));
             lightsHeader.setVisibility(lights?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
+            // The wide columns follow what this model shows (placeSections returns at once when nothing moves).
+            placeSections();
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
