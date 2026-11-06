@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
+        <item quantity="one">%1$s guardado</item>
+        <item quantity="many">%1$s guardados</item>
+        <item quantity="other">%1$s guardados</item>
+    </plurals>
+    <string name="more_history_storage_description" volt:src="368a9ccd675caf48fa9414bc33a6e309f0863242">Almacenamiento local, %1$s en uso. %2$s</string>
+    <string name="more_history_samples_description" volt:src="24417f4f329a26b3fc6be52a69fd54f123243261">Muestras guardadas: detalladas: %1$s, por minuto: %2$s y diarias: %3$s.</string>
     <string name="more_title" volt:src="17d5c3c485c5a79c9f4347c053466c35512e698c">Más</string>
     <string name="more_back_to_more" volt:src="3c40c1308f809bafc68da50bc8e3cefb59d69c5e">Volver a Más</string>
     <string name="more_back_to" volt:src="5754ef66b78377eed60c649b811212ced4eb3c28">Volver a %1$s</string>
