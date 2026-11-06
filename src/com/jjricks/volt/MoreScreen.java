@@ -1097,7 +1097,7 @@ public final class MoreScreen implements AppScreen {
         cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout box = group();
         box.setTag("preference_riding_night");
-        Row from = row(box, "pin", T.ridingNightFrom(), null, this::nightConsent);
+        Row from = row(box, "route", T.ridingNightFrom(), null, this::nightConsent);
         from.view.setTag("preference_riding_night_from");
         Row starts = row(box, "clock", T.ridingNightStarts(), null, () -> nightTime(NightSchedule.START_KEY, NightSchedule.START_DEFAULT, T.ridingNightStarts()));
         starts.view.setTag("preference_riding_night_starts");
