@@ -132,10 +132,6 @@
     <string name="more_prefs_awake">Mantener la pantalla encendida</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->
     <string name="more_prefs_awake_sub">Durante la grabación</string>
-    <!-- src:252e24584359549aebc59583f35def2b5f1f9ad8 -->
-    <string name="more_prefs_auto_stop">Finalizar viajes con el patinete detenido</string>
-    <!-- src:ec97c8635366f3b5dbf1b4cec381109b3262d680 -->
-    <string name="more_prefs_auto_stop_sub">10 s después de que se pierda la conexión Bluetooth con el patinete detenido</string>
     <!-- src:de937287934ead27c1cf8140ec073b47e06707fd -->
     <string name="more_prefs_battery">Grabación en segundo plano</string>
     <!-- src:47890c2c2c12e6af1e4a730e464b6788e7c17cd8 -->
