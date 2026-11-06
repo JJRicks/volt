@@ -53,6 +53,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastCh
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")
 # Notification spacing under Android's per-app enqueue rate limit.
 sources+=("$APP_DIR/src/com/jjricks/volt/NotificationPacer.java" "$TEST_DIR/NotificationPacerTest.java")
+# Riding mode's live range: estimator, calm readout and synthetic rides (docs/validation/live-range.md).
+sources+=("$APP_DIR/src/com/jjricks/volt/LiveRangeEstimator.java" "$APP_DIR/src/com/jjricks/volt/RangeReadout.java" "$TEST_DIR/LiveRangeScenarios.java" "$TEST_DIR/LiveRangeEstimatorTest.java")
 # Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
 # that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
 # ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
@@ -92,6 +94,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeProgressTrackerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeMeasureWindowTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeAlertPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NotificationPacerTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LiveRangeEstimatorTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.FastChargeTaperTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockStartupReferenceTest
