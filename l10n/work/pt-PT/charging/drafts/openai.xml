@@ -30,7 +30,7 @@
         <item quantity="many">Com base em %1$d de carregamentos anteriores</item>
         <item quantity="other">Com base em %1$d carregamentos anteriores</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Carregador não corresponde · estimativa pelo ritmo atual</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Discrepância do carregador · estimativa pelo ritmo de carregamento</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimativa pelo ritmo atual</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">A trotinete selecionada mudou durante a medição</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">O relógio do telemóvel mudou durante a medição</string>
@@ -69,17 +69,17 @@
     <string name="charging_schedule_turn_off_done_by" volt:src="96cca66872e859bcf1616978b7cb0fe8a74b8abf">Desativa primeiro «Carga pronta até»</string>
     <string name="charging_schedule_turn_off_scheduled" volt:src="5f0067adf313562c67b074bc33608e1853cab5f4">Desativa primeiro o carregamento programado</string>
     <string name="charging_schedule_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Aguarda novas leituras de carregamento</string>
-    <string name="charging_schedule_cancel_not_confirmed" volt:src="63289e8a5cc58aeab6d1d0e0f4f8e7634446bac4">O cancelamento do carregamento programado não foi confirmado; volta a conectar a trotinete e tenta novamente</string>
+    <string name="charging_schedule_cancel_not_confirmed" volt:src="63289e8a5cc58aeab6d1d0e0f4f8e7634446bac4" volt:attempt="2">Cancelamento da programação não confirmado; volta a conectar a trotinete e tenta novamente</string>
     <string name="charging_schedule_clock_failed" volt:src="c4b495c877ca869fae6c108aadfc74766637a6c4">Não foi possível definir o relógio da trotinete; o carregamento programado não foi alterado</string>
     <string name="charging_schedule_battery_changed" volt:src="0a27c043c120c8ba089de42d53565c25b9b20bab">O nível da bateria mudou; é necessária uma nova estimativa de carregamento</string>
-    <string name="charging_schedule_start_not_confirmed" volt:src="a91441dba7b7dea111b3393eeba4acf83ef82629">O início do carregamento não foi confirmado; verifica o carregamento programado na trotinete</string>
+    <string name="charging_schedule_start_not_confirmed" volt:src="a91441dba7b7dea111b3393eeba4acf83ef82629" volt:attempt="2">Início do carregamento não confirmado; verifica a programação da trotinete</string>
     <string name="charging_schedule_limit_changed" volt:src="a51efe59592d08bd0aec88843bd4cc04680feb96">O limite de carga mudou; verifica o carregamento programado e tenta novamente</string>
     <string name="charging_schedule_start_changed_estimate" volt:src="27db30fb4a095e46706d219c2044a55c9fbb7a22">O início do carregamento mudou, mas é necessária uma nova estimativa de carregamento</string>
     <string name="charging_schedule_start_passed" volt:src="35da343e6ca1933a8d187632b5b5673a990a003c">A carregar agora — a hora de início calculada já passou</string>
-    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5">A hora de início passou, mas o cancelamento do carregamento programado não foi confirmado</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5" volt:attempt="2">A hora de início já passou, mas o cancelamento da programação continua não confirmado</string>
     <string name="charging_schedule_limit_saved_no_estimate" volt:src="2cc8005ea08f3fc5617ad39055e67924ba7c253a">O limite de carga mudou; o início do carregamento está guardado sem uma estimativa da hora de conclusão</string>
     <string name="charging_schedule_battery_saved_no_estimate" volt:src="40f4b80d5c3e565325127cddf97c07970a1d0936">O nível da bateria mudou; o início do carregamento está guardado sem uma estimativa da hora de conclusão</string>
-    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d">O início do carregamento mudou, mas a ativação do carregamento programado não foi confirmada</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d" volt:attempt="2">O início do carregamento mudou, mas a ativação da programação continua não confirmada</string>
     <string name="charging_schedule_connection_changed" volt:src="25fe61147b8404efb684ce3a9bfda49efc2c7207">A ligação mudou; verifica o carregamento programado na trotinete antes de tentares novamente</string>
     <string name="charging_schedule_stopped_before_finish" volt:src="7bc9b4b59362f543f1dda93235a136bf1848b91b">A Volt parou antes de concluir; verifica se o carregamento programado está desativado</string>
 </resources>
