@@ -86,7 +86,7 @@ Placeholders are positional and numbered from 1 with no gaps:
 </plurals>
 ```
 
-The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. Pass the count as a local, a parameter or a field, not a method call: the batch check refuses `T.sRides(rides.size(), …)`, because it can't tell that the call returns the same number twice. Set the count on a local in an ordinary pull request first. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
+The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. Pass the count as a local, a parameter or a field, not a method call: the batch check refuses `T.sRides(rides.size(), …)`, because it can't tell that the call returns the same number twice. Set the count on a local in an ordinary pull request first. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. A grouped count that was `%,d` (`1,234 saved`) becomes `%1$s` in the catalog, with the quantity first and the number through `Fmt.groupedInteger`: `T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i]))`. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
 
 ### Spelling
 
