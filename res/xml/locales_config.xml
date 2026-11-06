@@ -4,4 +4,5 @@
      the first language PR on, so Android's per-app Language page stays hidden while Volt is English-only. -->
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
     <locale android:name="en" />
+    <locale android:name="es" />
 </locale-config>
