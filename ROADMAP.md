@@ -42,7 +42,6 @@ New languages ship as **beta**. On Android 13 and later, you can switch Volt alo
 
 ## Smaller items
 
-- **Phone placement** (Mounted or Pocket) only labels phone-sensor recordings today. Either make it improve how those recordings are read, or remove it.
 - The hardware check's read-only navigation step needs updating for the current screens.
 - More models: reported scooters and photos are added as owners send them.
 

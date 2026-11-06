@@ -462,7 +462,7 @@ public final class UiOrganizationValidation extends Instrumentation {
         require(fixtureDirectory.mkdir(), "Could not create isolated UI fixture");
         PhoneRideStore store = new PhoneRideStore(fixtureDirectory);
         String id = "synthetic-ui-preview"; long start = 100000, wall = 1700000000000L;
-        store.start(id, wall, start, "pocket"); StringBuilder rows = new StringBuilder();
+        store.start(id, wall, start); StringBuilder rows = new StringBuilder();
         for (int i = 0; i < 70; i++) {
             long mono = start + i * 1000, stamp = wall + i * 1000;
             if (i == 36) rows.append(PhoneRideStore.row("GAP", stamp, mono));

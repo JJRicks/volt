@@ -93,6 +93,10 @@ public final class BackupRegistryTest {
         prefs.get("app_settings").clear();prefs.get("onboarding").put("tick_usb","x");rejects(()->BackupRegistry.validateTypes(prefs),"excluded keys are still type-checked");
         prefs.get("onboarding").clear();prefs.get("app_settings").put("anything_new",new LinkedHashSet<>(Arrays.asList("a")));prefs.get("app_settings").put("ride_auto_stop",true);
         BackupRegistry.validateTypes(prefs);check(true,"unknown keys of any type stay portable");
+        // phone_placement is no longer read, but older backups hold it: it stays an App preference so they
+        // restore it in any scope, without a type failure.
+        check(BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings","phone_placement"))&&BackupRegistry.rule("app_settings","phone_placement").type==String.class,"retired phone_placement stays a String App preference");
+        for(String old:new String[]{"mounted","pocket"}){Map<String,Map<String,Object>> legacy=new LinkedHashMap<>();for(String n:BackupRegistry.NAMESPACES)legacy.put(n,new LinkedHashMap<>());legacy.get("app_settings").put("phone_placement",old);BackupRegistry.validateTypes(legacy);check(true,"an older backup with phone_placement="+old+" validates");}
         Map<String,Map<String,Object>> extra=new LinkedHashMap<>(prefs);extra.put("pending_documents",new LinkedHashMap<>());
         rejects(()->BackupRegistry.validateTypes(extra),"private namespaces are never accepted from a backup");
         String items="[{\"id\":\"a\",\"name\":\"One\",\"identity\":\"ABCDEF012345\",\"role\":0,\"mac\":\"02:00\",\"serial\":\"S1\",\"lastConnected\":5,\"pid_advertised\":2222,\"pid_advertised_wall\":17,\"name_default\":true,\"fw_meter\":\"1.0\",\"fw_controller\":\"2\",\"fw_bms\":\"3\",\"fw_screen\":\"4\",\"fw_uwb\":\"5\",\"fw_wall\":6,\"future\":{\"nested\":[1,2]}} , {\"id\":\"b\"}]";
