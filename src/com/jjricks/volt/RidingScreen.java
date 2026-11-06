@@ -277,7 +277,7 @@ final class RidingScreen implements AppScreen {
         ring = new Ring(layout.content("ring"), big, speedLast);
         Cell range = cell(layout.content("highlight"), !side ? 76 : shortWindow ? 64 : 96, false);
         if (side) range.card();
-        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84);
+        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84, false);
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
         if (side) {
@@ -358,7 +358,8 @@ final class RidingScreen implements AppScreen {
         trace = new TraceView(layout.content("trace"));
         Cell range = cell(layout.content("highlight"), !side ? 72 : shortWindow ? 60 : 96, false);
         range.card();
-        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 48 : 84);
+        // A short window held sideways leaves the tiles too little height for a name above the number.
+        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 48 : 84, side && shortWindow);
         if (side) {
             LinearLayout out = row();
             LinearLayout left = column();
@@ -409,13 +410,17 @@ final class RidingScreen implements AppScreen {
         return c;
     }
 
-    /** The two tiles as cards. A battery tile gets a bar under its number. */
-    private LinearLayout tiles(float maxSp) {
+    /**
+     * The two tiles as cards. A battery tile gets a bar under its number; an inline tile puts the
+     * name beside the number instead and leaves the bar out, so the number keeps its size.
+     */
+    private LinearLayout tiles(float maxSp, boolean inline) {
         LinearLayout out = row();
         for (int i = 0; i < RidingFrames.TILES.size(); i++) {
             Cell tile = cell(layout.content(RidingFrames.TILES.get(i)), maxSp, false);
             tile.card();
-            tile.addBelow(new Meter());
+            if (inline) tile.inline();
+            else tile.addBelow(new Meter());
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, 1);
             if (i > 0) p.setMarginStart(ui.dp(12));
             out.addView(tile, p);
