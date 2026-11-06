@@ -1041,6 +1041,43 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
+        ridingPreferences();
+    }
+    /** Riding mode's screen: brightness (Phone by default, owner Q20 A) and the rotation lock (Q14 A). */
+    private void ridingPreferences() {
+        label(T.ridingDisplaySection());
+        boolean sensor = RidingDisplay.hasLightSensor(host.activity());
+        String[] labels = sensor ? new String[]{T.ridingDisplayPhone(), T.ridingDisplayAuto(), T.ridingDisplayFixed()}
+                : new String[]{T.ridingDisplayPhone(), T.ridingDisplayFixed()};
+        String[] values = sensor ? new String[]{RidingBrightness.PHONE, RidingBrightness.AUTO, RidingBrightness.FIXED}
+                : new String[]{RidingBrightness.PHONE, RidingBrightness.FIXED};
+        segmentedField(T.ridingDisplayBrightness(), RidingBrightness.MODE_KEY, labels, values, RidingBrightness.PHONE);
+        segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
+                new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
+        View gap = new View(host.activity());
+        cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
+        LinearLayout box = group();
+        box.setTag("preference_riding_display");
+        // Off by default: the status bar keeps the phone's clock and battery (#254). Applies on the next entry.
+        Row hideBar = preferenceToggle(box, "screen", T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(),
+                RidingBars.HIDE_STATUS_BAR_KEY, false);
+        hideBar.view.setTag("preference_riding_hide_status_bar");
+        RidingBrightness.Store store = RidingDisplay.settings(settings());
+        Runnable[] showReset = new Runnable[1];
+        Row reset = row(box, "settings", T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
+            RidingBrightness.forget(store);
+            host.toast(T.ridingDisplayResetDone());
+            showReset[0].run();
+        });
+        reset.view.setTag("preference_riding_brightness_reset");
+        View resetDivider = box.getChildAt(box.indexOfChild(reset.view) - 1);
+        showReset[0] = () -> {
+            int shown = RidingBrightness.learned(store) ? View.VISIBLE : View.GONE;
+            reset.view.setVisibility(shown);
+            resetDivider.setVisibility(shown);
+        };
+        valueRefreshers.add(showReset[0]);
+        note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
     }
     private boolean batteryUnrestricted() {
         try {
