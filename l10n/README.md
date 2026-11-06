@@ -436,7 +436,8 @@ How `ledger_check.py` (G1) reads it:
     out, and each `value` is the argument that specifier formats at the merge base;
   - each specifier's `as` is the `Fmt` call `FMT_SPECS` in `ledger_check.py` pairs with it, with the
     `String.format` call's locale: `%.Nf` is `Fmt.decimal(<locale>, <value>, N)`, `%,.Nf` is
-    `Fmt.grouped(<locale>, <value>, N)` and `%d` is `Fmt.integer(<value>)` (only with `Locale.US`,
+    `Fmt.grouped(<locale>, <value>, N)`, `%,d` is `Fmt.groupedInteger(<locale>, <value>)` and `%d` is
+    `Fmt.integer(<value>)` (only with `Locale.US`,
     `Locale.ROOT` or `Locale.ENGLISH`, since `%d` prints the locale's digits). A plain `%s` (or
     `%n$s`) prints its argument as it is, so its `as` is the `value` itself, with only string
     literals in it turned into `T.<key>()` calls: `"%.2f %s"` with `metric ? "mph" : "mi"` becomes

@@ -171,7 +171,7 @@ T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
 
 | Need | Use |
 |---|---|
-| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`. `Locale.US` applies only in English; other languages use their own |
+| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`, `Fmt.groupedInteger(Locale.US, n)` for a grouped whole number (`%,d`). `Locale.US` applies only in English; other languages use their own |
 | Number with unit, range, percent | `T.fmtQuantity`, `T.fmtRange`, `T.fmtPercent` |
 | Clock or date on screen | `DisplayTime.clock`, `DisplayTime.dateTime`, `Fmt.datePattern` |
 | Speed | `DisplayUnits.speed` |
