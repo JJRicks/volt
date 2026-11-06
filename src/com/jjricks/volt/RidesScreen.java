@@ -501,11 +501,11 @@ public final class RidesScreen implements AppScreen {
         LinearLayout right = vertical(); right.setGravity(Gravity.END);
         TextView distance = ui.text(distance(s.distanceKm), 14.5f, s.distanceKm != null); distance.setGravity(Gravity.END);
         if (s.distanceKm == null) distance.setTextColor(ui.muted);
-        TextView time = ui.caption(duration(s.elapsedMs)); time.setGravity(Gravity.END); time.setPadding(0, ui.dp(4), 0, 0);
+        TextView time = ui.caption(duration(s.shownElapsedMs)); time.setGravity(Gravity.END); time.setPadding(0, ui.dp(4), 0, 0);
         right.addView(distance); right.addView(time);
         LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(-2, -2); rightParams.leftMargin = ui.dp(10);
         row.addView(right, rightParams);
-        String spoken = label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.elapsedMs);
+        String spoken = label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.shownElapsedMs);
         if (wide) {
             row.setClickable(true); row.setFocusable(true); row.setOnClickListener(v -> selectRide(s.id));
             row.setContentDescription(T.ridesHistoryRowWide(spoken));
@@ -700,7 +700,7 @@ public final class RidesScreen implements AppScreen {
         if (ride.distanceKm != null) tileReadings(distanceParts(ride.distanceKm));
         if (ride.averageSpeedKmh != null) tileReadings(speedParts(ride.averageSpeedKmh));
         if (ride.maximumSpeedKmh != null) tileReadings(speedParts(ride.maximumSpeedKmh));
-        List<View> journey = tiles(body, new String[]{"route", T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), "clock", T.ridesTileDuration(), duration(ride.elapsedMs),
+        List<View> journey = tiles(body, new String[]{"route", T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), "clock", T.ridesTileDuration(), duration(ride.shownElapsedMs),
                 "speed", T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
         if (ride.odometerReset) reasonOnTap(journey.get(0), T.ridesReasonOdometerReset());
         body.addView(ui.sectionLabel(T.ridesBatteryEnergy()));
@@ -1490,14 +1490,14 @@ public final class RidesScreen implements AppScreen {
             content.addView(names);
             LinearLayout group = ui.groupCard(); content.addView(group);
             compareLine(group, T.ridesTileDistance(), distance(a.distanceKm), distance(b.distanceKm));
-            compareLine(group, T.ridesTileDuration(), duration(a.elapsedMs), duration(b.elapsedMs));
+            compareLine(group, T.ridesTileDuration(), duration(a.shownElapsedMs), duration(b.shownElapsedMs));
             compareLine(group, T.ridesTileAvgSpeed(), speed(a.averageSpeedKmh), speed(b.averageSpeedKmh));
             compareLine(group, T.ridesCompareBatteryChange(), change(a.batteryDropPercent), change(b.batteryDropPercent));
             compareLine(group, T.ridesCompareMeasuredThroughput(), quantity(a.measuredThroughputWh, "Wh", 2), quantity(b.measuredThroughputWh, "Wh", 2));
             compareLine(group, T.ridesNetEnergy(), quantity(a.netConsumptionWh, "Wh", 2), quantity(b.netConsumptionWh, "Wh", 2));
             compareLine(group, T.ridesCompareEnergyPerDistance(), efficiency(a), efficiency(b), efficiencyReason(a), efficiencyReason(b));
             compareLine(group, T.ridesPowerCoverage(), percent(a.electricalCoverage), percent(b.electricalCoverage));
-            compareLine(group, T.ridesCompareGaps(), Long.toString(a.gapCount), Long.toString(b.gapCount));
+            compareLine(group, T.ridesCompareGaps(), Long.toString(a.shownGapCount), Long.toString(b.shownGapCount));
             compareLine(group, T.ridesCompareMinVoltage(), quantity(a.minimumVoltageV, "V", 2), quantity(b.minimumVoltageV, "V", 2));
             compareLine(group, T.ridesStationaryThroughput(), quantity(a.stationaryThroughputWh, "Wh", 2), quantity(b.stationaryThroughputWh, "Wh", 2));
             if (service.phoneRides != null) {
