@@ -24,6 +24,11 @@ final class UpdateCheck {
     interface Fetcher { String get(String url, String userAgent) throws IOException; }
     /** Replaced only by tests, which never reach the network. */
     static Fetcher fetcher = UpdateCheck::https;
+    /**
+     * The automatic check's abort hook (UpdateCheckJob): handed this thread's connection before it connects, so a
+     * revoked or stopped run can close it. It may throw to stop the request before it goes out. Unset for the manual check.
+     */
+    static final ThreadLocal<java.util.function.Consumer<HttpURLConnection>> opened = new ThreadLocal<>();
 
     /**
      * The line shown above a new release's notes, which come from GitHub in English: empty while Volt is English
@@ -99,6 +104,8 @@ final class UpdateCheck {
         if (!address.startsWith("https://")) throw new IOException("Only HTTPS");
         HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
         try {
+            java.util.function.Consumer<HttpURLConnection> hook = opened.get();
+            if (hook != null) hook.accept(connection);
             connection.setConnectTimeout(8000); connection.setReadTimeout(8000);
             connection.setInstanceFollowRedirects(false); connection.setUseCaches(false);
             connection.setRequestProperty("Accept", "application/vnd.github+json");
