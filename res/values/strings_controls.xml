@@ -284,7 +284,7 @@
     <string name="controls_experimental_start_speed_region" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.</string>
     <!-- Shown before trying energy recovery off. -->
     <string name="controls_experimental_energy_recovery" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns energy recovery off, so your brakes do more of the stopping.</string>
-    <!-- Shown before trying a custom speed cap. "Top speed" and "Set back" name a setting and a button on the same screen. -->
+    <!-- Shown before trying a custom speed cap. "Maximum speed" and "Set back" name a setting and a button on the same screen. -->
     <string name="controls_experimental_speed_limit" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.</string>
 
     <!-- The model line under a scooter's name (ModelRegistry.modelLineText); the report keeps the English. -->

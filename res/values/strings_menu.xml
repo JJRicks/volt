@@ -32,8 +32,8 @@
     <string name="menu_hint_folded" volt:screen="Scooter tab, editing menu" volt:purpose="caption">Moving a section folds them all so they fit.</string>
 
     <!-- ===== Sections and rows ===== -->
-    <!-- The top speed card's own section, which can move and hide like the others. -->
-    <string name="menu_top_speed" volt:screen="Scooter tab, editing menu" volt:purpose="group name" volt:safety="ride">Top speed</string>
+    <!-- The Maximum speed card's own section, which can move and hide like the others. It holds the scooter's Maximum speed setting, not a measured top speed. -->
+    <string name="menu_top_speed" volt:screen="Scooter tab, editing menu" volt:purpose="group name" volt:safety="ride">Maximum speed</string>
     <!-- How many settings a folded section holds. -->
     <plurals name="menu_settings_count" volt:screen="Scooter tab, editing menu" volt:purpose="caption">
         <item quantity="one">%1$d setting</item>

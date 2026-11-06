@@ -1,2 +1,2 @@
-{"back":"Top speed","key":"menu_top_speed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"bd5454ada3dd47ff513fe2425116d98bcc142545","target":"Velocidad punta"}
+{"back":"Maximum speed","key":"menu_top_speed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"f8ade37947e2a8d48c0c0f611caf211f310f9289","target":"Velocidad máxima"}
 {"back":"with «End of charging»","key":"menu_with_done_by","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"b25ae88f965781ba9a342efac6d570c983baf719","target":"con «Fin de carga»"}
