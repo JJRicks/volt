@@ -1,5 +1,5 @@
 # Ledger for update-checks: one row per original Java expression whose literals left src/.
 # Format: tools/l10n/ledger_check.py and l10n/README.md.
 location	pieces	key	kind	note
-src/com/jjricks/volt/MoreScreen.java:2150	["download"]	-	stays-english	the Check for updates row's icon key, moved with the row from About & permissions into More's own Updates section (updates()); never shown
-src/com/jjricks/volt/MoreScreen.java:2150	["check-updates"]	-	stays-english	the Check for updates row's view tag, moved with the row into updates(); UpdateCheckValidation finds the row by it; never shown
+src/com/jjricks/volt/MoreScreen.java:2165	["download"]	-	stays-english	the Check for updates row's icon key, moved with the row from About & permissions into More's own Updates section (updates()); never shown
+src/com/jjricks/volt/MoreScreen.java:2165	["check-updates"]	-	stays-english	the Check for updates row's view tag, moved with the row into updates(); UpdateCheckValidation finds the row by it; never shown
