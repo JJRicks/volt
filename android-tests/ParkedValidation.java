@@ -276,34 +276,34 @@ public final class ParkedValidation extends Instrumentation {
      * Only timings, the saved-ride count and message class names are recorded; no ride is read or copied.
      */
     private static final long RIDES_WAIT_MS=120_000;
+    /** Main thread: whether Rides is showing with its history rows built (the list or its empty card, not skeleton rows). */
+    private boolean historyBuilt(Activity activity){Object screen=field(activity,"screen");return screen!=null&&screen.getClass().getSimpleName().equals("RidesScreen")&&!((String)field(screen,"historySignature")).isEmpty();}
     private JSONObject timeRidesOpen(Activity activity)throws Exception{
-        List<Long> draws=Collections.synchronizedList(new ArrayList<>());List<long[]> messages=new ArrayList<>();List<String> labels=new ArrayList<>();
+        List<long[]> messages=new ArrayList<>();List<String> labels=new ArrayList<>();
         long[] opened=new long[1];String[] dispatching=new String[1];
         android.util.Printer printer=line->{long now=SystemClock.uptimeMillis();
             if(line.startsWith(">>>>> Dispatching to ")){opened[0]=now;dispatching[0]=line.substring(21);}
             else if(line.startsWith("<<<<< Finished")&&dispatching[0]!=null){synchronized(messages){messages.add(new long[]{opened[0],now});labels.add(dispatching[0]);}dispatching[0]=null;}};
-        ViewTreeObserver.OnDrawListener drawn=()->draws.add(SystemClock.uptimeMillis());View decor=activity.getWindow().getDecorView();
-        AtomicReference<Boolean> cached=new AtomicReference<>();long[] tap=new long[1];long rows=-1;JSONObject timing=new JSONObject();
+        // Set on main at the tap; the listener runs on main at draw time and asks then whether this frame has the rows.
+        AtomicReference<RidesOpenTiming> clock=new AtomicReference<>();
+        ViewTreeObserver.OnDrawListener drawn=()->{RidesOpenTiming open=clock.get();if(open!=null)open.onDraw(SystemClock.uptimeMillis(),historyBuilt(activity));};View decor=activity.getWindow().getDecorView();
+        AtomicReference<Boolean> cached=new AtomicReference<>();long[] tap=new long[1];boolean rows;JSONObject timing=new JSONObject();
         try{
             // The logger is on before the tap's own message, so the tab switch itself is measured.
             runMain(()->{assertNoUserRecording();cached.set(service.rides!=null&&service.rides.listCached()!=null);decor.getViewTreeObserver().addOnDrawListener(drawn);Looper.getMainLooper().setMessageLogging(printer);});
-            runMain(()->{tap[0]=SystemClock.uptimeMillis();selectOnMain(activity,"rides");});
+            runMain(()->{tap[0]=SystemClock.uptimeMillis();clock.set(new RidesOpenTiming(tap[0]));selectOnMain(activity,"rides");});
             // A cold first read of long rides runs on a worker behind skeleton rows; on a busy emulator it has taken 50 s.
             // A slower read is recorded, not failed: this step checks navigation, and the timing is evidence.
-            for(long until=tap[0]+RIDES_WAIT_MS;SystemClock.uptimeMillis()<until;SystemClock.sleep(2)){
-                Object screen=field(activity,"screen");
-                if(screen!=null&&screen.getClass().getSimpleName().equals("RidesScreen")&&!((String)field(screen,"historySignature")).isEmpty()){rows=SystemClock.uptimeMillis();break;}
-            }
+            rows=clock.get().awaitRows(RIDES_WAIT_MS);
             SystemClock.sleep(Math.max(500,tap[0]+2500-SystemClock.uptimeMillis()));
         }finally{runMain(()->{Looper.getMainLooper().setMessageLogging(null);if(decor.getViewTreeObserver().isAlive())decor.getViewTreeObserver().removeOnDrawListener(drawn);});}
-        long end=SystemClock.uptimeMillis(),firstFrame=-1,rowsFrame=-1,longest=-1;String longestLabel="";
-        synchronized(draws){for(long draw:draws){if(firstFrame<0&&draw>=tap[0])firstFrame=draw;if(rowsFrame<0&&rows>0&&draw>=rows)rowsFrame=draw;}}
+        long end=SystemClock.uptimeMillis(),longest=-1;String longestLabel="";Long firstFrame=clock.get().tapToFirstFrame(),rowsFrame=clock.get().tapToRows();
         synchronized(messages){for(int i=0;i<messages.size();i++){long[] m=messages.get(i);if(m[0]>=tap[0]-1&&m[0]<end&&m[1]-m[0]>longest){longest=m[1]-m[0];longestLabel=labels.get(i);}}}
         Object rides=field(activity,"screen");
         timing.put("saved_rides",(int)field(rides,"savedCount"));timing.put("list_cached_before_tap",cached.get());
         timing.put("process_age_ms",tap[0]-android.os.Process.getStartUptimeMillis());
-        timing.put("tap_to_first_frame_ms",firstFrame<0?JSONObject.NULL:firstFrame-tap[0]);
-        timing.put("tap_to_history_rows_ms",rowsFrame<0?JSONObject.NULL:rowsFrame-tap[0]);if(rows<0)timing.put("history_rows","not drawn within "+RIDES_WAIT_MS/1000+" s");
+        timing.put("tap_to_first_frame_ms",firstFrame==null?JSONObject.NULL:firstFrame);
+        timing.put("tap_to_history_rows_ms",rowsFrame==null?JSONObject.NULL:rowsFrame);if(!rows)timing.put("history_rows","not drawn within "+RIDES_WAIT_MS/1000+" s");
         timing.put("longest_main_message_ms",longest);timing.put("longest_main_message",longestLabel.replaceAll("\\{[0-9a-f]+\\}|@[0-9a-f]+",""));
         runMain(()->require("rides".equals(field(activity,"selectedPage")),"Navigation did not select rides"));waitForIdleSync();
         return timing;
