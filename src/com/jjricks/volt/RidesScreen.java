@@ -256,6 +256,17 @@ public final class RidesScreen implements AppScreen {
     private void toggleRecording() {
         RideRecordingApp.of(host).toggle();
     }
+    /** Why a ride did not start or stop (RideRecordingControl), as the Rides tab has always said it. */
+    static String recordingMessage(int outcome) {
+        switch (outcome) {
+            case RideRecordingControl.SIMULATING: return T.ridesToastExitSimulation();
+            case RideRecordingControl.FINISHING_PREVIOUS: return T.ridesToastFinishingPrevious();
+            case RideRecordingControl.NO_STORAGE: return T.ridesToastStorageUnavailable();
+            case RideRecordingControl.NOT_CONNECTED: return T.ridesToastConnectFirst();
+            case RideRecordingControl.NOT_STOPPED: return T.ridesToastCouldNotStop();
+            default: return null;
+        }
+    }
     private String defaultRideName() { return defaultRideName(host); }
     /** A new ride's name: date, time and the scooter's fresh drive mode, when it is known. */
     static String defaultRideName(ScreenHost host) {

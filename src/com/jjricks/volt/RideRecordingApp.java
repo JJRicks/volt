@@ -32,7 +32,7 @@ final class RideRecordingApp {
     private static final class HostScreen implements RideRecordingControl.Screen {
         private final ScreenHost host;
         HostScreen(ScreenHost host) { this.host = host; }
-        @Override public void toast(String text) { host.toast(text); }
+        @Override public void refused(int outcome) { host.toast(RidesScreen.recordingMessage(outcome)); }
         @Override public void rebuild() { host.rebuild(); }
         @Override public boolean phoneGps() {
             ScooterService s = host.service();

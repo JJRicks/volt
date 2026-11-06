@@ -23,7 +23,8 @@ final class RideRecordingControl {
 
     /** The screen side (the activity): messages, the location prompt, haptics and redraws. */
     interface Screen {
-        void toast(String text);
+        /** Says why a start or stop did not happen (RidesScreen.recordingMessage has the words). */
+        void refused(int outcome);
         /** Shows the app again after leaving simulation. */
         void rebuild();
         /** The phone GPS route setting: ask for location before the start. */
@@ -67,16 +68,10 @@ final class RideRecordingControl {
         return READY;
     }
 
-    /** The message a refused start shows; null when it shows none. */
-    static String message(int outcome) {
-        switch (outcome) {
-            case SIMULATING: return T.ridesToastExitSimulation();
-            case FINISHING_PREVIOUS: return T.ridesToastFinishingPrevious();
-            case NO_STORAGE: return T.ridesToastStorageUnavailable();
-            case NOT_CONNECTED: return T.ridesToastConnectFirst();
-            case NOT_STOPPED: return T.ridesToastCouldNotStop();
-            default: return null;
-        }
+    /** True when a refused start or stop says why: a ride already recording needs no message. */
+    static boolean explains(int outcome) {
+        return outcome == SIMULATING || outcome == FINISHING_PREVIOUS || outcome == NO_STORAGE
+                || outcome == NOT_CONNECTED || outcome == NOT_STOPPED;
     }
 
     boolean recording() { return recorder.recording(); }
@@ -91,7 +86,7 @@ final class RideRecordingControl {
 
     /**
      * Home's recorder card and riding mode: starts a ride where the rider is. It never stops one
-     * and never leaves simulation; a refused start says why with a toast.
+     * and never leaves simulation; a refused start says why (a toast).
      * STARTED or NOT_STARTED once it ran, STARTING while the location prompt is open.
      */
     int start() { return start(false); }
@@ -105,8 +100,7 @@ final class RideRecordingControl {
             return check;
         }
         if (check != READY) {
-            String text = message(check);
-            if (text != null) screen.toast(text);
+            if (explains(check)) screen.refused(check);
             return check;
         }
         boolean[] ran = {false};
@@ -129,7 +123,7 @@ final class RideRecordingControl {
         if (!recorder.recording()) return NOT_RECORDING;
         recorder.stop();
         int outcome = recorder.recording() ? NOT_STOPPED : STOPPED;
-        if (outcome == NOT_STOPPED) screen.toast(message(NOT_STOPPED));
+        if (outcome == NOT_STOPPED) screen.refused(NOT_STOPPED);
         else screen.confirmed();
         screen.changed();
         return outcome;
