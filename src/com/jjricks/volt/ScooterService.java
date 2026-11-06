@@ -412,9 +412,9 @@ public final class ScooterService extends Service {
         if(chargeRecovery!=null&&chargeRecovery.recovering())
             return T.serviceChargeReconnecting(Fmt.integer(Math.max(1,(chargeRecovery.remainingMs(SystemClock.elapsedRealtime())+999)/1000)));
         return (chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
-                        :chargeStore.paused()?T.serviceChargeStockSchedulePaused():T.serviceChargeStockSamples(Fmt.integer(chargeStore.sampleCount())))
+                        :chargeStore.paused()?T.serviceChargeStockSchedulePaused():T.serviceChargeStockSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount())))
                 :(chargeStore.chargerPaused()?T.serviceChargeFastChargerPaused()
-                        :chargeStore.paused()?T.serviceChargeFastSchedulePaused():T.serviceChargeFastSamples(Fmt.integer(chargeStore.sampleCount()))));
+                        :chargeStore.paused()?T.serviceChargeFastSchedulePaused():T.serviceChargeFastSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount()))));
     }
     /** Qualified sessions behind the curve estimates actually use; 0 while the charger is unknown, -1 while loading. */
     public int qualifiedChargeCurves(){
@@ -425,12 +425,10 @@ public final class ScooterService extends Service {
     public String chargeLearningSummary(){
         if(chargeModelLoading)return T.serviceChargeLoading();
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
-        int qualified=qualifiedChargeCurves();
-        return charger==null?T.serviceChargeLearningUnknown(Fmt.integer(chargeSnapshot==null?0:chargeSnapshot.sessions))
-                :charger==ChargeSessionStore.Charger.HIGH_SPEED?(qualified==1?T.serviceChargeLearningFastOne(Fmt.integer(qualified),Fmt.integer(chargeSnapshot==null?0:chargeSnapshot.sessions))
-                        :T.serviceChargeLearningFastOther(Fmt.integer(qualified),Fmt.integer(chargeSnapshot==null?0:chargeSnapshot.sessions)))
-                :(qualified==1?T.serviceChargeLearningStockOne(Fmt.integer(qualified),Fmt.integer(chargeSnapshot==null?0:chargeSnapshot.sessions))
-                        :T.serviceChargeLearningStockOther(Fmt.integer(qualified),Fmt.integer(chargeSnapshot==null?0:chargeSnapshot.sessions)));
+        int qualified=qualifiedChargeCurves(),sessions=chargeSnapshot==null?0:chargeSnapshot.sessions;
+        return charger==null?T.serviceChargeLearningUnknownCount(sessions,Fmt.integer(sessions))
+                :charger==ChargeSessionStore.Charger.HIGH_SPEED?T.serviceChargeLearningFastCount(qualified,Fmt.integer(qualified),T.serviceChargeRecordingsStored(sessions,Fmt.integer(sessions)))
+                :T.serviceChargeLearningStockCount(qualified,Fmt.integer(qualified),T.serviceChargeRecordingsStored(sessions,Fmt.integer(sessions)));
     }
     public boolean clearChargeRecordings(Runnable completion){
         if(destroyed||chargeStore==null||isChargeRecording()||chargeModelLoading)return false;
@@ -757,7 +755,7 @@ public final class ScooterService extends Service {
             chargeMeasure.finish();
             chargeDoneNotice(armed,armed?(measured?T.serviceMeasureMeasured(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs))
                     :T.serviceMeasurePlanned(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs)))
-                    :result==null?T.serviceMeasureOff():T.serviceMeasureResult(result));
+                    :result==null?T.serviceMeasureOff():T.serviceMeasureResult(ChargeScheduleText.shown(result)));
             endChargeMeasureWork();
         });
     }
@@ -822,7 +820,7 @@ public final class ScooterService extends Service {
         String about=T.serviceTestAbout(minutes,minutes);
         String text;
         switch(r.outcome){
-            case PASSED:text=seconds==0?T.serviceTestPassedOnTime():seconds==1?(r.offsetSeconds<0?T.serviceTestPassedSecondBefore(Fmt.integer(seconds)):T.serviceTestPassedSecondAfter(Fmt.integer(seconds))):(r.offsetSeconds<0?T.serviceTestPassedSecondsBefore(Fmt.integer(seconds)):T.serviceTestPassedSecondsAfter(Fmt.integer(seconds)));break;
+            case PASSED:text=seconds==0?T.serviceTestPassedOnTime():(r.offsetSeconds<0?T.serviceTestPassedBeforeCount(seconds,Fmt.integer(seconds)):T.serviceTestPassedAfterCount(seconds,Fmt.integer(seconds)));break;
             case RESUMED_EARLY:text=T.serviceTestEarly(about,about,T.serviceTestSetClock());break;
             case RESUMED_LATE:text=T.serviceTestLate(about,about,T.serviceTestSetClock());break;
             case NO_PAUSE:text=T.serviceTestNoPause(T.serviceTestSetClock());break;
@@ -830,11 +828,11 @@ public final class ScooterService extends Service {
             case LIMIT_REACHED:text=T.serviceTestLimit();break;
             case INTERRUPTED:return T.serviceTestInterrupted();
             case CANCELLED:text="";break;
-            default:text=r.failure==null?T.serviceTestNotStarted():T.serviceTestNotStartedReason(r.failure);
+            default:text=r.failure==null?T.serviceTestNotStarted():T.serviceTestNotStartedReason(ChargeScheduleText.shown(r.failure));
         }
         // Cleanup is reported plainly; an unconfirmed OFF leaves the missed-start alert to follow up.
         if(!r.scheduleOff)text+=T.serviceTestOffUnconfirmed();
-        else if(r.cleanup!=null)text+=T.serviceTestCleanup(r.cleanup);
+        else if(r.cleanup!=null)text+=T.serviceTestCleanup(ChargeScheduleText.shown(r.cleanup));
         return text.trim();
     }
     private void scheduleTestNotice(ChargeScheduleController.TestResult result){

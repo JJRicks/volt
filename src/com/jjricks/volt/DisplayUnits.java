@@ -155,4 +155,9 @@ public final class DisplayUnits {
         if ("km".equals(units)) return metric;
         return "dual".equals(units) ? T.fmtDual(imperial, metric) : imperial;
     }
+
+    /** Lock duration's hours for an option value (the same table on every model), or 0 for a value that has none. */
+    static int lockHours(int value) {
+        return value == 1 ? 6 : value == 2 ? 12 : value == 3 ? 24 : 0;
+    }
 }

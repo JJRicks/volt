@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * checked in src/ and the catalogue it calls is checked here):
  *
  *  - A Setting tile is announced by the full name (entry.label()), or by the two Scooter-page names it
- *    keeps (Top speed, Charge schedule), while its visible label stays the short rung.
+ *    keeps (Charge schedule), while its visible label stays the short rung (Max. speed for Maximum speed).
  *  - Every full shortcut name, which a Quick access button shows, carries that button's width budget,
  *    derived from the cell's own layout numbers, and the file's header says a single word must fit one line.
  */
@@ -75,7 +75,7 @@ public final class DashboardModelTileTest {
     private static void spokenName() throws Exception {
         String grid = read(GRID);
         String spoken = method(grid, "private static String tileSpokenName(QuickAccessActions.Entry entry) {");
-        check(spoken.contains("if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();"), "spoken Top speed");
+        check(!spoken.contains("dashboardModelTileTopSpeed"), "the Maximum speed tile is spoken by its full name, not the abbreviated Max. speed");
         check(spoken.contains("if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();"), "spoken Charge schedule");
         check(spoken.contains("return entry.label().render();") && !spoken.contains("shortLabel"), "spoken name is the full rung");
         String shown = method(grid, "private static String tileLabel(QuickAccessActions.Entry entry) {");
@@ -91,7 +91,7 @@ public final class DashboardModelTileTest {
             same("full:" + e.label, e.label().render(), e.id + " full rung");
             same("short:" + e.label, e.shortLabel().render(), e.id + " short rung");
         }
-        same("full:Top speed", T.dashboardModelTileTopSpeed(), "Top speed tile key");
+        same("full:Max. speed", T.dashboardModelTileTopSpeed(), "Max. speed tile key");
         same("full:Charge schedule", T.dashboardModelTileChargeSchedule(), "Charge schedule tile key");
     }
 
