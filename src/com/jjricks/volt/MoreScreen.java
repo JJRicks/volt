@@ -65,6 +65,8 @@ public final class MoreScreen implements AppScreen {
     /** Wide mode only: each pane scrolls on its own. */
     private ScrollView menuScroll, sectionScroll;
     private final Row[] menuRows = new Row[SECTIONS.length];
+    /** Wide layout: every row in the left (menu) pane, which Panes widens until their longest words fit. */
+    private final List<RowLine> menuPaneRows = new ArrayList<>();
     private LinearLayout cardDestination, onboardingCard, sectionMenu, indexView, sectionHeader;
     private View sectionBack;
     private TextView sectionTitle, sectionBackLabel;
@@ -403,10 +405,15 @@ public final class MoreScreen implements AppScreen {
      * Menu on the left, submenu on the right, 20dp apart. The gap sits on the window's centre line, where
      * a book-posture hinge falls, so no row lies under the fold; this also gives the menu the narrower
      * column of the approved mockup. Each pane keeps a usable minimum width.
+     * The narrow-label ladder: when a menu row's longest title word cannot fit, in any language, the menu
+     * widens off the centre line until it does, as far as the submenu's minimum allows; past that, the row's
+     * decorative icon steps aside (RowLine). Titles that already fit, such as English, keep the centred split.
      */
     private final class Panes extends LinearLayout {
         final View first, gutter, second;
         int split = -1;
+        /** Menu width at which every menu row's longest title word fits beside its icon (0: no need). */
+        int wordsNeed;
         Panes(View left, View right) {
             super(host.activity()); setOrientation(HORIZONTAL); setBaselineAligned(false);
             first = left; second = right; gutter = new View(host.activity());
@@ -423,7 +430,7 @@ public final class MoreScreen implements AppScreen {
                 // Layout position, not on-screen position: a tab transition slides this page in,
                 // and measuring mid-slide used to leave the menu narrow until the next layout.
                 want = window.getWidth() / 2 - gap / 2 - Ui.layoutLeftInWindow(this);
-            return Math.max(min, Math.min(max, want));
+            return Math.max(min, Math.min(max, Math.max(want, wordsNeed)));
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int size = MeasureSpec.getSize(widthSpec), gap = ui.dp(20);
@@ -431,6 +438,28 @@ public final class MoreScreen implements AppScreen {
             ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
             ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, size - split - gap);
             super.onMeasure(widthSpec, heightSpec);
+            // Each row's chrome (padding, icon, value, chevron) is fixed, so its title grows one for one
+            // with the menu: the menu width a row needs is its longest word plus that chrome.
+            int need = 0;
+            for (RowLine line : menuPaneRows) {
+                if (!shownWithin(line, this) || line.getMeasuredWidth() == 0) continue;
+                int word = line.longestWord();
+                if (word > 0) need = Math.max(need, split - line.titleRoomWithIcon() + word);
+            }
+            if (need == wordsNeed) return;
+            wordsNeed = need;
+            int wanted = split(size);
+            if (wanted == split) return;
+            split = wanted;
+            ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
+            ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, size - split - gap);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+        /** Visible all the way up to root, so this measure pass sized it. */
+        private boolean shownWithin(View view, View root) {
+            for (View v = view; v != null && v != root; v = v.getParent() instanceof View ? (View) v.getParent() : null)
+                if (v.getVisibility() != VISIBLE) return false;
+            return true;
         }
         @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
             // The window position is final only now. Re-split before this frame draws rather than
@@ -517,6 +546,62 @@ public final class MoreScreen implements AppScreen {
         }
     }
 
+    /**
+     * A row's line. The narrow-label ladder's decorative rung: when the title's longest word (of its last,
+     * shortest rung when it has a ladder) cannot fit beside the boxed icon, the icon steps aside so the word
+     * never breaks mid-way; it returns once the word fits beside it. A numbered step icon carries meaning
+     * and always stays. The title's text, and so its spoken text, is unchanged.
+     */
+    private final class RowLine extends LinearLayout {
+        final Row row;
+        /** The title's last ladder rung, the text that must fit whole; null when the title has no ladder. */
+        CharSequence fallback;
+        private boolean iconAside;
+        RowLine(Row row) {
+            super(host.activity()); this.row = row;
+            setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
+        }
+        /** The icon's box and its gap to the title. */
+        private int iconRoom() { return ui.dp(34) + ui.dp(12); }
+        /** Width of the widest piece of the title a line break may not split, in px; 0 for no title. */
+        int longestWord() {
+            if (row.title == null) return 0;
+            CharSequence text = fallback != null ? fallback : row.title.getText();
+            return longestUnbreakable(text, row.title.getPaint());
+        }
+        /** Room the title gets with the icon beside it, from the last measure. */
+        int titleRoomWithIcon() {
+            View words = (View) row.title.getParent();
+            int room = words.getMeasuredWidth() - row.title.getCompoundPaddingLeft() - row.title.getCompoundPaddingRight();
+            return iconAside ? room - iconRoom() : room;
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            super.onMeasure(widthSpec, heightSpec);
+            if (row.icon == null || row.icon.step != null || row.title == null) return;
+            boolean aside = longestWord() > titleRoomWithIcon();
+            if (aside == iconAside) return;
+            iconAside = aside;
+            // Set the icon's size in place, as Panes does: no layout request from inside a measure pass.
+            LayoutParams lp = (LayoutParams) row.icon.getLayoutParams();
+            lp.width = lp.height = aside ? 0 : ui.dp(34); lp.rightMargin = aside ? 0 : ui.dp(12);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+    /** The widest run of text a line may not break inside (a word, with any glued punctuation), in px. */
+    private static int longestUnbreakable(CharSequence text, android.text.TextPaint paint) {
+        if (text == null || text.length() == 0) return 0;
+        String s = text.toString();
+        java.text.BreakIterator breaks = java.text.BreakIterator.getLineInstance(Fmt.displayLocale());
+        breaks.setText(s);
+        float widest = 0;
+        for (int start = breaks.first(), end = breaks.next(); end != java.text.BreakIterator.DONE; start = end, end = breaks.next()) {
+            int stop = end;
+            while (stop > start && Character.isWhitespace(s.charAt(stop - 1))) stop--;
+            if (stop > start) widest = Math.max(widest, paint.measureText(s, start, stop));
+        }
+        return (int) Math.ceil(widest) + 1;
+    }
+
     /** One divided row in a group card: boxed icon, title, optional sub-text, trailing value and chevron. */
     private final class Row {
         LinearLayout view; RowIcon icon; TextView title, sub, value; View chevron, lock; Switch toggle; boolean danger;
@@ -562,7 +647,9 @@ public final class MoreScreen implements AppScreen {
     private Row row(LinearLayout group, String iconKey, String title, String sub, Runnable action) {
         if (group.getChildCount() > 0) ui.divider(group);
         Row r = new Row();
-        r.view = row(); r.view.setMinimumHeight(ui.dp(58)); r.view.setPadding(0, ui.dp(9), 0, ui.dp(9));
+        RowLine line = new RowLine(r);
+        r.view = line; r.view.setMinimumHeight(ui.dp(58)); r.view.setPadding(0, ui.dp(9), 0, ui.dp(9));
+        if (wide && cardDestination == indexView) menuPaneRows.add(line);
         if (iconKey != null) {
             r.icon = new RowIcon(iconKey);
             LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)); ip.rightMargin = ui.dp(12);
@@ -2359,7 +2446,10 @@ public final class MoreScreen implements AppScreen {
         // the title and the switch keep the full wording as their spoken text.
         StatusRungs ladder = new StatusRungs(auto[0].title); ladder.maxLines = 2;
         auto[0].title.addOnLayoutChangeListener(ladder);
-        ladder.show(new CharSequence[]{T.moreUpdatesAuto(), T.moreUpdatesAutoShort()});
+        CharSequence[] rungs = {T.moreUpdatesAuto(), T.moreUpdatesAutoShort()};
+        ladder.show(rungs);
+        // The menu makes room for the last rung's longest word, so the ladder always has a whole-word rung.
+        ((RowLine) auto[0].view).fallback = rungs[rungs.length - 1];
         valueRefreshers.add(() -> {
             refreshSwitch(auto[0], UpdateCheckJob.enabled(settings()), true);
             auto[0].toggle.setContentDescription(T.morePlain(T.moreUpdatesAuto()));
