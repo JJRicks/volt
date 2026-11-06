@@ -13,6 +13,8 @@ in council_models.json.
 Tests replace the transport (set_transport) and never reach the network.
 """
 
+import collections
+import contextlib
 import json
 import os
 import re
@@ -233,6 +235,53 @@ def choose_model(provider, role, available, config=None, prefer=None, avoid=()):
             return max(matches, key=_natural)
     raise ProviderError("no %s model matches the %s preference %s (of %d listed)" % (
         provider, role, patterns, len(available)))
+
+
+# ---------------------------------------------------------------------------
+# Token usage
+# ---------------------------------------------------------------------------
+
+@contextlib.contextmanager
+def recorded_responses():
+    """Every decoded provider response while the block runs (for the token usage generate() drops)."""
+    global call
+    seen = []
+    original = call
+
+    def recording(provider, method, url, payload=None):
+        value = original(provider, method, url, payload)
+        seen.append(value)
+        return value
+
+    call = recording
+    try:
+        yield seen
+    finally:
+        call = original
+
+
+def usage_of(response):
+    """The token counts a provider reported (numbers only), or None."""
+    if not isinstance(response, dict):
+        return None
+    usage = response.get("usage") if isinstance(response.get("usage"), dict) else response.get("usageMetadata")
+    if not isinstance(usage, dict):
+        return None
+    out = collections.OrderedDict()
+    for name, value in sorted(usage.items()):
+        if isinstance(value, int) and not isinstance(value, bool):
+            out[name] = value
+        elif isinstance(value, dict):
+            for inner, number in sorted(value.items()):
+                if isinstance(number, int) and not isinstance(number, bool):
+                    out["%s.%s" % (name, inner)] = number
+    return out or None
+
+
+def add_usage(total, usage):
+    for name, value in (usage or {}).items():
+        total[name] = total.get(name, 0) + value
+    return total
 
 
 # ---------------------------------------------------------------------------

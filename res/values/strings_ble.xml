@@ -27,7 +27,9 @@
     <!-- The scooter is connected and authenticated. -->
     <string name="ble_status_connected" volt:screen="Connection state" volt:purpose="status">Connected</string>
     <!-- The rider disconnected on purpose. -->
-    <string name="ble_status_disconnected" volt:screen="Connection state" volt:purpose="status">Disconnected</string>
+    <string name="ble_status_disconnected" volt:screen="Connection state" volt:purpose="status" volt:ladder="full">Disconnected</string>
+    <!-- The short rung of Disconnected, for a connection line too narrow for the full word at the readable size. -->
+    <string name="ble_status_disconnected_short" volt:screen="Narrow connection line" volt:purpose="status" volt:ladder="short">Disconnected</string>
     <!-- Volt stopped the connection because the app went to the background. -->
     <string name="ble_status_paused" volt:screen="Connection state" volt:purpose="status">Paused in background</string>
     <!-- The read-only compatibility check is running. -->

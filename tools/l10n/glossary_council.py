@@ -67,7 +67,6 @@ Keys come only from OPENAI_API_KEY and GEMINI_API_KEY (providers.py); nothing he
 
 import argparse
 import collections
-import contextlib
 import hashlib
 import json
 import os
@@ -414,48 +413,6 @@ def draft_prompt(rows, examples):
             len(body), EXAMPLES, note, json.dumps(body, ensure_ascii=False, indent=1))
 
 
-@contextlib.contextmanager
-def recorded_responses():
-    """Every decoded provider response while the block runs (for the token usage generate() drops)."""
-    seen = []
-    original = providers.call
-
-    def recording(provider, method, url, payload=None):
-        value = original(provider, method, url, payload)
-        seen.append(value)
-        return value
-
-    providers.call = recording
-    try:
-        yield seen
-    finally:
-        providers.call = original
-
-
-def usage_of(response):
-    """The token counts a provider reported (numbers only), or None."""
-    if not isinstance(response, dict):
-        return None
-    usage = response.get("usage") if isinstance(response.get("usage"), dict) else response.get("usageMetadata")
-    if not isinstance(usage, dict):
-        return None
-    out = collections.OrderedDict()
-    for name, value in sorted(usage.items()):
-        if isinstance(value, int) and not isinstance(value, bool):
-            out[name] = value
-        elif isinstance(value, dict):
-            for inner, number in sorted(value.items()):
-                if isinstance(number, int) and not isinstance(number, bool):
-                    out["%s.%s" % (name, inner)] = number
-    return out or None
-
-
-def add_usage(total, usage):
-    for name, value in (usage or {}).items():
-        total[name] = total.get(name, 0) + value
-    return total
-
-
 def vendor_draft(paths, provider, tag, model=None, out=None):
     """Draft the round's rows with one provider; writes drafts/<provider>.json."""
     out = out or sys.stdout
@@ -475,10 +432,10 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
     drafted, notes, problems, reported, usage = collections.OrderedDict(), {}, [], None, {}
     for index in range(0, len(rows), CHUNK_ROWS):
         chunk = rows[index:index + CHUNK_ROWS]
-        with recorded_responses() as responses:
-            text, reported = providers.generate(provider, model, system, draft_prompt(chunk, examples))
-        chunk_usage = usage_of(responses[-1]) if responses else None
-        add_usage(usage, chunk_usage)
+        text, reported, chunk_usage = council.generate_logged(
+            paths, tag, AREA, "glossary-draft", provider, model, system, draft_prompt(chunk, examples),
+            chunk=index // CHUNK_ROWS, rows=len(chunk))
+        providers.add_usage(usage, chunk_usage)
         value = providers.parse_json_reply(text)
         terms = value.get("terms") if isinstance(value.get("terms"), dict) else {}
         chunk_notes = value.get("notes") if isinstance(value.get("notes"), dict) else {}
@@ -503,7 +460,7 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
                 problems.append("%s: not asked for; ignored" % term_id)
         council.log_run(paths, tag, AREA, collections.OrderedDict([
             ("stage", "glossary-draft"), ("provider", provider), ("model", model), ("model_reported", reported),
-            ("chunk", index // CHUNK_ROWS), ("rows", len(chunk)), ("received", received), ("usage", chunk_usage)]))
+            ("chunk", index // CHUNK_ROWS), ("rows", len(chunk)), ("received", received), ("calls", 1)]))
     # Rows the provider left out stay listed, without a term, so the draft is current for them.
     for fields in rows:
         if fields[0] not in drafted:

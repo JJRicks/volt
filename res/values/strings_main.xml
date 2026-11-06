@@ -17,19 +17,30 @@
     <string name="main_opening_data" volt:screen="Activity shell" volt:purpose="status">Opening your saved data…</string>
     <string name="main_export_cleared" volt:screen="Activity shell" volt:purpose="toast">Unfinished export cleared</string>
     <string name="main_service_failed" volt:screen="Activity shell" volt:purpose="toast" volt:dnt="Volt">Service failed. Reopen Volt.</string>
-    <string name="main_nav_home" volt:screen="Tab bar" volt:purpose="tab name">Home</string>
-    <string name="main_nav_stats" volt:screen="Tab bar" volt:purpose="tab name">Live Stats</string>
-    <string name="main_nav_scooter" volt:screen="Tab bar" volt:purpose="tab name">Scooter</string>
-    <string name="main_nav_rides" volt:screen="Tab bar" volt:purpose="tab name">Rides</string>
-    <string name="main_nav_more" volt:screen="Tab bar" volt:purpose="tab name">More</string>
+    <string name="main_nav_home" volt:screen="Tab bar" volt:purpose="tab name" volt:ladder="full">Home</string>
+    <string name="main_nav_stats" volt:screen="Tab bar" volt:purpose="tab name" volt:ladder="full">Live Stats</string>
+    <string name="main_nav_scooter" volt:screen="Tab bar" volt:purpose="tab name" volt:ladder="full">Scooter</string>
+    <string name="main_nav_rides" volt:screen="Tab bar" volt:purpose="tab name" volt:ladder="full">Rides</string>
+    <string name="main_nav_more" volt:screen="Tab bar" volt:purpose="tab name" volt:ladder="full">More</string>
+    <!-- The tab names' short rungs: one line under the tab's icon in the side rail when the full name does not
+         fit. Narrower still, the rail shows the icon alone (the screen reader keeps the full name). -->
+    <string name="main_nav_home_short" volt:screen="Side tab rail" volt:purpose="tab name" volt:ladder="short">Home</string>
+    <string name="main_nav_stats_short" volt:screen="Side tab rail" volt:purpose="tab name" volt:ladder="short">Stats</string>
+    <string name="main_nav_scooter_short" volt:screen="Side tab rail" volt:purpose="tab name" volt:ladder="short">Scooter</string>
+    <string name="main_nav_rides_short" volt:screen="Side tab rail" volt:purpose="tab name" volt:ladder="short">Rides</string>
+    <string name="main_nav_more_short" volt:screen="Side tab rail" volt:purpose="tab name" volt:ladder="short">More</string>
     <string name="main_simulation_banner" volt:screen="Activity shell" volt:purpose="banner action">Simulation · Exit</string>
     <string name="main_simulation_description" volt:screen="Activity shell" volt:purpose="screen reader">Simulation, sample data. Tap to exit simulation.</string>
 
     <!-- ===== Lock row and lock switch ===== -->
     <string name="main_lock_title" volt:screen="Home lock row" volt:purpose="heading" volt:safety="lock">Lock</string>
     <string name="main_lock_updating" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Updating…</string>
-    <string name="main_lock_locked" volt:screen="Home lock row" volt:purpose="state" volt:safety="lock">Locked</string>
-    <string name="main_lock_unlocked" volt:screen="Home lock row" volt:purpose="state" volt:safety="lock">Unlocked</string>
+    <string name="main_lock_locked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:safety="lock">Locked</string>
+    <!-- The lock bar's state word when Locked does not fit the slide switch; narrower still, the switch shows the lock icon. -->
+    <string name="main_lock_locked_short" volt:screen="Narrow lock bar" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Locked</string>
+    <string name="main_lock_unlocked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:safety="lock">Unlocked</string>
+    <!-- The lock bar's state word when Unlocked does not fit the slide switch; narrower still, the switch shows the unlock icon. -->
+    <string name="main_lock_unlocked_short" volt:screen="Narrow lock bar" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Unlocked</string>
     <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unknown</string>
     <string name="main_lock_state_unverified" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unverified</string>
     <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Connecting</string>
@@ -50,7 +61,10 @@
     <!-- %1$s is the state word, %2$s the scooter name. -->
     <string name="main_status_connected_named" volt:screen="Connection line" volt:purpose="status">%1$s · %2$s</string>
     <!-- %1$s is the state word, %2$s a relative time. -->
-    <string name="main_status_last_seen" volt:screen="Connection line" volt:purpose="status">%1$s · last seen %2$s</string>
+    <string name="main_status_last_seen" volt:screen="Connection line" volt:purpose="status" volt:ladder="full">%1$s · last seen %2$s</string>
+    <!-- The short rung of the line above, when it does not fit: the same state word and time. Narrower still, the
+         line shows the state word alone. -->
+    <string name="main_status_last_seen_short" volt:screen="Narrow connection line" volt:purpose="status" volt:ladder="short">%1$s · %2$s</string>
     <!-- %1$s is the state word; the line opens the connection sheet. -->
     <string name="main_status_description" volt:screen="Connection line" volt:purpose="screen reader">%1$s. Connection details</string>
     <!-- %1$s is the state word, %2$s a date and time. -->
@@ -67,11 +81,17 @@
     <string name="main_lock_switch_unavailable" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Electronic lock state unavailable</string>
     <string name="main_lock_switch_locked" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Electronic lock, locked. Double-tap or slide to unlock</string>
     <string name="main_lock_switch_unlocked" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Electronic lock, unlocked. Double-tap or slide to lock</string>
-    <string name="main_lock_unavailable" volt:screen="Home lock row" volt:purpose="state" volt:safety="lock">Unavailable</string>
+    <string name="main_lock_unavailable" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:safety="lock">Unavailable</string>
+    <!-- Drawn on the slide switch when Unavailable does not fit it; narrower still, the switch shows a cross icon. -->
+    <string name="main_lock_unavailable_short" volt:screen="Narrow lock switch" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Unavailable</string>
     <!-- Drawn on the slide switch: what sliding does. -->
-    <string name="main_lock_action_unlock" volt:screen="Home lock row" volt:purpose="switch word" volt:safety="lock">Unlock</string>
+    <string name="main_lock_action_unlock" volt:screen="Home lock row" volt:purpose="switch word" volt:ladder="full" volt:safety="lock">Unlock</string>
+    <!-- Drawn on the slide switch when Unlock does not fit it; narrower still, the switch shows the unlock icon. -->
+    <string name="main_lock_action_unlock_short" volt:screen="Narrow lock switch" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Unlock</string>
     <!-- Drawn on the slide switch: what sliding does. -->
-    <string name="main_lock_action_lock" volt:screen="Home lock row" volt:purpose="switch word" volt:safety="lock">Lock</string>
+    <string name="main_lock_action_lock" volt:screen="Home lock row" volt:purpose="switch word" volt:ladder="full" volt:safety="lock">Lock</string>
+    <!-- Drawn on the slide switch when Lock does not fit it; narrower still, the switch shows the lock icon. -->
+    <string name="main_lock_action_lock_short" volt:screen="Narrow lock switch" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Lock</string>
 
     <!-- ===== Connection sheet ===== -->
     <string name="main_connection_no_permission" volt:screen="Connection sheet" volt:purpose="state word">No permission</string>
