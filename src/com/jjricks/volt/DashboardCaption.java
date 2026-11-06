@@ -14,7 +14,7 @@ import java.text.BreakIterator;
 final class DashboardCaption extends TextView {
     private String normalLabel, shortLabel;
     private final Drawable fallbackIcon;
-    private boolean oneLine;
+    private boolean oneLine, iconBeside;
 
     DashboardCaption(Context context, Ui ui, String fullName, String normalLabel,
             String shortLabel, Drawable icon) {
@@ -40,12 +40,22 @@ final class DashboardCaption extends TextView {
 
     /**
      * One line, never wrapped: the normal label when it fits on one line, otherwise the short
-     * label, ellipsized only if even that is too wide. The full name stays the description.
+     * label, otherwise the icon alone. The full name stays the description.
      */
     void fitOneLine() {
         oneLine = true;
         setMaxLines(1);
         setEllipsize(android.text.TextUtils.TruncateAt.END);
+        requestLayout();
+    }
+
+    /**
+     * Whether a separate icon already shows beside this caption. Then a caption with no rung that fits shows
+     * nothing, so the icon stands alone instead of twice; otherwise it shows its own fallback icon.
+     */
+    void iconBeside(boolean shown) {
+        if (iconBeside == shown) return;
+        iconBeside = shown;
         requestLayout();
     }
 
@@ -65,9 +75,10 @@ final class DashboardCaption extends TextView {
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
         boolean unbounded = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED;
+        // One line falls to the icon as two lines do; only a caption with no icon at all keeps its short label cut.
         String shown = unbounded || fits(normalLabel, width) ? normalLabel
-                : fits(shortLabel, width) || oneLine ? shortLabel : null;
-        Drawable icon = shown == null ? fallbackIcon : null;
+                : fits(shortLabel, width) || oneLine && fallbackIcon == null && !iconBeside ? shortLabel : null;
+        Drawable icon = shown == null && !iconBeside ? fallbackIcon : null;
         // No fitting text with a missing icon is still accessible, without rendering
         // a label broken into individual letters. Callers normally supply an icon.
         String text = shown == null ? "" : shown;
