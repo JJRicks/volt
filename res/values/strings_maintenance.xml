@@ -69,7 +69,7 @@
 
     <!-- Status badges on a reminder. -->
     <string name="maintenance_badge_due" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">DUE</string>
-    <string name="maintenance_badge_soon" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">SOON</string>
+    <string name="maintenance_badge_soon" volt:screen="Maintenance" volt:purpose="badge" volt:max="48dp@10.5sp">SOON</string>
     <string name="maintenance_badge_snoozed" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">SNOOZED</string>
 
     <!-- How often, by distance: %1$s is the distance with its unit ("300 mi"). -->

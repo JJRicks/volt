@@ -20,7 +20,7 @@
     <!-- Volt is scanning for scooters. -->
     <string name="ble_status_searching" volt:screen="Connection state" volt:purpose="status">Searching…</string>
     <!-- Volt is opening the Bluetooth connection to the scooter. -->
-    <string name="ble_status_connecting" volt:screen="Connection state" volt:purpose="status" volt:max="220dp@16sp">Connecting…</string>
+    <string name="ble_status_connecting" volt:screen="Connection state" volt:purpose="status">Connecting…</string>
     <!-- Volt is checking the owner identity with the scooter (its handshake). -->
     <string name="ble_status_checking_owner" volt:screen="Connection state" volt:purpose="status"
         volt:safety="owner-key">Checking owner…</string>
