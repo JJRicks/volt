@@ -111,6 +111,8 @@ public final class RidesTimingValidation extends Instrumentation {
                 main(() -> invoke(shown, "select", new Class[]{String.class}, "home")); SystemClock.sleep(1500);
                 long[] selected = new long[2];
                 main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); selected[1] = SystemClock.uptimeMillis(); });
+                // The rows may arrive after the first frame (skeleton rows while a worker reads the rides).
+                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 20000);
                 SystemClock.sleep(2500);
                 Object screen = field(activity, "screen");
                 check(screen.getClass().getSimpleName().equals("RidesScreen"), "Rides is showing");
@@ -118,6 +120,8 @@ public final class RidesTimingValidation extends Instrumentation {
                 result.putLong(pass + "_select_ms", selected[1] - selected[0]);
                 result.putLong(pass + "_busy_ms", busy(selected[1], selected[1] + 2500));
                 result.putLong(pass + "_first_row_ms", firstDrawAfter(selected[1]) - selected[0]);
+                // The first frame after the real rows were built (equal to first_row when they come at once).
+                result.putLong(pass + "_rows_ms", firstDrawAfter(rows - 2) - selected[0]);
                 putLongest(result, pass, selected[0], selected[0] + 2500);
             }
 
@@ -191,6 +195,15 @@ public final class RidesTimingValidation extends Instrumentation {
         result.putInt("seeded_rides", count); result.putLong("seeded_bytes", bytes);
     }
 
+    /** When the history rows were built, polled from this thread while main builds them (2 ms resolution). */
+    private static long waitForRows(Object screen, int count, long until) throws Exception {
+        while (SystemClock.uptimeMillis() < until) {
+            if ((int) field(screen, "savedCount") == count && !((String) field(screen, "historySignature")).isEmpty()) return SystemClock.uptimeMillis();
+            SystemClock.sleep(2);
+        }
+        // Too late: the existing "History rows drawn" check then fails.
+        return until;
+    }
     private long firstDrawAfter(long time) {
         synchronized (draws) { for (long[] draw : draws) if (draw[0] >= time) return draw[0]; }
         throw new AssertionError("No frame drawn");

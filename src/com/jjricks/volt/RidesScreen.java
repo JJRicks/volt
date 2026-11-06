@@ -98,7 +98,19 @@ public final class RidesScreen implements AppScreen {
     private final ExecutorService phoneLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "phone-ride-preview"); t.setDaemon(true); return t; });
     private final ExecutorService chartLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "full-ride-chart"); t.setDaemon(true); return t; });
     private final ExecutorService thumbLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "ride-thumbnails"); t.setDaemon(true); t.setPriority(Thread.MIN_PRIORITY); return t; });
+    /** Reads saved rides when the cache can't answer, so Rides never replays a journal on the UI thread. */
+    private final ExecutorService rideListLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, RIDE_LIST_THREAD); t.setDaemon(true); return t; });
+    private static final String RIDE_LIST_THREAD = "ride_list";
     private boolean closed;
+    /** historyLoaded: real rows (or the empty or unreadable state) are showing, not the loading skeleton. */
+    private boolean historyLoaded, historyLoading, historyReload, comparisonLoading;
+    private int historyGeneration;
+    /** A finished background read, handed to the next refreshHistory() or chooseComparison(); null when none. */
+    private List<RideStore.Summary> loadedHistory, loadedComparison;
+    private IOException historyFailure, comparisonFailure;
+    /** The wide pane's key whose chart preview is loading on rideListLoader, then its result; null when none. */
+    private String detailWanted, detailLoadedKey;
+    private List<RideStore.Point> detailLoaded;
     private final List<RouteMapView> maps = new ArrayList<RouteMapView>();
     private final Set<String> selected;
     private final Map<String, RouteThumb> thumbs = new HashMap<String, RouteThumb>();
@@ -442,7 +454,8 @@ public final class RidesScreen implements AppScreen {
     private void refreshHistory() {
         if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); return; }
         try {
-            List<RideStore.Summary> summaries = service.rides.list();
+            List<RideStore.Summary> summaries = historySummaries();
+            if (summaries == null) return;
             List<RideStore.Summary> stopped = new ArrayList<RideStore.Summary>();
             StringBuilder signature = new StringBuilder();
             for (RideStore.Summary s : summaries) if (!s.active) { stopped.add(s); signature.append(s.id).append(':').append(s.sampleCount).append(':').append(s.label).append(';'); }
@@ -474,6 +487,83 @@ public final class RidesScreen implements AppScreen {
             updateHistoryCount(); loadThumbnails(shown); measureStorage();
             if (wide) refreshDetail(chosen, stopped);
         } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); }
+    }
+    /**
+     * The list from the ride cache when every journal is in it, so a warm open draws at once. Otherwise null: skeleton
+     * rows show while rideListLoader reads the rides, and refreshHistory() runs again with the result.
+     */
+    private List<RideStore.Summary> historySummaries() throws IOException {
+        List<RideStore.Summary> summaries = loadedHistory; loadedHistory = null;
+        IOException failure = historyFailure; historyFailure = null;
+        if (summaries == null && failure == null) summaries = service.rides.listCached();
+        if (summaries == null && failure == null) { loadHistory(); return null; }
+        if (!historyLoaded) { history.removeAllViews(); historySignature = ""; historyLoaded = true; }
+        if (failure != null) throw failure;
+        return summaries;
+    }
+    private void loadHistory() {
+        if (historyLoading) { historyReload = true; return; }
+        if (!historyLoaded) showHistorySkeleton();
+        historyLoading = true;
+        final int generation = ++historyGeneration;
+        final RideStore store = service.rides;
+        final String remembered = wide ? selectedRide : null;
+        try {
+            rideListLoader.execute(() -> {
+                List<RideStore.Summary> loaded = null; IOException failure = null;
+                try { loaded = store.list(); } catch (IOException unreadable) { failure = unreadable; }
+                // The wide pane's chart preview comes from the same worker, so the pane never replays on the UI thread.
+                String chosen = loaded == null || remembered == null ? null : chosenRide(stoppedRides(loaded), remembered);
+                if (chosen != null) {
+                    try { store.trend(chosen, RideStore.MAX_TREND_POINTS); } catch (IOException | RuntimeException reportedByPane) { }
+                }
+                final List<RideStore.Summary> result = loaded; final IOException error = failure;
+                host.activity().runOnUiThread(() -> {
+                    if (closed || generation != historyGeneration) return;
+                    boolean first = !historyLoaded;
+                    historyLoading = false; loadedHistory = result; historyFailure = error;
+                    refreshHistory(); updateComparisonActions();
+                    // The first rows after a background load: put the wide list back where the last visit left it.
+                    if (first && wide) Motion.scrollBeforeDraw(scroll, wideListScroll);
+                    if (historyReload) { historyReload = false; refreshHistory(); }
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException screenClosed) { historyLoading = false; }
+    }
+    private static List<RideStore.Summary> stoppedRides(List<RideStore.Summary> summaries) {
+        List<RideStore.Summary> stopped = new ArrayList<RideStore.Summary>();
+        for (RideStore.Summary s : summaries) if (!s.active) stopped.add(s);
+        return stopped;
+    }
+    /** Three rows shaped like history rows, with no text; screen readers hear "Loading rides…". */
+    private void showHistorySkeleton() {
+        history.removeAllViews(); thumbs.clear(); historyRows.clear(); historySignature = "";
+        historyCount.setText("");
+        LinearLayout group = ui.groupCard();
+        for (int i = 0; i < 3; i++) {
+            if (i > 0) ui.divider(group);
+            LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(64));
+            row.setPadding(0, ui.dp(10), 0, ui.dp(10));
+            row.addView(skeletonBlock(9), new LinearLayout.LayoutParams(ui.dp(52), ui.dp(40)));
+            LinearLayout words = vertical();
+            // The name bar follows the column's width, so it never reaches the distance on a narrow wide-layout list.
+            LinearLayout.LayoutParams name = new LinearLayout.LayoutParams(-1, ui.dp(12)); name.rightMargin = ui.dp(i == 1 ? 72 : 36);
+            words.addView(skeletonBlock(5), name);
+            LinearLayout.LayoutParams when = new LinearLayout.LayoutParams(ui.dp(84), ui.dp(10)); when.topMargin = ui.dp(9);
+            words.addView(skeletonBlock(5), when);
+            LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1); wordsParams.leftMargin = ui.dp(12);
+            row.addView(words, wordsParams);
+            row.addView(skeletonBlock(5), new LinearLayout.LayoutParams(ui.dp(44), ui.dp(12)));
+            group.addView(row);
+        }
+        group.setFocusable(true); group.setContentDescription(T.ridesHistoryLoading());
+        history.addView(group);
+        if (wide) detailSkeleton();
+    }
+    private View skeletonBlock(float radius) {
+        View block = new View(host.activity()); block.setBackground(ui.shape(ui.raised, radius, 0));
+        block.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return block;
     }
     private void updateHistoryCount() {
         String count = savedCount == 0 ? T.ridesHistoryNone() : T.ridesHistoryCount(savedCount, savedCount);
@@ -527,8 +617,9 @@ public final class RidesScreen implements AppScreen {
         for (Map.Entry<String, View> entry : historyRows.entrySet()) styleHistoryRow(entry.getValue(), entry.getKey().equals(chosen));
     }
     /** The remembered ride when it still exists, otherwise the newest saved ride. */
-    private String chosenRide(List<RideStore.Summary> stopped) {
-        for (RideStore.Summary s : stopped) if (s.id.equals(selectedRide)) return s.id;
+    private String chosenRide(List<RideStore.Summary> stopped) { return chosenRide(stopped, selectedRide); }
+    private static String chosenRide(List<RideStore.Summary> stopped, String remembered) {
+        for (RideStore.Summary s : stopped) if (s.id.equals(remembered)) return s.id;
         return stopped.isEmpty() ? null : stopped.get(0).id;
     }
     private void selectRide(String id) {
@@ -604,6 +695,7 @@ public final class RidesScreen implements AppScreen {
         return total;
     }
     private void updateComparisonActions() {
+        if (!historyLoaded) { comparisonUnknown(); return; }
         boolean possible = savedCount >= 2;
         // Looks disabled until two rides exist, yet stays tappable so it can say why.
         compareRow.setEnabled(possible); compareRow.view.setEnabled(true);
@@ -611,13 +703,19 @@ public final class RidesScreen implements AppScreen {
         if (!possible) compareRow.view.setContentDescription(T.ridesCompareTwoSavedCount(savedCount, savedCount));
         else if (selected.size() == 2) compareRow.view.setContentDescription(T.ridesCompareTwoSelected());
     }
+    /** While the list loads the count is unknown: no count rather than "0/2", still tappable. */
+    private void comparisonUnknown() {
+        compareRow.setEnabled(false); compareRow.view.setEnabled(true); compareRow.update("", "");
+    }
     private void saveSelection() { preferences.edit().putStringSet("ride_comparison", new LinkedHashSet<String>(selected)).apply(); }
     /** Pick exactly two saved rides; the choice persists like before. */
     private void chooseComparison() {
         if (service.rides == null) return;
         try {
+            List<RideStore.Summary> summaries = comparisonSummaries();
+            if (summaries == null) return;
             List<RideStore.Summary> stopped = new ArrayList<RideStore.Summary>();
-            for (RideStore.Summary s : service.rides.list()) if (!s.active) stopped.add(s);
+            for (RideStore.Summary s : summaries) if (!s.active) stopped.add(s);
             if (stopped.size() < 2) { host.toast(T.ridesToastCompareNeedsTwo()); return; }
             LinkedHashSet<String> picked = new LinkedHashSet<String>();
             for (String id : selected) for (RideStore.Summary s : stopped) if (s.id.equals(id)) picked.add(id);
@@ -652,13 +750,36 @@ public final class RidesScreen implements AppScreen {
             holder[0] = dialog; show(dialog, DIALOG, null); sync.run();
         } catch (IOException e) { host.toast(T.ridesToastSavedUnreadable()); }
     }
+    /** The cached list, or null while rideListLoader reads it; chooseComparison() then runs again with the result. */
+    private List<RideStore.Summary> comparisonSummaries() throws IOException {
+        List<RideStore.Summary> summaries = loadedComparison; loadedComparison = null;
+        IOException failure = comparisonFailure; comparisonFailure = null;
+        if (failure != null) throw failure;
+        if (summaries == null) summaries = service.rides.listCached();
+        if (summaries != null || comparisonLoading) return summaries;
+        comparisonLoading = true;
+        final RideStore store = service.rides;
+        try {
+            rideListLoader.execute(() -> {
+                List<RideStore.Summary> loaded = null; IOException error = null;
+                try { loaded = store.list(); } catch (IOException unreadable) { error = unreadable; }
+                final List<RideStore.Summary> result = loaded; final IOException failed = error;
+                host.activity().runOnUiThread(() -> {
+                    comparisonLoading = false;
+                    if (closed || host.activity().isDestroyed()) return;
+                    loadedComparison = result; comparisonFailure = failed; chooseComparison();
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException screenClosed) { comparisonLoading = false; }
+        return null;
+    }
     private void showDetails(String id) {
         try {
             RideStore.Summary ride = service.rides.get(id); if (ride == null) { host.toast(T.ridesToastRecordingUnavailable()); return; }
             ScrollView scroller = new MapTouchScroll(); LinearLayout body = vertical();
             body.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(20)); scroller.addView(body);
             AlertDialog[] holder = new AlertDialog[1];
-            buildOverview(body, ride, () -> { if (holder[0] != null) holder[0].dismiss(); });
+            buildOverview(body, ride, service.rides.trend(ride.id, RideStore.MAX_TREND_POINTS), () -> { if (holder[0] != null) holder[0].dismiss(); });
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).setPositiveButton(T.commonDone(), null).create();
             holder[0] = dialog; show(dialog, PAGE, null);
         } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
@@ -691,9 +812,8 @@ public final class RidesScreen implements AppScreen {
         });
     }
     /** The same comprehensive overview on compact screens and in the unfolded detail pane. */
-    private void buildOverview(LinearLayout body, RideStore.Summary ride, Runnable afterDelete) throws IOException {
+    private void buildOverview(LinearLayout body, RideStore.Summary ride, List<RideStore.Point> measured, Runnable afterDelete) throws IOException {
         rideHeading(body, ride);
-        List<RideStore.Point> measured = service.rides.trend(ride.id, 600);
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
@@ -1084,12 +1204,52 @@ public final class RidesScreen implements AppScreen {
         boolean sameRide = detailKey.startsWith(chosen.id + ":");
         int keep = sameRide ? detailScroll.getScrollY() : 0;
         final RideStore.Summary ride = chosen;
-        Runnable change = () -> { clearDetail(key); buildDetail(ride); Motion.scrollBeforeDraw(detailScroll, keep); };
+        List<RideStore.Point> measured = detailPreview(key, ride, sameRide);
+        if (measured == null) return;
+        Runnable change = () -> { clearDetail(key); buildDetail(ride, measured); Motion.scrollBeforeDraw(detailScroll, keep); };
         if (sameRide) change.run(); else Motion.replace(detailScroll, change);
+    }
+    /**
+     * The ride's chart preview from the cache, or null while rideListLoader reads it (past the preview cap, or a ride
+     * that just changed); refreshHistory() then runs again and the pane fills. Another pane content cancels the load.
+     */
+    private List<RideStore.Point> detailPreview(String key, RideStore.Summary ride, boolean sameRide) {
+        List<RideStore.Point> measured = key.equals(detailLoadedKey) ? detailLoaded : null;
+        detailLoadedKey = null; detailLoaded = null;
+        if (measured == null) measured = service.rides.trendCached(ride.id);
+        if (measured != null) { detailWanted = null; return measured; }
+        if (key.equals(detailWanted)) return null;
+        if (!sameRide) detailSkeleton();
+        detailWanted = key;
+        final RideStore store = service.rides;
+        try {
+            rideListLoader.execute(() -> {
+                List<RideStore.Point> loaded;
+                try { loaded = store.trend(ride.id, RideStore.MAX_TREND_POINTS); } catch (IOException | RuntimeException unreadable) { loaded = null; }
+                final List<RideStore.Point> result = loaded;
+                host.activity().runOnUiThread(() -> {
+                    if (closed || !key.equals(detailWanted)) return;
+                    detailWanted = null;
+                    if (result == null) { clearDetail(key); note(detailPane, T.ridesToastRecordingUnreadable()); return; }
+                    detailLoadedKey = key; detailLoaded = result; refreshHistory();
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException screenClosed) { detailWanted = null; }
+        return null;
     }
     private void clearDetail(String key) {
         detailKey = key; detailPane.removeAllViews();
+        detailWanted = null;
     }
+    /** Wide pane while its ride loads: the map-shaped placeholder alone; the list's skeleton speaks for both. */
+    private void detailSkeleton() {
+        if (DETAIL_LOADING.equals(detailKey)) return;
+        clearDetail(DETAIL_LOADING);
+        FrameLayout placeholder = mapSkeleton(); placeholder.setFocusable(false);
+        placeholder.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        detailPane.addView(placeholder, new LinearLayout.LayoutParams(-1, ui.dp(INLINE_MAP_DP)));
+    }
+    private static final String DETAIL_LOADING = "loading";
     /** Right pane with no ride to show: a short note instead of an empty column. */
     private void emptyDetail(String reason) {
         if (reason.equals(detailKey)) return;
@@ -1102,8 +1262,8 @@ public final class RidesScreen implements AppScreen {
         detailPane.addView(empty);
     }
     /** Wide layout: the selected ride inline: route map first, then stat tiles and the rest of the details page. */
-    private void buildDetail(RideStore.Summary ride) {
-        try { buildOverview(detailPane, ride, null); }
+    private void buildDetail(RideStore.Summary ride, List<RideStore.Point> measured) {
+        try { buildOverview(detailPane, ride, measured, null); }
         catch (IOException e) { note(detailPane, T.ridesToastRecordingUnreadable()); }
     }
     private void routeNotice(LinearLayout parent, String text, Runnable files) {
@@ -2248,7 +2408,9 @@ public final class RidesScreen implements AppScreen {
     }
     @Override public void close() {
         if (wide && !closed) wideListScroll = scroll.getScrollY();
-        closed = true; phoneRefreshers.clear(); phoneLoader.shutdownNow(); chartLoader.shutdownNow(); thumbLoader.shutdownNow(); for (RouteMapView map : maps) map.close(); maps.clear();
+        closed = true; phoneRefreshers.clear(); phoneLoader.shutdownNow(); chartLoader.shutdownNow();
+        // Not interrupted: a read in progress finishes and fills the ride cache for the next visit.
+        rideListLoader.shutdown(); thumbLoader.shutdownNow(); for (RouteMapView map : maps) map.close(); maps.clear();
         for (AlertDialog dialog : new ArrayList<AlertDialog>(dialogs)) dialog.dismiss(); dialogs.clear();
     }
 }
