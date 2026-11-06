@@ -988,37 +988,57 @@ public final class RideStore {
         a.movingThroughputWh = e[5]; a.stationaryThroughputWh = e[6]; a.unknownMotionThroughputWh = e[7];
         return a;
     }
+    /**
+     * Column by column, so deflate finds the repeats: each clock is a difference from the previous point, and each
+     * reading is its bits XORed with the previous point's reading of the same kind (exact, unlike rounding).
+     */
     private static byte[] encodePoints(List<Point> points) throws IOException {
         java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream(64 + points.size() * 64);
         java.io.DataOutputStream out = new java.io.DataOutputStream(bytes);
-        out.writeInt(points.size());
-        for (Point p : points) {
-            out.writeLong(p.wallMs); out.writeLong(p.monotonicMs); out.writeLong(p.elapsedMs); out.writeInt(p.segment);
-            out.writeLong(p.speedCoverageMs);
-            Double[] values = {p.voltageV, p.powerW, p.speedKmh, p.batteryPercent, p.odometerKm, p.chargingState};
-            int mask = 0;
-            for (int i = 0; i < values.length; i++) if (values[i] != null) mask |= 1 << i;
-            out.writeByte(mask);
-            for (Double value : values) if (value != null) out.writeDouble(value);
+        int n = points.size();
+        out.writeInt(n);
+        long previous = 0;
+        for (Point p : points) { out.writeLong(p.wallMs - previous); previous = p.wallMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.monotonicMs - previous); previous = p.monotonicMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.elapsedMs - previous); previous = p.elapsedMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.speedCoverageMs - previous); previous = p.speedCoverageMs; }
+        int segment = 0;
+        for (Point p : points) { out.writeInt(p.segment - segment); segment = p.segment; }
+        for (int k = 0; k < 6; k++) {
+            long bits = 0;
+            for (Point p : points) {
+                Double value = reading(p, k);
+                out.writeBoolean(value != null);
+                if (value != null) { long now = Double.doubleToRawLongBits(value); out.writeLong(now ^ bits); bits = now; }
+            }
         }
         out.flush(); return bytes.toByteArray();
     }
+    private static Double reading(Point p, int k) {
+        return k == 0 ? p.voltageV : k == 1 ? p.powerW : k == 2 ? p.speedKmh : k == 3 ? p.batteryPercent : k == 4 ? p.odometerKm : p.chargingState;
+    }
     private static List<Point> decodePoints(byte[] data) throws IOException {
         java.io.DataInputStream in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(data));
-        int count = in.readInt();
-        if (count < 0 || count > MAX_TREND_POINTS) throw new IOException("size");
-        ArrayList<Point> points = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            long wall = in.readLong(), mono = in.readLong(), elapsed = in.readLong();
-            int segment = in.readInt();
-            long coverage = in.readLong();
-            int mask = in.readUnsignedByte();
-            if ((mask & ~0x3f) != 0) throw new IOException("point");
-            Double[] v = new Double[6];
-            for (int k = 0; k < v.length; k++) if ((mask & (1 << k)) != 0) v[k] = in.readDouble();
-            points.add(new Point(wall, mono, elapsed, segment, v[0], v[1], v[2], v[3], v[4], v[5], coverage));
+        int n = in.readInt();
+        if (n < 0 || n > MAX_TREND_POINTS) throw new IOException("size");
+        long[][] clocks = new long[4][n];
+        for (long[] column : clocks) { long value = 0; for (int i = 0; i < n; i++) column[i] = value += in.readLong(); }
+        int[] segments = new int[n];
+        int segment = 0;
+        for (int i = 0; i < n; i++) segments[i] = segment += in.readInt();
+        Double[][] readings = new Double[6][n];
+        for (Double[] column : readings) {
+            long bits = 0;
+            for (int i = 0; i < n; i++) if (in.readBoolean()) { bits ^= in.readLong(); column[i] = Double.longBitsToDouble(bits); }
         }
         if (in.read() != -1) throw new IOException("trailing");
+        ArrayList<Point> points = new ArrayList<>(n);
+        for (int i = 0; i < n; i++)
+            points.add(new Point(clocks[0][i], clocks[1][i], clocks[2][i], segments[i], readings[0][i], readings[1][i],
+                    readings[2][i], readings[3][i], readings[4][i], readings[5][i], clocks[3][i]));
         return Collections.unmodifiableList(points);
     }
     private static void writeOptional(java.io.DataOutputStream out, Double value) throws IOException {

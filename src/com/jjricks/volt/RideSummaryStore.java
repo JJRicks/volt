@@ -28,8 +28,8 @@ import java.util.zip.CRC32;
  * <p><b>Bump {@link #ANALYSIS_VERSION} whenever summary, gap, energy or preview maths changes</b> (anything that would
  * make a replay of an unchanged journal give a different Summary or Point). Old entries then miss and are rebuilt.
  *
- * <p>One file per ride, {@code <uuid>.sum}: a header, the summary state with its CRC32, then the deflated preview with
- * its own CRC32. Service start reads only the header and the summary state; the preview is read when a chart needs it.
+ * <p>One file per ride, {@code <uuid>.sum}: a header, the summary state with its CRC32, then the deflated preview
+ * (column by column: clock differences and XORed readings) with its own CRC32. Service start reads only the header and the summary state; the preview is read when a chart needs it.
  * Writes run on one low-priority daemon thread, through a temporary file and a rename.
  */
 final class RideSummaryStore {
@@ -174,7 +174,7 @@ final class RideSummaryStore {
     private static long crc(byte[] data) { CRC32 crc = new CRC32(); crc.update(data, 0, data.length); return crc.getValue(); }
 
     static byte[] deflate(byte[] data) {
-        java.util.zip.Deflater deflater = new java.util.zip.Deflater(java.util.zip.Deflater.BEST_SPEED);
+        java.util.zip.Deflater deflater = new java.util.zip.Deflater(java.util.zip.Deflater.DEFAULT_COMPRESSION);
         try {
             deflater.setInput(data); deflater.finish();
             ByteArrayOutputStream out = new ByteArrayOutputStream(Math.max(64, data.length / 3));
