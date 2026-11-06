@@ -706,6 +706,8 @@
     <string name="more_updates_title" volt:screen="More" volt:purpose="label" volt:max="280dp@11sp">Updates</string>
     <!-- Switch, off by default: let Volt ask GitHub for a newer release by itself, at most once a day. On a phone the title wraps to two lines, so the budget is two lines of about 165dp. -->
     <string name="more_updates_auto" volt:screen="More" volt:purpose="row" volt:max="330dp@15sp">Automatically check for updates</string>
+    <!-- Shorter form of that switch's title, shown only where the full title would need more than two lines (the narrow menu pane of the wide layout). It sits under the "Updates" header, so "updates" is implied. Two lines at most there, about 110dp each. -->
+    <string name="more_updates_auto_short" volt:screen="More" volt:purpose="row" volt:max="220dp@15sp">Check automatically</string>
     <!-- Under that switch: how often the automatic check runs, and that it runs while Volt is closed. Two lines at most. -->
     <string name="more_updates_auto_sub" volt:screen="More" volt:purpose="caption" volt:max="300dp@11.5sp">Once a day, in the background</string>
     <!-- Name of the notification channel in Android's settings for the automatic update check. -->

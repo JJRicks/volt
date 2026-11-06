@@ -62,5 +62,7 @@ public final class UpdateScheduleTest {
         check(body.contains("T.moreUpdatesTitle()") && body.contains("T.moreUpdatesAuto(), T.moreUpdatesAutoSub()")
                 && body.contains("T.moreAboutCheckUpdates()") && body.contains("\"check-updates\""), "the section holds the switch and the manual check");
         check(body.indexOf("T.moreUpdatesAuto()") < body.indexOf("T.moreAboutCheckUpdates()"), "the switch comes first");
+        check(body.contains("ladder.maxLines = 2") && body.contains("{T.moreUpdatesAuto(), T.moreUpdatesAutoShort()}")
+                && body.contains("setContentDescription(T.morePlain(T.moreUpdatesAuto()))"), "a cramped switch title steps down to the short one and keeps the full spoken text");
     }
 }

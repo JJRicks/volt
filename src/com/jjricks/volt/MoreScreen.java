@@ -2178,7 +2178,15 @@ public final class MoreScreen implements AppScreen {
         Row[] auto = new Row[1];
         auto[0] = toggleRow(box, "clock", T.moreUpdatesAuto(), T.moreUpdatesAutoSub(), on -> automaticUpdates(auto[0], on));
         auto[0].view.setTag("update_auto");
-        valueRefreshers.add(() -> refreshSwitch(auto[0], UpdateCheckJob.enabled(settings()), true));
+        // The narrow-label ladder: the full title in up to two lines, else the short one under the Updates header;
+        // the title and the switch keep the full wording as their spoken text.
+        StatusRungs ladder = new StatusRungs(auto[0].title); ladder.maxLines = 2;
+        auto[0].title.addOnLayoutChangeListener(ladder);
+        ladder.show(new CharSequence[]{T.moreUpdatesAuto(), T.moreUpdatesAutoShort()});
+        valueRefreshers.add(() -> {
+            refreshSwitch(auto[0], UpdateCheckJob.enabled(settings()), true);
+            auto[0].toggle.setContentDescription(T.morePlain(T.moreUpdatesAuto()));
+        });
         Row check = row(box, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates);
         check.view.setTag("check-updates");
         // The wide menu pads every row alike, as the section rows above.
