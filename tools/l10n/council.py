@@ -28,6 +28,8 @@ environment; see providers.py for how they are kept out of every output.
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
+  council.py usage --tag es [--area A] [--since 2026-11-05T00:00:00Z] [--json]
+                                                        the providers' reported tokens, summed per model
   council.py drafts-status --tag es [--name N] [--json]  per area: keys, drafted, stale, missing, failing checks,
                                                         safety, audited, flagged (reads; never writes)
   council.py audit-prompt --tag es --area common --name N [--chunk-keys K] [--top-up]
@@ -336,14 +338,16 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style="standa
     system = instructions(pack, style)
     collected, reported, problems = [], None, []
     for index, chunk in enumerate(chunks(pack, entries)):
-        text, reported = providers.generate(provider, model, system, user_prompt(pack, chunk))
+        with providers.recorded_responses() as responses:
+            text, reported = providers.generate(provider, model, system, user_prompt(pack, chunk))
         strings = reply_strings(providers.parse_json_reply(text))
         got, chunk_problems = replies_to_entries(pack, strings, [e["key"] for e in chunk])
         collected.extend(got)
         problems.extend(chunk_problems)
         log_run(paths, tag, area, collections.OrderedDict([
             ("stage", "draft"), ("draft", name), ("provider", provider), ("model", model),
-            ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got))]))
+            ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got)),
+            ("usage", providers.usage_of(responses[-1]) if responses else None)]))
     path = save_draft(paths, pack, name, model, reported, collected, style, replace=True)
     out.write("%s: %d of %d keys drafted by %s%s\n" % (paths.rel(path), len(collected), len(entries), model,
                                                        " (reported %s)" % reported if reported != model else ""))
@@ -373,10 +377,13 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         return None
     by_key = dict((e["key"], e) for e in pack["entries"])
     entries = [by_key[k] for k in failed if k in by_key]
-    collected, reported = [], draft.model_reported
+    collected, reported, usage = [], draft.model_reported, {}
     for chunk in chunks(pack, entries):
-        text, reported = providers.generate(provider, draft.model, instructions(pack, draft.prompt or "standard"),
-                                            user_prompt(pack, chunk, failed))
+        with providers.recorded_responses() as responses:
+            text, reported = providers.generate(provider, draft.model,
+                                                instructions(pack, draft.prompt or "standard"),
+                                                user_prompt(pack, chunk, failed))
+        providers.add_usage(usage, providers.usage_of(responses[-1]) if responses else None)
         got, problems = replies_to_entries(pack, reply_strings(providers.parse_json_reply(text)),
                                            [e["key"] for e in chunk])
         collected.extend(got)
@@ -385,7 +392,8 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
     save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "redraft"), ("draft", name), ("provider", provider), ("model", draft.model),
-        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected))]))
+        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected)),
+        ("usage", usage or None)]))
     out.write("%s: redrafted %d keys (attempt %d); run check again\n" % (name, len(collected), MAX_ATTEMPTS))
     return path
 
@@ -1224,6 +1232,39 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
     return row
 
 
+def usage_summary(paths, tag, area=None, since=None):
+    """{"<provider> <model>": {"runs", "unrecorded", <summed token counts>}} from the runs.jsonl files of a
+    language (every area, the glossary round included), or of one area; since is an ISO time (UTC)."""
+    base = os.path.dirname(paths.work(tag, "x"))
+    areas = [area] if area else sorted(a for a in os.listdir(base) if os.path.isdir(os.path.join(base, a))) \
+        if os.path.isdir(base) else []
+    totals = {}
+    for name in areas:
+        for row in translib.read_jsonl(paths.work(tag, name, "runs.jsonl")):
+            if row.get("provider") not in providers.KEY_ENV or (since and row.get("when", "") < since):
+                continue
+            total = totals.setdefault("%s %s" % (row["provider"], row.get("model")),
+                                      collections.OrderedDict([("runs", 0), ("unrecorded", 0)]))
+            total["runs"] += 1
+            if isinstance(row.get("usage"), dict):
+                providers.add_usage(total, row["usage"])
+            else:
+                total["unrecorded"] += 1
+    return collections.OrderedDict(sorted(totals.items()))
+
+
+def print_usage(totals, out=None):
+    out = out or sys.stdout
+    if not totals:
+        out.write("no API runs\n")
+    for name, total in totals.items():
+        out.write("%s: %d runs%s\n" % (name, total["runs"], " (%d logged no usage)" % total["unrecorded"]
+                                      if total["unrecorded"] else ""))
+        for field, value in total.items():
+            if field not in ("runs", "unrecorded"):
+                out.write("  %s %d\n" % (field, value))
+
+
 def drafts_status(paths, tag, names=None, use_java=True):
     translib.load_language(paths, tag)
     sources, _ = translib.load_source(paths)
@@ -1474,17 +1515,19 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
         out.write("no safety keys to back-translate\n")
         return 0
     model = pick_model(provider, "backtranslate", model, prefer, avoid=drafters)
-    stored, reported = 0, model
+    stored, reported, usage = 0, model, {}
     keys = list(targets)
     for start in range(0, len(keys), CHUNK):
         part = collections.OrderedDict((k, targets[k]) for k in keys[start:start + CHUNK])
-        text, reported = providers.generate(provider, model, backtranslate_instructions(pack),
-                                            backtranslate_prompt(pack, part))
+        with providers.recorded_responses() as responses:
+            text, reported = providers.generate(provider, model, backtranslate_instructions(pack),
+                                                backtranslate_prompt(pack, part))
+        providers.add_usage(usage, providers.usage_of(responses[-1]) if responses else None)
         stored += store_backtranslation(paths, pack, part, reply_strings(providers.parse_json_reply(text)),
                                         provider, model, reported, drafters)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "backtranslate"), ("provider", provider), ("model", model), ("model_reported", reported),
-        ("keys", len(keys)), ("received", stored)]))
+        ("keys", len(keys)), ("received", stored), ("usage", usage or None)]))
     out.write("back-translated %d of %d safety keys with %s\n" % (stored, len(keys), model))
     return stored
 
@@ -2228,6 +2271,11 @@ def main(argv=None):
     p.add_argument("--tag", required=True)
     p.add_argument("--name", action="append", help="only drafts/claude-<name>.xml (default: every claude-* draft)")
     p.add_argument("--json", action="store_true")
+    p = sub.add_parser("usage", help="the token counts the providers reported, summed per model (never writes)")
+    p.add_argument("--tag", required=True)
+    p.add_argument("--area", help="one area (default: every area, the glossary round included)")
+    p.add_argument("--since", help="only runs at or after this UTC time, as runs.jsonl writes it")
+    p.add_argument("--json", action="store_true")
     p = sub.add_parser("glossary-check", help="validate l10n/glossary/<tag>.tsv against en.tsv, or en.tsv itself")
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--tag")
@@ -2328,6 +2376,13 @@ def main(argv=None):
             else:
                 print_drafts_status(status)
             return 1 if status["errors"] else 0
+        if args.command == "usage":
+            totals = usage_summary(paths, args.tag, args.area, args.since)
+            if args.json:
+                print(json.dumps(totals, indent=1))
+            else:
+                print_usage(totals)
+            return 0
         if args.command == "glossary-check":
             return glossary_check(paths, "en" if args.english else args.tag)
     except providers.ProviderError as error:

@@ -67,7 +67,6 @@ Keys come only from OPENAI_API_KEY and GEMINI_API_KEY (providers.py); nothing he
 
 import argparse
 import collections
-import contextlib
 import hashlib
 import json
 import os
@@ -414,46 +413,10 @@ def draft_prompt(rows, examples):
             len(body), EXAMPLES, note, json.dumps(body, ensure_ascii=False, indent=1))
 
 
-@contextlib.contextmanager
-def recorded_responses():
-    """Every decoded provider response while the block runs (for the token usage generate() drops)."""
-    seen = []
-    original = providers.call
-
-    def recording(provider, method, url, payload=None):
-        value = original(provider, method, url, payload)
-        seen.append(value)
-        return value
-
-    providers.call = recording
-    try:
-        yield seen
-    finally:
-        providers.call = original
-
-
-def usage_of(response):
-    """The token counts a provider reported (numbers only), or None."""
-    if not isinstance(response, dict):
-        return None
-    usage = response.get("usage") if isinstance(response.get("usage"), dict) else response.get("usageMetadata")
-    if not isinstance(usage, dict):
-        return None
-    out = collections.OrderedDict()
-    for name, value in sorted(usage.items()):
-        if isinstance(value, int) and not isinstance(value, bool):
-            out[name] = value
-        elif isinstance(value, dict):
-            for inner, number in sorted(value.items()):
-                if isinstance(number, int) and not isinstance(number, bool):
-                    out["%s.%s" % (name, inner)] = number
-    return out or None
-
-
-def add_usage(total, usage):
-    for name, value in (usage or {}).items():
-        total[name] = total.get(name, 0) + value
-    return total
+# Token usage: shared with council.py (providers.py).
+recorded_responses = providers.recorded_responses
+usage_of = providers.usage_of
+add_usage = providers.add_usage
 
 
 def vendor_draft(paths, provider, tag, model=None, out=None):

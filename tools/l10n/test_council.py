@@ -331,7 +331,50 @@ class DraftingTest(Base):
         runs = translib.read_jsonl(self.repo.path("l10n/work/es/common/runs.jsonl"))
         self.assertEqual([(r["provider"], r["model"], r["model_reported"]) for r in runs],
                          [("openai", "gpt-6.1-terra", "gpt-6.1-terra-2026-10-01"), ("google", "gemini-3.8-flash", "gemini-3.8-flash-001")])
+        # Each chunk logs the tokens its provider reported, flattened (the cost of the run).
+        self.assertEqual(runs[0]["usage"], {"input_tokens": 100, "input_tokens_details.cached_tokens": 40,
+                                            "output_tokens": 20, "output_tokens_details.reasoning_tokens": 5,
+                                            "total_tokens": 120})
+        self.assertEqual(runs[1]["usage"], dict(cf.GOOGLE_USAGE))
         self.assert_no_secret()
+
+    def test_usage_sums_the_reported_tokens_per_model(self):
+        self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH), "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})
+        self.assertEqual(self.main("usage", "--tag", "es"), 0)
+        self.assertIn("no API runs", self.out.getvalue())
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--all"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
+        # A run from before usage was logged, a Claude import and another area's run.
+        path = self.repo.path("l10n/work/es/common/runs.jsonl")
+        rows = translib.read_jsonl(path)
+        translib.write_jsonl(path, [{"when": "2026-11-01T00:00:00Z", "stage": "draft", "provider": "openai",
+                                     "model": "gpt-6.1-terra", "keys": 3},
+                                    {"when": "2026-11-01T00:00:00Z", "provider": "claude", "model": "claude-opus-5-5"}]
+                             + rows)
+        self.repo.write("l10n/work/es/more/runs.jsonl", json.dumps(
+            {"when": "2026-11-02T00:00:00Z", "provider": "google", "model": "gemini-3.8-flash",
+             "usage": {"promptTokenCount": 1000, "thoughtsTokenCount": 3}}) + "\n")
+        self.out.truncate(0), self.out.seek(0)
+        self.assertEqual(self.main("usage", "--tag", "es", "--json"), 0)
+        totals = json.loads(self.out.getvalue())
+        self.assertEqual(sorted(totals), ["google gemini-3.8-flash", "openai gpt-6.1-terra"])
+        self.assertEqual(totals["openai gpt-6.1-terra"]["runs"], 3)
+        self.assertEqual(totals["openai gpt-6.1-terra"]["unrecorded"], 1)
+        self.assertEqual(totals["openai gpt-6.1-terra"]["input_tokens"], 200)
+        self.assertEqual(totals["openai gpt-6.1-terra"]["output_tokens_details.reasoning_tokens"], 10)
+        self.assertEqual(totals["google gemini-3.8-flash"]["promptTokenCount"], 1090)
+        self.assertEqual(totals["google gemini-3.8-flash"]["thoughtsTokenCount"], 10)
+        # One area, and only runs since a time.
+        self.out.truncate(0), self.out.seek(0)
+        self.assertEqual(self.main("usage", "--tag", "es", "--area", "common", "--since", "2026-11-03T00:00:00Z",
+                                   "--json"), 0)
+        totals = json.loads(self.out.getvalue())
+        self.assertEqual(totals["openai gpt-6.1-terra"]["unrecorded"], 0)
+        self.assertEqual(totals["google gemini-3.8-flash"]["promptTokenCount"], 90)
+        self.out.truncate(0), self.out.seek(0)
+        self.assertEqual(self.main("usage", "--tag", "es"), 0)
+        self.assertIn("openai gpt-6.1-terra: 3 runs (1 logged no usage)\n  input_tokens 200\n", self.out.getvalue())
 
     def test_openai_input_always_mentions_json(self):
         """The Responses API refuses json_object mode unless the input says JSON; the instructions don't count."""
@@ -370,6 +413,8 @@ class DraftingTest(Base):
         self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
         fake.replies["gpt-6.1-terra"] = cf.drafting_reply(cf.SPANISH)
         self.assertEqual(self.main("redraft", "openai", "--tag", "es", "--area", "common"), 0)
+        runs = translib.read_jsonl(self.repo.path("l10n/work/es/common/runs.jsonl"))
+        self.assertEqual((runs[-1]["stage"], runs[-1]["usage"]["input_tokens"]), ("redraft", 100))
         last = fake.requests[-1][3]
         self.assertEqual(cf.requested_keys(last["input"]), ["common_move_widget"])
         self.assertIn("failed_checks", last["input"])
@@ -534,6 +579,8 @@ class CouncilFlowTest(Base):
         """An old confirm must not carry over to a new (here inverted) text with a fresh back-translation."""
         self.draft_all()
         self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+        runs = translib.read_jsonl(self.repo.path("l10n/work/es/common/runs.jsonl"))
+        self.assertEqual((runs[-1]["stage"], runs[-1]["usage"]), ("backtranslate", dict(cf.GOOGLE_USAGE)))
         self.judge([self.confirm("common_alarm_on")])
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
         self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "safety-agreed")

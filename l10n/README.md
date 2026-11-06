@@ -1174,6 +1174,7 @@ python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then
 python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
+python3 tools/l10n/council.py usage --tag $T                         # the tokens each model was billed for
 ```
 
 1. **Pack** (`pack.py`): for each UI string of `res/values/strings_<area>.xml` (never
@@ -1191,7 +1192,13 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    flash that did not draft, then flash-lite). The patterns name each line, so a newer version
    of the same line is picked when it appears, and never a top-end line (pro, argon). It then drafts in JSON mode
    (OpenAI's Responses API, `"store": false`; Gemini's `generateContent`). Each draft records the
-   exact model id, and the id the API reported. Claude drafts come from Claude Code agents, each
+   exact model id, and the id the API reported. Each API call (draft, redraft, back-translation)
+   logs the token counts the provider reported in its `runs.jsonl` row (`usage`, flattened:
+   OpenAI's `input_tokens`, `input_tokens_details.cached_tokens`, `output_tokens` and
+   `output_tokens_details.reasoning_tokens`; Gemini's `promptTokenCount`, `candidatesTokenCount`
+   and `thoughtsTokenCount`, which Google bills as output). `council.py usage --tag <tag> [--area A]
+   [--since <UTC time>] [--json]` sums them per model over the language's areas, the glossary round
+   included, and counts the runs that logged none. Claude drafts come from Claude Code agents, each
    in its own session with a different configuration (`--style` `context-first`,
    `glossary-first` or `draft-review`, on different models): `council.py prompt` writes the
    agent's instructions; the agent writes its JSON reply and runs `council.py import-claude ...
