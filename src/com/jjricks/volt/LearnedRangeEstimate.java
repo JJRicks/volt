@@ -56,9 +56,12 @@ public final class LearnedRangeEstimate {
         public final long computedWallMs;
         /** Battery energy left at each whole gauge reading 0..100 (ENERGY only). */
         private final double[] remainingWh;
+        /** Lowest whole reading inside a 10-point band with its own evidence; below it is UNSEEN_FLOOR territory. */
+        private final Integer lowestSeen;
         private Result(String profile, String problem, int count, int rejected, int unreadable, double km,
                 double points, Double lowTemp, Double highTemp, Double lowSoc, Double highSoc, long now,
-                int energyCount, double energyDistance, int counted, double[] remaining, Double perKm, Double lowFactor, Double highFactor) {
+                int energyCount, double energyDistance, int counted, double[] remaining, Double perKm, Double lowFactor, Double highFactor,
+                Integer lowestSeenReading) {
             profileId = profile == null ? "" : profile; rides = count; rejectedRides = rejected; unreadableRides = unreadable;
             distanceKm = km; batteryPoints = points; minimumTemperatureC = lowTemp;
             maximumTemperatureC = highTemp; minimumBatteryPercent = lowSoc;
@@ -68,6 +71,7 @@ public final class LearnedRangeEstimate {
             boolean enough = count >= MIN_RIDES && points >= MIN_BATTERY_POINTS && km >= MIN_DISTANCE_KM;
             model = energy ? Model.ENERGY : Model.DISTANCE;
             remainingWh = energy ? remaining : null; whPerKm = energy ? perKm : null;
+            lowestSeen = energy ? lowestSeenReading : null;
             likelyLowFactor = energy ? lowFactor : null; likelyHighFactor = energy ? highFactor : null;
             fullRangeKm = energy ? (Double) (remaining[100] / perKm)
                     : problem == null && enough && Double.isFinite(km * 100 / points) ? km * 100 / points : null;
@@ -86,11 +90,17 @@ public final class LearnedRangeEstimate {
         public Double likelyHighKm(Double batteryPercent) {
             Double km = likelyHighFactor == null ? null : remainingKm(batteryPercent); return km == null ? null : km * likelyHighFactor;
         }
+        /** Battery energy left at a gauge reading (ENERGY model only, same table as remainingKm); null otherwise. */
+        Double energyLeftWh(double percent) {
+            return remainingWh == null || !soc(percent) ? null : (Double) energyAt(percent);
+        }
+        /** Lowest gauge reading in a band with its own energy evidence (ENERGY model only); null otherwise. */
+        Integer lowestSeenPercent() { return lowestSeen; }
         /** Linear between whole readings, each taken as the middle of its gauge point. */
         private double energyAt(double percent) { return energy(remainingWh, percent); }
     }
     public static Result unavailable(String profile, String reason) {
-        return new Result(profile, reason, 0, 0, 0, 0, 0, null, null, null, null, System.currentTimeMillis(), 0, 0, 0, null, null, null, null);
+        return new Result(profile, reason, 0, 0, 0, 0, 0, null, null, null, null, System.currentTimeMillis(), 0, 0, 0, null, null, null, null, null);
     }
     public static Evidence inspect(RideStore.Summary s, List<RideStore.Point> fullPoints) {
         Inspector inspector = new Inspector();
@@ -138,7 +148,7 @@ public final class LearnedRangeEstimate {
         boolean enough = energy || count >= MIN_RIDES && points >= MIN_BATTERY_POINTS && km >= MIN_DISTANCE_KM;
         String problem = unreadable > 0 && !enough ? "Some recorded rides could not be read" : null;
         return new Result(profile, problem, count, rejected, unreadable, km, points, lowTemp, highTemp, lowSoc, highSoc, now,
-                energyCount, energyKm, counted, remaining, perKm, lowFactor, highFactor);
+                energyCount, energyKm, counted, remaining, perKm, lowFactor, highFactor, energy ? lowestSeenReading(bandPoints) : null);
     }
     /**
      * Energy left at each whole reading. Each band's energy per point is pulled toward the pooled
@@ -167,6 +177,11 @@ public final class LearnedRangeEstimate {
         double[] remaining = new double[101]; double below = 0;
         for (int level = 1; level <= 100; level++) { remaining[level] = below + point[level] / 2; below += point[level]; }
         return remaining;
+    }
+    /** The lowest reading in the lowest band remainingWh treats as seen; null when no band qualifies. */
+    private static Integer lowestSeenReading(int[] bandPoints) {
+        for (int b = 0; b < BANDS; b++) if (bandPoints[b] >= MIN_BAND_POINTS) return b * 10 + 1;
+        return null;
     }
     /** Actual ÷ forecast km for each run of consecutive rides, oldest first, that reaches STRETCH_KM. */
     private static List<Double> stretches(List<Evidence> riding, double[] remaining, double perKm) {
