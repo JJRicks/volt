@@ -18,7 +18,8 @@ import android.content.SharedPreferences;
  * and runs at most once a day (UpdateSchedule). It sends the same single request as the manual check
  * (UpdateCheck.ENDPOINT, Volt's User-Agent) and nothing else. A newer release is announced once per version with a
  * quiet notification on its own low-importance channel; tapping it opens MainActivity, which runs the manual check's
- * dialog. No push service, no Firebase.
+ * dialog. No push service, no Firebase. UpdateRuns owns each run's side effects: a stopped run, or one the owner
+ * turned off mid-check, sends, saves and posts nothing more.
  *
  * Its network constraint needs ACCESS_NETWORK_STATE, an install-time permission with no prompt. The job is not
  * persisted, so Volt needs no boot permission: VoltApp re-schedules it (sync) whenever Volt's process
@@ -63,37 +64,59 @@ public final class UpdateCheckJob extends JobService {
             // JobScheduler can refuse (too many jobs); the switch stays on and the next process start tries again (sync).
         }
     }
+    /** The switch turned off: a run already going loses its request, result and notice at once, then the job goes. */
     static void cancel(Context context) {
+        runs(context).revoke();
         JobScheduler jobs = context.getSystemService(JobScheduler.class);
         if (jobs != null) jobs.cancel(JOB_ID);
     }
 
+    private static UpdateRuns runs;
+    /** One owner for every run in this process, so a revoke or a newer run reaches a worker still going. */
+    static synchronized UpdateRuns runs(Context context) {
+        if (runs == null) runs = new UpdateRuns(new Checks(context.getApplicationContext()));
+        return runs;
+    }
+    /** UpdateRuns' view of app_settings, GitHub (the manual check's request) and the notification manager. */
+    private static final class Checks implements UpdateRuns.Host {
+        private final Context context;
+        Checks(Context context) { this.context = context; }
+        @Override public boolean enabled() { return UpdateCheckJob.enabled(settings(context)); }
+        @Override public long last() { return settings(context).getLong(UpdateSchedule.LAST, 0); }
+        @Override public String newer() throws Exception {
+            String installed = AppVersion.name(context);
+            UpdateCheck.Result result = UpdateCheck.evaluate(installed, UpdateCheck.fetcher.get(UpdateCheck.ENDPOINT, UpdateCheck.userAgent(installed)));
+            return result.outcome == UpdateCheck.Outcome.AVAILABLE ? result.latest : null;
+        }
+        @Override public void saveLast(long now) { settings(context).edit().putLong(UpdateSchedule.LAST, now).apply(); }
+        @Override public String told() { return settings(context).getString(UpdateSchedule.TOLD, ""); }
+        @Override public boolean post(String latest) { return notifyAvailable(context, latest); }
+        @Override public void seen(String latest) { UpdateCheckJob.seen(settings(context), latest); }
+    }
+
+    /** This service's current run; onStopJob hands it back to UpdateRuns. */
+    private UpdateRuns.Run run;
+
     @Override public boolean onStartJob(JobParameters params) {
-        SharedPreferences settings = settings(this);
-        if (!enabled(settings)) return false;
+        if (!enabled(settings(this))) return false;
         Context context = getApplicationContext();
+        UpdateRuns owner = runs(context);
+        UpdateRuns.Run mine = owner.start();
+        run = mine;
         Thread worker = new Thread(() -> {
-            if (UpdateSchedule.due(settings.getLong(UpdateSchedule.LAST, 0), System.currentTimeMillis())) check(context, settings);
+            owner.run(mine, System.currentTimeMillis());
+            // A stopped, revoked or replaced run leaves jobFinished and the next schedule to the run that owns them.
+            if (!owner.finish(mine)) return;
             jobFinished(params, false);
-            if (enabled(settings)) schedule(context, settings);
+            if (enabled(settings(context))) schedule(context, settings(context));
         }, "volt_update_job");
         worker.setDaemon(true); worker.start();
         return true;
     }
-    /** Stopped mid-check (the network went away): JobScheduler retries; a finished check is never repeated within the day. */
-    @Override public boolean onStopJob(JobParameters params) { return true; }
-
-    /** One background check: the manual check's request and reading, then at most one notification per new version. */
-    static void check(Context context, SharedPreferences settings) {
-        long now = System.currentTimeMillis();
-        String installed = AppVersion.name(context);
-        UpdateCheck.Result result;
-        try { result = UpdateCheck.evaluate(installed, UpdateCheck.fetcher.get(UpdateCheck.ENDPOINT, UpdateCheck.userAgent(installed))); }
-        catch (java.io.IOException | RuntimeException unreachable) { result = null; }
-        settings.edit().putLong(UpdateSchedule.LAST, now).apply();
-        if (result == null || result.outcome != UpdateCheck.Outcome.AVAILABLE) return;
-        String told = settings.getString(UpdateSchedule.TOLD, "");
-        if (UpdateSchedule.announce(result.latest, told) && notifyAvailable(context, result.latest)) seen(settings, result.latest);
+    /** Stopped mid-check (the network went away, or the switch turned off): the run is void; a retry only while still on. */
+    @Override public boolean onStopJob(JobParameters params) {
+        UpdateRuns.Run stopped = run;
+        return stopped != null && runs(this).stop(stopped);
     }
 
     /** The owner saw this version (a notice, or the manual check's dialog): it is not announced again. */
