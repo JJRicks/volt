@@ -105,7 +105,7 @@ public final class MoreScreen implements AppScreen {
     private Row onboardingImport, onboardingNearby, onboardingConnect;
     private final List<Row> lockedProfileRows = new ArrayList<>();
     private Row nearbyRow, locationRow, notificationRow;
-    private Row developerIndexRow, simulationRow, simulationModelRow;
+    private Row developerIndexRow, simulationRow, simulationModelRow, liveUpdateRow;
     /** Developer simulator models: "" is the UT5 MAX simulator; the others are synthetic advertised IDs. */
     private static final String[] SIMULATION_MODELS = {"", "24431", "39991"};
     private static final String[] SIMULATION_MODEL_NAMES = {"UT5 MAX", "Mapped model (synthetic 24431)", "Unknown model (synthetic 39991)"};
@@ -955,6 +955,7 @@ public final class MoreScreen implements AppScreen {
             if (current && s.simulating()) s.setSimulation(false);
             if (current) s.ble.disconnect();
             s.profiles.remove(id);
+            if (s.maintenance != null) s.maintenance.forget(id);
             if (current) s.ble.profileSelected();
             dialog.dismiss(); host.redraw();
         });
@@ -1091,6 +1092,20 @@ public final class MoreScreen implements AppScreen {
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);
         if (dialog != null) dialog.setOnDismissListener(d -> { if (!closed) refresh(); });
+    }
+    /** Android 16's per-app Live Updates setting; Volt's notification settings where that page is missing. */
+    private void openLiveUpdateSettings() {
+        if (Build.VERSION.SDK_INT >= ChargeLiveUpdate.SDK) {
+            android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS);
+            intent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, host.activity().getPackageName());
+            if (startAndroidSettings(intent)) return;
+        }
+        openAndroidSettings(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+    }
+    private boolean liveUpdateAllowed() {
+        if (Build.VERSION.SDK_INT < ChargeLiveUpdate.SDK) return false;
+        try { return host.activity().getSystemService(android.app.NotificationManager.class).canPostPromotedNotifications(); }
+        catch (RuntimeException | LinkageError unknown) { return false; }
     }
     private void openAndroidSettings(String action){
         android.content.Intent intent=new android.content.Intent(action);
@@ -2291,6 +2306,9 @@ public final class MoreScreen implements AppScreen {
         LinearLayout diagnostics = group();
         row(diagnostics, "check", T.moreDevCompat(), T.moreDevCompatSub(),
                 () -> selectSection("Compatibility")).view.setTag("developer-compatibility-check");
+        // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
+        liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
+        liveUpdateRow.view.setTag("developer_live_update");
         LinearLayout controls = group();
         simulationRow = toggleRow(controls, "scooter", T.moreDevSimulate(), null, enabled -> {
             ScooterService s = service();
@@ -2400,6 +2418,11 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service();
         boolean enabled = developerEnabled();
         boolean simulating = s != null && s.simulating();
+        if (liveUpdateRow != null) {
+            ChargeLiveUpdate.Status live = s != null ? s.liveUpdateStatus()
+                    : ChargeLiveUpdate.status(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), liveUpdateAllowed(), false, false, false, null);
+            liveUpdateRow.sub(ChargeLiveUpdate.label(live));
+        }
         if (developerIndexRow != null) {
             developerIndexRow.view.setVisibility(enabled ? View.VISIBLE : View.GONE);
             developerIndexRow.value(simulating ? T.moreDevSimulating() : null);

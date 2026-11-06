@@ -36,6 +36,20 @@ import java.util.Objects;
  *    - When the parked rule arms, it wins and the quiet countdown does not also run, so a failed
  *      save is never retried automatically.
  *
+ * 3. No motion while connected: the link stays up but the scooter has not moved for
+ *    {@link #NO_MOTION_MS}. A phone that stays connected keeps the scooter from switching itself off,
+ *    so rules 1 and 2 never fire; a parked scooter may stop sending speed altogether while battery
+ *    readings carry on, so missing speed pushes count as no motion, not only speed-0 pushes.
+ *    - Motion is a fresh speed push above 0 (any speed: walk mode pushes 0.2 to 3 km/h with driving
+ *      status 0), a fresh push with driving status 1, or the odometer or trip going up. A held,
+ *      stale speed never counts. Driving status 0 is not evidence of a stop.
+ *    - The countdown runs from the latest motion, or from the first authenticated observation of this
+ *      ride's scooter on the current connection (in practice the ride's start) before any motion.
+ *    - It needs a frame within {@link #LOSS_WINDOW_MS}: a silent link is the loss watchdog's to report.
+ *    - A disconnection stops it and hands over to rules 1 and 2 unchanged; a reconnect starts it again
+ *      from the reconnect, since the policy cannot know whether the scooter moved meanwhile.
+ *    - No phone GPS guard, as for the Bluetooth-off rule (owner answer Q30 B).
+ *
  * Any other loss (permission revoked, owner rejected), {@link #reset()} and a clock that moves
  * backwards cancel everything. After a reset only a new authenticated connection to this ride's
  * scooter can start a countdown again.
@@ -47,6 +61,8 @@ public final class RideAutoStopPolicy {
     public static final long QUIET_SLOW_MS = 60_000, QUIET_LONG_MS = 300_000;
     /** Walking pace or a stop, in the push's tenths of km/h: 6.4 km/h, about 4 mph. */
     public static final int WALKING_RAW = 64;
+    /** Rule 3: a connected ride with no motion for this long ends (the owner: long enough for traffic lights). */
+    public static final long NO_MOTION_MS = 600_000;
 
     /** How the authenticated connection went away. */
     public enum Loss {
@@ -91,6 +107,9 @@ public final class RideAutoStopPolicy {
     private long lostFrame;
     private Quiet quiet = Quiet.NONE;
     private long quietFrom, quietMs;
+    /** Rule 3: the time the no-motion countdown counts from (0 when it doesn't run), the last speed push it judged, distance baselines. */
+    private long stillFrom, stillPush;
+    private double stillOdometer = Double.NaN, stillTrip = Double.NaN;
 
     public RideAutoStopPolicy(String rideId, String profile, String serial) {
         if (rideId == null || rideId.isEmpty() || profile == null || profile.isEmpty() || serial == null || serial.isEmpty())
@@ -108,6 +127,10 @@ public final class RideAutoStopPolicy {
     public Quiet quiet() { return quiet; }
     /** The time the quiet countdown counts from (the last frame heard); 0 when it doesn't run. */
     public long quietSince() { return quiet == Quiet.NONE ? 0 : quietFrom; }
+    /** Rule 3 is counting: this ride's scooter is connected and the ride has not ended for no motion. */
+    public boolean noMotionArmed() { return stillFrom > 0; }
+    /** The latest motion (or the countdown's start before any motion); 0 when rule 3 is not counting. */
+    public long noMotionSince() { return stillFrom; }
     /** Time until the sooner countdown ends; 0 when neither runs. */
     public long remainingMs(long now) {
         long parked = parkedArmed() ? Math.max(0, DISCONNECT_GRACE_MS - (now - lossMono)) : Long.MAX_VALUE;
@@ -119,7 +142,7 @@ public final class RideAutoStopPolicy {
     /** Explicit stop, user disconnect, profile change, setting off or uncertain state: forget all evidence. */
     public void reset() {
         bound = moved = fresh = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
-        clearRun(); clearSpeed(); clearQuiet();
+        clearRun(); clearSpeed(); clearQuiet(); clearStill();
     }
 
     /**
@@ -128,15 +151,25 @@ public final class RideAutoStopPolicy {
      */
     public void connected(long now, String boundProfile, String transportSerial, int transport,
             long frameMono, long motionMono, int speedRaw, int driving) {
+        connected(now, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, Double.NaN, Double.NaN);
+    }
+
+    /**
+     * As above, with the scooter's latest odometer and trip readings in km (NaN when unknown), which
+     * rule 3 counts as motion when they go up. Same as the plain call followed by {@link #distance}.
+     */
+    public void connected(long now, String boundProfile, String transportSerial, int transport,
+            long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
         if (!clock(now)) return;
         // Any authenticated reconnect ends the continuous disconnection, for both rules.
         lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
-            bound = false; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); return;
+            bound = false; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); return;
         }
-        if (!bound || transport != connection) { bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); }
+        if (!bound || transport != connection) { bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now; }
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
+        if (stillFrom > 0) { still(now, motionMono, speedRaw, driving); distance(now, odometerKm, tripKm); }
         if (motionMono <= 0) { clearRun(); clearSpeed(); return; }
         // Preserve a parked run during complete radio silence until the loss watchdog fires.
         // Other fresh frames with old motion establish uncertainty and invalidate that run.
@@ -175,7 +208,7 @@ public final class RideAutoStopPolicy {
             boolean slow = speedRaw >= 0 && speedRaw <= WALKING_RAW && lastFrame > 0
                     && lastFrame >= speedMono && lastFrame - speedMono <= MOTION_FRESH_MS
                     && now - lastFrame <= LOSS_WINDOW_MS;
-            clearRun(); clearSpeed(); lastMotion = lastFrame = 0;
+            clearRun(); clearSpeed(); clearStill(); lastMotion = lastFrame = 0;
             lostFrame = frame;
             if (parked) lossMono = now;
             else if (loss == Loss.PHONE_BLUETOOTH_OFF) startQuiet(frame, QUIET_LONG_MS, Quiet.PHONE_BLUETOOTH_OFF);
@@ -206,11 +239,43 @@ public final class RideAutoStopPolicy {
         clearQuiet(); lostFrame = 0; return true;
     }
 
+    /**
+     * True once when this ride's scooter is connected and has not moved for {@link #NO_MOTION_MS}; the
+     * caller then ends this ride through its normal stop. Needs a recent frame on this connection.
+     */
+    public boolean dueNoMotion(long now) {
+        if (!clock(now) || !bound || stillFrom <= 0 || lastFrame <= 0 || now - lastFrame > LOSS_WINDOW_MS
+                || now - stillFrom < NO_MOTION_MS) return false;
+        clearStill(); return true;
+    }
+
     /** True only for the policy instance that belongs to the ride still recording. */
     public boolean owns(String activeRideId) { return Objects.equals(rideId, activeRideId); }
 
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
+    private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; }
+    /** Rule 3's speed evidence from one connected observation. */
+    private void still(long now, long pushMono, int speedRaw, int driving) {
+        if (pushMono > 0 && pushMono != stillPush && pushMono <= now && now - pushMono <= MOTION_FRESH_MS) {
+            stillPush = pushMono;
+            if (speedRaw > 0 || driving == 1) stillFrom = Math.max(stillFrom, pushMono);
+        }
+    }
+
+    /**
+     * The scooter's latest odometer and trip in km (NaN when missing or stale), right after a
+     * {@link #connected} observation at the same time: going up is rule 3 motion. Ignored while this
+     * ride's scooter is not connected; a drop (trip reset) only moves the baseline.
+     */
+    public void distance(long now, double odometerKm, double tripKm) {
+        if (!clock(now) || !bound || stillFrom <= 0) return;
+        if (rose(stillOdometer, odometerKm) || rose(stillTrip, tripKm)) stillFrom = Math.max(stillFrom, now);
+        if (odometerKm >= 0) stillOdometer = odometerKm;
+        if (tripKm >= 0) stillTrip = tripKm;
+    }
+    /** A distance reading went up by at least its 0.1 km step; a drop (trip reset) only moves the baseline. */
+    private static boolean rose(double before, double after) { return before >= 0 && after >= 0 && after > before + 1e-6; }
     private void clearQuiet() { quiet = Quiet.NONE; quietFrom = quietMs = 0; }
     private void startQuiet(long from, long ms, Quiet why) { quiet = why; quietFrom = from; quietMs = ms; }
 

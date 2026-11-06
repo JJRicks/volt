@@ -86,6 +86,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private static final long STATS_RETENTION_MS=10000L;
     private final String[] icons={"home","stats","scooter","rides","more"};
     private static final int NAV_CENTER=2;
+    /** The Scooter tab (the phone's raised button, or the rail item) for the maintenance dot, and whether it is the raised button. */
+    private View scooterTab;private boolean scooterTabCorner;
     private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>();
     private ScooterService scooterService;
     private SharedPreferences preferences,documents;
@@ -103,6 +105,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private TextView simulationNotice;
     private boolean displayedSimulation;
     private TextView connectionTitle,connectionAction,lockTitle,profileTitle,offlineTitle,offlineDetail;
+    /** The Scooter tab header's pencil / Done (ScooterMenuEditor); null on other tabs. */
+    private FrameLayout menuEditAction;
     private View lockReady,lockOffline;
     private LockControl lockControl;
     /** One rider lock tap shared by every lock switch: shown at once, sent when the scooter takes writes. */
@@ -330,6 +334,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(destroyed||design==null||enteringMaintenance||startupRedirect)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::redraw);return;}
         cancelDeferredBodyRefresh();updateHeader();refreshBodyNow();
+        refreshMaintenanceDot();
+    }
+    /** The Scooter tab's dot while a maintenance check is due (owner answer Q39 B). */
+    private void refreshMaintenanceDot(){
+        MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
+        MaintenanceScreen.markTab(design,scooterTab,scooterTabCorner,summary!=null&&summary.dot());
     }
     /** BLE packets update lock/pending state immediately; heavy screen refreshes share the 1 Hz pulse. */
     private void automaticRefresh(){
@@ -445,6 +455,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             FrameLayout.LayoutParams barParams=new FrameLayout.LayoutParams(-1,design.floatingNavHeight(),Gravity.BOTTOM);
             barParams.leftMargin=design.dp(14);barParams.rightMargin=design.dp(14);barParams.bottomMargin=design.dp(10);
             pageFrame.addView(bar,barParams);
+            scooterTab=((ViewGroup)bar).getChildCount()>1?((ViewGroup)bar).getChildAt(1):null;scooterTabCorner=true;
             scroll.setClipToPadding(false);
             scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+design.floatingNavHeight()+design.dp(16));
         }
@@ -858,15 +869,30 @@ public final class MainActivity extends Activity implements ScreenHost {
             liveStatsTitle=new LiveStatsTitle(design);header.addView(liveStatsTitle);
         }else{
             TextView title=design.text(shownPageName(pageName),24,true);title.setPadding(0,design.dp(2),0,0);
-            if(Build.VERSION.SDK_INT>=28)title.setAccessibilityHeading(true);header.addView(title);
+            if(Build.VERSION.SDK_INT>=28)title.setAccessibilityHeading(true);header.addView(titleRow(title));
         }
         profileTitle=null;
         return header;
+    }
+    /** The page title; the Scooter tab's has its menu pencil at the right (ControlsScreen shows and hides it). */
+    private View titleRow(TextView title){
+        menuEditAction=null;
+        boolean controls=selectedPage.equals(PAGE_CONTROLS);
+        if(!controls)return title;
+        LinearLayout row=row();row.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+        menuEditAction=new FrameLayout(this);menuEditAction.setMinimumWidth(design.dp(48));menuEditAction.setMinimumHeight(design.dp(48));
+        menuEditAction.setClickable(true);menuEditAction.setFocusable(true);menuEditAction.setTag(ScooterMenuEditor.TAG_EDIT);
+        menuEditAction.setOnClickListener(v->{if(screen instanceof ControlsScreen)((ControlsScreen)screen).toggleEditing();});
+        menuEditAction.setVisibility(View.GONE);
+        LinearLayout.LayoutParams space=new LinearLayout.LayoutParams(-2,design.dp(48));space.setMarginStart(design.dp(8));row.addView(menuEditAction,space);
+        return row;
     }
     private View navigation(boolean rail){
         LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
         View selected=null;
         for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],selectedPage.equals(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(selectedPage.equals(page))selected=item;}
+        if(rail){scooterTab=nav.getChildAt(java.util.Arrays.asList(pages).indexOf("controls"));scooterTabCorner=false;}
         if(!rail)return nav;
         // App text and Android font size compound. Let two-line captions determine each
         // item's height, and keep every destination reachable in a short or large-text rail.
@@ -875,6 +901,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         return scroller;
     }
     private void select(String page){
+        if(page.equals("controls")&&selectedPage.equals("controls")&&screen instanceof ControlsScreen&&((ControlsScreen)screen).closeMaintenance())return;
         if(page.equals("lights")){preferences.edit().putString("scooter_section","Lights").apply();page="controls";if(page.equals(selectedPage)){rebuild();return;}}
         // Arriving from another tab opens the main Scooter page; only the Lights shortcut above opens Lights.
         else if(page.equals("controls")&&!selectedPage.equals("controls"))preferences.edit().putString("scooter_section","").apply();
@@ -1029,6 +1056,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(ble==null)return false;CapabilityResolver.Decision d=ble.decision("lock",shownLock==null||!shownLock?1:0);
         return d.available()||d.blockedByRide()||d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE;
     }
+    /** The Scooter tab's page id. */
+    private static final String PAGE_CONTROLS="controls";
     /** Ids the text below sits beside: keys and tags, never shown. */
     private static final String KEY_CLOCK_SYNC="clock_sync",KEY_DISPLAY_UNITS="display_units",KEY_LOCK_EXPIRY="lock_expiry",PREF_UNITS="units",UNIT_KM="km",
             GROUP_LIGHTS="Lights",SECTION_SETTINGS="Settings",SECTION_COMPATIBILITY="Compatibility",TAG_IDENTIFY="scooter-identify-model",PAGE_HOME="home",NO_TEXT="",TAG_DIAGNOSTICS_NOTE="diagnostics-note";
@@ -1445,9 +1474,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final java.util.HashMap<View,View> gluedBelow=new java.util.HashMap<>(),gluedTo=new java.util.HashMap<>();
         private final LinkedHashMap<String,java.util.List<String>> menuDefaults=new LinkedHashMap<>();
         private ScooterMenuLayout menu;private String menuProfile;
+        private ScooterMenuEditor editor;
         /** Two-column panes on wide screens; both null on a phone. */
         private final LinearLayout leftPane,rightPane;
         private boolean lights;
+        /** The Maintenance subpage (null while the main page shows), the page holding both, and the row's value. */
+        private MaintenanceScreen maintenance;private final LinearLayout page=column();private TextView maintenanceValue;
+        /** The menu editor, shown in the page in place of the live controls (no command can be sent from it). */
         private String query="";
         ControlsScreen(boolean lightsPage){
             // Only "Lights" (set by Quick access) is meaningful now; older category values open the main page.
@@ -1559,6 +1592,15 @@ public final class MainActivity extends Activity implements ScreenHost {
             menuRow(ScooterMenuLayout.SCHEDULE_TEST,scheduleTest.row.card);menuRow(ScooterMenuLayout.CHARGER,chargerLine.card);menuRow(ScooterMenuLayout.CHARGE_ALERT,chargeAlert.row.card);
             menuRow(ScooterMenuLayout.LOW_ALERT,lowAlert.row.card);menuRow(ScooterMenuLayout.SECURITY_LINK,security.card);menuRow(ScooterMenuLayout.SCOOTER_NAME,identity.card);
             menuRow(ScooterMenuLayout.TOP_SPEED,topSpeed.card);
+            // Maintenance (owner answer Q44 B): its own section with one row that opens the Maintenance page.
+            LinearLayout maintenanceSection=column();TextView maintenanceLabel=design.sectionLabel(T.maintenanceTitle());maintenanceSection.addView(maintenanceLabel);
+            LinearLayout maintenanceBody=design.groupCard();maintenanceSection.addView(maintenanceBody);
+            sections.put(MaintenanceScreen.SECTION,maintenanceSection);bodies.put(MaintenanceScreen.SECTION,maintenanceBody);labels.put(MaintenanceScreen.SECTION,maintenanceLabel);if(!expanded)view.addView(maintenanceSection);
+            SettingLine maintenanceLine=new SettingLine("gear",T.maintenanceRow(),null);maintenanceLine.chevron(this::showMaintenance);maintenanceValue=maintenanceLine.value;
+            maintenanceLine.line.setTag(MaintenanceScreen.ROW);
+            addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
+            shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
+            menuRow(MaintenanceScreen.ROW,maintenanceLine.card);
             // The default menu is the order just built, so a new row added the usual way gets its usual spot in a saved layout too.
             menuDefaults.put(ScooterMenuLayout.TOP_SPEED_SECTION,java.util.Collections.singletonList(ScooterMenuLayout.TOP_SPEED));
             for(Map.Entry<String,LinearLayout> e:bodies.entrySet()){
@@ -1571,8 +1613,115 @@ public final class MainActivity extends Activity implements ScreenHost {
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             syncMenu();
             applyFilter();
+            page.addView(view,new LinearLayout.LayoutParams(-1,-2));
+            if(!lights&&MaintenanceScreen.remembered(preferences))openMaintenance();
+            // The editor stays open through a rebuild (rotation, theme, fold), like Home's (dashboard_editing).
+            boolean editing=preferences.getBoolean(ScooterMenuLayout.EDITING,false);
+            // A new Activity may build this page before the service has said which scooter is active: refresh() opens it then.
+            if(editing&&canEdit())openEditor();
+            else if(editing&&!menuProfile.isEmpty())preferences.edit().putBoolean(ScooterMenuLayout.EDITING,false).apply();
+            search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){updateEditAction();}public void afterTextChanged(Editable text){}});
+            updateEditAction();
+        }
+        private void openMaintenance(){
+            maintenance=new MaintenanceScreen(MainActivity.this,this::closeMaintenance,expanded);
+            view.setVisibility(View.GONE);page.addView(maintenance.view(),new LinearLayout.LayoutParams(-1,-2));
+        }
+        private void showMaintenance(){Motion.page(scroll,1,()->{clearSearch();MaintenanceScreen.remember(preferences,true);openMaintenance();if(scroll!=null)scroll.scrollTo(0,0);});}
+        /** Back to the main Scooter page; false when the Maintenance page was not open. */
+        boolean closeMaintenance(){
+            if(maintenance==null)return false;
+            MaintenanceScreen leaving=maintenance;
+            Motion.page(scroll,-1,()->{leaving.close();page.removeView(leaving.view());if(maintenance==leaving)maintenance=null;view.setVisibility(View.VISIBLE);
+                MaintenanceScreen.remember(preferences,false);refresh();if(scroll!=null)scroll.scrollTo(0,0);});
+            return true;
+        }
+        private void refreshMaintenance(){
+            if(maintenance!=null)maintenance.refresh();
+            MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
+            String value=MaintenanceScreen.rowValue(summary);
+            if(!value.contentEquals(maintenanceValue.getText()))maintenanceValue.setText(value);
+            maintenanceValue.setTextColor(summary!=null&&summary.dot()?design.accent:design.muted);
         }
         private void menuRow(String id,View card){menuViews.put(id,card);menuIds.put(card,id);}
+        /** The menu can be edited on the main page of a known scooter, while nothing is typed in search and Maintenance is closed. */
+        private boolean canEdit(){return !lights&&maintenance==null&&normalize(query).isEmpty()&&!menuProfile.isEmpty();}
+        private boolean editing(){return editor!=null;}
+        /** The header's pencil, or Done while editing; hidden on the Lights page and during a search. */
+        private Boolean shownEditing;
+        private void updateEditAction(){
+            if(menuEditAction==null)return;
+            boolean on=editing();
+            // refresh() calls this on every redraw (the Lights page and the scooter change there): redraw only on a change.
+            menuEditAction.setVisibility(on||canEdit()?View.VISIBLE:View.GONE);
+            if(Boolean.valueOf(on).equals(shownEditing))return;
+            shownEditing=on;
+            design.editToggle(menuEditAction,on,T.commonDone());
+            menuEditAction.setContentDescription(on?T.menuFinish():T.menuEdit());
+            if(connectionTitle!=null)connectionTitle.setVisibility(on?View.GONE:View.VISIBLE);
+        }
+        void toggleEditing(){
+            if(!editing()&&!canEdit())return;
+            boolean open=!editing();
+            preferences.edit().putBoolean(ScooterMenuLayout.EDITING,open).apply();
+            clearSearch();
+            Motion.replace(scroll,()->{if(open)openEditor();else closeEditor();if(scroll!=null)scroll.scrollTo(0,0);});
+        }
+        private void openEditor(){
+            if(editor!=null)return;
+            editor=new ScooterMenuEditor(MainActivity.this,new MenuHost());
+            view.setVisibility(View.GONE);
+            LinearLayout.LayoutParams centred=new LinearLayout.LayoutParams(-1,-2);centred.gravity=Gravity.CENTER_HORIZONTAL;
+            page.addView(editor.view,centred);
+            updateEditAction();
+        }
+        private void closeEditor(){
+            if(editor==null)return;
+            editor.close();page.removeView(editor.view);editor=null;
+            view.setVisibility(View.VISIBLE);
+            updateEditAction();
+        }
+        /** What the editor reads and changes: this scooter's layout and the rows this model offers. */
+        private final class MenuHost implements ScooterMenuEditor.Host {
+            @Override public ScooterMenuLayout menu(){return menu;}
+            @Override public void changed(){
+                if(!menuProfile.isEmpty())preferences.edit().putString(ScooterMenuLayout.PREFIX+menuProfile,menu.toJson()).apply();
+                for(String section:menuDefaults.keySet())if(bodies.containsKey(section))relayoutBody(section);
+                applyFilter();
+            }
+            @Override public void restore(String json){menu=ScooterMenuLayout.resolve(menuDefaults,json);changed();}
+            @Override public boolean offered(String row){return menuOffered(row);}
+            @Override public String sectionTitle(String section){
+                if(section.equals(ScooterMenuLayout.TOP_SPEED_SECTION))return T.menuTopSpeed();
+                // Maintenance (#257) names its label itself; sectionTitle() has no catalog entry for it.
+                if(section.equals(MaintenanceScreen.SECTION))return T.maintenanceTitle();
+                return MainActivity.sectionTitle(section);
+            }
+            @Override public String sectionIcon(String section){return menuSectionIcon(section);}
+            @Override public String rowTitle(String row){
+                View card=menuViews.get(row);
+                if(card==topSpeed.card)return T.menuTopSpeed();
+                for(ControlRow control:rows)if(control.card==card)return shortLabel(control.feature);
+                String[] shown=shownExtras.get(card);
+                return shown==null?row:shown[1];
+            }
+            @Override public String rowIcon(String row){
+                View card=menuViews.get(row);
+                for(ControlRow control:rows)if(control.card==card)return design.featureIcon(control.feature.key);
+                return menuExtraIcon(card);
+            }
+            @Override public String rowDetail(String row){return gluedBelow.containsKey(menuViews.get(row))&&chargeDoneOffered()?T.menuWithDoneBy():null;}
+            @Override public String rowValue(String row){
+                View card=menuViews.get(row);
+                for(ControlRow control:rows)if(control.card==card){
+                    if(control.toggle!=null)return control.toggle.isChecked()?T.commonOn():T.commonOff();
+                    CharSequence value=control.value.getText();
+                    return value==null||value.length()==0?null:value.toString();
+                }
+                if(card==menuViews.get(MaintenanceScreen.ROW)&&maintenanceValue!=null&&maintenanceValue.length()>0)return maintenanceValue.getText().toString();
+                return null;
+            }
+        }
         /** The Lights page's line and star zones: not part of the menu layout (owner, Q38 B), they always follow Lights. */
         private boolean zoneSection(String name){return name.equals("Line lights")||name.equals("Star lights");}
         /** Loads the active scooter's menu layout when the scooter changes; true when it did. */
@@ -1632,9 +1781,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * Puts the sections in menu order at the end of the page. Wide screens: each goes into its column for the
-         * current page. Reading order stays the phone order (left column, then right). Main page: the sections up to
-         * and including the first one that isn't Top speed or hidden go left (by default Top speed and Ride), the rest
-         * right. Lights page: everything up to Line lights left (headlights first), Star lights onward right; searches
+         * current page. Reading order stays the phone order (left column, then right). Main page: a leading run of
+         * sections holding about half the shown rows goes left (ScooterMenuLayout.wideLeftCount; by default Top speed
+         * and Ride), the rest right. Lights page: everything up to Line lights left (headlights first), Star lights onward right; searches
          * fill the same columns.
          */
         private void placeSections(){
@@ -1648,15 +1797,65 @@ public final class MainActivity extends Activity implements ScreenHost {
                 for(View section:order)view.addView(section);
                 return;
             }
-            for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
-            int leftCount=menu.wideLeftCount();
+            int leftCount=menu.wideLeftCount(menuWeights());
+            ArrayList<View> left=new ArrayList<>(),right=new ArrayList<>();
             for(int i=0;i<order.size();i++){
                 String name=names.get(i);
-                boolean left=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile"))
+                boolean onLeft=lights?!(name.equals("Star lights")||name.equals("Dashboard & sound")||name.equals("Security")||name.equals("Profile"))
                         :menu.sections().indexOf(zoneSection(name)?GROUP_LIGHTS:name)<leftCount;
-                (left?leftPane:rightPane).addView(order.get(i));
+                (onLeft?left:right).add(order.get(i));
             }
+            if(endsWith(leftPane,left)&&endsWith(rightPane,right))return;
+            for(View section:order)if(section.getParent() instanceof ViewGroup)((ViewGroup)section.getParent()).removeView(section);
+            for(View section:left)leftPane.addView(section);
+            for(View section:right)rightPane.addView(section);
         }
+        private boolean endsWith(LinearLayout pane,ArrayList<View> tail){
+            int start=pane.getChildCount()-tail.size();if(start<0)return false;
+            for(int i=0;i<tail.size();i++)if(pane.getChildAt(start+i)!=tail.get(i))return false;
+            for(int i=0;i<start;i++)if(sections.containsValue(pane.getChildAt(i))||pane.getChildAt(i)==topSpeed.card)return false;
+            return true;
+        }
+        /** Each section's shown rows on the main page, for balancing the wide columns; the top speed card is about three rows tall. */
+        private Map<String,Integer> menuWeights(){
+            java.util.HashMap<String,Integer> weights=new java.util.HashMap<>();
+            for(String section:menu.sections()){
+                int count=0;
+                for(String id:menu.rows(section))if(!menu.rowHidden(id)&&menuOffered(id))count+=id.equals(ScooterMenuLayout.TOP_SPEED)?3:gluedBelow.containsKey(menuViews.get(id))&&chargeDoneOffered()?2:1;
+                weights.put(section,count);
+            }
+            return weights;
+        }
+        /** The row shows on the main page for this model (hiding aside): the same tests applyFilter makes. */
+        private boolean menuOffered(String id){
+            View card=menuViews.get(id);if(card==null)return false;
+            if(card==topSpeed.card)return topSpeedCard();
+            if(card==headlightRow)return false;
+            if(card==zonesRow)return zonesOffered();
+            if(card==clockLine.card)return offered(KEY_CLOCK_SYNC);
+            if(card==scheduleTest.row.card)return scheduleTestOffered();
+            if(card==chargeAlert.row.card||card==lowAlert.row.card)return chargeAlertsOffered();
+            for(ControlRow row:rows)if(row.card==card)return rowOffered(row.feature.key)&&onPage(groupOf(row.feature));
+            return true;
+        }
+        /** Icons for the Add back sheet's hidden sections and the editor's hand-built rows. */
+        private String menuSectionIcon(String section){
+            if(section.equals(ScooterMenuLayout.TOP_SPEED_SECTION))return "speed";
+            if(M.mainGroupProfile().english().equals(section))return "pencil";
+            if(section.equals(MaintenanceScreen.SECTION))return "gear";
+            // Section ids are the groups' English names, so the shared label icons apply (Ride, Battery, Lights, ...).
+            return design.labelIcon(section);
+        }
+        private String menuExtraIcon(View card){
+            if(card==topSpeed.card)return "speed";
+            if(card==zonesRow)return "star";
+            if(card==clockLine.card||card==scheduleTest.row.card)return "history";
+            if(card==chargerLine.card||card==chargeAlert.row.card||card==lowAlert.row.card)return "battery";
+            if(card==menuViews.get(ScooterMenuLayout.SECURITY_LINK))return "shield";
+            if(card==menuViews.get(MaintenanceScreen.ROW))return "gear";
+            return "pencil";
+        }
+        private boolean zonesOffered(){boolean zones=false;for(ControlRow row:rows)zones|=(row.feature.key.startsWith("line_")||row.feature.key.startsWith("star_"))&&offered(row.feature.key);return zones;}
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=!needle.isEmpty();int count=0;
@@ -1679,6 +1878,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             String lightsLabel=lights&&!searching?T.mainGroupHeadlights():T.mainGroupLights();labels.get(GROUP_LIGHTS).setText(lightsLabel.toUpperCase(Fmt.locale(Locale.ROOT)));
             lightsHeader.setVisibility(lights?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
+            // The wide columns follow what this model shows (placeSections returns at once when nothing moves).
+            placeSections();
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
@@ -1701,6 +1902,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private void showLights(){Motion.page(scroll,1,()->{lights=true;preferences.edit().putString("scooter_section","Lights").apply();clearSearch();placeSections();applyFilter();refresh();if(scroll!=null)scroll.scrollTo(0,0);});}
         private void showMain(){Motion.page(scroll,-1,()->{lights=false;preferences.edit().putString("scooter_section","").apply();clearSearch();placeSections();applyFilter();refresh();if(scroll!=null)scroll.scrollTo(0,0);});}
         boolean back(){
+            if(editing()){toggleEditing();return true;}
+            if(closeMaintenance())return true;
             if(!query.isEmpty()){search.setText("");return true;}
             if(lights){showMain();return true;}
             return false;
@@ -1713,10 +1916,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             Integer line=featureNow("line_light"),star=featureNow("star_light");if(line==null&&star==null)return T.mainRowZonesTwo();
             int on=(Integer.valueOf(1).equals(line)?1:0)+(Integer.valueOf(1).equals(star)?1:0);return on==0?T.commonOff():on==2?T.mainRowZonesBoth():T.mainRowZonesOne();
         }
-        @Override public View view(){return view;}
-        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}choiceSheet=null;}
+        @Override public View view(){return page;}
+        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}choiceSheet=null;
+            if(maintenance!=null)maintenance.close();
+            if(editor!=null)editor.close();
+            // Leaving the tab ends editing (every step is already saved); a rebuild on this tab keeps it open.
+            boolean leaving=!selectedPage.equals(PAGE_CONTROLS);
+            if(leaving)preferences.edit().putBoolean(ScooterMenuLayout.EDITING,false).apply();
+        }
         @Override public void refresh(){
-            if(syncMenu())applyFilter();
+            if(syncMenu()){applyFilter();if(editor!=null)editor.render();else if(canEdit()&&preferences.getBoolean(ScooterMenuLayout.EDITING,false))openEditor();}
+            updateEditAction();
+            refreshMaintenance();
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
             scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();chargeLive.refresh();
@@ -1748,7 +1959,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
             StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
-            if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
+            if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();if(editor!=null)editor.render();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);

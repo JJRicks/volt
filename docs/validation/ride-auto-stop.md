@@ -82,15 +82,57 @@ event is a native disconnect (`ConnectionEventLog.firstLossCode`), otherwise -1
 real power-offs the code may show whether it alone separates a power-off from a
 radio drop.
 
+## No motion while connected
+
+Owner (2026-11-06): "no speed sent say after like 10 minutes to account for
+sitting at traffic lights. Maybe send a notification when that time-out
+happens." A phone that stays connected keeps the scooter from switching itself
+off, so the link never drops and neither rule above fires. In the owner's ride
+the scooter stopped sending speed, trip, odometer and driving status about
+12 s after the last speed above 0; only battery readings (voltage, current about
+2 W, battery %, temperature) carried on at about 1 frame/s on a healthy link.
+
+Rule 3 therefore counts **missing** motion, not only speed-0 pushes:
+
+| Rule | Value | Why |
+| --- | --- | --- |
+| Motion | a fresh push (≤ 6 s old when seen) with speed above 0, or driving status 1; or the odometer or trip going up | The owner's walk-mode test pushed 0.2–3 km/h with driving status 0 throughout, so any speed above 0 counts (no noise floor, and not the 6.4 km/h walking line), and driving status 0 is not evidence of a stop. A held speed that is not pushed again never counts |
+| Countdown | `NO_MOTION_MS` = 10 min from the last motion; before any motion, from the first observation of this ride's scooter on the connection (in practice the ride's start) | Long enough for traffic lights |
+| Link | this ride's scooter authenticated and connected, with a frame in the last 15 s | A silent link is the loss watchdog's to report |
+| Disconnect | stops the countdown and hands over to the parked and quiet rules unchanged; a reconnect counts afresh from the reconnect | The policy cannot know whether the scooter moved while it was away |
+| GPS | no phone GPS guard | As for the Bluetooth-off rule (Q30 B) |
+
+The same switch (End rides automatically) turns it off: the service resets the
+policy on every observation while it is off, and turning it back on counts from
+then. A clock that moves backwards clears the countdown, which then restarts
+from the next observation. Charges never reach the policy. Volt sends the
+scooter nothing for this rule; the lock state is not read or changed.
+
+The service tick checks it after the parked and quiet rules, while the same
+policy is current. The odometer and trip come from the transport's fresh
+readings (at most 3 s old), fed through `RideAutoStopPolicy.distance` right
+after each connected observation.
+
+The end is shown at the **last motion**, the way the quiet rule shows its last
+reading: the journal's `STOP` row keeps the real time the rule fired, and
+`RideStore` judges the last committed sample with motion from the journal
+itself (a new speed or driving-status push with speed above 0 or status 1, or
+the odometer or trip above its previous fresh value), so a reload, a backup and
+an analysis export agree. The ten idle minutes never count in the shown
+duration. Battery use in that tail (about 2 W, some 0.3 Wh) stays in the energy
+totals, which use the raw values. A ride with no motion at all shows the stop
+itself as its end.
+
 ## Ownership and the stop path
 
 Before acting, the service checks that the decision's policy instance is still
-the current one and its ride ID is still the active ride, and that the scooter is
-still disconnected. A late decision cannot close a newer ride.
+the current one and its ride ID is still the active ride, and, for the link
+rules, that the scooter is still disconnected. A late decision cannot close a
+newer ride.
 
 ## Stop and save
 
-Both rules end the ride through the same `stopRide(reason)` path as the Stop
+All three rules end the ride through the same `stopRide(reason)` path as the Stop
 button and the notification: storage error handling, phone GPS/sensor drain,
 wake-lock release, work-policy and notification update, and the automatic ride
 copy (`rideFullySaved` → `startRideAutoExport`) once the phone journal is
@@ -99,7 +141,8 @@ nothing is backdated and no samples are added. A separate, auto-cancelling
 notification says **Ride saved automatically**; a Toast shows if Volt is open.
 Ride details show a **Saved automatically** pill. After a quiet end the notice
 reads "<ride> · Scooter turned off or out of range. Ended at 4:12 PM, its last
-reading." (or "Phone Bluetooth stayed off. …"), and the pill's screen-reader
+reading." (or "Phone Bluetooth stayed off. …", or "No movement for 10
+minutes. Ended at 4:12 PM, its last movement."), and the pill's screen-reader
 text names the same reason. The time is the shown end below, in the app's clock
 format.
 
@@ -107,13 +150,18 @@ The journal's existing `STOP` row stores `AUTO_PARKED_DISCONNECT` in its details
 column (empty for a rider's stop, as before). Readers before this change ignore
 the column, so journals, ride backups and full app backups stay compatible both
 ways. A quiet end stores `AUTO_QUIET_DISCONNECT;last=<mono>;code=<n>` (and
-`;phone_bt=off`); older builds read it as a rider's stop. `RideStore.Summary`
+`;phone_bt=off`); older builds read it as a rider's stop. A no-motion end
+stores the bare `automatic_no_motion`, which older builds also read as a
+rider's stop. `RideStore.Summary`
 exposes `stopReason` / `automaticStop` and, for automatic stops, the shown end
 (`shownEndWallMs`, `shownElapsedMs`, `shownGapCount`): the last committed
 sample that still held a fresh scooter value (at most 3 s old), so the silent
 link, the gap and the wait never count. Raw `endWallMs` / `elapsedMs` stay for
 integrity checks and exports. Analysis JSON adds `stopReason` (`rider`,
-`automatic_parked_disconnect`, `automatic_quiet_disconnect`) and the shown end.
+`automatic_parked_disconnect`, `automatic_quiet_disconnect`,
+`automatic_no_motion`) and the shown end. `Summary.automaticStop` stays the
+Bluetooth-loss stops; `Summary.noMotionStop` marks rule 3, and the pill shows
+for either.
 The rides list, the details Duration tile and the compare sheet read the shown
 end (companion branch `claude/ride-autostop-shown-end`); the measurement
 quality rows keep the raw values.
@@ -159,6 +207,19 @@ parked rule still wins; the setting off keeps recording. It checks the loss
 mapping, the loss code, the notice and pill text, and, from source, that the tick
 order holds and that an automatic end goes through `stopRide(reason)`, which
 reaches the automatic ride copy.
+
+`tests/l10n/RideNoMotionStopTest`: the owner's parked pattern (motion, then
+battery frames only: due exactly 10 min after the last speed above 0, once),
+speed-0 pushes for 9:59 then motion, traffic lights of 30 s to 3 min over 40
+minutes, the owner's walk-mode pushes (0.2–3 km/h, driving status 0) for 15
+minutes, odometer-only and trip-only motion (a trip reset is not motion), a
+held speed, no motion at all, the switch off and back on, a disconnect
+mid-countdown (the parked grace or the quiet countdown takes over; a reconnect
+counts afresh), an unrecoverable loss, the clock going backwards, a silent
+link, another scooter or an unread serial. Then the store (token, shown end at
+the last motion and after a reload, walk-mode and odometer-only shown ends, JSON
+name), the notice and pill text, and, from source, the tick order, the switch
+check, the shared stop path and that the rule sends the scooter nothing.
 
 ## Emulator checks
 

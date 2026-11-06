@@ -625,8 +625,13 @@ public final class RidesAnalysisValidation extends Instrumentation {
         for(int attempt=0;attempt<2;attempt++){
             if(attempt==1){service.phoneRides.start(legacy,System.currentTimeMillis(),900000);service.phoneRides.stop(legacy,System.currentTimeMillis()+1000,901000);}
             main(()->invoke(screen,"showDetails",new Class[]{String.class},legacy));settle();
-            check(text(root(),"Phone & route")==null&&text(root(),"Export phone data")==null,"Empty phone data has no placeholder stats or export block");
-            main(()->((AlertDialog)((List<?>)field(screen,"dialogs")).get(0)).dismiss());
+            check(text(root(),"Phone & route")==null,"Empty phone data has no placeholder stats");
+            // The phone export block is now the Export ride data sheet's Phone recording group (#253): hidden for this ride.
+            View export=byDescription(root(),"Export ride data");check(export!=null,"Ride details keep the Export ride data button");
+            main(export::performClick);
+            long shown=SystemClock.uptimeMillis()+5000;while(text(root(),"Sensor CSV")==null&&SystemClock.uptimeMillis()<shown)settle();
+            check(text(root(),"Sensor CSV")!=null&&text(root(),"Route CSV")==null&&text(root(),"Motion raw CSV")==null&&text(root(),"Scooter and phone JSON")==null,"Empty phone data has no phone export rows");
+            main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }
     }
     void verifyGestures(RideChartView chart) {

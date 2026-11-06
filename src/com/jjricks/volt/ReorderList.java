@@ -17,28 +17,50 @@ import java.util.List;
 /**
  * A short vertical list reordered by grab handles. The held row lifts and follows the finger,
  * its neighbours glide aside to show where it will land, and it settles into that slot on release.
- * Screen readers get Move up / Move down actions on every row instead of dragging.
+ * Screen readers get Move up / Move down actions on every row instead of dragging, plus any
+ * extra actions the caller gives a row. Lists nest (the Scooter tab's menu editor: a list of
+ * section cards, each holding a list of rows); a handle's drag only ever moves its own list.
  */
 final class ReorderList extends LinearLayout {
     interface Listener { void reordered(List<String> ids); }
+    /**
+     * Told when a handle is pressed, before its row lifts: the caller may change the layout first (the menu editor
+     * folds every section to its header) and runs {@code ready} once that has settled. {@link #released} follows
+     * every press, dropped or not, after any {@link Listener#reordered}.
+     */
+    interface Grab {
+        void grabbing(String id, Runnable ready);
+        void released(String id);
+    }
+    /** An extra screen-reader action on a row, e.g. Hide. */
+    static final class Action {
+        final int id; final String label; final Runnable run;
+        Action(int id, String label, Runnable run) { this.id = id; this.label = label; this.run = run; }
+    }
 
     private static final int MOVE_UP = R.id.reorder_move_up, MOVE_DOWN = R.id.reorder_move_down;
     private final Ui ui;
     private final Listener listener;
     private final ArrayList<String> ids = new ArrayList<>();
     private final ArrayList<String> spoken = new ArrayList<>();
+    private Grab grab;
     private View held;
+    private boolean waiting;
     private int from, to, pointer = -1;
-    private float downY;
+    private final ReorderDrag drag;
+    /** The dragging finger's latest screen Y, so a row lifted after a Grab anchors where the finger is now. */
+    private float fingerY;
     private int[] restingTops = new int[0];
 
     ReorderList(Ui ui, Listener listener) {
         super(ui.context);
         this.ui = ui; this.listener = listener;
+        drag = new ReorderDrag(android.view.ViewConfiguration.get(ui.context).getScaledTouchSlop());
         setOrientation(VERTICAL); setClipChildren(false); setClipToPadding(false);
     }
 
     List<String> order() { return Collections.unmodifiableList(ids); }
+    void setGrab(Grab grab) { this.grab = grab; }
 
     /** {@code said} is how screen readers name the row (the visible label can carry symbols). */
     void add(String id, String label, String said) {
@@ -49,72 +71,119 @@ final class ReorderList extends LinearLayout {
         TextView name = ui.text(label, 15, false);
         name.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         row.addView(name, new LayoutParams(0, -2, 1));
+        View handle = handle(said, 20, ui.muted);
+        row.addView(handle, new LayoutParams(ui.dp(48), ui.dp(48)));
+        add(id, row, handle, null, said, Collections.<Action>emptyList(), ui.dp(8));
+    }
+
+    /** A 48 dp grab handle with the grip glyph, hidden from screen readers (they use the row's Move actions). */
+    View handle(String said, int glyphDp, int color) {
         FrameLayout handle = new FrameLayout(getContext());
-        handle.addView(ui.icon("grip", 20, ui.muted), new FrameLayout.LayoutParams(ui.dp(20), ui.dp(20), Gravity.CENTER));
+        handle.addView(ui.icon("grip", glyphDp, color), new FrameLayout.LayoutParams(ui.dp(glyphDp), ui.dp(glyphDp), Gravity.CENTER));
         handle.setContentDescription(T.uiReorderDrag(said));
         // Dragging is for touch; screen readers reach the row itself and its Move actions.
         handle.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return handle;
+    }
+
+    /**
+     * A caller-built row: {@code row} is what moves, a press on {@code handle} drags it, and {@code spokenAs} (the
+     * row itself when null) is what screen readers focus, named {@code said}, with Move up / Move down and
+     * {@code extra}. {@code gap} is the space below the row.
+     */
+    void add(String id, View row, View handle, View spokenAs, String said, List<Action> extra, int gap) {
+        View host = spokenAs == null ? row : spokenAs;
         handle.setOnTouchListener((view, event) -> drag(row, event));
-        row.addView(handle, new LayoutParams(ui.dp(48), ui.dp(48)));
-        row.setAccessibilityDelegate(new AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info);
-                int index = indexOfChild(host);
+        host.setAccessibilityDelegate(new AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View view, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(view, info);
+                int index = indexOfChild(row);
                 if (index > 0) info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_UP, T.uiReorderMoveUp()));
                 if (index >= 0 && index < getChildCount() - 1)
                     info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_DOWN, T.uiReorderMoveDown()));
+                for (Action action : extra) info.addAction(new AccessibilityNodeInfo.AccessibilityAction(action.id, action.label));
             }
-            @Override public boolean performAccessibilityAction(View host, int action, Bundle arguments) {
-                int index = indexOfChild(host);
+            @Override public boolean performAccessibilityAction(View view, int action, Bundle arguments) {
+                int index = indexOfChild(row);
                 if (action == MOVE_UP && index > 0) { move(index, index - 1, true); return true; }
                 if (action == MOVE_DOWN && index >= 0 && index < getChildCount() - 1) { move(index, index + 1, true); return true; }
-                return super.performAccessibilityAction(host, action, arguments);
+                for (Action extraAction : extra) if (extraAction.id == action) { extraAction.run.run(); return true; }
+                return super.performAccessibilityAction(view, action, arguments);
             }
         });
         LayoutParams params = new LayoutParams(-1, -2);
-        params.bottomMargin = ui.dp(8);
+        params.bottomMargin = gap;
         addView(row, params);
-        row.setFocusable(true); row.setContentDescription(said);
+        host.setFocusable(true); host.setContentDescription(said);
         ids.add(id); spoken.add(said);
+    }
+
+    /** Takes a row out of the list (the caller animates the change, e.g. with Motion.animateChanges). */
+    boolean remove(String id) {
+        int index = ids.indexOf(id);
+        if (index < 0 || held != null) return false;
+        removeViewAt(index); ids.remove(index); spoken.remove(index);
+        return true;
+    }
+
+    /** Screen-reader style move of one row by {@code delta} places, as the Move actions do; false when nothing moved. */
+    boolean move(String id, int delta) {
+        int index = ids.indexOf(id), target = Math.max(0, Math.min(ids.size() - 1, index + delta));
+        if (index < 0 || target == index || held != null) return false;
+        move(index, target, true);
+        return true;
+    }
+
+    /** The held row lifts: its neighbours' resting places are taken now, after any change the Grab made. */
+    private void lift(View row) {
+        from = to = indexOfChild(row);
+        restingTops = new int[getChildCount()];
+        for (int i = 0; i < getChildCount(); i++) restingTops[i] = getChildAt(i).getTop();
+        // Measure from where the finger is now: a Grab may have moved the row (folding) while the finger stayed still.
+        drag.anchor(fingerY);
+        row.animate().cancel();
+        if (Motion.enabled())
+            row.animate().scaleX(1.03f).scaleY(1.03f).translationZ(ui.dp(10)).setDuration(Motion.EXIT_MS)
+                    .setInterpolator(Motion.STANDARD).setListener(null).start();
+        else row.setTranslationZ(ui.dp(10));
+    }
+
+    private void released(View row) {
+        int index = indexOfChild(row);
+        if (grab != null && index >= 0) grab.released(ids.get(index));
     }
 
     private boolean drag(View row, MotionEvent event) {
         switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                if (held != null) return false;
-                held = row; from = to = indexOfChild(row); pointer = event.getPointerId(0); downY = event.getRawY();
-                restingTops = new int[getChildCount()];
-                for (int i = 0; i < getChildCount(); i++) restingTops[i] = getChildAt(i).getTop();
+            case MotionEvent.ACTION_DOWN: {
+                if (held != null || indexOfChild(row) < 0) return false;
+                held = row; pointer = event.getPointerId(0); fingerY = event.getRawY();
                 if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                 Haptics.lift(row);
-                row.animate().cancel();
-                if (Motion.enabled())
-                    row.animate().scaleX(1.03f).scaleY(1.03f).translationZ(ui.dp(10)).setDuration(Motion.EXIT_MS)
-                            .setInterpolator(Motion.STANDARD).setListener(null).start();
-                else row.setTranslationZ(ui.dp(10));
+                if (grab == null) { lift(row); return true; }
+                waiting = true;
+                grab.grabbing(ids.get(indexOfChild(row)), () -> { if (held == row && waiting) { waiting = false; lift(row); } });
                 return true;
+            }
             case MotionEvent.ACTION_MOVE: {
                 if (held != row) return false;
                 int index = event.findPointerIndex(pointer);
                 if (index < 0) return true;
                 // Only the finger that lifted the row moves it. getRawY(int) needs API 29, and
                 // every pointer shares this view's transform, so offset from the first pointer.
-                float dy = event.getRawY() + (event.getY(index) - event.getY(0)) - downY;
+                fingerY = event.getRawY() + (event.getY(index) - event.getY(0));
+                if (waiting) return true;
+                float dy = drag.offset(fingerY);
                 // Keep the held row within the list: its top stops at the first row's top, its bottom at the last row's bottom.
                 View last = getChildAt(getChildCount() - 1);
                 float lowest = restingTops[0] - restingTops[from];
                 float highest = restingTops[getChildCount() - 1] + last.getHeight() - restingTops[from] - row.getHeight();
                 dy = Math.max(lowest, Math.min(Math.max(lowest, highest), dy));
                 row.setTranslationY(dy);
-                // A neighbour gives way once the held row's leading edge passes its middle,
-                // so rows of different heights (wrapped labels, large text) still trade places.
                 float top = restingTops[from] + dy, bottom = top + row.getHeight();
-                int target = from;
-                for (int i = 0; i < getChildCount(); i++) {
-                    float middle = restingTops[i] + getChildAt(i).getHeight() / 2f;
-                    if (i < from && middle > top) target--;
-                    else if (i > from && middle < bottom) target++;
-                }
+                int[] heights = new int[getChildCount()];
+                for (int i = 0; i < heights.length; i++) heights[i] = getChildAt(i).getHeight();
+                int target = ReorderDrag.target(restingTops, heights, from, top, bottom);
                 if (target != to) {
                     to = target;
                     Haptics.tick(row);
@@ -139,6 +208,7 @@ final class ReorderList extends LinearLayout {
                 if (held != row || pointer < 0) return held == row;
                 pointer = -1;
                 if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+                if (waiting) { waiting = false; held = null; released(row); return true; }
                 // Only a real release drops the row; a cancelled gesture puts everything back.
                 settle(row, event.getActionMasked() != MotionEvent.ACTION_CANCEL);
                 return true;
@@ -177,6 +247,7 @@ final class ReorderList extends LinearLayout {
                 announceForAccessibility(T.uiReorderMoved(spoken.get(target), Fmt.integer(target + 1), Fmt.integer(ids.size())));
                 if (listener != null) listener.reordered(order());
             }
+            released(row);
         };
         if (!Motion.enabled()) { commit.run(); return; }
         if (!drop) for (int i = 0; i < getChildCount(); i++) {

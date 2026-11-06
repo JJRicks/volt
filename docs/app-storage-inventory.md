@@ -83,6 +83,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `more_away_boot`, `stats_away_boot` | Integer | global | Device | Boot count paired with the above. |
 | `stats_query`, `stats_chart_query` | String | global | Device | Search text. |
 | `dashboard_editing` | Boolean | global | Device | Home edit mode is open. |
+| `scooter_menu_editing` | Boolean | global | Device | The Scooter tab's menu editor is open. ScooterMenuLayout.EDITING. |
 
 No fold or window posture is persisted. `FoldMonitor` reads the live window state, and per-width arrangements are stored inside the dashboard JSON, so they travel with Dashboards.
 

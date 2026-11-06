@@ -17,7 +17,7 @@ import java.util.*;
  *
  * Distances are km at full precision, so an interval typed in miles stays exact. The decoder is
  * tolerant: unreadable text is "off" with no reminders, a malformed reminder or event is dropped,
- * and fields a newer version added are kept. Pure Java; nothing in the app reads or writes it yet.
+ * and fields a newer version added are kept. Pure Java; MaintenanceKeeper reads and writes it.
  */
 final class MaintenanceStore {
     static final String PREFIX = "maintenance_v1_", SEEN_PREFIX = "maintenance_seen_";

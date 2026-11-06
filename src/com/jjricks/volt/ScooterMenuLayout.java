@@ -22,6 +22,8 @@ import java.util.*;
 final class ScooterMenuLayout {
     /** Per scooter in app_settings, like the dashboard ({@code dashboard_v1_<pid>}); BackupRegistry. */
     static final String PREFIX = "scooter_menu_v1_";
+    /** The editor is open (app_settings, Boolean, this device only, like {@code dashboard_editing}); BackupRegistry. */
+    static final String EDITING = "scooter_menu_editing";
     static final int VERSION = 1;
     /**
      * The top speed card is a one-row section of its own (owner, Q36 A). Other section ids are the groups'
@@ -126,13 +128,27 @@ final class ScooterMenuLayout {
         return true;
     }
     /**
-     * Wide screens' main page: how many leading sections fill the left column. That's every section up to and
-     * including the first one that is neither Top speed nor hidden, so the default is Top speed and Ride on the
-     * left, the rest on the right, exactly as before layouts existed.
+     * Wide screens' main page: how many leading sections fill the left column, so that it holds about half of the
+     * rows. {@code weights} is each section's shown rows (0 or absent for a hidden or empty section). Reading order
+     * stays left column, then right: the left column is always a leading run of the menu order, the one that
+     * splits the rows most evenly, the shorter left column on a tie. With no rows at all everything is left.
      */
-    int wideLeftCount() {
-        for (int i = 0; i < sections.size(); i++) if (!sections.get(i).equals(TOP_SPEED_SECTION) && !sectionHidden(sections.get(i))) return i + 1;
-        return sections.size();
+    int wideLeftCount(Map<String, Integer> weights) {
+        int total = 0;
+        for (String section : sections) total += weight(weights, section);
+        if (total == 0) return sections.size();
+        int best = 1, bestGap = Integer.MAX_VALUE, left = 0;
+        for (int i = 0; i < sections.size(); i++) {
+            left += weight(weights, sections.get(i));
+            if (left == 0) continue;
+            int gap = Math.abs(total - 2 * left);
+            if (gap < bestGap) { bestGap = gap; best = i + 1; }
+        }
+        return best;
+    }
+    private int weight(Map<String, Integer> weights, String section) {
+        Integer w = sectionHidden(section) ? null : weights.get(section);
+        return w == null ? 0 : Math.max(0, w);
     }
     /**
      * Hidden items among those {@code offered}: each hidden section with an offered row counts once,
@@ -159,6 +175,25 @@ final class ScooterMenuLayout {
     /** Drops a section at {@code index} (drag and drop). */
     boolean moveSectionTo(String section, int index) { return moveTo(sections, section, index); }
     boolean moveRowTo(String section, String row, int index) { List<String> list = rows.get(section); return list != null && moveTo(list, row, index); }
+    /** The editor lists only shown sections: puts them in {@code shown} order, every other id keeps its place. */
+    boolean placeSections(List<String> shown) { return place(sections, shown); }
+    /** The same for one section's shown rows. */
+    boolean placeRows(String section, List<String> shown) { List<String> list = rows.get(section); return list != null && place(list, shown); }
+    /**
+     * The slots {@code shown}'s ids hold in {@code list}, refilled in {@code shown} order. Ids of {@code shown} that
+     * {@code list} lacks are ignored, so a row can never join another section. False when nothing moved.
+     */
+    static boolean place(List<String> list, List<String> shown) {
+        List<String> order = new ArrayList<>();
+        for (String id : shown) if (list.contains(id) && !order.contains(id)) order.add(id);
+        List<String> next = new ArrayList<>(list);
+        int at = 0;
+        for (int i = 0; i < next.size(); i++) if (order.contains(next.get(i))) next.set(i, order.get(at++));
+        if (next.equals(list)) return false;
+        list.clear();
+        list.addAll(next);
+        return true;
+    }
     private static boolean moveIn(List<String> list, String id, int delta) { int from = list.indexOf(id); return from >= 0 && moveTo(list, id, from + delta); }
     private static boolean moveTo(List<String> list, String id, int index) {
         int from = list.indexOf(id);
