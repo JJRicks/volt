@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Lets Android keep the daily maintenance check planned after a restart (MaintenanceJobService); no prompt. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <queries><package android:name="moe.shizuku.privileged.api" /><package android:name="com.navee.ucaret" /></queries>
     <application
@@ -54,6 +56,9 @@
         <uses-library android:name="androidx.window.extensions" android:required="false" />
         <service android:name=".ScooterService" android:exported="false" android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|location" />
+        <!-- The daily maintenance check, planned only while a reminder needs it (MaintenanceNotices.plan). -->
+        <service android:name=".MaintenanceJobService" android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity android:name=".MainActivity" android:exported="true" android:resizeableActivity="true" android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden">
             <intent-filter>

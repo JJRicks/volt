@@ -229,10 +229,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         else selectedPage="home";
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
+        // A maintenance notice's tap opens the Maintenance page on the Scooter tab.
+        if(saved==null&&MaintenanceNotices.opened(getIntent(),preferences))selectedPage=MaintenanceScreen.PAGE;
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
         rebuild();
+    }
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);setIntent(intent);
+        if(startupRedirect||preferences==null||!MaintenanceNotices.opened(intent,preferences))return;
+        // Focus mode stays up; the page opens when the Scooter tab is next shown.
+        if(riding!=null||onboarding!=null)return;
+        captureScroll();selectedPage=MaintenanceScreen.PAGE;preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();

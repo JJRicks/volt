@@ -45,6 +45,8 @@ final class MaintenanceScreen {
     static final String SECTION = "maintenance", ROW = "maintenance_reminders";
     /** The Scooter tab's page preference while this subpage is open (the Lights page uses its own value). */
     static final String PAGE_PREF = "scooter_section";
+    /** MainActivity's Scooter tab page id and the preference that remembers the page shown. */
+    static final String PAGE = "controls", LAST_PAGE = "last_page";
     /** The row's English search words: none, its catalog search words serve every language. */
     static final String NO_WORDS = "";
     private static final String UNITS_PREF = "units", UNITS_DEFAULT = "mi", RESET_SEEN = "reset_seen";
@@ -53,6 +55,7 @@ final class MaintenanceScreen {
             TAG_DONE = "maintenance_mark_done", TAG_SNOOZE = "maintenance_snooze", TAG_DUE = "maintenance_due_card",
             TAG_CONFIRM = "maintenance_confirm", TAG_DELETE = "maintenance_delete", TAG_EDIT = "maintenance_edit",
             TAG_MODE = "maintenance_mode", TAG_UNIT = "maintenance_unit", TAG_CHANGE = "maintenance_change";
+    private static final String TAG_NOTIFY = "maintenance_notify";
 
     private final ScreenHost host;
     private final Ui ui;
@@ -573,6 +576,9 @@ final class MaintenanceScreen {
             fromBox.addView(pastBox);
             content.addView(fromBox);
         }
+        // Notify me: a notification once when it's due (MaintenanceNotify). On by default.
+        final boolean[] notify = {existing == null || existing.notify};
+        content.addView(notifyRow(notify));
         Runnable showMode = () -> {
             for (int i = 0; i < 3; i++) ui.styleChip(modeChips[i], mode[0] == i);
             distanceBox.setVisibility(mode[0] != 1 ? View.VISIBLE : View.GONE);
@@ -617,6 +623,7 @@ final class MaintenanceScreen {
             String customName = task[0].isEmpty() ? typed : "";
             String chosenTask = task[0]; Double interval = km; int intervalDays = days, intervalMonths = months;
             long now = System.currentTimeMillis(), base = earlier[0] ? fromWall[0] : now; double atKm = typedKm;
+            boolean notifyOn = notify[0];
             MaintenanceDistance.Backdate[] refused = {null};
             boolean saved = change(x -> {
                 if (existing == null) {
@@ -624,11 +631,12 @@ final class MaintenanceScreen {
                     MaintenanceDistance.AtRaw at = MaintenanceView.baseline(x.distance, atKm);
                     if (at.kind != MaintenanceDistance.Backdate.OK) { refused[0] = at.kind; return; }
                     MaintenancePolicy.Reminder r = MaintenancePolicy.create(MaintenanceView.newId(x, now), chosenTask, customName, interval, intervalDays, intervalMonths,
-                            true, base, at.accKm, now);
+                            notifyOn, base, at.accKm, now);
                     MaintenancePolicy.add(x.reminders, r);
                 } else {
                     MaintenancePolicy.Reminder r = x.find(existing.id); if (r == null) return;
                     r.task = chosenTask; r.name = MaintenancePolicy.cut(customName); r.km = interval; r.days = intervalDays; r.months = intervalMonths;
+                    r.notify = notifyOn;
                     // A reminder that gains a distance part before the odometer was ever read counts it from now.
                     if (r.byDistance() && Double.isNaN(r.baseAccKm) && x.distance.everRead()) r.baseAccKm = x.distance.accumulatedKm;
                 }
@@ -639,6 +647,21 @@ final class MaintenanceScreen {
         save.setTag(TAG_SAVE);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(18); content.addView(save, sp);
         show(content);
+    }
+
+    /** The add and edit sheets' Notify me switch; choice[0] follows it. */
+    private View notifyRow(boolean[] choice) {
+        LinearLayout line = new LinearLayout(host.activity()); line.setGravity(Gravity.CENTER_VERTICAL); line.setMinimumHeight(ui.dp(56));
+        line.setPadding(0, ui.dp(14), 0, 0);
+        LinearLayout words = column();
+        words.addView(ui.text(T.maintenanceNotify(), 15, false));
+        TextView detail = ui.caption(T.maintenanceNotifyDetail()); detail.setPadding(0, ui.dp(3), 0, 0); words.addView(detail);
+        line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        Switch toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setShowText(false); toggle.setMinHeight(ui.dp(48)); ui.styleSwitch(toggle);
+        toggle.setChecked(choice[0]); toggle.setTag(TAG_NOTIFY); toggle.setContentDescription(T.maintenanceNotify());
+        toggle.setOnCheckedChangeListener((button, on) -> choice[0] = on);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, -2); tp.leftMargin = ui.dp(10); line.addView(toggle, tp);
+        return line;
     }
 
     /** Checks a typed earlier odometer reading against the latest document; shows why on the field when it can't be used. */
