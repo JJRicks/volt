@@ -98,8 +98,10 @@ final class MaintenanceView {
     static String taskName(String task) {
         switch (task) {
             case MaintenanceDefaults.TIRE_PRESSURE: return T.maintenanceTaskTirePressure();
+            case MaintenanceDefaults.TIRE_TREAD: return T.maintenanceTaskTireTread();
             case MaintenanceDefaults.BRAKES: return T.maintenanceTaskBrakes();
             case MaintenanceDefaults.BOLTS_FOLDING: return T.maintenanceTaskBoltsFolding();
+            case MaintenanceDefaults.STEERING: return T.maintenanceTaskSteering();
             case MaintenanceDefaults.LIGHTS: return T.maintenanceTaskLights();
             case MaintenanceDefaults.CLEAN_DRY: return T.maintenanceTaskCleanDry();
             case MaintenanceDefaults.BATTERY_STORAGE: return T.maintenanceTaskBatteryStorage();
@@ -173,6 +175,24 @@ final class MaintenanceView {
         }
         if (count == 1) return unit == MONTH ? T.maintenanceEveryMonth() : unit == WEEK ? T.maintenanceEveryWeek() : T.maintenanceEveryDay();
         return unit == MONTH ? T.maintenanceEveryMonths(count, count) : unit == WEEK ? T.maintenanceEveryWeeks(count, count) : T.maintenanceEveryDays(count, count);
+    }
+
+    // ---- Manual intervals ---------------------------------------------------------------------
+
+    /** A manual interval as an unsaved reminder: the add sheet's prefill, and its "Every 6 months or 500 km" text. */
+    static MaintenancePolicy.Reminder suggestion(MaintenanceDefaults.Interval interval) {
+        MaintenancePolicy.Reminder r = new MaintenancePolicy.Reminder();
+        r.task = interval.task; r.name = ""; r.km = interval.km; r.days = interval.days; r.months = interval.months; r.notify = true;
+        return r;
+    }
+
+    /** Where an interval comes from: "NAVEE GT3 user manual (online PDF, 2026-03), p. 10". */
+    static String source(MaintenanceDefaults.Source source) { return T.maintenanceManualSource(source.title, source.edition, source.page); }
+
+    /** Whether a scooter already has a reminder for this suggested task, so the manual's row reads Added. */
+    static boolean hasTask(MaintenanceStore.Settings s, String task) {
+        for (MaintenancePolicy.Reminder r : s.reminders) if (task.equals(r.task)) return true;
+        return false;
     }
 
     /** A time choice's label: "1 week", "3 months". */

@@ -155,7 +155,7 @@ final class MaintenanceScreen {
         for (int i = 0; i < coming.size(); i++) { if (i > 0) ui.divider(list); list.addView(reminderRow(s, coming.get(i), now)); }
         left.addView(list);
         right.addView(addButton(s));
-        right.addView(manual());
+        right.addView(manual(s));
         right.addView(ui.sectionLabel(T.maintenanceHistory()));
         int done = MaintenanceView.doneCount(s);
         TextView history = ui.caption(done == 0 ? T.maintenanceHistoryNone() : T.maintenanceHistoryDone(done, done));
@@ -231,6 +231,8 @@ final class MaintenanceScreen {
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, ui.dp(6)); bp.topMargin = ui.dp(8); bp.bottomMargin = ui.dp(6);
         row.addView(new Progress(status), bp);
         row.addView(new Pair(ui.caption(MaintenanceView.interval(r, units())), leftText(MaintenanceView.left(r, status, units(), now, MaintenanceScreen::date), status)));
+        // Saved before any odometer reading: its distance part starts counting at the next connection.
+        if (MaintenancePolicy.pending(r)) { TextView next = ui.caption(T.maintenanceDistanceNext()); next.setPadding(0, ui.dp(4), 0, 0); row.addView(next); }
         row.setClickable(true); row.setFocusable(true);
         row.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
         row.setOnClickListener(v -> detail(r.id));
@@ -255,15 +257,39 @@ final class MaintenanceScreen {
         return add;
     }
 
-    private View manual() {
+    private View manual(MaintenanceStore.Settings s) {
         LinearLayout box = column();
-        ScooterService s = service(); ScooterProfiles.Profile p = s == null || s.profiles == null ? null : s.profiles.active();
+        ScooterService service = service(); ScooterProfiles.Profile p = service == null || service.profiles == null ? null : service.profiles.active();
         String model = p == null ? "" : ModelRegistry.modelName(p.savedDescriptor());
         MaintenanceDefaults.Result result = MaintenanceDefaults.forModel(model);
         box.addView(ui.sectionLabel(model.isEmpty() ? T.maintenanceManualTitleUnknown() : T.maintenanceManualTitle(model)));
-        TextView line = ui.caption(result.kind == MaintenanceDefaults.Kind.UNKNOWN_MODEL ? T.maintenanceManualUnknown() : T.maintenanceManualNone());
-        line.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(4)); box.addView(line);
+        if (result.kind != MaintenanceDefaults.Kind.LISTED) {
+            TextView line = ui.caption(result.kind == MaintenanceDefaults.Kind.UNKNOWN_MODEL ? T.maintenanceManualUnknown() : T.maintenanceManualNone());
+            line.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(4)); box.addView(line);
+            return box;
+        }
+        TextView line = ui.caption(T.maintenanceManualListed()); line.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(8)); box.addView(line);
+        LinearLayout list = ui.groupCard();
+        for (int i = 0; i < result.intervals.size(); i++) { if (i > 0) ui.divider(list); list.addView(manualRow(s, result.intervals.get(i))); }
+        box.addView(list);
         return box;
+    }
+
+    /** One manual interval: its task, how often and the page it comes from, with Add (or Added once a reminder has the task). */
+    private View manualRow(MaintenanceStore.Settings s, MaintenanceDefaults.Interval interval) {
+        MaintenancePolicy.Reminder suggested = MaintenanceView.suggestion(interval);
+        LinearLayout row = new LinearLayout(host.activity()); row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(10));
+        LinearLayout words = column();
+        words.addView(ui.text(MaintenanceView.taskName(interval.task), 15, false));
+        TextView every = ui.text(MaintenanceView.interval(suggested, units()), 13, false); every.setPadding(0, ui.dp(2), 0, 0); words.addView(every);
+        TextView source = ui.caption(MaintenanceView.source(interval.source)); source.setPadding(0, ui.dp(2), 0, 0); words.addView(source);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        boolean added = MaintenanceView.hasTask(s, interval.task);
+        TextView add = pill(added ? T.maintenanceManualAdded() : T.maintenanceManualAdd(), null, false, added ? null : () -> edit(null, suggested));
+        if (added) { add.setEnabled(false); add.setClickable(false); add.setAlpha(0.55f); }
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-2, -2); ap.leftMargin = ui.dp(10); row.addView(add, ap);
+        return row;
     }
 
     // ---- Small views --------------------------------------------------------------------------
@@ -462,9 +488,14 @@ final class MaintenanceScreen {
     // ---- Add and edit -------------------------------------------------------------------------
 
     /** The add sheet (id null) or the edit sheet for a reminder. */
-    private void edit(String id) {
+    private void edit(String id) { edit(id, null); }
+
+    /** The add sheet prefilled from a manual interval (suggested), or the edit sheet for a reminder (id). */
+    private void edit(String id, MaintenancePolicy.Reminder suggested) {
         MaintenanceStore.Settings s = load(); if (s == null) return;
         MaintenancePolicy.Reminder existing = id == null ? null : s.find(id);
+        // What the sheet starts from: the reminder being edited, or the manual's interval for a new one.
+        MaintenancePolicy.Reminder shown = existing != null ? existing : suggested;
         if (id != null && existing == null) return;
         if (existing == null && s.reminders.size() >= MaintenancePolicy.MAX_REMINDERS) { host.toast(T.maintenanceFull(MaintenancePolicy.MAX_REMINDERS)); return; }
         String units = units(); boolean read = s.distance.everRead();
@@ -475,8 +506,9 @@ final class MaintenanceScreen {
         name.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MaintenancePolicy.MAX_NAME)});
         content.addView(name, new LinearLayout.LayoutParams(-1, -2));
         final String[] task = {existing == null ? "" : existing.task};
+        if (existing == null && suggested != null) task[0] = suggested.task;
         final boolean[] typing = {true};
-        if (existing != null) { typing[0] = false; name.setText(MaintenanceView.name(existing)); typing[0] = true; }
+        if (shown != null) { typing[0] = false; name.setText(MaintenanceView.name(shown)); typing[0] = true; }
         Flow tasks = new Flow(); List<TextView> taskChips = new ArrayList<>();
         for (String t : MaintenanceDefaults.TASKS) {
             TextView chip = ui.chip(MaintenanceView.taskName(t), t.equals(task[0]), null); chip.setTag(t);
@@ -495,19 +527,23 @@ final class MaintenanceScreen {
         });
         // Remind me after: Distance, Time or Either.
         content.addView(fieldLabel(T.maintenanceRemindAfter()));
-        int initialMode = existing == null ? (read ? 0 : 1) : existing.byDistance() && existing.byTime() ? 2 : existing.byDistance() ? 0 : 1;
+        // Distance and Either need an odometer reading, except for a manual interval: it keeps its distance
+        // part, which counts from the next reading (MaintenancePolicy.settle). An edited distance reminder keeps its own.
+        boolean early = existing == null && suggested != null && suggested.byDistance() && !read;
+        boolean distanceOk = read || early || existing != null && existing.byDistance();
+        int initialMode = shown == null ? (read ? 0 : 1) : !distanceOk || !shown.byDistance() ? 1 : shown.byTime() ? 2 : 0;
         final int[] mode = {initialMode};
         LinearLayout modes = new LinearLayout(host.activity());
         String[] modeNames = {T.maintenanceByDistance(), T.maintenanceByTime(), T.maintenanceByEither()};
         TextView[] modeChips = new TextView[3];
         content.addView(modes);
-        TextView reason = ui.caption(T.maintenanceNeverRead()); reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(reason);
+        TextView reason = ui.caption(early ? T.maintenanceDistanceNext() : T.maintenanceNeverRead()); reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(reason);
         TextView either = ui.caption(T.maintenanceEitherNote()); either.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(either);
         // Distance: a number in the rider's units and neutral shortcut chips.
         LinearLayout distanceBox = column();
         distanceBox.addView(fieldLabel(T.maintenanceDistanceField(MaintenanceView.unit(units))));
         EditText distance = field(null, true); distance.setTag(TAG_DISTANCE); distanceBox.addView(distance, new LinearLayout.LayoutParams(-1, -2));
-        if (existing != null && existing.byDistance()) distance.setText(MaintenanceView.editNumber(MaintenanceView.fromKm(existing.km, units)));
+        if (shown != null && shown.byDistance()) distance.setText(MaintenanceView.editNumber(MaintenanceView.fromKm(shown.km, units)));
         Flow distanceChips = new Flow();
         for (int value : MaintenanceView.DISTANCE_CHIPS) {
             String label = T.fmtQuantity(Fmt.groupedInteger(Locale.US, value), MaintenanceView.unit(units));
@@ -524,9 +560,9 @@ final class MaintenanceScreen {
         EditText time = field(null, true); time.setTag(TAG_TIME); time.setInputType(InputType.TYPE_CLASS_NUMBER);
         timeLine.addView(time, new LinearLayout.LayoutParams(ui.dp(96), -2));
         final int[] unit = {MaintenanceView.WEEK};
-        if (existing != null && existing.byTime()) {
-            unit[0] = existing.months > 0 ? MaintenanceView.MONTH : existing.days % MaintenanceView.WEEK == 0 ? MaintenanceView.WEEK : MaintenanceView.DAY;
-            int count = existing.months > 0 ? existing.months : unit[0] == MaintenanceView.WEEK ? existing.days / MaintenanceView.WEEK : existing.days;
+        if (shown != null && shown.byTime()) {
+            unit[0] = shown.months > 0 ? MaintenanceView.MONTH : shown.days % MaintenanceView.WEEK == 0 ? MaintenanceView.WEEK : MaintenanceView.DAY;
+            int count = shown.months > 0 ? shown.months : unit[0] == MaintenanceView.WEEK ? shown.days / MaintenanceView.WEEK : shown.days;
             time.setText(Fmt.integer(count));
         }
         Flow units3 = new Flow(); units3.setPadding(ui.dp(8), 0, 0, 0);
@@ -589,12 +625,12 @@ final class MaintenanceScreen {
             int index = i;
             modeChips[i] = ui.chip(modeNames[i], mode[0] == i, () -> { mode[0] = index; showMode.run(); }); modeChips[i].setTag(TAG_MODE + i);
             // Distance and Either need an odometer reading first; time reminders always work.
-            boolean allowed = i == 1 || read || existing != null && existing.byDistance();
+            boolean allowed = i == 1 || distanceOk;
             modeChips[i].setEnabled(allowed); if (!allowed) modeChips[i].setAlpha(0.45f);
             LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(-2, -2); if (i > 0) mp.leftMargin = ui.dp(6);
             modes.addView(modeChips[i], mp);
         }
-        reason.setVisibility(read || existing != null && existing.byDistance() ? View.GONE : View.VISIBLE);
+        reason.setVisibility(read || !early && existing != null && existing.byDistance() ? View.GONE : View.VISIBLE);
         showMode.run();
         TextView save = ui.button(T.maintenanceSave(), () -> {
             String typed = name.getText().toString().trim();

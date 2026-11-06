@@ -8,6 +8,7 @@
     <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Espera a que termine la comprobación de la carga programada</string>
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">El mantenimiento de los datos de la app ya está en curso</string>
     <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Espera a que termine de guardarse la grabación del teléfono</string>
+    <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Espera a que termine de guardarse la copia del viaje</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Termina primero la exportación de carga actual</string>
     <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Espera a que Volt termine de establecer la programación de carga</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Espera a que «Fin de carga» termine la medición</string>
@@ -170,8 +171,20 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Sal primero de la simulación</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Finalizando el viaje anterior</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Viaje guardado automáticamente</string>
+    <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">No se guardó la copia del viaje</string>
+    <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Volt no puede acceder a tu carpeta de guardado automático. Abre Volt y vuelve a elegir la carpeta. Tus viajes están a salvo en Volt.</string>
+    <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Volt no pudo escribir en tu carpeta de guardado automático. Lo intentará de nuevo después de tu próximo viaje. Tus viajes están a salvo en Volt.</string>
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Se perdió la conexión Bluetooth con el patinete detenido</string>
     <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Se perdió la conexión Bluetooth con el patinete detenido</string>
+    <string name="service_ride_quiet_lost" volt:src="4e91beb92f47ac8e8850aadc386fbe314269da11">Patinete apagado o fuera de alcance</string>
+    <string name="service_ride_quiet_lost_at" volt:src="458752a56ccec967956520f1e7e7fb3d1bbf6372">Patinete apagado o fuera de alcance. Fin del viaje y última lectura del patinete: %1$s.</string>
+    <string name="service_ride_quiet_lost_label_at" volt:src="14fea5a72b31cad36cd59e08ac7fd56ca8968c4d">%1$s · Patinete apagado o fuera de alcance. Fin del viaje y última lectura del patinete: %2$s.</string>
+    <string name="service_ride_phone_bluetooth_off" volt:src="1cc26a9f52c231a705e74ae1b9c9e1a50ecbc99b">El Bluetooth del teléfono permaneció desactivado</string>
+    <string name="service_ride_phone_bluetooth_off_at" volt:src="1f8822cd34c4bc1bf78d319141b1ea138678cba4">El Bluetooth del teléfono permaneció desactivado. Fin del viaje y última lectura del patinete: %1$s.</string>
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:src="33246da082f7b90d3ef4f36414e0451cf6d4c98b">%1$s · El Bluetooth del teléfono permaneció desactivado. Fin del viaje y última lectura del patinete: %2$s.</string>
+    <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Sin movimiento durante 10 minutos</string>
+    <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Sin movimiento durante 10 minutos. Fin del viaje y último movimiento: %1$s.</string>
+    <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Sin movimiento durante 10 minutos. Fin del viaje y último movimiento: %2$s.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Conexión y grabación del patinete</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Midiendo la carga para «Fin de carga»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Comprobando la carga programada</string>

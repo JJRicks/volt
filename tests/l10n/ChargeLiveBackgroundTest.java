@@ -95,7 +95,7 @@ public final class ChargeLiveBackgroundTest {
             steps++;
             check(s.connected && s.hold.active() && s.end == ChargeLiveHold.End.NONE, "background link up at " + (t - T0) + " ms: still held, connected");
             check(s.card.kind == ChargeLiveState.Kind.CHARGING && "Charging · 99%".equals(s.card.title), "the card says Charging at " + (t - T0) + " ms: " + s.card.title);
-            check(s.card.text.startsWith("≈ 8m left · done 05:49") && s.card.text.endsWith("122 W"), "with the estimate and power: " + s.card.text);
+            check(s.card.text.startsWith("Done 05:49") && s.card.text.endsWith("122 W"), "with the estimate and power: " + s.card.text);
             if (!readyBefore(true, status, t)) oldReconnecting++;
         }
         // What the Pixel showed: about 8 s of every 15 s judged by ready()'s 7 s window.

@@ -1,0 +1,5 @@
+# The owner's simpler live charging card (2026-11-06). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root. ChargeCardSimplerTest
+# covers the card's text, reposts and button (ChargeLiveState, from charge-live.sources) and reads
+# ScooterService for the countdown and the bar's icons.
+tests/l10n/ChargeCardSimplerTest.java
