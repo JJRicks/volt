@@ -136,7 +136,8 @@ public final class ScooterService extends Service {
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
-            rides = new RideStore(new File(getFilesDir(), "rides"));
+            // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
+            rides = new RideStore(new File(getFilesDir(), "rides"), true);
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
@@ -214,7 +215,20 @@ public final class ScooterService extends Service {
         else if("DISMISS_CHARGE_ALERT".equals(action))dismissChargeAlert();
         else if("STOP_ALERT_WATCH".equals(action))skipChargeAlert();
         else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
-        applyWorkPolicy(!stopAction||isRecording());return isRecording()?START_STICKY:START_NOT_STICKY;
+        applyWorkPolicy(!stopAction||isRecording());warmRides();return isRecording()?START_STICKY:START_NOT_STICKY;
+    }
+    private boolean ridesWarming;
+    /**
+     * Owner, Nov 5: launch and connect first, then load rides. Runs once, after the first start command has begun the
+     * connection: a low-priority worker reads every finished ride into the store's cache, so Rides opens from memory.
+     */
+    private void warmRides(){
+        if(ridesWarming||rides==null)return;ridesWarming=true;final RideStore store=rides;
+        Thread worker=new Thread(()->{
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try{store.list();}catch(IOException|RuntimeException unavailable){}
+        },"ride-cache");
+        worker.setDaemon(true);worker.start();
     }
     @Override public IBinder onBind(Intent intent){return guardedLifecycle?null:binder;}
     public void listen(Runnable listener){listeners.add(listener);}public void unlisten(Runnable listener){listeners.remove(listener);}

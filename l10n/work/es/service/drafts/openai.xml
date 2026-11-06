@@ -35,7 +35,7 @@
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Cargador original · el cargador se detuvo · esperando a que se reanude</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Cargador original · en pausa hasta el inicio programado</string>
     <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Cargador original · muestras locales: %1$s</string>
-    <plurals name="service_charge_stock_samples_count" volt:src="1a9a266bf7b8cc499f4cf6332934f1ceb7fa5bdf">
+    <plurals name="service_charge_stock_samples_count" volt:src="9d16c78dbd36572bab00578db0e0a3551ca03acf">
         <item quantity="one">Cargador original · %1$s muestra local</item>
         <item quantity="many">Cargador original · %1$s muestras locales</item>
         <item quantity="other">Cargador original · %1$s muestras locales</item>
@@ -43,19 +43,19 @@
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Cargador rápido · el cargador se detuvo · esperando a que se reanude</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Cargador rápido · en pausa hasta el inicio programado</string>
     <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Cargador rápido · muestras locales: %1$s</string>
-    <plurals name="service_charge_fast_samples_count" volt:src="6be8091e11eef7d3f17dd0349b5ff60b16522952">
+    <plurals name="service_charge_fast_samples_count" volt:src="6800ddcf187c635621dce44f3a5619535ae5d60a">
         <item quantity="one">Cargador rápido · %1$s muestra local</item>
         <item quantity="many">Cargador rápido · %1$s muestras locales</item>
         <item quantity="other">Cargador rápido · %1$s muestras locales</item>
     </plurals>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">No se aplica hasta que se conozca el cargador · grabaciones guardadas: %1$s</string>
-    <plurals name="service_charge_learning_unknown_count" volt:src="51d999f633cc6a6eda52e49ef3b3cbbd4a0f8dc7">
+    <plurals name="service_charge_learning_unknown_count" volt:src="a6fbf8526f101a68d48f3c2712760fe256ed14cb">
         <item quantity="one">No se aplica hasta que se conozca el cargador · %1$s grabación guardada</item>
         <item quantity="many">No se aplica hasta que se conozca el cargador · %1$s grabaciones guardadas</item>
         <item quantity="other">No se aplica hasta que se conozca el cargador · %1$s grabaciones guardadas</item>
     </plurals>
     <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s carga apta con cargador rápido · grabaciones guardadas: %2$s</string>
-    <plurals name="service_charge_recordings_stored" volt:src="2a99d666ee821ad3d8ff999d0b049b460d26e161">
+    <plurals name="service_charge_recordings_stored" volt:src="7d1afdde6652f343523a9dc4d891d80a70cf73f2">
         <item quantity="one">%1$s grabación guardada</item>
         <item quantity="many">%1$s grabaciones guardadas</item>
         <item quantity="other">%1$s grabaciones guardadas</item>
