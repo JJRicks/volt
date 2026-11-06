@@ -120,6 +120,12 @@ public final class BleController {
     private void quiet(){message="";changed();}
     private void simulationUnavailable(String action){notice(action+" is unavailable in simulation. No scooter command was sent.");}
     public State state(){return state;}public String message(){return ConnectionText.english(message);}public boolean ready(){if(simulating())return simulation!=null&&state==State.READY;return workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&statusMs>0&&now()-statusMs<=7000&&!serial.isEmpty();}
+    /**
+     * The link is up and answering on the cadence it is on (StatusCadence): with Volt open or recording, exactly ready();
+     * out of sight, where status is asked for every 15 s, a status read up to the background silence limit still counts.
+     * For background facts (the live charging card, charge alerts, the connection notice), never for controls.
+     */
+    public boolean linked(){if(simulating()||visible||recording)return ready();return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),false);}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
@@ -627,7 +633,7 @@ public final class BleController {
         if(readPolicy==null)readPolicy=identified?ReadPolicy.forLayer(layer):ReadPolicy.legacy();else readPolicy.layer(layer,identified);
         return readPolicy;
     }
-    private void poll(int session){if(simulating())return;handler.postDelayed(()->{if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long silentLimit=visible||recording?12000:35000;if((lastFrameMs>0&&now()-lastFrameMs>silentLimit)||(statusMs>0&&now()-statusMs>silentLimit)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();poll(session);},visible||recording?2000:15000);}
+    private void poll(int session){if(simulating())return;handler.postDelayed(()->{if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long silentLimit=StatusCadence.silenceMs(visible||recording);if((lastFrameMs>0&&now()-lastFrameMs>silentLimit)||(statusMs>0&&now()-statusMs>silentLimit)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();poll(session);},StatusCadence.pollMs(visible||recording));}
     /** Every write's admission: the resolver decision for this request, on this session's fresh state. */
     private CapabilityResolver.Decision check(MutationGate.Request r){return duringDiscovery(MutationGate.check(r,descriptor(),status(),runtime(r.feature)));}
     private boolean gate(MutationGate.Request r){CapabilityResolver.Decision d=check(r);if(d.available())return true;refused(r,d);return false;}

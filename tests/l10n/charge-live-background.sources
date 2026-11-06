@@ -1,0 +1,7 @@
+# The live charging card and charge alerts out of sight, where status is asked for every 15 s (StatusCadence).
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+# ChargeLiveHold, ChargeLiveState and ChargeAlertPolicy are compiled by charge-live.sources and tests/run.sh.
+src/com/jjricks/volt/StatusCadence.java
+src/com/jjricks/volt/ChargeLiveHold.java
+src/com/jjricks/volt/ChargeLiveState.java
+tests/l10n/ChargeLiveBackgroundTest.java

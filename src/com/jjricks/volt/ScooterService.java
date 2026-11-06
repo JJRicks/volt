@@ -998,7 +998,8 @@ public final class ScooterService extends Service {
     /** The battery reads Volt already makes, as the hold sees them: fresh and from the selected scooter, else null. */
     private ChargeLiveHold.Facts chargeLiveFacts(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active(),bound=ble==null?null:ble.profile();
-        boolean connected=!destroyed&&ble!=null&&!simulating()&&profile!=null&&ble.ready()&&bound!=null&&bound.id.equals(profile.id);
+        // linked(), not ready(): out of sight status comes every 15 s, and ready()'s 7 s window would read that as out of reach.
+        boolean connected=!destroyed&&ble!=null&&!simulating()&&profile!=null&&ble.linked()&&bound!=null&&bound.id.equals(profile.id);
         Telemetry.Metric state=null,soc=null,limit=null;
         if(connected)for(Telemetry.Metric m:ble.telemetry.metrics()){
             if(m.key.equals("charging_state"))state=m;
@@ -1333,7 +1334,7 @@ public final class ScooterService extends Service {
             if(alertPolicy!=null&&(profile==null||simulating()||!alertPolicy.settings().any()||!ChargeAlertPolicy.offered(alertDescriptor(profile))))alertPolicy.idle();
             else if(alertPolicy!=null){
                 ScooterProfiles.Profile bound=ble.profile();
-                ChargeAlertPolicy.Link link=ble.ready()&&bound!=null&&bound.id.equals(profile.id)?ChargeAlertPolicy.Link.CONNECTED
+                ChargeAlertPolicy.Link link=ble.linked()&&bound!=null&&bound.id.equals(profile.id)?ChargeAlertPolicy.Link.CONNECTED
                         :ble.recoverableConnectionLoss()&&ble.permissions()&&ble.bluetoothEnabled()?ChargeAlertPolicy.Link.RECONNECTING:ChargeAlertPolicy.Link.LOST;
                 Telemetry.Metric state=null,soc=null;
                 for(Telemetry.Metric m:ble.telemetry.metrics()){if(m.key.equals("charging_state"))state=m;else if(m.key.equals("battery_percent"))soc=m;}
@@ -2615,7 +2616,7 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
-                                : ble.ready() ? T.serviceNoticeConnected() : "Volt";
+                                : ble.linked() ? T.serviceNoticeConnected() : "Volt";
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,
         // distance beside a running clock while recording, a progress bar while a ride is saved.
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
@@ -2627,7 +2628,7 @@ public final class ScooterService extends Service {
                         ? null
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
-                                : ble.ready() ? connectedText() : ble.displayMessage();
+                                : ble.linked() ? connectedText() : ble.displayMessage();
         if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();
