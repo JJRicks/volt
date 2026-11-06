@@ -952,6 +952,8 @@ public final class ModelRegistry {
      * the official app doesn't offer the control at all, so the words describe the effect, not its prompt.
      */
     public static String experimentalCaution(String feature,int value,DeviceDescriptor d){
+        // Version 19: below the region's official 3–5 km/h, the hint says what one tester saw and how to undo it.
+        if(feature.equals("start_speed")&&value<3&&!officialLowStart(d))return T.controlsExperimentalStartSpeedRegion();
         return experimentalCaution(feature,value);
     }
     /** experimentalCaution for a scooter inside the official low-start region (or any scooter, for controls other than kick-start). */
