@@ -8,7 +8,6 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -43,7 +42,7 @@ import com.jjricks.volt.ScooterService;
  */
 public final class ScooterMenuEditValidation extends Instrumentation {
     private static final String PKG = "com.jjricks.volt";
-    private static final String MOVED = "Battery", ABOVE = "Ride", ROW = "traction_control", TOP_SPEED = "speed";
+    private static final String MOVED = "Battery", ABOVE = "Ride", ROW = "traction_control", TOP_SPEED = "speed", LAYOUT = "scooter_menu_v1_";
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;
@@ -78,7 +77,8 @@ public final class ScooterMenuEditValidation extends Instrumentation {
         } finally {
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks);
             result.putStringArrayList("screenshots", screenshots); result.putBoolean("physical_device_tested", false);
-            if (admitted && activity != null) try { main(() -> { activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
+            try { getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_UNFREEZE); } catch (Throwable ignored) { }
+            if (admitted && activity != null) try { main(() -> { if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
@@ -137,7 +137,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             List<String> after = editorOrder(), wanted = new ArrayList<>(before);
             int at = wanted.indexOf(MOVED); wanted.remove(at); wanted.add(at - 1, MOVED);
             require(after.equals(wanted), "Editor order after Move up " + after + ", wanted " + wanted);
-            require(settings().getString("scooter_menu_" + profileId(), "").contains(MOVED), "Moved layout not saved");
+            require(settings().getString(LAYOUT + profileId(), "").contains(MOVED), "Moved layout not saved");
         });
         checks.add("Pencil opens the editor (flag saved); " + MOVED + " moves above " + ABOVE + " by its Move up action; the layout saves at once");
     }
@@ -192,9 +192,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
     private void rotateWhileEditing() throws Exception {
         List<String> before = new ArrayList<>();
         main(() -> before.addAll(sectionOrder()));
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
-        await(() -> activity.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE, "Did not rotate");
-        settle(); SystemClock.sleep(800); settle();
+        int start = rotate();
         await(() -> editor() != null && editorView().isShown(), "Editor closed on rotation");
         main(() -> {
             require(sectionOrder().equals(before), "Rotation changed the order " + sectionOrder());
@@ -202,10 +200,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             require(editorOrder().indexOf(MOVED) < editorOrder().indexOf(ABOVE), "Rotated editor order " + editorOrder());
         });
         screenshot("editor-rotated");
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
-        await(() -> activity.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT, "Did not rotate back");
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED));
-        settle(); SystemClock.sleep(800); settle();
+        rotateBack(start);
         await(() -> editor() != null && editorView().isShown(), "Editor closed on rotating back");
         checks.add("Rotating while editing keeps the editor open, the order and the hidden row");
     }
@@ -226,14 +221,9 @@ public final class ScooterMenuEditValidation extends Instrumentation {
     }
 
     private void rebuildKeepsLayout() throws Exception {
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
-        await(() -> activity.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE, "Did not rotate");
-        settle(); SystemClock.sleep(800); settle();
+        int start = rotate();
         main(() -> require(editor() == null && liveOrder().indexOf(MOVED) < liveOrder().indexOf(ABOVE) && ((View)field(row(ROW), "card")).getVisibility() != View.VISIBLE, "Rotated live page lost the layout: " + liveOrder()));
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
-        await(() -> activity.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT, "Did not rotate back");
-        main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED));
-        settle(); SystemClock.sleep(800); settle();
+        rotateBack(start);
         // A new Activity loads the saved layout (and, editing, reopens the editor).
         main(() -> editAction().performClick());
         await(() -> editor() != null, "Editor did not open again");
@@ -246,7 +236,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
 
     private void resetAndUndo() throws Exception {
         String[] saved = new String[1];
-        main(() -> saved[0] = settings().getString("scooter_menu_" + profileId(), ""));
+        main(() -> saved[0] = settings().getString(LAYOUT + profileId(), ""));
         main(() -> require(editorView().findViewWithTag("menu_reset").performClick(), "Reset did not click")); settle();
         main(() -> {
             require(Boolean.TRUE.equals(menu("isDefault")), "Reset left a changed layout");
@@ -260,7 +250,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             require(sectionOrder().indexOf(MOVED) < sectionOrder().indexOf(ABOVE), "Order after Undo " + sectionOrder());
             require(Boolean.TRUE.equals(invoke(menu(), "rowHidden", new Class<?>[]{String.class}, ROW)), ROW + " not hidden after Undo");
             require(editorView().findViewWithTag(ROW) == null, ROW + " listed after Undo");
-            require(settings().getString("scooter_menu_" + profileId(), "").equals(saved[0]), "Undo saved a different layout");
+            require(settings().getString(LAYOUT + profileId(), "").equals(saved[0]), "Undo saved a different layout");
         });
         checks.add("Reset puts the default menu back with an Undo notice; Undo restores and saves the same layout");
     }
@@ -322,6 +312,21 @@ public final class ScooterMenuEditValidation extends Instrumentation {
     private void launch() {
         activity = (MainActivity)startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, "App did not launch"); settle();
+    }
+    /** Turns the display a quarter (the system turns it even where large screens ignore an app's orientation request). */
+    private int rotate() {
+        int[] start = new int[1];
+        main(() -> start[0] = activity.getResources().getConfiguration().screenWidthDp);
+        require(getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_FREEZE_90), "Rotation refused");
+        await(() -> activity.getResources().getConfiguration().screenWidthDp != start[0], "Did not rotate");
+        settle(); SystemClock.sleep(800); settle();
+        return start[0];
+    }
+    private void rotateBack(int start) {
+        require(getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_FREEZE_0), "Rotation refused");
+        await(() -> activity.getResources().getConfiguration().screenWidthDp == start, "Did not rotate back");
+        getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_UNFREEZE);
+        settle(); SystemClock.sleep(800); settle();
     }
     private void recreate() {
         ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
@@ -398,7 +403,14 @@ public final class ScooterMenuEditValidation extends Instrumentation {
     private SharedPreferences prefs(String name) { return getTargetContext().getSharedPreferences(name, Context.MODE_PRIVATE); }
     private View root() { return (View)field(activity, "root"); }
     private void settle() { waitForIdleSync(); SystemClock.sleep(300); waitForIdleSync(); }
-    private void main(Runnable task) { runOnMainSync(task); }
+    /** Runs on the main thread; a failed check there fails the run here instead of crashing the app. */
+    private void main(Runnable task) {
+        Throwable[] failed = new Throwable[1];
+        runOnMainSync(() -> { try { task.run(); } catch (Throwable error) { failed[0] = error; } });
+        if (failed[0] instanceof RuntimeException) throw (RuntimeException)failed[0];
+        if (failed[0] instanceof Error) throw (Error)failed[0];
+        if (failed[0] != null) throw new IllegalStateException(failed[0]);
+    }
     private void await(BooleanSupplier condition, String message) {
         long end = SystemClock.uptimeMillis() + 8000;
         while (SystemClock.uptimeMillis() < end) { boolean[] ok = new boolean[1]; main(() -> ok[0] = condition.getAsBoolean()); if (ok[0]) break; SystemClock.sleep(40); }
