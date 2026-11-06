@@ -981,7 +981,10 @@ public final class MoreScreen implements AppScreen {
         divider.setBackgroundColor(ui.raised);
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
-            if (offered) row.value(LanguageSheet.value(host.activity()));
+            // The current language goes under the title, as Android's own language setting shows it: the
+            // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
+            // at large text sizes.
+            if (offered) row.sub(LanguageSheet.value(host.activity()));
             placeLanguageRow(display, language, divider, offered, ui.dp(1));
         });
     }
