@@ -3,9 +3,11 @@
 Unreleased, after Volt 1.3.1.
 
 A ride left recording after the rider parks and walks away ends itself. The
-owner's example: the scooter shows zero speed, Bluetooth disconnects and does not
-come back within ten seconds. That is one conservative condition, not a rule
-that every disconnection ends a ride.
+owner's first example: the scooter shows zero speed, Bluetooth disconnects and
+does not come back within ten seconds. That parked rule never matched a scooter
+walked at 1–3 mph and switched off, so a second rule ends a ride whose scooter
+went quiet (switched off or out of range) after a longer wait. Any reconnect
+inside either wait keeps the same ride.
 
 ## Decision
 
@@ -44,24 +46,77 @@ A clock that moves backwards resets the policy. A decision fires once; if saving
 fails the ride stays recording with the existing "Retry save" state and is not
 retried automatically.
 
+## Went quiet (switched off or out of range)
+
+Owner answers (2026-11-05): 1 minute at walking pace or a stop, 5 minutes
+otherwise (Q4 A); no phone-GPS "still moving" guard in v1 (Q30 B: he often
+starts walking right after parking); the phone's Bluetooth switched off also
+ends the ride after 5 minutes (Q31 B).
+
+Every loss of this ride's scooter that the parked rule does not take starts a
+countdown from the **last frame heard**, not from when the 12 s silent-link
+watchdog notices, so "a minute" means about a minute after the scooter switched
+off. In practice the save comes 60–62 s after power-off (1 s ticks).
+
+| Last fresh motion push before the loss | Countdown |
+| --- | --- |
+| speed ≤ 6.4 km/h (`speedRaw ≤ 64`, about 4 mph), any driving status, ≤ 6 s before the last frame, loss seen ≤ 15 s after it | `QUIET_SLOW_MS` = 60 s |
+| faster, missing, stale or unknown, or the loss seen later | `QUIET_LONG_MS` = 5 min |
+| the phone's Bluetooth switched off (`Loss.PHONE_BLUETOOTH_OFF`) | 5 min; never shortens or restarts a running countdown |
+| policy created while already disconnected (service restart mid-ride) | 5 min from creation |
+
+`ScooterService` reports the loss with `RideAutoStopPolicy.loss(permissions,
+bluetoothEnabled, recoverableConnectionLoss)`: no Bluetooth permission cancels,
+Bluetooth off on the phone is its own loss, anything else follows the
+transport's own retry decision (owner rejection and unsupported scooters
+cancel). Only one continuous disconnection counts; repeated `disconnected`
+calls and reconnect attempts never restart or clear the countdown, and any
+authenticated reconnect cancels it. The preference off, a storage error, a
+profile change and an explicit Disconnect reset it, as for the parked rule.
+
+The tick checks `due()` (parked) first, then `dueQuiet()`. A quiet end saves
+`RideStore.quietStopReason(code, phoneBluetoothOff)`; `code` is the native
+status of the first connection event at or after the last frame when that
+event is a native disconnect (`ConnectionEventLog.firstLossCode`), otherwise -1
+(a silent link, Bluetooth off, or a reconnect attempt came first). After a few
+real power-offs the code may show whether it alone separates a power-off from a
+radio drop.
+
+## Ownership and the stop path
+
 Before acting, the service checks that the decision's policy instance is still
 the current one and its ride ID is still the active ride, and that the scooter is
 still disconnected. A late decision cannot close a newer ride.
 
 ## Stop and save
 
-The ride ends through the same `stopRide` path as the Stop button and the
-notification: storage error handling, phone GPS/sensor drain, wake-lock release,
-work-policy and notification update. The stop time is the real time it fired;
+Both rules end the ride through the same `stopRide(reason)` path as the Stop
+button and the notification: storage error handling, phone GPS/sensor drain,
+wake-lock release, work-policy and notification update, and the automatic ride
+copy (`rideFullySaved` → `startRideAutoExport`) once the phone journal is
+saved. The stop time is the real time it fired;
 nothing is backdated and no samples are added. A separate, auto-cancelling
 notification says **Ride saved automatically**; a Toast shows if Volt is open.
-Ride details show a **Saved automatically** pill.
+Ride details show a **Saved automatically** pill. After a quiet end the notice
+reads "<ride> · Scooter turned off or out of range. Ended at 4:12 PM, its last
+reading." (or "Phone Bluetooth stayed off. …"), and the pill's screen-reader
+text names the same reason. The time is the shown end below, in the app's clock
+format.
 
 The journal's existing `STOP` row stores `AUTO_PARKED_DISCONNECT` in its details
 column (empty for a rider's stop, as before). Readers before this change ignore
 the column, so journals, ride backups and full app backups stay compatible both
-ways. `RideStore.Summary` exposes `stopReason` / `automaticStop`; analysis JSON
-adds `stopReason` (`rider`, `automatic_parked_disconnect`).
+ways. A quiet end stores `AUTO_QUIET_DISCONNECT;last=<mono>;code=<n>` (and
+`;phone_bt=off`); older builds read it as a rider's stop. `RideStore.Summary`
+exposes `stopReason` / `automaticStop` and, for automatic stops, the shown end
+(`shownEndWallMs`, `shownElapsedMs`, `shownGapCount`): the last committed
+sample that still held a fresh scooter value (at most 3 s old), so the silent
+link, the gap and the wait never count. Raw `endWallMs` / `elapsedMs` stay for
+integrity checks and exports. Analysis JSON adds `stopReason` (`rider`,
+`automatic_parked_disconnect`, `automatic_quiet_disconnect`) and the shown end.
+The rides list, the details Duration tile and the compare sheet read the shown
+end (companion branch `claude/ride-autostop-shown-end`); the measurement
+quality rows keep the raw values.
 
 ## Learned range
 
@@ -70,13 +125,15 @@ automatically ended ride always closes with the silent link, one disconnect gap
 and the grace, so it would never train. For those rides only, the screening
 judges the ride at its last complete reading (speed, battery and odometer fresh)
 when the final disconnection is its only gap and that tail is at most 60 s. The
-tail contains no distance or battery use. Rides stopped by hand keep the existing
-rules.
+tail contains no distance or battery use. After a quiet end the tail may be up
+to the 5 min wait plus 30 s (`QUIET_TAIL_MS`). Rides stopped by hand keep the
+existing rules.
 
 ## Preference
 
-**More → App preferences → End parked rides** (`ride_auto_stop`, default on).
-Included in full app backups as a boolean.
+**More → App preferences → End rides automatically** (`ride_auto_stop`,
+default on), caption "When the scooter turns off, or stays out of reach for 5
+min". One switch covers both rules. Included in full app backups as a boolean.
 
 ## Automated checks
 
@@ -89,13 +146,25 @@ decisions after a new ride, process restart.
 `tests/RideAutoStopStoreTest`: stop reason round trip, legacy journal meaning,
 real stop time, backup staging inspection, learned range on an automatically
 ended ride versus the same tail stopped by hand, long tails and earlier gaps,
-streaming parity, failed save keeps recording.
+streaming parity, failed save keeps recording, the quiet token round trip,
+shown end, learned range on a quiet tail.
+
+`tests/l10n/RideAutoStopWireTest` drives the real policy and a real `RideStore`
+through a scripted service loop (1 s ticks, the 12 s watchdog, the gap and
+heartbeats, the tick order): a walking power-off ends exactly 60 s after the last
+frame with the code, last reading and shown end saved; a reconnect at 40 s keeps
+recording and a later loss gets its own 60 s; riding speed waits 5 min; phone
+Bluetooth off ends after 5 min and never lengthens a running slow countdown; the
+parked rule still wins; the setting off keeps recording. It checks the loss
+mapping, the loss code, the notice and pill text, and, from source, that the tick
+order holds and that an automatic end goes through `stopRide(reason)`, which
+reaches the automatic ride copy.
 
 ## Emulator checks
 
 `android-tests/RideAutoStopValidation` (`run-ride-auto-stop.py`, disposable
 emulator only, Bluetooth off, synthetic journals) at 344×882 dp dark/100% and
-light/140%, 725×604 dp light/140% and dark/100%, 66 checks each:
+light/140%, 725×604 dp light/140% and dark/100%, 99 checks each:
 
 - Three journals ended with `AUTO_PARKED_DISCONNECT` and one with the same tail
   stopped by hand. Ride details show **Saved automatically** (fully visible,
@@ -107,7 +176,24 @@ light/140%, 725×604 dp light/140% and dark/100%, 66 checks each:
   12 km over 24 battery points (50 km), so the tail adds nothing.
 - Full app backup type check accepts a boolean `ride_auto_stop` and rejects a
   string or integer.
-- **End parked rides** is on by default, readable beside its switch, clear of
+- Went quiet, on the service's own policy and tick (a live ride in the
+  service's store, the policy fed its link events through reflection; the
+  emulator has no scooter to reconnect):
+  - an authenticated reconnect 40 s into a walking-pace quiet window cancels
+    it: still recording at 66 s, and the rider's Stop ends it as before;
+  - phone Bluetooth off at riding speed (its last frame placed 295 s back)
+    ends at 5 min with `AUTO_QUIET_DISCONNECT`, the phone flag, no disconnect
+    code and the "Phone Bluetooth stayed off" notice;
+  - a walking-pace power-off is still recording at 58 s and ended by 64 s
+    (56–64 s after the last frame), stores the token, the last reading and a
+    shown end at the last reading before the raw end, and posts **Ride saved
+    automatically** with "Scooter turned off or out of range. Ended at …, its
+    last reading.";
+  - the automatic copy ran from that stop (`stopRide` → `rideFullySaved` →
+    `startRideAutoExport`): with a JSON copy on and no folder, the ride stays
+    waiting with its problem stored;
+  - the pill's spoken description names the quiet stop.
+- **End rides automatically** is on by default, readable beside its switch, clear of
   the navigation bar; a tap turns it off and `app_settings.xml` stores it, and
   it survives leaving and reopening the section.
 - The service's own notice method posts **Ride saved automatically** with the
@@ -128,6 +214,13 @@ The emulator has no scooter, so these remain covered only by
 - Process interruption while disconnected: the recovered ride keeps recording
   and is not ended automatically.
 - Reconnect inside the grace keeps the same ride.
+- A real scooter switched off at walking pace: the disconnect code Android
+  reports, and whether the 12 s silent-link watchdog or a native disconnect
+  comes first.
+- How often a stopped or walking UT5 MAX pushes speed. The owner's ride
+  718c0766 has 140 s of voltage with no speed (about 2.3 W) before his own
+  Stop, with at most 6.6 s uncovered, so the link never dropped. Both rules
+  need a link loss, so this PR would not have ended that ride.
 
 Physical, with the owner present: how often the UT5 MAX sends `0x91`/`0x92`
 while parked (parked-only controls already depend on it within 6 s), and the

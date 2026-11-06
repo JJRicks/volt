@@ -57,6 +57,25 @@ public final class RideAutoStopPolicy {
         /** Permission revoked, owner rejected or anything else Volt will not retry on its own. */
         UNRECOVERABLE
     }
+    /**
+     * The service's view of a loss: no Bluetooth permission is unrecoverable; the phone's Bluetooth
+     * switched off is {@link Loss#PHONE_BLUETOOTH_OFF}; otherwise the transport's own retry decision.
+     */
+    public static Loss loss(boolean permissions, boolean bluetoothEnabled, boolean recoverable) {
+        return loss(permissions, bluetoothEnabled, recoverable, false);
+    }
+    /**
+     * As above, for a transport whose latest event is the phone's Bluetooth switching off
+     * ({@code adapterOffLast}, see {@link ConnectionEventLog#adapterOffLast}). With Bluetooth back on,
+     * its retry flag still says "not retried" from that adapter-off failure while the reconnect runs, so
+     * the loss stays recoverable and an armed countdown keeps its deadline. A failed reconnect records
+     * its own event, after which the transport's flag decides again.
+     */
+    public static Loss loss(boolean permissions, boolean bluetoothEnabled, boolean recoverable, boolean adapterOffLast) {
+        if (!permissions) return Loss.UNRECOVERABLE;
+        if (!bluetoothEnabled) return Loss.PHONE_BLUETOOTH_OFF;
+        return recoverable || adapterOffLast ? Loss.RECOVERABLE : Loss.UNRECOVERABLE;
+    }
     /** Why the quiet countdown runs. */
     public enum Quiet { NONE, SLOW, LONG, PHONE_BLUETOOTH_OFF, RESTART }
 

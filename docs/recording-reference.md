@@ -145,8 +145,14 @@ command, sensor time/age, current-direction interpretation and recording events.
 `BEGIN` / `SENSOR` / `COMMIT` preserve sample boundaries; only committed frames
 are accepted during replay. `GAP` / `HEARTBEAT` / `RECOVER` describe missing
 exposure and process recovery without inventing samples. A `STOP` row's details
-column is empty when the rider stopped, or `AUTO_PARKED_DISCONNECT` when Volt
-ended the ride automatically; older readers ignore it. Analysis JSON contains
+column is empty when the rider stopped, `AUTO_PARKED_DISCONNECT` when Volt
+ended the ride after a parked loss, or `AUTO_QUIET_DISCONNECT;last=<monotonic ms
+of the last real reading, -1 none>;code=<native disconnect code, -1
+unknown>` (plus `;phone_bt=off` when the phone's Bluetooth was off) when Volt
+ended it after the scooter went quiet; older readers ignore it, or read the
+last as a rider's stop. The STOP row keeps the real time it was written; the
+shown end (`shownEndWallMs`, `shownElapsedMs` in analysis JSON, `stopReason`
+`automatic_quiet_disconnect`) is the last real reading. Analysis JSON contains
 unit-explicit quantities, coverage and session metadata. `null` means
 insufficient evidence, not zero.
 
@@ -227,12 +233,20 @@ again.
 Ride and charge recording are independent of this idle option. Their service
 and ongoing Stop notification remain while hidden, with a renewed CPU wake lock.
 Ride recording can reconnect, recording Bluetooth loss as gaps. A forgotten ride
-ends itself: when fresh scooter reports showed it stopped for a few seconds and
-Bluetooth then stays lost for 10 seconds, Volt saves the ride through the normal
-Stop path and posts "Ride saved automatically". Losses while moving, without
-fresh speed, after a process restart or after an explicit Disconnect keep
-recording as before. App preferences > End parked rides turns this off. Exact
-rules: [ride auto-end](validation/ride-auto-stop.md). An explicitly
+ends itself, through the normal Stop path, with a "Ride saved automatically"
+notice that names the time of the last reading:
+- when fresh scooter reports showed it stopped for a few seconds and Bluetooth
+  then stays lost for 10 seconds;
+- when the scooter goes quiet (switched off or out of range) and stays
+  unreachable for 1 minute after its last frame at walking pace or a stop
+  (6.4 km/h or less), or 5 minutes after it otherwise (riding speed, no fresh
+  speed, or after a process restart);
+- when the phone's Bluetooth is switched off and stays off for 5 minutes.
+
+Any authenticated reconnect inside the wait keeps the same ride. An explicit
+Disconnect, revoked permissions or a profile change keep recording as before.
+App preferences > End rides automatically turns this off. Exact rules:
+[ride auto-end](validation/ride-auto-stop.md). An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from

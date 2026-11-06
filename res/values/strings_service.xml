@@ -306,6 +306,18 @@
     <string name="service_ride_bluetooth_lost" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Bluetooth lost while parked</string>
     <!-- %1$s is the ride's name. -->
     <string name="service_ride_bluetooth_lost_label" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Bluetooth lost while parked</string>
+    <!-- Volt ended a ride on its own: the scooter stopped answering (switched off or carried out of range) and stayed silent for 1 minute at walking pace, or 5 minutes otherwise. Used when the ride or its last reading is unknown. -->
+    <string name="service_ride_quiet_lost" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter turned off or out of range</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last reading (for example 4:12 PM), which the saved ride shows as its end. -->
+    <string name="service_ride_quiet_lost_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter turned off or out of range. Ended at %1$s, its last reading.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_quiet_lost_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Scooter turned off or out of range. Ended at %2$s, its last reading.</string>
+    <!-- Volt ended a ride on its own because the phone's own Bluetooth was switched off and stayed off for 5 minutes. Used when the ride or its last reading is unknown. -->
+    <string name="service_ride_phone_bluetooth_off" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">Phone Bluetooth stayed off</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_phone_bluetooth_off_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">Phone Bluetooth stayed off. Ended at %1$s, its last reading.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">%1$s · Phone Bluetooth stayed off. Ended at %2$s, its last reading.</string>
 
     <!-- ===== The connection notice (always shown while the service runs) ===== -->
 

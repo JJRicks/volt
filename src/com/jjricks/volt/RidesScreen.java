@@ -1129,7 +1129,7 @@ public final class RidesScreen implements AppScreen {
         }
         if (s.automaticStop) {
             TextView automatic = pill(T.ridesSavedAutomatically(), ui.blue); automatic.setMinHeight(ui.dp(28));
-            automatic.setContentDescription(T.ridesSavedAutomaticallyDescription());
+            automatic.setContentDescription(RideAutoStopText.description(s));
             LinearLayout.LayoutParams automaticParams = new LinearLayout.LayoutParams(-2, -2); automaticParams.leftMargin = ui.dp(4); automaticParams.bottomMargin = ui.dp(10);
             body.addView(automatic, automaticParams);
         }
