@@ -215,10 +215,14 @@
     <string name="more_language_in_progress" volt:screen="Language" volt:purpose="section title">In progress</string>
     <!-- What a screen reader says for one of those languages. %1$s is the language's own name ("Deutsch"), never translated. -->
     <string name="more_language_in_progress_description" volt:screen="Language" volt:purpose="accessibility description">%1$s, in progress</string>
-    <!-- Below the options. "Report an issue" is the More menu row (more_report_issue): use the same words. -->
-    <string name="more_language_note" volt:screen="Language" volt:purpose="note">Beta translations are made with AI and checked automatically. Reports and diagnostics stay in English. To report a wording problem, use Report an issue.</string>
+    <!-- Below the options, above the two email buttons (more_language_report_error, more_language_request). -->
+    <string name="more_language_note" volt:screen="Language" volt:purpose="note">Beta translations are made with AI and checked automatically. Reports and diagnostics stay in English. To report a wording problem or ask for a language, use the buttons below.</string>
     <!-- Android 13 and later only. Use the names Android's own Settings app shows in this language. -->
     <string name="more_language_android_settings" volt:screen="Language" volt:purpose="caption" volt:dnt="Volt">You can also change this in Android Settings › Apps › Volt › Language.</string>
+    <!-- Button at the bottom of the sheet: opens an email to Volt about a wrong or awkward translation. The email itself stays English. -->
+    <string name="more_language_report_error" volt:screen="Language" volt:purpose="button">Report a translation error</string>
+    <!-- Button at the bottom of the sheet: opens an email asking for Volt in another language. The email itself stays English. -->
+    <string name="more_language_request" volt:screen="Language" volt:purpose="button">Request a language</string>
 
     <!-- ===== Data & history ===== -->
 

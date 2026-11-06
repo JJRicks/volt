@@ -20,7 +20,8 @@ import java.util.Locale;
  * The row is offered only once a language other than English ships (beta or stable in
  * l10n/lang/*.tsv), or with the pseudo APK while Developer options are on, where the sheet also lists
  * en-XA and ar-XB for layout checks. Until then English builds show no row at all. Below the choices,
- * an In progress section lists the draft languages, which cannot be chosen (LanguagePicker).
+ * an In progress section lists the draft languages, which cannot be chosen (LanguagePicker). At the
+ * bottom, Report a translation error and Request a language open English email drafts (IssueReport).
  *
  * Choosing goes through AppLanguage.choose. On API 33 and later the platform's per-app language is the
  * source of truth: the framework recreates the activities, and the row mirrors getApplicationLocales()
@@ -114,7 +115,41 @@ final class LanguageSheet {
             android.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), 0);
             body.addView(android);
         }
+        TextView report = ui.secondaryButton(T.moreLanguageReportError(), () -> email(host, self[0], true));
+        report.setTag("language_report_error");
+        LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(-1, -2);
+        first.topMargin = ui.dp(16); first.bottomMargin = ui.dp(6);
+        body.addView(report, first);
+        TextView request = ui.secondaryButton(T.moreLanguageRequest(), () -> email(host, self[0], false));
+        request.setTag("language_request");
+        body.addView(request);
         self[0] = host.showSheet(body);
+    }
+
+    /**
+     * Report a translation error (translation) or Request a language: an English draft to Volt's report
+     * address (IssueReport), straight to the email app with nothing attached. The sheet closes once the
+     * email app opens; with no email app it stays, under the report emails' toast.
+     */
+    private static void email(ScreenHost host, AlertDialog sheet, boolean translation) {
+        Activity activity = host.activity();
+        if (activity == null) return;
+        String version = AppVersion.name(activity);
+        String subject, text;
+        if (translation) {
+            String chosen = choice(activity);
+            String shown = chosen.isEmpty() ? T.language() : chosen;
+            int i = AppLanguages.indexOf(shown);
+            subject = IssueReport.translationSubject(shown);
+            text = IssueReport.translationBody(version, Build.VERSION.RELEASE, Build.VERSION.SDK_INT, shown, i >= 0 && beta(i), chosen.isEmpty());
+        } else {
+            LocaleList system = AppLanguage.systemLocales(activity);
+            Locale phone = system == null || system.isEmpty() ? Locale.getDefault() : system.get(0);
+            subject = IssueReport.languageRequestSubject();
+            text = IssueReport.languageRequestBody(version, phone.toLanguageTag());
+        }
+        if (!host.emailDraft(subject, text)) { host.toast(T.moreReportNoEmail()); return; }
+        if (sheet != null) sheet.dismiss();
     }
 
     /**
