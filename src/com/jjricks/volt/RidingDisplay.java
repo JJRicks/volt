@@ -47,7 +47,10 @@ final class RidingDisplay {
     private final LinearLayout controls;
     private final Track track;
     private final int previousOrientation;
-    private final boolean hidesStatusBar;
+    /** The owner's Hide status bar setting, or night vision (the red layer can't reach the status bar). */
+    private boolean hidesStatusBar;
+    private final boolean statusBarSetting;
+    private boolean night;
     private final RidingDisplayState state;
     private boolean listening;
 
@@ -108,11 +111,29 @@ final class RidingDisplay {
         if (RidingRotation.locks(preferences.getString(RidingRotation.KEY, RidingRotation.LOCK)))
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
         hidesStatusBar = preferences.getBoolean(RidingBars.HIDE_STATUS_BAR_KEY, false);
+        statusBarSetting = hidesStatusBar;
         // Like MainActivity's bar styling, this waits until the screen is attached (Samsung's decor getter).
         if (hidesStatusBar) controls.post(() -> { if (!state.detached() && current == this) statusBar(false); });
         activity.getApplication().registerActivityLifecycleCallbacks(lifecycle);
         // A rebuild while paused (onServiceConnected, onCreate) waits for onActivityResumed.
         if (state.active()) start();
+    }
+
+    /**
+     * Night vision (RidingNight): Volt auto and Fixed use the night range (NightVision.level), and the
+     * status bar hides while it's on. Phone keeps Android's brightness.
+     */
+    void night(boolean on) {
+        if (night == on || state.detached()) return;
+        night = on;
+        float level = brightness.applied();
+        // Only while resumed: start() sends the level again on the next resume.
+        if (!Float.isNaN(level) && state.active()) window(level);
+        boolean hide = statusBarSetting || on;
+        if (hide != hidesStatusBar) {
+            hidesStatusBar = hide;
+            controls.post(() -> { if (!state.detached() && current == this) statusBar(!hide); });
+        }
     }
 
     /** The slider row along the bottom: −, the notched level, +. Gone in Phone mode. */
@@ -142,6 +163,9 @@ final class RidingDisplay {
     private void start() {
         if (!state.active()) return;
         brightness.start(SystemClock.uptimeMillis());
+        // The level may be unchanged since the pause while night vision switched: send it again.
+        float level = brightness.applied();
+        if (!Float.isNaN(level)) window(level);
         if (state.listens(brightness.usesSensor()) && !listening && light != null) {
             listening = sensors.registerListener(listener, light, SensorManager.SENSOR_DELAY_NORMAL, handler);
         }
@@ -164,6 +188,7 @@ final class RidingDisplay {
     private void window(float level) {
         if (activity.isDestroyed()) return;
         WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
+        if (night) level = NightVision.level(level);
         attributes.screenBrightness = level < 0 ? WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE : level;
         activity.getWindow().setAttributes(attributes);
     }
