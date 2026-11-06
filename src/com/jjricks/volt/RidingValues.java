@@ -341,14 +341,17 @@ final class RidingValues {
     /**
      * Energy since the previous sample (when joined), peaks and scale for one power sample. A
      * segment with an unknown end adds both ends' magnitudes, as draw, and counts as unconfirmed.
-     * Otherwise it averages confirmed ends signed and inferred-draw ends as draw; one with an
-     * inferred end counts as inferred draw (never negative: inferred draw is at least 1.5 x any
-     * confirmed regen, so it outweighs the other end).
+     * So does one between inferred draw and confirmed regen: the direction changed at a moment
+     * nobody measured (and the regen may be stronger than the threshold the draw was inferred
+     * under). A segment between inferred draw and inferred or confirmed draw counts as inferred
+     * draw; both ends are positive, so it is never negative.
      */
     private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW, Direction previousDirection) {
         lastSegmentPreviousMs = previousMs;
-        boolean unknown = direction == Direction.UNKNOWN || previousDirection == Direction.UNKNOWN;
-        boolean inferred = !unknown && (direction == Direction.DRAW_INFERRED || previousDirection == Direction.DRAW_INFERRED);
+        boolean anyInferred = direction == Direction.DRAW_INFERRED || previousDirection == Direction.DRAW_INFERRED;
+        boolean unknown = direction == Direction.UNKNOWN || previousDirection == Direction.UNKNOWN
+                || anyInferred && (direction == Direction.REGEN || previousDirection == Direction.REGEN);
+        boolean inferred = !unknown && anyInferred;
         double average = unknown ? (Math.abs(previousW) + Math.abs(watts)) / 2 : (counted(previousW, previousDirection) + counted(watts, direction)) / 2;
         lastSegmentWh = previousMs < 0 ? 0 : average * (updatedMs - previousMs) / 3_600_000.0;
         lastSegmentUnconfirmedWh = unknown ? lastSegmentWh : 0;
@@ -439,7 +442,7 @@ final class RidingValues {
     double rideEnergyWh() { return rideEnergyWh; }
     /** The part of rideEnergyWh() integrated with an unknown direction: magnitude, never negative. Excludes inferred draw. */
     double unconfirmedEnergyWh() { return unconfirmedEnergyWh; }
-    /** The part of rideEnergyWh() from stretches with an inferred-draw end (and no unknown one): draw, never negative. */
+    /** The part of rideEnergyWh() from stretches between inferred draw and inferred or confirmed draw: never negative. */
     double inferredDrawWh() { return inferredDrawWh; }
 
     /**

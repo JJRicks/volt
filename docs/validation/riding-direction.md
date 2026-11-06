@@ -35,8 +35,15 @@ Evidence, from the owner's 38 rides with a confirmed direction (aggregates only)
 | Draw peak, bar scale | yes | yes (draw) | scale only (magnitude) |
 | Bar and trace | signed | positive | magnitude |
 
-An energy stretch between two readings takes the weaker end: any unknown end makes it unconfirmed magnitude; otherwise any inferred end makes it inferred draw. Inferred draw is at least 1.5 x any confirmed regen, so an inferred stretch is never negative.
+An energy stretch between two readings is classed by both ends:
+
+- any unknown end: unconfirmed magnitude;
+- inferred draw and confirmed regen: also unconfirmed magnitude. The direction changed at a moment nobody measured, and the regen can be stronger than the threshold the draw was inferred under (the threshold only knows the regen seen so far);
+- inferred draw and inferred or confirmed draw: inferred draw. Both ends are positive, so `inferredDrawWh()` is never negative;
+- two confirmed ends: signed and confirmed.
+
+So ride energy = confirmed + `inferredDrawWh()` + `unconfirmedEnergyWh()`, and no confirmed stretch is lost.
 
 Not yet used by recordings (`RideStore`) or the live range estimator; either could adopt it later.
 
-Tests: `tests/RidingValuesTest.java` (`inferredDraw`, `inferredThreshold`, `inferredWindow`, `inferredFromFrames`).
+Tests: `tests/RidingValuesTest.java` (`inferredDraw`, `inferredThreshold`, `inferredWindow`, `inferredFromFrames`, `inferredThenStrongerRegen`).

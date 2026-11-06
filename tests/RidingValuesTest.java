@@ -24,6 +24,7 @@ public final class RidingValuesTest {
         inferredThreshold();
         inferredWindow();
         inferredFromFrames();
+        inferredThenStrongerRegen();
         timers();
         battery();
         ranges();
@@ -486,9 +487,54 @@ public final class RidingValuesTest {
         values.update(telemetry.metrics());
         check(values.power(5000).direction == RidingValues.Direction.UNKNOWN && near(values.power(5000).watts, 500, 0.01), "500 W after it is unknown");
         check(values.power(5000).peakRegenW == values.power(1000).peakRegenW, "no regen is ever inferred");
-        // 1-3 s: confirmed -300 and inferred +1500 average 600 W; 3-5 s touches the unknown 500 W.
-        check(near(values.inferredDrawWh(), 600 * 2 / 3600.0, 1e-9) && near(values.unconfirmedEnergyWh(), 1000 * 2 / 3600.0, 1e-9),
-                "energy splits into inferred and unconfirmed: " + values.inferredDrawWh() + " " + values.unconfirmedEnergyWh());
+        // 1-3 s: confirmed regen to inferred draw changes direction at an unknown moment, so magnitude; 3-5 s touches the unknown 500 W.
+        check(values.inferredDrawWh() == 0 && near(values.unconfirmedEnergyWh(), (900 + 1000) * 2 / 3600.0, 1e-9),
+                "regen to inferred draw is unconfirmed magnitude: " + values.inferredDrawWh() + " " + values.unconfirmedEnergyWh());
+    }
+
+    /**
+     * Inferred draw, then a first confirmed regen stronger than the threshold it was inferred under
+     * (Codex #238 round 2). That stretch changes direction at an unknown moment, so it is unconfirmed
+     * magnitude: inferred draw never goes negative and the confirmed regen after it still counts.
+     */
+    private static void inferredThenStrongerRegen() {
+        for (int variant = 0; variant < 2; variant++) {
+            boolean correction = variant == 1;
+            String label = correction ? " (same-time correction)" : "";
+            Telemetry telemetry = new Telemetry();
+            RidingValues values = new RidingValues();
+            values.setNominalIntervals(1000, 2000);
+            telemetry.accept(0x79, signs(0, 254), 0);
+            telemetry.accept(0x72, batteryRead(80, 50000, 30000), 1000);
+            values.update(telemetry.metrics());
+            check(values.power(1000).direction == RidingValues.Direction.DRAW_INFERRED, "1,500 W without a sign is inferred draw" + label);
+            if (correction) {
+                // The 3 s reading first arrives without a sign (inferred), then Telemetry re-signs it.
+                telemetry.accept(0x72, batteryRead(80, 50000, 36000), 3000);
+                values.update(telemetry.metrics());
+                check(values.power(3000).direction == RidingValues.Direction.DRAW_INFERRED, "1,800 W unsigned is inferred first");
+                telemetry.accept(0x79, signs(0, 1), 3500);
+            } else {
+                // The sign and the next reading in one update: the reading is measured under it.
+                telemetry.accept(0x79, signs(0, 1), 2500);
+                telemetry.accept(0x72, batteryRead(80, 50000, 36000), 3000);
+            }
+            values.update(telemetry.metrics());
+            RidingValues.Power power = values.power(3000);
+            check(power.direction == RidingValues.Direction.REGEN && near(power.watts, -1800, 0.01) && values.inferredDrawThresholdW() == 2700,
+                    "a stronger confirmed regen follows" + label + ": " + power.direction + " " + power.watts);
+            check(values.powerTrace(3000, 60_000).get(0).value == 1500, "the earlier inference is kept" + label);
+            check(values.inferredDrawWh() >= 0, "inferred draw is never negative" + label + ": " + values.inferredDrawWh());
+            check(near(values.unconfirmedEnergyWh(), (1500 + 1800) / 2.0 * 2 / 3600.0, 1e-9) && values.inferredDrawWh() == 0,
+                    "the direction change is unconfirmed magnitude" + label + ": " + values.unconfirmedEnergyWh());
+            // A second confirmed regen: that stretch is confirmed and signed.
+            telemetry.accept(0x72, batteryRead(80, 50000, 36000), 5000);
+            values.update(telemetry.metrics());
+            double confirmedWh = values.rideEnergyWh() - values.unconfirmedEnergyWh() - values.inferredDrawWh();
+            check(near(confirmedWh, -1800 * 2 / 3600.0, 1e-9), "confirmed regen still counts" + label + ": " + confirmedWh);
+            check(near(values.rideEnergyWh(), confirmedWh + values.inferredDrawWh() + values.unconfirmedEnergyWh(), 1e-12) && values.inferredDrawWh() >= 0,
+                    "total = confirmed + inferred + unconfirmed" + label);
+        }
     }
 
     private static void timers() {
