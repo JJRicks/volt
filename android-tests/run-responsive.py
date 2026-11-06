@@ -35,6 +35,8 @@ if run('shell', 'getprop', 'ro.kernel.qemu').strip() != '1':
 if run('shell', 'getprop', 'sys.boot_completed').strip() != '1':
     raise SystemExit('Wait for the emulator to finish booting')
 # Deliberately vary width, aspect ratio, navigation breakpoint, and text size.
+# The navigation breakpoint is width over text scale (WideLayout, 650 dp): 686 dp at 1.4x is the phone
+# layout, 920 dp at 1.4x (657) is the wide one with large text.
 # 344x882dp models the Fold5 cover; 725x604dp models its open landscape panel.
 matrix = [(344, 882, 1.0, 'cards', 1.0), (725, 604, 1.0, 'fold', 1.0)] if args.baseline else [
     (320, 720, 1.0, 'cards', 1.0), (336, 800, 1.0, 'cards', 1.0),
@@ -42,7 +44,7 @@ matrix = [(344, 882, 1.0, 'cards', 1.0), (725, 604, 1.0, 'fold', 1.0)] if args.b
     (344, 882, 1.0, 'constraints', 1.3), (360, 800, 1.4, 'cards', 1.0),
     (411, 840, 1.0, 'cards', 1.0), (600, 850, 1.0, 'all', 1.0),
     (649, 850, 1.0, 'cards', 1.0), (650, 850, 1.0, 'cards', 1.0),
-    (686, 725, 1.4, 'all', 1.0), (725, 604, 1.0, 'all', 1.0),
+    (686, 725, 1.4, 'all', 1.0), (725, 604, 1.0, 'all', 1.0), (920, 725, 1.4, 'all', 1.0),
     (852, 690, 1.0, 'all', 1.0), (344, 882, 1.0, 'constraints', 1.0),
     (360, 800, 1.4, 'constraints', 1.0), (650, 850, 1.0, 'constraints', 1.0),
     (344, 882, 1.0, 'edit', 1.0), (725, 604, 1.0, 'edit', 1.0),

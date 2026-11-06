@@ -49,6 +49,7 @@ import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.Ui;
+import com.jjricks.volt.WideLayout;
 
 /**
  * Isolated native measurement regressions for arbitrary window sizes and OEM fold callbacks.
@@ -1190,14 +1191,16 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         final DashboardScreen previous = dashboard();
         float density = activity.getResources().getDisplayMetrics().density;
         shell("wm size " + Math.round(widthDp * density) + "x" + Math.round(heightDp * density));
-        final boolean expanded = widthDp >= 650;
+        // The app's rule (WideLayout): width over text scale reaches 650 dp; this method's sizes run at 1x text.
+        final float textScale = activity.ui().textScale * activity.getResources().getConfiguration().fontScale;
+        final boolean expanded = WideLayout.wide(widthDp, textScale);
         await(() -> field(activity, "screen") instanceof DashboardScreen && grid().getWidth() > 0
-                        && (activity.getResources().getConfiguration().screenWidthDp >= 650) == expanded
+                        && WideLayout.wide(activity.getResources().getConfiguration().screenWidthDp, textScale) == expanded
                         && (!expectRebuild || dashboard() != previous),
                 "Window configuration did not select the " + (expanded ? "expanded" : "compact") + " dashboard");
         settleMotion(); stopUiPulse();
         main(() -> {
-            require((Boolean)field(activity, "expanded") == expanded, "Activity window class disagrees with the 650dp breakpoint");
+            require((Boolean)field(activity, "expanded") == expanded, "Activity window class disagrees with the wide-layout rule (WideLayout)");
             require(((Number)field(grid(), "columns")).intValue() == 5, "Window change altered the five-column choice");
             for (DashboardConfig.Widget widget : dashboardConfig().widgets)
                 require(dashboardConfig().widgetLayouts(widget) == widget.layouts(expanded),
