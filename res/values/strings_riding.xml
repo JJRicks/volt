@@ -105,4 +105,28 @@
     <string name="riding_reading_spoken" volt:screen="Riding mode" volt:purpose="accessibility description">%1$s, %2$s</string>
     <!-- Spoken for a reading that has no value yet: %1$s is its name. -->
     <string name="riding_reading_spoken_none" volt:screen="Riding mode" volt:purpose="accessibility description">%1$s, no reading</string>
+    <!-- The layouts riding mode can show, by name (Focus, Halo, Trace). They describe the look, so translate them as words (owner, Q19 A). -->
+    <string name="riding_frame_focus" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Focus</string>
+    <string name="riding_frame_focus_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">Very large numbers in stacked rows</string>
+    <!-- Halo: the speed sits inside a ring like a speedometer's. -->
+    <string name="riding_frame_halo" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Halo</string>
+    <string name="riding_frame_halo_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">Speed inside a speedometer ring</string>
+    <!-- Trace: a live chart that traces speed and power. -->
+    <string name="riding_frame_trace" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Trace</string>
+    <string name="riding_frame_trace_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">A live chart of the last minute</string>
+    <!-- Title of the sheet that picks riding mode's layout. -->
+    <string name="riding_layout_title" volt:screen="Riding mode layout picker" volt:purpose="title">Layout</string>
+    <!-- Spoken for the round button in the top bar that opens the layout picker; it shows only while the scooter is stopped. -->
+    <string name="riding_layout_choose" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Choose a layout</string>
+
+    <!-- Under the speed in Halo's ring: %1$s is this ride's top speed with its unit, "22.1 mph". -->
+    <string name="riding_ring_max" volt:screen="Riding mode speed ring" volt:purpose="caption" volt:max="200dp@15sp">max %1$s</string>
+    <!-- Trace's chart key: the green area under the line, power flowing back into the battery while braking. -->
+    <string name="riding_trace_regen" volt:screen="Riding mode live chart" volt:purpose="legend" volt:max="80dp@14sp">Regen</string>
+    <!-- Trace's chart: the left end of the time axis, one minute ago. -->
+    <string name="riding_trace_start" volt:screen="Riding mode live chart" volt:purpose="label" volt:max="100dp@13sp">1 min ago</string>
+    <!-- Trace's chart: the right end of the time axis, the latest reading. -->
+    <string name="riding_trace_now" volt:screen="Riding mode live chart" volt:purpose="label" volt:max="60dp@13sp">now</string>
+    <!-- Spoken for Trace's chart. -->
+    <string name="riding_trace_description" volt:screen="Riding mode live chart" volt:purpose="accessibility description">Speed and power over the last minute</string>
 </resources>
