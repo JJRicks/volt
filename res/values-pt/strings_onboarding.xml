@@ -290,8 +290,10 @@
     <string name="onboarding_import_keep_private">Este ficheiro desbloqueia a tua trotinete. Guarda-o só para ti.</string>
     <!-- src:e5194f56631a5cb6dede07c223b2133f037dd1ac -->
     <string name="onboarding_import_choose">Escolher ficheiro de proprietário</string>
+    <!-- src:17995a8e54192c813338592305dcec9f7c720c97 -->
+    <string name="onboarding_import_enter_identity">Introduzir a chave de proprietário em vez disso</string>
     <!-- src:79b60d0537ba0f1c71825b3d6fb878be753e5f29 -->
-    <string name="onboarding_import_restore_instead">Restaurar antes uma cópia de segurança da Volt</string>
+    <string name="onboarding_import_restore_instead">Restaurar uma cópia de segurança da Volt em vez disso</string>
     <!-- src:f317c354ad75d4b62b6c07f9c4424c41900491d8 -->
     <string name="onboarding_role_shared">utilizador autorizado</string>
     <!-- src:a1ae6a4efd7e02e2d58d3646a17f2aeec14a203b -->
