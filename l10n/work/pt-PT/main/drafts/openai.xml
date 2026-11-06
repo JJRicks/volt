@@ -401,10 +401,10 @@
     <string name="main_import_too_big" volt:src="2b433aa41ee81ed77194f333fe5c0244b3b8ff3f">Os ficheiros de configuração do proprietário têm de ser menores que 1 MiB.</string>
     <string name="main_import_replace_body" volt:src="945ba4cb3da60388775a84840764f9e06fb787e7">Isto vai substituir o painel e os 3 espaços para a trotinete: %1$s.</string>
     <string name="main_name_imported" volt:src="6eff3139294476aca4c67af9a2602e8a128ea0ac">Trotinete importada</string>
-    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe">«Carga pronta até» está desativada; não foi possível confirmar o relógio da trotinete</string>
-    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73">O carregamento programado está desativado; não foi possível confirmar o relógio da trotinete</string>
-    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25">«Carga pronta até» está desativada; a reposição do início do carregamento não foi confirmada</string>
-    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef">O carregamento programado está desativado; a reposição do início do carregamento não foi confirmada</string>
+    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe" volt:attempt="2">«Carga pronta até» está desativada; o relógio da trotinete não pôde ser confirmado</string>
+    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73" volt:attempt="2">O carregamento programado está desativado; o relógio da trotinete não pôde ser confirmado</string>
+    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25" volt:attempt="2">«Carga pronta até» está desativada; reposição do início do carregamento não confirmada</string>
+    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef" volt:attempt="2">O carregamento programado está desativado; reposição do início do carregamento não confirmada</string>
     <string name="main_schedule_off_restore_done_by" volt:src="c12d42e46a43a00107ac1ee995db019120af9eea">«Carga pronta até» está desativada; não foi possível repor o início do carregamento: %1$s</string>
     <string name="main_schedule_off_restore_scheduled" volt:src="c97d87ddd7151568bc429e3511dbb60260b81813">O carregamento programado está desativado; não foi possível repor o início do carregamento: %1$s</string>
     <string name="main_range_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Entendido</string>

@@ -23,7 +23,7 @@
     <string name="charge_live_lock_hidden" volt:src="dab03497d1be8687d1fbd8bd76742b79f156a9bb">Oculto</string>
     <string name="charge_live_when" volt:src="2b2ade7cb931bfbb4a23d8345b2cc09b38295330">Enquanto o cartão estiver visível, outras apps — incluindo a app oficial — não podem conectar a trotinete. Toca em «Desconectar» no cartão para lhes permitir fazê-lo.</string>
     <string name="charge_live_perm" volt:src="95dbfa498b011dc3178b86c20d483a42c35f4298">As notificações estão desativadas para a Volt, pelo que o cartão de carregamento em direto não pode ser mostrado.</string>
-    <string name="charge_live_update_row" volt:src="20f929ec172fce5fc47dfc6ff905c14d5864d292">Estado da atualização em direto</string>
+    <string name="charge_live_update_row" volt:src="20f929ec172fce5fc47dfc6ff905c14d5864d292" volt:attempt="2">Estado: atualização em direto</string>
     <string name="charge_live_update_promoted" volt:src="3138a23fcbc50fabdb5f07dff872d86d89f4907c">Promovida</string>
     <string name="charge_live_update_not_allowed" volt:src="691c707cd463e9921c6d0250e7962c0f1f0a63fd">Não permitida nas definições do Android</string>
     <string name="charge_live_update_old_android" volt:src="3b81c9809e7a5230aad2cb79701a8ff1ac3b3f56">Android 15 ou anterior</string>

@@ -235,7 +235,7 @@
     <string name="main_schedule_setting_schedule" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">A definir a programação…</string>
     <string name="main_schedule_measuring_title" volt:src="a8d9366cc9def7f060e7b73607076a9924fe1dea">A medir este carregamento</string>
     <string name="main_schedule_keep_measuring" volt:src="960104c18e3f0a2695a7a9924fdad92edf62aec2">Continuar a medir</string>
-    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6">Parar de medir</string>
+    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6" volt:attempt="2">Parar a medição</string>
     <string name="main_schedule_turn_off_schedule" volt:src="f0c1ab81d1afb51fcfbd4b43e292fc060e215985">Desativar programação</string>
     <string name="main_schedule_schedule_off" volt:src="f32114cec219414324ae03fc8c2a3357f7150ba4">Programação desativada. O carregamento começa agora se o carregador estiver ligado.</string>
     <string name="main_schedule_connect_the_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Conecta a trotinete primeiro</string>
@@ -355,7 +355,7 @@
     <string name="main_charger_intro" volt:src="36adec62784c3623faceed52ac48a1ac83a01980">O modo Automático reconhece carregadores UT5 MAX a partir da potência de carregamento em direto. Em alternativa, podes escolher tu um carregador.</string>
     <string name="main_charger_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automático</string>
     <string name="main_charger_stop_recording" volt:src="80d783bf7b6fd999862b3f074bf832f930f3e404">Tens de parar a gravação de carregamento antes de mudar de carregador.</string>
-    <string name="main_charger_note" volt:src="708c8dc251e647b0bf4a9cc05e889169e043db92">Conectar a trotinete perto da carga total pode deixar o carregador incerto; a Volt usa a taxa atual até saber. Esta preferência altera apenas as estimativas e fica guardada para esta trotinete.</string>
+    <string name="main_charger_note" volt:src="708c8dc251e647b0bf4a9cc05e889169e043db92" volt:attempt="2">Ligar perto da carga total pode deixar o carregador não confirmado; a Volt usa a taxa atual até saber. Esta preferência altera apenas as estimativas e fica guardada para esta trotinete.</string>
     <string name="main_edit_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Aplicar</string>
     <string name="main_edit_not_connected" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Não conectada</string>
     <string name="main_edit_updated" volt:src="93150918ece1d786b43b4e52a9bd663cceb5c7cb">Atualizado na trotinete</string>
@@ -401,10 +401,10 @@
     <string name="main_import_too_big" volt:src="2b433aa41ee81ed77194f333fe5c0244b3b8ff3f">Os ficheiros de configuração do proprietário têm de ter menos de 1 MiB.</string>
     <string name="main_import_replace_body" volt:src="945ba4cb3da60388775a84840764f9e06fb787e7">Isto vai substituir o painel para %1$s e todos os 3 espaços.</string>
     <string name="main_name_imported" volt:src="6eff3139294476aca4c67af9a2602e8a128ea0ac">Trotinete importada</string>
-    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe">«Carga pronta até» está desativada; não foi possível confirmar o relógio da trotinete</string>
-    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73">O carregamento programado está desativado; não foi possível confirmar o relógio da trotinete</string>
-    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25">«Carga pronta até» está desativada; a reposição do início do carregamento não foi confirmada</string>
-    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef">O carregamento programado está desativado; a reposição do início do carregamento não foi confirmada</string>
+    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe" volt:attempt="2">«Carga pronta até» está desativada; o relógio da trotinete não pôde ser confirmado</string>
+    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73" volt:attempt="2">O carregamento programado está desativado; o relógio da trotinete não pôde ser confirmado</string>
+    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25" volt:attempt="2">«Carga pronta até» está desativada; a reposição do início do carregamento ficou não confirmada</string>
+    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef" volt:attempt="2">O carregamento programado está desativado; a reposição do início do carregamento ficou não confirmada</string>
     <string name="main_schedule_off_restore_done_by" volt:src="c12d42e46a43a00107ac1ee995db019120af9eea">«Carga pronta até» está desativada; não foi possível repor o início do carregamento: %1$s</string>
     <string name="main_schedule_off_restore_scheduled" volt:src="c97d87ddd7151568bc429e3511dbb60260b81813">O carregamento programado está desativado; não foi possível repor o início do carregamento: %1$s</string>
     <string name="main_range_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Entendido</string>
