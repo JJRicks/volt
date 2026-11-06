@@ -41,10 +41,14 @@ import java.util.Set;
  * Version 18 maps traction control wherever OEM 2.1.9's More screen lists it (every model with one except 2573, 2634,
  * 2314, 2417 and 2422), not only groups Q, O and G, after a Spanish GT3 Max's official app was recorded sending 0x5f
  * from its settings and Volt's experimental tries worked there (November 2026).
+ * Version 19 adds a lower kick-start try outside the official low-start region (owner decision, November 2026): on
+ * every model whose official app offers only 3–5 km/h there (group M and a UT5 MAX with a serial region outside the
+ * USA bucket included), Experimental controls tries Standing start, 1, 2 or 3 km/h (START_LOW_TRY); Scooter
+ * settings keep 3–5 km/h. Nothing that can raise speed changes.
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=18;
+    public static final int VERSION=19;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -359,12 +363,16 @@ public final class ModelRegistry {
          * field and bytes, offering 3–5 km/h as choices; a setting below 3 km/h shows as it is.
          */
         static final FeatureVariant START_3_5;
+        /** That UT5 MAX's kick-start try from Experimental controls (version 19): Standing start to 3 km/h, as START_LOW_TRY. */
+        static final FeatureVariant START_LOW_TRY;
         static {
             LinkedHashMap<String,FeatureVariant> map=new LinkedHashMap<>();
             for(ScooterCommands.Feature f:ScooterCommands.catalog())map.put(f.key,FeatureVariant.ut5(f));
             map.put(CLOCK.feature,CLOCK);VARIANTS=Collections.unmodifiableMap(map);
             START_3_5=VARIANTS.get("start_speed").narrowed("start_speed.ut5_3_5",range(3,5),kmhLabels(range(3,5),false))
                 .withShown(range(0,2),kmhLabels(range(0,2),false));
+            START_LOW_TRY=VARIANTS.get("start_speed").narrowed("start_speed.ut5_0_3",range(0,3),kmhLabels(range(0,3),false))
+                .withShown(range(4,5),kmhLabels(range(4,5),false)).lab();
         }
     }
 
@@ -633,10 +641,15 @@ public final class ModelRegistry {
         "energy_recovery","display_units","range_algorithm","ambient_light_mode","logo_light","daytime_light"};
     /**
      * Lab copies of the variants the official app uses where it offers each EXPERIMENTAL control (its widest speed cap,
-     * 8–32 km/h; kick-start 0–5 km/h, or 3–5 km/h where it wouldn't show 0–2: START_3_5_TRY, version 17).
+     * 8–32 km/h; kick-start 0–5 km/h, or START_LOW_TRY where it wouldn't show 0–2, version 19).
      */
     private static final Map<String,FeatureVariant> TRY=new LinkedHashMap<>();
-    private static final FeatureVariant START_3_5_TRY=START_3_5.lab();
+    /**
+     * Kick-start outside the official low-start region (version 19, owner decision): a try offers Standing start, 1, 2
+     * and 3 km/h, so Set back to 3 km/h stays inside it; 4 and 5 km/h (offered in Scooter settings) show as they are.
+     * Kick-start is the speed at which the motor starts helping, not a speed limit.
+     */
+    static final FeatureVariant START_LOW_TRY=startSpeed("0_3",range(0,3)).withShown(range(4,5),kmhLabels(range(4,5),false)).lab();
     static{
         for(FeatureVariant v:new FeatureVariant[]{OEM_CRUISE,OEM_TCS,START_0_5,OEM_WALK_ASSIST,OEM_POWER_ASSIST,OEM_DESCENT,OEM_TAIL,OEM_AUTO,OEM_TURN,OEM_PROMPT_TONE,LIMIT_8_32})
             TRY.put(v.feature,v.lab());
@@ -652,15 +665,33 @@ public final class ModelRegistry {
     static Rule experimentalRule(String feature,DeviceDescriptor d,Resolution r,StatusFields s){
         if(r==null)r=resolve(d);
         Rule rule=rule(feature,d,r,s);
-        if(r.layer==Layer.UT5_MAX)return rule.variant!=null&&rule.variant.lab?tryable(rule.variant,rule.evidence,rule.oemNote):rule;
+        if(r.layer==Layer.UT5_MAX){
+            // Version 19: a UT5 MAX held to 3–5 km/h by its serial region tries the lower kick-start too.
+            if(feature.equals("start_speed")&&rule.variant==Ut5.START_3_5&&offered(rule))return tryable(Ut5.START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,rule.oemNote);
+            return rule.variant!=null&&rule.variant.lab?tryable(rule.variant,rule.evidence,rule.oemNote):rule;
+        }
         boolean hidden=rule.support==CapabilityResolver.Support.INCOMPATIBLE&&rule.reason==CapabilityResolver.Reason.MODEL_EXCLUDED;
         // Not mapped (owner decision, October 2026): Volt can't tell whether the official app offers it here, so it is tried
         // too; the try gate still needs the scooter to report the field with a known value.
         boolean unmapped=rule.support==CapabilityResolver.Support.UNKNOWN_MAPPING&&rule.reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED;
         FeatureVariant v=r.layer==Layer.OEM_GROUP&&!r.conflict&&(hidden||unmapped)?TRY.get(feature):null;
-        // Version 17: a kick-start try offers 0–2 km/h only where the official app's kick-start screen would show them.
-        if(v!=null&&feature.equals("start_speed")&&!officialLowStart(d))v=START_3_5_TRY;
+        // Version 19: outside the official low-start region a kick-start try offers Standing start to 3 km/h, also where the
+        // official app offers 3–5 km/h (group M included). Inside it nothing changes: an offered row is not a try.
+        if(feature.equals("start_speed")&&r.layer==Layer.OEM_GROUP&&!r.conflict&&!officialLowStart(d)){
+            if(v!=null)v=START_LOW_TRY;
+            else if(rule.variant==START_3_5&&offered(rule))return tryable(START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,rule.oemNote);
+        }
         return v==null?rule:tryable(v,CapabilityResolver.Evidence.VOLT_LAB,hidden?"OEM 2.1.9 hides this for this model":"Volt hasn't mapped whether the official app offers this here");
+    }
+    private static boolean offered(Rule rule){return rule.support==CapabilityResolver.Support.KNOWN_ENCODING&&rule.reason==CapabilityResolver.Reason.NONE;}
+    /**
+     * Whether this model's kick-start try sits beside an offered Scooter settings row held to 3–5 km/h by region
+     * (version 19), so the try sheet says the official app offers 3–5 km/h here rather than nothing.
+     */
+    public static boolean lowStartBesideOrdinary(DeviceDescriptor d){
+        Resolution r=resolve(d);Rule rule=rule("start_speed",d,r,StatusFields.NONE);
+        if(!(rule.variant==START_3_5||rule.variant==Ut5.START_3_5)||!offered(rule))return false;
+        FeatureVariant v=experimentalRule("start_speed",d,r,StatusFields.NONE).variant;return v!=null&&v.lab;
     }
     /** A key Experimental controls may try as an experiment on some layer: EXPERIMENTAL, or a UT5 MAX catalogue Lab row. */
     static boolean experimentalKey(String feature){
@@ -924,6 +955,10 @@ public final class ModelRegistry {
      * The same changes ordinary rows caution about (caution above), for an Experimental controls try. There
      * the official app doesn't offer the control at all, so the words describe the effect, not its prompt.
      */
+    public static String experimentalCaution(String feature,int value,DeviceDescriptor d){
+        return experimentalCaution(feature,value);
+    }
+    /** experimentalCaution for a scooter inside the official low-start region (or any scooter, for controls other than kick-start). */
     public static String experimentalCaution(String feature,int value){
         switch(feature){
             case "traction_control": return value==0?T.controlsExperimentalTractionControl():null;
