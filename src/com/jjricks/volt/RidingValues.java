@@ -145,7 +145,11 @@ final class RidingValues {
         final double value;
         /** True when this point follows a gap: draw a break, never a line through zero. */
         final boolean gapBefore;
-        private TracePoint(long t, double value, boolean gapBefore) { this.t = t; this.value = value; this.gapBefore = gapBefore; }
+        /** True for a power point measured without a known direction: a magnitude, drawn neutral, never as draw or regen. */
+        final boolean directionUnknown;
+        private TracePoint(long t, double value, boolean gapBefore, boolean directionUnknown) {
+            this.t = t; this.value = value; this.gapBefore = gapBefore; this.directionUnknown = directionUnknown;
+        }
     }
 
     /** The power bar's scale: 1,000 W draw to start, growing to the observed peak rounded up to 250 W. Regen has its own. */
@@ -514,9 +518,10 @@ final class RidingValues {
         boolean first = true;
         for (long[] t : times) {
             double[] sample = vi.next();
-            double v = sample.length > 1 ? counted(sample[0], Direction.values()[(int) sample[1]]) : sample[0];
+            Direction d = sample.length > 1 ? Direction.values()[(int) sample[1]] : null;
+            double v = d != null ? counted(sample[0], d) : sample[0];
             if (t[0] < nowMs - windowMs || t[0] > nowMs) continue;
-            out.add(new TracePoint(t[0], v, !first && t[1] == 1));
+            out.add(new TracePoint(t[0], v, !first && t[1] == 1, d == Direction.UNKNOWN));
             first = false;
         }
         return out;

@@ -190,6 +190,7 @@ public final class MoreScreen implements AppScreen {
                 row.view.setTag("developer-options-menu");
             }
         }
+        updates();
         TextView footer = ui.text(T.moreFooter(AppVersion.name(host.activity())), 11.5f, false);
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
@@ -2198,8 +2199,6 @@ public final class MoreScreen implements AppScreen {
         TextView about = ui.caption(T.moreAboutTagline());
         about.setPadding(0, ui.dp(6), 0, 0); c.addView(about);
         cardDestination.addView(c);
-        LinearLayout updates = group();
-        row(updates, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates).view.setTag("check-updates");
         label(T.moreAboutPermissions());
         LinearLayout permissions = group();
         nearbyRow = row(permissions, "bluetooth", M.moreAboutNearby(), M.moreAboutNearbySub(), host::requestBluetooth);
@@ -2218,8 +2217,65 @@ public final class MoreScreen implements AppScreen {
         row(more, "bluetooth", T.moreAboutConnect(), null, host::connect);
     }
 
+    // ---- Updates ------------------------------------------------------------------------
+
+    /**
+     * More's own Updates section, in the menu above the version line (owner, Nov 5): the opt-in automatic check,
+     * at most once a day in the background (UpdateCheckJob), and the manual check.
+     */
+    private void updates() {
+        label(T.moreUpdatesTitle());
+        LinearLayout box = group();
+        if (wide) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
+        Row[] auto = new Row[1];
+        auto[0] = toggleRow(box, "clock", T.moreUpdatesAuto(), T.moreUpdatesAutoSub(), on -> automaticUpdates(auto[0], on));
+        auto[0].view.setTag("update_auto");
+        // The narrow-label ladder: the full title in up to two lines, else the short one under the Updates header;
+        // the title and the switch keep the full wording as their spoken text.
+        StatusRungs ladder = new StatusRungs(auto[0].title); ladder.maxLines = 2;
+        auto[0].title.addOnLayoutChangeListener(ladder);
+        ladder.show(new CharSequence[]{T.moreUpdatesAuto(), T.moreUpdatesAutoShort()});
+        valueRefreshers.add(() -> {
+            refreshSwitch(auto[0], UpdateCheckJob.enabled(settings()), true);
+            auto[0].toggle.setContentDescription(T.morePlain(T.moreUpdatesAuto()));
+        });
+        Row check = row(box, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates);
+        check.view.setTag("check-updates");
+        // The wide menu pads every row alike, as the section rows above.
+        if (wide) for (Row row : new Row[]{auto[0], check}) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
+    }
+    /** The switch: on asks GitHub's consent first (once, as the manual check does), then schedules the daily job. */
+    private void automaticUpdates(Row row, boolean on) {
+        if (closed) return;
+        SharedPreferences settings = settings();
+        if (!on) {
+            settings.edit().putBoolean(UpdateSchedule.AUTO, false).apply();
+            UpdateCheckJob.cancel(host.activity()); refreshSwitch(row, false, true); return;
+        }
+        Runnable enable = () -> {
+            settings.edit().putBoolean(UpdateCheck.CONSENT, true).putBoolean(UpdateSchedule.AUTO, true).apply();
+            UpdateCheckJob.schedule(host.activity(), settings); refreshSwitch(row, true, true);
+            askNotificationPermission();
+        };
+        if (settings.getBoolean(UpdateCheck.CONSENT, false)) { enable.run(); return; }
+        refreshSwitch(row, false, true);
+        LinearLayout box = dialogBox(T.moreUpdateAskTitle(),
+                T.moreUpdateAskBody());
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> { dialog.dismiss(); enable.run(); });
+        show(dialog);
+    }
+    /** Android 13 and later: the notice needs the notification permission; Android asks only if it may still ask. */
+    private void askNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        if (host.activity().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+        host.activity().requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, UPDATE_NOTICE_PERMISSION);
+    }
+    /** Its own request code; MainActivity ignores the answer, and the job checks the permission when it posts. */
+    private static final int UPDATE_NOTICE_PERMISSION = 5626;
+
     /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs. */
-    private void checkForUpdates() {
+    void checkForUpdates() {
         if (closed) return;
         SharedPreferences settings = service().settings;
         if (settings.getBoolean(UpdateCheck.CONSENT, false)) { runUpdateCheck(); return; }
@@ -2252,6 +2308,8 @@ public final class MoreScreen implements AppScreen {
         LinearLayout box;
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
+            // Seen here: the automatic check does not announce this version again.
+            UpdateCheckJob.seen(settings(), r.latest);
             box = dialogBox(T.moreUpdateAvailable(r.latest), T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
