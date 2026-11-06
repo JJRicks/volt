@@ -291,7 +291,7 @@ public final class RideNoMotionStopTest {
         void battery(long until) throws IOException { while (now < until) tick(false); }
     }
 
-    private static void storeShownEnd() throws IOException {
+    private static void storeShownEnd() throws Exception {
         Service s = new Service("Parked at the cafe", 10_000);
         s.ride(180, 1, 545_000);
         long lastMotion = s.motion;
