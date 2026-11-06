@@ -169,7 +169,7 @@ final class RidingScreen implements AppScreen {
         picker.setFocusable(true);
         picker.setContentDescription(T.ridingLayoutChoose());
         picker.setOnClickListener(v -> choose());
-        picker.addView(ui.icon("dashboard", 24, ui.text), new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
+        picker.addView(ui.icon("tune", 24, ui.text), new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
         picker.setVisibility(View.GONE);
         LinearLayout.LayoutParams pickerSize = new LinearLayout.LayoutParams(ui.dp(TOUCH_DP), ui.dp(TOUCH_DP));
         pickerSize.setMarginStart(ui.dp(10));
@@ -275,9 +275,9 @@ final class RidingScreen implements AppScreen {
         big.hideLabel();
         big.number.centered = true;
         ring = new Ring(layout.content("ring"), big, speedLast);
-        Cell range = cell(layout.content("highlight"), side ? 64 : 76, false);
+        Cell range = cell(layout.content("highlight"), !side ? 76 : shortWindow ? 64 : 96, false);
         if (side) range.card();
-        LinearLayout tiles = tiles(side ? 52 : 56, false);
+        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84);
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
         if (side) {
@@ -356,9 +356,9 @@ final class RidingScreen implements AppScreen {
             head.addView(beside, besideSize);
         }
         trace = new TraceView(layout.content("trace"));
-        Cell range = cell(layout.content("highlight"), side ? 60 : 72, false);
+        Cell range = cell(layout.content("highlight"), !side ? 72 : shortWindow ? 60 : 96, false);
         range.card();
-        LinearLayout tiles = tiles(side ? 48 : 56, true);
+        LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 48 : 84);
         if (side) {
             LinearLayout out = row();
             LinearLayout left = column();
@@ -409,14 +409,13 @@ final class RidingScreen implements AppScreen {
         return c;
     }
 
-    /** The two tiles as cards. A battery tile gets a bar under its number (Halo) or a ring beside it (Trace). */
-    private LinearLayout tiles(float maxSp, boolean batteryRing) {
+    /** The two tiles as cards. A battery tile gets a bar under its number. */
+    private LinearLayout tiles(float maxSp) {
         LinearLayout out = row();
         for (int i = 0; i < RidingFrames.TILES.size(); i++) {
             Cell tile = cell(layout.content(RidingFrames.TILES.get(i)), maxSp, false);
             tile.card();
-            if (batteryRing) tile.addBeside(new BatteryRing(), new LinearLayout.LayoutParams(ui.dp(46), ui.dp(46)));
-            else tile.addBelow(new Meter());
+            tile.addBelow(new Meter());
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, 1);
             if (i > 0) p.setMarginStart(ui.dp(12));
             out.addView(tile, p);
@@ -451,7 +450,7 @@ final class RidingScreen implements AppScreen {
     }
 
     private LinearLayout chipRow(List<String> spots) {
-        LinearLayout out = row();
+        LinearLayout out = new ChipRow();
         out.setGravity(Gravity.CENTER_VERTICAL);
         for (int i = 0; i < spots.size(); i++) {
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, -2);
@@ -974,6 +973,8 @@ final class RidingScreen implements AppScreen {
         void card() {
             setBackground(ui.shape(cardColor(), 20, 0));
             setPadding(ui.dp(14), ui.dp(10), ui.dp(14), ui.dp(10));
+            // A tall card keeps its number at its middle, not stranded under the name.
+            number.middle = true;
         }
         /** No name above the number: the ring and the big speed speak for themselves (spoken names stay). */
         void hideLabel() { label.setVisibility(GONE); }
@@ -1317,37 +1318,29 @@ final class RidingScreen implements AppScreen {
         }
     }
 
-    /** Trace's battery ring beside the tile's number. */
-    private final class BatteryRing extends View implements BatteryGauge {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private float share;
-        private int color;
-        BatteryRing() {
+    /** A row of chips that shows only the chips that fit whole, in order: a chip never shows cut. */
+    private final class ChipRow extends LinearLayout {
+        ChipRow() {
             super(host.activity());
-            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeCap(Paint.Cap.ROUND);
+            setOrientation(HORIZONTAL);
         }
-        @Override public void set(double percent, RidingValues.Band band, boolean stale) {
-            float next = RidingFrames.share(Double.isFinite(percent) ? percent : null, 100);
-            int tint = bandColor(band, stale);
-            if (next == share && tint == color) return;
-            share = next;
-            color = tint;
-            invalidate();
-        }
-        @Override protected void onDraw(Canvas canvas) {
-            float size = Math.min(getWidth(), getHeight());
-            if (size <= 0) return;
-            float stroke = size * .14f;
-            paint.setStrokeWidth(stroke);
-            RectF box = new RectF(stroke / 2, stroke / 2, size - stroke / 2, size - stroke / 2);
-            box.offset((getWidth() - size) / 2, (getHeight() - size) / 2);
-            paint.setColor(ui.dark ? ui.raised : ui.outline);
-            canvas.drawOval(box, paint);
-            if (share <= 0) return;
-            paint.setColor(color);
-            canvas.drawArc(box, -90, 360 * share, false, paint);
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int room = MeasureSpec.getSize(widthSpec), used = 0;
+            boolean full = false;
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (!(child instanceof Chip)) continue;
+                Chip chip = (Chip) child;
+                int want = GONE;
+                if (chip.wanted && !full) {
+                    chip.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    int need = chip.getMeasuredWidth() + (used > 0 ? ui.dp(8) : 0);
+                    if (MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED || used + need <= room) { want = VISIBLE; used += need; }
+                    else full = true;
+                }
+                if (chip.getVisibility() != want) chip.setVisibility(want);
+            }
+            super.onMeasure(widthSpec, heightSpec);
         }
     }
 
@@ -1361,6 +1354,8 @@ final class RidingScreen implements AppScreen {
         private final TextView text;
         private final View icon;
         private final boolean mode;
+        /** False for a chip with nothing to say (no drive mode yet): it steps aside. */
+        boolean wanted = true;
         Chip(String content) {
             super(host.activity());
             this.content = content;
@@ -1395,8 +1390,12 @@ final class RidingScreen implements AppScreen {
             int color = mode ? ui.onAccent : s.color;
             if (text.getCurrentTextColor() != color) text.setTextColor(color);
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
-            int visible = mode && s.spoken == null ? GONE : VISIBLE;
-            if (getVisibility() != visible) setVisibility(visible);
+            boolean want = !(mode && s.spoken == null);
+            if (want != wanted) { wanted = want; requestLayout(); }
+            if (!(getParent() instanceof ChipRow)) {
+                int visible = want ? VISIBLE : GONE;
+                if (getVisibility() != visible) setVisibility(visible);
+            }
             String name = s.rungs.length > 0 ? s.rungs[0] : s.main.toString();
             setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
         }
