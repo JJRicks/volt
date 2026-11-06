@@ -1089,6 +1089,7 @@ public final class ScooterService extends Service {
             if(next>0)handler.postDelayed(chargeLiveCheck,Math.max(250,next-now));
             boolean held=chargeLiveHold();
             if(held!=chargeLiveHeld){
+                if(!held)captureLiveUpdate();// the card's last moment: keep Android's verdict for the developer row
                 chargeLiveHeld=held;chargeLiveKey=null;
                 // Out of sight, the end of the hold is like leaving Volt: the usual ten seconds, then sleep.
                 if(!held&&!visible)stopAfterChargeLive();
@@ -1159,9 +1160,13 @@ public final class ScooterService extends Service {
     }
     // ---- Live Update promotion (ChargeLiveUpdate; Android 16 and later) ----------------------------------
 
-    /** The last card was asked to be promoted, and whether Android found it promotable; the developer row's last outcome. */
-    private boolean liveUpdateAsked,liveUpdatePromotable;
-    private ChargeLiveUpdate.Status liveUpdateLast;
+    /** The last connection notice asked to be promoted (reset for each build); the last card's verdict for the developer row. */
+    private boolean liveUpdateAsked;
+    private final ChargeLiveUpdate.Last liveUpdateLast=new ChargeLiveUpdate.Last();
+    private boolean liveUpdateRestored;
+    static final String CHARGE_LIVE_UPDATE_LAST="charge_live_update_last";
+    /** A moment after each post of the live card: Android decides promotion as it posts, so read it back then. */
+    private final Runnable liveUpdateProbe=this::captureLiveUpdate;
     private static boolean liveUpdateLooked;
     private static String liveUpdateExtra;
     private static java.lang.reflect.Method liveUpdateMethod;
@@ -1237,20 +1242,45 @@ public final class ScooterService extends Service {
     }
     /** After each connection notice is built: Android's own verdict on whether the live card could be promoted. */
     private void liveUpdateBuilt(Notification notice){
-        liveUpdatePromotable=false;
-        if(!liveUpdateAsked||Build.VERSION.SDK_INT<ChargeLiveUpdate.SDK)return;
-        try{liveUpdatePromotable=notice.hasPromotableCharacteristics();}catch(RuntimeException|LinkageError unknown){}
+        boolean promotable=false;
+        if(liveUpdateAsked&&Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK)
+            try{promotable=notice.hasPromotableCharacteristics();}catch(RuntimeException|LinkageError unknown){}
+        liveUpdateLast.built(liveUpdateAsked,promotable);
     }
-    /** For More › Developer options: whether the live card is (or the last one was) a Live Update. */
-    public ChargeLiveUpdate.Status liveUpdateStatus(){
-        boolean showing=!destroyed&&liveUpdateAsked&&chargeLiveShown(),promoted=false;
-        if(showing)try{
+    /**
+     * Reads the posted live card back and keeps Android's verdict (device-only), so the developer row still has it once
+     * opening Volt ended the card. Runs a moment after each post, just before the hold ends, and from the row.
+     */
+    private void captureLiveUpdate(){
+        if(destroyed||!liveUpdateLast.asked()||Build.VERSION.SDK_INT<ChargeLiveUpdate.SDK)return;
+        restoreLiveUpdateLast();
+        Boolean promoted=null;
+        try{
             for(android.service.notification.StatusBarNotification n:getSystemService(NotificationManager.class).getActiveNotifications())
-                if(n.getId()==71&&(n.getNotification().flags&Notification.FLAG_PROMOTED_ONGOING)!=0)promoted=true;
-        }catch(RuntimeException unknown){}
-        ChargeLiveUpdate.Status status=ChargeLiveUpdate.status(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),showing,promoted,liveUpdatePromotable,liveUpdateLast);
-        if(showing)liveUpdateLast=status;
-        return status;
+                if(n.getId()==71)promoted=(n.getNotification().flags&Notification.FLAG_PROMOTED_ONGOING)!=0;
+        }catch(RuntimeException|LinkageError unknown){}
+        if(promoted==null||!liveUpdateLast.observed(promoted,System.currentTimeMillis())||settings==null)return;
+        try{
+            settings.edit().putString(CHARGE_LIVE_UPDATE_LAST,new JSONObject().put("status",liveUpdateLast.status().name())
+                    .put("wall",liveUpdateLast.wallMs()).toString()).apply();
+        }catch(JSONException impossible){}
+    }
+    /** Once per service: the verdict an earlier service stored on this device. */
+    private void restoreLiveUpdateLast(){
+        if(liveUpdateRestored||settings==null)return;
+        liveUpdateRestored=true;
+        String saved=settings.getString(CHARGE_LIVE_UPDATE_LAST,null);
+        if(saved!=null&&liveUpdateLast.status()==null)try{
+            JSONObject stored=new JSONObject(saved);
+            liveUpdateLast.restore(ChargeLiveUpdate.Status.valueOf(stored.optString("status")),stored.optLong("wall",0));
+        }catch(JSONException|IllegalArgumentException damaged){}// Nothing usable: no verdict yet.
+    }
+    /** For More › Developer options: whether the last live card was a Live Update. */
+    public ChargeLiveUpdate.Status liveUpdateStatus(){
+        if(destroyed)return ChargeLiveUpdate.status(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),false,false,false,null);
+        restoreLiveUpdateLast();
+        if(chargeLiveShown())captureLiveUpdate();
+        return liveUpdateLast.row(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed());
     }
     /** Charging finished at its target out of sight: one quiet notice, then the hold ends like any other. */
     private void chargeLiveDoneNotice(ChargeLiveHold.Facts facts){
@@ -1623,6 +1653,8 @@ public final class ScooterService extends Service {
     private void applyVisibility(boolean value){applyVisibility(value,true);}
     private void applyVisibility(boolean value,boolean connectOnShow){
         if(destroyed)return;boolean wasVisible=visible;visible=value;
+        // Opening Volt ends the live card: keep Android's verdict on it for the developer row first.
+        if(value&&chargeLiveHeld)captureLiveUpdate();
         if(!value&&wasVisible)armChargeLive();else if(value)chargeLive.shown();
         if(value)cancelBackgroundDeadline();
         // Opening Volt stops a sounding alarm and lets a paused or timed-out charge watch hold again.
@@ -2472,6 +2504,7 @@ public final class ScooterService extends Service {
         Notification notice = notification();
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
+        liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
         notices.posted(71, SystemClock.elapsedRealtime());
     }
@@ -2596,9 +2629,15 @@ public final class ScooterService extends Service {
         handler.removeCallbacks(noticeDrain);notices.cancel(71);
         for(Map.Entry<Integer,java.util.function.Supplier<Notification>> next:notices.takeAll())notifyNow(next.getKey(),next.getValue());
     }
+    /** After each connection notice posts: read a promotion request's verdict back once Android has handled it. */
+    private void liveUpdatePosted(){
+        handler.removeCallbacks(liveUpdateProbe);
+        if(liveUpdateLast.asked()&&!destroyed)handler.postDelayed(liveUpdateProbe,1500);
+    }
     private void notifyNow(int id,java.util.function.Supplier<Notification> build){
         try{Notification notice=build.get();if(notice!=null)getSystemService(NotificationManager.class).notify(id,notice);}
         catch(RuntimeException unavailable){}
+        if(id==71)liveUpdatePosted();
     }
     /**
      * The volt-diagnostics-v1 file a report email may carry (DiagnosticsBundle), or null when it would contain a saved

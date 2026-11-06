@@ -15,6 +15,7 @@ public final class ChargeLiveUpdateTest {
         bar();
         promote();
         status();
+        reopen();
         System.out.println("ChargeLiveUpdateTest: " + checks + " checks passed");
     }
 
@@ -73,5 +74,52 @@ public final class ChargeLiveUpdateTest {
         check(ChargeLiveUpdate.status(36, true, true, false, false, false, Status.NOT_ALLOWED) == Status.READY, "a stale refusal isn't an outcome");
         for (Status s : Status.values()) check(ChargeLiveUpdate.label(s) != null && !ChargeLiveUpdate.label(s).isEmpty(), "a label for " + s);
         check("Promoted".equals(ChargeLiveUpdate.label(Status.PROMOTED)), "English label");
+    }
+
+    // ---- Round 2: the verdict outlives the card (opening Volt ends the hold before the row can be opened) ----
+
+    /**
+     * The service's order of calls: notification() builds the card (built), notifyNow posts it and the probe reads it
+     * back (observed), opening Volt captures once more and ends the hold (applyVisibility(true): observed, then
+     * chargeLive.shown()), and the next notice is the plain connection notice (built(false, ...)). The row is read last.
+     */
+    private static void reopen() {
+        ChargeLiveUpdate.Last none = new ChargeLiveUpdate.Last();
+        check(none.row(36, true, true) == Status.READY && none.status() == null, "before any card: Allowed, shows with the next card");
+
+        ChargeLiveUpdate.Last promoted = new ChargeLiveUpdate.Last();
+        promoted.built(true, true);
+        check(promoted.observed(true, 1000L), "the probe after the background post reads FLAG_PROMOTED_ONGOING");
+        check(!promoted.observed(true, 2000L), "the capture just before the hold ends reads the same: no store");
+        promoted.built(false, false);
+        check(!promoted.observed(false, 3000L), "the plain notice after reopening never overwrites the verdict");
+        check(promoted.row(36, true, true) == Status.PROMOTED && promoted.wallMs() == 2000L, "reopen, Developer options: Promoted");
+
+        ChargeLiveUpdate.Last declined = new ChargeLiveUpdate.Last();
+        declined.built(true, true);declined.observed(false, 1000L);declined.built(false, false);
+        check(declined.row(36, true, true) == Status.NOT_PROMOTED, "reopen after Android declined a promotable card: Not promoted by Android");
+
+        ChargeLiveUpdate.Last refused = new ChargeLiveUpdate.Last();
+        refused.built(true, false);refused.observed(false, 1000L);refused.built(false, false);
+        check(refused.row(36, true, true) == Status.NOT_PROMOTABLE, "reopen after an unpromotable card: Not promotable");
+        check(refused.row(36, true, false) == Status.NOT_ALLOWED, "Live updates turned off since: Not allowed beats the old verdict");
+
+        ChargeLiveUpdate.Last later = new ChargeLiveUpdate.Last();
+        later.built(true, true);later.observed(false, 1000L);
+        later.built(true, true);later.observed(true, 5000L);
+        check(later.row(36, true, true) == Status.PROMOTED, "a later card's verdict replaces an earlier one");
+
+        ChargeLiveUpdate.Last recording = new ChargeLiveUpdate.Last();
+        recording.built(true, true);recording.observed(true, 1000L);
+        recording.built(false, false);
+        check(!recording.observed(false, 2000L) && recording.row(36, true, true) == Status.PROMOTED, "a charge recording's plain card doesn't count");
+
+        ChargeLiveUpdate.Last restored = new ChargeLiveUpdate.Last();
+        restored.restore(Status.PROMOTED, 1234L);
+        check(restored.row(36, true, true) == Status.PROMOTED && restored.wallMs() == 1234L, "a new service restores the stored verdict");
+        ChargeLiveUpdate.Last odd = new ChargeLiveUpdate.Last();
+        odd.restore(Status.NOT_ALLOWED, 1L);odd.restore(Status.READY, 1L);
+        check(odd.status() == null && odd.row(36, true, true) == Status.READY, "only a card verdict is restored");
+        check(!new ChargeLiveUpdate.Last().observed(true, 1L), "no reading counts before a card asked");
     }
 }

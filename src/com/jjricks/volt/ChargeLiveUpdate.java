@@ -98,6 +98,43 @@ public final class ChargeLiveUpdate {
         return promotable ? Status.NOT_PROMOTED : Status.NOT_PROMOTABLE;
     }
 
+    /**
+     * The last live card's verdict, kept for the developer row. Opening Volt ends the hold, and so the card, before the
+     * row can be opened, so the service records what Android did while the card is posted (a moment after each post,
+     * and again just before the hold ends) and stores it on this device. built() is called for every connection notice
+     * (asked: it requested promotion); observed() when the service reads the posted card back. Only an asked card's
+     * reading counts, so a later plain notice never overwrites it.
+     */
+    public static final class Last {
+        private boolean asked, promotable;
+        private Status status;
+        private long wallMs;
+
+        public void built(boolean asked, boolean promotable) { this.asked = asked;this.promotable = asked && promotable; }
+        public boolean asked() { return asked; }
+        /** The posted card read back; returns true when the stored verdict changed. */
+        public boolean observed(boolean promoted, long wallMs) {
+            if (!asked) return false;
+            Status next = promoted ? Status.PROMOTED : promotable ? Status.NOT_PROMOTED : Status.NOT_PROMOTABLE;
+            boolean changed = next != status;
+            status = next;this.wallMs = wallMs;
+            return changed;
+        }
+        /** The last card's verdict (PROMOTED, NOT_PROMOTED or NOT_PROMOTABLE), or null before any card. */
+        public Status status() { return status; }
+        /** When the verdict was read (wall clock), 0 before any. */
+        public long wallMs() { return wallMs; }
+        /** A verdict stored by an earlier service; anything but a card verdict is ignored. */
+        public void restore(Status status, long wallMs) {
+            if (status != Status.PROMOTED && status != Status.NOT_PROMOTED && status != Status.NOT_PROMOTABLE) return;
+            this.status = status;this.wallMs = wallMs;
+        }
+        /** The row: Android's own state first, then the last card's verdict, READY only before any card. */
+        public Status row(int sdk, boolean requestAvailable, boolean allowed) {
+            return ChargeLiveUpdate.status(sdk, requestAvailable, allowed, false, false, false, status);
+        }
+    }
+
     public static String label(Status status) {
         switch (status) {
             case OLD_ANDROID: return T.chargeLiveUpdateOldAndroid();
