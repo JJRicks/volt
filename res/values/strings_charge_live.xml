@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Live charging (charging-live plan, PR 1): the ongoing card Volt shows while it holds the connection for a
+  charge, and its Scooter › Battery row and sheet.
+
+  The card's text can't step down to shorter words the way Volt's own narrow labels do: Android wraps or
+  cuts it. Keep each line short and put the important part first. Percentages are filled in already
+  formatted (Fmt.integer), as %1$s followed by %%. Times are the phone's clock ("10:42 PM"). A duration is
+  the Home charging card's own "≈ 38m" or "≈ 1h 25m".
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== The card (notification) ===== -->
+
+    <!-- Card title while charging toward the scooter's own charge limit: %1$s is the limit, %2$s the
+         battery level now ("Charging to 80% · 72%"). -->
+    <string name="charge_live_title_limit" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Charging to %1$s%% · %2$s%%</string>
+    <!-- Card title while charging on a scooter without a charge limit (or a limit of 100%): %1$s is the
+         battery level now ("Charging · 63%"). -->
+    <string name="charge_live_title_full" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Charging · %1$s%%</string>
+    <!-- Card title while Charge done by or Scheduled charging holds the charge until its start: %1$s is
+         the start time, %2$s the battery level now ("Starts 3:40 AM · 41%"). -->
+    <string name="charge_live_title_waiting" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Starts %1$s · %2$s%%</string>
+    <!-- Same, before any battery level was read: %1$s is the start time. -->
+    <string name="charge_live_title_waiting_time" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Charging starts %1$s</string>
+    <!-- Card title while the scooter is out of reach and Volt tries to reconnect: %1$s is the last
+         battery level Volt read. -->
+    <string name="charge_live_title_last_seen" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Last seen %1$s%%</string>
+    <!-- Card text: %1$s is the time left ("≈ 38m"), %2$s the clock time charging should finish
+         ("10:42 PM"). Time left comes first. -->
+    <string name="charge_live_text_eta" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp" volt:safety="charge">%1$s left · done %2$s</string>
+    <!-- Same, with the charging power after it: %3$s is a power such as "412 W". -->
+    <string name="charge_live_text_eta_watts" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:safety="charge">%1$s left · done %2$s · %3$s</string>
+    <!-- Card text while Volt has no time estimate yet. -->
+    <string name="charge_live_text_estimating" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp" volt:safety="charge">Estimating time left</string>
+    <!-- Same, with the charging power: %1$s is a power such as "412 W". -->
+    <string name="charge_live_text_estimating_watts" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp" volt:safety="charge">Estimating time left · %1$s</string>
+    <!-- Card text while Charge done by holds the charge: %1$s is the finish time the owner chose. -->
+    <string name="charge_live_text_done_by" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp" volt:safety="charge">Charge done by %1$s</string>
+    <!-- Card text while Scheduled charging holds the charge until its start time. -->
+    <string name="charge_live_text_scheduled" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp" volt:safety="charge">Scheduled charging</string>
+    <!-- Card text while the scooter is out of reach. Volt gives up after about 20 seconds. -->
+    <string name="charge_live_text_reconnecting" volt:screen="Live charging notification" volt:purpose="notification text"
+        volt:max="300dp@14sp">Out of reach · reconnecting</string>
+
+    <!-- ===== Scooter › Battery ===== -->
+
+    <!-- Row and sheet title, and the switch's label. -->
+    <string name="charge_live_row" volt:screen="Scooter › Battery, Live charging sheet" volt:purpose="label"
+        volt:max="200dp@15sp">Live charging</string>
+    <!-- The sheet's first paragraph. -->
+    <string name="charge_live_intro" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">Shows the charge in a notification and on the lock screen after you leave Volt, with the time left and when it\'s done.</string>
+    <!-- Under the switch: when Volt holds the connection, and for how long. -->
+    <string name="charge_live_switch_detail" volt:screen="Live charging sheet" volt:purpose="row detail" volt:dnt="Volt">Volt stays connected until the charge ends, for up to 12 hours</string>
+    <!-- Section label above the lock screen choice. -->
+    <string name="charge_live_lock_title" volt:screen="Live charging sheet" volt:purpose="section label">On the lock screen</string>
+    <!-- Lock screen choice: the whole card, with the scooter's name and the charging power. -->
+    <string name="charge_live_lock_details" volt:screen="Live charging sheet" volt:purpose="segmented choice"
+        volt:max="96dp@14sp">Details</string>
+    <!-- Lock screen choice: the battery level, the limit and the times only. -->
+    <string name="charge_live_lock_level" volt:screen="Live charging sheet" volt:purpose="segmented choice"
+        volt:max="96dp@14sp">Level</string>
+    <!-- Lock screen choice: nothing but Android's "contents hidden". -->
+    <string name="charge_live_lock_hidden" volt:screen="Live charging sheet" volt:purpose="segmented choice"
+        volt:max="96dp@14sp">Hidden</string>
+    <!-- Explains the three lock screen choices. -->
+    <string name="charge_live_lock_note" volt:screen="Live charging sheet" volt:purpose="explanation">Details adds the scooter\'s name and charging power to the battery level and times. Level shows only the battery level and times. Hidden shows neither.</string>
+    <!-- When the card starts, and what holding the connection means. -->
+    <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">The card starts only if the scooter is still connected when you leave Volt, and it\'s charging or has a charging start time set. While it shows, other apps, the official one included, can\'t connect to the scooter. Tap Stop on the card to end it.</string>
+    <!-- Notifications are off for Volt: the card can't show. -->
+    <string name="charge_live_perm" volt:screen="Live charging sheet" volt:purpose="warning" volt:dnt="Volt">Notifications are off for Volt, so the live charging card can\'t show.</string>
+</resources>

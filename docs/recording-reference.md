@@ -133,7 +133,9 @@ color. Units change labels only. Segments are not joined across gaps.
 
 ## Ride exports and journal format
 
-CSV/JSON exports use Android's file picker; you choose the destination. Auto-save
+Ride details' **Export ride data** sheet saves one file through Android's file picker,
+where you choose the destination and name, or several at once into one folder you pick
+through Android's folder picker (no access is kept afterwards). Auto-save
 rides (below) writes to one folder you chose once through Android's folder picker.
 Volt does not upload them. A cloud-backed document provider controls any subsequent
 sync.
@@ -158,6 +160,20 @@ shown end (`shownEndWallMs`, `shownElapsedMs` in analysis JSON, `stopReason`
 unit-explicit quantities, coverage and session metadata. `null` means
 insufficient evidence, not zero.
 
+| Export ride data checkbox | File | Type |
+|---|---|---|
+| Sensor CSV | `ride-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
+| Analysis JSON | `ride-<first 8 of id>-analysis.json` | `application/json` |
+| Route CSV | `ride-<first 8 of id>-route.csv` | `text/csv` |
+| GPX | `ride-<first 8 of id>.gpx` | `application/gpx+xml` |
+| Phone raw CSV | `ride-<first 8 of id>-phone.csv` | `text/csv`, the phone journal as recorded |
+| Motion raw CSV | `ride-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
+| Scooter and phone JSON | `ride-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
+
+Each file is byte for byte what the separate Export CSV, Export JSON and Export phone
+data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
+choice is `ride_export_choice`.
+
 Phone and motion journals are separate from the scooter journal. Combined JSON
 can include precise route coordinates; GPX contains time and position. Inline
 charts keep a lightweight selection of real samples, while fullscreen ride
@@ -173,9 +189,9 @@ ride you end into one folder, and a **Folder** row:
 
 | Switch | File | Contents |
 |---|---|---|
-| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export phone data → Route CSV. Not written for a ride with no GPS fixes |
-| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export phone data → All (JSON): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
-| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte ride details → Export JSON |
+| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export ride data → Route CSV. Not written for a ride with no GPS fixes |
+| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export ride data → Scooter and phone JSON (formerly Export phone data → All (JSON)): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
+| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte Export ride data → Analysis JSON |
 
 - **Folder.** Turning the first switch on opens Android's folder picker. Volt keeps
   a read and write grant for that folder only and asks for no storage permission.

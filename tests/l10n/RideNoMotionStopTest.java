@@ -305,6 +305,14 @@ public final class RideNoMotionStopTest {
         check(r.toJson().contains("\"stopReason\":\"automatic_no_motion\"") && r.toJson().contains("\"shownElapsedMs\":" + (lastMotion - 10_000)), "analysis JSON names the stop and the shown end");
         RideStore.Summary reread = new RideStore(s.dir).get(s.id);
         check(reread.noMotionStop && reread.shownElapsedMs == r.shownElapsedMs && reread.shownEndWallMs == r.shownEndWallMs, "a reload judges the same last motion from the journal");
+        File index = Files.createTempDirectory("volt-no-motion-index").toFile(); folders.add(index);
+        RideStore indexed = new RideStore(s.dir, true, index);
+        indexed.list(); indexed.flushIndex();
+        RideStore cold = new RideStore(s.dir, true, index);
+        cold.flushIndex();
+        List<RideStore.Summary> cached = cold.listCached();
+        check(cached != null && cached.size() == 1 && cached.get(0).noMotionStop && cached.get(0).shownElapsedMs == r.shownElapsedMs
+                && cached.get(0).shownEndWallMs == r.shownEndWallMs && cached.get(0).shownGapCount == r.shownGapCount, "the saved summary cache keeps the last motion");
         String journal = new String(Files.readAllBytes(new File(s.dir, s.id + ".csv").toPath()), StandardCharsets.UTF_8);
         check(journal.trim().endsWith(",automatic_no_motion"), "the STOP row carries the bare token");
 

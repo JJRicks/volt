@@ -3,4 +3,5 @@
 src/com/jjricks/volt/RideAutoStopText.java
 src/com/jjricks/volt/RideAutoStopPolicy.java
 src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/RideSummaryStore.java
 tests/l10n/RideNoMotionStopTest.java

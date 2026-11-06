@@ -283,6 +283,8 @@ Registered ahead of sibling work: the Boolean `ride_auto_stop` (App preferences)
 
 The automatic ride copy choices `ride_auto_export_route_csv` and `ride_auto_export_json` travel with App preferences. The chosen folder, its waiting rides and the last problem stay on the phone: Android does not carry a folder grant, so a restored choice waits until a folder is chosen there.
 
+The Export ride data sheet's remembered formats, `ride_export_choice`, travel with App preferences. Its last folder, `ride_export_folder_hint`, is only the picker's starting place and stays on the phone.
+
 ## Implementation notes
 
 Classes: `BackupRegistry` (table and types), `BackupJson`/`BackupProfiles` (bounded JSON reading and profile splicing without Android), `BackupArchive` (export, staging of all four formats, destinations and the read-only plan), `BackupTransaction` (build, preflight, snapshot, apply, rollback, recovery), `AppDataBackup` (Android preferences, SQLite merge and validation, layout validation) and `BackupActivity` (the one screen). `RideBackupActivity` is removed. `DataMaintenance.ensureRecovered` runs `AppDataBackup.recover` (now `BackupTransaction.recover`, which hands a version 1 transaction to the version 1 rollback), then `RideBackup.recover`, then cache cleanup.
