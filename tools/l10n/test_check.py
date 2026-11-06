@@ -87,6 +87,41 @@ class CheckTest(unittest.TestCase):
         self.assertIn("numbers", self.checks(self.run_check("ble_searching", "Buscando 2 patinetes 3",
                                                             pack_name="es-ble"), check.WARN))
 
+    def test_numbers_with_english_thousands_groups(self):
+        english = "Use a backup password of 8 to 1,024 characters."
+        same = (collections.Counter(), collections.Counter())
+        # One number, 1024: Spanish style writes it with no separator, and any grouping of it is the same value.
+        for target in ("De 8 a 1024 caracteres.", "De 8 a 1.024 caracteres.", "De 8 a 1\u00a0024 caracteres.",
+                       "De 8 a 1\u202f024 caracteres.", "De 8 a 1 024 caracteres.", "De 8 a 1,024 caracteres.",
+                       "De 8 a \u0661\u0660\u0662\u0664 caracteres."):
+            self.assertEqual(check.compare_numbers(english, target), same, target)
+        # A changed or missing number is still missing.
+        for target in ("De 8 a 1025 caracteres.", "De 8 caracteres.", "De 1024 caracteres.",
+                       "De 8 a 1.024.000 caracteres.", "De 8 a 1 0245 caracteres.", "De 8 a 10 24 caracteres."):
+            lost, _ = check.compare_numbers(english, target)
+            self.assertTrue(lost, target)
+        self.assertEqual(check.compare_numbers(english, "De 8 a 1025 caracteres."),
+                         (collections.Counter(["1024"]), collections.Counter(["1025"])))
+        # A decimal comma still matches an English decimal point, with or without groups.
+        self.assertEqual(check.compare_numbers("1.5 km and 12,345.6 m", "1,5 km y 12.345,6 m"), same)
+        self.assertEqual(check.compare_numbers("12,345.6 m", "12345,6 m"), same)
+        # Digits the English did not group are compared run by run, as before.
+        self.assertEqual(check.compare_numbers("Pair 2 of 3", "Par 2 de 3"), same)
+        self.assertTrue(check.compare_numbers("1024 bytes", "1 025 bytes")[0])
+
+    def test_grouped_numbers_through_the_check(self):
+        """A full check: placeholders stay out of the numbers, and 1,024 may be written 1024."""
+        p = copy.deepcopy(self.packs["es"])
+        entry = [e for e in p["entries"] if e["key"] == "common_move_widget"][0]
+        entry["english"] = "Move %1$s to slot %2$d of 1,024"
+        for text, errors in (("Mover %1$s al hueco %2$d de 1024", []), ("Mover %1$s al hueco %2$d de 1.024", []),
+                             ("Mover %1$s al hueco %2$d de 1\u202f024", []),
+                             ("Mover %1$s al hueco %2$d de 1025", ["numbers"]),
+                             ("Mover %1$s al hueco %2$d", ["numbers"])):
+            targets = collections.OrderedDict([("common_move_widget", ("string", {"other": text}, []))])
+            findings = check.check_targets(p, targets, self.font, self.measurer)["common_move_widget"]
+            self.assertEqual([c for c in self.checks(findings) if c == "numbers"], errors, text)
+
     def test_plural_categories(self):
         findings = self.run_check("common_scooters_skipped", {"one": "%1$d patinete", "other": "%1$d patinetes"})
         self.assertEqual(self.checks(findings), ["plurals"])

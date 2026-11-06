@@ -108,6 +108,12 @@ def json_mode_without_json(payload):
         "json" not in str(payload.get("input", "")).lower()
 
 
+# The token counts every fake reply reports, in each provider's shape.
+OPENAI_USAGE = {"input_tokens": 100, "input_tokens_details": {"cached_tokens": 40}, "output_tokens": 20,
+                "output_tokens_details": {"reasoning_tokens": 5}, "total_tokens": 120}
+GOOGLE_USAGE = {"promptTokenCount": 90, "candidatesTokenCount": 15, "thoughtsTokenCount": 7, "totalTokenCount": 112}
+
+
 class FakeTransport(object):
     """Answers provider requests from a table; records each request (headers included, for assertions)."""
 
@@ -137,12 +143,14 @@ class FakeTransport(object):
             model = payload["model"]
             reply = self.replies[model](payload["input"])
             return 200, json.dumps({"model": model + "-2026-10-01", "status": "completed", "output": [
-                {"type": "message", "content": [{"type": "output_text", "text": json.dumps(reply)}]}]}).encode("utf-8")
+                {"type": "message", "content": [{"type": "output_text", "text": json.dumps(reply)}]}],
+                "usage": OPENAI_USAGE}).encode("utf-8")
         if ":generateContent" in url:
             model = url.split("/models/")[1].split(":")[0]
             reply = self.replies[model](payload["contents"][0]["parts"][0]["text"])
             return 200, json.dumps({"modelVersion": model + "-001", "candidates": [
-                {"content": {"parts": [{"text": "```json\n%s\n```" % json.dumps(reply)}]}}]}).encode("utf-8")
+                {"content": {"parts": [{"text": "```json\n%s\n```" % json.dumps(reply)}]}}],
+                "usageMetadata": GOOGLE_USAGE}).encode("utf-8")
         return 404, b'{"error": {"message": "no such endpoint"}}'
 
 

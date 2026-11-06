@@ -1174,6 +1174,7 @@ python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then
 python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
+python3 tools/l10n/council.py usage --tag $T                         # the tokens each model was billed for
 ```
 
 1. **Pack** (`pack.py`): for each UI string of `res/values/strings_<area>.xml` (never
@@ -1191,7 +1192,18 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    flash that did not draft, then flash-lite). The patterns name each line, so a newer version
    of the same line is picked when it appears, and never a top-end line (pro, argon). It then drafts in JSON mode
    (OpenAI's Responses API, `"store": false`; Gemini's `generateContent`). Each draft records the
-   exact model id, and the id the API reported. Claude drafts come from Claude Code agents, each
+   exact model id, and the id the API reported. Each provider response (draft, redraft,
+   back-translation, glossary draft, retries included) gets its own `api-call` row in `runs.jsonl`
+   the moment it arrives, before its reply is parsed or checked, with the token counts the provider
+   reported (`usage`, flattened: OpenAI's `input_tokens`, `input_tokens_details.cached_tokens`,
+   `output_tokens` and `output_tokens_details.reasoning_tokens`; Gemini's `promptTokenCount`,
+   `candidatesTokenCount` and `thoughtsTokenCount`, which Google bills as output). So a step that
+   fails on a later chunk, or on a reply it cannot use, still counts what it was billed; the step's
+   own row (written only when it succeeds) records how many `calls` it made and carries no usage, so
+   nothing is summed twice. A 2xx reply that is not JSON at all cannot report usage. `council.py
+   usage --tag <tag> [--area A] [--since <UTC time>] [--json]` sums the calls per model over the
+   language's areas, the glossary round included, and counts the calls that logged none (rows from
+   before usage logging count as one such call each). Claude drafts come from Claude Code agents, each
    in its own session with a different configuration (`--style` `context-first`,
    `glossary-first` or `draft-review`, on different models): `council.py prompt` writes the
    agent's instructions; the agent writes its JSON reply and runs `council.py import-claude ...
@@ -1221,6 +1233,12 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    word that is not in the English is an error in a non-Latin language, except an acronym or a
    name in `LATIN_LOANS`, which warns. `checks.jsonl` records each finding; a failed key goes back to
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
+   `redraft openai|google` also sends back, in the same calls and also as attempt 2, each needed key
+   the provider left out of its draft; a key the redraft still gets no usable text of is listed in
+   that redraft's `runs.jsonl` row (`missing`) and is never sent again (a new full `draft` of that
+   provider starts over). A provider that has had both attempts at a key, and whose draft of it is
+   still missing or still failing, is **excused**: it no longer blocks the key (owner, 2026-11-05:
+   the council lifts quality; it does not chase one stubborn translator). See step 5.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
    session, which picks or merges; a merged text must pass the checks again. A pick names the draft
@@ -1231,7 +1249,9 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
    every drafter agrees**, with drafts from all three providers that all pass the checks, a model
    that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
-   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   (`safety-agreed`); `backtranslate` sends such a key only while it has no current back-translation
+   of exactly the agreed text by a model that drafted nothing, so a later run does not reword one the
+   judge already confirmed. **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
    such a key always fell back), with drafts from all three providers and at least one passing,
    `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
    or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
@@ -1241,8 +1261,14 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    with the judged text and its back-translation, and the judge confirms it on a later line of
    `judge.jsonl` exactly as for an agreed text (`safety-judged`). The latest pick or merge is the
    judged text: a new one, or a picked draft that changed, needs a new back-translation and a new
-   confirm, and the judge can never confirm a text it has not seen back-translated. A key with a
-   provider's draft missing, or no passing draft, still falls back. Either way the back-translation
+   confirm, and the judge can never confirm a text it has not seen back-translated. A key with no
+   passing draft still falls back, and so does one with a provider's draft missing while that
+   provider has its retry left. **Once that provider is excused** (step 3: still no draft after its
+   draft and its redraft), the key is judged in the same way from the other two providers' drafts,
+   which must include at least two passing drafts from different providers (with fewer, English
+   stays); the judge request and the decision name the excused provider and why in `excused`, and
+   the decision's reason says so. A provider whose draft still fails after its redraft is also listed
+   in `excused`; its failing draft never blocked a judged key. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1407,7 +1433,7 @@ python3 tools/l10n/council.py glossary-check --tag $T
    round only, by design: a decided row's evidence is its `decisions.jsonl` record.
 
 Files, under `l10n/work/<tag>/glossary/`: `drafts/openai.json`, `drafts/google.json`, `runs.jsonl`
-(each provider call, with its token usage), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
+(an `api-call` row per provider response, with its token usage, and a row per draft), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
 `replies/judge.<set>/` and `decisions.jsonl`. When no `claude-only` row is left, the string debate
 starts as above: `pack.py` again for every area, `check`, and the redrafts.
 
@@ -1722,10 +1748,14 @@ change a check inside a language or batch pull request.
   (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
   translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
-  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
+  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `excused` (for a safety key whose drafts
+  are not unanimous: `{<provider>: <why>}` for each provider excused after both attempts, else `{}`),
+  `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
-  key). `prompts/` (with its request records) and `replies/` are regenerated and not committed
+  key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
+  and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
+  attempts). `prompts/` (with its request records) and `replies/` are regenerated and not committed
   (`l10n/.gitignore`); a reply whose request record is gone is refused, so prompt again.
 
 The B0b-harness pull request still has to add the `tests/run.sh` hook and

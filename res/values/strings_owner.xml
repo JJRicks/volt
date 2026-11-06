@@ -106,13 +106,13 @@
         volt:dnt="Shizuku">Shizuku installed</string>
     <!-- Small button in the "Shizuku installed" row: open Shizuku's download page. -->
     <string name="owner_shizuku_install" volt:screen="Phone-only setup, step 1" volt:purpose="button"
-        volt:max="48dp@14sp">Install</string>
+        volt:max="80dp@14sp">Install</string>
     <!-- Checklist row: Shizuku's service is running. Followed by ", done" or ", not yet" when spoken. -->
     <string name="owner_shizuku_running" volt:screen="Phone-only setup, step 1" volt:purpose="label"
         volt:dnt="Shizuku">Shizuku running</string>
     <!-- Small button in the "Shizuku running" row: open the Shizuku app. -->
     <string name="owner_shizuku_open" volt:screen="Phone-only setup, step 1" volt:purpose="button"
-        volt:max="48dp@14sp">Open</string>
+        volt:max="80dp@14sp">Open</string>
     <!-- Button: open Shizuku's setup guide in the browser. -->
     <string name="owner_shizuku_setup_guide" volt:screen="Phone-only setup" volt:purpose="button"
         volt:dnt="Shizuku">Shizuku setup guide</string>
