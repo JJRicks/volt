@@ -123,7 +123,7 @@ public final class StatsScreen implements AppScreen {
         if (wide && selectedSection.equals("Readings")) selectedSection = "Overview";
         overviewSection = vertical(); readingsSection = vertical(); chartsSection = vertical(); diagnosticsSection = vertical();
         String[] sections = wide ? WIDE_SECTIONS : SECTIONS;
-        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sections, choice -> selectSection(sections[choice]));
+        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sectionLabels(sections), choice -> selectSection(sections[choice]));
         sectionTabs.useCompactPadding();
         sectionTabs.setTag("live-stats-sections");
         sectionTabs.select(java.util.Arrays.asList(sections).indexOf(selectedSection), false);
@@ -283,6 +283,15 @@ public final class StatsScreen implements AppScreen {
     }
     /** Whether the Readings section is on screen: always when wide, otherwise only as the selected tab. */
     private boolean readingsShown() { return wide || selectedSection.equals("Readings"); }
+    /** Each section's tab label, in SECTIONS order; the sections stay English ids (stored, compared). */
+    private static final int[] SECTION_LABELS = {T.STATS_TAB_OVERVIEW, T.STATS_TAB_READINGS, T.STATS_TAB_CHARTS, T.STATS_TAB_DIAGNOSTICS};
+    /** The tab labels for these section ids, rendered now in the current language. */
+    private static String[] sectionLabels(String[] sections) {
+        java.util.List<String> known = java.util.Arrays.asList(SECTIONS);
+        String[] labels = new String[sections.length];
+        for (int i = 0; i < sections.length; i++) labels[i] = T.render(SECTION_LABELS[known.indexOf(sections[i])]);
+        return labels;
+    }
     private static String validSection(String section) {
         for (String known : SECTIONS) if (known.equals(section)) return known;
         return "Overview";

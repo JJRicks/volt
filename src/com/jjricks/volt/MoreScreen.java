@@ -1587,8 +1587,8 @@ public final class MoreScreen implements AppScreen {
         if (!signature.equals(labSignature)) { labSignature = signature; buildLab(r, d, tryable, verify, absent); }
         boolean experimental = !tryable.isEmpty() || absent.stream().anyMatch(labKeys::contains), rows = experimental || !verify.isEmpty() || !absent.isEmpty();
         labTitle.setText(experimental ? T.moreLabUntested() : rows ? T.moreLabHelpVerify() : T.moreLabNothing());
-        labIntro.setText(experimental ? "The official app doesn't offer these for " + labModel(d) + ". Try one while parked; Volt reads it back."
-                : rows ? "The official app offers these for " + labModel(d) + ", but Volt hasn't tested them there. Try one while parked; Volt reads it back." : labEmpty(r, d));
+        labIntro.setText(experimental ? T.moreLabIntroUntested(labModel(d))
+                : rows ? T.moreLabIntroVerify(labModel(d)) : labEmpty(r, d));
         boolean offeredElsewhere = r.layer == ModelRegistry.Layer.OEM_GROUP || r.layer == ModelRegistry.Layer.UT5_MAX;
         String kept = rows ? T.moreLabKept() : "";
         labFoot.setText((r.layer == ModelRegistry.Layer.OEM_GROUP
@@ -1631,7 +1631,7 @@ public final class MoreScreen implements AppScreen {
     private static String labEmpty(ModelRegistry.Resolution r, DeviceDescriptor d) {
         switch (r.layer) {
             case UNSUPPORTED_PRODUCT: case UNSUPPORTED_TRANSPORT: return T.moreLabEmptyProduct();
-            case OEM_GROUP: return "Nothing to try on " + labModel(d) + ": the official app already offers the controls Volt could try. They're in Scooter settings.";
+            case OEM_GROUP: return T.moreLabEmptyOem(labModel(d));
             case UT5_MAX: return T.moreLabEmptyUt5();
             default:
                 if (r.conflict) return T.moreLabEmptyConflict();
@@ -1642,8 +1642,8 @@ public final class MoreScreen implements AppScreen {
     }
     /** "the UT5 MAX", "the N65i", "Model 24431" or "your model". */
     private static String labModel(DeviceDescriptor d) {
-        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return "the " + name;
-        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? "your model" : line;
+        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return T.moreLabModelNamed(name);
+        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? T.moreLabModelYours() : line;
     }
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
@@ -1875,7 +1875,7 @@ public final class MoreScreen implements AppScreen {
             caution.setBackground(ui.shape(Ui.withAlpha(ui.orange, ui.dark ? 26 : 18), 18, Ui.withAlpha(ui.orange, ui.dark ? 80 : 70)));
             caution.addView(ui.icon("lab", 22, ui.orange), new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
             LinearLayout cw = column();
-            cw.addView(ui.text((verify ? "Unverified on " : "Untested on ") + labModel(ble.descriptor()), 15, true));
+            cw.addView(ui.text(verify ? T.moreLabSheetUnverified(labModel(ble.descriptor())) : T.moreLabSheetUntested(labModel(ble.descriptor())), 15, true));
             TextView why = ui.text(verify ? T.moreLabVerifyWhy()
                     : labWhy(f.key, ble.descriptor()), 13.5f, false);
             why.setTextColor(ui.muted); why.setPadding(0, ui.dp(4), 0, 0); cw.addView(why);
