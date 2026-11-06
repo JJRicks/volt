@@ -62,6 +62,8 @@ public final class RangeReadout {
     private long lastMs = -1;
     private State lastState;
     private boolean lastKm;
+    /** The presentation lastValue was formatted for: units ("mi", "km", "dual") and the tenths toggle. */
+    private String lastUnits; private boolean lastTenths;
     private Value lastValue;
 
     public RangeReadout() { this(new Params()); }
@@ -70,14 +72,27 @@ public final class RangeReadout {
     /** Units preference: "mi", "km" or "dual" (anything else reads as "mi"); tenths: the riding layout's toggle. */
     public Value update(LiveRangeEstimator.Snapshot s, String units, boolean tenths) {
         boolean km = "km".equals(units), dual = "dual".equals(units);
-        if (s == null || !s.available) { clear(); return remember(new Value(State.HIDDEN, null, null, km, 0, false, false, false, false)); }
+        String unitsKey = km ? "km" : dual ? "dual" : "mi";
+        if (s == null || !s.available) { clear(); return remember(unitsKey, tenths, new Value(State.HIDDEN, null, null, km, 0, false, false, false, false)); }
         double soc = s.batteryPercent;
-        if (soc < EMPTY_PERCENT) { clear(); return remember(new Value(State.ALMOST_EMPTY, null, null, km, 0, false, true, s.held, s.stale)); }
+        if (soc < EMPTY_PERCENT) { clear(); return remember(unitsKey, tenths, new Value(State.ALMOST_EMPTY, null, null, km, 0, false, true, s.held, s.stale)); }
         if (s.stale && lastValue != null && lastValue.state != State.HIDDEN && lastValue.state != State.ALMOST_EMPTY) {
-            Value v = lastValue; lastMs = s.monoMs;
+            lastMs = s.monoMs;
+            // The estimate stays frozen, in km; only its presentation follows a units or tenths change.
+            if (lastValue.primary != null && !Double.isNaN(smoothKm) && (!unitsKey.equals(lastUnits) || tenths != lastTenths)) {
+                Value v = lastValue;
+                double target = smoothKm / (km ? 1 : KM_PER_MI);
+                boolean fine = tenths && (v.state == State.LIVE || v.state == State.LOW) && target < 99.5;
+                double q = fine ? .1 : 1, value = Math.max(0, round(target, q));
+                // Carry the switch into the calm state, so fresh readings continue from here without counting it as a movement.
+                shown = value; step = q; lastKm = km;
+                remember(unitsKey, tenths, new Value(v.state, value == 0 ? 0d : value, dual ? (Double) round(value * KM_PER_MI, q) : null, km, fine ? 1 : 0,
+                        v.approx, v.amber, v.held, false));
+            }
+            Value v = lastValue;
             return new Value(v.state, v.primary, v.secondaryKm, v.primaryIsKm, v.decimals, v.approx, v.amber, v.held, true);
         }
-        if (s.rawKm == null || !Double.isFinite(s.rawKm)) { clear(); return remember(new Value(State.NO_HISTORY, null, null, km, 0, false, false, s.held, s.stale)); }
+        if (s.rawKm == null || !Double.isFinite(s.rawKm)) { clear(); return remember(unitsKey, tenths, new Value(State.NO_HISTORY, null, null, km, 0, false, false, s.held, s.stale)); }
         State state = !s.energyModel ? State.NO_HISTORY : soc <= LOW_PERCENT ? State.LOW
                 : s.settling && lastState != State.LIVE ? State.SETTLING : State.LIVE;
         double perUnit = km ? 1 : KM_PER_MI;
@@ -110,10 +125,10 @@ public final class RangeReadout {
         double value = Math.max(0, shown);
         Double secondary = dual ? (Double) round(value * KM_PER_MI, q) : null;
         boolean approx = state != State.LIVE || s.belowSeen;
-        return remember(new Value(state, value == 0 ? 0d : value, secondary, km, fine ? 1 : 0, approx, state == State.LOW, s.held, s.stale));
+        return remember(unitsKey, tenths, new Value(state, value == 0 ? 0d : value, secondary, km, fine ? 1 : 0, approx, state == State.LOW, s.held, s.stale));
     }
 
-    private Value remember(Value v) { lastValue = v; return v; }
+    private Value remember(String units, boolean tenths, Value v) { lastValue = v; lastUnits = units; lastTenths = tenths; return v; }
     private void clear() { smoothKm = Double.NaN; shown = Double.NaN; lastState = null; lastMs = -1; }
     /** Rounded to the step; never "-0.0". */
     static double round(double x, double q) { double r = Math.round(x / q) * q; r = Math.round(r * 10) / 10.0; return r == 0 ? 0 : r; }

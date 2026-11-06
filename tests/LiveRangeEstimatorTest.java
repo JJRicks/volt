@@ -210,6 +210,35 @@ public final class LiveRangeEstimatorTest {
         RangeReadout.Value fresh = r.update(snap(0, 38.0, 60, false), "mi", true);
         v = r.update(snap(2000, 20.0, 60, false, true, false, true), "mi", true);
         check(v.stale && v.primary.equals(fresh.primary), "Stale: the last value, frozen");
+        readoutStalePresentation();
+    }
+
+    /** While stale the estimate stays frozen, but units and tenths follow the rider's current choice. */
+    private static void readoutStalePresentation() {
+        // mi -> km: 24 km shown as 15 mi, then 16 s without fresh telemetry.
+        RangeReadout r = new RangeReadout();
+        RangeReadout.Value v = r.update(snap(0, 24.0, 60, false), "mi", false);
+        near(15, v.primary, 1e-9, "Fresh: 24 km as 15 mi");
+        v = r.update(snap(16000, 30.0, 60, false, true, false, true), "km", false);
+        check(v.stale && v.primaryIsKm && v.decimals == 0 && v.secondaryKm == null, "Stale mi -> km: shown in km, still stale");
+        near(24, v.primary, 1e-9, "Stale mi -> km: the frozen 24 km, not the new reading");
+        v = r.update(snap(18000, 30.0, 60, false, true, false, true), "km", false);
+        near(24, v.primary, 1e-9, "Stale in km: stays frozen");
+        // mi -> dual.
+        r = new RangeReadout(); r.update(snap(0, 24.0, 60, false), "mi", true);
+        v = r.update(snap(16000, 30.0, 60, false, true, false, true), "dual", true);
+        check(v.stale && !v.primaryIsKm && v.decimals == 1, "Stale mi -> dual: miles first, tenths");
+        near(14.9, v.primary, 1e-9, "Stale dual: frozen miles"); near(24.0, v.secondaryKm, 1e-9, "Stale dual: frozen km at the same precision");
+        // Precision: tenths on, then off, while stale.
+        r = new RangeReadout(); r.update(snap(0, 24.0, 60, false), "km", false);
+        v = r.update(snap(16000, 30.0, 60, false, true, false, true), "km", true);
+        check(v.stale && v.decimals == 1, "Stale, tenths on: one decimal"); near(24.0, v.primary, 1e-9, "Stale, tenths on: frozen value");
+        r = new RangeReadout(); r.update(snap(0, 23.7, 60, false), "km", true);
+        v = r.update(snap(16000, 30.0, 60, false, true, false, true), "km", false);
+        check(v.stale && v.decimals == 0, "Stale, tenths off: whole number"); near(24, v.primary, 1e-9, "Stale, tenths off: frozen 23.7 rounds to 24");
+        // A switch is not a movement: fresh readings carry on from the reformatted value under the calm rules.
+        v = r.update(snap(18000, 23.7, 60, false), "km", false);
+        check(!v.stale && v.primary == 24, "Fresh again, same value: no jump after the switch");
     }
 
     private static void readoutCalm() {
