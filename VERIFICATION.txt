@@ -11,7 +11,7 @@ November 6, 2026
   rule and the narrow-label ladder.
 - Spanish: its strings come from the translation council (#217 and later
   batches). ship_check --release shows zero English fallback for Spanish:
-  TODO(claude): final count after batch 2.
+  0 of 3773 keys, with aapt compiling 3990 texts.
 - Launch and Rides timing (#234, #240) were measured on disposable emulators
   only, with synthetic rides and Bluetooth off: about 0.3 s to the first
   frame with 41 one-hour rides, from about 4 s. The service start command
