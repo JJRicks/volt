@@ -126,6 +126,8 @@ public final class BleController {
      * For background facts (the live charging card, charge alerts, the charge reference gate), never for controls.
      */
     public boolean linked(){if(simulating()||visible||recording)return ready();return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),false);}
+    /** How old a reading with this own rule (TelemetryHistory.freshnessMs, say) may be on the cadence the link is on (StatusCadence.readingFreshMs). */
+    public long readingFreshMs(long baseMs){return StatusCadence.readingFreshMs(baseMs,simulating()||visible||recording);}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */

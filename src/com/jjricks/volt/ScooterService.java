@@ -1528,13 +1528,18 @@ public final class ScooterService extends Service {
         return (plan.doneByEnabled||plan.manualEnabled)&&plan.startWallMs>0
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
+    /**
+     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
+     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
+     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
         if(ble==null||profiles==null)return c;
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.ready()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
@@ -1569,7 +1574,7 @@ public final class ScooterService extends Service {
     }
     private Double freshScheduleNumber(Telemetry.Metric metric,long now){
         return metric!=null&&metric.numericValue!=null&&Double.isFinite(metric.numericValue)
-                &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=10_000?metric.numericValue:null;
+                &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=ble.readingFreshMs(10_000)?metric.numericValue:null;
     }
 
     private void resetChargeEstimateContext(){
@@ -1617,7 +1622,7 @@ public final class ScooterService extends Service {
         for(String key:new String[]{"charging_state","battery_percent","voltage_v","current_a","rated_capacity_ah"}){
             Telemetry.Metric metric=values.get(key);
             if(metric==null||metric.numericValue==null||!Double.isFinite(metric.numericValue)||metric.updatedMs<=0
-                    ||now<metric.updatedMs||now-metric.updatedMs>TelemetryHistory.freshnessMs(key))return false;
+                    ||now<metric.updatedMs||now-metric.updatedMs>ble.readingFreshMs(TelemetryHistory.freshnessMs(key)))return false;
         }
         return values.get("charging_state").numericValue==1d
                 &&values.get("voltage_v").updatedMs==values.get("current_a").updatedMs;
@@ -2202,7 +2207,7 @@ public final class ScooterService extends Service {
                             && id.equals(observedProfile)
                             && source != null
                             && now >= source
-                            && now - source <= TelemetryHistory.freshnessMs(metric.key);
+                            && now - source <= ble.readingFreshMs(TelemetryHistory.freshnessMs(metric.key));
             result.put(
                     metric.key,
                     new TelemetryHistory.Reading(
