@@ -72,4 +72,25 @@
     <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">hace 1 min</string>
     <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">ahora</string>
     <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Velocidad y potencia en el último minuto</string>
+    <string name="riding_editor_spots" volt:src="4d5c0c039a2c6e0d4d5a12798d4230fde242e986">Qué muestra cada espacio</string>
+    <string name="riding_editor_options" volt:src="460b030078bb1e2362fec1cb7522c49c96ebcece">Opciones</string>
+    <string name="riding_editor_reset" volt:src="cca6e4207949affc9e47a3205af9977d2e80d6c8">Restablecer %1$s por defecto</string>
+    <string name="riding_editor_spot_spoken" volt:src="6cd7d8d1bbe5d67b4240fe082d58af153994fa57">%1$s, muestra %2$s</string>
+    <string name="riding_spot_big" volt:src="bf402e65550adf34491bcc9bb224f4ee10d3d3e2">Número grande</string>
+    <string name="riding_spot_ring" volt:src="8dc62ec06ab73d2bf935e00cb1e246fd75321bff">Anillo</string>
+    <string name="riding_spot_highlight" volt:src="dadd4586dc9086ec04c915582a60d722f72259e4">Destacado</string>
+    <string name="riding_spot_tile" volt:src="3a01677b23614cdba6a2121406e3e01d611ad55e">Casilla %1$s</string>
+    <string name="riding_spot_strip" volt:src="24d12ec8e4871cd46974f1e3f48e7dd9acdb35a0" volt:attempt="2">Lectura mini %1$s</string>
+    <string name="riding_spot_chip" volt:src="06a6ff8d269946cb4eca66e31164f25e59c250cc">Chip %1$s</string>
+    <string name="riding_spot_chart" volt:src="170156934b1acb193aeb3aa975b42874105bcc5b">Gráfico</string>
+    <string name="riding_content_ring_speed" volt:src="33e7df283558365bbdcdfa89303ee387b99d8520">Velocidad + punta</string>
+    <string name="riding_content_trace_speed_power" volt:src="4333eff0fafd0919230240bdeddc6ac75a5332ed">Velocidad y potencia</string>
+    <string name="riding_content_trace_power" volt:src="3350903d199aa055bb011acd8bdc4ceb0ed72feb">Solo potencia</string>
+    <string name="riding_content_trace_speed" volt:src="c9b66119fd75a26eceeeb811eb804979ab757f7e">Solo velocidad</string>
+    <string name="riding_switch_power_bar" volt:src="4976986f5fbce567e5d066aa06b37310c19beb34">Barra de potencia</string>
+    <string name="riding_switch_power_bar_summary" volt:src="4f73cf59b202e8e361b1dd77c9d9c532e6526120">Borde izquierdo: rojo para potencia, verde para recuperación</string>
+    <string name="riding_switch_chips" volt:src="dc76ef8c4a36ee27c140f60d78c55d768847dec6">Chips</string>
+    <string name="riding_switch_chips_summary" volt:src="ec139f840f325b9badc2fe29ab303867141994d9">Modo de conducción, temperatura de la batería y el reloj</string>
+    <string name="riding_switch_tenths" volt:src="5f4f09d1581687439fa5954fa724481005ceb383">Décimas</string>
+    <string name="riding_switch_tenths_summary" volt:src="b9666aa051015e35a5a61be40bba91bde1892d67">Velocidad y autonomía con un decimal</string>
 </resources>
