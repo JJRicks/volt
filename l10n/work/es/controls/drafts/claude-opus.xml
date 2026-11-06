@@ -128,6 +128,7 @@
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Por encima de 32 km/h: comprueba las normas del lugar donde conduces. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Se desactivará el control de tracción. Conduce con suavidad sobre suelo mojado o suelto hasta que sepas cómo se comporta.</string>
     <string name="controls_experimental_start_speed" volt:src="1dde06a75fcf7f5479f0e10b9ebb4cd9af0c91e8">Una velocidad de arranque por impulso inferior a 3 km/h permite que el motor tire desde parado en cuanto uses el acelerador.</string>
+    <string name="controls_experimental_start_speed_region" volt:src="d2d497d1972364eef4417e4bf90df4eb7aec3f0c">Por debajo del rango oficial para esta región. Algunos patinetes se quedan en P al reactivarse tras un bloqueo o desbloqueo, hasta que se reinician. Si al tuyo le pasa, establece 3 km/h.</string>
     <string name="controls_experimental_energy_recovery" volt:src="7f7b50de012785a2ff6e1bff2a886f3b848c6b80" volt:attempt="2">La recuperación de energía quedará desactivada, así que tus frenos harán más trabajo al detenerte.</string>
     <string name="controls_experimental_speed_limit" volt:src="fc6fd13ec7ff4620a356431586574897b470778c">Se limitará tu velocidad al conducir, por debajo de tu ajuste de velocidad máxima. «Revertir» vuelve a poner tu ajuste anterior.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modelo %1$s</string>

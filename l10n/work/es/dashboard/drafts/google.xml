@@ -102,6 +102,7 @@
     <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Nota vacía. Editar nota</string>
     <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Nota</string>
     <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Grabar viaje</string>
+    <string name="dashboard_record_short" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Grabar</string>
     <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Ver viajes</string>
     <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s, sin datos</string>
     <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batería</string>
@@ -202,6 +203,8 @@
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Midiendo…</string>
     <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Guardando el último viaje…</string>
     <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Conectando…</string>
+    <string name="dashboard_recorder_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Iniciando…</string>
+    <string name="dashboard_recorder_not_started" volt:src="9348982500c367049e2cccc851d9393bb77ef5e1">No se inició la grabación. Inténtalo de nuevo.</string>
     <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Grabar viaje. Guardando el último viaje</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Iniciar grabación</string>
     <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Grabar viaje. Conectando</string>
@@ -353,8 +356,8 @@
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">Se restauró «%1$s»</string>
     <string name="dashboard_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Conectado</string>
     <string name="dashboard_status_connected_mode" volt:src="67ce2814b0e0b0c18a94426aa3efd96eec4fc80b">Conectado · %1$s</string>
-    <string name="dashboard_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
-    <string name="dashboard_status_disconnected_seen" volt:src="685da721f9ff2b145d69f738ac21657b3567558f">Desconectado · última lectura: %1$s</string>
+    <string name="dashboard_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203" volt:attempt="2">Desconectado</string>
+    <string name="dashboard_status_disconnected_seen" volt:src="685da721f9ff2b145d69f738ac21657b3567558f" volt:attempt="2">Desconectado · última lectura: %1$s</string>
     <string name="dashboard_status_spoken_connected" volt:src="56c461696100940740107f4b2d6fa0289ea989e6">Conectado. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connected_mode" volt:src="8365501f95a72a9d7455b9f4c5f9d96f88cb3c14">Conectado, modo %1$s. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connecting" volt:src="773e46b6e066dce56c5e9185607ec18f94fea8db">Conectando. Detalles de la conexión</string>
