@@ -217,7 +217,7 @@ final class RidingScreen implements AppScreen {
             body.addView(readings, readingsSize);
         }
         frame.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
-        display = new RidingDisplay(host.activity(), ui, preferences);
+        display = new RidingDisplay(host.activity(), ui, preferences, host.resumed());
         frame.addView(display.controls(), RidingDisplay.slot(ui));
         // The big watt number sits on the bar's zero line, so the eye always finds it in the same place.
         body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> bar.post(this::alignZero));

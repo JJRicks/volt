@@ -325,6 +325,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }catch(Exception e){binding=false;toast(T.mainServiceFailed());}
     }
     @Override public Activity activity(){return this;}
+    @Override public boolean resumed(){return resumed;}
     @Override public Ui ui(){return design;}
     @Override public ScooterService service(){return scooterService;}
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}

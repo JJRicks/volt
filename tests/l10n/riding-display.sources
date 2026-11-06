@@ -2,8 +2,11 @@
 # runs each tests/l10n/**Test.java from the repository root. RidingBrightnessTest covers the Volt auto curve and its
 # learning (BrightnessCurve), the brightness choice and slider (RidingBrightness), the rotation setting
 # (RidingRotation), the status-bar setting (RidingBars), and that no source writes Android's brightness setting.
+# RidingDisplayStateTest covers the display's lifecycle (RidingDisplayState): nothing starts until the activity resumes.
 src/com/jjricks/volt/BrightnessCurve.java
 src/com/jjricks/volt/RidingBrightness.java
 src/com/jjricks/volt/RidingRotation.java
 src/com/jjricks/volt/RidingBars.java
+src/com/jjricks/volt/RidingDisplayState.java
 tests/l10n/RidingBrightnessTest.java
+tests/l10n/RidingDisplayStateTest.java

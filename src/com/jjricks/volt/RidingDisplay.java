@@ -48,11 +48,12 @@ final class RidingDisplay {
     private final Track track;
     private final int previousOrientation;
     private final boolean hidesStatusBar;
-    private boolean listening, detached;
+    private final RidingDisplayState state;
+    private boolean listening;
 
     private final SensorEventListener listener = new SensorEventListener() {
         @Override public void onSensorChanged(SensorEvent event) {
-            if (detached || event.values.length == 0) return;
+            if (!state.active() || event.values.length == 0) return;
             if (brightness.light(event.values[0], SystemClock.uptimeMillis())) scheduleTick();
             track.invalidate();
         }
@@ -61,15 +62,15 @@ final class RidingDisplay {
 
     private final Runnable tick = new Runnable() {
         @Override public void run() {
-            if (detached) return;
+            if (!state.active()) return;
             if (brightness.tick(SystemClock.uptimeMillis())) scheduleTick();
             track.invalidate();
         }
     };
 
     private final Application.ActivityLifecycleCallbacks lifecycle = new Application.ActivityLifecycleCallbacks() {
-        @Override public void onActivityResumed(Activity a) { if (a == activity) resume(); }
-        @Override public void onActivityPaused(Activity a) { if (a == activity) pause(); }
+        @Override public void onActivityResumed(Activity a) { if (a == activity && state.resume()) start(); }
+        @Override public void onActivityPaused(Activity a) { if (a == activity && state.pause()) stopListening(); }
         @Override public void onActivityDestroyed(Activity a) { if (a == activity) detach(); }
         @Override public void onActivityCreated(Activity a, Bundle saved) { }
         @Override public void onActivityStarted(Activity a) { }
@@ -77,8 +78,10 @@ final class RidingDisplay {
         @Override public void onActivitySaveInstanceState(Activity a, Bundle out) { }
     };
 
-    RidingDisplay(Activity activity, Ui ui, SharedPreferences preferences) {
+    /** resumed: the activity is resumed now; otherwise the display waits for its next resume. */
+    RidingDisplay(Activity activity, Ui ui, SharedPreferences preferences, boolean resumed) {
         this.activity = activity;
+        state = new RidingDisplayState(resumed);
         this.ui = ui;
         sensors = activity.getSystemService(SensorManager.class);
         light = sensors == null ? null : sensors.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -106,9 +109,10 @@ final class RidingDisplay {
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
         hidesStatusBar = preferences.getBoolean(RidingBars.HIDE_STATUS_BAR_KEY, false);
         // Like MainActivity's bar styling, this waits until the screen is attached (Samsung's decor getter).
-        if (hidesStatusBar) controls.post(() -> { if (!detached && current == this) statusBar(false); });
+        if (hidesStatusBar) controls.post(() -> { if (!state.detached() && current == this) statusBar(false); });
         activity.getApplication().registerActivityLifecycleCallbacks(lifecycle);
-        resume();
+        // A rebuild while paused (onServiceConnected, onCreate) waits for onActivityResumed.
+        if (state.active()) start();
     }
 
     /** The slider row along the bottom: −, the notched level, +. Gone in Phone mode. */
@@ -123,10 +127,8 @@ final class RidingDisplay {
 
     /** Riding mode closed: the phone's brightness and rotation come back. */
     void detach() {
-        if (detached) return;
-        detached = true;
-        pause();
-        handler.removeCallbacks(tick);
+        if (!state.detach()) return;
+        stopListening();
         activity.getApplication().unregisterActivityLifecycleCallbacks(lifecycle);
         if (current != this) return;
         current = null;
@@ -136,16 +138,18 @@ final class RidingDisplay {
         if (hidesStatusBar) statusBar(true);
     }
 
-    private void resume() {
-        if (detached) return;
+    /** The activity is resumed and the display attached: brightness, then the sensor in Volt auto. */
+    private void start() {
+        if (!state.active()) return;
         brightness.start(SystemClock.uptimeMillis());
-        if (brightness.usesSensor() && !listening && light != null) {
+        if (state.listens(brightness.usesSensor()) && !listening && light != null) {
             listening = sensors.registerListener(listener, light, SensorManager.SENSOR_DELAY_NORMAL, handler);
         }
         track.invalidate();
     }
 
-    private void pause() {
+    /** Paused or closed: no sensor and no ticks. The window keeps its level until leaving (detach). */
+    private void stopListening() {
         if (listening) sensors.unregisterListener(listener);
         listening = false;
         handler.removeCallbacks(tick);
@@ -183,7 +187,7 @@ final class RidingDisplay {
     }
 
     private void changed(int delta) {
-        if (detached) return;
+        if (!state.active()) return;
         brightness.step(delta, SystemClock.uptimeMillis());
         Haptics.tick(track);
         track.invalidate();
