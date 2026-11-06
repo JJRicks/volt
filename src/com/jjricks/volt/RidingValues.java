@@ -34,6 +34,17 @@ final class RidingValues {
     static final int GAP_INTERVALS = 3;
     /** Recordings never integrate across more than this; a slower refresh gets its own allowance. */
     static final long MIN_GAP_MS = 3000;
+    /**
+     * An unknown-direction power reading at least this strong is inferred draw (owner, Nov 6:
+     * "if we're kicking past 1kW its probably safe to say its sipping battery"). Over the owner's
+     * 38 rides with a confirmed direction, the strongest regen was 863 W (at about 42 km/h), the
+     * 99.9th percentile of regen 741 W, and no regen sample reached 1 kW; draw had a median of
+     * 857 W and a 90th percentile of 1,784 W, and 85 % of draw energy came from samples over 1 kW.
+     * 1 kW is only 16 % above that peak regen, so the floor is 1,200 W.
+     */
+    static final double INFERRED_DRAW_MIN_W = 1200;
+    /** A ride that regenerates harder raises the threshold to this multiple of its strongest confirmed regen. */
+    static final double INFERRED_DRAW_REGEN_FACTOR = 1.5;
 
     static final String SPEED_KEY = "speed_kmh", POWER_KEY = "power_w", SIGN_KEY = "current_sign_state",
             TRIP_MINUTES_KEY = "trip_minutes", BATTERY_KEY = "battery_percent", SCOOTER_RANGE_KEY = "remaining_range_km";
@@ -53,7 +64,18 @@ final class RidingValues {
     static final int EXPANDED_RIDE_REPORT = 0x92;
 
     enum Band { GREEN, AMBER, RED }
-    enum Direction { DRAW, REGEN, UNKNOWN }
+    /**
+     * How a power reading's direction is known. DRAW and REGEN were measured under a known 0x79
+     * sign. DRAW_INFERRED had no known sign but was too strong to be regen (inferredDrawThresholdW());
+     * it counts as draw everywhere, yet stays apart from confirmed so a screen can show the difference.
+     * UNKNOWN is a weaker reading without a sign: only its magnitude is known.
+     */
+    enum Direction { DRAW, REGEN, UNKNOWN, DRAW_INFERRED;
+        /** True for DRAW_INFERRED and UNKNOWN: the reading's sign can't be trusted, so it counts as a magnitude. */
+        boolean unsigned() { return this == UNKNOWN || this == DRAW_INFERRED; }
+        /** True when the reading counts as draw or regen with a known sense: everything but UNKNOWN. */
+        boolean knownOrInferred() { return this != UNKNOWN; }
+    }
 
     /** One reading as riding mode sees it. */
     static final class Reading {
@@ -91,11 +113,19 @@ final class RidingValues {
         final Double whPerKm;
         final double coverage;
         /**
-         * False when regen couldn't be told from draw for part of the window. Those stretches count
-         * their magnitude as draw, so an unconfirmed figure is an upper bound, never a regen gain.
+         * True only when every stretch of the window was measured under a known sign. Otherwise
+         * those stretches count their magnitude as draw, so an unconfirmed figure is an upper
+         * bound, never a regen gain.
          */
         final boolean directionConfirmed;
-        private Efficiency(Double whPerKm, double coverage, boolean directionConfirmed) { this.whPerKm = whPerKm; this.coverage = coverage; this.directionConfirmed = directionConfirmed; }
+        /**
+         * True when every stretch was confirmed or inferred draw (Direction.DRAW_INFERRED), so the
+         * figure has no stretch of genuinely unknown direction. Implied by directionConfirmed.
+         */
+        final boolean directionKnownOrInferred;
+        private Efficiency(Double whPerKm, double coverage, boolean directionConfirmed, boolean directionKnownOrInferred) {
+            this.whPerKm = whPerKm; this.coverage = coverage; this.directionConfirmed = directionConfirmed; this.directionKnownOrInferred = directionKnownOrInferred;
+        }
     }
 
     /** A range reading: km (null when unavailable), how sure (0 to 1) and which estimator. */
@@ -160,10 +190,13 @@ final class RidingValues {
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
     private boolean scaleChanged;
-    /** Ride energy, and the part of it from stretches touching an unknown direction (counted as magnitude). */
-    private double rideEnergyWh, unconfirmedEnergyWh, peakDrawW, peakRegenW;
+    /**
+     * Ride energy; the part of it from stretches touching an unknown direction (counted as
+     * magnitude); and the part from stretches touching inferred draw (and no unknown end).
+     */
+    private double rideEnergyWh, unconfirmedEnergyWh, inferredDrawWh, peakDrawW, peakRegenW;
     /** What the latest power sample added, so a sign correction can redo it without double-counting. */
-    private double lastSegmentWh, lastSegmentUnconfirmedWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
+    private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
     private double lastSegmentPreviousW;
     private Direction lastSegmentPreviousDirection = Direction.UNKNOWN;
     private long lastSegmentPreviousMs = -1;
@@ -265,6 +298,7 @@ final class RidingValues {
             last[1] = now.ordinal();
             rideEnergyWh -= lastSegmentWh;
             unconfirmedEnergyWh -= lastSegmentUnconfirmedWh;
+            inferredDrawWh -= lastSegmentInferredWh;
             peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW;
             double drawW = scale.drawW, regenW = scale.regenW;
             scale.drawW = scaleDrawBeforeW; scale.regenW = scaleRegenBeforeW;
@@ -282,6 +316,9 @@ final class RidingValues {
 
     private void powerSample(double watts, long updatedMs, long previousMs, Track t) {
         Direction direction = signDirection(watts);
+        // Decided once, from what's known now; a later sign or threshold never revisits it.
+        if (direction == Direction.UNKNOWN && Math.abs(watts) >= inferredDrawThresholdW() && Math.abs(watts) <= PowerScale.DRAW_CAP_W)
+            direction = Direction.DRAW_INFERRED;
         boolean joined = !powerValues.isEmpty() && previousMs >= 0 && updatedMs - previousMs > 0 && updatedMs - previousMs <= gapMs(t);
         double previousW = powerValues.isEmpty() ? 0 : powerValues.peekLast()[0];
         Direction previousDirection = direction();
@@ -293,23 +330,38 @@ final class RidingValues {
         applyPower(watts, direction, updatedMs, joined ? previousMs : -1, previousW, previousDirection);
     }
     /**
+     * The inferred-draw threshold right now: 1,200 W, or 1.5 x the strongest confirmed regen this
+     * ride when that's higher, so a rider who regenerates hard never has regen read as draw.
+     */
+    double inferredDrawThresholdW() { return Math.max(INFERRED_DRAW_MIN_W, INFERRED_DRAW_REGEN_FACTOR * peakRegenW); }
+
+    /** A sample's watts as riding mode counts them: signed when confirmed, magnitude (as draw) otherwise. */
+    private static double counted(double watts, Direction direction) { return direction.unsigned() ? Math.abs(watts) : watts; }
+
+    /**
      * Energy since the previous sample (when joined), peaks and scale for one power sample. A
-     * segment is signed only when both ends were measured under a known sign; otherwise it adds
-     * both ends' magnitudes, as draw, and counts as unconfirmed.
+     * segment with an unknown end adds both ends' magnitudes, as draw, and counts as unconfirmed.
+     * Otherwise it averages confirmed ends signed and inferred-draw ends as draw; one with an
+     * inferred end counts as inferred draw (never negative: inferred draw is at least 1.5 x any
+     * confirmed regen, so it outweighs the other end).
      */
     private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW, Direction previousDirection) {
         lastSegmentPreviousMs = previousMs;
-        boolean known = direction != Direction.UNKNOWN && previousDirection != Direction.UNKNOWN;
-        double average = known ? (previousW + watts) / 2 : (Math.abs(previousW) + Math.abs(watts)) / 2;
+        boolean unknown = direction == Direction.UNKNOWN || previousDirection == Direction.UNKNOWN;
+        boolean inferred = !unknown && (direction == Direction.DRAW_INFERRED || previousDirection == Direction.DRAW_INFERRED);
+        double average = unknown ? (Math.abs(previousW) + Math.abs(watts)) / 2 : (counted(previousW, previousDirection) + counted(watts, direction)) / 2;
         lastSegmentWh = previousMs < 0 ? 0 : average * (updatedMs - previousMs) / 3_600_000.0;
-        lastSegmentUnconfirmedWh = known ? 0 : lastSegmentWh;
+        lastSegmentUnconfirmedWh = unknown ? lastSegmentWh : 0;
+        lastSegmentInferredWh = inferred ? lastSegmentWh : 0;
         rideEnergyWh += lastSegmentWh;
         unconfirmedEnergyWh += lastSegmentUnconfirmedWh;
-        // Peaks ignore the same decoding glitches the scale ignores.
+        inferredDrawWh += lastSegmentInferredWh;
+        // Peaks ignore the same decoding glitches the scale ignores. Inferred draw is draw here too.
         if (direction == Direction.REGEN && -watts <= PowerScale.REGEN_CAP_W) peakRegenW = Math.max(peakRegenW, -watts);
         else if (direction == Direction.DRAW && watts <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, watts);
-        // An unknown direction still sizes the draw scale: the bar shows its magnitude.
-        scaleChanged |= scale.observe(watts, direction == Direction.UNKNOWN ? Direction.DRAW : direction);
+        else if (direction == Direction.DRAW_INFERRED && Math.abs(watts) <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, Math.abs(watts));
+        // An unknown or inferred direction still sizes the draw scale: the bar shows its magnitude.
+        scaleChanged |= scale.observe(watts, direction == Direction.REGEN ? Direction.REGEN : Direction.DRAW);
     }
 
     /** Ride time follows the scooter's trip: anchored from trip_minutes, and refined when the minute ticks over. */
@@ -353,7 +405,8 @@ final class RidingValues {
 
     /**
      * The direction of the latest power reading, as stored when it was measured (or corrected).
-     * A later sign never reinterprets it. UNKNOWN before any power or without a 0x79 sign.
+     * A later sign never reinterprets it. UNKNOWN before any power or without a 0x79 sign;
+     * DRAW_INFERRED for a strong reading without one.
      */
     Direction direction() {
         return powerValues.isEmpty() ? Direction.UNKNOWN : Direction.values()[(int) powerValues.peekLast()[1]];
@@ -364,7 +417,7 @@ final class RidingValues {
     Power power(long nowMs) {
         Reading r = reading(POWER_KEY, nowMs);
         Direction direction = direction();
-        Double watts = r == null || r.stale ? null : direction == Direction.UNKNOWN ? Math.abs(r.value) : r.value;
+        Double watts = r == null || r.stale ? null : counted(r.value, direction);
         return new Power(watts, direction, peakDrawW, peakRegenW);
     }
 
@@ -378,12 +431,16 @@ final class RidingValues {
 
     /**
      * Net ride energy in Wh: signed where both ends of a stretch had a known direction, magnitude
-     * (as draw) where either didn't. unconfirmedEnergyWh() is that magnitude part, so a consumer
-     * can take the confirmed net as rideEnergyWh() - unconfirmedEnergyWh().
+     * (as draw) where either was unknown, and inferred draw counted as draw. unconfirmedEnergyWh()
+     * is the magnitude part and inferredDrawWh() the inferred part, so a consumer can take the
+     * confirmed net as rideEnergyWh() - unconfirmedEnergyWh() - inferredDrawWh(), or the known-or-
+     * inferred net as rideEnergyWh() - unconfirmedEnergyWh().
      */
     double rideEnergyWh() { return rideEnergyWh; }
-    /** The part of rideEnergyWh() integrated without a known direction: magnitude, never negative. */
+    /** The part of rideEnergyWh() integrated with an unknown direction: magnitude, never negative. Excludes inferred draw. */
     double unconfirmedEnergyWh() { return unconfirmedEnergyWh; }
+    /** The part of rideEnergyWh() from stretches with an inferred-draw end (and no unknown one): draw, never negative. */
+    double inferredDrawWh() { return inferredDrawWh; }
 
     /**
      * Wh per km over the last 30 s. Power and speed each hold their value until the next sample,
@@ -391,30 +448,33 @@ final class RidingValues {
      * are held, and that shared time must cover 80 % of the window. The direction is confirmed
      * only when every power sample in that shared time was measured under a known sign; a sample
      * without one counts its magnitude, so an unconfirmed old sign never reads as a regen gain.
+     * Known-or-inferred also accepts inferred-draw samples.
      */
     Efficiency efficiency(long nowMs) {
         long from = nowMs - EFFICIENCY_WINDOW_MS;
         Track pt = tracks.get(POWER_KEY), st = tracks.get(SPEED_KEY);
-        if (pt == null || st == null) return new Efficiency(null, 0, false);
+        if (pt == null || st == null) return new Efficiency(null, 0, false, false);
         List<double[]> power = held(powerSamples, powerValues, from, nowMs, gapMs(pt));
         List<double[]> speed = held(speedSamples, speedValues, from, nowMs, gapMs(st));
         double energy = 0, distance = 0, covered = 0;
-        boolean confirmed = true;
+        boolean confirmed = true, knownOrInferred = true;
         for (int i = 0, j = 0; i < power.size() && j < speed.size(); ) {
             double[] p = power.get(i), s = speed.get(j);
             double a = Math.max(p[0], s[0]), b = Math.min(p[1], s[1]);
             if (b > a) {
-                boolean unknown = p[3] == Direction.UNKNOWN.ordinal();
-                energy += (unknown ? Math.abs(p[2]) : p[2]) * (b - a); distance += s[2] * (b - a); covered += b - a;
-                confirmed &= !unknown;
+                Direction d = Direction.values()[(int) p[3]];
+                energy += counted(p[2], d) * (b - a); distance += s[2] * (b - a); covered += b - a;
+                confirmed &= !d.unsigned();
+                knownOrInferred &= d.knownOrInferred();
             }
             if (p[1] <= s[1]) i++; else j++;
         }
         confirmed &= covered > 0;
+        knownOrInferred &= covered > 0;
         double coverage = covered / EFFICIENCY_WINDOW_MS;
         double km = distance / 3_600_000.0, wh = energy / 3_600_000.0;
-        if (coverage < EFFICIENCY_COVERAGE || km < EFFICIENCY_MIN_KM) return new Efficiency(null, coverage, confirmed);
-        return new Efficiency(wh / km, coverage, confirmed);
+        if (coverage < EFFICIENCY_COVERAGE || km < EFFICIENCY_MIN_KM) return new Efficiency(null, coverage, confirmed, knownOrInferred);
+        return new Efficiency(wh / km, coverage, confirmed, knownOrInferred);
     }
 
     /**
@@ -443,7 +503,7 @@ final class RidingValues {
 
     /** Speed (km/h) points for the trace, oldest first, within the window. */
     List<TracePoint> speedTrace(long nowMs, long windowMs) { return trace(speedSamples, speedValues, nowMs, windowMs); }
-    /** Power (W) points for the trace: each signed only when its own sample's direction was confirmed. */
+    /** Power (W) points for the trace: each signed only when its own sample's direction was confirmed (inferred draw is positive). */
     List<TracePoint> powerTrace(long nowMs, long windowMs) { return trace(powerSamples, powerValues, nowMs, windowMs); }
     private static List<TracePoint> trace(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long nowMs, long windowMs) {
         List<TracePoint> out = new ArrayList<>();
@@ -451,7 +511,7 @@ final class RidingValues {
         boolean first = true;
         for (long[] t : times) {
             double[] sample = vi.next();
-            double v = sample.length > 1 && sample[1] == Direction.UNKNOWN.ordinal() ? Math.abs(sample[0]) : sample[0];
+            double v = sample.length > 1 ? counted(sample[0], Direction.values()[(int) sample[1]]) : sample[0];
             if (t[0] < nowMs - windowMs || t[0] > nowMs) continue;
             out.add(new TracePoint(t[0], v, !first && t[1] == 1));
             first = false;

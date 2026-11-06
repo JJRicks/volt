@@ -20,10 +20,14 @@ public final class RidingValuesTest {
         trace();
         directionHistory();
         unknownAfterRegen();
+        inferredDraw();
+        inferredThreshold();
+        inferredWindow();
+        inferredFromFrames();
         timers();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -367,6 +371,124 @@ public final class RidingValuesTest {
         telemetry.accept(0x79, signs(0, 0), 60_500);
         values.update(telemetry.metrics());
         check(values.powerTrace(60_500, 120_000).get(28).value == 400 && near(values.unconfirmedEnergyWh(), unconfirmedWh, 1e-9), "a later sign never reinterprets the unknown samples");
+    }
+
+    /** A strong reading without a known sign is inferred draw; a weaker one stays unknown (owner, Nov 6). */
+    private static void inferredDraw() {
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        check(values.inferredDrawThresholdW() == 1200, "the threshold starts at 1,200 W");
+        for (long t = 0; t <= 10_000; t += 2000) values.sample("power_w", 1500, 0x72, t);
+        RidingValues.Power power = values.power(10_000);
+        check(power.direction == RidingValues.Direction.DRAW_INFERRED && near(power.watts, 1500, 1e-9), "unknown at 1,500 W is inferred draw: " + power.direction);
+        check(power.peakDrawW == 1500 && values.scale().drawW == 1500, "it sets the draw peak and the bar scale");
+        check(near(values.rideEnergyWh(), 1500 * 10 / 3600.0, 1e-9) && near(values.inferredDrawWh(), values.rideEnergyWh(), 1e-9), "it counts as draw, reported as inferred");
+        check(values.unconfirmedEnergyWh() == 0, "and not as unconfirmed");
+        check(values.powerTrace(10_000, 60_000).get(0).value == 1500, "its trace point is positive");
+
+        RidingValues weak = new RidingValues();
+        weak.setNominalIntervals(1000, 2000);
+        for (long t = 0; t <= 10_000; t += 2000) weak.sample("power_w", 900, 0x72, t);
+        power = weak.power(10_000);
+        check(power.direction == RidingValues.Direction.UNKNOWN && power.peakDrawW == 0, "unknown at 900 W stays unknown");
+        check(near(weak.unconfirmedEnergyWh(), 900 * 10 / 3600.0, 1e-9) && weak.inferredDrawWh() == 0, "with the round-3 magnitude treatment");
+        weak.sample("power_w", -1199, 0x72, 12_000);
+        check(weak.power(12_000).direction == RidingValues.Direction.UNKNOWN, "just under the threshold is unknown");
+        weak.sample("power_w", -1200, 0x72, 14_000);
+        check(weak.power(14_000).direction == RidingValues.Direction.DRAW_INFERRED && near(weak.power(14_000).watts, 1200, 1e-9), "at it, inferred draw, whatever Telemetry's stale sign says");
+        weak.sample("power_w", 40_000, 0x72, 16_000);
+        check(weak.power(16_000).direction == RidingValues.Direction.UNKNOWN && weak.power(16_000).peakDrawW == 1200, "a decoding glitch is never inferred");
+
+        // History stays put: a later confirmed sign leaves inferred samples inferred.
+        values.sample("current_sign_state", 1, 0x79, 10_500);
+        values.sample("power_w", -300, 0x72, 12_000);
+        List<RidingValues.TracePoint> points = values.powerTrace(12_000, 60_000);
+        check(points.get(0).value == 1500 && points.get(5).value == 1500 && points.get(6).value == -300, "a later regen sign never re-signs earlier inferred draw");
+        // A same-time correction is the reading's own sign, so it still applies (round 2).
+        RidingValues corrected = new RidingValues();
+        corrected.sample("power_w", 1500, 0x72, 1000);
+        corrected.sample("current_sign_state", 1, 0x79, 1500);
+        corrected.sample("power_w", -1500, 0x72, 1000);
+        check(corrected.power(1600).direction == RidingValues.Direction.REGEN && corrected.power(1600).peakRegenW == 1500 && corrected.power(1600).peakDrawW == 0,
+                "Telemetry re-signing the same measurement still corrects it: " + corrected.power(1600).direction);
+    }
+
+    /** The threshold rises to 1.5 x the strongest confirmed regen this ride. */
+    private static void inferredThreshold() {
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        values.sample("current_sign_state", 1, 0x79, 0);
+        values.sample("power_w", -1000, 0x72, 1000);
+        check(values.inferredDrawThresholdW() == 1500, "a confirmed 1,000 W regen raises it to 1,500 W: " + values.inferredDrawThresholdW());
+        values.sample("current_sign_state", 254, 0x79, 1500);
+        values.sample("power_w", -1400, 0x72, 3000);
+        check(values.power(3000).direction == RidingValues.Direction.UNKNOWN, "so 1,400 W is unknown");
+        values.sample("power_w", -1500, 0x72, 5000);
+        check(values.power(5000).direction == RidingValues.Direction.DRAW_INFERRED, "and 1,500 W inferred draw");
+        check(values.inferredDrawThresholdW() == 1500, "inferred draw never moves the threshold");
+        values.sample("power_w", 1600, 0x72, 7000);
+        check(values.inferredDrawThresholdW() == 1500 && values.power(7000).peakRegenW == 1000, "nor does it ever infer regen");
+        RidingValues gentle = new RidingValues();
+        gentle.sample("current_sign_state", 1, 0x79, 0);
+        gentle.sample("power_w", -600, 0x72, 1000);
+        check(gentle.inferredDrawThresholdW() == 1200, "gentle regen leaves the 1,200 W floor");
+    }
+
+    /** A window of confirmed, inferred and unknown stretches. */
+    private static void inferredWindow() {
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        values.sample("current_sign_state", 0, 0x79, 0);
+        for (long t = 0; t <= 60_000; t += 1000) {
+            if (t == 21_000) values.sample("current_sign_state", 254, 0x79, 20_500);
+            values.sample("speed_kmh", 20, 0x92, t);
+            // Confirmed 400 W to 20 s; then unknown 1,600 W to 40 s, and unknown 400 W after.
+            if (t % 2000 == 0) values.sample("power_w", t <= 20_000 ? 400 : t <= 40_000 ? -1600 : 400, 0x72, t);
+        }
+        RidingValues.Efficiency confirmed = values.efficiency(20_000);
+        check(confirmed.directionConfirmed && confirmed.directionKnownOrInferred, "confirmed stretches only: both");
+        // 5-35 s: confirmed 5-22 s (17 s), inferred 22-35 s (13 s).
+        RidingValues.Efficiency inferred = values.efficiency(35_000);
+        double wh = (400 * 17 + 1600 * 13) / 3600.0, km = 20 * 30 / 3600.0;
+        check(!inferred.directionConfirmed && inferred.directionKnownOrInferred, "confirmed and inferred: known or inferred, not confirmed");
+        check(inferred.whPerKm != null && near(inferred.whPerKm, wh / km, 1e-9), "inferred stretches count as draw: " + inferred.whPerKm + " vs " + wh / km);
+        // 20-50 s: confirmed 20-22, inferred 22-42, unknown 42-50.
+        RidingValues.Efficiency mixed = values.efficiency(50_000);
+        wh = (400 * 2 + 1600 * 20 + 400 * 8) / 3600.0;
+        check(!mixed.directionConfirmed && !mixed.directionKnownOrInferred && near(mixed.whPerKm, wh / km, 1e-9), "an unknown stretch clears both: " + mixed.whPerKm);
+        // Energy: 0-20 s confirmed, 20-40 s inferred (one end inferred), 40-42 s and on unknown.
+        double confirmedWh = 400 * 20 / 3600.0, inferredWh = ((400 + 1600) / 2.0 * 2 + 1600 * 18) / 3600.0, unknownWh = ((1600 + 400) / 2.0 * 2 + 400 * 18) / 3600.0;
+        check(near(values.inferredDrawWh(), inferredWh, 1e-9), "inferred energy: " + values.inferredDrawWh() + " vs " + inferredWh);
+        check(near(values.unconfirmedEnergyWh(), unknownWh, 1e-9), "unconfirmed energy: " + values.unconfirmedEnergyWh() + " vs " + unknownWh);
+        check(near(values.rideEnergyWh(), confirmedWh + inferredWh + unknownWh, 1e-9), "ride energy is all three");
+        check(values.power(60_000).peakDrawW == 1600, "the draw peak includes inferred draw");
+    }
+
+    /** Real frames: a 254 sign byte, then 30 A at 50 V (1,500 W) and 10 A (500 W). */
+    private static void inferredFromFrames() {
+        Telemetry telemetry = new Telemetry();
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        telemetry.accept(0x79, signs(0, 1), 0);
+        telemetry.accept(0x72, batteryRead(80, 50000, 6000), 1000);
+        values.update(telemetry.metrics());
+        check(values.power(1000).direction == RidingValues.Direction.REGEN && near(values.power(1000).peakRegenW, 300, 0.01), "confirmed 300 W regen first");
+        telemetry.accept(0x79, signs(0, 254), 1500);
+        telemetry.accept(0x72, batteryRead(80, 50000, 30000), 3000);
+        values.update(telemetry.metrics());
+        double telemetryW = 0;
+        for (Telemetry.Metric m : telemetry.metrics()) if (m.key.equals("power_w")) telemetryW = m.numericValue;
+        RidingValues.Power power = values.power(3000);
+        check(near(telemetryW, -1500, 0.01), "Telemetry decodes it with the old regen sign: " + telemetryW);
+        check(power.direction == RidingValues.Direction.DRAW_INFERRED && near(power.watts, 1500, 0.01) && near(power.peakDrawW, 1500, 0.01),
+                "riding mode reads 1,500 W without a sign as inferred draw: " + power.direction + " " + power.watts);
+        telemetry.accept(0x72, batteryRead(80, 50000, 10000), 5000);
+        values.update(telemetry.metrics());
+        check(values.power(5000).direction == RidingValues.Direction.UNKNOWN && near(values.power(5000).watts, 500, 0.01), "500 W after it is unknown");
+        check(values.power(5000).peakRegenW == values.power(1000).peakRegenW, "no regen is ever inferred");
+        // 1-3 s: confirmed -300 and inferred +1500 average 600 W; 3-5 s touches the unknown 500 W.
+        check(near(values.inferredDrawWh(), 600 * 2 / 3600.0, 1e-9) && near(values.unconfirmedEnergyWh(), 1000 * 2 / 3600.0, 1e-9),
+                "energy splits into inferred and unconfirmed: " + values.inferredDrawWh() + " " + values.unconfirmedEnergyWh());
     }
 
     private static void timers() {
