@@ -659,6 +659,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         stopFromNotification(false); awaitPassDone();
         check("folder".equals(settings.getString(PROBLEM, "")), "Still the folder problem");
         await(() -> notice(78) != null, 10000, "Visible failure, then the same failure while hidden: one notification");
+        check("FOLDER".equals(String.valueOf(field(activity.service(), "autoExportNotified"))), "The service keeps the kind it posted");
         dismissNotice(78);
         screenOnAndShow();
         String y = recordRide("Same failure, hidden again", true);
@@ -666,11 +667,13 @@ public final class RideAutoExportValidation extends Instrumentation {
         stopFromNotification(false); awaitPassDone();
         SystemClock.sleep(1500);
         check(notice(78) == null, "Posted once: no repeat on the next hidden ride");
+        check("FOLDER".equals(String.valueOf(field(activity.service(), "autoExportNotified"))), "The service keeps the posted kind through the repeat");
         screenOnAndShow();
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
         String w = recordRide("Folder back again", false, false); stopOnly(null); awaitPassDone();
         check(listing().contains(csvName(v)) && listing().contains(analysisName(w)) && !settings.contains(PROBLEM), "Both copied after the folder came back");
         check(listing().contains(csvName(x)) && listing().contains(csvName(y)), "The hidden rides waiting with it are copied too");
+        check("NONE".equals(String.valueOf(field(activity.service(), "autoExportNotified"))), "A success forgets the posted kind");
         folderClean();
     }
 
