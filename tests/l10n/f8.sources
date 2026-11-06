@@ -1,0 +1,5 @@
+# F8, the last hard-coded %,d texts: history counts, the storage card's screen-reader text and the GPS caption
+# (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each
+# tests/l10n/**Test.java from the repository root.
+# G5: the base's expressions F8 turns into plurals, a template and a format row, copied and pinned before the batch.
+tests/l10n/characterization/GroupedCountsEnglishTest.java
