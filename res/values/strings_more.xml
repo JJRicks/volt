@@ -621,6 +621,8 @@
     <string name="more_lab_why_many" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
     <!-- Try sheet caution when no other model has it in the official app. -->
     <string name="more_lab_why_none" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer this on your model. It may do nothing here, or work differently.</string>
+    <!-- Try sheet caution for kick-start speed where the official app offers it only at 3 to 5 km/h in this region; this try also offers lower speeds. -->
+    <string name="more_lab_why_region_start" volt:screen="Try sheet" volt:purpose="body" volt:safety="ride,experimental" volt:dnt="km/h">The official app offers 3–5 km/h in your scooter\'s region. Lower speeds may do nothing here, or work differently.</string>
     <!-- Under the Command evidence title. -->
     <string name="more_lab_evidence_hidden" volt:screen="Command evidence" volt:purpose="dialog" volt:safety="pin">PIN and auth bytes hidden</string>
     <!-- Shown when no change was sent yet. -->
