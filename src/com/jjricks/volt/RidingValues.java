@@ -90,7 +90,10 @@ final class RidingValues {
         /** Wh per km, or null when the window isn't covered well enough or the rider is stopped. */
         final Double whPerKm;
         final double coverage;
-        /** False when regen couldn't be told from draw for part of the window. */
+        /**
+         * False when regen couldn't be told from draw for part of the window. Those stretches count
+         * their magnitude as draw, so an unconfirmed figure is an upper bound, never a regen gain.
+         */
         final boolean directionConfirmed;
         private Efficiency(Double whPerKm, double coverage, boolean directionConfirmed) { this.whPerKm = whPerKm; this.coverage = coverage; this.directionConfirmed = directionConfirmed; }
     }
@@ -157,10 +160,12 @@ final class RidingValues {
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
     private boolean scaleChanged;
-    private double rideEnergyWh, peakDrawW, peakRegenW;
+    /** Ride energy, and the part of it from stretches touching an unknown direction (counted as magnitude). */
+    private double rideEnergyWh, unconfirmedEnergyWh, peakDrawW, peakRegenW;
     /** What the latest power sample added, so a sign correction can redo it without double-counting. */
-    private double lastSegmentWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
+    private double lastSegmentWh, lastSegmentUnconfirmedWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
     private double lastSegmentPreviousW;
+    private Direction lastSegmentPreviousDirection = Direction.UNKNOWN;
     private long lastSegmentPreviousMs = -1;
     private Double lastSpeedKmh;
     private boolean lastSpeedTenths;
@@ -259,10 +264,11 @@ final class RidingValues {
             last[0] = value;
             last[1] = now.ordinal();
             rideEnergyWh -= lastSegmentWh;
+            unconfirmedEnergyWh -= lastSegmentUnconfirmedWh;
             peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW;
             double drawW = scale.drawW, regenW = scale.regenW;
             scale.drawW = scaleDrawBeforeW; scale.regenW = scaleRegenBeforeW;
-            applyPower(value, now, t.updatedMs, lastSegmentPreviousMs, lastSegmentPreviousW);
+            applyPower(value, now, t.updatedMs, lastSegmentPreviousMs, lastSegmentPreviousW, lastSegmentPreviousDirection);
             scaleChanged |= scale.drawW != drawW || scale.regenW != regenW;
             return;
         }
@@ -278,17 +284,27 @@ final class RidingValues {
         Direction direction = signDirection(watts);
         boolean joined = !powerValues.isEmpty() && previousMs >= 0 && updatedMs - previousMs > 0 && updatedMs - previousMs <= gapMs(t);
         double previousW = powerValues.isEmpty() ? 0 : powerValues.peekLast()[0];
+        Direction previousDirection = direction();
         append(powerSamples, powerValues, updatedMs, new double[]{watts, direction.ordinal()}, gapMs(t));
         peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW;
         scaleDrawBeforeW = scale.drawW; scaleRegenBeforeW = scale.regenW;
         lastSegmentPreviousW = previousW;
-        applyPower(watts, direction, updatedMs, joined ? previousMs : -1, previousW);
+        lastSegmentPreviousDirection = previousDirection;
+        applyPower(watts, direction, updatedMs, joined ? previousMs : -1, previousW, previousDirection);
     }
-    /** Energy since the previous sample (when joined), peaks and scale for one power sample. */
-    private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW) {
+    /**
+     * Energy since the previous sample (when joined), peaks and scale for one power sample. A
+     * segment is signed only when both ends were measured under a known sign; otherwise it adds
+     * both ends' magnitudes, as draw, and counts as unconfirmed.
+     */
+    private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW, Direction previousDirection) {
         lastSegmentPreviousMs = previousMs;
-        lastSegmentWh = previousMs < 0 ? 0 : (previousW + watts) / 2 * (updatedMs - previousMs) / 3_600_000.0;
+        boolean known = direction != Direction.UNKNOWN && previousDirection != Direction.UNKNOWN;
+        double average = known ? (previousW + watts) / 2 : (Math.abs(previousW) + Math.abs(watts)) / 2;
+        lastSegmentWh = previousMs < 0 ? 0 : average * (updatedMs - previousMs) / 3_600_000.0;
+        lastSegmentUnconfirmedWh = known ? 0 : lastSegmentWh;
         rideEnergyWh += lastSegmentWh;
+        unconfirmedEnergyWh += lastSegmentUnconfirmedWh;
         // Peaks ignore the same decoding glitches the scale ignores.
         if (direction == Direction.REGEN && -watts <= PowerScale.REGEN_CAP_W) peakRegenW = Math.max(peakRegenW, -watts);
         else if (direction == Direction.DRAW && watts <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, watts);
@@ -360,13 +376,21 @@ final class RidingValues {
     /** Battery band, or null before the first reading. */
     Band batteryBand(long nowMs) { Reading r = reading(BATTERY_KEY, nowMs); return r == null ? null : band(r.value); }
 
+    /**
+     * Net ride energy in Wh: signed where both ends of a stretch had a known direction, magnitude
+     * (as draw) where either didn't. unconfirmedEnergyWh() is that magnitude part, so a consumer
+     * can take the confirmed net as rideEnergyWh() - unconfirmedEnergyWh().
+     */
     double rideEnergyWh() { return rideEnergyWh; }
+    /** The part of rideEnergyWh() integrated without a known direction: magnitude, never negative. */
+    double unconfirmedEnergyWh() { return unconfirmedEnergyWh; }
 
     /**
      * Wh per km over the last 30 s. Power and speed each hold their value until the next sample,
      * at most one gap allowance. Energy and distance are both integrated only where both signals
      * are held, and that shared time must cover 80 % of the window. The direction is confirmed
-     * only when every power sample in that shared time was measured under a known sign.
+     * only when every power sample in that shared time was measured under a known sign; a sample
+     * without one counts its magnitude, so an unconfirmed old sign never reads as a regen gain.
      */
     Efficiency efficiency(long nowMs) {
         long from = nowMs - EFFICIENCY_WINDOW_MS;
@@ -380,8 +404,9 @@ final class RidingValues {
             double[] p = power.get(i), s = speed.get(j);
             double a = Math.max(p[0], s[0]), b = Math.min(p[1], s[1]);
             if (b > a) {
-                energy += p[2] * (b - a); distance += s[2] * (b - a); covered += b - a;
-                confirmed &= p[3] != Direction.UNKNOWN.ordinal();
+                boolean unknown = p[3] == Direction.UNKNOWN.ordinal();
+                energy += (unknown ? Math.abs(p[2]) : p[2]) * (b - a); distance += s[2] * (b - a); covered += b - a;
+                confirmed &= !unknown;
             }
             if (p[1] <= s[1]) i++; else j++;
         }

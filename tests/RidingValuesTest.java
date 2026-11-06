@@ -19,10 +19,11 @@ public final class RidingValuesTest {
         energyAndScale();
         trace();
         directionHistory();
+        unknownAfterRegen();
         timers();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -315,6 +316,57 @@ public final class RidingValuesTest {
         check(points.get(0).value == -300 && points.get(5).value == -300, "an unknown sign leaves earlier confirmed regen signed");
         check(points.get(6).value == 300 && regen.power(20_000).direction == RidingValues.Direction.UNKNOWN, "later readings are unsigned magnitudes");
         check(regen.power(20_000).peakRegenW == 300, "and earlier regen peaks stay");
+    }
+
+    /**
+     * Telemetry keeps its last known sign after an invalid 0x79 byte and decodes later current with
+     * it; riding mode reads those samples as magnitude, never as regen (Codex #228 round 3).
+     */
+    private static void unknownAfterRegen() {
+        Telemetry telemetry = new Telemetry();
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        telemetry.accept(0x79, signs(0, 1), 0);
+        values.update(telemetry.metrics());
+        for (long t = 1000; t <= 60_000; t += 1000) {
+            if (t == 21_000) { telemetry.accept(0x79, signs(0, 254), 20_500); values.update(telemetry.metrics()); }
+            telemetry.accept(0x92, expanded(200, 0, 0), t);
+            if (t % 2000 == 0) telemetry.accept(0x72, batteryRead(70, 50000, 8000), t);
+            values.update(telemetry.metrics());
+        }
+        double telemetryW = 0;
+        for (Telemetry.Metric m : telemetry.metrics()) if (m.key.equals("power_w")) telemetryW = m.numericValue;
+        check(near(telemetryW, -400, 0.01), "Telemetry still decodes with the old regen sign: " + telemetryW);
+        RidingValues.Power power = values.power(60_000);
+        check(values.signState() == RidingValues.Direction.UNKNOWN && power.direction == RidingValues.Direction.UNKNOWN && near(power.watts, 400, 0.01),
+                "the bar shows the fresh reading's magnitude, unknown: " + power.watts + " " + power.direction);
+        check(near(power.peakRegenW, 400, 0.01) && power.peakDrawW == 0, "only the confirmed readings set a peak");
+        List<RidingValues.TracePoint> points = values.powerTrace(60_000, 120_000);
+        check(points.get(0).t == 2000 && points.get(0).value == -400 && points.get(9).t == 20_000 && points.get(9).value == -400,
+                "older samples keep their confirmed regen");
+        check(points.get(10).t == 22_000 && points.get(10).value == 400, "the first after the invalid sign is a magnitude");
+
+        RidingValues.Efficiency after = values.efficiency(60_000);
+        check(after.whPerKm != null && near(after.whPerKm, 20, 1e-9) && near(after.coverage, 1, 1e-9) && !after.directionConfirmed,
+                "an all-unknown window counts magnitude, unconfirmed: " + after.whPerKm);
+        // 10-40 s: regen held 10-22 s (12 s), unknown 22-40 s (18 s), all at 20 km/h.
+        RidingValues.Efficiency mixed = values.efficiency(40_000);
+        double wh = (-400 * 12 + 400 * 18) / 3600.0, km = 20 * 30 / 3600.0;
+        check(mixed.whPerKm != null && near(mixed.whPerKm, wh / km, 1e-9) && !mixed.directionConfirmed,
+                "a mixed window keeps the known regen signed and the rest as magnitude: " + mixed.whPerKm + " vs " + wh / km);
+        RidingValues.Efficiency known = values.efficiency(20_000);
+        check(known.directionConfirmed, "the stretch measured under the sign stays confirmed");
+
+        // Energy: 2-20 s regen is signed and confirmed; 20-22 s touches the unknown, so 20-60 s is magnitude.
+        double confirmedWh = -400 * 18 / 3600.0, unconfirmedWh = 400 * 40 / 3600.0;
+        check(near(values.unconfirmedEnergyWh(), unconfirmedWh, 1e-9), "the unconfirmed part is a magnitude: " + values.unconfirmedEnergyWh());
+        check(near(values.rideEnergyWh(), confirmedWh + unconfirmedWh, 1e-9), "ride energy never gains from an unconfirmed sign: " + values.rideEnergyWh());
+        check(near(values.rideEnergyWh() - values.unconfirmedEnergyWh(), confirmedWh, 1e-9), "and the confirmed net is still regen");
+
+        // A known sign again: new readings are signed and confirmed, the unknown ones stay magnitude.
+        telemetry.accept(0x79, signs(0, 0), 60_500);
+        values.update(telemetry.metrics());
+        check(values.powerTrace(60_500, 120_000).get(28).value == 400 && near(values.unconfirmedEnergyWh(), unconfirmedWh, 1e-9), "a later sign never reinterprets the unknown samples");
     }
 
     private static void timers() {
