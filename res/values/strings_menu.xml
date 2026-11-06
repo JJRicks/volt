@@ -66,4 +66,22 @@
     <string name="menu_show" volt:screen="Add back sheet" volt:purpose="accessibility description">Add back %1$s</string>
     <!-- A hidden setting with its current value, for screen readers: %1$s is the name, %2$s the value. -->
     <string name="menu_sheet_value" volt:screen="Add back sheet" volt:purpose="accessibility description">%1$s, %2$s</string>
+
+    <!-- ===== Live page (PR 3) ===== -->
+    <!-- Under a hidden setting that search found (the setting still works there): hidden from the menu only. -->
+    <string name="menu_search_hidden" volt:screen="Scooter tab, search results" volt:purpose="caption">Hidden</string>
+    <!-- The quiet last line of the Scooter tab while settings are hidden: menu_footer joins these two,
+         and the Edit part shows in red. Tapping the line opens the menu editor. -->
+    <plurals name="menu_footer_hidden" volt:screen="Scooter tab" volt:purpose="caption">
+        <item quantity="one">%1$d setting hidden</item>
+        <item quantity="other">%1$d settings hidden</item>
+    </plurals>
+    <string name="menu_footer_edit" volt:screen="Scooter tab" volt:purpose="button">Edit</string>
+    <!-- %1$s is menu_footer_hidden, %2$s is menu_footer_edit. The line is centred and may wrap. -->
+    <string name="menu_footer" volt:screen="Scooter tab" volt:purpose="caption">%1$s · %2$s</string>
+    <!-- That line for screen readers: %1$d is how many settings are hidden. -->
+    <plurals name="menu_footer_description" volt:screen="Scooter tab" volt:purpose="accessibility description">
+        <item quantity="one">%1$d setting hidden. Edit menu</item>
+        <item quantity="other">%1$d settings hidden. Edit menu</item>
+    </plurals>
 </resources>

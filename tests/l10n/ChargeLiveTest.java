@@ -16,6 +16,7 @@ public final class ChargeLiveTest {
 
     public static void main(String[] args) {
         workReasons();
+        workReasonsFold();
         holdArming();
         holdDisconnect();
         holdCapAndEnd();
@@ -50,6 +51,46 @@ public final class ChargeLiveTest {
         check(!none.keepsWorking() && !none.ongoing(false) && none.ongoing(true), "an idle service: ongoing only while connected");
     }
     private static boolean bit(int bits, int i) { return (bits >> i & 1) == 1; }
+
+    /**
+     * The four places that once paired the old "background_connection" statement with a separate live-hold
+     * statement (workAllowed, applyVisibility, backgroundStop, applyWorkPolicy). Every combination of the six
+     * reasons, Volt on screen, the background connection, an automatic ride copy and a pending stop answers as
+     * the old pair, copied from ScooterService at 5919dcb.
+     */
+    private static void workReasonsFold() {
+        for (int bits = 0; bits < 1 << 10; bits++) {
+            boolean recording = bit(bits, 0), chargeRecording = bit(bits, 1), holding = bit(bits, 2), alertHold = bit(bits, 3),
+                    liveHold = bit(bits, 4), phoneSaving = bit(bits, 5), visible = bit(bits, 6), background = bit(bits, 7),
+                    exportBusy = bit(bits, 8), deadlinePending = bit(bits, 9);
+            WorkReasons r = new WorkReasons(recording, chargeRecording, holding, alertHold, liveHold, phoneSaving);
+            String at = " for bits " + Integer.toBinaryString(bits);
+
+            // workAllowed (past its destroyed and simulating returns).
+            boolean oldAllowed = liveHold || (visible || recording || chargeRecording || holding || alertHold || phoneSaving
+                    || exportBusy || background || deadlinePending);
+            check((r.keepsServiceUp(visible, background) || exportBusy || deadlinePending) == oldAllowed, "workAllowed" + at);
+
+            // backgroundStop: true cancels the deadline and returns.
+            boolean oldStopCancels = liveHold || (visible || recording || chargeRecording || holding || alertHold || phoneSaving || background);
+            check(r.keepsServiceUp(visible, background) == oldStopCancels, "backgroundStop" + at);
+
+            // applyWorkPolicy: true cancels the deadline (the two old statements each cancelled it).
+            boolean oldPolicyCancels = (visible || recording || chargeRecording || holding || alertHold || phoneSaving || background) || liveHold;
+            check(r.keepsServiceUp(visible, background) == oldPolicyCancels, "applyWorkPolicy" + at);
+
+            // applyVisibility's wasVisible branch, with value = Volt shown again or not. The old first statement armed
+            // the stop unless one of its reasons held; the second then cancelled it on leaving with the live hold.
+            // Arming and then cancelling leaves no stop pending, the same as cancelling.
+            for (boolean value : new boolean[]{false, true}) {
+                boolean oldArmed = !(recording || chargeRecording || holding || alertHold || background);
+                if (!value && liveHold) oldArmed = false;
+                check(!r.skipsTenSecondStop(!value, background) == oldArmed, "applyVisibility" + (value ? " shown again" : " leaving") + at);
+            }
+
+            // stopAfterChargeLive was already keepsWorking() || background and is unchanged.
+        }
+    }
 
     // ---- ChargeLiveHold ---------------------------------------------------------------------------------
 

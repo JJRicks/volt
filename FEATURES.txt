@@ -12,7 +12,7 @@ sound and range estimate (changed, read back, seen, restored) and traction contr
 See VERIFICATION.txt for dated checks and the exact physical test scope.
 
 The app talks directly to the scooter over Bluetooth. Optional map tiles and
-the manual Check for updates use internet; authentication, controls and
+the update checks (manual, or opt-in once a day) use internet; authentication, controls and
 recording require no server. First-time owner setup is covered in SETUP.txt.
 
 Historical 1.0.0 release: compact-card value fitting, a quieter reconnect haptic pattern,
