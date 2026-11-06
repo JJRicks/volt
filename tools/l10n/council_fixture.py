@@ -96,6 +96,18 @@ SPANISH = collections.OrderedDict([
 ])
 
 
+# The real Responses API refuses text.format json_object unless the input itself mentions JSON; the
+# instructions don't count. The fakes refuse the same way, so a prompt that says JSON only there fails here too.
+OPENAI_JSON_INPUT_ERROR = (400, json.dumps({"error": {"message": "Response input messages must contain the word "
+                                                      "'json' in some form to use 'text.format' of type "
+                                                      "'json_object'."}}).encode("utf-8"))
+
+
+def json_mode_without_json(payload):
+    return ((payload.get("text") or {}).get("format") or {}).get("type") == "json_object" and \
+        "json" not in str(payload.get("input", "")).lower()
+
+
 class FakeTransport(object):
     """Answers provider requests from a table; records each request (headers included, for assertions)."""
 
@@ -120,6 +132,8 @@ class FakeTransport(object):
             models.append({"name": "models/text-embedding-9", "supportedGenerationMethods": ["embedContent"]})
             return 200, json.dumps({"models": models}).encode("utf-8")
         if url == "https://api.openai.com/v1/responses":
+            if json_mode_without_json(payload):
+                return OPENAI_JSON_INPUT_ERROR
             model = payload["model"]
             reply = self.replies[model](payload["input"])
             return 200, json.dumps({"model": model + "-2026-10-01", "status": "completed", "output": [

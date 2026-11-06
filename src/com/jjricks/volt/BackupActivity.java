@@ -333,7 +333,7 @@ public final class BackupActivity extends Activity {
     }
     private void restoreCategories(){
         reset(M.backupRestoreTitle());
-        String date=staged.createdAtMs>0?java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM,java.text.DateFormat.SHORT).format(new Date(staged.createdAtMs)):null;
+        String date=staged.createdAtMs>0?DisplayTime.dateTime(this,getSharedPreferences("app_settings",MODE_PRIVATE),staged.createdAtMs):null;
         paragraph(staged.format.equals("owner")?M.backupFileOwner()
                 :staged.format.equals("layout")?M.backupFileLayout():date==null?(staged.format.equals("rides")?M.backupFileRides():staged.complete?M.backupFileFull():M.backupFileSelected())
                 :staged.format.equals("rides")?M.backupFileRidesFrom(date):staged.complete?M.backupFileFullFrom(date):M.backupFileSelectedFrom(date));
@@ -582,7 +582,7 @@ public final class BackupActivity extends Activity {
         int id=((Msg)given).id();
         Msg hint=M.backupPickerFailedSave(M.backupSaveShort());if(id==hint.id())return hint;
         if(staged==null||staged.createdAtMs<=0)return given;
-        String date=java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM,java.text.DateFormat.SHORT).format(new Date(staged.createdAtMs));
+        String date=DisplayTime.dateTime(this,getSharedPreferences("app_settings",MODE_PRIVATE),staged.createdAtMs);
         return id==M.backupFileRidesFrom(date).id()?M.backupFileRidesFrom(date):id==M.backupFileFullFrom(date).id()?M.backupFileFullFrom(date)
                 :id==M.backupFileSelectedFrom(date).id()?M.backupFileSelectedFrom(date):given;
     }

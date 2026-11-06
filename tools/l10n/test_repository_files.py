@@ -43,7 +43,7 @@ class RepositoryFilesTest(unittest.TestCase):
                 self.assertNotIn(";", pos, where)
             if name == "en.tsv":
                 self.assertGreaterEqual(len(rows), 50)
-                for term_id in ("not-affiliated", "owner-identity", "owner-key", "handlebar-pin", "charge-ceiling"):
+                for term_id in ("not-affiliated", "owner-key", "handlebar-pin"):
                     self.assertIn(term_id, ids)
 
     def test_committed_glossaries_pass_glossary_check(self):
@@ -73,6 +73,19 @@ class RepositoryFilesTest(unittest.TestCase):
         for source in ('case "foreign"', 'case "throwing"', 'public String language() { return "de"; }',
                        'throw new AssertionError("a report read catalog text "'):
             self.assertIn(source, reports)
+
+    def test_ci_checks_the_shipped_languages(self):
+        workflow = l10nlib.read_text(os.path.join(ROOT, ".github", "workflows", "tests.yml"))
+        gates = workflow[workflow.index("Localization proof gates"):workflow.index("web-setup:")]
+        self.assertIn("python3 tools/l10n/ship_check.py\n", gates)
+
+    def test_pseudo_build_repairs_aapts_text_before_the_round_trip(self):
+        script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
+        body = script[script.index("navee_build_pseudo() {"):script.index("Built pseudo-locale APK")]
+        repair = body.index('tools/l10n/pseudo_fix.py" --apk "$work/resources.apk"')
+        self.assertLess(body.index("--pseudo-localize"), repair)
+        self.assertLess(repair, body.index('navee_l10n_roundtrip "$work/resources.apk" --allow-pseudo'))
+        self.assertEqual(script.count("pseudo_fix.py"), 1, "the release APK never goes through it")
 
     def test_baselines_parse_and_name_real_files(self):
         # Baselines only shrink as batches convert files, so this checks their shape, not their number.

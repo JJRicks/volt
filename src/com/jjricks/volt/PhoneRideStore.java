@@ -165,9 +165,9 @@ public final class PhoneRideStore {
         public List<Point> fullPoints() { return allPoints; }
         /**
          * The fix counts as display text, in the current language; in English it equals status.
-         * status stays the base English sentence only because RidesScreen still shows it (the fix
-         * counts' content description) until B15 switches that to statusText(); nothing else reads
-         * it, so it can then be removed with its literals.
+         * status is the base English sentence. No screen shows it now, and saved files do not hold it
+         * (the constructor works it out); it stays only because tests/l10n/RideMapsTextTest and the
+         * frozen RideMapsEnglishTest read it, so an ordinary tooling PR can remove all three together.
          */
         public Msg statusText() {
             if (locationCount == 0) return M.mapsTrackNoFixes();

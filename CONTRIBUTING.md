@@ -12,6 +12,8 @@ Redact screenshots and logs before sharing. Do not attach owner setup identities
 
 For substantial features or new scooter support, open an issue describing the intended behavior first. Keep a pull request focused enough to review, explain the user-visible change and relevant validation, and identify anything requiring physical hardware testing. Preserve compatibility with existing profiles, recordings and saved layouts.
 
+New or changed visible text must follow the [localization guide](docs/localization-for-contributors.md), which also explains how CI classifies your pull request.
+
 Use a feature branch and include documentation changes where behavior changes. An independent maintainer should review the final commit before merging. Do not describe a control as verified merely because it compiles or the scooter acknowledges a write.
 
 ## Build and test

@@ -312,7 +312,7 @@ public final class ReadingsTextTest {
 
     // Expected English, generated from the merge base
 
-    static final String DISPLAY_GRID_DIGEST = "831428e67174134ab060c4f381de57a899cf2b9c6c0a11049e4555ca7dcaeaf9";
+    static final String DISPLAY_GRID_DIGEST = "d68d9f044846cb6946ae576f45bb031445cf10eadb2c4ba54780f517087770f0";
     static final String DISPLAY_GRID_COUNT = "289971";
     static final String DECODED_DIGEST = "8632a3308378c480c3689e99fba1415ce66b1863c67dbf5c5a6fd3864727125a";
     static final String DECODED_COUNT = "67680";
@@ -453,17 +453,17 @@ public final class ReadingsTextTest {
         {"range_algorithm", "Range algorithm (raw)", "<fallback>"},
         {"display_units", "Display units", "<fallback>"},
         {"auto_sensor", "Auto light (raw)", "<fallback>"},
-        {"tyre_reminder", "Tyre reminder (raw)", "<fallback>"},
+        {"tyre_reminder", "Tire reminder (raw)", "<fallback>"},
         {"ambient_light", "Line pattern (raw)", "<fallback>"},
         {"traction_control", "Traction (raw)", "<fallback>"},
         {"turn_sound", "Turn sound (raw)", "<fallback>"},
-        {"proximity_key", "Proximity key (raw)", "<fallback>"},
+        {"proximity_key", "Proximity unlock (raw)", "<fallback>"},
         {"night_mode", "Night mode (raw)", "<fallback>"},
         {"range_algorithm_mode", "Range mode (raw)", "<fallback>"},
         {"eco_light", "Line colors (packed)", "<fallback>"},
         {"drive_light", "Star pattern (raw)", "<fallback>"},
         {"sport_light", "Star colors (packed)", "<fallback>"},
-        {"start_speed", "Start speed (raw)", "<fallback>"},
+        {"start_speed", "Kick-start speed (raw)", "<fallback>"},
         {"speed_limit", "Speed limit (raw)", "<fallback>"},
         {"volume", "Audio (raw)", "<fallback>"},
         {"voice_language", "Voice language (raw)", "<fallback>"},
@@ -474,12 +474,12 @@ public final class ReadingsTextTest {
         {"settings_mode_raw", "Settings mode byte (raw)", "<fallback>"},
         {"scheduled_charge_time_raw", "Charge schedule (raw)", "<fallback>"},
         {"charge_limit_percent", "Charge limit", "Limit"},
-        {"low_power", "Low-battery mode (raw)", "<fallback>"},
-        {"timed_charging", "Timed charging (raw)", "<fallback>"},
+        {"low_power", "Low Battery Mode (raw)", "<fallback>"},
+        {"timed_charging", "Scheduled charging (raw)", "<fallback>"},
         {"auto_lock_time", "Lock duration (raw)", "<fallback>"},
         {"speed_limit_eligibility", "Speed eligibility (raw)", "<fallback>"},
         {"weather", "Weather (raw)", "<fallback>"},
-        {"slope_assist", "Hill assist (raw)", "<fallback>"},
+        {"slope_assist", "Assist settings (raw)", "<fallback>"},
         {"long_range_mode", "Long range (raw)", "<fallback>"},
         {"overspeed_control", "Overspeed control (raw)", "<fallback>"},
         {"overspeed_alert", "Overspeed alert (raw)", "<fallback>"},
@@ -648,7 +648,7 @@ public final class ReadingsTextTest {
         {"rated_capacity_ah", "12.34 Ah", "12.34", "12.34 Ah"},
         {"health_adjusted_capacity_ah", "12.09 Ah", "12.0932", "12.09 Ah"},
         {"charge_cycles", "12 charges", "12.0", "12 charges"},
-        {"charge_cycles", "1 charges", "1.0", "1 charges"},
+        {"charge_cycles", "1 charges", "1.0", "1 charge"},
         {"charge_cycles", "0 charges", "0.0", "0 charges"},
         {"deep_discharge", "3", "3.0", "3"},
         {"speed_kmh", "25.3 km/h", "25.3", "25.3 km/h"},

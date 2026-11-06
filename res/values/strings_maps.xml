@@ -16,23 +16,21 @@
 
     <!-- The ride's phone track has no GPS fix that passed the quality checks. -->
     <string name="maps_track_no_fixes" volt:screen="Rides, GPS track" volt:purpose="status">No usable GPS fixes recorded</string>
-    <!-- How many GPS fixes the ride's phone track kept. English keeps "fixes" for 1 until an
-         owner-approved fix. -->
-    <plurals name="maps_track_fixes" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">%1$d GPS fixes</item>
+    <!-- How many GPS fixes the ride's phone track kept. -->
+    <plurals name="maps_track_fixes" volt:screen="Rides, GPS track" volt:purpose="status">
+        <item quantity="one">%1$d GPS fix</item>
         <item quantity="other">%1$d GPS fixes</item>
     </plurals>
     <!-- %1$s is the kept-fix count (maps_track_fixes); %2$d fixes were dropped for poor accuracy or
-         out-of-order time. English keeps "fixes" for 1 until an owner-approved fix. -->
-    <plurals name="maps_track_fixes_low_quality" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">%1$s · %2$d low-quality fixes excluded</item>
+         out-of-order time. -->
+    <plurals name="maps_track_fixes_low_quality" volt:screen="Rides, GPS track" volt:purpose="status">
+        <item quantity="one">%1$s · %2$d low-quality fix excluded</item>
         <item quantity="other">%1$s · %2$d low-quality fixes excluded</item>
     </plurals>
     <!-- %1$s is the text before it (maps_track_fixes or maps_track_fixes_low_quality); %2$d
-         elevation readings were dropped as implausible jumps. English keeps "outliers" for 1 until an
-         owner-approved fix. -->
-    <plurals name="maps_track_fixes_outliers" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">%1$s · %2$d elevation outliers excluded</item>
+         elevation readings were dropped as implausible jumps. -->
+    <plurals name="maps_track_fixes_outliers" volt:screen="Rides, GPS track" volt:purpose="status">
+        <item quantity="one">%1$s · %2$d elevation outlier excluded</item>
         <item quantity="other">%1$s · %2$d elevation outliers excluded</item>
     </plurals>
 
@@ -93,7 +91,7 @@
     <string name="maps_custom_error_url" volt:screen="Custom map provider" volt:purpose="error"
         volt:dnt="HTTPS|{z}|{x}|{y}">Use HTTPS with {z}, {x} and {y}.</string>
     <!-- Error under the attribution field when it is empty. -->
-    <string name="maps_custom_error_attribution" volt:screen="Custom map provider" volt:purpose="error">Add the provider’s required attribution.</string>
+    <string name="maps_custom_error_attribution" volt:screen="Custom map provider" volt:purpose="error">Add the provider\'s required attribution.</string>
     <!-- Error under the attribution link when it is not an HTTPS address. -->
     <string name="maps_custom_error_link" volt:screen="Custom map provider" volt:purpose="error" volt:dnt="HTTPS">Use an HTTPS license or copyright link.</string>
 

@@ -68,12 +68,25 @@ public final class CompatibilityDisplayTest {
         for (String token : new String[]{null, "", "ok", "REJECTED", "rejected_256", "readback_different"}) equal("", GuidedTest.Outcome.label(token), "label(" + token + ")");
     }
 
+    /**
+     * Panel names the owner-approved D3 terms renamed (l10n/english-changes.tsv), from the report's English
+     * fieldLabel, which stays as it was. Every other panel name is its fieldLabel.
+     */
+    private static final String[][] RENAMED = {{"Ambient light", "Line pattern"}, {"Auto lock time", "Lock duration"}, {"Auto sensor", "Automatic lights"}, {"Drive light", "Star pattern"}, {"Drive speed limit", "Drive mode speed limit"}, {"Driving mode", "Drive mode"}, {"Eco light", "Line colors"}, {"Low power", "Low Battery Mode"}, {"Overspeed control", "Overspeed active control"}, {"Proximity key", "Proximity unlock"}, {"Slope assist", "Assist settings"}, {"Sport light", "Star colors"}, {"Start speed", "Kick-start speed"}, {"Timed charging", "Scheduled charging"}, {"Turn sound", "Turn signal sound"}, {"Tyre reminder", "Tire reminder"}, {"Volume", "Audio"}};
+
+    private static String shownName(String english) {
+        for (String[] r : RENAMED) if (r[0].equals(english)) return r[1];
+        return english;
+    }
+
     private static void fields() {
+        java.util.Set<String> renamed = new java.util.HashSet<>();
         for (ModelRegistry.Layer layer : ModelRegistry.Layer.values()) {
             for (int offset = -3; offset <= 70; offset++) {
                 T.install(null);
                 String english = CompatibilityReport.fieldLabel(offset, layer);
-                equal(english, CompatibilityLabels.field(offset, layer), "field(" + offset + ", " + layer + ")");
+                if (!shownName(english).equals(english)) renamed.add(english);
+                equal(shownName(english), CompatibilityLabels.field(offset, layer), "field(" + offset + ", " + layer + ")");
                 T.install(ECHO);
                 equal(english, CompatibilityReport.fieldLabel(offset, layer), "fieldLabel(" + offset + ", " + layer + ") stays English");
                 String shown = CompatibilityLabels.field(offset, layer);
@@ -81,14 +94,15 @@ public final class CompatibilityDisplayTest {
             }
         }
         T.install(null);
+        check(renamed.size() == RENAMED.length, "every renamed panel name is a report field: " + renamed.size() + " of " + RENAMED.length);
     }
 
     /** The English plurals print what the code before B9 printed, at every quantity English and the tests use. */
     private static void plurals() {
         for (long n : new long[]{0, 1, 2, 3, 4, 5, 11, 12, 21, 22, 25, 100, 101, 111, 1000000}) {
-            equal(n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
-            equal(n + " minutes ago", T.compatAgeMinutes(n, n), "minutes ago at " + n);
-            equal("Too short (" + n + " bytes)", T.compatReadTooShort(n, n), "too short at " + n);
+            equal(n == 1 ? "1 unfinished test on another scooter. Select it to review." : n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
+            equal(n + (n == 1 ? " minute ago" : " minutes ago"), T.compatAgeMinutes(n, n), "minutes ago at " + n);
+            equal("Too short (" + n + (n == 1 ? " byte)" : " bytes)"), T.compatReadTooShort(n, n), "too short at " + n);
         }
     }
 

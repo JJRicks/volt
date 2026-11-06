@@ -254,15 +254,15 @@
     <!-- Why Volt cannot open the chosen backup file. -->
     <string name="backup_engine_not_dashboard_layout_file" volt:screen="Back up and restore" volt:purpose="error">Not a dashboard layout file.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_pairing_file_too_large" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file is too large.</string>
+    <string name="backup_engine_pairing_file_too_large" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The owner setup file is too large.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_pairing_file_contains_unsupported" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file contains unsupported fields.</string>
+    <string name="backup_engine_pairing_file_contains_unsupported" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The owner setup file contains unsupported fields.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid owner identity.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The owner setup file has an invalid owner key.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_pairing_file_invalid_owner_role" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid owner role.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_role" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The owner setup file has an invalid role.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid Bluetooth address.</string>
+    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The owner setup file has an invalid Bluetooth address.</string>
     <!-- Why a backup or a restore could not go on (a storage or file check). -->
     <string name="backup_engine_backup_unsupported_preference_group" volt:screen="Back up and restore" volt:purpose="error">The backup has an unsupported preference group.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
@@ -274,7 +274,7 @@
     <!-- Why the restore cannot be reviewed with these choices. -->
     <string name="backup_engine_choose_where_each_scooters" volt:screen="Back up and restore" volt:purpose="error">Choose where each scooter\'s data goes.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
-    <string name="backup_engine_choose_scooter_using_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">Choose a scooter using this setup identity, or add another scooter.</string>
+    <string name="backup_engine_choose_scooter_using_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">Choose a scooter using this owner key, or add another scooter.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
     <string name="backup_engine_saved_recordings_cannot_read" volt:screen="Back up and restore" volt:purpose="error">Saved recordings cannot be read.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
@@ -324,11 +324,11 @@
     <!-- Why Volt cannot open the chosen backup file. -->
     <string name="backup_engine_backup_invalid_scooter_profile_fields" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid scooter profile fields.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_backup_invalid_scooter_owner" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has an invalid scooter owner role.</string>
+    <string name="backup_engine_backup_invalid_scooter_owner" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has a scooter with an invalid role.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
     <string name="backup_engine_backup_invalid_scooter_connection" volt:screen="Back up and restore" volt:purpose="error">The backup has an invalid scooter connection date.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
-    <string name="backup_engine_backup_invalid_scooter_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has an invalid scooter setup identity.</string>
+    <string name="backup_engine_backup_invalid_scooter_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has an invalid scooter owner key.</string>
     <!-- Why Volt cannot open the chosen backup file. -->
     <string name="backup_engine_backup_incompatible_app_preference" volt:screen="Back up and restore" volt:purpose="error">The backup has an incompatible app preference type.</string>
     <!-- Why Volt cannot open the chosen backup file. -->

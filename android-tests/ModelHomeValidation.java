@@ -72,7 +72,7 @@ public final class ModelHomeValidation extends Instrumentation {
                 DashboardConfig saved = new DashboardConfig(settings(), gt5Id);
                 require(GT5.equals(shortcuts(saved)), "The GT5 Max's default tiles were not adapted: " + shortcuts(saved));
                 View grid = root().findViewWithTag("setting-tiles");
-                require(grid != null && described(grid, "Cruise control") && described(grid, "Energy recovery") && !described(grid, "Top speed")
+                require(grid != null && described(grid, "Cruise control") && described(grid, "Energy recovery") && !described(grid, "Maximum speed")
                         && !described(grid, "Charge schedule"), "Home does not show the GT5 Max tiles");
             });
             screenshot("home-gt5-tiles");
@@ -96,14 +96,14 @@ public final class ModelHomeValidation extends Instrumentation {
             simulateMode(3);
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false); main(() -> shown.set(text(root(), "SPORT") != null && text(root(), "3 (raw)") == null)); return shown.get(); }, "Mode 3 does not read SPORT");
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false);
-                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, unreadable value") && !shownText(grid, "50 km/h") && !shownText(grid, "31 mph")); });
+                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Maximum speed, —, unreadable value") && !shownText(grid, "50 km/h") && !shownText(grid, "31 mph")); });
                 return shown.get(); }, "An unreadable Top speed shows a number instead of a dash");
             screenshot("home-gt5-sport");
             // The same simulated GT5 Max with an EU serial: no Top speed there, so the owner's tile is muted, says so and opens nothing.
             main(() -> activity.service().ble.setSimulationRegion("EU")); settle();
             main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false);
-                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, not offered for this region")); });
+                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Maximum speed, —, not offered for this region")); });
                 return shown.get(); }, "An EU GT5 Max Top speed tile is not muted as not offered for this region");
             main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:maximum_speed")); settle();
             main(() -> require(field(activity, "choiceSheet") == null && field(activity, "controlDialog") == null, "An EU GT5 Max Top speed tile opened a sheet"));
@@ -181,7 +181,7 @@ public final class ModelHomeValidation extends Instrumentation {
         main(() -> {
             require(GT5.equals(shortcuts(new DashboardConfig(settings(), gt5Id))), "Volt's earlier GT5 Max pick was not replaced: " + shortcuts(new DashboardConfig(settings(), gt5Id)));
             View grid = root().findViewWithTag("setting-tiles");
-            require(grid != null && !described(grid, "Top speed") && described(grid, "Cruise control"), "Home still shows the earlier Top speed tile");
+            require(grid != null && !described(grid, "Maximum speed") && described(grid, "Cruise control"), "Home still shows the earlier Top speed tile");
         });
         screenshot("home-gt5-earlier-pick");
     }
