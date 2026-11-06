@@ -48,6 +48,8 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
         <uses-library android:name="androidx.window.extensions" android:required="false" />
+        <!-- The opt-in daily update check (More › Updates); only JobScheduler may bind it. Not persisted, so no boot permission. -->
+        <service android:name=".UpdateCheckJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <service android:name=".ScooterService" android:exported="false" android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|location" />
         <activity android:name=".MainActivity" android:exported="true" android:resizeableActivity="true" android:windowSoftInputMode="adjustResize"

@@ -1,0 +1,6 @@
+# More › Updates: the opt-in daily update check (UpdateCheckJob, UpdateSchedule). tests/run.sh compiles every path
+# listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# The pure part: at most once a day, once per version; plus where the rows sit in MoreScreen's source.
+src/com/jjricks/volt/UpdateSchedule.java
+src/com/jjricks/volt/VersionName.java
+tests/l10n/UpdateScheduleTest.java

@@ -60,6 +60,10 @@ final class BackupRegistry {
         exclude(app, "ride_auto_export_pending", String.class, PENDING);
         exclude(app, "ride_auto_export_problem", String.class, PENDING);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // The automatic update check (UpdateCheckJob): the switch travels; when it last ran and what it announced stay here.
+        add(app, "update_auto_check", Boolean.class, PREFERENCES);
+        exclude(app, "update_auto_last", Long.class, DEVICE);
+        exclude(app, "update_auto_told", String.class, DEVICE);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);

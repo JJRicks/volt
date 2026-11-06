@@ -53,6 +53,9 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when both copies are turned off. |
 | `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when both copies are turned off. |
 | `ride_auto_export_problem` | String | global | Pending | Why rides are waiting: `folder` (no folder, or it or its grant is gone) or `save` (a write failed). Absent when nothing failed. |
+| `update_auto_check` | Boolean | global | Durable | More › Updates: the opt-in automatic update check, at most once a day. Default off. UpdateCheckJob. Runs only with `update_check_consented` also set; a restored choice is scheduled the next time Volt's process starts. |
+| `update_auto_last` | Long | global | Device | Wall-clock time of the last finished automatic check; the next one waits a day from it (UpdateSchedule). |
+| `update_auto_told` | String | global | Device | The newest version the automatic check announced, or a manual check showed, so each release is announced once. |
 | `dashboard_columns` | Integer | global | Durable | Column choice shared by every scooter's dashboard. DashboardConfig. |
 | `dashboard_v1_<pid>` | String (JSON) | per scooter | Durable | Active dashboard: widgets, parameters, notes and a cell for every column count (folded and unfolded layouts live inside each widget). |
 | `dashboard_slot_v1_<pid>_<0..2>` | String (JSON) | per scooter | Durable | Saved layout slots. |
