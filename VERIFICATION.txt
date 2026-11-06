@@ -29,8 +29,12 @@ November 6, 2026
     versionName 1.12.0 (no -dev), versionCode 55. This is the build the sweep
     below ran.
 - run-release-sweep.py on that build (Medium Phone API 36.1 emulator,
-  synthetic data, Bluetooth off): all 78 steps passed in one run, including
-  responsive, responsive-modes, charge-capture and motion-polish.
+  synthetic data, Bluetooth off): all 69 gating steps passed in one run,
+  including responsive, responsive-modes, charge-capture and motion-polish.
+  Of its 9 report-only steps, the three Spanish reports ran (below). The six
+  pseudo-locale reports (en-XA and ar-XB at three sizes) were skipped: the
+  sweep was given no pseudo-locale build. The sweep's own "78/78" summary
+  counts report-only steps as passed even when they are skipped.
   - An earlier candidate (main after #283) needed reruns: three validations
     were outdated by reviewed changes (#211, #250) until #283 updated them, and
     motion-polish hung once in am instrument while the Mac was loaded.
