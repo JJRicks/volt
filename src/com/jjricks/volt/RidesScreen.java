@@ -1136,9 +1136,9 @@ public final class RidesScreen implements AppScreen {
 
         if (!s.notes.isEmpty()) { body.addView(ui.sectionLabel(T.ridesNotesSection())); LinearLayout notes = ui.card(); notes.addView(ui.text(s.notes, 14, false)); body.addView(notes); }
 
-        TextView csv = ui.secondaryButton(T.ridesExportCsv(), () -> exportCsv(id)); iconize(csv, "download");
+        TextView csv = ui.secondaryButton(T.ridesExportCsv(), () -> exportCsv(id)); iconize(csv, EXPORT_ICON);
         csv.setContentDescription(T.ridesExportCsvDescription());
-        TextView json = ui.secondaryButton(T.ridesExportJson(), () -> exportJson(id, s)); iconize(json, "download");
+        TextView json = ui.secondaryButton(T.ridesExportJson(), () -> exportJson(id, s)); iconize(json, EXPORT_ICON);
         json.setContentDescription(T.ridesExportJsonDescription());
         body.addView(pair(csv, json));
         TextView delete = ui.dangerButton(T.ridesDeleteRide(), () -> confirmDelete(id, s.label, afterDelete));
@@ -1269,7 +1269,7 @@ public final class RidesScreen implements AppScreen {
     private void routeNotice(LinearLayout parent, String text, Runnable files) {
         LinearLayout card = ui.card(); card.addView(ui.caption(text));
         if (files != null) {
-            TextView button = ui.secondaryButton(T.ridesPhoneFiles(), files); iconize(button, "download");
+            TextView button = ui.secondaryButton(T.ridesPhoneFiles(), files); iconize(button, EXPORT_ICON);
             button.setContentDescription(T.ridesPhoneFilesDescription()); card.addView(button);
         }
         parent.addView(card);
@@ -1438,7 +1438,7 @@ public final class RidesScreen implements AppScreen {
         valueRow(movement, T.ridesLinearPeak(), acceleration(track.maxLinearAccelerationMps2));
         bottom.addView(movement);
         note(bottom, T.ridesMotionSamples(track.motionSampleCount, Fmt.groupedInteger(Locale.US, track.motionSampleCount)));
-        TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, "download");
+        TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, EXPORT_ICON);
         bottom.addView(export);
         return ride;
     }
@@ -2382,6 +2382,8 @@ public final class RidesScreen implements AppScreen {
     /** A chart series' line pattern, so colour is never the only difference. */
     private static final String MARK_SOLID = "━ ", MARK_DASH = "┄ ", MARK_DOT = "⋯ ";
     private static final String WH_PER_DISTANCE = "wh_per_distance";
+    /** The icon on every ride export button. */
+    private static final String EXPORT_ICON = "download";
     private void show(AlertDialog dialog, int style, Runnable onDismiss) {
         dialogs.add(dialog); dialog.setOnDismissListener(d -> { dialogs.remove(dialog); if (onDismiss != null) onDismiss.run(); });
         Window window = dialog.getWindow();
