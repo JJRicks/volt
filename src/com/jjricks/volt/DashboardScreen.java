@@ -30,9 +30,6 @@ public final class DashboardScreen implements AppScreen {
 
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
-
-        /** Opens riding mode (Home's RIDE button). It only reads; it never records or sends a command. */
-        default void ride() {}
     }
 
     private final ScreenHost host;
@@ -176,7 +173,7 @@ public final class DashboardScreen implements AppScreen {
         historyActions.addView(divider, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(20)));
         historyActions.addView(redo, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         headerActions.addView(historyActions, new LinearLayout.LayoutParams(-2, ui.dp(48)));
-        ride = RidingScreen.entry(host, actions::ride);
+        ride = RidingScreen.entry(host, host::openRiding);
         headerActions.addView(ride, new LinearLayout.LayoutParams(-2, ui.dp(48)));
         LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(-2, ui.dp(48));
         editSize.setMarginStart(ui.dp(8));

@@ -489,7 +489,10 @@ final class RidingScreen implements AppScreen {
                 s.icon = "temperature";
                 RidingValues.Reading r = v.reading("temperature_c", now);
                 if (r == null) { none(s); break; }
-                split(s, DisplayTemperature.quantity(r.value, preferences.getString("temperature_unit", "c"), 0));
+                // No preference reads as Celsius, as everywhere else.
+                Formatted temperature = DisplayTemperature.quantity(r.value, preferences.getString("temperature_unit", null), 0);
+                if (temperature == null) { none(s); break; }
+                split(s, temperature);
                 if (r.stale) dim(s);
                 break;
             }
@@ -939,7 +942,6 @@ final class RidingScreen implements AppScreen {
         button.setClickable(true);
         button.setFocusable(true);
         button.setContentDescription(T.ridingRideDescription());
-        button.setTag("riding-entry");
         button.setOnClickListener(v -> open.run());
         ui.pressFeedback(button);
         return button;

@@ -147,12 +147,9 @@ public final class ScooterSimulation {
     }
     public String model() { return model; }
 
-    /** A riding-mode script id, or "" for the plain parked samples. */
+    /** A riding-mode script id; "" or an unknown id gives the plain parked samples. */
     public void setScript(String id) {
-        String next = id == null ? "" : id;
-        if (!next.isEmpty() && !java.util.Arrays.asList(RIDING, STOPPED, DROPOUT, LOW_AMBER, LOW_RED, WARNING).contains(next))
-            throw new IllegalArgumentException("Invalid simulation script");
-        script = next;
+        script = java.util.Arrays.asList(RIDING, STOPPED, DROPOUT, LOW_AMBER, LOW_RED, WARNING).contains(id) ? id : "";
     }
     public String script() { return script; }
 

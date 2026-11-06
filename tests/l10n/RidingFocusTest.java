@@ -167,9 +167,8 @@ public final class RidingFocusTest {
 
     private static void scripts() {
         ScooterSimulation sim = new ScooterSimulation();
-        boolean refused = false;
-        try { sim.setScript("unlock"); } catch (IllegalArgumentException e) { refused = true; }
-        check(refused && sim.script().isEmpty(), "unknown scripts are refused");
+        sim.setScript("unlock");
+        check(sim.script().isEmpty(), "an unknown script is ignored");
         Telemetry telemetry = new Telemetry();
         sim.setScript(ScooterSimulation.WARNING);
         sim.tick(telemetry, 5000);
