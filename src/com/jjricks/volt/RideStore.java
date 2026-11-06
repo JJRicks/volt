@@ -151,8 +151,9 @@ public final class RideStore {
             Map<String, String> params = quiet ? stopParameters(details) : Collections.<String, String>emptyMap();
             stopReason = quiet ? STOP_AUTO_QUIET : details;
             automaticStop = quiet || STOP_AUTO_PARKED.equals(stopReason);
-            stopLastReadingMonotonicMs = parseLong(params.get("last"), -1);
-            stopDisconnectCode = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, parseLong(params.get("code"), -1)));
+            long last = parseLong(params.get("last"), -1);
+            stopLastReadingMonotonicMs = last < -1 ? -1 : last;
+            stopDisconnectCode = disconnectCode(params);
             stopPhoneBluetoothOff = "off".equals(params.get("phone_bt"));
             boolean trim = automaticStop && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
             shownEndWallMs = trim ? a.readingWall : a.lastWall;
@@ -380,11 +381,14 @@ public final class RideStore {
     /** Known parameters only, in a fixed order; anything malformed or too long degrades to the bare token. */
     private static String quietDetails(String reason, long lastReadingMono) {
         Map<String, String> params = stopParameters(reason);
-        long code = parseLong(params.get("code"), -1);
-        if (code < Integer.MIN_VALUE || code > Integer.MAX_VALUE) code = -1;
-        String details = STOP_AUTO_QUIET + ";last=" + lastReadingMono + ";code=" + code
+        String details = STOP_AUTO_QUIET + ";last=" + lastReadingMono + ";code=" + disconnectCode(params)
                 + ("off".equals(params.get("phone_bt")) ? ";phone_bt=off" : "");
         return details.length() <= MAX_STOP_DETAILS ? details : STOP_AUTO_QUIET;
+    }
+    /** The native disconnect code, or -1 when absent, malformed or outside an int: the writer and reader agree. */
+    private static int disconnectCode(Map<String, String> params) {
+        long code = parseLong(params.get("code"), -1);
+        return code < Integer.MIN_VALUE || code > Integer.MAX_VALUE ? -1 : (int) code;
     }
     private static Map<String, String> stopParameters(String details) {
         LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
@@ -700,10 +704,13 @@ public final class RideStore {
             }
             if (dt > MAX_INTEGRATION_INTERVAL_MS && samples > 0) gaps++;
             previousPower = power; previousSpeed = speed; samples++;
-            if (voltage != null || current != null || speed != null || soc != null || odo != null) {
+            Double chargingState = number(m, "charging_state", mono);
+            // Any fresh, valid scooter value this ride records moves the shown end, not only the energy inputs.
+            if (voltage != null || current != null || speed != null || soc != null || odo != null
+                    || temperature != null || chargingState != null) {
                 readingWall = wall; readingMono = mono; readingElapsed = elapsed; readingGaps = gaps;
             }
-            Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, number(m, "charging_state", mono), speedMs);
+            Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, chargingState, speedMs);
             lastPoint = point;
             if (rangeInspector != null) rangeInspector.accept(point);
             if (keepAllPoints) points.add(point);
