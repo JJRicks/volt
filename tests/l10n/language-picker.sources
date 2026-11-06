@@ -1,0 +1,4 @@
+# The Language sheet's lists: shipped languages to choose, draft languages In progress. tests/run.sh compiles
+# every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/LanguagePickerTest.java
+src/com/jjricks/volt/LanguagePicker.java

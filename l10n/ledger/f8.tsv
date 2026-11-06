@@ -1,0 +1,12 @@
+# Ledger for f8: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+#
+# F8, the last hard-coded %,d texts: the Data & history counts and storage card screen-reader text, and the
+# phone track's GPS caption. tests/l10n/characterization/GroupedCountsEnglishTest.java pinned the base English first.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MoreScreen.java:1191	[{"spec": "%,d", "arg": 1, "value": "rows[i]", "as": "Fmt.groupedInteger(Locale.US, rows[i])", "quantity": true}, " saved"]	more_history_samples_saved	format	
+src/com/jjricks/volt/MoreScreen.java:1196	["Local storage, ", {"hole": "used", "arg": 1, "type": "s"}, " used. ", {"hole": "String.format(Locale.US, \"%,d detailed, %,d minute and %,d daily samples saved.\", rows[0], rows[1], rows[2])", "arg": 2, "type": "s", "as": "T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))"}]	more_history_storage_description	template	manual: the samples sentence (%2$s) is the String.format that the format row below moves to more_history_samples_description, so the call passes that row's T call in its place
+src/com/jjricks/volt/MoreScreen.java:1197	[{"spec": "%,d", "arg": 1, "value": "rows[0]", "as": "Fmt.groupedInteger(Locale.US, rows[0])"}, " detailed, ", {"spec": "%,d", "arg": 2, "value": "rows[1]", "as": "Fmt.groupedInteger(Locale.US, rows[1])"}, " minute and ", {"spec": "%,d", "arg": 3, "value": "rows[2]", "as": "Fmt.groupedInteger(Locale.US, rows[2])"}, " daily samples saved."]	more_history_samples_description	format	
+src/com/jjricks/volt/RidesScreen.java:1268	["No GPS fixes"]	rides_gps_no_fixes	exact	
+src/com/jjricks/volt/RidesScreen.java:1268	[{"spec": "%,d", "arg": 1, "value": "track.locationCount", "as": "Fmt.groupedInteger(Locale.US, track.locationCount)", "quantity": true}, " fixes"]	rides_gps_fixes	format	
+src/com/jjricks/volt/RidesScreen.java:1268	[" · ", {"spec": "%,d", "arg": 1, "value": "dropped", "as": "Fmt.groupedInteger(Locale.US, dropped)", "quantity": true}, " dropped"]	rides_gps_dropped	format	the glued clause it was: " · %,d dropped" after the fixes count

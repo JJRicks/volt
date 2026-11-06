@@ -366,7 +366,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         captureScroll();if(screen!=null)screen.close();
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark:R.style.VoltLight);
-        expanded=getResources().getConfiguration().screenWidthDp>=650;
+        expanded=design.wideLayout();
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
@@ -2811,6 +2811,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
         showEmailSheet(subject,body,report,null,null);return true;
     }
+    /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
+    @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
     static final String REPORT_DIAGNOSTICS="report_diagnostics";
     /** The open diagnostics preview, over the email sheet. */

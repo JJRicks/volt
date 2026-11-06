@@ -16,6 +16,14 @@
     <!-- Sections -->
     <!-- Spoken name of the Live Stats section tabs. -->
     <string name="stats_sections_description" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats section</string>
+    <!-- The Live Stats section tabs, side by side in one narrow segmented row (four on a phone, three on a wide screen, where Readings stays open beside them). The row scrolls rather than break a word or shrink the text, so keep each tab one short word. The choice is stored by its English id, never by this text. -->
+    <string name="stats_tab_overview" volt:screen="Live Stats, section tabs" volt:purpose="tab" volt:max="72dp@13sp">Overview</string>
+    <!-- A Live Stats section tab: every reading the scooter reports, with search. -->
+    <string name="stats_tab_readings" volt:screen="Live Stats, section tabs" volt:purpose="tab" volt:max="72dp@13sp">Readings</string>
+    <!-- A Live Stats section tab: the chart browser. -->
+    <string name="stats_tab_charts" volt:screen="Live Stats, section tabs" volt:purpose="tab" volt:max="72dp@13sp">Charts</string>
+    <!-- A Live Stats section tab: device details, connection events and raw payloads. -->
+    <string name="stats_tab_diagnostics" volt:screen="Live Stats, section tabs" volt:purpose="tab" volt:max="72dp@13sp">Diagnostics</string>
 
     <!-- Overview -->
     <string name="stats_overview_waiting" volt:screen="Live Stats › Overview" volt:purpose="heading">Waiting for readings</string>

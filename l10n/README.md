@@ -403,9 +403,14 @@ How `ledger_check.py` (G1) reads it:
 - A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
   count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
   a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
-- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
-  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
-  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A `format` row's `%d` or `%,d` may carry `"quantity": true` when its key is a plural: head passes the
+  base argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`, or
+  `T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i]))` for `%,d`), and every English
+  item must print the one sentence `String.format` printed at every count, so `one` cannot say "1 ride"
+  here either. The number itself goes through the `Fmt` call `FMT_SPECS` pairs with the specifier, so
+  a `%,d` quantity printed with `Fmt.integer` or `Fmt.grouped` fails; FmtLegacyTest compares
+  `Fmt.groupedInteger` with `%,d` at the counts a plural samples and at grouped ones (1234, 1000000).
+  A decimal (`%.1f`, `%,.0f`) never takes `"quantity"`.
 - A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
   string with a `removed` row). The statement must be one declarator, with only literals, numbers,
   names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
@@ -436,7 +441,8 @@ How `ledger_check.py` (G1) reads it:
     out, and each `value` is the argument that specifier formats at the merge base;
   - each specifier's `as` is the `Fmt` call `FMT_SPECS` in `ledger_check.py` pairs with it, with the
     `String.format` call's locale: `%.Nf` is `Fmt.decimal(<locale>, <value>, N)`, `%,.Nf` is
-    `Fmt.grouped(<locale>, <value>, N)` and `%d` is `Fmt.integer(<value>)` (only with `Locale.US`,
+    `Fmt.grouped(<locale>, <value>, N)`, `%,d` is `Fmt.groupedInteger(<locale>, <value>)` and `%d` is
+    `Fmt.integer(<value>)` (only with `Locale.US`,
     `Locale.ROOT` or `Locale.ENGLISH`, since `%d` prints the locale's digits). A plain `%s` (or
     `%n$s`) prints its argument as it is, so its `as` is the `value` itself, with only string
     literals in it turned into `T.<key>()` calls: `"%.2f %s"` with `metric ? "mph" : "mi"` becomes

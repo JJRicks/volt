@@ -38,7 +38,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
             AlertDialog optionsDialog = (AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1);
             main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) != null, "Phone placement uses sliding selector"); text(options, "Mounted").performClick(); check(activity.service().settings.getString("phone_placement", "").equals("mounted"), "Placement saves immediately"); text(options, "Pocket").performClick(); optionsDialog.dismiss(); });
             settle(); check(!optionsDialog.isShowing(), "Phone options sheet closed before reading the ride");
-            if (context.getResources().getConfiguration().screenWidthDp < 650) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
+            if (!Boolean.TRUE.equals(field(screen, "wide"))) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
             settle();
             check(text(screen.view(), "Energy direction") == null, "Redundant current-direction selection removed");
             View root = root(); check(find(root, RideChartView.class) != null, "Unified chart exists");
@@ -194,7 +194,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen)field(activity, "screen");
                 // Expanded layouts use their real detail pane; opening a compact-only dialog here
                 // left an extra window under the next Phone sensors sheet.
-                if (activity.getResources().getConfiguration().screenWidthDp >= 650) invoke(screen, "selectRide", new Class[]{String.class}, id);
+                if (Boolean.TRUE.equals(field(screen, "wide"))) invoke(screen, "selectRide", new Class[]{String.class}, id);
             }); settle();
         }
         check(!service.ble.connected() && !service.isRecording(), "Immediate-start fixture leaves no connection or capture running");

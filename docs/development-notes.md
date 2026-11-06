@@ -103,7 +103,8 @@ enable scooter controls, extend the background grace, start phone sensors, or
 change ride-energy integration. Preserve gaps between connections and do not
 store owner identity or PIN traffic. Dashboard placement is per scooter,
 compact/expanded window class and column count. The window class follows the
-navigation breakpoint (650 dp), independently
+navigation breakpoint (`Ui.wideLayout()`: the window width over the text
+scale, Text size times the system font scale, reaches 650 dp), independently
 of the selected columns. Capture it when constructing the dashboard so a fold
 cancels any in-flight gesture into its original layout. Legacy placements are
 deep-copied into both window classes before editing; widget settings and membership

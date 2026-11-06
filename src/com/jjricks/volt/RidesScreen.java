@@ -112,8 +112,8 @@ public final class RidesScreen implements AppScreen {
         selected = new LinkedHashSet<String>(preferences.getStringSet("ride_comparison", new LinkedHashSet<String>()));
         chartKey = preferences.getString("ride_chart_key", "power_w");
         selectedRide = preferences.getString("ride_selected", "");
-        // Same trigger as the activity's side rail, so two panes appear exactly when the rail does.
-        wide = host.activity().getResources().getConfiguration().screenWidthDp >= 650;
+        // Same rule as the activity's side rail (Ui.wideLayout), so two panes appear exactly when the rail does.
+        wide = ui.wideLayout();
         scroll = new MapTouchScroll(); scroll.setFillViewport(true); scroll.setClipToPadding(false);
         page = vertical(); page.setPadding(wide ? 0 : ui.dp(18), ui.dp(6), wide ? 0 : ui.dp(18), ui.dp(24)); scroll.addView(page);
 
@@ -1265,7 +1265,7 @@ public final class RidesScreen implements AppScreen {
         PhoneRide ride = mapPanel(track, top, inline, false);
         bottom.addView(ui.sectionLabel(T.ridesPhoneRoute()));
         int dropped = track.rejectedLocationCount + track.rejectedElevationCount;
-        TextView fixes = ui.caption(track.locationCount == 0 ? "No GPS fixes" : String.format(Locale.US, "%,d fixes", track.locationCount) + (dropped > 0 ? String.format(Locale.US, " · %,d dropped", dropped) : ""));
+        TextView fixes = ui.caption(track.locationCount == 0 ? T.ridesGpsNoFixes() : T.ridesGpsFixes(track.locationCount, Fmt.groupedInteger(Locale.US, track.locationCount)) + (dropped > 0 ? T.ridesGpsDropped(dropped, Fmt.groupedInteger(Locale.US, dropped)) : ""));
         fixes.setContentDescription(track.statusText()); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
         if (track.distanceMeters != null) tileReadings(distanceParts(track.distanceMeters / 1000));
         tileReadings(ascentParts(track.ascentMeters, track.descentMeters));

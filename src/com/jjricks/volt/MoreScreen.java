@@ -149,7 +149,7 @@ public final class MoreScreen implements AppScreen {
     MoreScreen(ScreenHost host, String initialSection) {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
-        wide = !standalone && host.activity().getResources().getConfiguration().screenWidthDp >= 650;
+        wide = !standalone && ui.wideLayout();
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();
@@ -964,33 +964,41 @@ public final class MoreScreen implements AppScreen {
     // ---- App preferences ----------------------------------------------------------------
 
     /**
-     * The Language row (plan 5.1), directly below Appearance, offered only once a language other than
-     * English ships, or with the pseudo APK while Developer options are on. The card is built here but
-     * stays out of the section until offered: a GONE child would still take a child slot and shift every
-     * later sibling's index, so English view trees must not hold it at all.
+     * The Language row (plan 5.1), first in the display card with Units and Text size, offered only once a
+     * language other than English ships, or with the pseudo APK while Developer options are on. The row is
+     * built here, in a holder of its own that is never attached, and stays out of the card until offered:
+     * a GONE child would still take a child slot and shift every later sibling's index, so view trees
+     * without the row must not hold it, or its divider, at all.
      */
-    private void languageRow() {
-        LinearLayout section = cardDestination;
-        LinearLayout language = ui.groupCard();
-        language.setTag("preference_language");
-        Row row = row(language, "text", T.moreLanguageTitle(), null,
+    private void languageRow(LinearLayout display) {
+        LinearLayout holder = column();
+        Row row = row(holder, "globe", T.moreLanguageTitle(), null,
                 () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
+        View language = row.view;
+        language.setTag("preference_language");
+        holder.removeView(language);
+        View divider = new View(host.activity());
+        divider.setBackgroundColor(ui.raised);
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
-            if (offered) row.value(LanguageSheet.value(host.activity()));
-            placeLanguageRow(section, language, offered);
+            // The current language goes under the title, as Android's own language setting shows it: the
+            // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
+            // at large text sizes.
+            if (offered) row.sub(LanguageSheet.value(host.activity()));
+            placeLanguageRow(display, language, divider, offered, ui.dp(1));
         });
     }
 
-    /** Attaches the Language card below the first selector (Appearance) once, and detaches it when not offered. */
-    private static void placeLanguageRow(LinearLayout section, View language, boolean offered) {
-        boolean attached = language.getParent() == section;
-        if (!offered) { if (attached) section.removeView(language); return; }
+    /**
+     * Attaches the Language row, then a divider, at the top of the display card once, and detaches both
+     * when not offered. The divider matches Ui.divider: the card's raised colour, 1 dp tall.
+     */
+    private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line) {
+        boolean attached = language.getParent() == display;
+        if (!offered) { if (attached) { display.removeView(divider); display.removeView(language); } return; }
         if (attached) return;
-        int below = section.getChildCount();
-        for (int i = 0; i < section.getChildCount(); i++)
-            if (section.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
-        section.addView(language, below);
+        display.addView(language, 0, new LinearLayout.LayoutParams(-1, -2));
+        display.addView(divider, 1, new LinearLayout.LayoutParams(-1, line));
     }
 
     private void preferences() {
@@ -1000,9 +1008,9 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
-        languageRow();
         LinearLayout display = group();
         display.setTag("preference-display-options");
+        languageRow(display);
         Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
         units.view.setTag("preference-units-menu");
         valueRefreshers.add(() -> units.value(unitsSummary()));
@@ -1238,13 +1246,13 @@ public final class MoreScreen implements AppScreen {
             ((LinearLayout.LayoutParams) historyBarRest.getLayoutParams()).weight = 1f - share;
             historyBar.requestLayout();
             long[] rows = {storage.detailedRows, storage.minuteRows, storage.dailyRows};
-            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(String.format(Locale.US, "%,d saved", rows[i]));
+            for (int i = 0; i < rows.length; i++) historyCounts[i].setText(T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i])));
             historyStatus.setText(storage.status == null ? "" : storage.status);
             // Shown in the current language; storage.status stays TelemetryHistory's English id (statusMsg's English is the id).
             if (storage.status != null) historyStatus.setText(storage.statusMsg().toString());
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
-            historyStorageCard.setContentDescription("Local storage, " + used + " used. "
-                    + String.format(Locale.US, "%,d detailed, %,d minute and %,d daily samples saved.", rows[0], rows[1], rows[2]));
+            historyStorageCard.setContentDescription(T.moreHistoryStorageDescription(used,
+                    T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
             dataIndexRow.value(mib(storage.bytes));
         });
     }
@@ -1637,8 +1645,8 @@ public final class MoreScreen implements AppScreen {
         if (!signature.equals(labSignature)) { labSignature = signature; buildLab(r, d, tryable, verify, absent); }
         boolean experimental = !tryable.isEmpty() || absent.stream().anyMatch(labKeys::contains), rows = experimental || !verify.isEmpty() || !absent.isEmpty();
         labTitle.setText(experimental ? T.moreLabUntested() : rows ? T.moreLabHelpVerify() : T.moreLabNothing());
-        labIntro.setText(experimental ? "The official app doesn't offer these for " + labModel(d) + ". Try one while parked; Volt reads it back."
-                : rows ? "The official app offers these for " + labModel(d) + ", but Volt hasn't tested them there. Try one while parked; Volt reads it back." : labEmpty(r, d));
+        labIntro.setText(experimental ? T.moreLabIntroUntested(labModel(d))
+                : rows ? T.moreLabIntroVerify(labModel(d)) : labEmpty(r, d));
         boolean offeredElsewhere = r.layer == ModelRegistry.Layer.OEM_GROUP || r.layer == ModelRegistry.Layer.UT5_MAX;
         String kept = rows ? T.moreLabKept() : "";
         labFoot.setText((r.layer == ModelRegistry.Layer.OEM_GROUP
@@ -1681,7 +1689,7 @@ public final class MoreScreen implements AppScreen {
     private static String labEmpty(ModelRegistry.Resolution r, DeviceDescriptor d) {
         switch (r.layer) {
             case UNSUPPORTED_PRODUCT: case UNSUPPORTED_TRANSPORT: return T.moreLabEmptyProduct();
-            case OEM_GROUP: return "Nothing to try on " + labModel(d) + ": the official app already offers the controls Volt could try. They're in Scooter settings.";
+            case OEM_GROUP: return T.moreLabEmptyOem(labModel(d));
             case UT5_MAX: return T.moreLabEmptyUt5();
             default:
                 if (r.conflict) return T.moreLabEmptyConflict();
@@ -1692,8 +1700,8 @@ public final class MoreScreen implements AppScreen {
     }
     /** "the UT5 MAX", "the N65i", "Model 24431" or "your model". */
     private static String labModel(DeviceDescriptor d) {
-        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return "the " + name;
-        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? "your model" : line;
+        String name = ModelRegistry.modelName(d); if (!name.isEmpty()) return T.moreLabModelNamed(name);
+        String line = ModelRegistry.modelLine(d); return line.isEmpty() ? T.moreLabModelYours() : line;
     }
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
@@ -1925,7 +1933,7 @@ public final class MoreScreen implements AppScreen {
             caution.setBackground(ui.shape(Ui.withAlpha(ui.orange, ui.dark ? 26 : 18), 18, Ui.withAlpha(ui.orange, ui.dark ? 80 : 70)));
             caution.addView(ui.icon("lab", 22, ui.orange), new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
             LinearLayout cw = column();
-            cw.addView(ui.text((verify ? "Unverified on " : "Untested on ") + labModel(ble.descriptor()), 15, true));
+            cw.addView(ui.text(verify ? T.moreLabSheetUnverified(labModel(ble.descriptor())) : T.moreLabSheetUntested(labModel(ble.descriptor())), 15, true));
             TextView why = ui.text(verify ? T.moreLabVerifyWhy()
                     : labWhy(f.key, ble.descriptor()), 13.5f, false);
             why.setTextColor(ui.muted); why.setPadding(0, ui.dp(4), 0, 0); cw.addView(why);
