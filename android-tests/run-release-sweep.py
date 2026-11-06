@@ -120,6 +120,9 @@ STEPS = [
     runner('ride-auto-stop', 'run-ride-auto-stop.py', ['RideAutoStopValidation']),
     runner('ride-backups', 'run-ride-backups.py', ['RideBackupValidation']),
     runner('rides', 'run-rides.py', ['RidesAnalysisValidation']),
+    # Seeds many rides and times the first Rides open. Without --enforce the times are reported against the budgets, not
+    # gated (an emulator's times vary run to run); the step still fails when a seed or measure run does not PASS.
+    runner('rides-timing', 'run-rides-timing.py', ['RidesTimingValidation']),
     runner('live-stats', 'run-live-stats.py', ['LiveStatsValidation']),
     runner('responsive', 'run-responsive.py', ['ResponsiveDashboardValidation']),
     # The default matrix leaves out the modes whose checks run nowhere else.
