@@ -1596,9 +1596,12 @@ public final class ScooterService extends Service {
                 &&now-value.mono<=TelemetryHistory.freshnessMs(key);
     }
 
-    /** Losing readiness or charging freshness invalidates grace even when no widget is open. */
+    /**
+     * Losing readiness or charging freshness invalidates grace even when no widget is open. linked(), so a background
+     * link between its 15 s status reads keeps the gate: the live card's time left must not switch estimates every poll.
+     */
     private boolean canRetainStockReference(){
-        if(destroyed||simulating()||ble==null||!ble.ready()||profiles.active()==null||ble.profile()==null
+        if(destroyed||simulating()||ble==null||!ble.linked()||profiles.active()==null||ble.profile()==null
                 ||!profiles.active().id.equals(ble.profile().id))return false;
         long now=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> values=new HashMap<>();
