@@ -149,7 +149,7 @@ public final class MoreScreen implements AppScreen {
     MoreScreen(ScreenHost host, String initialSection) {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
-        wide = !standalone && host.activity().getResources().getConfiguration().screenWidthDp >= 650;
+        wide = !standalone && ui.wideLayout();
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();

@@ -92,8 +92,7 @@ public final class DashboardScreen implements AppScreen {
         // Default Setting tiles follow the model once Volt knows it (a GT5 Max has no scheduled charging).
         modelIdentity = identity(profile);
         java.util.List<String> modelTiles = profile == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(profile.savedDescriptor());
-        config = new DashboardConfig(preferences, profileId,
-                host.activity().getResources().getConfiguration().screenWidthDp >= 650, modelTiles);
+        config = new DashboardConfig(preferences, profileId, ui.wideLayout(), modelTiles);
         restoreUndoKey = "dashboard_restore_undo_v1_" + profileId;
         reconcileModelTiles(modelTiles, profile == null ? null : ModelTiles.previousSettingTiles(profile.savedDescriptor()));
         editing = preferences.getBoolean("dashboard_editing", false);
