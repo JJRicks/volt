@@ -653,7 +653,9 @@ final class BackupArchive {
                     return rule != null && rule.perProfile && target.equals(rule.profile(key)) && (category.equals(rule.category) || (category.equals(BackupRegistry.DASHBOARDS) && rule.excluded() && rule.key.startsWith("dashboard_"))); });
                 for (Map.Entry<String, Object> entry : prepared.preferences.get(name).entrySet()) {
                     BackupRegistry.Rule rule = BackupRegistry.rule(name, entry.getKey());
-                    if (rule != null && category.equals(rule.category) && rule.perProfile && source.equals(rule.profile(entry.getKey()))) result.get(name).put(rule.rename(entry.getKey(), target), entry.getValue());
+                    if (rule != null && category.equals(rule.category) && rule.perProfile && source.equals(rule.profile(entry.getKey())))
+                        // Onto another profile, a maintenance document drops the other scooter's raw odometer baseline.
+                        result.get(name).put(rule.rename(entry.getKey(), target), source.equals(target) ? entry.getValue() : MaintenanceStore.movedToAnotherScooter(entry.getKey(), entry.getValue()));
                 }
             }
         }
