@@ -25,7 +25,7 @@ import java.util.*;
  */
 final class MaintenancePolicy {
     static final int MAX_REMINDERS = 30, MAX_EVENTS = 20, MAX_NAME = 80, MAX_ID = 64, MAX_DAYS = 3650, MAX_MONTHS = 120;
-    static final double MAX_KM = 100_000, SOON = 0.8;
+    static final double MAX_KM = 100_000, SOON = 0.8, MAX_ODOMETER_KM = 1e9;
     /** The snooze choices, in days (owner answer Q43). */
     static final int[] SNOOZE_DAYS = {1, 3, 7};
     static final String ADDED = "added", DONE = "done", SNOOZED = "snoozed";
@@ -83,7 +83,8 @@ final class MaintenancePolicy {
         if (r.km != null && !(r.km > 0 && r.km <= MAX_KM)) return false;
         if (r.days < 0 || r.months < 0 || r.days > MAX_DAYS || r.months > MAX_MONTHS || r.days > 0 && r.months > 0) return false;
         if (!r.byDistance() && !r.byTime()) return false;
-        if (!Double.isNaN(r.baseAccKm) && !(r.baseAccKm >= 0 && !Double.isInfinite(r.baseAccKm))) return false;
+        // Negative when a backdated service predates the count (MaintenanceDistance.accumulatedAtRaw).
+        if (Double.isInfinite(r.baseAccKm) || Math.abs(r.baseAccKm) > MAX_ODOMETER_KM) return false;
         return r.baseWall > 0 && r.snoozeUntil >= 0;
     }
 

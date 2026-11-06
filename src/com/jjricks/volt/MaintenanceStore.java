@@ -10,7 +10,7 @@ import java.util.*;
  * never backed up; the two prefixes share no common start, so no key matches both rules.
  *
  * <pre>{"v":1,"on":true,
- *  "distance":{"lastRawKm":2009.4,"lastWall":1762300000000,"bits":32,"accKm":2009.4,"resetWall":0},
+ *  "distance":{"lastRawKm":2009.4,"lastWall":1762300000000,"bits":32,"accKm":2009.4,"resetWall":0,"floorRawKm":0.0},
  *  "reminders":[{"id":"r1","task":"brakes","name":"","km":482.8032,"days":0,"months":0,"notify":true,
  *    "baseAccKm":1661.8,"baseWall":1759400000000,"snoozeUntil":0,
  *    "events":[{"t":"done","wall":1759400000000,"accKm":1661.8}]}]}</pre>
@@ -67,7 +67,7 @@ final class MaintenanceStore {
     }
 
     private static final List<String> TOP = Arrays.asList("v", "on", "distance", "reminders");
-    private static final List<String> DISTANCE = Arrays.asList("lastRawKm", "lastWall", "bits", "accKm", "resetWall");
+    private static final List<String> DISTANCE = Arrays.asList("lastRawKm", "lastWall", "bits", "accKm", "resetWall", "floorRawKm");
     private static final List<String> REMINDER = Arrays.asList("id", "task", "name", "km", "days", "months", "notify", "baseAccKm", "baseWall", "snoozeUntil", "events");
     private static final List<String> EVENT = Arrays.asList("t", "wall", "accKm");
 
@@ -81,6 +81,8 @@ final class MaintenanceStore {
         long bits = whole(o.get("bits"), 0);
         d.bits = bits == 8 || bits == 16 || bits == 32 ? (int) bits : MaintenanceDistance.BITS_UNKNOWN;
         d.resetWall = Math.max(0, whole(o.get("resetWall"), 0));
+        double floor = number(o.get("floorRawKm"), 0);
+        d.floorRawKm = floor >= 0 && !Double.isInfinite(floor) ? floor : 0;
         return d;
     }
 
@@ -116,7 +118,7 @@ final class MaintenanceStore {
         double acc = number(o.get("accKm"), Double.NaN);
         Map<String, Object> extra = new LinkedHashMap<>();
         for (Map.Entry<String, Object> e : o.entrySet()) if (!EVENT.contains(e.getKey())) extra.put(e.getKey(), e.getValue());
-        return new MaintenancePolicy.Event(type, wall, acc >= 0 && !Double.isInfinite(acc) ? acc : Double.NaN, extra);
+        return new MaintenancePolicy.Event(type, wall, Math.abs(acc) <= MaintenancePolicy.MAX_ODOMETER_KM ? acc : Double.NaN, extra);
     }
 
     // ---- Encode -----------------------------------------------------------------------------
@@ -128,7 +130,7 @@ final class MaintenanceStore {
         MaintenanceDistance d = s.distance;
         Map<String, Object> distance = new LinkedHashMap<>();
         if (d.hasBaseline()) distance.put("lastRawKm", d.lastRawKm);
-        distance.put("lastWall", d.lastWall); distance.put("bits", (long) d.bits); distance.put("accKm", d.accumulatedKm); distance.put("resetWall", d.resetWall);
+        distance.put("lastWall", d.lastWall); distance.put("bits", (long) d.bits); distance.put("accKm", d.accumulatedKm); distance.put("resetWall", d.resetWall); distance.put("floorRawKm", d.floorRawKm);
         for (Map.Entry<String, Object> x : s.distanceExtra.entrySet()) if (!distance.containsKey(x.getKey())) distance.put(x.getKey(), x.getValue());
         o.put("distance", distance);
         List<Object> reminders = new ArrayList<>();

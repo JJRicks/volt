@@ -8,9 +8,11 @@ package com.jjricks.volt;
  * <ul>
  * <li>Forward readings are added in full, big jumps included: rides with the official app or
  *     with no phone are real distance.</li>
- * <li>A backward reading whose previous value was in the top 5 % of the field is a wrap, and
- *     the wrapped distance is added. Any other backward reading is a reset or swap: Volt
- *     re-baselines without adding and records {@link #resetWall}.</li>
+ * <li>A backward reading is a wrap only when the previous value was in the top 5 % of the field
+ *     and the new one is in the bottom 5 %, so the distance across the wrap is small; the wrapped
+ *     distance is added. Any other backward reading (250 to 240 on a 1-byte field, say) is a
+ *     reset or swap: Volt re-baselines without adding and records {@link #resetWall}. A real
+ *     wrap with a longer ride between connections is undercounted, never overcounted.</li>
  * <li>A backward step of at most {@link #JITTER_KM} is ignored, so a one-off glitch neither adds
  *     distance nor reads as a reset.</li>
  * <li>A change of field width (say 16-bit to 32-bit after a firmware update) re-baselines without
@@ -22,7 +24,7 @@ final class MaintenanceDistance {
     /** Field widths Telemetry decodes: v0 1-byte whole km, v1 16-bit and 32-bit tenths. 0 is unknown. */
     static final int BITS_UNKNOWN = 0, BITS_8 = 8, BITS_16 = 16, BITS_32 = 32;
     static final double WRAP_WINDOW = 0.05, JITTER_KM = 0.2, WRITE_STEP_KM = 0.1;
-    static final long STALE_MS = 7L * 24 * 60 * 60 * 1000;
+    static final long STALE_MS = 7L * 24 * 60 * 60 * 1000, FRESHNESS_WRITE_MS = 6L * 60 * 60 * 1000;
 
     /** REBASELINE: a new baseline without adding (after a merge cleared it, or the field width changed). */
     enum Kind { FIRST, REBASELINE, FORWARD, SAME, WRAP, RESET, IGNORED }
@@ -41,10 +43,16 @@ final class MaintenanceDistance {
     double accumulatedKm;
     /** Wall time of the last reset or swap; 0 when none. */
     long resetWall;
+    /**
+     * The lowest raw odometer value still on the current odometer, for backdated services: 0 after
+     * the first reading (and after a merge's re-baseline, on the new scooter's own odometer), the
+     * first reading after a reset or field-width change, and 0 again after a wrap (the current lap).
+     */
+    double floorRawKm;
 
     MaintenanceDistance copy() {
         MaintenanceDistance d = new MaintenanceDistance();
-        d.lastRawKm = lastRawKm; d.lastWall = lastWall; d.bits = bits; d.accumulatedKm = accumulatedKm; d.resetWall = resetWall;
+        d.lastRawKm = lastRawKm; d.lastWall = lastWall; d.bits = bits; d.accumulatedKm = accumulatedKm; d.resetWall = resetWall; d.floorRawKm = floorRawKm;
         return d;
     }
 
@@ -66,6 +74,8 @@ final class MaintenanceDistance {
         if (Double.isNaN(rawKm) || Double.isInfinite(rawKm) || rawKm < 0) return new Outcome(Kind.IGNORED, 0);
         if (!hasBaseline() || readingBits != bits) {
             boolean first = !hasBaseline() && !everRead();
+            // Without a baseline (first read, merge) the whole odometer is this scooter's; after a width change only the new values are comparable.
+            floorRawKm = hasBaseline() ? rawKm : 0;
             baseline(rawKm, readingBits, wall);
             return new Outcome(first ? Kind.FIRST : Kind.REBASELINE, 0);
         }
@@ -76,13 +86,13 @@ final class MaintenanceDistance {
         }
         if (-delta <= JITTER_KM) { lastWall = Math.max(lastWall, wall); return new Outcome(Kind.IGNORED, 0); }
         double period = period(bits);
-        if (period > 0 && lastRawKm >= period * (1 - WRAP_WINDOW) && rawKm < period) {
+        if (period > 0 && lastRawKm >= period * (1 - WRAP_WINDOW) && rawKm <= period * WRAP_WINDOW) {
             double added = round(period - lastRawKm + rawKm);
-            accumulatedKm = round(accumulatedKm + added); lastRawKm = rawKm; lastWall = Math.max(lastWall, wall);
+            accumulatedKm = round(accumulatedKm + added); lastRawKm = rawKm; lastWall = Math.max(lastWall, wall); floorRawKm = 0;
             return new Outcome(Kind.WRAP, added);
         }
         baseline(rawKm, readingBits, wall);
-        resetWall = wall;
+        resetWall = wall; floorRawKm = rawKm;
         return new Outcome(Kind.RESET, 0);
     }
 
@@ -96,20 +106,40 @@ final class MaintenanceDistance {
     /** Forgets the raw baseline, keeping the counted distance; the next reading re-baselines without adding. */
     void clearBaseline() { lastRawKm = Double.NaN; }
 
-    /**
-     * The maintenance distance at a past odometer value, for "I changed the tires at 1,000 km":
-     * the counted distance less what the odometer went since then. NaN when there's no baseline
-     * or the value is ahead of the last reading. Never below 0.
-     */
-    double accumulatedAtRaw(double rawKm) {
-        if (!hasBaseline() || Double.isNaN(rawKm) || rawKm < 0 || rawKm > lastRawKm) return Double.NaN;
-        return Math.max(0, accumulatedKm - (lastRawKm - rawKm));
+    /** Why a past odometer value can or can't be used for a backdated service. */
+    enum Backdate { OK, NO_BASELINE, INVALID, AHEAD, BEFORE_RESET }
+
+    /** A backdated service's place on the maintenance count; accKm is NaN unless kind is OK. */
+    static final class AtRaw {
+        final Backdate kind; final double accKm;
+        AtRaw(Backdate kind, double accKm) { this.kind = kind; this.accKm = accKm; }
     }
 
-    /** Whether this state differs enough from the saved one to be worth a preferences write. */
+    /**
+     * The maintenance distance at a past odometer value, for "I changed the tires at 1,000 km":
+     * the counted distance less what the odometer went since then. It may be negative: a service
+     * at 1,000 km seen first at 2,000 km is 1,000 km before the count began, and a reminder based
+     * there has 1,000 km gone. Declined, never clamped, when the value can't be tied to the current
+     * odometer: no baseline, ahead of the last reading (or in an earlier lap of a wrapped field), or
+     * below the first reading after a reset or field-width change.
+     */
+    AtRaw accumulatedAtRaw(double rawKm) {
+        if (!hasBaseline()) return new AtRaw(Backdate.NO_BASELINE, Double.NaN);
+        if (Double.isNaN(rawKm) || Double.isInfinite(rawKm) || rawKm < 0) return new AtRaw(Backdate.INVALID, Double.NaN);
+        if (rawKm > lastRawKm) return new AtRaw(Backdate.AHEAD, Double.NaN);
+        if (rawKm < floorRawKm) return new AtRaw(Backdate.BEFORE_RESET, Double.NaN);
+        return new AtRaw(Backdate.OK, round(accumulatedKm - (lastRawKm - rawKm)));
+    }
+
+    /**
+     * Whether this state differs enough from the saved one to be worth a preferences write: 0.1 km
+     * more, a new baseline, a reset, or a reading at least 6 h newer than the saved one, so a
+     * scooter that sits still isn't shown as stale after a restart.
+     */
     boolean worthSaving(MaintenanceDistance saved) {
         if (saved == null) return true;
-        if (saved.bits != bits || saved.resetWall != resetWall || saved.hasBaseline() != hasBaseline()) return true;
+        if (saved.bits != bits || saved.resetWall != resetWall || saved.hasBaseline() != hasBaseline() || saved.floorRawKm != floorRawKm) return true;
+        if (lastWall - saved.lastWall >= FRESHNESS_WRITE_MS) return true;
         return Math.abs(accumulatedKm - saved.accumulatedKm) >= WRITE_STEP_KM - 1e-9;
     }
 }

@@ -49,6 +49,9 @@ public final class MaintenancePolicyTest {
         check(s.state == State.WAITING, "the odometer never read: waiting");
         Reminder miles = MaintenancePolicy.create("m", "", "Chain-free belt look", 300 * 1.609344, 0, 0, false, now, 0, now);
         check(MaintenancePolicy.status(miles, now, 300 * 1.609344, DENVER).state == State.DUE, "an interval typed in miles is exact km and comes due exactly");
+        Reminder before = MaintenancePolicy.create("bd", MaintenanceDefaults.BRAKES, "", 500.0, 0, 0, true, now, -1000, now);
+        Status sb = MaintenancePolicy.status(before, now, 0, DENVER);
+        check(sb.state == State.DUE && near(sb.kmLeft, -500), "a base before the count (backdated service) counts its whole distance");
     }
 
     private static void time() {
