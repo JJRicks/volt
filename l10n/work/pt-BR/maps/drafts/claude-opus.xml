@@ -2,20 +2,20 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="maps_track_no_fixes" volt:src="c96f7977cd44d70f62166a13431905fd5b605455">Nenhum ponto de GPS utilizável registrado</string>
-    <plurals name="maps_track_fixes" volt:src="a38c4d8085459c95a918745e2adef25b32b5fb46">
+    <plurals name="maps_track_fixes" volt:src="c79110d1e3f0f5c3cd7055067bb27b237368ab1d">
         <item quantity="one">%1$d ponto de GPS</item>
         <item quantity="many">%1$d pontos de GPS</item>
         <item quantity="other">%1$d pontos de GPS</item>
     </plurals>
-    <plurals name="maps_track_fixes_low_quality" volt:src="2dc86546f80ff6b4627cb91526c191d0dd0f371e">
-        <item quantity="one">%1$s · %2$d ponto de baixa qualidade excluído</item>
-        <item quantity="many">%1$s · %2$d pontos de baixa qualidade excluídos</item>
-        <item quantity="other">%1$s · %2$d pontos de baixa qualidade excluídos</item>
+    <plurals name="maps_track_fixes_low_quality" volt:src="f717a9b1d0725399e06b0e14c9b10dcba723bbce">
+        <item quantity="one">%1$s · %2$d ponto de baixa qualidade descartado</item>
+        <item quantity="many">%1$s · %2$d pontos de baixa qualidade descartados</item>
+        <item quantity="other">%1$s · %2$d pontos de baixa qualidade descartados</item>
     </plurals>
-    <plurals name="maps_track_fixes_outliers" volt:src="f3a8030b94fba20b0b5de355eb56f1ecffd59cf1">
-        <item quantity="one">%1$s · %2$d valor discrepante de altitude excluído</item>
-        <item quantity="many">%1$s · %2$d valores discrepantes de altitude excluídos</item>
-        <item quantity="other">%1$s · %2$d valores discrepantes de altitude excluídos</item>
+    <plurals name="maps_track_fixes_outliers" volt:src="37dec52013aa06a955a5e45583fa6227b161147d">
+        <item quantity="one">%1$s · %2$d valor atípico de altitude descartado</item>
+        <item quantity="many">%1$s · %2$d valores atípicos de altitude descartados</item>
+        <item quantity="other">%1$s · %2$d valores atípicos de altitude descartados</item>
     </plurals>
     <string name="maps_source_usgs" volt:src="b0d4b8d1c6bfaeafb732278134df58516a76132f">USGS Topo · Estados Unidos</string>
     <string name="maps_source_usgs_short" volt:src="944929e75c35f9bbeeb4d8fb50ab61f95a510a58">USGS Topo</string>
@@ -39,7 +39,7 @@
     <string name="maps_custom_attribution_link" volt:src="9f1b264e9447d310a87508d82f7980ab7fe77bb0">Link de atribuição HTTPS</string>
     <string name="maps_custom_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Salvar</string>
     <string name="maps_custom_error_url" volt:src="a68d38fa9a1fa27c5684e1d3918a580df10e27fb">Use HTTPS com {z}, {x} e {y}.</string>
-    <string name="maps_custom_error_attribution" volt:src="6bd3b592a82c228aa9a379463c5f49e8045585ce">Adicione a atribuição exigida pelo provedor.</string>
+    <string name="maps_custom_error_attribution" volt:src="9418b57452287143963cdb3f847081940d9d560a">Adicione a atribuição exigida pelo provedor.</string>
     <string name="maps_custom_error_link" volt:src="561a6f76123adc88efc2b11c1d84eb08edd487e4">Use um link HTTPS de licença ou direitos autorais.</string>
     <string name="maps_tiles_blocked" volt:src="d57f3f6b0125c264465bf0f9c9db3a470e02c366">O provedor do mapa bloqueou o acesso</string>
     <string name="maps_tiles_rate_limited" volt:src="247a775a587a7c163f22dd0f99261d5ad06bd42e">Limite de solicitações do provedor do mapa · tente novamente mais tarde</string>
