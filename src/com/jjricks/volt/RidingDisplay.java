@@ -85,7 +85,7 @@ final class RidingDisplay {
         controls = new LinearLayout(context);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER_VERTICAL);
-        controls.setTag("riding-brightness");
+        controls.setTag("riding_brightness_slider");
         View minus = button(false), plus = button(true);
         track = new Track(context);
         controls.addView(minus, new LinearLayout.LayoutParams(ui.dp(56), ui.dp(56)));

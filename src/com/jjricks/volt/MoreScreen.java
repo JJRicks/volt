@@ -1053,15 +1053,15 @@ public final class MoreScreen implements AppScreen {
         segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
                 new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
         LinearLayout box = group();
-        box.setTag("preference-riding-display");
+        box.setTag("preference_riding_display");
         RidingBrightness.Store store = RidingDisplay.settings(settings());
         Row reset = row(box, "settings", T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
             RidingBrightness.forget(store);
             host.toast(T.ridingDisplayResetDone());
-            View shown = box.findViewWithTag("preference-riding-brightness-reset");
+            View shown = box.findViewWithTag("preference_riding_brightness_reset");
             if (shown != null) shown.setVisibility(View.GONE);
         });
-        reset.view.setTag("preference-riding-brightness-reset");
+        reset.view.setTag("preference_riding_brightness_reset");
         valueRefreshers.add(() -> reset.view.setVisibility(RidingBrightness.learned(store) ? View.VISIBLE : View.GONE));
         note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
     }
