@@ -111,8 +111,9 @@ public final class RidesTimingValidation extends Instrumentation {
                 main(() -> invoke(shown, "select", new Class[]{String.class}, "home")); SystemClock.sleep(1500);
                 long[] selected = new long[2];
                 main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); selected[1] = SystemClock.uptimeMillis(); });
-                // The rows may arrive after the first frame (skeleton rows while a worker reads the rides).
-                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 20000);
+                // The rows may arrive after the first frame (skeleton rows while a worker reads the rides). On a busy
+                // emulator the background read of 41 one-hour rides took over 20 s; the rows only have to arrive (not gated).
+                long rows = waitForRows(field(activity, "screen"), seeded.length, selected[0] + 60000);
                 SystemClock.sleep(2500);
                 Object screen = field(activity, "screen");
                 check(screen.getClass().getSimpleName().equals("RidesScreen"), "Rides is showing");
