@@ -19,7 +19,7 @@ minutes after every boot, replacing their processes mid-step, and re-enabling it
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
 
-Localization (l10n/README.md). Every step runs Volt in English: the emulator's system language must be
+Localization (l10n/README.md). Every step but the locale-* ones runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
 that every screenshot helper writes (android-tests/TextCensus.java) into <out>/census/<step>/, for
 tools/l10n/census_diff.py, with census/sweep.json naming the app and test APKs (SHA-256). Run the same
@@ -28,9 +28,11 @@ test APK, then compare with census_diff.py --base A/census --base A2/census HEAD
 runs show which records change from run to run (volatile, reported but not compared). A screenshot
 without a census, and a step with no census at all, are reported, since G7 then covers nothing there. --pseudo-app adds the pseudo-locale APK (VOLT_PSEUDO_LOCALES=1 build.sh,
 build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
-(LocaleValidation under en-XA and ar-XB). Those steps report only: their findings never fail the sweep,
-and without --pseudo-app they are skipped. They never join the census, so run them as their own
-sweep (own --out, no --census) rather than adding --pseudo-app to a G7 run.
+(LocaleValidation under en-XA and ar-XB); without --pseudo-app they are skipped. Each language with status
+beta or stable in l10n/lang/*.tsv (English, the source, aside) also gets locale-<tag>-<width> steps at both
+sizes on the normal --app APK (LocaleValidation under that language, with its rtl field). All locale-* steps
+report only: their findings never fail the sweep. They never join the census, so run them as their own
+sweep (own --out, no --census) rather than in a G7 run.
 """
 import argparse
 import hashlib
@@ -61,10 +63,21 @@ def runner(name, script, covers, *extra):
     return dict(name=name, kind='runner', script=script, covers=covers, extra=list(extra))
 
 
-def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False, pseudo=False):
-    """pseudo: install --pseudo-app instead of --app, and report the result without failing the sweep."""
+def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False, pseudo=False, report_only=False):
+    """pseudo: install --pseudo-app instead of --app. pseudo or report_only: report the result without failing the sweep."""
     return dict(name=name, kind='inst', cls=cls, covers=[cls.rsplit('.', 1)[1]], extra=list(extra), grant=grant, size=size, hidden_api=hidden_api,
-                pseudo=pseudo)
+                pseudo=pseudo, report_only=pseudo or report_only)
+
+
+def shipped_languages():
+    """(tag, rtl) for each language with status beta or stable in l10n/lang/*.tsv, the source language aside."""
+    found = []
+    for path in sorted((HERE.parent / 'l10n' / 'lang').glob('*.tsv')):
+        fields = dict(line.split('\t', 1) for line in path.read_text(encoding='utf-8').splitlines()
+                      if '\t' in line and not line.startswith('#'))
+        if fields.get('status') in ('beta', 'stable') and fields.get('folder') != 'values':
+            found.append((fields['tag'], fields.get('rtl') == 'true'))
+    return found
 
 
 T = PKG + '.tests.'
@@ -136,6 +149,12 @@ for locale in ('en-XA', 'ar-XB'):
         w = size.split('x')[0]
         STEPS.append(inst(f'locale-{locale}-{w}', T + 'LocaleValidation', '-e', 'locale', locale, '-e', 'theme', theme, '-e', 'text_scale', text,
                           '-e', 'variant', f'{locale}-{w}', size=size, pseudo=True))
+# Each shipped language on the normal APK (plan 7.2 step 6), report only like the pseudo-locales.
+for tag, rtl in shipped_languages():
+    for size, theme, text in (PHONE, WIDE):
+        w = size.split('x')[0]
+        STEPS.append(inst(f'locale-{tag}-{w}', T + 'LocaleValidation', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(), '-e', 'theme', theme,
+                          '-e', 'text_scale', text, '-e', 'variant', f'{tag}-{w}', size=size, report_only=True))
 
 
 def registered():
@@ -156,7 +175,7 @@ parser.add_argument('--runner', type=Path)
 parser.add_argument('--out', type=Path)
 parser.add_argument('--only', action='append', help='step name (repeatable)')
 parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py (sweep the base APK twice, the head once)')
-parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the report-only locale-* steps; its classes.dex must equal --app\'s')
+parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the en-XA and ar-XB locale-* steps; its classes.dex must equal --app\'s')
 parser.add_argument('--list', action='store_true', help='print the steps and exit')
 args = parser.parse_args()
 missing = uncovered()
@@ -351,14 +370,14 @@ try:
             try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
             except Exception as error: output += f'\nANR log unavailable: {error}'
         (args.out / f'{step["name"]}.txt').write_text(output)
-        report_only = step.get('pseudo', False)
+        report_only = step.get('report_only', False)
         detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems)=\d+', output)[:8])
         if output.startswith('skipped:'): detail = output
         error = re.search(r'error=(.{0,240})', output)
         result = dict(step=step['name'], passed=passed or report_only, seconds=round(time.monotonic() - started))
         label = ('REPORT' if passed else 'REPORT (did not finish)') if report_only else 'PASS' if passed else 'FAIL'
         if report_only: result['report_only'] = True
-        # Report-only pseudo-locale steps are not English, so they never join the G7 census.
+        # Report-only locale steps are not English, so they never join the G7 census.
         if args.census and not report_only:
             screens, census_errors = gather_census(step['name'])
             result['census_screens'], result['census_errors'] = screens, census_errors

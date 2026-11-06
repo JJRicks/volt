@@ -964,33 +964,38 @@ public final class MoreScreen implements AppScreen {
     // ---- App preferences ----------------------------------------------------------------
 
     /**
-     * The Language row (plan 5.1), directly below Appearance, offered only once a language other than
-     * English ships, or with the pseudo APK while Developer options are on. The card is built here but
-     * stays out of the section until offered: a GONE child would still take a child slot and shift every
-     * later sibling's index, so English view trees must not hold it at all.
+     * The Language row (plan 5.1), first in the display card with Units and Text size, offered only once a
+     * language other than English ships, or with the pseudo APK while Developer options are on. The row is
+     * built here, in a holder of its own that is never attached, and stays out of the card until offered:
+     * a GONE child would still take a child slot and shift every later sibling's index, so view trees
+     * without the row must not hold it, or its divider, at all.
      */
-    private void languageRow() {
-        LinearLayout section = cardDestination;
-        LinearLayout language = ui.groupCard();
-        language.setTag("preference_language");
-        Row row = row(language, "text", T.moreLanguageTitle(), null,
+    private void languageRow(LinearLayout display) {
+        LinearLayout holder = column();
+        Row row = row(holder, "globe", T.moreLanguageTitle(), null,
                 () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
+        View language = row.view;
+        language.setTag("preference_language");
+        holder.removeView(language);
+        View divider = new View(host.activity());
+        divider.setBackgroundColor(ui.raised);
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
             if (offered) row.value(LanguageSheet.value(host.activity()));
-            placeLanguageRow(section, language, offered);
+            placeLanguageRow(display, language, divider, offered, ui.dp(1));
         });
     }
 
-    /** Attaches the Language card below the first selector (Appearance) once, and detaches it when not offered. */
-    private static void placeLanguageRow(LinearLayout section, View language, boolean offered) {
-        boolean attached = language.getParent() == section;
-        if (!offered) { if (attached) section.removeView(language); return; }
+    /**
+     * Attaches the Language row, then a divider, at the top of the display card once, and detaches both
+     * when not offered. The divider matches Ui.divider: the card's raised colour, 1 dp tall.
+     */
+    private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line) {
+        boolean attached = language.getParent() == display;
+        if (!offered) { if (attached) { display.removeView(divider); display.removeView(language); } return; }
         if (attached) return;
-        int below = section.getChildCount();
-        for (int i = 0; i < section.getChildCount(); i++)
-            if (section.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
-        section.addView(language, below);
+        display.addView(language, 0, new LinearLayout.LayoutParams(-1, -2));
+        display.addView(divider, 1, new LinearLayout.LayoutParams(-1, line));
     }
 
     private void preferences() {
@@ -1000,9 +1005,9 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
-        languageRow();
         LinearLayout display = group();
         display.setTag("preference-display-options");
+        languageRow(display);
         Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
         units.view.setTag("preference-units-menu");
         valueRefreshers.add(() -> units.value(unitsSummary()));

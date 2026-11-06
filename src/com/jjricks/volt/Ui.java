@@ -1043,6 +1043,12 @@ public final class Ui {
             } else if (key.equals("ruler")) {
                 canvas.drawRoundRect(new RectF(2, 7, 22, 17), 2, 2, paint);
                 for (int i = 6; i < 22; i += 4) canvas.drawLine(i, 7, i, i % 8 == 2 ? 12 : 10, paint);
+            } else if (key.equals("globe")) {
+                // App language: a globe with its equator, two parallels and one meridian.
+                canvas.drawCircle(12, 12, 9, paint);
+                canvas.drawOval(new RectF(8, 3, 16, 21), paint);
+                p.moveTo(3, 12); p.lineTo(21, 12); p.moveTo(4.6f, 7.5f); p.lineTo(19.4f, 7.5f);
+                p.moveTo(4.6f, 16.5f); p.lineTo(19.4f, 16.5f); canvas.drawPath(p, paint);
             } else if (key.equals("text")) {
                 p.moveTo(3, 19); p.lineTo(8, 5); p.lineTo(13, 19); p.moveTo(5, 14); p.lineTo(11, 14);
                 p.moveTo(15, 12); p.lineTo(22, 12); p.moveTo(18.5f, 12); p.lineTo(18.5f, 19); canvas.drawPath(p, paint);
