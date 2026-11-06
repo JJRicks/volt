@@ -382,6 +382,13 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
         # numbers
         lost, added = compare_numbers(strip_placeholders(reference) if formatted else reference,
                                       strip_placeholders(text) if formatted else text)
+        if lost["1"] and kind == "plural" and formatted and quantity not in single_number_categories(language["tag"]):
+            count = set(placeholder_specs(english_other))
+            if count - set(placeholder_specs(reference)) and count <= set(placeholder_specs(text)):
+                # The English spells this form's count as 1 ("1 widget"). Here the form covers more than one
+                # number, so it must keep the count placeholder (above), and that placeholder stands for the 1.
+                lost.subtract({"1": 1})
+                lost = +lost
         if lost:
             out.append(finding("numbers", ERROR, "numbers %s from the English are missing" % _list(lost.elements()), q))
         if added:

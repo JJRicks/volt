@@ -288,6 +288,42 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(check.single_number_categories("fr"), set())
         self.assertEqual(check.single_number_categories("cs"), {"one", "many"})
 
+    def test_a_count_the_english_spells_as_1_is_kept_by_the_placeholder(self):
+        # English "1 scooter skipped" for one. Brazilian "one" also covers 0, so it must keep %1$d, and that
+        # placeholder stands for the English 1 (dashboard_slot_summary: no draft could pass both rules).
+        # Where "one" is exactly 1 (pt-PT, es), the 1 must still appear or the placeholder must be kept.
+        repo = council_fixture.FixtureRepo()
+        try:
+            path = "res/values/strings_common.xml"
+            repo.write(path, repo.read(path).replace('<item quantity="one">%1$d scooter skipped</item>',
+                                                     '<item quantity="one">1 scooter skipped</item>'))
+            packs = {tag: pack.build_pack(repo.paths, tag, "common", self.measurer) for tag in ("pt-BR", "pt-PT", "es")}
+        finally:
+            repo.close()
+
+        def run(tag, value):
+            p = packs[tag]
+            entry = [e for e in p["entries"] if e["key"] == "common_scooters_skipped"][0]
+            targets = {"common_scooters_skipped": ("plural", translib.items_of("plural", value), [])}
+            return check.check_targets(p, targets, self.font, self.measurer)[entry["key"]]
+
+        kept = {"one": "%1$d patinete ignorado", "many": "%1$d de patinetes ignorados", "other": "%1$d patinetes ignorados"}
+        self.assertEqual(self.checks(run("pt-BR", kept)), [])
+        self.assertEqual(self.checks(run("pt-BR", kept), check.WARN), [])
+        # Writing the 1 out where "one" also covers 0 still fails, now on the placeholder alone.
+        spelled = dict(kept, one="1 patinete ignorado")
+        self.assertEqual(self.checks(run("pt-BR", spelled)), ["placeholders"])
+        # A form with neither the 1 nor the count still loses the English number.
+        neither = dict(kept, one="Um patinete ignorado")
+        self.assertEqual(self.checks(run("pt-BR", neither)), ["numbers", "placeholders"])
+        # Where "one" is exactly 1, writing the 1 out passes, and so does keeping the placeholder.
+        self.assertEqual(self.checks(run("pt-PT", dict(kept, one="1 patinete ignorado"))), [])
+        self.assertEqual(self.checks(run("es", {"one": "1 patinete omitido", "many": "%1$d de patinetes omitidos",
+                                                "other": "%1$d patinetes omitidos"})), [])
+        # The other forms gain nothing from the rule: a lost number elsewhere still fails.
+        self.assertEqual(self.checks(run("pt-BR", dict(kept, other="%1$d patinetes ignorados (1)")), check.WARN),
+                         ["numbers"])
+
     def test_added_negation(self):
         # Alarm on -> "alarm not on" is an error in a safety key, and so is the off word itself
         # ("desactivada", lexicon.STATE_WORDS); another prefixed word alone warns for the judge.
