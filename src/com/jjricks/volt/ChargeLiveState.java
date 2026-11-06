@@ -53,12 +53,15 @@ public final class ChargeLiveState {
     /** Equal (equals) unless what the card shows changes: a whole percent, a whole minute, the state, the limit or the name. */
     public final java.util.List<Object> dedupeKey;
     public final Detail detail;
+    /** The battery level shown (0 to 100), the last one seen while out of reach; null without one. */
+    public final Integer percent;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
-            String publicSubText, int progress, int max, long countdownEndWallMs, java.util.List<Object> dedupeKey, Detail detail) {
+            String publicSubText, int progress, int max, long countdownEndWallMs, java.util.List<Object> dedupeKey, Detail detail, Integer percent) {
         this.kind = kind;this.title = title;this.text = text;this.subText = subText;this.publicTitle = publicTitle;
         this.publicText = publicText;this.publicSubText = publicSubText;this.progress = progress;this.max = max;
         this.countdownEndWallMs = countdownEndWallMs;this.dedupeKey = dedupeKey;this.detail = detail;
+        this.percent = percent;
     }
 
     /** clock formats a wall time as the phone's clock (DisplayTime.clock in the service). */
@@ -104,7 +107,7 @@ public final class ChargeLiveState {
         long countdown = eta ? in.nowWall + minutes * 60_000L : 0;
         // Power is left out: a watt reading that wiggles never reposts the card (it shows the latest power when it does).
         java.util.List<Object> key = java.util.Arrays.asList(kind, pct, eta ? minutes : -1L, max, in.startWallMs, in.doneByWallMs, detail, name);
-        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, countdown, key, detail);
+        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, countdown, key, detail, pct);
     }
 
     /** "≈ 38m", "≈ 1h 25m": the Home charging card's own wording. */
