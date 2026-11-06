@@ -165,11 +165,17 @@
     <string name="rides_saved_automatically_quiet_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after the scooter turned off or went out of range</string>
     <!-- Screen-reader text of the Saved automatically pill when the phone's own Bluetooth stayed off and Volt ended the ride after 5 minutes. -->
     <string name="rides_saved_automatically_phone_bluetooth_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride" volt:dnt="Bluetooth">Saved automatically after the phone\'s Bluetooth stayed off</string>
+    <!-- Screen-reader text of the Saved automatically pill when the scooter stayed connected but showed no movement for 10 minutes and Volt ended the ride. Spoken only, so no width budget. -->
+    <string name="rides_saved_automatically_no_motion_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after 10 minutes with no movement</string>
     <string name="rides_notes_section" volt:screen="Rides, ride details" volt:purpose="label">Notes</string>
-    <string name="rides_export_csv" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
-    <string name="rides_export_csv_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
-    <string name="rides_export_json" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="JSON">Export JSON</string>
-    <string name="rides_export_json_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="JSON">Export ride analysis JSON</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_csv" translatable="false" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_csv_description" translatable="false" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_json" translatable="false" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="JSON">Export JSON</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_json_description" translatable="false" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="JSON">Export ride analysis JSON</string>
     <string name="rides_delete_ride" volt:screen="Rides, ride details" volt:purpose="label">Delete ride</string>
     <string name="rides_reason_no_odometer" volt:screen="Rides, ride details" volt:purpose="reason">No odometer distance</string>
     <string name="rides_reason_too_short" volt:screen="Rides, ride details" volt:purpose="reason">Too short</string>
@@ -200,9 +206,12 @@
     <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Experimental</string>
     <string name="rides_changes_next_ride" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Changes apply to the next ride</string>
     <string name="rides_toast_no_browser" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No browser available.</string>
-    <string name="rides_export_raw" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
-    <string name="rides_export_phone_journal" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Phone journal CSV</string>
-    <string name="rides_export_motion_csv" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Motion CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_raw" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_phone_journal" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Phone journal CSV</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_motion_csv" translatable="false" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Motion CSV</string>
     <string name="rides_toast_no_phone_data" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No phone data recorded for this ride.</string>
     <string name="rides_route" volt:screen="Rides, phone and route" volt:purpose="label">Route</string>
     <string name="rides_phone_route" volt:screen="Rides, phone and route" volt:purpose="label">Phone &amp; route</string>
@@ -224,7 +233,8 @@
     <string name="rides_gps_speed_change" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS speed change · min / max</string>
     <string name="rides_scooter_speed_change" volt:screen="Rides, phone and route" volt:purpose="label">Scooter speed change · min / max</string>
     <string name="rides_linear_peak" volt:screen="Rides, phone and route" volt:purpose="label">Phone linear acceleration · peak</string>
-    <string name="rides_export_phone" volt:screen="Rides, phone and route" volt:purpose="option">Export phone data</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_phone" translatable="false" volt:screen="Rides, phone and route" volt:purpose="option">Export phone data</string>
     <string name="rides_route_selection_description" volt:screen="Rides, phone and route" volt:purpose="accessibility description">Selected route measurements</string>
     <string name="rides_route_color" volt:screen="Rides, phone and route" volt:purpose="label">Route color</string>
     <string name="rides_route_color_power" volt:screen="Rides, phone and route" volt:purpose="option">Power</string>
@@ -261,9 +271,54 @@
     <string name="rides_export_gpx" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="GPX">GPX</string>
     <string name="rides_export_phone_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Phone raw CSV</string>
     <string name="rides_export_motion_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Motion raw CSV</string>
-    <string name="rides_export_all_json" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
+    <!-- No screen shows this since the Export ride data sheet replaced it, so it is not translated. Only B15's ledger still reads it (l10n/pending/export-menu-followups.md). -->
+    <string name="rides_export_all_json" translatable="false" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
     <string name="rides_toast_export_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not export this ride.</string>
     <string name="rides_toast_export_csv_failed" volt:screen="Rides, export and delete" volt:purpose="error" volt:dnt="CSV">Could not export the ride CSV.</string>
+    <!-- Ride details' one export button; it opens the Export ride data sheet. Full-width, but the wide layout's
+         detail pane can be narrow at large text: the short rung, then the download icon alone, follow. -->
+    <string name="rides_export_data" volt:screen="Rides, ride details" volt:purpose="button" volt:ladder="full" volt:max="296dp@14sp">Export ride data</string>
+    <string name="rides_export_data_short" volt:screen="Rides, ride details" volt:purpose="button" volt:ladder="short" volt:max="96dp@14sp">Export</string>
+    <!-- Export ride data sheet: the heading over the scooter's two files (its sensor journal and analysis). -->
+    <string name="rides_export_section_scooter" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Scooter recording</string>
+    <!-- Export ride data sheet: the heading over the five files from the phone's own sensors. -->
+    <string name="rides_export_section_phone" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Phone recording</string>
+    <!-- Checkbox: every scooter reading of the ride, as the CSV journal Volt recorded. The file name shows under it. -->
+    <string name="rides_export_sensor_csv" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="CSV" volt:max="240dp@15sp">Sensor CSV</string>
+    <!-- Checkbox: the ride's analysis (energy, coverage, distance) as JSON. -->
+    <string name="rides_export_analysis_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Analysis JSON</string>
+    <!-- Checkbox: one JSON file holding the scooter analysis and the phone recording together. -->
+    <string name="rides_export_combined_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Scooter and phone JSON</string>
+    <!-- Under a greyed-out checkbox: the phone's files for this ride are still being written. -->
+    <string name="rides_export_reason_saving" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">Still saving</string>
+    <!-- Under the greyed-out Route CSV and GPX checkboxes: the phone recorded no GPS position, so there is no route. -->
+    <string name="rides_export_reason_no_fixes" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:dnt="GPS" volt:max="240dp@13sp">No GPS fixes in this ride</string>
+    <!-- Under a greyed-out checkbox: the phone's journal could not be read, so this file cannot be made. -->
+    <string name="rides_export_reason_unreadable" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">The phone recording could not be read</string>
+    <!-- Under a greyed-out raw file checkbox: this file was never written for the ride. -->
+    <string name="rides_export_reason_not_recorded" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">Not recorded for this ride</string>
+    <!-- Spoken for a greyed-out checkbox: %1$s is its label (rides_export_sensor_csv and the others), %2$s why it is greyed out (rides_export_reason_saving and the others). -->
+    <string name="rides_export_unavailable_description" volt:screen="Rides, export ride data sheet" volt:purpose="accessibility description">%1$s, unavailable: %2$s</string>
+    <!-- Below the checkboxes when exactly one is checked: Android's Save dialog follows. -->
+    <string name="rides_export_hint_one" volt:screen="Rides, export ride data sheet" volt:purpose="caption" volt:dnt="Android">Android asks where to save the file.</string>
+    <!-- Below the checkboxes when two or more are checked: Android's folder picker follows, then Volt writes each file there. -->
+    <string name="rides_export_hint_several" volt:screen="Rides, export ride data sheet" volt:purpose="caption" volt:dnt="Android|Volt">Android asks for a folder, and Volt saves each file there.</string>
+    <!-- Below the checkboxes when none is checked; the Export button is greyed out. -->
+    <string name="rides_export_hint_none" volt:screen="Rides, export ride data sheet" volt:purpose="caption">Choose at least one file.</string>
+    <!-- The sheet's main button. -->
+    <string name="rides_export_action" volt:screen="Rides, export ride data sheet" volt:purpose="button" volt:max="296dp@14sp">Export</string>
+    <!-- Toast after a several-file export: %1$d files were saved in the chosen folder. -->
+    <plurals name="rides_toast_export_saved" volt:screen="Rides, export ride data sheet" volt:purpose="message">
+        <item quantity="one">Saved %1$d file.</item>
+        <item quantity="other">Saved %1$d files.</item>
+    </plurals>
+    <!-- Toast after a several-file export where some failed: %1$d saved of %2$d chosen; the plural follows %2$d. -->
+    <plurals name="rides_toast_export_partial" volt:screen="Rides, export ride data sheet" volt:purpose="error">
+        <item quantity="one">Saved %1$d of %2$d file. Try again for the rest.</item>
+        <item quantity="other">Saved %1$d of %2$d files. Try again for the rest.</item>
+    </plurals>
+    <string name="rides_toast_export_folder_failed" volt:screen="Rides, export ride data sheet" volt:purpose="error">Could not save to that folder.</string>
+    <string name="rides_toast_export_no_picker" volt:screen="Rides, export ride data sheet" volt:purpose="error">No folder picker is available on this phone.</string>
     <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Deletes its route and sensor data. Can\'t undo.</string>
     <!-- Cancels deleting the ride. -->
     <string name="rides_delete_keep" volt:screen="Rides, export and delete" volt:purpose="label">Keep ride</string>

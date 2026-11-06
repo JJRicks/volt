@@ -955,6 +955,7 @@ public final class MoreScreen implements AppScreen {
             if (current && s.simulating()) s.setSimulation(false);
             if (current) s.ble.disconnect();
             s.profiles.remove(id);
+            if (s.maintenance != null) s.maintenance.forget(id);
             if (current) s.ble.profileSelected();
             dialog.dismiss(); host.redraw();
         });

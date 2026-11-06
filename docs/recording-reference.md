@@ -133,7 +133,9 @@ color. Units change labels only. Segments are not joined across gaps.
 
 ## Ride exports and journal format
 
-CSV/JSON exports use Android's file picker; you choose the destination. Auto-save
+Ride details' **Export ride data** sheet saves one file through Android's file picker,
+where you choose the destination and name, or several at once into one folder you pick
+through Android's folder picker (no access is kept afterwards). Auto-save
 rides (below) writes to one folder you chose once through Android's folder picker.
 Volt does not upload them. A cloud-backed document provider controls any subsequent
 sync.
@@ -149,12 +151,28 @@ column is empty when the rider stopped, `AUTO_PARKED_DISCONNECT` when Volt
 ended the ride after a parked loss, or `AUTO_QUIET_DISCONNECT;last=<monotonic ms
 of the last real reading, -1 none>;code=<native disconnect code, -1
 unknown>` (plus `;phone_bt=off` when the phone's Bluetooth was off) when Volt
-ended it after the scooter went quiet; older readers ignore it, or read the
-last as a rider's stop. The STOP row keeps the real time it was written; the
+ended it after the scooter went quiet, or `automatic_no_motion` when the
+connected scooter showed no motion for 10 minutes; older readers ignore it, or
+read the last two as a rider's stop. The STOP row keeps the real time it was written; the
 shown end (`shownEndWallMs`, `shownElapsedMs` in analysis JSON, `stopReason`
-`automatic_quiet_disconnect`) is the last real reading. Analysis JSON contains
+`automatic_quiet_disconnect`) is the last real reading, or the last motion for
+`automatic_no_motion`. Analysis JSON contains
 unit-explicit quantities, coverage and session metadata. `null` means
 insufficient evidence, not zero.
+
+| Export ride data checkbox | File | Type |
+|---|---|---|
+| Sensor CSV | `ride-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
+| Analysis JSON | `ride-<first 8 of id>-analysis.json` | `application/json` |
+| Route CSV | `ride-<first 8 of id>-route.csv` | `text/csv` |
+| GPX | `ride-<first 8 of id>.gpx` | `application/gpx+xml` |
+| Phone raw CSV | `ride-<first 8 of id>-phone.csv` | `text/csv`, the phone journal as recorded |
+| Motion raw CSV | `ride-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
+| Scooter and phone JSON | `ride-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
+
+Each file is byte for byte what the separate Export CSV, Export JSON and Export phone
+data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
+choice is `ride_export_choice`.
 
 Phone and motion journals are separate from the scooter journal. Combined JSON
 can include precise route coordinates; GPX contains time and position. Inline
@@ -171,9 +189,9 @@ ride you end into one folder, and a **Folder** row:
 
 | Switch | File | Contents |
 |---|---|---|
-| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export phone data → Route CSV. Not written for a ride with no GPS fixes |
-| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export phone data → All (JSON): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
-| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte ride details → Export JSON |
+| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export ride data → Route CSV. Not written for a ride with no GPS fixes |
+| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export ride data → Scooter and phone JSON (formerly Export phone data → All (JSON)): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
+| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte Export ride data → Analysis JSON |
 
 - **Folder.** Turning the first switch on opens Android's folder picker. Volt keeps
   a read and write grant for that folder only and asks for no storage permission.
@@ -234,14 +252,18 @@ Ride and charge recording are independent of this idle option. Their service
 and ongoing Stop notification remain while hidden, with a renewed CPU wake lock.
 Ride recording can reconnect, recording Bluetooth loss as gaps. A forgotten ride
 ends itself, through the normal Stop path, with a "Ride saved automatically"
-notice that names the time of the last reading:
+notice that names the time of the last reading (the last movement for the
+no-motion rule):
 - when fresh scooter reports showed it stopped for a few seconds and Bluetooth
   then stays lost for 10 seconds;
 - when the scooter goes quiet (switched off or out of range) and stays
   unreachable for 1 minute after its last frame at walking pace or a stop
   (6.4 km/h or less), or 5 minutes after it otherwise (riding speed, no fresh
   speed, or after a process restart);
-- when the phone's Bluetooth is switched off and stays off for 5 minutes.
+- when the phone's Bluetooth is switched off and stays off for 5 minutes;
+- when the scooter stays connected but shows no motion for 10 minutes: no
+  speed above 0, no driving, no odometer or trip going up. Missing speed
+  reports count as no motion. A disconnection hands over to the rules above.
 
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.

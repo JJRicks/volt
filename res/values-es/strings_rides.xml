@@ -238,14 +238,6 @@
     <string name="rides_saved_automatically_description">Guardado automáticamente después de perder la conexión Bluetooth con el patinete detenido</string>
     <!-- src:81082471638cb3bcdc725cf78f413d511f182eaa -->
     <string name="rides_notes_section">Notas</string>
-    <!-- src:d11e223da3b707ad21fcabeb43502f16260c8142 -->
-    <string name="rides_export_csv">Exportar CSV</string>
-    <!-- src:41efa95d00ab88bdc5d139c323e6b399b00289da -->
-    <string name="rides_export_csv_description">Exportar el CSV completo de sensores del viaje</string>
-    <!-- src:782c3f0f4a26c5cfc777a87550276e88022a3940 -->
-    <string name="rides_export_json">Exportar JSON</string>
-    <!-- src:bb1027bd9d54d872e004a096f0081f569c2fb996 -->
-    <string name="rides_export_json_description">Exportar el JSON de análisis del viaje</string>
     <!-- src:751d2b3a49d9b5b28452341742e96f8841ccbdaf -->
     <string name="rides_delete_ride">Eliminar viaje</string>
     <!-- src:d3f039e9f5a1e9deb5f3016da541a4c4e1f48622 -->
@@ -284,12 +276,6 @@
     <string name="rides_changes_next_ride">Los cambios se aplican al próximo viaje</string>
     <!-- src:e9b43592d69052be6de3bb1549e6cff8103772c5 -->
     <string name="rides_toast_no_browser">No hay ningún navegador disponible.</string>
-    <!-- src:2395127d2eb5cf0f399c580db95b6eac55d36a22 -->
-    <string name="rides_export_raw">Exportar archivos en bruto</string>
-    <!-- src:3b542151a42402437727af6eab7139fb0c617406 -->
-    <string name="rides_export_phone_journal">CSV del diario del teléfono</string>
-    <!-- src:f02bca6d002344576307241dcafef54b0c6daddb -->
-    <string name="rides_export_motion_csv">CSV de movimiento</string>
     <!-- src:6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758 -->
     <string name="rides_toast_no_phone_data">No se registraron datos del teléfono para este viaje.</string>
     <!-- src:e50c80a20ac9c7133002b12f3cbe3cab058f2fa2 -->
@@ -322,8 +308,6 @@
     <string name="rides_scooter_speed_change">Cambio de velocidad del patinete · mín. / máx.</string>
     <!-- src:69912967151ad953dd89cfaf6427e93ea3cb1ff3 -->
     <string name="rides_linear_peak">Aceleración lineal del teléfono · pico</string>
-    <!-- src:9e1363e135ccbb85288c142fc222390c63b9f295 -->
-    <string name="rides_export_phone">Exportar datos del teléfono</string>
     <!-- src:a7a6c14588fe5086be5ffeebe8ca303336177f75 -->
     <string name="rides_route_selection_description">Mediciones de la ruta seleccionada</string>
     <!-- src:0b726408683056cce3577e33e4c8057931631a12 -->
@@ -382,8 +366,6 @@
     <string name="rides_export_phone_raw">CSV en bruto del teléfono</string>
     <!-- src:144093e0848dfc41d9dd7dd6a7d2eefb9e9d31c5 -->
     <string name="rides_export_motion_raw">CSV en bruto de movimiento</string>
-    <!-- src:d591c3ad2a9ac82a4d446003594007fff087aee0 -->
-    <string name="rides_export_all_json">Todo (JSON)</string>
     <!-- src:aaa225c9739810f61b99b35a0b8b53c36d6870ed -->
     <string name="rides_toast_export_failed">No se pudo exportar este viaje.</string>
     <!-- src:48d4ac38add95f760e03cd66b350736f1068401f -->
