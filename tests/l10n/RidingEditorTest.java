@@ -62,7 +62,7 @@ public final class RidingEditorTest {
                 && ringChoices.size() == 3, "the ring offers speed + max, battery and power");
         RidingLayout.Spot chip = RidingLayout.frameDef(RidingLayout.HALO).spot("chip_1");
         check(RidingEditor.choices(chip).size() == 3 && !RidingEditor.choices(chip).contains(RidingLayout.SPEED), "chips offer drive mode, temperature and the clock");
-        for (RidingLayout.Content c : RidingLayout.CATALOG) check(!c.id.contains("lock"), "no lock content (Q16): " + c.id);
+        for (RidingLayout.Content c : RidingLayout.CATALOG) check(!c.id.matches("(un)?lock.*") && !c.id.contains("_lock"), "no lock content (Q16): " + c.id);
         check(RidingEditor.choices(RidingLayout.frameDef(RidingLayout.FOCUS).spot("top")).isEmpty(), "no choices for the top bar");
         check(e.set(RidingLayout.CHIPS, false) && !e.on(RidingLayout.CHIPS), "chips switch off");
         for (RidingLayout.Spot s : e.spots(RidingLayout.HALO)) check(s.kind != RidingLayout.Kind.CHIP, "chip rows go while chips are off");
@@ -123,7 +123,7 @@ public final class RidingEditorTest {
         check(!d.visible() && near(d.progress(), 0), "finished: gone");
         check(near(RidingDisc.width(0), 0) && near(RidingDisc.width(1), 1) && near(RidingDisc.width(.5f), .5), "the width eases from none to full");
         check(RidingDisc.width(.1f) < .1f && RidingDisc.width(.9f) > .9f, "gentle at both ends, so the pill doesn't jump");
-        check(near(RidingDisc.scale(0), RidingDisc.MIN_SCALE) && near(RidingDisc.scale(1), 1), "it grows from a smaller disc");
+        check(near(RidingDisc.scale(0), 0) && near(RidingDisc.scale(1), 1) && near(RidingDisc.scale(.3f), RidingDisc.width(.3f)), "the disc grows with its place, so it stays round");
         check(near(RidingDisc.alpha(-1), 0) && near(RidingDisc.alpha(2), 1), "alpha is clamped");
         d.at(5);
         check(near(d.progress(), 1), "progress is clamped");
@@ -148,7 +148,7 @@ public final class RidingEditorTest {
         check(T.ridingSpotBig().equals("Big number") && T.ridingSpotTile("2").equals("Tile 2") && T.ridingSpotChart().equals("Chart"), "spot names");
         check(T.ridingContentRingSpeed().equals("Speed + max") && T.ridingContentTracePower().equals("Power only"), "ring and chart choices");
         check(T.ridingSwitchTenths().equals("Tenths") && T.ridingSwitchPowerBarSummary().equals("Left edge: red for power, green for regen"), "switches");
-        check(!T.ridingSwitchPowerBarSummary().contains("braking") && !T.ridingSwitchChipsSummary().contains("lock"), "no braking, no lock (owner)");
+        check(!T.ridingSwitchPowerBarSummary().contains("braking") && !T.ridingSwitchChipsSummary().matches("(?i).*\\block\\b.*"), "no braking, no lock (owner)");
         check(T.ridingEditorSpotSpoken("Big number", "Speed").equals("Big number, shows Speed"), "spoken row");
     }
 

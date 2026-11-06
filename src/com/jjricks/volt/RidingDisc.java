@@ -2,14 +2,12 @@ package com.jjricks.volt;
 
 /**
  * The riding top bar's tune disc as it appears and disappears (owner, Nov 6: "a nice animation for
- * the tune button"), kept Android-free so plain JVM tests run it. The disc grows from nothing beside
- * the status pill while it fades and scales in, so the pill narrows smoothly instead of jumping, and
- * shrinks away the same way. It takes taps only while it's meant to show: the instant it starts
- * hiding, taps stop. With the system's animations off it simply appears or goes.
+ * the tune button"), kept Android-free so plain JVM tests run it. The disc's place beside the status
+ * pill grows from nothing while the disc fades in and grows to fill it, so the pill narrows smoothly
+ * instead of jumping; it shrinks away the same way. It takes taps only while it's meant to show: the
+ * instant it starts hiding, taps stop. With the system's animations off it simply appears or goes.
  */
 final class RidingDisc {
-    /** The smallest scale the disc grows from and shrinks to. */
-    static final float MIN_SCALE = .6f;
 
     private boolean target;
     private float progress;
@@ -53,5 +51,6 @@ final class RidingDisc {
 
     static float alpha(float progress) { return Math.max(0, Math.min(1, progress)); }
 
-    static float scale(float progress) { return MIN_SCALE + (1 - MIN_SCALE) * width(progress); }
+    /** The disc's size: it matches its slot's width, so it's round at every step. */
+    static float scale(float progress) { return width(progress); }
 }

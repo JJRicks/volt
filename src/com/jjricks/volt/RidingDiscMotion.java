@@ -3,17 +3,23 @@ package com.jjricks.volt;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 /**
- * Shows and hides riding mode's tune disc with {@link RidingDisc}'s motion: its width and margin grow
- * in the top bar so the status pill resizes smoothly, while the disc fades and scales. It honours the
+ * Shows and hides riding mode's tune disc with {@link RidingDisc}'s motion: a slot for it grows in the
+ * top bar so the status pill resizes smoothly, while the disc, always round, fades and grows to fill
+ * the slot. It honours the
  * system's animation scale (Android scales the length; with animations off the disc just appears or
  * goes), and the disc stops taking taps the moment it starts to hide.
  */
 final class RidingDiscMotion {
     private final View disc;
+    /** The disc's place in the top bar: its width and margin move, the disc keeps its full size inside. */
+    private final FrameLayout slot;
     private final int fullWidth, fullMargin;
     private final RidingDisc state = new RidingDisc();
     private ValueAnimator running;
@@ -24,6 +30,14 @@ final class RidingDiscMotion {
         LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) disc.getLayoutParams();
         fullWidth = p.width;
         fullMargin = p.getMarginStart();
+        ViewGroup bar = (ViewGroup) disc.getParent();
+        int at = bar.indexOfChild(disc);
+        bar.removeView(disc);
+        slot = new FrameLayout(disc.getContext());
+        slot.setClipChildren(false);
+        slot.addView(disc, new FrameLayout.LayoutParams(fullWidth, p.height, Gravity.CENTER));
+        bar.addView(slot, at, p);
+        disc.setVisibility(View.VISIBLE);
         apply(0);
     }
 
@@ -65,16 +79,18 @@ final class RidingDiscMotion {
     void stop() { if (running != null) { running.cancel(); running = null; } }
 
     private void apply(float progress) {
-        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) disc.getLayoutParams();
+        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) slot.getLayoutParams();
         float w = RidingDisc.width(progress);
         p.width = Math.round(fullWidth * w);
         p.setMarginStart(Math.round(fullMargin * w));
-        disc.setLayoutParams(p);
+        slot.setLayoutParams(p);
+        // The disc fills its slot exactly, so it stays a circle as it grows.
         float scale = RidingDisc.scale(progress);
         disc.setScaleX(scale);
         disc.setScaleY(scale);
         disc.setAlpha(RidingDisc.alpha(progress));
         int visibility = progress > 0 ? View.VISIBLE : View.GONE;
+        if (slot.getVisibility() != visibility) slot.setVisibility(visibility);
         if (disc.getVisibility() != visibility) disc.setVisibility(visibility);
     }
 }
