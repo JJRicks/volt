@@ -2360,6 +2360,13 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 drawEditorFrame(card);
                 assertEditorControls(); // One-row controls must leave the resize target its own lane.
             }
+            // The recorder now stays one row down to half a phone's width (2 of 5 columns, about 144 dp)
+            // and its 112 dp floor: the editor bar still leaves separate move, menu and resize targets.
+            for (int dp : new int[]{112, 120, 144}) {
+                measureCard(card, activity.ui().dp(dp), activity.ui().dp(54));
+                drawEditorFrame(card);
+                assertEditorControls();
+            }
             measureCard(card, activity.ui().dp(113), activity.ui().dp(170));
             // Large text can select compact recorder content even in a physically tall card.
             // Exercise that condition directly, without changing global settings or rebuilding.

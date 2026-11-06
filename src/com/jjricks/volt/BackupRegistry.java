@@ -82,7 +82,14 @@ final class BackupRegistry {
         prefix(app, "charge_schedule_owned_", String.class, SCOOTER_PREFERENCES, true);
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
+        // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
+        prefix(app, "scooter_menu_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "charge_alert_state_", true, String.class, null, "Charge in progress on this installation; a restored copy could silence the next alert", true, false, false));
+        // Maintenance reminders travel with the scooter (MaintenanceStore); a merge onto another scooter drops the raw
+        // odometer baseline (BackupArchive.perScooter). Which due reminders this phone already notified stays here:
+        // a restored copy could repeat or silence the next reminder.
+        prefix(app, "maintenance_v1_", String.class, SCOOTER_PREFERENCES, true);
+        RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);

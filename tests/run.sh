@@ -37,6 +37,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
+# Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
+sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/ScooterMenuLayoutTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
 for name in RideAutoStopPolicy; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
@@ -44,6 +46,8 @@ done
 sources+=("$TEST_DIR/RideAutoStopStoreTest.java")
 # Saved ride summaries for a fast first Rides open (RideSummaryStore; RideStore and RideArchive are above).
 sources+=("$APP_DIR/src/com/jjricks/volt/RideSummaryStore.java" "$TEST_DIR/RideSummaryStoreTest.java")
+# The hardware check's Rides first-open timing helper (android-tests, no Android types).
+sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimingTest.java")
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
 for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransaction; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java"); done
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
@@ -62,6 +66,9 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/Char
 sources+=("$APP_DIR/src/com/jjricks/volt/NotificationPacer.java" "$TEST_DIR/NotificationPacerTest.java")
 # Riding mode's live range: estimator, calm readout and synthetic rides (docs/validation/live-range.md).
 sources+=("$APP_DIR/src/com/jjricks/volt/LiveRangeEstimator.java" "$APP_DIR/src/com/jjricks/volt/RangeReadout.java" "$TEST_DIR/LiveRangeScenarios.java" "$TEST_DIR/LiveRangeEstimatorTest.java")
+# Maintenance reminders core: manual intervals, the forward-only odometer, due-ness and storage (maintenance plan, PR 1).
+for name in MaintenanceDistance MaintenancePolicy MaintenanceStore; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+sources+=("$APP_DIR/src/com/jjricks/volt/MaintenanceDefaults.java" "$TEST_DIR/MaintenanceBackupTest.java")
 # Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
 # that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
 # ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
@@ -115,10 +122,12 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideSummaryStoreTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidesOpenTimingTest
 
 # Unified backup suites.
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.BackupRegistryTest "$APP_DIR/src/com/jjricks/volt"
@@ -130,6 +139,10 @@ backup_java=(java)
 for name in BackupArchiveTest BackupPlanTest BackupTransactionTest; do
     (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name")
 done
+
+# Maintenance reminders (MaintenanceStoreTest uses the compat suites' NaveeModels; the backup round trip uses the backup stores).
+for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done
+(cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.MaintenanceBackupTest)
 
 # From the repo root: ModelRegistryTest checks the bundled model photos.
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done
