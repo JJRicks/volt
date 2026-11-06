@@ -64,9 +64,9 @@
     <string name="charge_live_row" volt:screen="Scooter › Battery, Live charging sheet" volt:purpose="label"
         volt:max="200dp@15sp">Live charging</string>
     <!-- The sheet's first paragraph. -->
-    <string name="charge_live_intro" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">Shows the charge in a notification and on the lock screen after you leave Volt, with when it\'s done and the charging power.</string>
+    <string name="charge_live_intro" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">Shows the charge on the lock screen and in your notifications after you leave Volt.</string>
     <!-- Under the switch: when Volt holds the connection, and for how long. -->
-    <string name="charge_live_switch_detail" volt:screen="Live charging sheet" volt:purpose="row detail" volt:dnt="Volt">Volt stays connected until the charge ends, for up to 12 hours</string>
+    <string name="charge_live_switch_detail" volt:screen="Live charging sheet" volt:purpose="row detail" volt:dnt="Volt">Volt stays connected while charging, up to 12 hours</string>
     <!-- Section label above the lock screen choice. -->
     <string name="charge_live_lock_title" volt:screen="Live charging sheet" volt:purpose="section label">On the lock screen</string>
     <!-- Lock screen choice: the whole card, with the scooter's name and the charging power. -->
@@ -78,10 +78,8 @@
     <!-- Lock screen choice: nothing but Android's "contents hidden". -->
     <string name="charge_live_lock_hidden" volt:screen="Live charging sheet" volt:purpose="segmented choice"
         volt:max="96dp@14sp">Hidden</string>
-    <!-- Explains the three lock screen choices. -->
-    <string name="charge_live_lock_note" volt:screen="Live charging sheet" volt:purpose="explanation">Details adds the scooter\'s name and charging power to the battery level and times. Level shows only the battery level and times. Hidden shows neither.</string>
-    <!-- When the card starts, and what holding the connection means. -->
-    <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">The card starts only if the scooter is still connected when you leave Volt, and it\'s charging or has a charging start time set. While it shows, other apps, the official one included, can\'t connect to the scooter. Tap Disconnect on the card to end it.</string>
+    <!-- What holding the connection means, and how to let other apps connect. -->
+    <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation">While it shows, other apps — the official one included — can\'t connect. Tap Disconnect on the card to let them.</string>
     <!-- Notifications are off for Volt: the card can't show. -->
     <string name="charge_live_perm" volt:screen="Live charging sheet" volt:purpose="warning" volt:dnt="Volt">Notifications are off for Volt, so the live charging card can\'t show.</string>
 

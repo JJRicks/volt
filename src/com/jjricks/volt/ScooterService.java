@@ -1035,6 +1035,16 @@ public final class ScooterService extends Service {
         if(chargeLive.leave(SystemClock.elapsedRealtime(),chargeLiveFacts()))chargeLiveArmedWall=System.currentTimeMillis();
         chargeLiveKey=null;saveChargeLiveStopped();
     }
+    /**
+     * Volt's screen is in front (uiVisible; a service recreated in the background never gets here): the hold ends,
+     * and the selected scooter's Disconnect is over, so leaving again arms the card as usual (owner, 2026-11-06).
+     */
+    private void chargeLiveOpened(){
+        if(destroyed||simulating()||settings==null||profiles==null){chargeLive.shown();return;}
+        restoreChargeLiveStopped();
+        ScooterProfiles.Profile profile=profiles.active();
+        chargeLive.opened(profile==null?null:profile.id);saveChargeLiveStopped();
+    }
     /** Once per service: takes back the Stops the last service stored for this device (ChargeLiveHold bounds their age and number). */
     private void restoreChargeLiveStopped(){
         if(chargeLiveRestored||settings==null)return;
@@ -1651,7 +1661,7 @@ public final class ScooterService extends Service {
         if(destroyed)return;boolean wasVisible=visible;visible=value;
         // Opening Volt ends the live card: keep Android's verdict on it for the developer row first.
         if(value&&chargeLiveHeld)captureLiveUpdate();
-        if(!value&&wasVisible)armChargeLive();else if(value)chargeLive.shown();
+        if(!value&&wasVisible)armChargeLive();else if(value)chargeLiveOpened();
         if(value)cancelBackgroundDeadline();
         // Opening Volt stops a sounding alarm and lets a paused or timed-out charge watch hold again.
         if(value&&!wasVisible){stopChargeAlarm();if(alertPolicy!=null)alertPolicy.resume();cancelAlertPausedNotice();}

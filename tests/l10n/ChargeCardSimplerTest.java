@@ -10,6 +10,8 @@ import java.util.function.LongFunction;
 /**
  * The owner's simpler live charging card (2026-11-06): "Done 10:42 PM · 412 W" with no time left, no countdown in
  * the header or on the lock screen, no scooter icon on the bar, and Disconnect instead of Stop on the card only.
+ * Opening Volt ends that scooter's Disconnect, so leaving again brings the card back; a service recreated in the
+ * background keeps it.
  * Listed in tests/l10n/charge-card-simpler.sources; tests/run.sh runs it from the repository root.
  */
 public final class ChargeCardSimplerTest {
@@ -40,6 +42,7 @@ public final class ChargeCardSimplerTest {
         reposts();
         action();
         service();
+        rearm();
         System.out.println("ChargeCardSimplerTest: " + checks + " checks passed");
     }
 
@@ -91,6 +94,15 @@ public final class ChargeCardSimplerTest {
         check("Disconnect".equals(ChargeLiveState.actionLabel()), "the card's button: " + ChargeLiveState.actionLabel());
         check("Stop".equals(T.serviceActionStop()), "the ride and alarm notices keep Stop");
         check(!T.chargeLiveWhen().contains("Stop") && T.chargeLiveWhen().contains("Tap Disconnect on the card"), "the sheet names the button: " + T.chargeLiveWhen());
+        // The simplified sheet (owner, 2026-11-06): "Necessary information only. Like that the official app cant connect."
+        check("While it shows, other apps \u2014 the official one included \u2014 can't connect. Tap Disconnect on the card to let them.".equals(T.chargeLiveWhen()), "the sheet's one paragraph: " + T.chargeLiveWhen());
+        check("Shows the charge on the lock screen and in your notifications after you leave Volt.".equals(T.chargeLiveIntro()), "intro: " + T.chargeLiveIntro());
+        check("Volt stays connected while charging, up to 12 hours".equals(T.chargeLiveSwitchDetail()), "switch detail: " + T.chargeLiveSwitchDetail());
+        check("Details".equals(T.chargeLiveLockDetails()) && "Level".equals(T.chargeLiveLockLevel()) && "Hidden".equals(T.chargeLiveLockHidden()), "the lock screen choices keep their labels");
+        String main;
+        try { main = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        check(!main.contains("chargeLiveLockNote"), "the lock screen choices' paragraph is gone from the sheet");
     }
 
     /** The parts of ScooterService that only Android runs: read from the source. */
@@ -107,6 +119,56 @@ public final class ChargeCardSimplerTest {
         check(src.contains("liveStop ? ChargeLiveState.actionLabel() : alarming ? T.serviceActionStop()"), "the card's action is Disconnect; the alarm's stays Stop");
         check(src.contains("T.serviceActionStop(),stop).build()"), "the alert notice's alarm keeps Stop");
     }
+    private static ChargeLiveHold.Facts on(String profile, int pct) { return new ChargeLiveHold.Facts(true, true, true, false, pct, 80, profile); }
+
+    /** Owner, 2026-11-06: "just open the app again and then swipe away to put it in the background again". */
+    private static void rearm() {
+        long t = 3 * H;
+        // Disconnect, then leave (as from the lock screen back into another app): no card.
+        ChargeLiveHold h = new ChargeLiveHold();
+        check(h.leave(t, on("a", 60)), "A arms on leaving");
+        h.stop(60, "a", t + MIN);
+        check(!h.active(), "Disconnect ends the hold");
+        check(!h.leave(t + 2 * MIN, on("a", 61)), "Disconnect, leave: no card");
+
+        // Disconnect, open Volt, leave: the card again.
+        h.opened("a");
+        check(!h.active() && h.stopped(t + 3 * MIN).isEmpty(), "opening Volt ends A's Disconnect");
+        check(h.leave(t + 4 * MIN, on("a", 62)), "Disconnect, open Volt, leave: the card arms");
+        h.opened("a");
+        check(h.leave(t + 5 * MIN, new ChargeLiveHold.Facts(true, true, false, false, 62, 80, "a")) == false, "the usual rules still apply: not charging, no card");
+        check(!h.leave(t + 6 * MIN, new ChargeLiveHold.Facts(false, true, true, false, 62, 80, "a")), "the switch off still means no card");
+
+        // Opening Volt on scooter B leaves A's Disconnect alone.
+        ChargeLiveHold two = new ChargeLiveHold();
+        two.stop(60, "a", t);
+        two.opened("b");
+        check(!two.leave(t + MIN, on("a", 60)), "B selected when Volt opened: A's Disconnect still counts");
+        two.opened("a");
+        check(two.leave(t + 2 * MIN, on("a", 60)), "then opened with A selected: A arms");
+
+        // Disconnect, then the service is recreated in the background (no screen): still no card.
+        ChargeLiveHold old = new ChargeLiveHold();
+        old.leave(t, on("a", 60));
+        old.stop(60, "a", t + MIN);
+        long gap = 5 * MIN, mono = 40 * MIN;
+        ChargeLiveHold fresh = new ChargeLiveHold();
+        for (ChargeLiveHold.Stopped stop : old.stopped(t + 2 * MIN)) fresh.restoreStopped(stop.profile, stop.best, stop.ageMs + gap, mono);
+        check(!fresh.leave(mono + MIN, on("a", 61)), "Disconnect, background recreate: still no card");
+        check(fresh.step(mono + 2 * MIN, on("a", 62)) == ChargeLiveHold.End.NONE && !fresh.active(), "and the recreated service's checks don't bring it back");
+        fresh.opened("a");
+        check(fresh.leave(mono + 3 * MIN, on("a", 62)), "until the owner opens Volt");
+
+        // In the service: only Volt's screen in front ends a Disconnect.
+        String src;
+        try { src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        check(src.split("chargeLiveOpened\\(\\);", -1).length == 2, "one call of chargeLiveOpened");
+        check(src.contains("if(!value&&wasVisible)armChargeLive();else if(value)chargeLiveOpened();"), "applyVisibility calls it only with Volt's screen in front");
+        check(src.split("chargeLive\\.opened\\(", -1).length == 2, "chargeLive.opened only from chargeLiveOpened");
+        check(src.contains("visible=uiVisible;running=this;"), "a new service starts from uiVisible, false when it was recreated in the background");
+    }
+
     private static String between(String text, String from, String to) {
         int a = text.indexOf(from), b = a < 0 ? -1 : text.indexOf(to, a);
         if (a < 0 || b < 0) throw new AssertionError("ScooterService no longer has " + from + " … " + to);

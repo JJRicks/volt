@@ -16,6 +16,8 @@ package com.jjricks.volt;
  * scooter only (Facts.profile), and for HOLD_MS at most. Each scooter's Stop is its own (up to MAX_STOPS of them):
  * a Stop on one never replaces or ends another's. The service stores them (stopped()) on the device and hands
  * them back to a new service (restoreStopped), so a recreated service doesn't arm the same charge again.
+ * The owner opening Volt (opened) ends that scooter's Stop, so leaving again arms the card as usual (owner,
+ * 2026-11-06); the switch is what turns it off for good.
  */
 public final class ChargeLiveHold {
     /** Owner: a scooter that doesn't reconnect within about 15 to 20 seconds ends the card. */
@@ -84,6 +86,11 @@ public final class ChargeLiveHold {
     }
     /** Volt is open again: nothing to hold. A Stop for this charge still counts. */
     public void shown() { active = reconnecting = false; }
+    /**
+     * The owner opened Volt (its screen in front, never a service recreated in the background): nothing to hold,
+     * and the selected scooter's Stop is over, so the next leave decides afresh. Other scooters' Stops still count.
+     */
+    public void opened(String profile) { shown(); stops.remove(profile == null ? "" : profile); }
     /** The owner's Stop on the card: ends the hold, and it doesn't arm again until this charge is over. */
     public void stop(Integer percent) { stop(percent, null, 0); }
     /** Stop for the scooter with this profile id, at nowMono. */
