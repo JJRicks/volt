@@ -56,6 +56,8 @@ final class ScooterMenuEditor {
     /** View tags the emulator check finds (android-tests/ScooterMenuEditValidation). */
     static final String TAG_EDIT = "menu_edit", TAG_EDITOR = "menu_editor", TAG_ADD_BACK = "menu_add_back", TAG_RESET = "menu_reset",
             TAG_HIDE = "menu_hide", TAG_HEADER = "menu_section_header", TAG_SHOW = "menu_show", TAG_NOTICE = "menu_notice_action";
+    /** The live page's edges (PR 3): the "N settings hidden · Edit" footer and the "Hidden" caption on a hidden setting search found. */
+    static final String TAG_FOOTER = "menu_footer", TAG_HIDDEN_CAPTION = "menu_hidden_caption";
     private static final int MAX_WIDTH_DP = 560;
 
     private final ScreenHost screens;

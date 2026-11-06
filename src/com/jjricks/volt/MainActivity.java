@@ -1498,6 +1498,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         private boolean lights;
         /** The Maintenance subpage (null while the main page shows), the page holding both, and the row's value. */
         private MaintenanceScreen maintenance;private final LinearLayout page=column();private TextView maintenanceValue;
+        /** Normal mode's quiet last line, "3 settings hidden · Edit" (opens the editor), and its text as last shown. */
+        private TextView menuFooter;private String shownFooter;
+        /** The "Hidden" caption added to a row's card the first time search finds it hidden. */
+        private final java.util.HashMap<View,TextView> hiddenCaptions=new java.util.HashMap<>();
         /** The menu editor, shown in the page in place of the live controls (no command can be sent from it). */
         private String query="";
         ControlsScreen(boolean lightsPage){
@@ -1628,10 +1632,13 @@ public final class MainActivity extends Activity implements ScreenHost {
                 menuDefaults.put(e.getKey(),ids);
             }
             menu=ScooterMenuLayout.defaults(menuDefaults);
+            menuFooter=menuFooterView();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             syncMenu();
             applyFilter();
             page.addView(view,new LinearLayout.LayoutParams(-1,-2));
+            // The footer follows the whole page: on wide screens it sits under both columns.
+            page.addView(menuFooter,new LinearLayout.LayoutParams(-1,-2));
             if(!lights&&MaintenanceScreen.remembered(preferences))openMaintenance();
             // The editor stays open through a rebuild (rotation, theme, fold), like Home's (dashboard_editing).
             boolean editing=preferences.getBoolean(ScooterMenuLayout.EDITING,false);
@@ -1643,6 +1650,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         private void openMaintenance(){
             maintenance=new MaintenanceScreen(MainActivity.this,this::closeMaintenance,expanded);
+            updateMenuFooter();
             view.setVisibility(View.GONE);page.addView(maintenance.view(),new LinearLayout.LayoutParams(-1,-2));
         }
         private void showMaintenance(){Motion.page(scroll,1,()->{clearSearch();MaintenanceScreen.remember(preferences,true);openMaintenance();if(scroll!=null)scroll.scrollTo(0,0);});}
@@ -1668,6 +1676,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** The header's pencil, or Done while editing; hidden on the Lights page and during a search. */
         private Boolean shownEditing;
         private void updateEditAction(){
+            updateMenuFooter();
             if(menuEditAction==null)return;
             boolean on=editing();
             // refresh() calls this on every redraw (the Lights page and the scooter change there): redraw only on a change.
@@ -1698,6 +1707,77 @@ public final class MainActivity extends Activity implements ScreenHost {
             editor.close();page.removeView(editor.view);editor=null;
             view.setVisibility(View.VISIBLE);
             updateEditAction();
+        }
+        private TextView menuFooterView(){
+            TextView footer=design.caption(null);footer.setTag(ScooterMenuEditor.TAG_FOOTER);footer.setGravity(Gravity.CENTER);
+            footer.setMinHeight(design.dp(48));footer.setPadding(design.dp(16),design.dp(14),design.dp(16),design.dp(14));
+            footer.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,13*design.textScale);
+            footer.setFocusable(true);footer.setClickable(true);footer.setBackground(rowRipple());footer.setOnClickListener(v->toggleEditing());
+            footer.setVisibility(View.GONE);
+            return footer;
+        }
+        /** Shown on the main page while something is hidden; never on Lights, during a search, while editing or in Maintenance. */
+        private void updateMenuFooter(){
+            if(menuFooter==null)return;
+            int hidden=menu!=null&&canEdit()&&!editing()?menu.hiddenSettings(menuOfferedRows()):0;
+            menuFooter.setVisibility(hidden>0?View.VISIBLE:View.GONE);
+            if(hidden==0)return;
+            String edit=T.menuFooterEdit(),line=T.menuFooter(T.menuFooterHidden(hidden,hidden),edit);
+            if(line.equals(shownFooter))return;
+            shownFooter=line;
+            android.text.SpannableString text=new android.text.SpannableString(line);int at=line.lastIndexOf(edit);
+            if(at>=0){
+                text.setSpan(new android.text.style.ForegroundColorSpan(design.accent),at,at+edit.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),at,at+edit.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            menuFooter.setText(text);menuFooter.setContentDescription(T.menuFooterDescription(hidden,hidden));
+        }
+        private java.util.Set<String> menuOfferedRows(){
+            java.util.HashSet<String> out=new java.util.HashSet<>();
+            for(String id:menuViews.keySet())if(menuOffered(id))out.add(id);
+            return out;
+        }
+        /**
+         * Search still finds hidden settings (and the rows of hidden sections): each one found says "Hidden" under it,
+         * and its control works as usual. Main page only: the Lights page ignores the menu layout.
+         */
+        private void markHidden(boolean searching){
+            if(menu==null)return;
+            java.util.HashSet<View> cards=new java.util.HashSet<>(menuIds.keySet());cards.addAll(gluedTo.keySet());
+            for(View card:cards){
+                View owner=gluedTo.containsKey(card)?gluedTo.get(card):card;String id=menuIds.get(owner);String section=id==null?null:menu.sectionOf(id);
+                boolean show=searching&&!lights&&section!=null&&card.getVisibility()==View.VISIBLE&&menu.hidden(section,id);
+                TextView caption=hiddenCaptions.get(card);
+                if(caption==null){
+                    if(!show||!(card instanceof LinearLayout))continue;
+                    caption=hiddenCaption(card);hiddenCaptions.put(card,caption);
+                }
+                caption.setVisibility(show?View.VISIBLE:View.GONE);
+            }
+        }
+        /**
+         * A small muted line under the row's name, where its own caption goes (a setting line's words, past its icon),
+         * or at the end of a card without one (the top speed card).
+         */
+        private TextView hiddenCaption(View card){
+            TextView caption=design.caption(T.menuSearchHidden());caption.setTag(ScooterMenuEditor.TAG_HIDDEN_CAPTION);
+            TextView name=firstText(card);
+            android.view.ViewParent heading=name==null?null:name.getParent();android.view.ViewParent words=heading==null?null:heading.getParent();
+            if(words instanceof LinearLayout&&words!=card&&heading!=card){
+                caption.setPaddingRelative(name.getCompoundDrawablesRelative()[0]!=null?design.dp(42):0,design.dp(3),0,0);
+                ((LinearLayout)words).addView(caption,new LinearLayout.LayoutParams(-1,-2));
+            }else{
+                caption.setPaddingRelative(0,design.dp(6),0,0);
+                ((LinearLayout)card).addView(caption,new LinearLayout.LayoutParams(-1,-2));
+            }
+            return caption;
+        }
+        private TextView firstText(View view){
+            if(view instanceof TextView)return (TextView)view;
+            if(!(view instanceof ViewGroup))return null;
+            ViewGroup group=(ViewGroup)view;
+            for(int i=0;i<group.getChildCount();i++){TextView found=firstText(group.getChildAt(i));if(found!=null)return found;}
+            return null;
         }
         /** What the editor reads and changes: this scooter's layout and the rows this model offers. */
         private final class MenuHost implements ScooterMenuEditor.Host {
@@ -1896,6 +1976,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             String lightsLabel=lights&&!searching?T.mainGroupHeadlights():T.mainGroupLights();labels.get(GROUP_LIGHTS).setText(lightsLabel.toUpperCase(Fmt.locale(Locale.ROOT)));
             lightsHeader.setVisibility(lights?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
+            markHidden(searching);updateMenuFooter();
             // The wide columns follow what this model shows (placeSections returns at once when nothing moves).
             placeSections();
         }
