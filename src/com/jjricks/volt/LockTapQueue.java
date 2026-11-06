@@ -44,7 +44,7 @@ final class LockTapQueue {
         return reasonOnceIdle == CapabilityResolver.Reason.STATUS_STALE || reasonOnceIdle == CapabilityResolver.Reason.NO_MOTION_REPORT ? Gate.WAIT : Gate.REFUSE;
     }
     /** A hard refusal while another write is in flight: put the switch back now, with the gate's reason. */
-    Action reject(String why) { return target == null || sent ? Action.NONE : revert(why); }
+    Action reject(CharSequence why) { return target == null || sent ? Action.NONE : revert(why); }
     /** One look at the connection: what to do with a waiting or sent tap. lockPending is this lock change in flight. */
     Action step(long now, boolean ready, Boolean confirmed, boolean lockPending, Gate gate) {
         if (target == null) return Action.NONE;

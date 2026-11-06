@@ -43,7 +43,7 @@ public final class ServiceConsumersEnglishTest {
         REASONS.put(CapabilityResolver.Reason.VALUE_UNKNOWN, "Unknown value · can't change safely");
         REASONS.put(CapabilityResolver.Reason.NO_CHOICES, "No choices reported");
         REASONS.put(CapabilityResolver.Reason.BUSY, "Wait for the current change");
-        REASONS.put(CapabilityResolver.Reason.MOVING, "Stop the scooter first");
+        REASONS.put(CapabilityResolver.Reason.MOVING, "Bring the scooter to a stop first");
         REASONS.put(CapabilityResolver.Reason.NO_MOTION_REPORT, "No motion report yet");
         REASONS.put(CapabilityResolver.Reason.WARNING_ACTIVE, "Resolve scooter warning first");
         REASONS.put(CapabilityResolver.Reason.LOCKED, "Unlock first");

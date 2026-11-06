@@ -123,8 +123,8 @@ public final class OnboardingTextTest {
         equal(h + ", " + c, T.onboardingOptionSpokenChip(h, c), "choice with chip");
         equal(h + ", " + c + ". " + d + ". Needs Android 11 or newer",
                 T.onboardingOptionSpokenChipDetailUnavailable(h, c, d), "choice with every part");
-        equal("Private backup recognised · shared role", T.onboardingIdentityBackupShared(), "shared backup status");
-        equal("Private backup recognised · owner role", T.onboardingIdentityBackupOwner(), "owner backup status");
+        equal("Private backup recognized · shared rider", T.onboardingIdentityBackupShared(), "shared backup status");
+        equal("Private backup recognized · owner", T.onboardingIdentityBackupOwner(), "owner backup status");
         equal("Command: python3 setup/capture-owner.py --push",
                 T.onboardingHelperCommandDescription("python3 setup/capture-owner.py --push"), "command description");
     }
@@ -142,7 +142,7 @@ public final class OnboardingTextTest {
     private static void websiteWords() {
         String xml = L10nFiles.read(new File(L10nFiles.root(), "res/values/strings_onboarding.xml"));
         String[][] kept = {
-                {"onboarding_browser_start", "**Start**"},
+                {"onboarding_browser_start", "**Start capture**"},
                 {"onboarding_browser_save", "**Save to phone Downloads**"},
                 {"onboarding_computer_adb_devices", "`adb devices`|**device**"},
                 {"onboarding_computer_shows_device", "device"},

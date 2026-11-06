@@ -133,7 +133,7 @@ public final class MoreScreenTextTest {
         equal("1 qualified high-speed charge recordings", Base.qualified(1, false), phone, "qualified, kept English bug");
         equal("Owner · connected", Base.profileStatus("Owner", "connected"), phone, "profile");
         equal("Blue, Owner · connected. Open My scooters", Base.profileDescription("Blue", "Owner · connected"), phone, "profile card");
-        equal("N65i · Shared access", Base.sharedModel("N65i"), phone, "shared");
+        equal("N65i · Shared rider", Base.sharedModel("N65i"), phone, "shared");
         equal("Last connected 5 minutes ago", Base.lastConnected("5 minutes ago"), phone, "last connected");
         equal("Edit Blue", Base.edit("Blue"), phone, "edit");
         equal("Connect Blue", Base.action("Connect", "Blue"), phone, "action");
@@ -219,7 +219,7 @@ public final class MoreScreenTextTest {
         static String qualified(int qualified, boolean stock) { return qualified + " qualified " + (stock ? "stock" : "high-speed") + " charge recordings"; }
         static String profileStatus(String role, String link) { return role + " · " + link; }
         static String profileDescription(String name, String status) { return name + ", " + status + ". Open My scooters"; }
-        static String sharedModel(String model) { return model + " · Shared access"; }
+        static String sharedModel(String model) { return model + " · Shared rider"; }
         static String lastConnected(CharSequence relative) { return "Last connected " + relative; }
         static String edit(String name) { return "Edit " + name; }
         static String action(String action, String name) { return action + " " + name; }

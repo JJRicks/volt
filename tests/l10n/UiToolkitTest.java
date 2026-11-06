@@ -96,7 +96,7 @@ public final class UiToolkitTest {
                         unit.isEmpty() ? T.uiChartTooltipUnitless(number, time) : T.uiChartTooltip(number, unit, time), "chart tooltip");
             }
             for (int count : new int[]{0, 1, 2, 5, 21, 1600}) {
-                same("Measured " + label + " chart, " + count + " samples. Displayed axis " + "0" + " to " + "1.5k" + ". Touch to inspect readings.",
+                same("Measured " + label + " chart, " + count + (count == 1 ? " sample" : " samples") + ". Displayed axis " + "0" + " to " + "1.5k" + ". Touch to inspect readings.",
                         T.uiChartDescription(count, label, count, "0", "1.5k"), "chart description");
             }
             same("NAVEE " + (label.isEmpty() ? "" : label + " ") + "scooter",

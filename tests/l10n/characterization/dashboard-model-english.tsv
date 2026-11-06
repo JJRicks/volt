@@ -128,7 +128,7 @@ entry feature:turn_sound icon	sound
 entry feature:turn_sound group	Lights & sound
 entry feature:turn_sound featureKey	turn_sound
 entry feature:turn_sound directToggle	true
-entry feature:display_units label	Dashboard units
+entry feature:display_units label	Scooter display units
 entry feature:display_units icon	ruler
 entry feature:display_units group	Preferences
 entry feature:display_units featureKey	display_units
@@ -143,7 +143,7 @@ entry feature:start_speed icon	speed
 entry feature:start_speed group	Ride
 entry feature:start_speed featureKey	start_speed
 entry feature:start_speed directToggle	false
-entry feature:speed_limit label	Custom speed cap
+entry feature:speed_limit label	Custom speed limit
 entry feature:speed_limit icon	speed
 entry feature:speed_limit group	Experimental controls
 entry feature:speed_limit featureKey	speed_limit
@@ -158,12 +158,12 @@ entry feature:dual_drive icon	tune
 entry feature:dual_drive group	Experimental controls
 entry feature:dual_drive featureKey	dual_drive
 entry feature:dual_drive directToggle	false
-entry feature:drive_speed_limit label	Drive mode speed cap
+entry feature:drive_speed_limit label	Drive mode speed limit
 entry feature:drive_speed_limit icon	speed
 entry feature:drive_speed_limit group	Experimental controls
 entry feature:drive_speed_limit featureKey	drive_speed_limit
 entry feature:drive_speed_limit directToggle	false
-entry feature:charge_limit label	Charge ceiling
+entry feature:charge_limit label	Charge limit
 entry feature:charge_limit icon	battery
 entry feature:charge_limit group	Battery
 entry feature:charge_limit featureKey	charge_limit

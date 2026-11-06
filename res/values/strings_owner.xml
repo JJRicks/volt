@@ -47,8 +47,8 @@
     <string name="owner_shizuku_cancel_capture" volt:screen="Phone-only setup, capturing" volt:purpose="button">Cancel capture</string>
     <!-- Spoken description of the 90-second countdown ring: %1$d is the whole seconds left (90 to 0). -->
     <plurals name="owner_countdown_seconds_left" volt:screen="Phone-only setup, capturing"
-        volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">%1$d seconds left</item>
+        volt:purpose="accessibility description">
+        <item quantity="one">%1$d second left</item>
         <item quantity="other">%1$d seconds left</item>
     </plurals>
     <!-- Drawn in small type under the big number of seconds inside the 132dp countdown ring; "s" is the
@@ -84,10 +84,10 @@
     <!-- Checklist row: the capture found a shared user's identity (access the owner granted another
          account), not the owner's. Keep shared user and owner distinct. -->
     <string name="owner_shizuku_shared_identity_found" volt:screen="Phone-only setup, ready" volt:purpose="status"
-        volt:safety="owner-key">Shared-user identity found</string>
+        volt:safety="owner-key">Shared-rider key found</string>
     <!-- Checklist row: the capture found the scooter owner's identity. -->
     <string name="owner_shizuku_owner_identity_found" volt:screen="Phone-only setup, ready" volt:purpose="status"
-        volt:safety="owner-key">Owner identity found</string>
+        volt:safety="owner-key">Owner key found</string>
     <!-- Checklist row: NAVEE's app logging is turned back off. -->
     <string name="owner_shizuku_navee_restored" volt:screen="Phone-only setup, ready" volt:purpose="status"
         volt:safety="privacy" volt:dnt="NAVEE">NAVEE restored</string>
@@ -236,25 +236,25 @@
     <!-- Why a setup file or typed identity was refused (shown by the setup screens that import one). -->
     <!-- The file is empty or larger than 1 MB. -->
     <string name="owner_setup_empty_or_large" volt:screen="Owner setup import" volt:purpose="error"
-        volt:safety="owner-key">Setup file is empty or too large.</string>
+        volt:safety="owner-key">Owner setup file is empty or too large.</string>
     <!-- An identity field is not 12 hexadecimal characters. -->
     <string name="owner_setup_need_hex" volt:screen="Owner setup import" volt:purpose="error"
         volt:safety="owner-key">Need 12 hex characters</string>
     <!-- The file holds no owner identity Volt can use. -->
     <string name="owner_setup_no_identity" volt:screen="Owner setup import" volt:purpose="error"
-        volt:safety="owner-key">No owner identity in file</string>
+        volt:safety="owner-key">No owner key in file</string>
     <!-- The file names a role other than owner or shared user. -->
     <string name="owner_setup_unsupported_role" volt:screen="Owner setup import" volt:purpose="error"
-        volt:safety="owner-key">Unsupported owner role</string>
+        volt:safety="owner-key">Unsupported role</string>
     <!-- The file holds more than one identity or role, so Volt imports none of them. -->
     <string name="owner_setup_conflicting" volt:screen="Owner setup import" volt:purpose="error"
-        volt:safety="owner-key" volt:dnt="NAVEE">This file contains conflicting owner identities or roles. Capture one NAVEE account connection or import one private setup backup.</string>
+        volt:safety="owner-key" volt:dnt="NAVEE">This file contains conflicting owner keys or roles. Capture one NAVEE account connection or import one private setup backup.</string>
     <!-- A staged import request was damaged; pick the setup file again. -->
     <string name="owner_setup_import_failed" volt:screen="Owner setup import" volt:purpose="error"
         volt:safety="owner-key">Import failed. Pick file again.</string>
     <!-- The typed owner identity is not 12 hexadecimal characters, or its role is not owner or shared user. -->
     <string name="owner_setup_enter_identity" volt:screen="Owner setup import" volt:purpose="error"
-        volt:safety="owner-key">Enter a 12-character owner identity.</string>
+        volt:safety="owner-key">Enter a 12-character owner key.</string>
 
     <!-- The name Volt gives a new scooter profile when the person typed none. It is saved in English and
          shown in the phone's language until the person renames the scooter. -->

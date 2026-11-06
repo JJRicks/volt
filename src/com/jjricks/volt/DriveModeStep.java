@@ -150,7 +150,7 @@ final class DriveModeStep {
         else prompt.setText(T.controlsDriveModePressNext());
         for (int i = 0; i < CHOICES.length; i++) {
             boolean used = survey.used(CHOICES[i]);
-            chips[i].setText(used ? CHOICES[i].text + " ✓" : CHOICES[i].text);
+            chips[i].setText(used ? T.controlsDriveModeChoiceUsed(CHOICES[i].text) : CHOICES[i].text);
             chips[i].setEnabled(live && !used); chips[i].setAlpha(live || used ? 1f : 0.5f);
             ui.styleChip(chips[i], used);
         }

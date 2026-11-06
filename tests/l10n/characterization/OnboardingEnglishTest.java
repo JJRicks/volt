@@ -14,7 +14,7 @@ package com.jjricks.volt;
  *   - the connection status line: for each shared connection id BleController's message() can hold,
  *     the English id against the notice it stores (displayMessage()), and that the nothing-found id
  *     still starts with "No scooter found";
- *   - the owner and shared roles the parser reports, which pick "owner role" and "shared role".
+ *   - the owner and shared roles the parser reports, which pick "owner" and "shared rider".
  */
 public final class OnboardingEnglishTest {
     private static int checks;
@@ -29,8 +29,12 @@ public final class OnboardingEnglishTest {
     private static void refusalToasts() {
         String[] inputs = {"", "identity: zz", "hello", "identity: 010203040506\nrole: 2",
                 "identity: 010203040506\nidentity: 0A0B0C0D0E0F"};
+        // The parser's getMessage() keeps its English (logs and the Shizuku shell read it); the toast is the catalog's.
         String[] english = {"Setup file is empty or too large.", "Need 12 hex characters", "No owner identity in file",
                 "Unsupported owner role", "This file contains conflicting owner identities or roles. "
+                + "Capture one NAVEE account connection or import one private setup backup."};
+        String[] toast = {"Owner setup file is empty or too large.", "Need 12 hex characters", "No owner key in file",
+                "Unsupported role", "This file contains conflicting owner keys or roles. "
                 + "Capture one NAVEE account connection or import one private setup backup."};
         for (int i = 0; i < inputs.length; i++) {
             try {
@@ -38,7 +42,7 @@ public final class OnboardingEnglishTest {
                 throw new AssertionError("parser accepted input " + i);
             } catch (IllegalArgumentException refused) {
                 equal(english[i], refused.getMessage(), "parser refusal " + i);
-                equal(english[i], String.valueOf(SetupException.shown(refused)), "toast for parser refusal " + i);
+                equal(toast[i], String.valueOf(SetupException.shown(refused)), "toast for parser refusal " + i);
             }
         }
         SetupException typed = new SetupException(M.ownerSetupEnterIdentity());

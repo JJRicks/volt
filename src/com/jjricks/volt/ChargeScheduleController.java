@@ -29,6 +29,17 @@ public final class ChargeScheduleController {
         void time(long wallMs, int offsetSeconds, Consumer<Boolean> completion);
         void enabled(boolean enabled, Consumer<Boolean> completion);
     }
+    // Why the View's controls are blocked, in English: the View keeps these as ids (it is checked for null and compared
+    // in tests), and reasonText shows them through ChargeScheduleText, which also knows the Context's reasons (toggleReason,
+    // timeReason) and a failed restore's status.
+    // What a completion or a test result answers is only ever shown, so it is in the current language. State.status
+    // stays English, and so does a failed restore's answer, which is that status (restoreFailed).
+    private static final String WAIT_CHANGE="Wait for the current change to finish",WAIT_TEST="Wait for the schedule test to finish",
+            DISABLE_DONE_BY="Disable Charge done by first",CONNECT_CHARGER="Connect a charger first",CHOOSE_SCOOTER="Choose a scooter first",
+            CONNECT_SCOOTER="Connect the scooter first",NOT_ON_MODEL="Not available on this model",TURN_OFF_DONE_BY="Turn off Charge done by first",
+            TURN_OFF_SCHEDULED="Turn off Scheduled charging first",WAIT_READINGS="Wait for fresh charging readings",AT_LIMIT="Battery is already at its charge limit";
+    /** A blocked reason as a person reads it, in the current language; null stays null, and text with no id here shows as it is. Display only. */
+    public static String reasonText(String reason){return ChargeScheduleText.shown(reason);}
     /** All readings must come from the current authenticated transport, never a display cache. */
     public static final class Context {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;
@@ -93,19 +104,19 @@ public final class ChargeScheduleController {
             status=state.status;missed=state.alert!=ALERT_NONE&&state.outcome==Outcome.MISSED.ordinal()?new Missed(state):null;
             testPhase=test==null?null:test.phase();testStartWallMs=test==null?state.testStart:test.startWallMs;
             lastTest=ChargeScheduleTest.Outcome.values()[state.testOutcome];lastTestOffsetSeconds=testOffset(state);
-            String wait=busy?"Wait for the current change to finish":test!=null?"Wait for the schedule test to finish":null;
-            manualBlockedReason=wait!=null?wait:doneByEnabled?"Disable Charge done by first":baseReason(c,false);
+            String wait=busy?WAIT_CHANGE:test!=null?WAIT_TEST:null;
+            manualBlockedReason=wait!=null?wait:doneByEnabled?DISABLE_DONE_BY:baseReason(c,false);
             manualTimeBlockedReason=manualBlockedReason!=null?manualBlockedReason:baseReason(c,true);
-            String unavailable=wait!=null?wait:!chargerConnected?"Connect a charger first":baseReason(c,true);
+            String unavailable=wait!=null?wait:!chargerConnected?CONNECT_CHARGER:baseReason(c,true);
             doneByBlockedReason=unavailable!=null?unavailable:c.estimateUnavailableReason;
             // The picker remains available offline. Connected active plans are
             // validated and explicitly reprogrammed by setDoneTime instead.
-            timeBlockedReason=wait!=null?wait:c.scope.isEmpty()?"Choose a scooter first":null;
+            timeBlockedReason=wait!=null?wait:c.scope.isEmpty()?CHOOSE_SCOOTER:null;
             // Other models take whole-hour starts only, too coarse to time a two-minute resume.
-            testBlockedReason=test!=null?null:wait!=null?wait:c.scope.isEmpty()||!c.ready?"Connect the scooter first":c.wholeHours?"Not available on this model"
-                    :baseReason(c,true)!=null?baseReason(c,true):doneByEnabled?"Turn off Charge done by first"
-                    :manualEnabled||Integer.valueOf(1).equals(c.enabled)?"Turn off Scheduled charging first":!chargerConnected?"Connect a charger first"
-                    :!finite(c.soc)||!finite(c.target)?"Wait for fresh charging readings":c.soc>=c.target?"Battery is already at its charge limit":null;
+            testBlockedReason=test!=null?null:wait!=null?wait:c.scope.isEmpty()||!c.ready?CONNECT_SCOOTER:c.wholeHours?NOT_ON_MODEL
+                    :baseReason(c,true)!=null?baseReason(c,true):doneByEnabled?TURN_OFF_DONE_BY
+                    :manualEnabled||Integer.valueOf(1).equals(c.enabled)?TURN_OFF_SCHEDULED:!chargerConnected?CONNECT_CHARGER
+                    :!finite(c.soc)||!finite(c.target)?WAIT_READINGS:c.soc>=c.target?AT_LIMIT:null;
         }
     }
     static final class State {
@@ -261,14 +272,14 @@ public final class ChargeScheduleController {
     public Diagnostics diagnostics(){Context c=context();return c.scope.isEmpty()?null:new Diagnostics(state(c),c);}
     private void save(Context c,State s){if(!c.scope.isEmpty())store.write(c.scope,encode(s));}
     private static String baseReason(Context c,boolean needsTime){
-        if(c.scope.isEmpty()||!c.ready)return "Connect the scooter first";
+        if(c.scope.isEmpty()||!c.ready)return CONNECT_SCOOTER;
         if(c.toggleReason!=null)return c.toggleReason;
         return needsTime?c.timeReason:null;
     }
     public void setDoneTime(int hour,int minute,Consumer<String> completion){
         Context c=context();View view=view();
         if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
-        if(view.timeBlockedReason!=null){completion.accept(view.timeBlockedReason);return;}
+        if(view.timeBlockedReason!=null){completion.accept(reasonText(view.timeBlockedReason));return;}
         if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
     }
@@ -280,7 +291,7 @@ public final class ChargeScheduleController {
     private void enableDone(int minute,Consumer<String> completion){
         Context c=context();View view=view();
         String blocked=view.doneByEnabled?(busy?T.commonWaitCurrentChange():baseReason(c,true)):view.doneByBlockedReason;
-        if(blocked!=null){completion.accept(blocked);return;}
+        if(blocked!=null){completion.accept(reasonText(blocked));return;}
         State previous=state(c);boolean paused=!Integer.valueOf(1).equals(c.charging);
         if(!paused&&c.estimateUnavailableReason!=null){completion.accept(c.estimateUnavailableReason);return;}
         if(paused){
@@ -312,7 +323,7 @@ public final class ChargeScheduleController {
     }
     public void setManualEnabled(boolean enabled,Consumer<String> completion){
         Context c=context();View view=view();
-        if(view.manualBlockedReason!=null){completion.accept(view.manualBlockedReason);return;}
+        if(view.manualBlockedReason!=null){completion.accept(reasonText(view.manualBlockedReason));return;}
         if(!enabled){disable(completion);return;}
         long start=view.manualStartWallMs;
         if(start<=c.now){
@@ -329,7 +340,7 @@ public final class ChargeScheduleController {
     public void setManualStart(long wallMs,Consumer<String> completion){
         Context c=context();View view=view();
         String reason=view.manualTimeBlockedReason;
-        if(reason!=null){completion.accept(reason);return;}
+        if(reason!=null){completion.accept(reasonText(reason));return;}
         if(wallMs<=c.now||wallMs-c.now>48*60*60_000L){completion.accept(T.chargingScheduleStartWithin48h());return;}
         if(c.wholeHours){Calendar cal=Calendar.getInstance(c.zone);cal.setTimeInMillis(wallMs);if(cal.get(Calendar.MINUTE)!=0||cal.get(Calendar.SECOND)!=0){completion.accept(T.chargingScheduleWholeHour());return;}}
         int offset=c.zone.getOffset(c.now)/1000;
@@ -347,12 +358,12 @@ public final class ChargeScheduleController {
     }
     /** OFF, then optionally the manual Charge start; off names what is off if that restore fails. */
     private void disable(boolean restoreManual,String off,Consumer<String> completion){
-        Context c=context();String reason=busy?"Wait for the current change to finish":baseReason(c,false);
-        if(reason!=null){completion.accept(reason);return;}
+        Context c=context();String reason=busy?WAIT_CHANGE:baseReason(c,false);
+        if(reason!=null){completion.accept(reasonText(reason));return;}
         long token=++operation;busy=true;pendingContext=c;pendingCompletion=completion;
         driver.enabled(false,success->{
             if(!valid(c,token,completion))return;
-            if(!success){finishBusy();completion.accept("Schedule cancellation was not confirmed; reconnect and try again");return;}
+            if(!success){finishBusy();completion.accept(T.chargingScheduleCancelNotConfirmed());return;}
             // OFF is a confirmed change even if a later clock/time restoration fails.
             // Persist it immediately, and never retry this operation on reconnect.
             State done=state(c);done.alert=ALERT_NONE;if(test!=null)done.testOff=1;retire(c,done,"",Outcome.TURNED_OFF);
@@ -382,13 +393,13 @@ public final class ChargeScheduleController {
         State s=state(c);s.status=status;save(c,s);finishBusy();completion.accept(s.status);
     }
     private void program(Context c,long start,int offset,Runnable commit,boolean enable,Double deadlineTarget,Double stableSoc,Consumer<String> completion){
-        if(busy){completion.accept("Wait for the current change to finish");return;}
+        if(busy){completion.accept(T.commonWaitCurrentChange());return;}
         long token=++operation;busy=true;pendingContext=c;pendingCompletion=completion;
         driver.clock(clock->{
             if(!valid(c,token,completion))return;
-            if(!clock){finishBusy();completion.accept("Could not set the scooter clock; schedule unchanged");return;}
+            if(!clock){finishBusy();completion.accept(T.chargingScheduleClockFailed());return;}
             if(stableSoc!=null&&!stableSoc.equals(context().soc)){
-                finishBusy();completion.accept("Battery level changed; a fresh charging estimate is needed");return;
+                finishBusy();completion.accept(T.chargingScheduleBatteryChanged());return;
             }
             // A transmitted calculated time may apply despite a lost confirmation.
             // Retain its identity across restart so its later readback cannot replace
@@ -396,7 +407,7 @@ public final class ChargeScheduleController {
             if(deadlineTarget!=null){State s=state(c);s.calculatedWire=start/1000+offset;save(c,s);}
             driver.time(start,offset,time->{
                 if(!valid(c,token,completion))return;
-                if(!time){finishBusy();completion.accept("Charge start was not confirmed; check the scooter schedule");return;}
+                if(!time){finishBusy();completion.accept(T.chargingScheduleStartNotConfirmed());return;}
                 // This is a confirmed partial change even if enabling later fails. Keep its time,
                 // but never claim that the calculated deadline was successfully armed.
                 State s=state(c);boolean wasEnabled=s.mode!=0||Integer.valueOf(1).equals(c.enabled);
@@ -405,10 +416,10 @@ public final class ChargeScheduleController {
                 if(!enable){commit.run();finishBusy();completion.accept(null);return;}
                 Context latest=context();
                 if(deadlineTarget!=null&&(!finite(latest.target)||!deadlineTarget.equals(latest.target))){
-                    finishBusy();completion.accept("Charge limit changed; check the schedule and try again");return;
+                    finishBusy();completion.accept(T.chargingScheduleLimitChanged());return;
                 }
                 if(stableSoc!=null&&!stableSoc.equals(latest.soc)){
-                    finishBusy();completion.accept("Charge start changed, but a fresh charging estimate is needed");return;
+                    finishBusy();completion.accept(T.chargingScheduleStartChangedEstimate());return;
                 }
                 if(start<=latest.now){
                     // ACK/readback can consume a start only seconds away. Never enable a
@@ -416,8 +427,8 @@ public final class ChargeScheduleController {
                     driver.enabled(false,disabled->{
                         if(!valid(c,token,completion))return;
                         finishBusy();
-                        if(disabled){retire(c,state(c),"",Outcome.TURNED_OFF);completion.accept("Charging now — the calculated start time has passed");}
-                        else completion.accept("Start time passed, but schedule cancellation was not confirmed");
+                        if(disabled){retire(c,state(c),"",Outcome.TURNED_OFF);completion.accept(T.chargingScheduleStartPassed());}
+                        else completion.accept(T.chargingSchedulePassedNotCancelled());
                     });return;
                 }
                 driver.enabled(true,switched->{
@@ -426,12 +437,12 @@ public final class ChargeScheduleController {
                     if(switched){
                         Context after=context();
                         if(deadlineTarget!=null&&(!finite(after.target)||!deadlineTarget.equals(after.target))){
-                            armManual(after,start,offset);completion.accept("Charge limit changed; the charge start is saved without a finish estimate");
+                            armManual(after,start,offset);completion.accept(T.chargingScheduleLimitSavedNoEstimate());
                         }else if(stableSoc!=null&&!stableSoc.equals(after.soc)){
-                            armManual(after,start,offset);completion.accept("Battery level changed; the charge start is saved without a finish estimate");
+                            armManual(after,start,offset);completion.accept(T.chargingScheduleBatterySavedNoEstimate());
                         }else{commit.run();completion.accept(null);}
                     }
-                    else completion.accept("Charge start changed, but enabling the schedule was not confirmed");
+                    else completion.accept(T.chargingScheduleEnableNotConfirmed());
                 });
             });
         });
@@ -449,7 +460,7 @@ public final class ChargeScheduleController {
     }
     private void finishBusy(){busy=false;pendingContext=null;pendingCompletion=null;}
     private void interrupt(){Consumer<String> callback=pendingCompletion;++operation;finishBusy();
-        if(callback!=null)callback.accept("Connection changed; check the scooter schedule before trying again");}
+        if(callback!=null)callback.accept(T.chargingScheduleConnectionChanged());}
     public boolean testing(){return test!=null;}
     /**
      * Starts the owner's Scheduled charging test: a start about two minutes ahead, armed through the usual clock, time
@@ -459,7 +470,7 @@ public final class ChargeScheduleController {
     public String startTest(Consumer<TestResult> finished){
         Context c=context();View view=view();
         if(test!=null)return T.chargingScheduleWaitTest();
-        if(view.testBlockedReason!=null)return view.testBlockedReason;
+        if(view.testBlockedReason!=null)return reasonText(view.testBlockedReason);
         State s=state(c);
         // As Charge done by does: an unowned native time becomes the preference restored afterwards.
         if(s.manualStart==0&&view.manualStartWallMs>0)s.manualStart=view.manualStartWallMs;
@@ -489,7 +500,7 @@ public final class ChargeScheduleController {
     }
     private void endTest(ChargeScheduleTest.Outcome reason,boolean cleanup,String failure){
         ChargeScheduleTest t=test;if(t==null)return;Context c=testContext;State s=state(c);
-        if(t.phase()==ChargeScheduleTest.Phase.ENDING){test=null;testContext=null;deliver(t,s.testOff==1,failure,"Volt stopped before it finished; check that Scheduled charging is off");return;}
+        if(t.phase()==ChargeScheduleTest.Phase.ENDING){test=null;testContext=null;deliver(t,s.testOff==1,failure,T.chargingScheduleStoppedBeforeFinish());return;}
         t.stop(reason);
         // A resume the test saw is the intention's start: an OFF that fails or a lost link must not later call it missed.
         if(t.resumeWallMs()>0)s.started=true;

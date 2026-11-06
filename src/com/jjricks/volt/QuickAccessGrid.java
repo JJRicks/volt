@@ -88,8 +88,8 @@ final class QuickAccessGrid extends ViewGroup {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
             }
-            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : doneTime ? charge.timeBlockedReason
-                    : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason;
+            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : ChargeScheduleController.reasonText(doneTime ? charge.timeBlockedReason
+                    : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason);
             // An armed plan deliberately pauses charging; its own off action remains available.
             if (doneBy && charge != null && charge.doneByEnabled)
                 chargeBlocked = !live ? T.dashboardModelTileConnectScooter() : charge.busy ? T.commonWaitCurrentChange() : null;
@@ -430,15 +430,14 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles show short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
+    /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.shortLabel().render();
     }
-    /** A Setting tile is announced by the full name (the label's room does not limit speech), or the two Scooter-page names. */
+    /** A Setting tile is announced by the full name (the label's room does not limit speech): Maximum speed in full, or Charge schedule. */
     private static String tileSpokenName(QuickAccessActions.Entry entry) {
-        if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.label().render();
     }

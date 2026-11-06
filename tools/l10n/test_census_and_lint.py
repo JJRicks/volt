@@ -471,6 +471,18 @@ class LintRepoTest(unittest.TestCase):
         problems, _ = self.check()
         self.assertTrue(any("Screen.txt grew by 1 entry" in p for p in problems), problems)
 
+    def test_a_row_value_is_a_text_helper(self):
+        # MoreScreen.Row.value(String) puts its text on screen, whatever the receiver or a ternary around it.
+        source = 'class A { void value(String s) { }\n void f(Row r, boolean u) { r.value(u ? "Unrestricted" : "Mapped");\n' \
+                 ' r.value("ota_state"); r.value(""); r.value("✓"); } }'
+        found = sorted((f.rule, f.value) for f in hardcoded_lint.findings(source))
+        self.assertEqual(found, [("helper", "Mapped"), ("helper", "Unrestricted")])
+
+    def test_a_word_and_a_symbol_is_multiword(self):
+        source = 'class A { String a = "Unrestricted ✓", b = "☆ Star readings", c = "✓", d = "2 ✓", e = "row_id"; }'
+        self.assertEqual([(f.rule, f.value) for f in hardcoded_lint.findings(source)],
+                         [("multiword", "Unrestricted ✓"), ("multiword", "☆ Star readings")])
+
     def test_helper_labels_are_findings(self):
         """Findings 9 and 23: single-word labels passed to Volt's own helpers."""
         self.repo.write("src/com/jjricks/volt/Clean.java", java_class("Clean", '    void a(Ui ui) { ui.button("Done", null); }'))
