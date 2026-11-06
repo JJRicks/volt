@@ -35,6 +35,8 @@ for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do sources+=("
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
+# Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
+sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/ScooterMenuLayoutTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
 for name in RideAutoStopPolicy; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
@@ -110,6 +112,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
