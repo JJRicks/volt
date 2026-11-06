@@ -18,6 +18,7 @@ parser.add_argument('--serial', required=True)
 parser.add_argument('--app', type=Path, required=True)
 parser.add_argument('--runner', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
+parser.add_argument('--theme', choices=('dark', 'light'), default='dark', help='App theme for the fixture (default dark)')
 parser.add_argument('--baseline', action='store_true', help='Only the two original reported regressions')
 parser.add_argument('--case', action='append', help='Target widthxheight:app-text-scale:mode[:system-font-scale] (repeatable; example restores saved All widgets slot)')
 args = parser.parse_args()
@@ -69,7 +70,7 @@ if args.case:
         width, height = map(int, size.split('x'))
         if not 280 <= width <= 1400 or not 280 <= height <= 1600 or not 1 <= float(scale) <= 2 or not 1 <= system_scale <= 2:
             parser.error('Cases must stay within reasonable emulator dimensions/text sizes')
-        if mode not in ('all', 'cards', 'fold', 'battery', 'constraints', 'edit', 'editor', 'gauge', 'motion', 'quick', 'followup', 'chart', 'example', 'narrow', 'compact', 'closeout', 'layout-modes'):
+        if mode not in ('all', 'cards', 'fold', 'battery', 'constraints', 'edit', 'editor', 'gauge', 'motion', 'quick', 'followup', 'chart', 'example', 'narrow', 'compact', 'closeout', 'layout-modes', 'tiles'):
             parser.error('Unknown validation mode')
         matrix.append((width, height, float(scale), mode, system_scale))
 args.out.mkdir(parents=True, exist_ok=True)
@@ -91,7 +92,7 @@ try:
         for permission in ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'):
             run('shell', 'pm', 'grant', 'com.jjricks.volt', 'android.permission.' + permission)
         output = run('shell', 'am', 'instrument', '-w', '-e', 'variant', variant,
-                     '-e', 'text_scale', str(scale), '-e', 'mode', mode,
+                     '-e', 'text_scale', str(scale), '-e', 'mode', mode, '-e', 'theme', args.theme,
                      'com.jjricks.volt.tests/com.jjricks.volt.tests.ResponsiveDashboardValidation')
         (args.out / (variant + '.txt')).write_text(output)
         passed = 'result=PASS' in output and 'result=FAIL' not in output

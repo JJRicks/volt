@@ -2977,7 +2977,7 @@ public final class DashboardScreen implements AppScreen {
             final ArrayList<LinearLayout> heads = new ArrayList<>();
             final ArrayList<FittedValue> values = new ArrayList<>();
             final ArrayList<String> keys = new ArrayList<>();
-            int budget, columns = 1, rowHeight, mode = -1, fittedWidth = -1, fittedBudget = -1, fittedColumns = -1;
+            int budget, columns = 1, rowHeight, cellWidth = 1, lastWidth = 1, mode = -1, fittedWidth = -1, fittedBudget = -1, fittedColumns = -1;
 
             ReadingTiles(List<String> readings) {
                 super(host.activity());
@@ -3069,7 +3069,10 @@ public final class DashboardScreen implements AppScreen {
                 while (columns > 1 && (width - (columns - 1) * gap) / columns < required)
                     columns = columns == 4 ? 2 : columns - 1;
                 int rows = (count + columns - 1) / columns;
-                int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
+                cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
+                // A part-filled last row: the last tile takes the empty cells (3 in 2 columns wrap 2 + 1, wide).
+                // Label mode and padding still follow one cell, so every tile shares them.
+                lastWidth = ReadingSpan.width(ReadingSpan.last(count, columns), cellWidth, gap);
                 boolean cramped = cellWidth < minimum;
                 int horizontal = Math.min(ui.dp(cramped ? 6 : 14),
                         Math.max(0, (cellWidth - (int)Math.ceil(required - ui.dp(12))) / 2));
@@ -3077,7 +3080,7 @@ public final class DashboardScreen implements AppScreen {
                     cell.setPadding(horizontal, cell.getPaddingTop(), horizontal, cell.getPaddingBottom());
                 int perRow = budget > 0 ? (budget - (rows - 1) * gap) / rows : Integer.MAX_VALUE;
                 int natural;
-                if (width == fittedWidth && budget == fittedBudget && columns == fittedColumns) natural = measureCells(cellWidth, -1);
+                if (width == fittedWidth && budget == fittedBudget && columns == fittedColumns) natural = measureCells(-1);
                 else {
                     // Search only when the space changes, so value budgets settle instead of re-requesting layout.
                     fittedWidth = width;
@@ -3087,26 +3090,32 @@ public final class DashboardScreen implements AppScreen {
                     // Too narrow for a label: values only (each value's description keeps its label).
                     for (int next = cramped ? VALUE : FULL; next <= VALUE; next++) {
                         apply(next);
-                        natural = measureCells(cellWidth, perRow);
+                        natural = measureCells(perRow);
                         if (natural <= perRow) break;
                     }
                 }
                 rowHeight = perRow != Integer.MAX_VALUE && perRow >= natural ? perRow : natural;
-                for (LinearLayout cell : cells)
-                    cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                for (int i = 0; i < count; i++)
+                    cells.get(i).measure(MeasureSpec.makeMeasureSpec(tileWidth(i), MeasureSpec.EXACTLY),
                             MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
                 setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
             }
 
+            /** One cell, or the last tile's spanned width. */
+            private int tileWidth(int i) {
+                return i == cells.size() - 1 ? lastWidth : cellWidth;
+            }
+
             /** Tallest tile at this mode, letting each value shrink toward its floor to fit the row. */
-            private int measureCells(int cellWidth, int perRow) {
+            private int measureCells(int perRow) {
                 int tallest = 0;
                 for (int i = 0; i < cells.size(); i++) {
                     LinearLayout cell = cells.get(i);
+                    int tile = tileWidth(i);
                     LinearLayout head = heads.get(i);
                     int other = cell.getPaddingTop() + cell.getPaddingBottom() + ui.dp(2);
                     if (head.getVisibility() != GONE) {
-                        head.measure(MeasureSpec.makeMeasureSpec(Math.max(1, cellWidth - cell.getPaddingLeft()
+                        head.measure(MeasureSpec.makeMeasureSpec(Math.max(1, tile - cell.getPaddingLeft()
                                         - cell.getPaddingRight()), MeasureSpec.EXACTLY),
                                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                         other += head.getMeasuredHeight();
@@ -3115,7 +3124,7 @@ public final class DashboardScreen implements AppScreen {
                     if (perRow >= 0)
                         values.get(i).fitHeight(perRow == Integer.MAX_VALUE ? Integer.MAX_VALUE
                                 : Math.max(1, perRow - other));
-                    cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                    cell.measure(MeasureSpec.makeMeasureSpec(tile, MeasureSpec.EXACTLY),
                             MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                     tallest = Math.max(tallest, cell.getMeasuredHeight());
                 }
@@ -3128,7 +3137,8 @@ public final class DashboardScreen implements AppScreen {
                 for (int i = 0; i < cells.size(); i++) {
                     View cell = cells.get(i);
                     int w = cell.getMeasuredWidth();
-                    int x = (i % columns) * (w + gap), y = (i / columns) * (rowHeight + gap);
+                    // Step by one cell, not the tile's own width: the last tile may span several.
+                    int x = (i % columns) * (cellWidth + gap), y = (i / columns) * (rowHeight + gap);
                     if (rtl) x = getWidth() - x - w;
                     cell.layout(x, y, x + w, y + rowHeight);
                 }
