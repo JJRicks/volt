@@ -4102,28 +4102,27 @@ variant ModelRegistry.TRY[speed_limit] label 81	81 km/h
 variant ModelRegistry.TRY[speed_limit] label 100	100 km/h
 variant ModelRegistry.TRY[speed_limit] label 101	101 km/h
 variant ModelRegistry.TRY[speed_limit] label 255	255 km/h
-variant ModelRegistry.START_3_5_TRY id	start_speed.3_5.lab
-variant ModelRegistry.START_3_5_TRY label -1	-1
-variant ModelRegistry.START_3_5_TRY label 0	0 km/h
-variant ModelRegistry.START_3_5_TRY label 1	1 km/h
-variant ModelRegistry.START_3_5_TRY label 2	2 km/h
-variant ModelRegistry.START_3_5_TRY label 3	3 km/h
-variant ModelRegistry.START_3_5_TRY label 4	4 km/h
-variant ModelRegistry.START_3_5_TRY label 5	5 km/h
-variant ModelRegistry.START_3_5_TRY label 6	6
-variant ModelRegistry.START_3_5_TRY label 8	8
-variant ModelRegistry.START_3_5_TRY label 20	20
-variant ModelRegistry.START_3_5_TRY label 25	25
-variant ModelRegistry.START_3_5_TRY label 32	32
-variant ModelRegistry.START_3_5_TRY label 33	33
-variant ModelRegistry.START_3_5_TRY label 40	40
-variant ModelRegistry.START_3_5_TRY label 50	50
-variant ModelRegistry.START_3_5_TRY label 70	70
-variant ModelRegistry.START_3_5_TRY label 80	80
-variant ModelRegistry.START_3_5_TRY label 81	81
-variant ModelRegistry.START_3_5_TRY label 100	100
-variant ModelRegistry.START_3_5_TRY label 101	101
-variant ModelRegistry.START_3_5_TRY label 255	255
+variant ModelRegistry.START_LOW_TRY id	start_speed.0_3.lab
+variant ModelRegistry.START_LOW_TRY label -1	-1
+variant ModelRegistry.START_LOW_TRY label 0	0 km/h
+variant ModelRegistry.START_LOW_TRY label 1	1 km/h
+variant ModelRegistry.START_LOW_TRY label 2	2 km/h
+variant ModelRegistry.START_LOW_TRY label 3	3 km/h
+variant ModelRegistry.START_LOW_TRY label 4	4 km/h
+variant ModelRegistry.START_LOW_TRY label 5	5 km/h
+variant ModelRegistry.START_LOW_TRY label 8	8
+variant ModelRegistry.START_LOW_TRY label 20	20
+variant ModelRegistry.START_LOW_TRY label 25	25
+variant ModelRegistry.START_LOW_TRY label 32	32
+variant ModelRegistry.START_LOW_TRY label 33	33
+variant ModelRegistry.START_LOW_TRY label 40	40
+variant ModelRegistry.START_LOW_TRY label 50	50
+variant ModelRegistry.START_LOW_TRY label 70	70
+variant ModelRegistry.START_LOW_TRY label 80	80
+variant ModelRegistry.START_LOW_TRY label 81	81
+variant ModelRegistry.START_LOW_TRY label 100	100
+variant ModelRegistry.START_LOW_TRY label 101	101
+variant ModelRegistry.START_LOW_TRY label 255	255
 variant Ut5.VARIANTS[lock] id	lock.ut5
 variant Ut5.VARIANTS[lock] label -1	-1
 variant Ut5.VARIANTS[lock] label 0	Off
@@ -5030,6 +5029,28 @@ variant Ut5.START_3_5 label 81	81 km/h
 variant Ut5.START_3_5 label 100	100 km/h
 variant Ut5.START_3_5 label 101	101 km/h
 variant Ut5.START_3_5 label 255	255 km/h
+variant Ut5.START_LOW_TRY id	start_speed.ut5_0_3.lab
+variant Ut5.START_LOW_TRY label -1	-1 km/h
+variant Ut5.START_LOW_TRY label 0	0 km/h
+variant Ut5.START_LOW_TRY label 1	1 km/h
+variant Ut5.START_LOW_TRY label 2	2 km/h
+variant Ut5.START_LOW_TRY label 3	3 km/h
+variant Ut5.START_LOW_TRY label 4	4 km/h
+variant Ut5.START_LOW_TRY label 5	5 km/h
+variant Ut5.START_LOW_TRY label 6	6 km/h
+variant Ut5.START_LOW_TRY label 8	8 km/h
+variant Ut5.START_LOW_TRY label 20	20 km/h
+variant Ut5.START_LOW_TRY label 25	25 km/h
+variant Ut5.START_LOW_TRY label 32	32 km/h
+variant Ut5.START_LOW_TRY label 33	33 km/h
+variant Ut5.START_LOW_TRY label 40	40 km/h
+variant Ut5.START_LOW_TRY label 50	50 km/h
+variant Ut5.START_LOW_TRY label 70	70 km/h
+variant Ut5.START_LOW_TRY label 80	80 km/h
+variant Ut5.START_LOW_TRY label 81	81 km/h
+variant Ut5.START_LOW_TRY label 100	100 km/h
+variant Ut5.START_LOW_TRY label 101	101 km/h
+variant Ut5.START_LOW_TRY label 255	255 km/h
 variant ut5(lock) id	lock.ut5
 variant ut5(lock) label -1	-1
 variant ut5(lock) label 0	Off
@@ -6157,20 +6178,20 @@ caution ModelRegistry.TRY[prompt_tone] ut5 0	null
 caution ModelRegistry.TRY[prompt_tone] lab 0	null
 caution ModelRegistry.TRY[speed_limit] ut5 0	null
 caution ModelRegistry.TRY[speed_limit] lab 0	null
-caution ModelRegistry.START_3_5_TRY note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY ut5 0	null
-caution ModelRegistry.START_3_5_TRY lab 0	null
+caution ModelRegistry.START_LOW_TRY note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_LOW_TRY ut5 0	null
+caution ModelRegistry.START_LOW_TRY lab 0	null
 caution Ut5.VARIANTS[lock] ut5 0	null
 caution Ut5.VARIANTS[lock] lab 0	null
 caution Ut5.VARIANTS[cruise_control] ut5 0	null
@@ -6280,6 +6301,20 @@ caution Ut5.START_3_5 note2 1	Kick-start speed below 3 km/h. The official app sh
 caution Ut5.START_3_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
 caution Ut5.START_3_5 ut5 0	null
 caution Ut5.START_3_5 lab 0	null
+caution Ut5.START_LOW_TRY note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_LOW_TRY ut5 0	null
+caution Ut5.START_LOW_TRY lab 0	null
 caution ut5(lock) ut5 0	null
 caution ut5(lock) lab 0	null
 caution ut5(cruise_control) ut5 0	null
@@ -7121,9 +7156,13 @@ experimental star_pattern 100	null
 experimental star_pattern 101	null
 experimental star_pattern 255	null
 experimental start_speed -1	A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.
+experimental outside region start_speed -1	Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.
 experimental start_speed 0	A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.
+experimental outside region start_speed 0	Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.
 experimental start_speed 1	A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.
+experimental outside region start_speed 1	Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.
 experimental start_speed 2	A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.
+experimental outside region start_speed 2	Below the official range for this region. Some scooters wake up stuck in P after a lock or unlock until restarted. If yours does, set 3 km/h.
 experimental start_speed 3	null
 experimental start_speed 4	null
 experimental start_speed 5	null
@@ -8377,12 +8416,10 @@ refusal encode ModelRegistry.TRY[speed_limit] 1	The official app doesn't offer t
 refusal encode ModelRegistry.TRY[speed_limit] 7	The official app doesn't offer this value
 refusal encode ModelRegistry.TRY[speed_limit] 33	The official app doesn't offer this value
 refusal encode ModelRegistry.TRY[speed_limit] 101	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY -1	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY 0	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY 1	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY 7	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY 33	The official app doesn't offer this value
-refusal encode ModelRegistry.START_3_5_TRY 101	The official app doesn't offer this value
+refusal encode ModelRegistry.START_LOW_TRY -1	The official app doesn't offer this value
+refusal encode ModelRegistry.START_LOW_TRY 7	The official app doesn't offer this value
+refusal encode ModelRegistry.START_LOW_TRY 33	The official app doesn't offer this value
+refusal encode ModelRegistry.START_LOW_TRY 101	The official app doesn't offer this value
 refusal encode Ut5.VARIANTS[lock] -1	The official app doesn't offer this value
 refusal encode Ut5.VARIANTS[lock] 7	The official app doesn't offer this value
 refusal encode Ut5.VARIANTS[lock] 33	The official app doesn't offer this value
@@ -8552,6 +8589,10 @@ refusal encode Ut5.START_3_5 1	The official app doesn't offer this value
 refusal encode Ut5.START_3_5 7	The official app doesn't offer this value
 refusal encode Ut5.START_3_5 33	The official app doesn't offer this value
 refusal encode Ut5.START_3_5 101	The official app doesn't offer this value
+refusal encode Ut5.START_LOW_TRY -1	The official app doesn't offer this value
+refusal encode Ut5.START_LOW_TRY 7	The official app doesn't offer this value
+refusal encode Ut5.START_LOW_TRY 33	The official app doesn't offer this value
+refusal encode Ut5.START_LOW_TRY 101	The official app doesn't offer this value
 refusal encode ut5(lock) -1	The official app doesn't offer this value
 refusal encode ut5(lock) 7	The official app doesn't offer this value
 refusal encode ut5(lock) 33	The official app doesn't offer this value
