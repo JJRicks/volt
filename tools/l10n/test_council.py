@@ -694,6 +694,68 @@ class CouncilFlowTest(Base):
         self.assertEqual(requests["common_alarm_on"]["text"], "Alarma activada")
         self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm activated")
 
+    def backtranslated_keys(self, fake, calls):
+        """The keys the back-translation requests after the first calls asked for."""
+        keys = set()
+        for request in fake.requests[calls:]:
+            if isinstance(request[3], dict) and "contents" in request[3]:  # not a model listing
+                keys |= set(cf.requested_keys(request[3]["contents"][0]["parts"][0]["text"]))
+        return keys
+
+    def test_backtranslated_unanimous_safety_keys_are_not_sent_again(self):
+        fake = self.draft_all()
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+        self.assertIn("common_alarm_on", self.stored_backs())
+        calls = len(fake.requests)
+        # A second run makes no call: rewording a back-translation would leave the judge's confirm stale.
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(len(fake.requests), calls)
+        self.assertIn("no safety keys to back-translate", self.out.getvalue())
+        self.assertNotIn("common_alarm_on", self.backtranslation_request_keys())
+
+    def backtranslation_request_keys(self):
+        return json.loads(self.repo.read("l10n/work/es/common/prompts/backtranslation.request.%s.json" %
+                                         self.backtranslation_prompt()))["keys"]
+
+    def test_stale_unanimous_back_translation_is_sent_again(self):
+        fake = self.draft_all()
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        # The English changed since the back-translation (its record names other English).
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = [dict(r, source_sha1="0" * 40) if r["key"] == "common_disclaimer" else r
+                for r in translib.read_jsonl(self.repo.path(path))]
+        translib.write_jsonl(self.repo.path(path), rows)
+        calls = len(fake.requests)
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        self.assertEqual(self.backtranslated_keys(fake, calls), {"common_disclaimer"})
+        # Every drafter now agrees on another text: the back-translation of the old one is stale.
+        for name in ("openai", "google"):
+            draft = "l10n/work/es/common/drafts/%s.xml" % name
+            self.repo.write(draft, self.repo.read(draft).replace("Alarma activada", "Alarma silenciada"))
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH, common_not_reported="Sin informar",
+                                                common_alarm_on="Alarma silenciada")), 0)
+        calls = len(fake.requests)
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        self.assertEqual(self.backtranslated_keys(fake, calls), {"common_alarm_on"})
+        self.assertEqual(self.stored_backs()["common_alarm_on"]["target"], "Alarma silenciada")
+
+    def test_unanimous_back_translator_that_later_drafts_is_requeued(self):
+        fake = self.draft_all()
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = [dict(r, model="claude-haiku-5", model_reported="claude-haiku-5") if r["key"] == "common_alarm_on"
+                else r for r in translib.read_jsonl(self.repo.path(path))]
+        translib.write_jsonl(self.repo.path(path), rows)
+        # Haiku drafted nothing: its back-translation stands.
+        self.assertNotIn("common_alarm_on", self.backtranslation_request_keys())
+        # Haiku then drafts in this area, so its back-translation is no longer independent.
+        self.assertEqual(self.claude_reply({"common_cancel": "Cancelar"}, name="haiku", model="claude-haiku-5"), 0)
+        self.assertIn("common_alarm_on", self.backtranslation_request_keys())
+        calls = len(fake.requests)
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        self.assertEqual(self.backtranslated_keys(fake, calls), {"common_alarm_on"})
+        self.assertEqual(self.stored_backs()["common_alarm_on"]["model"], "gemini-3.7-flash")
+
     def test_judge_merge_is_checked_again(self):
         self.draft_all()
         self.judge([{"key": "common_move_widget", "verdict": "merge", "text": "Mover %1$s"},
@@ -1043,11 +1105,11 @@ class SafetyJudgedTest(Base):
         back = self.stored_backs()[self.KEY]
         self.assertEqual((back["target"], back["model"]), ("Alarma encendida", "gemini-3.7-flash"))
         self.assertNotIn("Alarma activada", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
-        # A back-translated judged text is not sent again.
+        # A back-translated judged text is not sent again, and nor are the back-translated unanimous keys.
         calls = len(self.fake.requests)
         self.backtranslate()
-        self.assertNotIn("Alarma encendida", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
-        self.assertGreater(len(self.fake.requests), calls)  # the unanimous keys are, as before
+        self.assertEqual(len(self.fake.requests), calls)
+        self.assertIn("no safety keys to back-translate", self.out.getvalue())
         request = self.requests()[self.KEY]
         self.assertEqual(request["reason"], "safety-judged-confirmation")
         self.assertEqual(request["text"], "Alarma encendida")
@@ -1202,7 +1264,7 @@ class SafetyJudgedTest(Base):
         self.assertNotIn(self.KEY, self.prompt_keys())
         calls = len(self.fake.requests)
         self.backtranslate()
-        self.assertGreater(len(self.fake.requests), calls)  # the unanimous keys, as before
+        self.assertGreater(len(self.fake.requests), calls)  # the unanimous keys, not yet back-translated
         for request in self.fake.requests[calls:]:
             self.assertNotIn("Alarma encendida", json.dumps(request, ensure_ascii=False))
         self.assertEqual(self.stored_backs()[self.KEY]["model"], "claude-haiku-5")
