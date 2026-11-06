@@ -1617,8 +1617,9 @@ def check_merge(paths, pack, entry, ruling, use_java=True, cache=None):
     if "font" not in cache:
         cache["font"] = fontmetrics.Font(paths.font())
         cache["measurer"] = fontmetrics.Measurer(paths.font(), use_java=use_java)
+    # A volt:overflow full rung over its budget waits for its short rung: decide() checks the decided pair.
     findings = checklib.check_targets(pack, {key: (entry["kind"], items, [])}, cache["font"], cache["measurer"],
-                                      ladders=False)[key]
+                                      ladders=False, short_checked_later=True)[key]
     if checklib.is_ok(findings):
         return items, None, findings
     return None, "the judge's merged text failed the checks", findings
@@ -2096,7 +2097,10 @@ def decide(paths, tag, area, final=False, use_java=True):
     decision of 2026-11-05; also a unanimous safety key whose agreed text the judge refused, then
     replaced with a merge that passes the checks, which takes the same back-translation and confirm:
     see unanimous_refusals()), or fallback-english (the key is left out of values-<qual>). A ladder
-    group falls back as a whole when any rung does. Keys still waiting for a judge ruling or a
+    group falls back as a whole when any rung does. A full rung marked volt:overflow="short" is checked
+    again with its group's decided short rung (as check.py checks a draft's pair): one over its budget
+    stands only if that short rung fits the full's budget, else it falls back, and its group with it.
+    Keys still waiting for a judge ruling or a
     back-translation are pending; with final=True they fall back instead.
 
     Only draft entries of the current English count (volt:src, see analyze()); stale ones are listed
@@ -2257,7 +2261,7 @@ def decide(paths, tag, area, final=False, use_java=True):
                                 judge=ruling)
             else:
                 findings = checklib.check_targets(pack, {key: (entry["kind"], items, [])}, font, measurer,
-                                                  ladders=False)[key]
+                                                  ladders=False, short_checked_later=True)[key]
                 findings = [f for f in findings if f["severity"] != checklib.INFO]
                 if checklib.is_ok(findings):
                     rows[key] = row(entry, state, "judged", "judge merged: %s" % ruling["reason"], items, ruling,
@@ -2268,6 +2272,8 @@ def decide(paths, tag, area, final=False, use_java=True):
         else:
             rows[key] = row(entry, state, "fallback-english", "verdict %s is only for safety keys" % verdict,
                             judge=ruling)
+
+    rows = overflow_pair_fallbacks(pack, rows, font, measurer)
 
     # A ladder translated in part would mix languages on one label: the whole group falls back.
     for entry in pack["entries"]:
@@ -2290,6 +2296,40 @@ def decide(paths, tag, area, final=False, use_java=True):
         rows[key] = collections.OrderedDict(rows[key])
         rows[key]["reason"] = "%s (final run: still waiting for %s)" % (rows[key]["reason"], what)
     return list(rows.values()), [] if final else pending, problems
+
+
+def overflow_pair_fallbacks(pack, rows, font, measurer):
+    """rows (an ordered {key: decision row}) with each translated volt:overflow="short" full rung checked
+    together with its group's decided short rung, as check.py checks a draft's pair.
+
+    A full rung's own checks met its own draft's short rung, or (a judge's merge) none
+    (check_targets(short_checked_later=True)); the short rung decided beside it may be another
+    draft's. A full rung over its budget stands only if that decided short rung fits the full's budget;
+    else it falls back to English (and decide() then falls its group back). A pair whose short rung
+    fell back is left to that ladder rule."""
+    entries = dict((e["key"], e) for e in pack["entries"])
+    for key in list(rows):
+        short = checklib.overflow_rung(entries, key)
+        if not short or short not in rows:
+            continue
+        if rows[key]["outcome"] not in TRANSLATED or rows[short]["outcome"] not in TRANSLATED:
+            continue
+        targets = collections.OrderedDict()
+        for k in (key, short):
+            items = translib.items_of(entries[k]["kind"], rows[k]["text"])
+            if items is not None:
+                targets[k] = (entries[k]["kind"], items, [])
+        if key not in targets:
+            continue
+        widths = [f for f in checklib.check_targets(pack, targets, font, measurer, ladders=False)[key]
+                  if f["check"] == "width" and f["severity"] == checklib.ERROR]
+        if widths:
+            rows[key] = collections.OrderedDict(rows[key])
+            rows[key]["outcome"] = "fallback-english"
+            rows[key]["reason"] = "with the decided short rung: %s; was: %s" % (
+                "; ".join(f["message"] for f in widths), rows[key]["reason"])
+            rows[key]["text"] = None
+    return rows
 
 
 def decide_judged_safety(entry, state, why, judged, ruling, back, drafters, pending, row):
