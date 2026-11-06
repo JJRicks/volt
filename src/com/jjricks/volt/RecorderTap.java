@@ -7,6 +7,8 @@ package com.jjricks.volt;
  */
 final class RecorderTap {
     static final int NONE = 0, START = 1, CONNECT = 2, STOP = 3;
+    /** The recorder's dashboard widget type (DashboardConfig). */
+    static final String TYPE = "ride";
     /** Below this width (dp) the disc, the words and the arrow can't share one row. */
     static final float ONE_ROW_MIN_WIDTH_DP = 112;
 

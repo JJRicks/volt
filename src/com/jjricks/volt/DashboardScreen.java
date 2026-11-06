@@ -3634,11 +3634,8 @@ public final class DashboardScreen implements AppScreen {
             boolean starting = recorderStarting;
             // Disconnected, the grey disc stays tappable and starts a connection.
             rideButton.setEnabled(enabled || (service != null && !recording && !saving && !connecting));
-            GradientDrawable fill = oval(enabled || recording || starting ? ui.accent : ui.raised);
-            // Starting: the disc looks pressed, with a soft red ring.
-            if (starting) fill.setStroke(ui.dp(3), blend(ui.accent, ui.surface, .45f));
-            recordDisc.setBackground(fill);
-            recordGlyph.set(recording ? "stop" : "record", enabled || recording || starting ? ui.onAccent : ui.dim);
+            recordDisc.setBackground(oval(enabled || recording ? ui.accent : ui.raised));
+            recordGlyph.set(recording ? "stop" : "record", enabled || recording ? ui.onAccent : ui.dim);
             if (recordingShown == null || recordingShown != recording || startingShown != starting) {
                 recordingShown = recording;
                 startingShown = starting;
@@ -3660,13 +3657,6 @@ public final class DashboardScreen implements AppScreen {
                     parts.add(T.fmtQuantity(Fmt.decimal(Locale.US, summary.measuredThroughputWh, 0), T.unitsWattHour()));
                 rideButton.setContentDescription(DashboardWords.recordingSpoken(clock, parts));
                 rideDetail.setText(parts.isEmpty() ? T.dashboardMeasuring() : android.text.TextUtils.join(" · ", parts));
-            } else if (starting) {
-                recorderClock = null;
-                rideTitle.setTextColor(ui.text);
-                rideTitle.setTypeface(ui.medium());
-                showRecorderTitle();
-                rideDetail.setText("");
-                rideButton.setContentDescription(T.dashboardRecorderStarting());
             } else {
                 recorderClock = null;
                 rideTitle.setTextColor(enabled ? ui.text : ui.muted);
@@ -3680,6 +3670,9 @@ public final class DashboardScreen implements AppScreen {
             // A hidden caption is never re-measured by setText alone; show it when it has words.
             int detail = rideDetail.length() > 0 && !compactRecorder ? View.VISIBLE : View.GONE;
             if (rideDetail.getVisibility() != detail) rideDetail.setVisibility(detail);
+            // Starting (only ever from a ready disc, so no caption shows): the disc looks pressed,
+            // with a soft red ring, and says what is happening.
+            if (starting) startingRecorder();
             // While a card tap would start (or connect), the card is the one spoken control with the
             // disc's label, and the disc steps out of focus so it is not announced twice. Recording,
             // starting, saving or editing, the card goes inert and the disc is the control again.
@@ -3694,6 +3687,13 @@ public final class DashboardScreen implements AppScreen {
             setContentDescription(wide ? rideButton.getContentDescription() : null);
             rideButton.setFocusable(!wide);
             rideButton.setImportantForAccessibility(wide ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+        }
+
+        private void startingRecorder() {
+            GradientDrawable ring = oval(ui.accent);
+            ring.setStroke(ui.dp(3), blend(ui.accent, ui.surface, .45f));
+            recordDisc.setBackground(ring);
+            rideButton.setContentDescription(T.dashboardRecorderStarting());
         }
 
         private GradientDrawable oval(int fill) {

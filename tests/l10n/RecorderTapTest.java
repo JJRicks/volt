@@ -42,6 +42,8 @@ public final class RecorderTapTest {
             }
         }
 
+        require(RecorderTap.TYPE.equals("ride"), "The recorder's widget type is ride");
+
         // One row at half a phone's width (2 of 5 columns, about 144 dp); the narrowest cards take two.
         require(RecorderTap.minimumRows(144) == 1, "A half-width recorder fits one row");
         require(RecorderTap.minimumRows(192) == 1, "A 192 dp recorder fits one row (was three below 192 dp)");
@@ -53,7 +55,8 @@ public final class RecorderTapTest {
 
         // The rule is only a floor: a recorder the owner sized taller stays that tall (no migration).
         String config = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/DashboardConfig.java")), StandardCharsets.UTF_8);
-        require(config.contains("if (type.equals(\"ride\")) return RecorderTap.minimumRows(widthDp);"),
+        require(config.contains("if (RecorderTap.TYPE.equals(type))\n                return RecorderTap.minimumRows(widthDp);")
+                && config.indexOf("RecorderTap.minimumRows(widthDp)") < config.indexOf("widthDp < 192) return 3;"),
                 "DashboardConfig's width-aware minimum height for the recorder comes from RecorderTap");
         require(config.contains("cell.h = Math.max(cell.h, widgets.get(i).minimumHeight("),
                 "A saved recorder height above the minimum is kept");
