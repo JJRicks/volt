@@ -290,13 +290,13 @@
     <!-- Checkbox: one JSON file holding the scooter analysis and the phone recording together. -->
     <string name="rides_export_combined_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Scooter and phone JSON</string>
     <!-- Under a greyed-out checkbox: the phone's files for this ride are still being written. -->
-    <string name="rides_export_reason_saving" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">Still saving</string>
+    <string name="rides_export_reason_saving" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">Still saving</string>
     <!-- Under the greyed-out Route CSV and GPX checkboxes: the phone recorded no GPS position, so there is no route. -->
-    <string name="rides_export_reason_no_fixes" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:dnt="GPS" volt:max="240dp@13sp">No GPS fixes in this ride</string>
+    <string name="rides_export_reason_no_fixes" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:dnt="GPS" volt:max="264dp@13sp">No GPS fixes in this ride</string>
     <!-- Under a greyed-out checkbox: the phone's journal could not be read, so this file cannot be made. -->
-    <string name="rides_export_reason_unreadable" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">The phone recording could not be read</string>
+    <string name="rides_export_reason_unreadable" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">The phone recording could not be read</string>
     <!-- Under a greyed-out raw file checkbox: this file was never written for the ride. -->
-    <string name="rides_export_reason_not_recorded" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="240dp@13sp">Not recorded for this ride</string>
+    <string name="rides_export_reason_not_recorded" volt:screen="Rides, export ride data sheet" volt:purpose="reason" volt:max="264dp@13sp">Not recorded for this ride</string>
     <!-- Spoken for a greyed-out checkbox: %1$s is its label (rides_export_sensor_csv and the others), %2$s why it is greyed out (rides_export_reason_saving and the others). -->
     <string name="rides_export_unavailable_description" volt:screen="Rides, export ride data sheet" volt:purpose="accessibility description">%1$s, unavailable: %2$s</string>
     <!-- Below the checkboxes when exactly one is checked: Android's Save dialog follows. -->

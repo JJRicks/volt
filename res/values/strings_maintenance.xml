@@ -68,7 +68,7 @@
     <string name="maintenance_whole_km" volt:screen="Add reminder" volt:purpose="note">This scooter reports whole kilometers. If it goes more than 255 km between connections, distance can come up short.</string>
 
     <!-- Status badges on a reminder. -->
-    <string name="maintenance_badge_due" volt:screen="Maintenance" volt:purpose="badge" volt:max="48dp@10.5sp">DUE</string>
+    <string name="maintenance_badge_due" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">DUE</string>
     <string name="maintenance_badge_soon" volt:screen="Maintenance" volt:purpose="badge" volt:max="48dp@10.5sp">SOON</string>
     <string name="maintenance_badge_snoozed" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">SNOOZED</string>
 

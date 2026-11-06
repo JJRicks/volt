@@ -66,8 +66,8 @@
     <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Las grabaciones siempre mantienen la conexión</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Mantener la pantalla encendida</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Mientras se graba</string>
-    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Finalizar viajes con el patinete detenido</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="ec97c8635366f3b5dbf1b4cec381109b3262d680">10 s después de perderse el Bluetooth con el patinete detenido</string>
+    <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Terminar los viajes automáticamente</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="6e56a0cc615fb4a83f1668457fad39ee488252da">Cuando el patinete se apaga, queda fuera de alcance 5 min o no se mueve durante 10 min</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Grabación en segundo plano</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Uso de batería sin restricciones</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batería optimizada; las grabaciones largas pueden detenerse. Se abrirán los ajustes de batería</string>
@@ -100,6 +100,21 @@
     <string name="more_history_save" volt:src="c3a14cda2fdcecd7010e01072bf5f4025d7de152">Guardar historial de lecturas</string>
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Mientras está conectado</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Desactivado · se conservan las últimas lecturas</string>
+    <string name="more_auto_save_heading" volt:src="3306dbdeccfc25335130c26851c550b072b30c74">Guardado automático de viajes</string>
+    <string name="more_auto_save_route_csv" volt:src="2d843aa9d08b999648f569b7c7c6c8f6474c8085">Guardar automáticamente el CSV de ruta</string>
+    <string name="more_auto_save_route_csv_sub" volt:src="af4791ddad6e51aba3baed3b9ae0a8a5490d4f53">La ruta GPS del teléfono, para viajes con ubicaciones</string>
+    <string name="more_auto_save_json" volt:src="83eb41da14f19b3d8736b66249aa3fad84ea8143">Guardar automáticamente el JSON del viaje</string>
+    <string name="more_auto_save_json_sub" volt:src="0180df032c9283264b2b6accabda326729907b9f">Resumen del viaje, más la grabación del teléfono si la hay</string>
+    <string name="more_auto_save_folder" volt:src="8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec">Carpeta</string>
+    <string name="more_auto_save_no_folder" volt:src="bcbd72a20ff44510ee37859d1aa734922a772667">Aún no se eligió ninguna carpeta</string>
+    <string name="more_auto_save_saving_to" volt:src="5ea59c4e03e3f7f022df7b407063f92eddb30038">Guardando en %1$s</string>
+    <string name="more_auto_save_saving_chosen" volt:src="ff55a23ac539217318e71c439a29434f0f2a99b6">Guardando en la carpeta que elegiste</string>
+    <string name="more_auto_save_choose_folder" volt:src="45889ac0a0a14370b931f62a2dcbaf1babbdd885">Elige una carpeta para empezar a guardar</string>
+    <string name="more_auto_save_folder_problem" volt:src="f176d3419a1de75e4e51026691d4acf590f71fe6">No se pudo guardar el último viaje. Vuelve a elegir la carpeta.</string>
+    <string name="more_auto_save_save_problem" volt:src="453a5831b3d2239c1bf888fb5de37a55af9eedb2">No se pudo guardar el último viaje. Volt lo intentará de nuevo.</string>
+    <string name="more_auto_save_folder_note" volt:src="ddc0347732266eb3072ca7a138e61c4838bf0817">La carpeta nueva se usa para los viajes guardados después del cambio. Los archivos ya guardados se quedan donde están.</string>
+    <string name="more_auto_save_no_picker" volt:src="caae18d56beb33900be826bbcf26d31f9efbbce6">Este teléfono no puede abrir un selector de carpetas.</string>
+    <string name="more_auto_save_not_kept" volt:src="9b6a0cab625e227906ed84495873f035b311ada1">Volt no pudo conservar el acceso a esa carpeta. Elige otra.</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Almacenamiento local</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Comprobando…</string>
     <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Muestras detalladas</string>
@@ -279,6 +294,7 @@
         <item quantity="other">La app oficial ofrece este control en %1$d modelos más, pero no en el tuyo. Puede que aquí no haga nada o que funcione de otra forma.</item>
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">La app oficial no ofrece este control en tu modelo. Puede que aquí no haga nada o que funcione de otra forma.</string>
+    <string name="more_lab_why_region_start" volt:src="27a5751edf081e457d330947d7cc554116e22499">La app oficial ofrece 3–5 km/h en la región de tu patinete. Puede que las velocidades inferiores no hagan nada aquí o que funcionen de otra forma.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN y bytes de autenticación ocultos</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Aún no hay cambios</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Sincronización del reloj local\n%1$s</string>
@@ -317,6 +333,13 @@
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Volt no pudo leer la respuesta de GitHub. Inténtalo de nuevo más tarde o consulta la página de versiones en tu navegador.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Abrir la página de la versión</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Ningún navegador pudo abrir la página de la versión</string>
+    <string name="more_updates_title" volt:src="c8847f40145311a42aa65b74cc4e604a7cbf6d14">Actualizaciones</string>
+    <string name="more_updates_auto" volt:src="d9b247e5c640259079820708230c037ae72204e8">Buscar actualizaciones automáticamente</string>
+    <string name="more_updates_auto_short" volt:src="9bbc93db05aba581ec66fd1b8639210e2124cc2a">Búsqueda automática</string>
+    <string name="more_updates_auto_sub" volt:src="9e7bd7b4503612b1df7c3892e06a0f9154c2af7e">Una vez al día, en segundo plano</string>
+    <string name="more_updates_channel" volt:src="ec54538250ba679453cc3c22679f27b537ea9d7a">Actualizaciones de la app</string>
+    <string name="more_updates_channel_description" volt:src="6a76ea70ecfeffa5a6265578ddf032482dd4ab57">Un aviso discreto cuando la búsqueda diaria encuentra una versión más reciente de Volt en GitHub</string>
+    <string name="more_updates_notice" volt:src="32676591b9dcbdf5fb2518fab3eec79b528aa1aa">Toca para ver las novedades</string>
     <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">Las opciones para desarrolladores ya están activadas.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Opciones para desarrolladores activadas.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
