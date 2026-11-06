@@ -73,24 +73,24 @@ final class NightSchedule {
         LocalDate today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate();
         List<long[]> nights = new ArrayList<>();
         SunTimes.Day.Kind kind = null;
-        for (int offset = -1; offset <= 3; offset++) {
+        if (sun) {
+            // Nights from the sun's actual horizon crossings (SunTimes.nights), not from each local day's
+            // sunrise and sunset: near midnight sun a sunset comes after 00:00 (Tromsø, Jul 26: 00:10 on
+            // the 27th), and the days next to a polar day or night need no special case.
+            kind = SunTimes.day(today, zone, place.latitude, place.longitude).kind;
+            long from = today.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
+            long to = today.plusDays(4).atStartOfDay(zone).toInstant().toEpochMilli();
+            nights.addAll(SunTimes.nights(from, to, place.latitude, place.longitude));
+        }
+        // Custom times: the same clock times each local day (a 23- or 25-hour day keeps them).
+        for (int offset = -1; offset <= 3 && !sun; offset++) {
             LocalDate date = today.plusDays(offset);
             long start = date.atStartOfDay(zone).toInstant().toEpochMilli();
             long end = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
-            if (sun) {
-                SunTimes.Day day = SunTimes.day(date, zone, place.latitude, place.longitude);
-                if (offset == 0) kind = day.kind;
-                if (day.kind == SunTimes.Day.Kind.ALWAYS_NIGHT) add(nights, start, end);
-                else if (day.kind == SunTimes.Day.Kind.NORMAL) {
-                    add(nights, start, Math.max(start, Math.min(end, day.riseMs)));
-                    add(nights, Math.min(end, Math.max(start, day.setMs)), end);
-                }
-            } else {
-                int from = minutes(startMin, START_DEFAULT), to = minutes(endMin, END_DEFAULT);
-                long at = time(date, from, zone), until = time(date, to, zone);
-                if (from > to) { add(nights, start, until); add(nights, at, end); }
-                else if (from < to) add(nights, at, until);
-            }
+            int from = minutes(startMin, START_DEFAULT), to = minutes(endMin, END_DEFAULT);
+            long at = time(date, from, zone), until = time(date, to, zone);
+            if (from > to) { add(nights, start, until); add(nights, at, end); }
+            else if (from < to) add(nights, at, until);
         }
         List<long[]> merged = merge(nights);
         boolean night = false;
