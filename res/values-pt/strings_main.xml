@@ -63,13 +63,13 @@
     <!-- src:e414882e1866d36c116e9e4b55c7db25e4cf6a57 -->
     <string name="main_lock_your_scooter">a tua trotinete</string>
     <!-- src:69c68eaf954d861bca93225823142ac87043ce89 -->
-    <string name="main_lock_last_known_word_locked">Último estado conhecido: bloqueada</string>
+    <string name="main_lock_last_known_word_locked">Última leitura: bloqueada</string>
     <!-- src:2eeafca10bc9c4f48ea9f32c39c9df6ef7464e02 -->
-    <string name="main_lock_last_known_word_unlocked">Último estado conhecido: desbloqueada</string>
+    <string name="main_lock_last_known_word_unlocked">Última leitura: desbloqueada</string>
     <!-- src:e9ee49efdd68626631938b8704277801bc8567b5 -->
-    <string name="main_lock_last_known_word">Último estado conhecido: %1$s</string>
+    <string name="main_lock_last_known_word">Última leitura: %1$s</string>
     <!-- src:edb38098ef78ddbd0b658ad242943c1c69b99f46 -->
-    <string name="main_lock_last_known">Último estado conhecido</string>
+    <string name="main_lock_last_known">Última leitura</string>
     <!-- src:67bd926cb6c9d0ec7c4153685f41d07a36cee715 -->
     <string name="main_status_connected_named">%1$s · %2$s</string>
     <!-- src:43a2d441f3f4fa907c412243f4bfaabcbf2ffc37 -->
@@ -714,6 +714,8 @@
     <string name="main_edit_not_selected">Não selecionado</string>
     <!-- src:b25ae5e4ff434a9262a956e5b3250e2b0e6c98de -->
     <string name="main_edit_next_start">Próximo início do carregamento</string>
+    <!-- src:29d038fc3416c26faf89cb239573a30e5df3d9ff -->
+    <string name="main_edit_next_start_hour">Próximo início do carregamento (hora em ponto)</string>
     <!-- src:30b4e8f0a6ffebc1f42ce13a1449a50dedead36e -->
     <string name="main_import_choose_scooter">Escolhe uma trotinete primeiro.</string>
     <!-- src:4a074fdd18e95f11e84aabf0f50592b9ec353144 -->

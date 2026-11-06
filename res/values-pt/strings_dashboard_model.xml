@@ -19,21 +19,25 @@
     <!-- src:b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11 -->
     <string name="dashboard_model_qa_rides_short">Viagens</string>
     <!-- src:62eb05f68298949e863331467bf0c4cd671014be -->
-    <string name="dashboard_model_qa_ride_settings">Definições de condução</string>
+    <string name="dashboard_model_qa_ride_settings">Condução</string>
     <!-- src:62eb05f68298949e863331467bf0c4cd671014be -->
     <string name="dashboard_model_qa_ride_settings_short">Condução</string>
     <!-- src:5e6e9117b09bd12362ff6b58fa84a08718799806 -->
     <string name="dashboard_model_qa_battery_settings">Definições da bateria</string>
     <!-- src:5e6e9117b09bd12362ff6b58fa84a08718799806 -->
     <string name="dashboard_model_qa_battery_settings_short">Bateria</string>
+    <!-- src:7ead6a1dc590502574f25db8aac9be53a48decb6 -->
+    <string name="dashboard_model_qa_line_lights">Luzes de linha</string>
+    <!-- src:7ead6a1dc590502574f25db8aac9be53a48decb6 -->
+    <string name="dashboard_model_qa_line_lights_short">Luzes de linha</string>
+    <!-- src:76add0d6c63acdfb438b01ba6d86361967b765cc -->
+    <string name="dashboard_model_qa_star_lights">Luzes de estrela</string>
+    <!-- src:76add0d6c63acdfb438b01ba6d86361967b765cc -->
+    <string name="dashboard_model_qa_star_lights_short">Luz de estrela</string>
     <!-- src:68215b4d7c2a68e6ee50e513ef519782322bcc3d -->
     <string name="dashboard_model_qa_dashboard_sound">Ecrã e som</string>
     <!-- src:68215b4d7c2a68e6ee50e513ef519782322bcc3d -->
     <string name="dashboard_model_qa_dashboard_sound_short">Ecrã e som</string>
-    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
-    <string name="dashboard_model_qa_pin_proximity">PIN e proximidade</string>
-    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
-    <string name="dashboard_model_qa_pin_proximity_short">PIN</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
     <string name="dashboard_model_qa_scooter_name">Nome da trotinete</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
@@ -46,6 +50,10 @@
     <string name="dashboard_model_qa_my_scooters">As minhas trotinetes</string>
     <!-- src:a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc -->
     <string name="dashboard_model_qa_my_scooters_short">Trotinetes</string>
+    <!-- src:fe834ab52a00109da8d8f3077a7229f92735c9a2 -->
+    <string name="dashboard_model_qa_experimental">Controlos experimentais</string>
+    <!-- src:fe834ab52a00109da8d8f3077a7229f92735c9a2 -->
+    <string name="dashboard_model_qa_experimental_short">Controlos experimentais</string>
     <!-- src:93f57e741f48415190a8c8fcfe6d71efab3c8ae0 -->
     <string name="dashboard_model_qa_data_history">Dados e histórico</string>
     <!-- src:93f57e741f48415190a8c8fcfe6d71efab3c8ae0 -->
