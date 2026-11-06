@@ -49,19 +49,40 @@ final class RecorderTap {
     }
 
     /**
-     * An accepted start tap that has not run yet. Exactly one of the start's frame or Home's close
-     * takes it, so a tap starts at most once and is never dropped silently.
+     * An accepted start tap that has not run yet. Exactly one of the start's frame, its timeout or
+     * Home's close takes it, so a tap starts at most once and is never dropped silently. Each tap
+     * gets its own token: a late callback from an earlier tap can never take a later tap's start.
      */
     static final class PendingStart {
         private boolean armed;
-        void arm() { armed = true; }
+        private int generation;
+        /** A new tap: the earlier one, if still waiting, is replaced. Returns this tap's token. */
+        int arm() {
+            armed = true;
+            return ++generation;
+        }
         boolean pending() { return armed; }
-        /** True once per arm: the caller now owns the start. */
+        /** True once per arm, for any tap (Home closing): the caller now owns the start. */
         boolean take() {
             if (!armed) return false;
             armed = false;
             return true;
         }
+        /** True once, and only for the latest tap's own token. */
+        boolean take(int token) {
+            return token == generation && take();
+        }
+        /** No later tap has replaced this one. */
+        boolean latest(int token) { return token == generation; }
+    }
+
+    /**
+     * The start's three-second safety net: if the tap is still waiting (its frame never came), the
+     * card has shown "Starting…" long enough, so the start is cancelled and Volt says it did not
+     * start; it can't run later. False when the frame, Home's close or a newer tap got there first.
+     */
+    static boolean timeoutCancels(PendingStart pending, int token) {
+        return pending.take(token);
     }
 
     /** The fewest dashboard rows a recorder card of this width needs: one, or two on the narrowest. */

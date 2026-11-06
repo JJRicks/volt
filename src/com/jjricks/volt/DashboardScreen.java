@@ -55,7 +55,7 @@ public final class DashboardScreen implements AppScreen {
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
     private boolean editing, closed;
-    /** A tapped recorder start that has not run yet; its frame or close() runs it, exactly once. */
+    /** A tapped recorder start that has not run yet: its frame or close() runs it, or its timeout cancels it, exactly once. */
     private final RecorderTap.PendingStart recorderStart = new RecorderTap.PendingStart();
     /** The header's "last seen" time, or 0 while connected or connecting; cards with the same age omit theirs. */
     private long headerSeenMs;
@@ -2519,16 +2519,21 @@ public final class DashboardScreen implements AppScreen {
             Haptics.tick(recorder);
             refreshRecorder();
             View anchor = recorder;
-            recorderStart.arm();
+            int token = recorderStart.arm();
+            Context app = host.activity().getApplicationContext();
             // The card leaving the window alone (a redraw) does not drop the start; closing Home
             // takes it first and hands it on (close()), so this runs it only while Home is open.
             anchor.postOnAnimation(() -> anchor.post(() -> {
-                if (closed || !recorderStart.take()) return;
+                if (closed || !recorderStart.take(token)) return;
                 actions.startRide();
                 host.redraw();
             }));
-            // Safety net: a start that never got going (refused, or the screen stayed) never sticks.
+            // Safety net: a start that never got going never sticks. Still waiting for its frame:
+            // cancelled for good, and said so, since the card goes back to idle. Already run (and
+            // refused, or the screen stayed): the card just leaves "Starting…". A newer tap owns the card.
             anchor.postDelayed(() -> {
+                if (!recorderStart.latest(token)) return;
+                if (RecorderTap.timeoutCancels(recorderStart, token)) recorderNotStarted(app);
                 if (!recorderStarting) return;
                 recorderStarting = false;
                 if (!closed && anchor.isAttachedToWindow()) refreshRecorder();

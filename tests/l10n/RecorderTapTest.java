@@ -64,23 +64,52 @@ public final class RecorderTapTest {
         // An accepted tap is never dropped and never starts twice (DashboardScreen: the start's
         // frame and close() both take the same PendingStart; a hand-off runs startRide once).
         Sim sim = new Sim();
-        sim.tap(); sim.close(true); sim.frame();
+        int t1 = sim.tap(); sim.close(true); sim.frame(t1); sim.timeout(t1);
         require(sim.starts == 1 && sim.reports == 0, "Tap, then a tab switch before the frame: the start is handed on and runs once");
         sim = new Sim();
-        sim.tap(); sim.close(true); sim.frame(); sim.reopen(); sim.frame();
+        t1 = sim.tap(); sim.close(true); sim.frame(t1); sim.reopen(); sim.frame(t1); sim.timeout(t1);
         require(sim.starts == 1 && sim.reports == 0, "Tap, then a rebuild before the frame: one start, the new Home has nothing pending");
         sim = new Sim();
-        sim.tap(); sim.close(false); sim.frame();
+        t1 = sim.tap(); sim.close(false); sim.frame(t1);
         require(sim.starts == 0 && sim.reports == 1, "Tap, then the window goes away before the frame: Volt says it did not start");
         sim = new Sim();
-        sim.tap(); sim.frame(); sim.close(true);
-        require(sim.starts == 1 && sim.reports == 0, "Tap, frame, then close: no second start at close");
+        t1 = sim.tap(); sim.frame(t1); sim.close(true); sim.timeout(t1);
+        require(sim.starts == 1 && sim.reports == 0, "Tap, frame, then close and the timeout: no second start, no report");
         sim = new Sim();
-        sim.tap(); sim.frame(); sim.frame();
+        t1 = sim.tap(); sim.frame(t1); sim.frame(t1);
         require(sim.starts == 1, "A repeated frame callback never starts twice");
         sim = new Sim();
         sim.close(true); sim.close(false);
         require(sim.starts == 0 && sim.reports == 0, "Closing with nothing tapped does nothing");
+
+        // Codex #247 round 3: the three-second timeout takes the start too, so the card going back
+        // to idle and the request agree; an earlier tap's late callbacks never touch a later tap.
+        sim = new Sim();
+        t1 = sim.tap(); sim.timeout(t1);
+        require(!sim.starting && sim.reports == 1 && !sim.pending.pending(), "Timeout before the frame: idle card, reported, nothing left pending");
+        sim.frame(t1);
+        require(sim.starts == 0, "Timeout, then a late frame: no start behind an idle card");
+        sim = new Sim();
+        t1 = sim.tap(); sim.timeout(t1); sim.close(true);
+        require(sim.starts == 0 && sim.reports == 1, "Timeout, then Home closes: close starts nothing");
+        sim = new Sim();
+        t1 = sim.tap(); sim.timeout(t1); int t2 = sim.tap(); sim.frame(t1);
+        require(sim.starts == 0 && sim.pending.pending() && sim.starting, "Timeout, new tap, then the old frame: the old callback can't take the new start");
+        sim.timeout(t1);
+        require(sim.starting && sim.pending.pending() && sim.reports == 1, "The old timeout leaves the new tap's Starting… alone");
+        sim.frame(t2);
+        require(sim.starts == 1 && sim.reports == 1, "The new tap's own frame starts it once");
+        sim.timeout(t2);
+        require(sim.starts == 1 && sim.reports == 1 && !sim.starting, "The new tap's timeout after its start only clears Starting…");
+        sim = new Sim();
+        t1 = sim.tap(); sim.frame(t1); sim.recording(); sim.stop(); t2 = sim.tap(); sim.timeout(t1);
+        require(sim.starting && sim.pending.pending(), "Start, stop, tap again inside three seconds: the first tap's timeout leaves the second alone");
+        sim.close(true);
+        require(sim.starts == 2 && sim.reports == 0, "...and Home closing hands the second start on");
+        RecorderTap.PendingStart tokens = new RecorderTap.PendingStart();
+        int first = tokens.arm(), second = tokens.arm();
+        require(first != second && !tokens.take(first) && tokens.latest(second) && !tokens.latest(first) && tokens.take(second) && !tokens.take(second),
+                "Each tap has its own token and is taken once");
         require(RecorderTap.onClose(false, true) == RecorderTap.CLOSE_NOTHING && RecorderTap.onClose(false, false) == RecorderTap.CLOSE_NOTHING,
                 "Nothing pending: close does nothing");
         require(RecorderTap.onClose(true, true) == RecorderTap.CLOSE_HAND_OFF, "Pending, app staying: hand the start on");
@@ -88,20 +117,33 @@ public final class RecorderTapTest {
 
         // DashboardScreen wires it that way: the frame takes the start and close() finishes it first.
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/DashboardScreen.java")), StandardCharsets.UTF_8);
-        require(screen.contains("if (closed || !recorderStart.take()) return;"), "The frame callback takes the pending start");
+        require(screen.contains("if (closed || !recorderStart.take(token)) return;"), "The frame callback takes only its own tap's pending start");
+        require(screen.contains("if (!recorderStart.latest(token)) return;\n                if (RecorderTap.timeoutCancels(recorderStart, token)) recorderNotStarted(app);"),
+                "The timeout takes its own tap's start, says it did not start, and skips a newer tap");
         require(screen.contains("finishPendingStart();\n        closed = true;"), "close() finishes a pending start before marking Home closed");
         require(screen.contains("else start.startRide();"), "A handed-on start runs the same startRide path");
 
         System.out.println("RecorderTapTest: " + checks + " checks passed");
     }
 
-    /** The DashboardScreen start flow, minus Android: one PendingStart shared by the frame and close(). */
+    /** The DashboardScreen start flow, minus Android: one PendingStart shared by the frame, the timeout and close(). */
     private static final class Sim {
         RecorderTap.PendingStart pending = new RecorderTap.PendingStart();
-        boolean closed;
+        boolean closed, starting, recordingNow;
         int starts, reports;
-        void tap() { pending.arm(); }
-        void frame() { if (!closed && pending.take()) starts++; }
+        int tap() {
+            require(RecorderTap.lead(recordingNow, true, starting) == RecorderTap.START, "Sim: the tap is accepted");
+            starting = true;
+            return pending.arm();
+        }
+        void frame(int token) { if (!closed && pending.take(token)) starts++; }
+        void timeout(int token) {
+            if (!pending.latest(token)) return;
+            if (RecorderTap.timeoutCancels(pending, token)) reports++;
+            starting = false;
+        }
+        void recording() { recordingNow = true; starting = false; }
+        void stop() { recordingNow = false; }
         void close(boolean staying) {
             int action = RecorderTap.onClose(pending.pending(), staying);
             if (action != RecorderTap.CLOSE_NOTHING && pending.take()) {
@@ -109,7 +151,7 @@ public final class RecorderTapTest {
             }
             closed = true;
         }
-        void reopen() { pending = new RecorderTap.PendingStart(); closed = false; }
+        void reopen() { pending = new RecorderTap.PendingStart(); closed = false; starting = false; }
     }
 
     private static void require(boolean condition, String message) {
