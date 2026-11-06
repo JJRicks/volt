@@ -33,7 +33,7 @@ public final class RideBackupValidation extends Instrumentation {
         rangeSamples(store,rideWall);
         store.stop(rideWall+700000,700000);store.rename(id,"Restored café ride");
         for(int n=1;n<=2;n++){long wall=rideWall+n*800000;store.start("old-profile","Synthetic range "+n,wall,0);rangeSamples(store,wall);store.stop(wall+700000,700000);}
-        PhoneRideStore phone=new PhoneRideStore(new File(context.getFilesDir(),"phone-rides"));phone.start(id,rideWall,0,"pocket");phone.appendBatch(id,PhoneRideStore.row("GPS",rideWall+1000,1000,1,2,3,4,5,6,7),"1000,1,2,3,4,5,6,7,8,9,0,0,0,1,3\n");phone.stop(id,rideWall+700000,700000);
+        PhoneRideStore phone=new PhoneRideStore(new File(context.getFilesDir(),"phone-rides"));phone.start(id,rideWall,0);phone.appendBatch(id,PhoneRideStore.row("GPS",rideWall+1000,1000,1,2,3,4,5,6,7),"1000,1,2,3,4,5,6,7,8,9,0,0,0,1,3\n");phone.stop(id,rideWall+700000,700000);
         byte[] originalPhone=Files.readAllBytes(phone.rawCsv(id).toPath()),originalMotion=Files.readAllBytes(phone.motionCsv(id).toPath());
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();Object count=call(archive,null,"write",new Class<?>[]{storageType,OutputStream.class,Map.class},storage,bytes,Collections.singletonMap("old-profile","Original scooter"));require(count.equals(3),"Exports three complete rides");
         phone.delete(id);for(RideStore.Summary saved:store.list())store.delete(saved.id);
