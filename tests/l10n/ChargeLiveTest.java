@@ -387,15 +387,14 @@ public final class ChargeLiveTest {
         ChargeLiveState s = ChargeLiveState.of(input(72, 80, 38.2, 411.6), CLOCK);
         check(s.kind == ChargeLiveState.Kind.CHARGING, "charging");
         check("Charging to 80% · 72%".equals(s.title), "title with a limit: " + s.title);
-        check("≈ 38m left · done 10:42 PM · 412 W".equals(s.text), "text with time left, finish time and power: " + s.text);
+        check("Done 10:42 PM · 412 W".equals(s.text), "text with the finish time and power: " + s.text);
         check("UT5 MAX".equals(s.subText), "the scooter's name is the header's subtext");
         check(s.max == 80 && s.progress == 72, "the bar runs 0 to the limit");
-        check(s.countdownEndWallMs == NOW + 38 * MIN, "Android's countdown ends at the estimate");
         check(s.title.equals(s.publicTitle) && s.text.equals(s.publicText) && "UT5 MAX".equals(s.publicSubText), "Details: the lock screen shows the whole card (owner, Q46 B)");
 
         ChargeLiveState.Input level = input(72, 80, 38.0, 412.0);level.detail = ChargeLiveState.Detail.LEVEL;
         ChargeLiveState l = ChargeLiveState.of(level, CLOCK);
-        check("≈ 38m left · done 10:42 PM".equals(l.publicText) && l.publicSubText == null, "Level: no name and no power on the lock screen: " + l.publicText);
+        check("Done 10:42 PM".equals(l.publicText) && l.publicSubText == null, "Level: no name and no power on the lock screen: " + l.publicText);
         check(!l.publicTitle.contains("UT5") && !l.publicText.contains("UT5") && !l.publicText.contains("W"), "Level never names the scooter");
         check(l.text.contains("412 W") && "UT5 MAX".equals(l.subText), "Level still shows everything once unlocked");
         ChargeLiveState.Input hidden = input(72, 80, 38.0, 412.0);hidden.detail = ChargeLiveState.Detail.HIDDEN;
@@ -406,13 +405,13 @@ public final class ChargeLiveTest {
 
         ChargeLiveState full = ChargeLiveState.of(input(63, null, 85.0, null), CLOCK);
         check("Charging · 63%".equals(full.title) && full.max == 100 && full.progress == 63, "no limit: to 100");
-        check("≈ 1h 25m left · done 11:29 PM".equals(full.text), "hours and minutes, no power reading: " + full.text);
+        check("Done 11:29 PM".equals(full.text), "a finish over an hour away, no power reading: " + full.text);
         check("Charging · 63%".equals(ChargeLiveState.of(input(63, 100, null, null), CLOCK).title), "a 100% limit reads as no limit");
 
         ChargeLiveState unknown = ChargeLiveState.of(input(50, 80, null, 300.0), CLOCK);
-        check("Estimating time left · 300 W".equals(unknown.text) && unknown.countdownEndWallMs == 0, "no estimate: no countdown");
-        check("Estimating time left".equals(ChargeLiveState.of(input(50, 80, 0.0, null), CLOCK).text), "zero minutes left is no countdown either");
-        check(ChargeLiveState.of(input(50, 80, Double.NaN, 0.4), CLOCK).countdownEndWallMs == 0, "a broken estimate never counts down");
+        check("Estimating time left · 300 W".equals(unknown.text), "no estimate: estimating");
+        check("Estimating time left".equals(ChargeLiveState.of(input(50, 80, 0.0, null), CLOCK).text), "zero minutes left is no finish time either");
+        check("Estimating time left".equals(ChargeLiveState.of(input(50, 80, Double.NaN, 0.4), CLOCK).text), "a broken estimate never shows a finish time");
         ChargeLiveState none = ChargeLiveState.of(input(null, 80, null, null), CLOCK);
         check("Charging to 80%".equals(none.title) && none.progress == -1, "no level read: no bar, the limit-only title");
         check(ChargeLiveState.of(input(85, 80, 5.0, null), CLOCK).progress == 80, "the bar never overfills");
@@ -420,7 +419,6 @@ public final class ChargeLiveTest {
         ChargeLiveState.Input wait = input(41, 80, null, null);wait.waiting = true;wait.startWallMs = NOW + 5 * H + 36 * MIN;wait.doneByWallMs = NOW + 8 * H + 56 * MIN;
         ChargeLiveState w = ChargeLiveState.of(wait, CLOCK);
         check(w.kind == ChargeLiveState.Kind.WAITING && "Starts 3:40 AM · 41%".equals(w.title) && "Charge done by 7:00 AM".equals(w.text), "Charge done by waiting: " + w.title + " / " + w.text);
-        check(w.countdownEndWallMs == 0, "no countdown while waiting");
         wait.doneByWallMs = 0;
         check("Scheduled charging".equals(ChargeLiveState.of(wait, CLOCK).text), "Scheduled charging waiting");
         wait.percent = null;
@@ -429,13 +427,13 @@ public final class ChargeLiveTest {
         ChargeLiveState.Input lost = input(72, 80, 38.0, 412.0);lost.reconnecting = true;
         ChargeLiveState r = ChargeLiveState.of(lost, CLOCK);
         check(r.kind == ChargeLiveState.Kind.RECONNECTING && "Last seen 72%".equals(r.title) && "Out of reach · reconnecting".equals(r.text), "reconnecting");
-        check(r.countdownEndWallMs == 0 && r.progress == 72, "a stale level keeps its bar but no countdown");
+        check(r.progress == 72, "a stale level keeps its bar");
 
-        // Reposts: only a whole percent, a whole minute, the state or the limit changes the key.
+        // Reposts: only a whole percent, the finish time, the state or the limit changes the key.
         ChargeLiveState a = ChargeLiveState.of(input(72, 80, 38.2, 400.0), CLOCK), b = ChargeLiveState.of(input(72, 80, 37.9, 455.0), CLOCK);
         check(a.dedupeKey.equals(b.dedupeKey), "power and sub-minute changes don't repost");
         check(!a.dedupeKey.equals(ChargeLiveState.of(input(73, 80, 38.0, 400.0), CLOCK).dedupeKey), "a new percent reposts");
-        check(!a.dedupeKey.equals(ChargeLiveState.of(input(72, 80, 37.0, 400.0), CLOCK).dedupeKey), "a new minute reposts");
+        check(!a.dedupeKey.equals(ChargeLiveState.of(input(72, 80, 37.0, 400.0), CLOCK).dedupeKey), "a new finish time reposts");
         check(!a.dedupeKey.equals(ChargeLiveState.of(input(72, 90, 38.0, 400.0), CLOCK).dedupeKey), "a new limit reposts");
         check(!a.dedupeKey.equals(r.dedupeKey), "reconnecting reposts");
         check(!a.dedupeKey.equals(l.dedupeKey), "a new lock screen choice reposts");

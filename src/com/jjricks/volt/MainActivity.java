@@ -2448,8 +2448,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             });
             lock.setTag("charge_live_lock");
             body.addView(lock,new LinearLayout.LayoutParams(-1,-2));
-            TextView note=design.caption(T.chargeLiveLockNote());
-            note.setPadding(design.dp(4),design.dp(12),design.dp(4),0);body.addView(note);
             // Notifications off: the card can't show, so say so and take the owner to the one place that fixes it.
             permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge_live_permission");
             permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
