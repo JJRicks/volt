@@ -4,10 +4,11 @@
 seen it, and no native speaker has checked it. Everything below, safety wording included, can change.
 "Approved" here means "the wording this proposal asks every drafter to use".
 
-**Wait for D3.** Do not draft German for a key whose English D3 rewords until D3's English has landed (plan 7.2,
-step 0). `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` matter most: today's English still
-says "Top speed" on them, so the required "Max. Tempo" and "Höchstgeschwindigkeit" fail the top-speed row, and that
-row must not be widened to let a measured word onto a setting.
+**The English now follows the same split (D3, merged):** Maximum speed and Max. speed are the setting (`main_speed_*`,
+`dashboard_model_tile_top_speed`, `controls_experimental_speed_limit`), and top speed is the measured value (the
+`readings_maximum_speed_kmh` ladder). Translate them like any other key, with **Höchstgeschwindigkeit** / **Max. Tempo**
+for the setting and **Spitzengeschwindigkeit** for the measured value. The top-speed row must still not be widened to
+let a measured word onto a setting.
 
 ## 1. Register and form of address
 
@@ -282,7 +283,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
 11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
 12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
-13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+13. **"Dashboard" in the English.** The English fix has landed (D3, merged): the scooter's own screen is now "the scooter's display" (`compat_question_range`, `compat_question_units_*`, `controls_feature_display_units`, `readings_display_units`), and Dashboard means Volt's Home. The Scooter tab's "Dashboard & sound" group (`main_group_dashboard_sound`, `dashboard_model_qa_dashboard_sound*`) still names the scooter's settings. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
 
 ### Fixed words
 
@@ -308,7 +309,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **App** (die). Never Anwendung or Applikation. |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinden**, with the rider or Volt as subject: "Verbinde dich mit dem Scooter.", "Volt verbindet sich mit dem Scooter." Button: **Verbinden**. Not "Verbinde den Scooter", which reads as plugging something in. |
 | set a value | one verb for setting a value on the scooter | **einstellen**: "Tempolimit einstellen". Not setzen or festlegen. |
-| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Plain passive with the thing as subject, no connector**: "Alles auf diesem Telefon wird ersetzt.", "Der Verlauf aller Scooter wird gelöscht." Not "Entfernt…" or "Ersetzt…", which read as done, and not "Entferne…". "Dadurch" only where the sentence before it really is the cause ("Wähle die Datei aus. Dadurch wird…"). `controls_experimental_speed_limit` keeps its old "Dadurch" until D3 lands. |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Plain passive with the thing as subject, no connector**: "Alles auf diesem Telefon wird ersetzt.", "Der Verlauf aller Scooter wird gelöscht." Not "Entfernt…" or "Ersetzt…", which read as done, and not "Entferne…". "Dadurch" only where the sentence before it really is the cause ("Wähle die Datei aus. Dadurch wird…"). `controls_experimental_speed_limit` (reworded by D3, merged: "Limits your speed…") follows this rule too, without "Dadurch". |
 | "Opens…", "Shows…" in hints | what a tap does, spoken by TalkBack after the label | **Third person**: "Öffnet die Fahrtdetails.", "Zeigt die Details neben der Liste an." In a du-address app this does not read as a plural command. Only for hints that open or show; anything destructive takes the passive above. |
 | screen and section titles | noun form or verb form, with one example | **Noun form** for a named section: "Geplantes Laden", "Kompatibilitätsprüfung". **Action form** for a picker or action sheet: "Verknüpfung auswählen", "Widget hinzufügen". Action buttons keep the infinitive of section 1. |
 | while measuring | a sentence saying what happened during a measurement | **während der Messung**. "Messung läuft" is the status label only and is never quoted inside a sentence. |
