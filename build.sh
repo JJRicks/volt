@@ -301,12 +301,26 @@ PYVERSION
     fi
 }
 
+# A release build (VOLT_RELEASE=1) also needs every shipped language fully translated (owner,
+# 2026-11-06): ship_check.py --release, on the same commit it builds, before anything is compiled.
+# Pull requests run ship_check.py without --release, where the English fallback is only reported.
+navee_release_translations() {
+    ANDROID_SDK_ROOT="${SDK_DIR:-${ANDROID_SDK_ROOT:-}}" \
+        python3 "$APP_DIR/tools/l10n/ship_check.py" --root "$APP_DIR" --release --aapt required || {
+        echo "VOLT_RELEASE=1 refuses: no release ships until every shipped language is fully translated; do a translation top-up first (RELEASING.md)" >&2
+        return 1
+    }
+}
+
 navee_build_app() {
     navee_find_sdk
     navee_find_java
     local version_name
     version_name="$(navee_version_name)"
     echo "versionName: $version_name"
+    if [[ "${VOLT_RELEASE:-}" == 1 ]]; then
+        navee_release_translations
+    fi
     mkdir -p "$BUILD_DIR" "$(dirname -- "$APK_PATH")"
     rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies" \
         "$BUILD_DIR/l10n" "$BUILD_DIR/pseudo"

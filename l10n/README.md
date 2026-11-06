@@ -1302,7 +1302,8 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
    or alarm key must also be `safety-agreed` or `safety-judged`, which Claude's drafts alone never reach.
    Releases still need the owner's explicit authorization. A release also needs **zero** fallback
-   in every shipped language (owner, 2026-11-06): `ship_check.py --release` enforces it (RELEASING.md).
+   in every shipped language (owner, 2026-11-06): `ship_check.py --release` enforces it (RELEASING.md),
+   and `VOLT_RELEASE=1 bash build.sh` runs it and refuses to build when it fails.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the

@@ -82,7 +82,18 @@ class RepositoryFilesTest(unittest.TestCase):
 
     def test_releasing_runs_the_strict_ship_check(self):
         steps = l10nlib.read_text(os.path.join(ROOT, "RELEASING.md"))
-        self.assertIn("python3 tools/l10n/ship_check.py --release --aapt required", steps)
+        strict = steps.index("python3 tools/l10n/ship_check.py --release --aapt required")
+        # On the merged release commit: final merges first, then the strict check, then the same-SHA check and the tag.
+        self.assertLess(steps.index("Merge the reviewed pull requests into `main`"), strict)
+        self.assertLess(strict, steps.index("the checked, built and tagged commit are one SHA"))
+        self.assertLess(steps.index("the checked, built and tagged commit are one SHA"), steps.index("tag that exact `main` commit"))
+
+    def test_a_release_build_runs_the_strict_ship_check_first(self):
+        script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
+        body = script[script.index("navee_build_app() {"):]
+        guard = body.index('if [[ "${VOLT_RELEASE:-}" == 1 ]]; then\n        navee_release_translations\n')
+        self.assertLess(body.index('version_name="$(navee_version_name)"'), guard, "after the clean-tree check")
+        self.assertLess(guard, body.index("gen_catalog.py"), "before anything is compiled")
 
     def test_pseudo_build_repairs_aapts_text_before_the_round_trip(self):
         script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
