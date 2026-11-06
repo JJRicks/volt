@@ -950,13 +950,13 @@ whole route. Center, zoom, overlay and inspected point survive opening/closing
 the expanded view. Pinch, pan, zoom buttons and inspection work in either view.
 Phone raw, linear and earth-frame
 acceleration are retained in CSV when the relevant sensors are available.
-Auto-save rides (More > Data & history, off by default): Auto-save Route CSV and
-Auto-save ride JSON copy each ride you end into one folder chosen once through
+Auto-save rides (More > Data & history > Ride auto-save, off by default): Auto-save
+Route CSV and Auto-save ride JSON copy each ride you end into one folder chosen once through
 Android's folder picker, byte for byte the Route CSV and All (JSON) exports (Export
 JSON for a ride with no phone recording). Names come from the ride id; a hidden
 file is renamed into place, unchanged files are left alone and no "(1)" copies
 are made. Failed copies wait and retry after the next ride, at app start and when
-the folder is chosen again; the row shows the failure, and one notification per
+the folder is chosen again; the Folder row shows the folder or the failure, and one notification per
 kind is posted while Volt is hidden. Emulator-validated; not yet on a phone with
 a real ride.
 

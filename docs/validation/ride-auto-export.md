@@ -12,7 +12,7 @@ Behaviour: [Auto-save rides](../recording-reference.md#auto-save-rides).
 | Worker, wake lock | `RideAutoExportRunner` | One pass at a time; hands back a `RideAutoExport.Problem` id on the main thread |
 | Folder picker | `RideAutoExportPickerActivity` | A view-less activity around `ACTION_OPEN_DOCUMENT_TREE`, like `BackupActivity`'s pickers; `MainActivity` is untouched |
 | Hook, keep-alive, retry, notice | `ScooterService` | `stopRide` queues on its `return true` path; `rideFullySaved` runs after the phone journal finishes, or at once with no recorder; `workAllowed` keeps the service while a pass runs, separately from the idle deadline; retry at service start, at the next ride end and after a folder is chosen; `dataMaintenanceUnavailable` refuses backup and restore while a pass runs, and no pass starts during one |
-| Rows | `MoreScreen.dataHistory()`, recording group | Two `toggleRow`s; sub-label from `RowState` |
+| Rows | `MoreScreen.dataHistory()`, own **Ride auto-save** group between Save readings history and Local storage | Two `toggleRow`s whose sub-labels say what each file holds, and a **Folder** row whose sub-label comes from `RowState` (folder, failure, or greyed with no folder while both are off); a note that a folder change applies to later rides |
 
 Stored values are ids only: two booleans (backed up), the tree URI, the waiting
 ride ids and `folder`/`save` (excluded). Every shown sentence is in
@@ -69,23 +69,30 @@ It drives the real system pickers through UiAutomation and checks:
 6. Folder deleted (retried at the next ride end, and at app start after Volt closed),
    grant revoked (retried after choosing the folder again), restored setting with no
    folder, one type off keeping the folder, both off releasing the grant and the list.
-7. Rows: off captions, below Save readings history, 48 dp switches, each switch speaks
-   its title; the first switch opens the picker (cancel keeps it off), the second needs
-   none; both show `Saving to Download/VoltRides`.
+7. Rows: the **Ride auto-save** heading and group between Save readings history and
+   Local storage, Route CSV, ride JSON, then Folder, with the note below; each switch
+   says what its file holds, 48 dp switches, each switch speaks its title; while both
+   are off the Folder row is greyed out, says `No folder chosen yet` and opens nothing.
+   The first switch opens the picker (cancel keeps it off), the second needs none; the
+   Folder row shows `Saving to Download/VoltRides`, and tapping it opens the picker at
+   that folder and leaves both switches on.
 8. The stop hook alone: notification Stop while hidden, the parked auto-stop
    (`AUTO_PARKED_DISCONNECT`) and a ride revived by a new service and stopped later.
-9. Failure: the row's line on both rows, one notification on the `scooter` channel
+9. Failure: the line on the Folder row (the switches keep their captions), one notification on the `scooter` channel
    while hidden with catalog title and text, none for a second failure of the same kind,
    none while visible; the line clears after the next ride end.
 10. Restored without a folder: `Choose a folder to start saving`, the ride waits, and
-    tapping the row and choosing the folder copies it.
-11. About 327 dp wide with Volt's text at 130%: titles, folder line and switches fully
-    shown, the title never under the switch.
+    tapping the Folder row and choosing the folder copies it.
+11. About 327 dp wide with Volt's text at 130%: heading, titles, captions, folder line,
+    note and switches fully shown, the title never under the switch.
+12. Both off again from the switches: grant released, list cleared, and the Folder row
+    greyed out in the same place and height (the layout does not jump).
 
-Result on 2026-11-05, volt_a (Android 16, 1080×2340): PASS, 514 checks (the prep
-branch's part alone: PASS, 240 checks). Screenshots in dark and light for each row
-state, the picker and the notification. The en-XA pseudo-locale build was checked by
-hand on the same emulator.
+Result on 2026-11-05, volt_a (Android 16, 1080×2340): PASS, 588 checks (the prep
+branch's part alone: PASS, 264 checks). Screenshots in dark and light for each row
+state, the picker from a switch and from the Folder row, and the notification. The
+en-XA pseudo-locale build (`LocaleValidation`, 344 dp) shows the Ride auto-save group
+with no fit, glued or unextracted finding on its text.
 
 Not covered on an emulator: storage full and a cloud provider without rename (core tests
 only), a real ride with a scooter, and manufacturer battery policies after a hidden stop.

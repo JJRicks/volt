@@ -503,11 +503,25 @@ public final class RideAutoExportValidation extends Instrumentation {
         String csv = T.moreAutoSaveRouteCsv(); String json = T.moreAutoSaveJson();
         openDataHistory(csv);
         check(!switchOf(csv).isChecked() && !switchOf(json).isChecked(), "Both auto-save switches off");
-        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()) && T.moreAutoSaveJsonOff().contentEquals(subOf(json).getText()), "Off captions: " + subOf(csv).getText() + " / " + subOf(json).getText());
+        check(T.moreAutoSaveRouteCsvSub().contentEquals(subOf(csv).getText()) && T.moreAutoSaveJsonSub().contentEquals(subOf(json).getText()), "Each switch says what its file holds: " + subOf(csv).getText() + " / " + subOf(json).getText());
+        String folder = T.moreAutoSaveFolder();
         View history = rowTitled(T.moreHistorySave());
-        ViewGroup group = (ViewGroup) history.getParent();
-        check(rowTitled(csv).getParent() == group && rowTitled(json).getParent() == group, "Both rows in the recording group with Save readings history");
-        check(group.indexOfChild(rowTitled(csv)) > group.indexOfChild(history) && group.indexOfChild(rowTitled(json)) > group.indexOfChild(rowTitled(csv)), "Below Save readings history, Route CSV first");
+        ViewGroup recording = (ViewGroup) history.getParent();
+        ViewGroup group = (ViewGroup) rowTitled(csv).getParent();
+        check(group != recording && rowTitled(json).getParent() == group && rowTitled(folder).getParent() == group, "Its own group: Route CSV, ride JSON and the folder row");
+        check(group.indexOfChild(rowTitled(json)) > group.indexOfChild(rowTitled(csv)) && group.indexOfChild(rowTitled(folder)) > group.indexOfChild(rowTitled(json)), "Route CSV, then ride JSON, then the folder");
+        ViewGroup page = (ViewGroup) recording.getParent();
+        TextView heading = text(page, T.moreAutoSaveHeading());
+        check(heading != null && heading.getParent() == page && page.indexOfChild(recording) < page.indexOfChild(heading) && page.indexOfChild(heading) == page.indexOfChild(group) - 1, "Ride auto-save heading right above the group, below Save readings history");
+        TextView storage = text(page, T.moreHistoryLocalStorage());
+        check(storage != null && page.indexOfChild(group) < page.indexOfChild((View) storage.getParent().getParent()), "The group sits above the Local storage card");
+        TextView note = text(page, T.moreAutoSaveFolderNote());
+        check(note != null && page.indexOfChild(note) == page.indexOfChild(group) + 1, "The folder note right below the group");
+        check(!rowTitled(folder).isEnabled() && T.moreAutoSaveNoFolder().contentEquals(subOf(folder).getText()), "Both off: the folder row stays, greyed out, no folder chosen yet");
+        click(rowTitled(folder)); SystemClock.sleep(1200);
+        check(!pickerActivityShown() && !pickerShown(), "The greyed folder row opens nothing");
+        awaitFullyShown(() -> titleOf(folder), "Folder title");
+        awaitFullyShown(() -> subOf(folder), "No folder line");
         fullyShown(titleOf(csv), "Route CSV title"); fullyShown(titleOf(json), "Ride JSON title"); fullyShown(switchOf(csv), "Route CSV switch"); fullyShown(switchOf(json), "Ride JSON switch");
         check(switchOf(csv).getHeight() >= dp(48) && switchOf(json).getHeight() >= dp(48), "48dp switch targets");
         check(csv.contentEquals(switchOf(csv).getContentDescription()) && json.contentEquals(switchOf(json).getContentDescription()), "Each switch speaks its row title");
@@ -540,22 +554,32 @@ public final class RideAutoExportValidation extends Instrumentation {
         for (int i = 0; i < 4 && pickerShown(); i++) { shell("input keyevent 4"); SystemClock.sleep(1200); }
         awaitApp(); openDataHistory(csv);
         check(!settings.getBoolean(ROUTE, false) && !settings.contains(FOLDER) && !switchOf(csv).isChecked(), "Cancelled picker from the row: still off");
-        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()), "Still the off caption");
+        check(T.moreAutoSaveRouteCsvSub().contentEquals(subOf(csv).getText()) && T.moreAutoSaveNoFolder().contentEquals(subOf(T.moreAutoSaveFolder()).getText()), "Still no folder");
         click(switchOf(csv));
         uiPickVoltRides("02-picker-from-row");
         openDataHistory(csv);
         check(settings.getBoolean(ROUTE, false) && !settings.getBoolean(JSON, false) && settings.contains(FOLDER), "Route CSV on once the folder is kept");
         String saving = T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME);
-        check(switchOf(csv).isChecked() && saving.contentEquals(subOf(csv).getText()), "Route CSV row shows the folder: " + subOf(csv).getText());
-        check(!switchOf(json).isChecked() && T.moreAutoSaveJsonOff().contentEquals(subOf(json).getText()), "Ride JSON still off with its own caption");
+        String folder = T.moreAutoSaveFolder();
+        check(switchOf(csv).isChecked() && saving.contentEquals(subOf(folder).getText()) && rowTitled(folder).isEnabled(), "The folder row shows the folder: " + subOf(folder).getText());
+        check(T.moreAutoSaveRouteCsvSub().contentEquals(subOf(csv).getText()), "The switch keeps saying what its file holds");
+        check(!switchOf(json).isChecked() && T.moreAutoSaveJsonSub().contentEquals(subOf(json).getText()), "Ride JSON still off with its own caption");
         screenshot("03-route-csv-on-dark");
         click(switchOf(json)); SystemClock.sleep(1500);
         check(!pickerShown() && !pickerActivityShown(), "The second switch needs no picker");
         openDataHistory(json);
-        check(settings.getBoolean(JSON, false) && switchOf(json).isChecked() && saving.contentEquals(subOf(json).getText()) && saving.contentEquals(subOf(csv).getText()), "Both on, both rows show the one folder");
-        fullyShown(subOf(csv), "Folder line"); fullyShown(titleOf(json), "Ride JSON title while on");
+        check(settings.getBoolean(JSON, false) && switchOf(json).isChecked() && saving.contentEquals(subOf(folder).getText()), "Both on, one folder row");
+        awaitFullyShown(() -> subOf(folder), "Folder line"); fullyShown(titleOf(json), "Ride JSON title while on");
         screenshot("04-both-on-dark");
         theme("light"); openDataHistory(json); screenshot("04-both-on-light"); theme("dark");
+        // The folder row changes the folder only: it opens at the current folder and leaves both switches on.
+        String kept = settings.getString(FOLDER, "");
+        openDataHistory(folder); click(rowTitled(folder));
+        node("Files in " + FOLDER_NAME, 15000);
+        uiPickVoltRides("04-picker-from-folder-row");
+        openDataHistory(folder);
+        check(kept.equals(settings.getString(FOLDER, "")) && settings.getBoolean(ROUTE, false) && settings.getBoolean(JSON, false) && !settings.contains(PROBLEM), "Folder row: same folder kept, both switches as they were");
+        check(switchOf(csv).isChecked() && switchOf(json).isChecked() && saving.contentEquals(subOf(folder).getText()), "Folder row: both still on, still saving to the folder");
     }
 
     /** The stop hook alone (no queue here): the notification Stop while hidden, the parked auto-stop and a revived ride. */
@@ -611,9 +635,11 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(notice(78) == null, "At most one notification per failure kind");
         screenOnAndShow();
         openDataHistory(csv);
-        check(T.moreAutoSaveFolderProblem().contentEquals(subOf(csv).getText()) && T.moreAutoSaveFolderProblem().contentEquals(subOf(T.moreAutoSaveJson()).getText()), "Failure line on both rows: " + subOf(csv).getText());
+        String folder = T.moreAutoSaveFolder();
+        check(T.moreAutoSaveFolderProblem().contentEquals(subOf(folder).getText()), "Failure line on the folder row: " + subOf(folder).getText());
+        check(T.moreAutoSaveRouteCsvSub().contentEquals(subOf(csv).getText()) && T.moreAutoSaveJsonSub().contentEquals(subOf(T.moreAutoSaveJson()).getText()), "The switches keep their own captions");
         check(switchOf(csv).isChecked(), "The setting never turns itself off");
-        fullyShown(subOf(csv), "Failure line");
+        awaitFullyShown(() -> subOf(folder), "Failure line");
         screenshot("05-failure-line-dark");
         theme("light"); openDataHistory(csv); screenshot("05-failure-line-light"); theme("dark");
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
@@ -621,7 +647,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Retried at the next ride end: " + exportState());
         check(listing().contains(csvName(f)) && listing().contains(csvName(g)) && listing().contains(csvName(h)), "All three rides copied");
         openDataHistory(csv);
-        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(csv).getText()), "Folder line back");
+        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()), "Folder line back");
         shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
         String v = recordRide("Failure while visible", true); stopOnly(null); awaitPassDone();
         check("folder".equals(settings.getString(PROBLEM, "")), "Failed while visible");
@@ -641,18 +667,19 @@ public final class RideAutoExportValidation extends Instrumentation {
         settings.edit().remove(FOLDER).remove(PROBLEM).putBoolean(ROUTE, true).putBoolean(JSON, true).commit();
         openDataHistory(csv);
         check(switchOf(csv).isChecked() && switchOf(json).isChecked(), "Restored choices show on");
-        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(csv).getText()) && T.moreAutoSaveChooseFolder().contentEquals(subOf(json).getText()), "Choose a folder to start saving: " + subOf(csv).getText());
+        String folder = T.moreAutoSaveFolder();
+        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(folder).getText()) && rowTitled(folder).isEnabled(), "Choose a folder to start saving: " + subOf(folder).getText());
         screenshot("07-restored-no-folder-dark");
         theme("light"); openDataHistory(csv); screenshot("07-restored-no-folder-light"); theme("dark");
         String r = recordRide("Restored, waiting", true); stopOnly(null); awaitPassDone();
         check(settings.getString(PENDING, "").equals(r), "The ride waits for a folder");
         openDataHistory(csv);
-        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(csv).getText()), "Still asks for a folder after a waiting ride");
-        click(rowTitled(csv));
+        check(T.moreAutoSaveChooseFolder().contentEquals(subOf(folder).getText()), "Still asks for a folder after a waiting ride");
+        click(rowTitled(folder));
         uiPickVoltRides(null);
         await(() -> settings.getString(PENDING, "").isEmpty() && listing().contains(csvName(r)) && listing().contains(combinedName(r)), 25000, "Choosing a folder from the row copied the waiting ride");
         openDataHistory(csv);
-        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(csv).getText()) && switchOf(json).isChecked(), "Saving again, both still on");
+        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()) && switchOf(csv).isChecked() && switchOf(json).isChecked(), "Saving again, both still on");
         folderClean();
     }
 
@@ -662,7 +689,12 @@ public final class RideAutoExportValidation extends Instrumentation {
         shell("wm size 900x2340"); SystemClock.sleep(1500); textScale(1.3f);
         openDataHistory(json);
         fullyShown(titleOf(csv), "Narrow Route CSV title"); fullyShown(titleOf(json), "Narrow ride JSON title");
-        fullyShown(subOf(csv), "Narrow folder line"); fullyShown(switchOf(csv), "Narrow switch"); fullyShown(switchOf(json), "Narrow JSON switch");
+        String folder = T.moreAutoSaveFolder();
+        awaitFullyShown(() -> subOf(csv), "Narrow Route CSV caption"); awaitFullyShown(() -> subOf(json), "Narrow ride JSON caption");
+        awaitFullyShown(() -> titleOf(folder), "Narrow folder title"); awaitFullyShown(() -> subOf(folder), "Narrow folder line");
+        fullyShown(switchOf(csv), "Narrow switch"); fullyShown(switchOf(json), "Narrow JSON switch");
+        awaitFullyShown(() -> text(activity.getWindow().getDecorView(), T.moreAutoSaveHeading()), "Narrow heading");
+        awaitFullyShown(() -> text(activity.getWindow().getDecorView(), T.moreAutoSaveFolderNote()), "Narrow folder note");
         Rect title = new Rect(); Rect toggle = new Rect(); titleOf(json).getGlobalVisibleRect(title); switchOf(json).getGlobalVisibleRect(toggle);
         check(title.right <= toggle.left, "Title never runs under the switch");
         screenshot("08-narrow-large-text-dark");
@@ -676,11 +708,19 @@ public final class RideAutoExportValidation extends Instrumentation {
         click(switchOf(csv));
         openDataHistory(csv);
         check(!settings.getBoolean(ROUTE, true) && settings.getBoolean(JSON, false) && settings.contains(FOLDER), "Route CSV off; JSON keeps the folder");
-        check(T.moreAutoSaveRouteCsvOff().contentEquals(subOf(csv).getText()) && T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(json).getText()), "Off caption beside the folder line");
+        String folder = T.moreAutoSaveFolder();
+        check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()) && rowTitled(folder).isEnabled(), "One type on: the folder row still shows the folder");
+        Rect before = new Rect();
+        rowTitled(folder).getGlobalVisibleRect(before);
+        int beforeHeight = rowTitled(folder).getHeight();
         click(switchOf(json));
         openDataHistory(csv);
         check(!settings.contains(FOLDER) && !settings.contains(PENDING) && getTargetContext().getContentResolver().getPersistedUriPermissions().isEmpty(), "Both off from the rows: grant released, list cleared");
         check(!switchOf(csv).isChecked() && !switchOf(json).isChecked(), "Both switches off");
+        check(!rowTitled(folder).isEnabled() && T.moreAutoSaveNoFolder().contentEquals(subOf(folder).getText()), "Folder row greyed out again, no folder chosen yet");
+        Rect after = new Rect();
+        rowTitled(folder).getGlobalVisibleRect(after);
+        check(after.top == before.top && rowTitled(folder).getHeight() == beforeHeight, "The folder row stays in place: the layout does not jump (" + before + " -> " + after + ")");
         screenshot("09-both-off-again");
     }
 
@@ -818,6 +858,17 @@ public final class RideAutoExportValidation extends Instrumentation {
         main(() -> { View v = row; while (v != null && !(v instanceof ScrollView)) v = v.getParent() instanceof View ? (View) v.getParent() : null;
             check(v != null, "Preference row scrolls"); ScrollView scroll = (ScrollView) v; Rect r = new Rect(); row.getDrawingRect(r); scroll.offsetDescendantRectToMyCoords(row, r);
             scroll.scrollTo(0, Math.max(0, r.centerY() - scroll.getHeight() / 2)); }); settle();
+    }
+    /** fullyShown, looking the view up again until it holds: a screen rebuild between lookup and check replaces it. */
+    private void awaitFullyShown(java.util.function.Supplier<View> lookup, String what) {
+        await(() -> {
+            View view; try { view = lookup.get(); } catch (AssertionError | RuntimeException rebuilding) { return false; }
+            Rect r = new Rect();
+            if (view == null || !view.isShown() || !view.getGlobalVisibleRect(r) || r.width() != view.getWidth() || r.height() != view.getHeight()) return false;
+            if (!(view instanceof TextView)) return true;
+            android.text.Layout layout = ((TextView) view).getLayout();
+            return layout != null && layout.getEllipsisCount(layout.getLineCount() - 1) == 0;
+        }, 5000, what + " fully visible, not clipped or ellipsized");
     }
     private void fullyShown(View view, String what) {
         Rect r = new Rect(); check(view.isShown() && view.getGlobalVisibleRect(r) && r.width() == view.getWidth() && r.height() == view.getHeight(), what + " fully visible, not clipped");

@@ -1131,8 +1131,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout recording = group();
         Row history = preferenceToggle(recording, "history", T.moreHistorySave(), T.moreHistoryWhileConnected(), "history_enabled", true);
         valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? T.moreHistoryWhileConnected() : T.moreHistoryOffKept()));
-        autoSaveRow(recording, "route", T.moreAutoSaveRouteCsv(), RideAutoExport.ROUTE_CSV);
-        autoSaveRow(recording, "download", T.moreAutoSaveJson(), RideAutoExport.JSON);
+        autoSaveGroup();
 
         LinearLayout storage = ui.card(); historyStorageCard = storage; cardDestination.addView(storage);
         LinearLayout head = row();
@@ -1167,46 +1166,47 @@ public final class MoreScreen implements AppScreen {
         dangerRow(clear, T.moreHistoryClearAll(), () -> clearHistory(true));
     }
     /**
-     * One automatic ride copy type (RideAutoExport), off by default. Turning a type on with no usable folder opens
-     * the folder picker (RideAutoExportPickerActivity), and the switch shows on only once a folder is kept; both
-     * types share that folder. While on, the sub-label is the folder or the stored failure, and tapping the row (or
-     * the switch's spoken Change folder action) chooses the folder again. ScooterService does the copying.
+     * Ride auto-save (RideAutoExport), off by default: one switch per file type and one folder row both share.
+     * Turning a type on with no usable folder opens the folder picker (RideAutoExportPickerActivity); the switch
+     * shows on only once a folder is kept. The folder row shows where files go, or the one stored failure, and
+     * opens the picker to change the folder without touching either switch. While both are off it stays in
+     * place, greyed out. ScooterService does the copying.
      */
-    private void autoSaveRow(LinearLayout box, String icon, String title, String key) {
+    private void autoSaveGroup() {
+        label(T.moreAutoSaveHeading());
+        LinearLayout box = group();
+        autoSaveSwitch(box, "route", T.moreAutoSaveRouteCsv(), T.moreAutoSaveRouteCsvSub(), RideAutoExport.ROUTE_CSV);
+        autoSaveSwitch(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), RideAutoExport.JSON);
+        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+            if (RideAutoExportFolder.anyOn(settings())) chooseAutoSaveFolder(null);
+        });
+        valueRefreshers.add(() -> {
+            RideAutoExport.RowState state = autoSaveFolderState();
+            folder.enabled(state != RideAutoExport.RowState.OFF);
+            folder.view.setClickable(state != RideAutoExport.RowState.OFF);
+            folder.sub(autoSaveFolderLine(state));
+            boolean warn = state == RideAutoExport.RowState.CHOOSE_FOLDER || state == RideAutoExport.RowState.FOLDER_PROBLEM || state == RideAutoExport.RowState.SAVE_PROBLEM;
+            folder.sub.setTextColor(warn ? ui.orange : state == RideAutoExport.RowState.OFF ? ui.dim : ui.muted);
+        });
+        footnote(T.moreAutoSaveFolderNote());
+    }
+    private void autoSaveSwitch(LinearLayout box, String icon, String title, String sub, String key) {
         Row[] self = new Row[1];
-        Row row = toggleRow(box, icon, title, autoSaveOff(key), on -> {
+        self[0] = toggleRow(box, icon, title, sub, on -> {
             if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(key); }
             else { RideAutoExportFolder.set(host.activity(), settings(), key, on); host.redraw(); }
         });
-        self[0] = row;
-        row.view.setOnClickListener(v -> {
-            if (closed) return;
-            if (settings().getBoolean(key, false)) chooseAutoSaveFolder(key);
-            else if (row.toggle.isEnabled()) row.toggle.performClick();
-        });
-        int changeFolder = View.generateViewId();
-        row.toggle.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View view, android.view.accessibility.AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(view, info);
-                if (settings().getBoolean(key, false)) info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(changeFolder, T.moreAutoSaveChangeFolder()));
-            }
-            @Override public boolean performAccessibilityAction(View view, int action, android.os.Bundle arguments) {
-                if (action != changeFolder) return super.performAccessibilityAction(view, action, arguments);
-                if (!closed) chooseAutoSaveFolder(key);
-                return true;
-            }
-        });
-        valueRefreshers.add(() -> {
-            SharedPreferences settings = settings();
-            RideAutoExport.RowState state = RideAutoExportFolder.rowState(host.activity(), settings, key);
-            refreshSwitch(row, settings.getBoolean(key, false), true);
-            row.sub(autoSaveLine(state, key));
-            boolean warn = state == RideAutoExport.RowState.CHOOSE_FOLDER || state == RideAutoExport.RowState.FOLDER_PROBLEM || state == RideAutoExport.RowState.SAVE_PROBLEM;
-            row.sub.setTextColor(warn ? ui.orange : ui.muted);
-        });
+        valueRefreshers.add(() -> refreshSwitch(self[0], settings().getBoolean(key, false), true));
     }
-    /** The sub-label for a row state; the folder's own path is a value, shown as the phone names it. */
-    private String autoSaveLine(RideAutoExport.RowState state, String key) {
+    /** The folder row's state: either type on decides it, with the one stored folder, grant and failure id. */
+    private RideAutoExport.RowState autoSaveFolderState() {
+        SharedPreferences settings = settings();
+        android.net.Uri chosen = RideAutoExportFolder.chosen(settings);
+        return RideAutoExport.rowState(RideAutoExportFolder.anyOn(settings), chosen != null,
+                RideAutoExportFolder.granted(host.activity(), chosen), RideAutoExportFolder.problem(settings));
+    }
+    /** The folder row's sub-label for a state; the folder's own path is a value, shown as the phone names it. */
+    private String autoSaveFolderLine(RideAutoExport.RowState state) {
         switch (state) {
             case CHOOSE_FOLDER: return T.moreAutoSaveChooseFolder();
             case FOLDER_PROBLEM: return T.moreAutoSaveFolderProblem();
@@ -1214,12 +1214,12 @@ public final class MoreScreen implements AppScreen {
             case SAVING:
                 String folder = RideAutoExportFolder.label(RideAutoExportFolder.chosen(settings()));
                 return folder == null ? T.moreAutoSaveSavingChosen() : T.moreAutoSaveSavingTo(folder);
-            default: return autoSaveOff(key);
+            default: return T.moreAutoSaveNoFolder();
         }
     }
-    private String autoSaveOff(String key) { return RideAutoExport.JSON.equals(key) ? T.moreAutoSaveJsonOff() : T.moreAutoSaveRouteCsvOff(); }
-    private void chooseAutoSaveFolder(String key) {
-        try { host.activity().startActivity(RideAutoExportPickerActivity.intent(host.activity(), key)); }
+    /** typeKey: the type to turn on once a folder is kept, or null to change the folder only. */
+    private void chooseAutoSaveFolder(String typeKey) {
+        try { host.activity().startActivity(RideAutoExportPickerActivity.intent(host.activity(), typeKey)); }
         catch (RuntimeException missing) { host.toast(T.moreAutoSaveNoPicker()); }
     }
     private void refreshHistoryStorage() {

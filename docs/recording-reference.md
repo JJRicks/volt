@@ -159,9 +159,9 @@ gaps efficiently. Raw journals remain available for export.
 
 ### Auto-save rides
 
-**More → Data & history → Auto-save Route CSV** and **Auto-save ride JSON** (both
-off by default; `ride_auto_export_route_csv` and `ride_auto_export_json`) copy each
-ride you end into one folder:
+**More → Data & history → Ride auto-save** has two switches, **Auto-save Route CSV**
+and **Auto-save ride JSON** (both off by default; `ride_auto_export_route_csv` and `ride_auto_export_json`) copy each
+ride you end into one folder, and a **Folder** row:
 
 | Switch | File | Contents |
 |---|---|---|
@@ -171,9 +171,12 @@ ride you end into one folder:
 
 - **Folder.** Turning the first switch on opens Android's folder picker. Volt keeps
   a read and write grant for that folder only and asks for no storage permission.
-  Tap a switch's row (or use its spoken **Change folder** action) to choose
-  another folder. Turning both switches off gives the grant back and forgets any
-  rides still waiting.
+  The **Folder** row shows where files go (`Saving to Download/VoltRides`, or
+  **Saving to your chosen folder** when the provider names no path); tap it to
+  choose another folder without changing either switch. A new folder is used for
+  rides saved from then on; files already saved are not moved. Turning both
+  switches off gives the grant back and forgets any rides still waiting; the
+  **Folder** row then stays in place, greyed out, with **No folder chosen yet**.
 - **Which rides.** Every ride Volt saves when it ends: Stop in Volt or in the
   notification, the automatic end for parked rides, and a ride revived after Volt
   restarted and stopped later. Older rides aren't copied. Copies start once the
@@ -185,7 +188,7 @@ ride you end into one folder:
 - **Failures.** A copy only reads the ride, so a failure never changes it. A ride
   leaves the waiting list once every switched-on file is written. Volt tries again
   after the next ride, when it starts and when a folder is chosen again; the
-  switches never turn themselves off. The rows show **Couldn't save the last ride.
+  switches never turn themselves off. The **Folder** row shows **Couldn't save the last ride.
   Choose the folder again.** (folder deleted or access lost) or **… Volt will try
   again.** (a write failed). While Volt is in the background, one notification is
   posted per kind of failure, until the kind changes or a copy succeeds. A success
@@ -194,8 +197,8 @@ ride you end into one folder:
   the ten-second idle timeout, and backup and restore wait for it. None starts
   during a backup or restore.
 - **Backup.** The two switches travel with App preferences; the folder, the
-  waiting list and the last failure stay on the phone. A restored phone shows
-  **Choose a folder to start saving**, and rides wait until a folder is chosen.
+  waiting list and the last failure stay on the phone. On a restored phone the
+  **Folder** row shows **Choose a folder to start saving**, and rides wait until a folder is chosen.
 
 ## Background connections and foldable phones
 
