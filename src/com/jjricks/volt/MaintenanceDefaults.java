@@ -7,8 +7,16 @@ import java.util.*;
  * plan, section 2). One entry per interval the manual states; no entry means "not listed", never a
  * guess. Every entry needs a {@link Source}: the manual's title, edition or date, and page.
  *
- * <p>The table ships empty: no manual has been reviewed yet. Adding a model later is one reviewed
- * line with its citation, plus a test.
+ * <p>The table holds the intervals NAVEE's public user manuals state (owner answer Q41 C, researched
+ * once on 2026-11-06 from NAVEE's Product Resource page, service.naveetech.com/instruction-manual/;
+ * Volt itself never goes online for this). Those manuals share one "Scooter Maintenance Schedule
+ * (Recommended)" table, with columns Every month / Every 3 months / Every 500 km/6 months /
+ * Every 1000 km/1 year / Every 10000 km/3 years. A row's ticks run from one column to the right, and its
+ * interval is that first column. Kept: tire pressure, tire tread, the handlebar screws (bolts), brake
+ * adjustment, steering, and battery storage where the manual gives one number. Left out: where a manual
+ * gives two numbers for the same thing (battery storage "every 30 days" in its text and "every 60 days"
+ * in the table), the second screw rows, the charging row, and any model whose manual has no schedule.
+ * Adding a model later is one reviewed line with its citation, plus a test.
  */
 final class MaintenanceDefaults {
     /**
@@ -19,11 +27,8 @@ final class MaintenanceDefaults {
     static final String TIRE_PRESSURE = "tire_pressure", BRAKES = "brakes", BOLTS_FOLDING = "bolts_folding", LIGHTS = "lights",
             CLEAN_DRY = "clean_dry", BATTERY_STORAGE = "battery_storage";
     static final String TIRE_TREAD = "tire_tread", STEERING = "steering";
-    /**
-     * The tasks the add sheet offers and an interval may name. TIRE_TREAD and STEERING have their names
-     * already and join this list with the first manual entries that use them.
-     */
-    static final List<String> TASKS = Collections.unmodifiableList(Arrays.asList(TIRE_PRESSURE, BRAKES, BOLTS_FOLDING, LIGHTS, CLEAN_DRY, BATTERY_STORAGE));
+    static final List<String> TASKS = Collections.unmodifiableList(Arrays.asList(TIRE_PRESSURE, TIRE_TREAD, BRAKES, BOLTS_FOLDING, STEERING, LIGHTS,
+            CLEAN_DRY, BATTERY_STORAGE));
 
     static boolean task(String id) { return TASKS.contains(id); }
 
@@ -57,8 +62,60 @@ final class MaintenanceDefaults {
         private Result(Kind kind, List<Interval> intervals) { this.kind = kind; this.intervals = Collections.unmodifiableList(intervals); }
     }
 
-    /** Empty until a manual is reviewed. Add entries as {@code new Interval(model, task, km, days, months, new Source(...))}. */
-    private static final List<Interval> TABLE = Collections.emptyList();
+    /** Each manual's schedule, one line per interval: see the class comment for how the table reads. */
+    private static final List<Interval> TABLE = Collections.unmodifiableList(build());
+
+    /**
+     * NAVEE prints no edition or revision in these manuals, so the date is the month of the online PDF
+     * (its upload folder, /2026/03/). A number, so the caption needs no translation.
+     */
+    private static final String ONLINE = "2026-03";
+
+    private static List<Interval> build() {
+        List<Interval> t = new ArrayList<>();
+        // service.naveetech.com/wp-content/uploads/2026/03/NAVEE-Electric-Scooter-GT3-User-Manual.pdf, -GT3-Pro-, -GT3-Max- (one file each).
+        for (String m : new String[]{"GT3", "GT3 Pro", "GT3 Max"})
+            schedule(t, m, "NAVEE Electric Scooter " + m + " User Manual", "09", "10", false, true);
+        // .../2026/03/NAVEE-Electric-Scooter-ST3-User-Manual.pdf, -ST3-Pro-.
+        for (String m : new String[]{"ST3", "ST3 Pro"})
+            schedule(t, m, "NAVEE Electric Scooter " + m + " User Manual", "09", "10", false, true);
+        // .../2026/03/NAVEE-Electric-Scooter-V25i-Pro-IIV40i-Pro-IIV50i-Pro-II-User-Manual.pdf (NAVEE links it for all three).
+        for (String m : new String[]{"V25i Pro II", "V40i Pro II", "V50i Pro II"})
+            schedule(t, m, "NAVEE Electric Scooter V25i Pro II/V40i Pro II/V50i Pro II User Manual", "09", "10", false, true);
+        // .../2026/03/NAVEE-Kids-Electric-Scooter-K100-Series-User-Manual.pdf (K100, K100 Pro and K100 Max EU).
+        for (String m : new String[]{"K100", "K100 Pro", "K100 Max"})
+            schedule(t, m, "NAVEE Kids Electric Scooter K100 Series User Manual", "08", "09", false, true);
+        // .../2026/03/NAVEE-Elecitric-Scooter-S40-User-Manual-2.pdf, -S60-User-Manual.pdf. Battery storage: 30 or 60 days, left out.
+        for (String m : new String[]{"S40", "S60"})
+            schedule(t, m, "NAVEE Electric Scooter " + m + " User Manual", "07", "08", true, false);
+        // .../2026/03/NAVEE-Electric-Scooter-V40i-ProV50i-Pro-User-Manual-1.pdf. Battery storage left out, as above.
+        for (String m : new String[]{"V40i Pro", "V50i Pro"})
+            schedule(t, m, "NAVEE Electric Scooter V40i Pro/V50i Pro User Manual", "07", "08", true, false);
+        // .../2026/03/NAVEE-Electric-Scooter-V40-i-User-Manual.pdf, -V40-Pro-User-Manual.pdf, -V25-User-Manual.pdf, -V25I-Pro-User-Manual.pdf.
+        schedule(t, "V40i", "NAVEE Electric Scooter V40i User Manual", "07", "08", true, false);
+        schedule(t, "V40 Pro", "NAVEE Electric Scooter V40 Pro User Manual", "05", "06", true, false);
+        schedule(t, "V25", "NAVEE Electric Scooter V25 User Manual", "06", "07", true, false);
+        schedule(t, "V25i Pro", "NAVEE Electric Scooter V25i Pro User Manual", "06", "07", true, false);
+        // .../2026/03/NAVEE-Elecitric-Scooter-S65-User-Manual.pdf: NAVEE's S65 link, a manual that names the S65C only.
+        schedule(t, "S65C", "NAVEE Electric Scooter User Manual, SPU: S65C", "05", "06", true, false);
+        return t;
+    }
+
+    /**
+     * One manual's schedule: the first page holds the tire and screw rows, the second the brake, steering
+     * and battery rows. Tire pressure ("Inflate the tire until its pressure reaches 45-50 psi") is in some
+     * manuals only; battery storage ("turn it on to charge every 60 days") is kept only where the manual
+     * gives that one number.
+     */
+    private static void schedule(List<Interval> t, String model, String title, String first, String second, boolean pressure, boolean battery) {
+        Source tires = new Source(title, ONLINE, first), rest = new Source(title, ONLINE, second);
+        if (pressure) t.add(new Interval(model, TIRE_PRESSURE, null, 0, 1, tires));
+        t.add(new Interval(model, TIRE_TREAD, 500.0, 0, 6, tires));
+        t.add(new Interval(model, BOLTS_FOLDING, null, 0, 3, tires));
+        t.add(new Interval(model, BRAKES, 500.0, 0, 6, rest));
+        t.add(new Interval(model, STEERING, 1000.0, 0, 12, rest));
+        if (battery) t.add(new Interval(model, BATTERY_STORAGE, null, 60, 0, rest));
+    }
 
     private MaintenanceDefaults() { }
 

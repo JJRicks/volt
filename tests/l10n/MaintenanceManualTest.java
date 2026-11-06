@@ -41,7 +41,7 @@ public final class MaintenanceManualTest {
     private static void names() {
         same("Tire tread", MaintenanceView.taskName(MaintenanceDefaults.TIRE_TREAD), "tire tread");
         same("Steering", MaintenanceView.taskName(MaintenanceDefaults.STEERING), "steering");
-        for (String task : MaintenanceDefaults.TASKS) check(!task.equals(MaintenanceDefaults.TIRE_TREAD) && !task.equals(MaintenanceDefaults.STEERING), "the new ids are distinct from the existing ones: " + task);
+        check(MaintenanceDefaults.task(MaintenanceDefaults.TIRE_TREAD) && MaintenanceDefaults.task(MaintenanceDefaults.STEERING), "the new ids are suggested tasks");
     }
 
     private static void lookup() {

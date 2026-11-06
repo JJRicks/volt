@@ -19,7 +19,8 @@ public final class MaintenanceStoreTest {
         caps();
         merge();
         defaults();
-        System.out.println("MaintenanceStoreTest: " + checks + " checks passed (keys, round trip, tolerant decode, unknown fields, caps, merge clear, defaults)");
+        manuals();
+        System.out.println("MaintenanceStoreTest: " + checks + " checks passed (keys, round trip, tolerant decode, unknown fields, caps, merge clear, defaults, manual table)");
     }
 
     private static void keys() {
@@ -133,8 +134,6 @@ public final class MaintenanceStoreTest {
     }
 
     private static void defaults() {
-        check(MaintenanceDefaults.table().isEmpty(), "no manual reviewed yet: the table ships empty");
-        for (String model : NaveeModels.all()) check(MaintenanceDefaults.forModel(model).kind == MaintenanceDefaults.Kind.NOT_LISTED, "no intervals listed yet: " + model);
         check(MaintenanceDefaults.forModel(null).kind == MaintenanceDefaults.Kind.UNKNOWN_MODEL && MaintenanceDefaults.forModel(" ").kind == MaintenanceDefaults.Kind.UNKNOWN_MODEL, "no model name: unknown model");
         MaintenanceDefaults.Source fixture = new MaintenanceDefaults.Source("Test manual", "2024-03", "p. 18");
         List<MaintenanceDefaults.Interval> table = Collections.singletonList(new MaintenanceDefaults.Interval("XT5 Pro", MaintenanceDefaults.BRAKES, 500.0, 90, 0, fixture));
@@ -147,9 +146,52 @@ public final class MaintenanceStoreTest {
         refused(() -> new MaintenanceDefaults.Interval("UT5 Max", "made_up", 100.0, 0, 0, fixture), "an unknown task id is refused");
         refused(() -> new MaintenanceDefaults.Interval("UT5 Max", MaintenanceDefaults.BRAKES, null, 0, 0, fixture), "an interval needs a distance or a time");
         refused(() -> new MaintenanceDefaults.Interval("UT5 Max", MaintenanceDefaults.BRAKES, -1.0, 0, 0, fixture), "a negative distance is refused");
-        check(MaintenanceDefaults.TASKS.size() == 6 && new HashSet<>(MaintenanceDefaults.TASKS).size() == 6, "six stable suggested task ids");
+        check(MaintenanceDefaults.TASKS.size() == 8 && new HashSet<>(MaintenanceDefaults.TASKS).size() == 8, "eight stable suggested task ids");
         for (String task : MaintenanceDefaults.TASKS) check(task.matches("[a-z_]{1,16}"), "task ids are short stable values: " + task);
     }
 
     private static void refused(Runnable r, String message) { checks++; try { r.run(); throw new AssertionError(message); } catch (IllegalArgumentException expected) { } }
+
+    // The models whose NAVEE manual states a schedule (see MaintenanceDefaults), and which of them list tire pressure
+    // or a single battery-storage number.
+    private static final List<String> SCHEDULED = Arrays.asList("GT3", "GT3 Pro", "GT3 Max", "ST3", "ST3 Pro", "V25i Pro II", "V40i Pro II", "V50i Pro II",
+            "K100", "K100 Pro", "K100 Max", "S40", "S60", "V40i Pro", "V50i Pro", "V40i", "V40 Pro", "V25", "V25i Pro", "S65C");
+    private static final List<String> PRESSURE = Arrays.asList("S40", "S60", "V40i Pro", "V50i Pro", "V40i", "V40 Pro", "V25", "V25i Pro", "S65C");
+    private static final List<String> BATTERY = Arrays.asList("GT3", "GT3 Pro", "GT3 Max", "ST3", "ST3 Pro", "V25i Pro II", "V40i Pro II", "V50i Pro II",
+            "K100", "K100 Pro", "K100 Max");
+
+    private static void manuals() {
+        List<MaintenanceDefaults.Interval> table = MaintenanceDefaults.table();
+        Set<String> seen = new HashSet<>();
+        for (MaintenanceDefaults.Interval i : table) {
+            check(NaveeModels.all().contains(i.model), "every entry names a listed model exactly: " + i.model);
+            check(SCHEDULED.contains(i.model), "only models whose manual has a schedule: " + i.model);
+            check(seen.add(i.model + "/" + i.task), "one entry per task per model: " + i.model + " " + i.task);
+            check(i.source.title.startsWith("NAVEE ") && i.source.edition.equals("2026-03") && i.source.page.matches("\\d{2}"), "every entry cites its manual and page: " + i.model);
+        }
+        for (String model : NaveeModels.all()) {
+            MaintenanceDefaults.Result r = MaintenanceDefaults.forModel(model);
+            check((r.kind == MaintenanceDefaults.Kind.LISTED) == SCHEDULED.contains(model), "listed exactly when the manual has a schedule: " + model);
+            if (r.kind != MaintenanceDefaults.Kind.LISTED) continue;
+            Set<String> tasks = new HashSet<>(); for (MaintenanceDefaults.Interval i : r.intervals) tasks.add(i.task);
+            check(tasks.contains(MaintenanceDefaults.TIRE_TREAD) && tasks.contains(MaintenanceDefaults.BOLTS_FOLDING) && tasks.contains(MaintenanceDefaults.BRAKES)
+                    && tasks.contains(MaintenanceDefaults.STEERING), "every schedule's shared rows: " + model);
+            check(tasks.contains(MaintenanceDefaults.TIRE_PRESSURE) == PRESSURE.contains(model), "tire pressure only where the manual lists it: " + model);
+            check(tasks.contains(MaintenanceDefaults.BATTERY_STORAGE) == BATTERY.contains(model), "battery storage only where the manual gives one number: " + model);
+            check(!tasks.contains(MaintenanceDefaults.LIGHTS) && !tasks.contains(MaintenanceDefaults.CLEAN_DRY), "no manual states lights or cleaning: " + model);
+        }
+        for (String model : new String[]{"UT5 Max", "UT5 Ultra X", "N65i", "GT5 Max", "G5 Pro", "V3 Pro", "S65"})
+            check(MaintenanceDefaults.forModel(model).kind == MaintenanceDefaults.Kind.NOT_LISTED, "searched, nothing stated or no manual: " + model);
+        MaintenanceDefaults.Result gt3Max = MaintenanceDefaults.forModel("GT3 MAX");
+        check(gt3Max.kind == MaintenanceDefaults.Kind.LISTED && gt3Max.intervals.size() == 5, "the scooter's upper-case name finds the GT3 Max schedule");
+        for (MaintenanceDefaults.Interval i : gt3Max.intervals) {
+            if (i.task.equals(MaintenanceDefaults.BRAKES)) check(i.km == 500.0 && i.months == 6 && i.days == 0 && i.source.page.equals("10"), "GT3 Max brakes: 500 km or 6 months, p. 10");
+            if (i.task.equals(MaintenanceDefaults.TIRE_TREAD)) check(i.km == 500.0 && i.months == 6 && i.source.page.equals("09"), "GT3 Max tire tread: p. 09");
+            if (i.task.equals(MaintenanceDefaults.BOLTS_FOLDING)) check(i.km == null && i.months == 3, "GT3 Max handlebar screws: every 3 months");
+            if (i.task.equals(MaintenanceDefaults.STEERING)) check(i.km == 1000.0 && i.months == 12, "GT3 Max steering: 1000 km or a year");
+            if (i.task.equals(MaintenanceDefaults.BATTERY_STORAGE)) check(i.km == null && i.days == 60, "GT3 Max battery storage: every 60 days");
+        }
+        for (MaintenanceDefaults.Interval i : MaintenanceDefaults.forModel("V40 Pro").intervals)
+            if (i.task.equals(MaintenanceDefaults.TIRE_PRESSURE)) check(i.km == null && i.months == 1 && i.source.page.equals("05"), "V40 Pro tire pressure: every month, p. 05");
+    }
 }
