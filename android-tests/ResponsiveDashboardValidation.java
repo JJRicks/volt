@@ -2911,17 +2911,20 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
     private DashboardScreen dashboard() { return (DashboardScreen)field(activity, "screen"); }
     /**
      * The header shows the last seen age: its full rung ("Disconnected · last seen 10:06 AM") or, where that doesn't fit,
-     * the narrow-label ladder's short rung without the words last seen ("Disconnected · 10:06 AM", #211). Either carries
-     * the header's own last seen time; the bare "Disconnected" rungs don't.
+     * the narrow-label ladder's short rung without the words last seen ("Disconnected · 10:06 AM", #211). Either must
+     * carry the header's own last seen time: "Disconnected · last seen" with no time, or a bare "Disconnected", fails.
      */
     private boolean headerShowsSeen() {
         String shown = ((TextView)field(dashboard(), "status")).getText().toString();
         long seen = ((Number)field(dashboard(), "headerSeenMs")).longValue();
-        if (shown.contains("last seen")) return true;
         if (seen <= 0) return false;
         String time = DisplayTime.recent(activity, (SharedPreferences)field(dashboard(), "preferences"), seen, System.currentTimeMillis());
-        return !time.isEmpty() && shown.contains(time);
+        require(!showsSeenTime("Disconnected · last seen", time) && !showsSeenTime("Disconnected", time)
+                        && showsSeenTime("Disconnected · last seen " + time, time) && showsSeenTime("Disconnected · " + time, time),
+                "Header last seen check accepts a header without its time");
+        return showsSeenTime(shown, time);
     }
+    private static boolean showsSeenTime(String shown, String time) { return !time.isEmpty() && shown.contains(time); }
     private ViewGroup grid() { return (ViewGroup)field(dashboard(), "grid"); }
     private View root() { return (View)field(activity, "root"); }
     private List<?> tiles() { return (List<?>)field(dashboard(), "tiles"); }
