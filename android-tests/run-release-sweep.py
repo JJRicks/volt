@@ -31,6 +31,13 @@ build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the loc
 (LocaleValidation under en-XA and ar-XB). Those steps report only: their findings never fail the sweep,
 and without --pseudo-app they are skipped. They never join the census, so run them as their own
 sweep (own --out, no --census) rather than adding --pseudo-app to a G7 run.
+
+Sizes. PHONE is the Fold5 cover (344x882 dp, dark, 1x text). WIDE is its open panel (725x604 dp, light) at
+1x text, so the wide layout (side rail, two columns) stays checked. WIDE_LARGE is the same panel at 1.4x
+Text size: Volt picks the wide layout from the width over the text scale (WideLayout, 650 dp), so 725 dp
+at 1.4x (518) is the phone layout (bottom bar, one column) there. Each my-scooters step asserts its layout
+(-e layout): phone at 344 and 725-large, wide at 725. The validations that
+take a text scale run at all three sizes; the size-only ones at PHONE and WIDE.
 """
 import argparse
 import hashlib
@@ -47,7 +54,17 @@ HERE = Path(__file__).resolve().parent
 PKG = 'com.jjricks.volt'
 ALL = ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT', 'POST_NOTIFICATIONS', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION')
 NEARBY = ALL[:3]
-PHONE, WIDE = ('344x882', 'dark', '1'), ('725x604', 'light', '1.4')
+PHONE, WIDE = ('344x882', 'dark', '1'), ('725x604', 'light', '1')
+# The open panel at large text: the phone layout on a wide window (WideLayout's rule, see above).
+WIDE_LARGE = ('725x604', 'light', '1.4')
+SIZES = (PHONE, WIDE, WIDE_LARGE)
+LAYOUT = {PHONE: 'phone', WIDE: 'wide', WIDE_LARGE: 'phone'}
+
+
+def size_name(size_case):
+    """Step-name suffix: the width, plus -large for WIDE_LARGE (charge-schedule-725-large)."""
+    return size_case[0].split('x')[0] + ('-large' if size_case is WIDE_LARGE else '')
+
 # Registered but deliberately not run here, with the reason; everything else must have a step.
 EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan'}
 # Modes not run on their own because a step's mode already runs every check they make.
@@ -97,13 +114,15 @@ STEPS = [
     runner('motion-polish', 'run-motion-polish.py', ['MotionPolishValidation']),
     runner('haptics', 'run-haptics.py', ['QuickHapticsValidation', 'ConnectionHapticsValidation']),
 ]
-for size, theme, text in (PHONE, WIDE):
-    w = size.split('x')[0]
+for case in SIZES:
+    (size, theme, text), w = case, size_name(case)
     STEPS += [inst(f'charge-schedule-{w}', T + 'ChargeScheduleValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
-              inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
-              inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
-              inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
+              inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
+                   '-e', 'layout', LAYOUT[case], size=size)]
+    if case is not WIDE_LARGE:
+        STEPS += [inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
+                  inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
 STEPS += [
     inst('dashboard', T + 'DashboardValidation'),
     inst('dashboard-layout-slots', T + 'DashboardValidation', '-e', 'mode', 'layout-slots'),
@@ -132,8 +151,8 @@ STEPS += [inst(name, cls) for name, cls in (
     ('ui-organization', T + 'UiOrganizationValidation'), ('update-check', T + 'UpdateCheckValidation'))]
 # Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
 for locale in ('en-XA', 'ar-XB'):
-    for size, theme, text in (PHONE, WIDE):
-        w = size.split('x')[0]
+    for case in SIZES:
+        (size, theme, text), w = case, size_name(case)
         STEPS.append(inst(f'locale-{locale}-{w}', T + 'LocaleValidation', '-e', 'locale', locale, '-e', 'theme', theme, '-e', 'text_scale', text,
                           '-e', 'variant', f'{locale}-{w}', size=size, pseudo=True))
 

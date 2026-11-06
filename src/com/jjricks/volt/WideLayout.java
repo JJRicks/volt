@@ -17,16 +17,17 @@ package com.jjricks.volt;
  * under 650 dp keeps the phone layout it always had. The owner chose this (Nov 5, "option A"):
  * one rule fixes every language, and large-text English on a tablet gets one column too.
  *
- * Pure Java (no Android), so the JVM tests reach it; {@link Ui#wideLayout()} reads the window.
+ * Pure Java (no Android), so the JVM tests reach it; {@link Ui#wideLayout()} reads the window. Public so
+ * android-tests can predict the layout independently of the screen they check.
  */
-final class WideLayout {
+public final class WideLayout {
     /** The wide layout's threshold, in dp at 1x text. */
-    static final int MIN_TEXT_DP = 650;
+    public static final int MIN_TEXT_DP = 650;
 
     private WideLayout() {}
 
     /** True when widthDp at this text scale leaves at least MIN_TEXT_DP of room for text. */
-    static boolean wide(int widthDp, float textScale) {
+    public static boolean wide(int widthDp, float textScale) {
         float scale = Float.isFinite(textScale) ? Math.max(1f, textScale) : 1f;
         // Compare in thousandths so 650 x 1.4 is exactly 910, not one float step above it.
         return (long) widthDp * 1000L >= (long) MIN_TEXT_DP * Math.round(scale * 1000f);

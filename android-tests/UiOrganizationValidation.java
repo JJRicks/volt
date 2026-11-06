@@ -523,7 +523,8 @@ public final class UiOrganizationValidation extends Instrumentation {
         waitForIdleSync();
     }
     /** More shows its menu and submenu side by side (no submenu Back step) at unfolded widths. */
-    private boolean wideMore() { return activity.getResources().getConfiguration().screenWidthDp >= 650; }
+    /** The activity's own wide-or-phone choice (Ui.wideLayout: width over text scale), not the raw width. */
+    private boolean wideMore() { return Boolean.TRUE.equals(field(activity, "expanded")); }
     private void requireFullyVisible(View view, String name) { main(() -> requireFullyVisibleNow(view, name)); }
     private void requireFullyVisibleNow(View view, String name) {
         Rect rect = new Rect(); require(view.getGlobalVisibleRect(rect), name + " is not visible");
