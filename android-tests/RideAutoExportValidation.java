@@ -67,6 +67,7 @@ public final class RideAutoExportValidation extends Instrumentation {
             chooseNewFolder();
             hiddenStopFromNotification();
             bothTypes();
+            hiddenStopWithoutRecorder();
             manualExportsMatch();
             reExportNoDuplicate();
             neverDuringMaintenance();
@@ -318,6 +319,52 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(!listing().contains(csvName(d)) && !listing().contains(combinedName(d)), "No phone recording: no Route CSV and no All (JSON)");
         check(folderFile(analysisName(d)).equals(expectedAnalysis(d)), "No phone recording: Export JSON's analysis, byte for byte");
         check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Nothing waiting, no problem");
+        folderClean();
+    }
+
+    /**
+     * Hidden stop of a ride that never had a phone recorder (phone storage did not open, so phoneRides is null),
+     * with JSON on and the ride waiting. recordRide always starts a real recorder, so this starts the ride itself.
+     * The copy's hold must exist when stopRide runs its work policy: otherwise a hidden idle service drops the
+     * foreground and stops itself before the copy starts.
+     */
+    private void hiddenStopWithoutRecorder() {
+        ScooterService service = activity.service();
+        PhoneRideStore kept = service.phoneRides;
+        AtomicReference<String> started = new AtomicReference<>();
+        boolean[] atStop = new boolean[5];
+        try {
+            main(() -> service.phoneRides = null);
+            main(() -> { try { started.set(service.rides.start(profileId, "No phone recorder, hidden", System.currentTimeMillis(), SystemClock.elapsedRealtime())); } catch (Exception e) { throw new IllegalStateException(e); } });
+            main(() -> method(service, "applyWorkPolicy", new Class<?>[]{boolean.class}, false));
+            String id = started.get(); rides.put("N", id);
+            check(service.isRecording() && field(service, "phoneRecorder") == null && !service.phoneSaving(), "Recording with no phone recorder at all");
+            SystemClock.sleep(1200);
+            hide();
+            check(settings.getBoolean(JSON, false) && !settings.getBoolean("background_connection", true) && service.backgroundDeadlineMs() == 0, "Hidden, JSON on, no background connection and no idle deadline");
+            Watch watch = new Watch().begin();
+            main(() -> {
+                queueRide(id); service.stopRide();
+                atStop[0] = !service.isRecording(); atStop[1] = busy(); atStop[2] = service.workAllowed();
+                atStop[3] = (Boolean) field(service, "foregroundStarted"); atStop[4] = (Boolean) field(service, "workActive");
+            });
+            check(atStop[0], "stopRide saved the ride");
+            check(atStop[1], "No recorder: the copy is already running when stopRide returns");
+            check(atStop[2] && atStop[3] && atStop[4], "No recorder: work still allowed, foreground and active right after the hidden stop");
+            await(() -> settings.getString(PENDING, "").isEmpty() && listing().contains(analysisName(id)), 25000, "No-recorder ride copied while hidden");
+            awaitPassDone(); watch.end();
+            check(watch.notAllowed == 0 && watch.notForeground == 0, "No recorder keep-alive: work stayed allowed and the service in the foreground while copying (" + watch.busySamples + " samples)");
+            check(ScooterService.class.cast(method(ScooterService.class, null, "currentForMaintenance")) == service, "The same service copied the ride; it never stopped first");
+            check(!service.workAllowed(), "Once copied, a hidden idle service stops its work again");
+            notes.add("no-recorder keep-alive samples while copying: " + watch.busySamples);
+            rideSaved(id);
+            check(folderFile(analysisName(id)).equals(expectedAnalysis(id)), "No recorder: Export JSON's analysis, byte for byte");
+            check(!listing().contains(csvName(id)) && !listing().contains(combinedName(id)) && settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "No recorder: only the analysis, nothing waiting, no problem");
+            notes.add("no-recorder hidden stop: " + analysisName(id) + " sha256 " + sha(expectedAnalysis(id)));
+        } finally {
+            main(() -> service.phoneRides = kept);
+        }
+        screenOnAndShow();
         folderClean();
     }
 

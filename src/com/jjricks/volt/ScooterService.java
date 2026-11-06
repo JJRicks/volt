@@ -1409,8 +1409,8 @@ public final class ScooterService extends Service {
     private void cancelAutoStopNotice(){cancelNotice(AUTO_STOP_NOTICE);}
     /**
      * A stopped ride's files are complete: its phone journal finished saving (stopPhoneRecording's completion),
-     * or it had no phone recorder. Main thread. A destroyed service skips it; the ride is still in the stored
-     * waiting list, so the next start retries it.
+     * or it had no phone recorder (then synchronously, from stopRide, before its applyWorkPolicy). Main thread.
+     * A destroyed service skips it; the ride is still in the stored waiting list, so the next start retries it.
      */
     private void rideFullySaved(){if(destroyed)return;startRideAutoExport();}
     /** The keep-alive for an automatic ride copy: like phoneSaving(), and separate from the idle timeout. */
@@ -1449,8 +1449,10 @@ public final class ScooterService extends Service {
                 settings.getBoolean("phone_motion", true));
     }
     private void stopPhoneRecording(){if(phoneRecorder!=null){PhoneRideRecorder finishing=phoneRecorder;phoneRecorder=null;phoneSavingCount++;finishing.stop(()->handler.post(()->{phoneSavingCount=Math.max(0,phoneSavingCount-1);phoneFinalStatus=finishing.status();phoneFinalFlags=finishing.statusFlags();if(!destroyed){rideFullySaved();if(!isRecording()&&!phoneSaving()&&wakeLock.isHeld())wakeLock.release();applyWorkPolicy(false);changed();}}));}
-        // No phone recorder (simulation, no phone storage): the ride's files are already complete.
-        else handler.post(this::rideFullySaved);
+        // No phone recorder (simulation, no phone storage): the ride's files are already complete. Start the copy
+        // now, not posted: its busy() hold must exist before stopRide's applyWorkPolicy, or a hidden idle service
+        // drops the foreground and stops itself before the copy starts.
+        else rideFullySaved();
         phoneLocationForeground=false;}
     private void recordPhoneTelemetry(long now){
         if (simulating()) return;
