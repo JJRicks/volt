@@ -492,8 +492,8 @@ final class RidingScreen implements AppScreen {
         if (closed || host.activity() == null || sheet != null) return;
         if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
         LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
-        body.setTag("riding_layout_sheet");
         new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
+        body.setTag("riding_layout_sheet");
         AlertDialog shown = host.showSheet(body);
         if (shown == null) { sheetState.dismissed(); return; }
         sheet = shown;

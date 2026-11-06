@@ -1,0 +1,4 @@
+# Ledger for riding-editor: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/RidingScreen.java:515	["check"]	-	removed	whole block: the plain frame list in RidingScreen.choose() goes; the layout editor (RidingLayoutSheet) now fills the sheet, with its own frame thumbnails and radio rows, and draws no check icon
