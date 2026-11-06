@@ -7,6 +7,7 @@
     <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Comprobando propietario…</string>
     <string name="ble_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Conectado</string>
     <string name="ble_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
+    <string name="ble_status_disconnected_short" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
     <string name="ble_status_paused" volt:src="1c8e31fe8678fa854df7fdfd9b602b38219a9454">En pausa en segundo plano</string>
     <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Comprobando compatibilidad…</string>
     <string name="ble_status_setting_clock" volt:src="743208d1de13b4c7f17550fc7b2f34e5fdd54d60">Ajustando el reloj del patinete desde este teléfono…</string>

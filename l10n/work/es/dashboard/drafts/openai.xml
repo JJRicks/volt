@@ -354,7 +354,9 @@
     <string name="dashboard_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Conectado</string>
     <string name="dashboard_status_connected_mode" volt:src="67ce2814b0e0b0c18a94426aa3efd96eec4fc80b">Conectado · %1$s</string>
     <string name="dashboard_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
+    <string name="dashboard_status_disconnected_short" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Sin conexión</string>
     <string name="dashboard_status_disconnected_seen" volt:src="685da721f9ff2b145d69f738ac21657b3567558f">Desconectado · última lectura: %1$s</string>
+    <string name="dashboard_status_disconnected_seen_short" volt:src="bea91ec53d150284c959e9ef76a1cada6427610d">Sin conexión · %1$s</string>
     <string name="dashboard_status_spoken_connected" volt:src="56c461696100940740107f4b2d6fa0289ea989e6">Conectado. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connected_mode" volt:src="8365501f95a72a9d7455b9f4c5f9d96f88cb3c14">Conectado, modo %1$s. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connecting" volt:src="773e46b6e066dce56c5e9185607ec18f94fea8db">Conectando. Detalles de la conexión</string>
