@@ -14,6 +14,7 @@ import extract  # noqa: E402
 import gen_catalog  # noqa: E402
 import ledger_check  # noqa: E402
 from repo_fixture import TempRepo, java_class  # noqa: E402
+from test_ledger_relaxations import GRID, PluralFlagCase  # noqa: E402
 
 UI = "src/com/jjricks/volt/Ui.java"
 UNITS = "src/com/jjricks/volt/DisplayUnits.java"
@@ -1745,6 +1746,74 @@ class ExpressionTest(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             self.assertEqual(extract.main(["scan", path]), 0)
         self.assertTrue(out.getvalue().startswith("location\tliteral\tenglish\tsink\tpieces\n"))
+
+
+class GroupedPluralTest(PluralFlagCase):
+    """A String.format line whose %,d picks a plural's item: head passes the base value as the quantity and
+    prints it with Fmt.groupedInteger, exactly as a plain %d quantity goes through Fmt.integer."""
+    FILES = {GRID: java_class("Grid", """    static String saved(long n) { return String.format(Locale.US, "%,d saved", n); }
+    static String kept(long[] rows, int i) { return String.format(Locale.US, "%,d saved", rows[i]); }
+    static String counted(java.util.List<Long> rows) { return String.format(Locale.US, "%,d saved", rows.size()); }""")}
+    STRINGS = """<resources>
+<plurals name="s_saved"><item quantity="one">%1$s saved</item><item quantity="other">%1$s saved</item></plurals>
+</resources>
+"""
+    ITEM = {"spec": "%,d", "arg": 1, "value": "n", "as": "Fmt.groupedInteger(Locale.US, n)", "quantity": True}
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write("tests/l10n/FmtLegacyTest.java", java_class(
+            "FmtLegacyTest", "    static void run() { Grid.saved(1); Fmt.groupedInteger(Locale.US, 1); Fmt.integer(1); "
+            "Fmt.grouped(Locale.US, 1, 0); }"))
+        self.repo.write("tests/l10n/b1.sources", "# G10\ntests/l10n/FmtLegacyTest.java  # parity\n")
+
+    def row(self, item=None, line=4):
+        return "%s:%d\t%s\ts_saved\tformat\t" % (GRID, line, json.dumps([item or self.ITEM, " saved"], ensure_ascii=False))
+
+    def convert(self, call, old='String.format(Locale.US, "%,d saved", n)'):
+        self.edit(GRID, old, call)
+
+    def test_a_grouped_plural_through_grouped_integer_passes(self):
+        self.convert("T.sSaved(n, Fmt.groupedInteger(Locale.US, n))")
+        problems, warnings, _ = self.check([self.row()])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("plural on n" in w for w in warnings), warnings)
+
+    def test_an_array_element_quantity_passes(self):
+        self.convert("T.sSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i]))",
+                     'String.format(Locale.US, "%,d saved", rows[i])')
+        item = dict(self.ITEM, value="rows[i]", **{"as": "Fmt.groupedInteger(Locale.US, rows[i])"})
+        self.assertEqual(self.check([self.row(item, line=5)])[0], [])
+
+    def test_the_same_row_through_fmt_integer_fails(self):
+        # %,d groups its digits; Fmt.integer does not.
+        self.convert("T.sSaved(n, Fmt.integer(n))")
+        problems = self.check([self.row(dict(self.ITEM, **{"as": "Fmt.integer(n)"}))])[0]
+        self.assertTrue(any("the specifier %,d of n prints as Fmt.groupedInteger(Locale.US, n)" in p for p in problems),
+                        problems)
+
+    def test_the_same_row_through_fmt_grouped_fails(self):
+        # Fmt.grouped goes through a double, which is not exact past 2^53.
+        self.convert("T.sSaved(n, Fmt.grouped(Locale.US, n, 0))")
+        problems = self.check([self.row(dict(self.ITEM, **{"as": "Fmt.grouped(Locale.US, n, 0)"}))])[0]
+        self.assertTrue(any("the specifier %,d of n prints as Fmt.groupedInteger(Locale.US, n)" in p for p in problems),
+                        problems)
+
+    def test_the_quantity_must_be_the_base_value(self):
+        self.convert("T.sSaved(1, Fmt.groupedInteger(Locale.US, n))")
+        self.assertTrue(self.check([self.row()])[0])
+
+    def test_a_quantity_read_through_a_method_call_fails(self):
+        item = dict(self.ITEM, value="rows.size()", **{"as": "Fmt.groupedInteger(Locale.US, rows.size())"})
+        with self.assertRaises(ledger_check.LedgerError) as raised:
+            ledger_check.parse_ledger(HEADER + self.row(item, line=6) + "\n")
+        self.assertIn("is read twice at head", str(raised.exception))
+
+    def test_a_grouped_decimal_still_cannot_be_the_quantity(self):
+        item = dict(self.ITEM, spec="%,.0f", **{"as": "Fmt.grouped(Locale.US, n, 0)"})
+        with self.assertRaises(ledger_check.LedgerError) as raised:
+            ledger_check.parse_ledger(HEADER + self.row(item) + "\n")
+        self.assertIn("only a plain %d or a grouped %,d takes", str(raised.exception))
 
 
 if __name__ == "__main__":
