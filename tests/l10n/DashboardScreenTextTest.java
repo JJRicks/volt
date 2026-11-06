@@ -171,16 +171,17 @@ public final class DashboardScreenTextTest {
         for (long n : new long[]{0, 1, 2, 5, 21, 100}) {
             same("Battery " + n + " percent", T.dashboardBatteryPercent(n, n), "battery percent " + n);
             same(n + " selected", T.dashboardSelectedCount(n, n), "selected " + n);
-            // shortWindow: days == 1 keeps "1 day"; every other count says "days".
-            same(n + " days", T.dashboardWindowDays(n, n), "window days " + n);
+            // English says "1 day" and "n days" (shortWindow still has its own key for 1).
+            same(n + (n == 1 ? " day" : " days"), T.dashboardWindowDays(n, n), "window days " + n);
             for (long most : new long[]{0, 1, 4, 12})
                 same(n + " of " + most + " shortcuts", T.dashboardCountOfShortcuts(most, n, most),
                         "count of shortcuts " + n + "/" + most);
         }
         // The Choose parameter and Choose readings sheets show these display names; in English they
-        // are Telemetry's label and group, which the base showed and searched.
+        // are Telemetry's label and group, which the base showed and searched, except the D3 renames
+        // (ReadingsCatalogTest.RENAMED).
         for (Telemetry.Metric m : new Telemetry().metrics()) {
-            same(m.label, ScooterReadingLabels.full(m.key, m.label), "picker name of " + m.key);
+            same(ReadingsCatalogTest.shownName(m), ScooterReadingLabels.full(m.key, m.label), "picker name of " + m.key);
             same(m.group, ScooterReadingLabels.group(m.group), "picker group of " + m.key);
         }
     }

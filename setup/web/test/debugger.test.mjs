@@ -337,7 +337,7 @@ test('"What Volt knows" lists the whole database by group and marks what this ca
   const items = body.filter(node => node.tag === 'ul').flatMap(list => list.children);
   const energy = items.find(item => item.children[0].textContent === 'Energy recovery');
   assert.deepEqual(energy.children.map(node => node.textContent), ['Energy recovery', '0x53', '0 = Off · 30 = Low · 60 = Medium · 90 = High', 'Seen once']);
-  const cap = items.find(item => item.children[0].textContent === 'Custom speed cap');
+  const cap = items.find(item => item.children[0].textContent === 'Custom speed limit');
   assert.deepEqual(cap.children.slice(1, 3).map(node => node.textContent), ['0x6b', 'Off, or 8–32 km/h']);
   assert.equal(cap.children[3].hidden, true);
   assert.equal(f.$('knows-review-seen').textContent, '· 4 seen in this capture');

@@ -19,7 +19,8 @@ environment; see providers.py for how they are kept out of every output.
   council.py redraft openai|google --tag es --area common
                                                         send failed keys back once (attempt 2)
   council.py backtranslate openai|google --tag es --area common
-                                                        back-translate agreed safety keys with a
+                                                        back-translate agreed safety keys, and judged
+                                                        safety texts not yet back-translated, with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
                                                         (after prompt --role backtranslate; the
@@ -60,9 +61,12 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
                            {"key", "source_sha1", "model", "verdict", "pick", "text", "back", "reason",
                             "confirm", "backtranslation_meaning_kept"}
                            verdict: "pick" (a passing draft, named in pick, with its text copied into
-                           text), "merge" (text), "confirm" (safety keys: accept the unanimous text)
-                           or "fallback" (keep English). A pick counts only while the named draft
-                           still has that text.
+                           text), "merge" (text), "confirm" (safety keys: accept the unanimous or
+                           judged text) or "fallback" (keep English). A pick counts only while the
+                           named draft still has that text. A safety key whose drafts disagree
+                           (owner decision of 2026-11-05) takes two rulings: a pick or merge, then,
+                           after a model that drafted nothing back-translated that text, a confirm
+                           on a later line; the latest pick or merge is the judged text.
                            confirm (safety keys): every item of SAFETY_CONFIRMATIONS set to true,
                            text the confirmed text and back the back-translation the judge saw,
                            both copied from the request; they must match the current ones.
@@ -103,7 +107,10 @@ SAFETY_CONFIRMATIONS = (
     "disclaimer_not_softened",           # "not affiliated with NAVEE" is not softened
 )
 VERDICTS = ("pick", "merge", "confirm", "fallback")
-TRANSLATED = ("agreed", "judged", "safety-agreed")
+TRANSLATED = translib.TRANSLATED
+# The outcomes a lock or alarm key may ship with: every drafter agreed, or (owner, 2026-11-05) the judge's
+# text was back-translated by a model that drafted nothing and then confirmed. Both are in TRANSLATED.
+SAFETY_TRANSLATED = ("safety-agreed", "safety-judged")
 DECISION_FORMAT = "volt-l10n-decision-v1"
 STYLES = {
     "standard": "Translate each string with its context in mind.",
@@ -147,7 +154,9 @@ def instructions(pack, style="standard"):
         "- Keep every placeholder (%1$s, %2$d, %1$.1f) exactly as written; reorder them if the grammar needs it. "
         "Keep %% (a percent sign) as %%. The percent style is " + lang["percent_style"] + ".",
         "- Keep unchanged: the \"dnt\" tokens of each string, glossary terms marked dnt, file names, command-line "
-        "flags, URLs, `code spans`, ** marks, {z}/{x}/{y} and the \ufffc character.",
+        "flags, URLs, `code spans`, ** marks, {z}/{x}/{y}, the \ufffc character and the marks " +
+        " ".join(sorted(ch + checklib.TEXT_STYLE if emoji else ch for ch, emoji in checklib.FALLBACK_SYMBOLS.items())) +
+        " (with the invisible U+FE0E directly after the warning sign, exactly as the English has it).",
         "- Use each glossary term's approved translation (\"target\") when one is given.",
         "- Plurals: give every one of these categories: %s." % ", ".join(lang["plurals"]),
         "- Keys ending in _short and _compact are shorter rungs of the same label (\"ladder_group\"). Draft every "
@@ -1311,13 +1320,109 @@ def all_drafter_models(drafts):
     return set(d.model for d in drafts) | set(d.model_reported for d in drafts)
 
 
+def independent_backtranslator(model, model_reported, drafters):
+    """True when neither the model asked nor the model the provider reported drafted in this area
+    (drafters: all_drafter_models()). A back-translation counts only while this holds."""
+    return model not in drafters and model_reported not in drafters
+
+
 # ---------------------------------------------------------------------------
 # Back-translation
 # ---------------------------------------------------------------------------
 
-def backtranslation_targets(states):
-    """Safety keys whose drafts are unanimous: the text to back-translate."""
-    return collections.OrderedDict((k, s) for k, s in states.items() if s.entry.get("safety") and s.unanimous)
+def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset()):
+    """The safety keys to back-translate, as KeyStates whose agreed field is the text to back-translate.
+
+    Every unanimous safety key, with its agreed text (as before 2026-11-05). Then, for a safety key
+    whose drafts disagree, the text the judge picked or merged (judged: judged_safety_texts()), with
+    the state's agreed field replaced by that text; when backs (load_backtranslations()) is given, a
+    judged text that already has a current back-translation of exactly that text is left out, but only
+    while that back-translation's model is still independent of drafters (all_drafter_models()): one
+    whose model drafted in the area since is queued again, for a model that drafted nothing to replace.
+    """
+    out = collections.OrderedDict()
+    for key, state in states.items():
+        if not state.entry.get("safety"):
+            continue
+        if state.unanimous:
+            out[key] = state
+            continue
+        items = (judged or {}).get(key, (None, None))[0]
+        if items is None:
+            continue
+        target = state._replace(agreed=items)
+        back = current_backtranslation(target, backs.get(key)) if backs is not None else None
+        if back is not None and independent_backtranslator(back.get("model"), back.get("model_reported"),
+                                                           drafters):
+            continue
+        out[key] = target
+    return out
+
+
+def judgeable_safety(state):
+    """A safety key whose drafts disagree (or one failed), with drafts from every provider and at least
+    one passing: the judge may pick or merge its text (owner decision of 2026-11-05)."""
+    return bool(state.entry.get("safety") and state.candidates and not state.unanimous and state.passing
+                and set(state.providers) >= set(translib.PROVIDERS))
+
+
+def load_selections(paths, pack):
+    """{key: the latest pick or merge ruling} for rulings of the current English (later lines win)."""
+    current = dict((e["key"], e["source_sha1"]) for e in pack["entries"])
+    selections = {}
+    for row in translib.read_jsonl(paths.work(pack["tag"], pack["area"], "judge.jsonl")):
+        key = row.get("key")
+        if (key in current and row.get("source_sha1") == current[key] and row.get("verdict") in ("pick", "merge")
+                and row.get("model") and row.get("reason")):
+            selections[key] = row
+    return selections
+
+
+def judged_safety_texts(paths, pack, states, use_java=True):
+    """{key: (items or None, why, selection, findings)} for each judgeable_safety() key.
+
+    items is the text of the judge's latest pick or merge for that key: a pick counts only while the
+    named draft passes and still has the copied text, and a merge only while it passes the checks.
+    A later fallback ruling, or none, gives no text. selection is the pick or merge ruling (or None),
+    and findings the checks' findings on the text.
+    The text still needs a back-translation by a model that drafted nothing and the judge's confirm.
+    """
+    rulings, _ = load_judge(paths, pack)
+    selections = load_selections(paths, pack)
+    font = measurer = None
+    out = collections.OrderedDict()
+    for key, state in states.items():
+        if not judgeable_safety(state):
+            continue
+        entry, latest, selection = state.entry, rulings.get(key), selections.get(key)
+        if latest is not None and latest["verdict"] == "fallback":
+            out[key] = (None, "the judge ruled fallback: %s" % latest.get("reason"), None, [])
+        elif selection is None:
+            out[key] = (None, None, None, [])
+        elif selection["verdict"] == "pick":
+            chosen = [c for c in state.passing if c.draft == selection.get("pick")]
+            if not chosen:
+                out[key] = (None, "the judge picked %r, which is not a passing draft" % selection.get("pick"),
+                            selection, [])
+            elif not same_text(entry["kind"], selection.get("text"), chosen[0].items):
+                out[key] = (None, "the judge picked %s with another text (or none)" % chosen[0].draft, selection, [])
+            else:
+                out[key] = (chosen[0].items, None, selection, chosen[0].findings)
+        else:
+            items = translib.items_of(entry["kind"], selection.get("text"))
+            if items is None:
+                out[key] = (None, "the judge's merged text has the wrong shape", selection, [])
+                continue
+            if font is None:
+                font = fontmetrics.Font(paths.font())
+                measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
+            findings = checklib.check_targets(pack, {key: (entry["kind"], items, [])}, font, measurer,
+                                              ladders=False)[key]
+            if checklib.is_ok(findings):
+                out[key] = (items, None, selection, findings)
+            else:
+                out[key] = (None, "the judge's merged text failed the checks", selection, findings)
+    return out
 
 
 def backtranslate_instructions(pack):
@@ -1335,7 +1440,7 @@ def backtranslate_prompt(pack, targets):
 
 
 def store_backtranslation(paths, pack, targets, strings, provider, model, model_reported, drafters):
-    if model in drafters or model_reported in drafters:
+    if not independent_backtranslator(model, model_reported, drafters):
         raise translib.L10nError("%s drafted this area; a back-translation must come from a model that drafted "
                                  "nothing" % model)
     path = paths.work(pack["tag"], pack["area"], "backtranslation.jsonl")
@@ -1362,11 +1467,12 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
-    targets = backtranslation_targets(states)
-    if not targets:
-        out.write("no unanimous safety keys to back-translate\n")
-        return 0
     drafters = all_drafter_models(drafts)
+    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
+                                      load_backtranslations(paths, pack), drafters)
+    if not targets:
+        out.write("no safety keys to back-translate\n")
+        return 0
     model = pick_model(provider, "backtranslate", model, prefer, avoid=drafters)
     stored, reported = 0, model
     keys = list(targets)
@@ -1446,8 +1552,8 @@ def import_backtranslation(paths, tag, area, source, model, use_java=True, out=N
     that id (prompts/backtranslation.request.<id>.json, never overwritten), so a later prompt does
     not change what an earlier reply is bound to. A reply without an id, with an unknown one, or
     with a key or text hash its request did not show is refused whole. A key is stored only while
-    the request's English and text are still the current English and agreed text; otherwise it is
-    dropped, never stored as a back-translation of the new text.
+    the request's English and text are still the current English and agreed (or judged) text;
+    otherwise it is dropped, never stored as a back-translation of the new text.
     """
     out = out or sys.stdout
     value = json.loads(l10nlib.read_text(source))
@@ -1470,7 +1576,7 @@ def import_backtranslation(paths, tag, area, source, model, use_java=True, out=N
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
-    current = backtranslation_targets(states)
+    current = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java))
     targets = collections.OrderedDict()
     for key in strings:
         state = current.get(key)
@@ -1498,7 +1604,9 @@ def backtranslation_prompt_file(paths, tag, area, use_java=True):
     """
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
-    targets = backtranslation_targets(analyze(paths, pack, drafts, use_java))
+    states = analyze(paths, pack, drafts, use_java)
+    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
+                                      load_backtranslations(paths, pack), all_drafter_models(drafts))
     request = backtranslation_request(tag, area, targets)
     request_path = backtranslation_request_path(paths, tag, area, request["id"])
     if not os.path.exists(request_path):  # the same id is the same contents: never rewrite one
@@ -1538,7 +1646,10 @@ def load_backtranslations(paths, pack):
 
 
 def current_backtranslation(state, back):
-    """back if it is of the current English and of the text every drafter agreed on, else None."""
+    """back if it is of the current English and of state.agreed, else None.
+
+    state.agreed is the text every drafter agreed on or, for a state from backtranslation_targets()
+    for a disagreeing safety key, the judge's picked or merged text."""
     entry = state.entry
     if not back or back.get("source_sha1") != entry["source_sha1"] or state.agreed is None:
         return None
@@ -1558,27 +1669,41 @@ def same_text(kind, value, items):
 def judge_requests(paths, tag, area, use_java=True):
     """Rows for judge-requests.jsonl: disagreements, single drafts and safety confirmations.
 
-    A safety key is listed only once a current back-translation of the agreed text exists, and the
-    request carries both texts: the judge copies them into its ruling, which then confirms exactly
-    that text and that back-translation (decide() checks both).
+    A unanimous safety key is listed (safety-confirmation) only once a current back-translation of
+    the agreed text exists, and the request carries both texts: the judge copies them into its
+    ruling, which then confirms exactly that text and that back-translation (decide() checks both).
+    A safety key whose drafts disagree (owner decision of 2026-11-05) is listed first as
+    safety-disagreement, for a pick or merge; once a model that drafted nothing has back-translated
+    that judged text, it is listed as safety-judged-confirmation, carrying the judged text and its
+    back-translation for a confirm in the same way. Between the two it is not listed.
     """
     pack = packlib.load_pack(paths, tag, area)
     states = analyze(paths, pack, use_java=use_java)
     backs = load_backtranslations(paths, pack)
+    judged = judged_safety_texts(paths, pack, states, use_java)
     rows = []
     for key, state in states.items():
         entry = state.entry
         safety = entry.get("safety") or []
         if not state.candidates:
             continue
-        back = None
-        if safety:
-            if not state.unanimous:
-                continue  # falls back to English: the strict safety rule allows no reconciliation
+        back, text, confirming = None, None, bool(safety)
+        if safety and state.unanimous:
             back = current_backtranslation(state, backs.get(key))
             if back is None:
                 continue  # back-translate first: the judge confirms the text and its back-translation
-            reason = "safety-confirmation"
+            reason, text = "safety-confirmation", state.agreed
+        elif safety:
+            if key not in judged:
+                continue  # a provider's draft is missing or none passes: English stays
+            items = judged[key][0]
+            if items is None:
+                reason, confirming = "safety-disagreement", False
+            else:
+                back = current_backtranslation(state._replace(agreed=items), backs.get(key))
+                if back is None:
+                    continue  # back-translate the judged text first, then the judge confirms it
+                reason, text = "safety-judged-confirmation", items
         elif state.agreed is not None or not state.passing:
             continue
         else:
@@ -1586,14 +1711,14 @@ def judge_requests(paths, tag, area, use_java=True):
         rows.append(collections.OrderedDict([
             ("key", key), ("source_sha1", entry["source_sha1"]), ("reason", reason), ("kind", entry["kind"]),
             ("english", entry["english"]), ("safety", safety), ("context", model_view(entry)),
-            ("text", translib.text_value(entry["kind"], state.agreed) if safety else None),
+            ("text", translib.text_value(entry["kind"], text) if text is not None else None),
             ("candidates", [collections.OrderedDict([
                 ("draft", c.draft), ("provider", c.provider), ("model", c.model),
                 ("text", translib.text_value(entry["kind"], c.items)), ("ok", c.ok),
                 ("findings", [f for f in c.findings if f["severity"] != checklib.INFO])]) for c in state.candidates]),
             ("backtranslation", back),
-            ("verdicts", ["confirm", "fallback"] if safety else ["pick", "merge", "fallback"]),
-            ("confirm", list(SAFETY_CONFIRMATIONS) if safety else [])]))
+            ("verdicts", ["confirm", "fallback"] if confirming else ["pick", "merge", "fallback"]),
+            ("confirm", list(SAFETY_CONFIRMATIONS) if confirming else [])]))
     return pack, rows
 
 
@@ -1623,6 +1748,14 @@ def write_judge_requests(paths, tag, area, use_java=True):
         "never/always are not inverted; \"unverified\" or \"unknown\" never reads as confirmed; numbers, units and "
         "the named action are unchanged; \"not affiliated with NAVEE\" is not softened; and the back-translation "
         "keeps the meaning. Otherwise answer fallback: the English stays, which is safe.",
+        "- safety-disagreement: a safety key whose drafters disagree. Pick the passing draft that keeps the "
+        "English meaning exactly, or merge a better text from the drafts, as for a disagreement; or answer "
+        "fallback. Your text is not used yet: a model that drafted nothing back-translates it, and the key comes "
+        "back to you as safety-judged-confirmation.",
+        "- safety-judged-confirmation: the request's text is the text you picked or merged, and backtranslation "
+        "is its back-translation. Confirm or fall back exactly as for safety-confirmation, copying the request's "
+        "text and backtranslation.back. A confirm of any other text, or of a text without that back-translation, "
+        "counts for nothing, and a new pick or merge needs a new back-translation and a new confirm.",
         "- Use the language rules below; the context field of each request shows the screen, purpose and budget.",
         instructions(pack, "standard"),
     ])
@@ -1668,7 +1801,11 @@ def decide(paths, tag, area, final=False, use_java=True):
     judge picked or merged; a merge passes the checks again), safety-agreed (a volt:safety key that
     every drafter, from all three providers, wrote the same way, whose drafts all pass, whose
     back-translation by a model that drafted nothing was made from that text, and which the judge
-    confirmed item by item, naming that text and that back-translation), or fallback-english (the key is left out of values-<qual>). A ladder
+    confirmed item by item, naming that text and that back-translation), safety-judged (a volt:safety
+    key whose drafts, from all three providers, disagree, where the judge picked a passing draft or
+    merged a text that passes the checks, a model that drafted nothing back-translated exactly that
+    text, and the judge then confirmed that text and that back-translation item by item: the owner's
+    decision of 2026-11-05), or fallback-english (the key is left out of values-<qual>). A ladder
     group falls back as a whole when any rung does. Keys still waiting for a judge ruling or a
     back-translation are pending; with final=True they fall back instead.
 
@@ -1681,6 +1818,7 @@ def decide(paths, tag, area, final=False, use_java=True):
     states = analyze(paths, pack, drafts, use_java)
     rulings, problems = load_judge(paths, pack)
     backs = load_backtranslations(paths, pack)
+    judged = judged_safety_texts(paths, pack, states, use_java)
     drafters = all_drafter_models(drafts)
     previous = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
     font = fontmetrics.Font(paths.font())
@@ -1724,9 +1862,14 @@ def decide(paths, tag, area, final=False, use_java=True):
             if not state.unanimous:
                 missing = set(translib.PROVIDERS) - set(state.providers)
                 why = ("no draft from %s" % ", ".join(sorted(missing)) if missing else
+                       "no draft passed the checks" if not state.passing else
                        "a draft failed the checks" if len(state.passing) < len(state.candidates) else
                        "the drafters disagree")
-                rows[key] = row(entry, state, "fallback-english", "safety: %s" % why)
+                if key not in judged:
+                    rows[key] = row(entry, state, "fallback-english", "safety: %s" % why)
+                else:
+                    rows[key] = decide_judged_safety(entry, state, why, judged[key], ruling, backs.get(key),
+                                                     drafters, pending, row)
                 continue
             back = backs.get(key)
             if back and back.get("source_sha1") != entry["source_sha1"]:
@@ -1739,7 +1882,8 @@ def decide(paths, tag, area, final=False, use_java=True):
                 pending.append((key, "a back-translation of the current text"))
                 rows[key] = row(entry, state, "fallback-english", "safety: the back-translation is of another text")
                 continue
-            if back.get("model") in drafters or back.get("model_reported") in drafters:
+            if not independent_backtranslator(back.get("model"), back.get("model_reported"), drafters):
+                pending.append((key, "a back-translation by a model that drafted nothing"))
                 rows[key] = row(entry, state, "fallback-english",
                                 "safety: the back-translator %s also drafted" % back.get("model"), back=back)
                 continue
@@ -1841,6 +1985,58 @@ def decide(paths, tag, area, final=False, use_java=True):
     return list(rows.values()), [] if final else pending, problems
 
 
+def decide_judged_safety(entry, state, why, judged, ruling, back, drafters, pending, row):
+    """The decision row for a safety key whose drafts disagree (owner decision of 2026-11-05).
+
+    It is safety-judged only when the judge picked or merged a text (judged: see
+    judged_safety_texts()), a model that drafted nothing back-translated exactly that text, and the
+    judge's latest ruling confirms that text and that back-translation item by item. Anything else
+    keeps English; a missing step is pending.
+    """
+    key, kind = entry["key"], entry["kind"]
+    items, problem, selection, findings = judged
+    if items is None:
+        if problem is None:
+            pending.append((key, "the judge's pick or merge of the safety text"))
+            return row(entry, state, "fallback-english", "safety: %s; not judged" % why)
+        if selection is not None:  # a pick of a changed draft, or a merge that fails: a new ruling may fix it
+            pending.append((key, "a new pick or merge of the safety text"))
+        return row(entry, state, "fallback-english", "safety: %s; %s" % (why, problem),
+                   judge=selection or ruling, checks=[f for f in findings if f["severity"] != checklib.INFO])
+    target = state._replace(agreed=items)
+    if back and back.get("source_sha1") != entry["source_sha1"]:
+        back = None
+    if current_backtranslation(target, back) is None:
+        pending.append((key, "a back-translation of the judged safety text"))
+        return row(entry, state, "fallback-english", "safety: %s; the judged text has no back-translation" % why,
+                   judge=selection)
+    if not independent_backtranslator(back.get("model"), back.get("model_reported"), drafters):
+        pending.append((key, "a back-translation of the judged safety text by a model that drafted nothing"))
+        return row(entry, state, "fallback-english",
+                   "safety: the back-translator %s also drafted" % back.get("model"), judge=selection, back=back)
+    if ruling is None or ruling["verdict"] != "confirm":
+        pending.append((key, "the judge's confirmation of the judged safety text and its back-translation"))
+        return row(entry, state, "fallback-english", "safety: the judged text is not confirmed by the judge",
+                   judge=ruling or selection, back=back)
+    confirm = ruling.get("confirm") or {}
+    failed = [c for c in SAFETY_CONFIRMATIONS if confirm.get(c) is not True]
+    if ruling.get("backtranslation_meaning_kept") is not True:
+        failed.append("backtranslation_meaning_kept")
+    if failed:
+        return row(entry, state, "fallback-english", "safety: the judged text is not confirmed: %s" % (
+            ", ".join(failed)), judge=ruling, back=back)
+    if not (same_text(kind, ruling.get("text"), items) and
+            same_text(kind, ruling.get("back"), translib.items_of(kind, back.get("back")))):
+        pending.append((key, "the judge's confirmation of the current judged text and back-translation"))
+        return row(entry, state, "fallback-english", "safety: the judge confirmed another text or "
+                   "back-translation", judge=ruling, back=back)
+    checks = [f for f in findings if f["severity"] != checklib.INFO]
+    return row(entry, state, "safety-judged", "%s; the judge %s a text (%s); back-translation kept the meaning; "
+               "judge confirmed: %s" % (why, "picked" if selection["verdict"] == "pick" else "merged",
+                                         selection.get("reason"), ruling.get("reason")),
+               items, ruling, back, checks)
+
+
 def _chosen_findings(state, items):
     for c in state.passing:
         if translib.normalized_value(c.items) == translib.normalized_value(items):
@@ -1873,11 +2069,16 @@ BETA_MAX_FALLBACK = 0.02
 
 
 def beta_report(paths, tag):
-    """(passes, lines). Fallback counts every translatable key without a current translated decision."""
+    """(passes, lines). Fallback counts every translatable key merge.py would leave to English.
+
+    A lock or alarm key must also be safety-agreed, the only translated outcome decide() gives one: all
+    three providers, a back-translation and the judge's confirmation. Claude's drafts alone never reach it.
+    """
     lang = translib.load_language(paths, tag)
+    categories = translib.plural_categories(lang)
     sources, _ = translib.load_source(paths)
     total = fallback = 0
-    blocking, lines = [], []
+    blocking, unconfirmed, refused, lines = [], [], [], []
     for area, rows in sources.items():
         decided = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
         area_total = area_fallback = 0
@@ -1886,23 +2087,32 @@ def beta_report(paths, tag):
             if not s.translatable:
                 continue
             area_total += 1
-            sha = translib.source_sha1(s.kind, s.items)
             d = decided.get(s.key)
-            if d and d.get("outcome") in TRANSLATED and d.get("source_sha1") == sha:
+            why = translib.why_english(s, d, categories)
+            hit = [x for x in safety[s.key] if x in translib.SAFETY_BLOCKING]
+            if not why:
+                if hit and d.get("outcome") not in SAFETY_TRANSLATED:
+                    unconfirmed.append("%s (%s)" % (s.key, ", ".join(hit)))
                 continue
             area_fallback += 1
-            hit = [x for x in safety[s.key] if x in translib.SAFETY_BLOCKING]
+            if d and d.get("outcome") in TRANSLATED and d.get("source_sha1") == translib.source_sha1(s.kind, s.items):
+                refused.append("%s (%s)" % (s.key, why))
             if hit:
                 blocking.append("%s (%s)" % (s.key, ", ".join(hit)))
         total += area_total
         fallback += area_fallback
         lines.append("  %-16s %4d keys, %4d English fallback" % (area, area_total, area_fallback))
     ratio = float(fallback) / total if total else 0.0
-    passes = total > 0 and ratio <= BETA_MAX_FALLBACK and not blocking
+    passes = total > 0 and ratio <= BETA_MAX_FALLBACK and not blocking and not unconfirmed
     lines.insert(0, "%s (%s): %d of %d keys fall back to English (%.2f%%; the bar is %.0f%%)" % (
         tag, lang.folder, fallback, total, 100 * ratio, 100 * BETA_MAX_FALLBACK))
     if blocking:
         lines.append("lock or alarm keys falling back (each blocks the beta): %s" % ", ".join(blocking))
+    if unconfirmed:
+        lines.append("lock or alarm keys translated but not safety-agreed or safety-judged (each blocks the beta): %s" %
+                     ", ".join(unconfirmed))
+    if refused:
+        lines.append("translated decisions merge.py leaves to English: %s" % ", ".join(refused))
     lines.append("beta bar: %s" % ("PASS" if passes else "FAIL"))
     return passes, lines
 

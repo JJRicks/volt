@@ -145,7 +145,7 @@ public final class CompatControlsValidation extends Instrumentation {
                 if (activity.service().ble.experimentalDecision(key).experimental()) experiments.add(key);
             }
             require(experiments.equals(java.util.Arrays.asList("speed_limit")), "2585 lists only the custom speed cap as an experiment: " + experiments);
-            require(((List<?>)field(more(), "labRows")).size() == 6 && "Untested controls".contentEquals(((TextView)field(more(), "labTitle")).getText()),
+            require(((List<?>)field(more(), "labRows")).size() == 6 && "Controls to try".contentEquals(((TextView)field(more(), "labTitle")).getText()),
                     "2585 rows: the speed cap and five Help verify rows, titled " + ((TextView)field(more(), "labTitle")).getText());
         });
         screenshot("q-lab");

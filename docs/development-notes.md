@@ -13,6 +13,7 @@ Implementation invariants and native test guidance for contributors. Start with 
 | `android-tests/` | Separate guarded device/emulator instrumentation and fixture runners |
 | `setup/capture-owner.py`, `setup/owner-capture-guard.sh` | Computer owner-capture helper and on-phone capture cleanup guard |
 | `setup/web/` | Static Chrome/USB setup wizard, pinned browser ADB bundle, recovery and security tests |
+| `res/values/strings_*.xml`, `l10n/`, `tools/l10n/`, `tests/l10n/` | The language catalog and its checks; start with the [localization guide](localization-for-contributors.md) |
 | `docs/`, `FEATURES.txt`, `VERIFICATION.txt` | User/technical references, per-control evidence and dated validation history |
 
 ## Device checks

@@ -3,3 +3,4 @@
 multiword	"%+.2f m/s² GPS accel"
 multiword	"Elevation %+.0f ft"
 multiword	"Elevation %+.0f m"
+multiword	"≈%+.1f%% grade"

@@ -98,7 +98,7 @@
 
     <!-- Setting tile names that differ from the control's own name (QuickAccessGrid). -->
     <!-- The tile for the Maximum speed control, named as on the Scooter page. -->
-    <string name="dashboard_model_tile_top_speed" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="ride">Top speed</string>
+    <string name="dashboard_model_tile_top_speed" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="ride">Max. speed</string>
     <!-- The tile for the scooter's own timed charging control. -->
     <string name="dashboard_model_tile_charge_schedule" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="charge">Charge schedule</string>
 
@@ -192,7 +192,7 @@
     <!-- A week's chart of the battery level. -->
     <string name="dashboard_model_example_charge_history" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Charge history</string>
     <!-- The example note's text. -->
-    <string name="dashboard_model_example_note" volt:screen="Home widgets (All widgets example)" volt:purpose="note text">Check tyre pressure</string>
+    <string name="dashboard_model_example_note" volt:screen="Home widgets (All widgets example)" volt:purpose="note text">Check tire pressure</string>
 
     <!-- Saved layout slots (DashboardConfig.displaySlotName(), defaultSlotName()). The stored names stay English. -->
     <!-- A slot the owner did not name; %1$s is its number (1 to 3). -->

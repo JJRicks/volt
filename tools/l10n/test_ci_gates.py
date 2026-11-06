@@ -4,6 +4,8 @@ import contextlib
 import io
 import os
 import re
+import shutil
+import subprocess
 import sys
 import unittest
 
@@ -218,6 +220,339 @@ class GoldenRewriteTest(unittest.TestCase):
         code, output = self.run_ci()
         self.assertEqual(code, 1, output)
         self.assertIn("FAILED proof tooling unchanged", output)
+
+
+class EnglishChangeTestEditsTest(unittest.TestCase):
+    """An owner-approved English change updates the tests that assert the old English (l10n/README.md), so
+    an edit to an existing non-gate tests/l10n test is reported for the reviewer; the rest stays strict."""
+
+    CHARGING = "tests/l10n/ChargingTest.java"
+    LEDGER_TEST = "tests/l10n/LedgerTest.java"
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.addCleanup(self.repo.close)
+        self.repo.write("res/values/strings_common.xml",
+                        '<resources><string name="common_x">Old words</string></resources>\n')
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "Old words"; }'))
+        self.repo.write(self.LEDGER_TEST, java_class("LedgerTest", '    String s() { return "a"; }'))
+        self.repo.write("tests/l10n/XTest.java", java_class("XTest", '    String s() { return "a"; }'))
+        self.repo.write("tools/l10n/frozen_literals.py", "def run():\n    pass\n")
+        self.base = self.repo.commit("base")
+
+    def english_change(self):
+        self.repo.write("res/values/strings_common.xml",
+                        '<resources><string name="common_x">New words</string></resources>\n')
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\n"
+                        "common_x\t-\tOld words\tNew words\towner approved in #999\n")
+
+    def run_ci(self, *extra):
+        head = self.repo.commit("head")
+        here = os.getcwd()
+        os.chdir(self.repo.root)
+        out, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ci_gates.main(["--base", self.base, "--head", head] + list(extra))
+        finally:
+            os.chdir(here)
+        return code, out.getvalue() + err.getvalue()
+
+    def print_tooling(self):
+        code, output = self.run_ci("--print-tooling")
+        self.assertEqual(code, 0, output)
+        return output.split()
+
+    def test_an_english_change_may_edit_a_test_that_asserts_the_old_english(self):
+        self.english_change()
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "New words"; }'))
+        code, output = self.run_ci()
+        self.assertIn("ci_gates: english-change change", output)
+        self.assertIn("PASS proof tooling unchanged (unchanged)", output)
+        self.assertRegex(output, r"REPORT tests/l10n edits follow l10n/english-changes.tsv \(tests/l10n/ChargingTest"
+                                 r"\.java; check that each edit only follows a row of l10n/english-changes.tsv\)")
+        self.assertEqual(code, 0, output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [])
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        code, output = self.run_ci("--print-english-tests")
+        self.assertEqual(output.split(), [self.CHARGING])
+
+    def test_an_english_change_may_not_edit_a_gate_test(self):
+        self.english_change()
+        self.repo.write(self.LEDGER_TEST, java_class("LedgerTest", '    String s() { return "b"; }'))
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/LedgerTest.java)", output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [self.LEDGER_TEST])
+
+    def test_an_english_change_may_not_edit_the_tools(self):
+        self.english_change()
+        self.repo.write("tools/l10n/frozen_literals.py", "def run():\n    return []\n")
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tools/l10n/frozen_literals.py)", output)
+
+    def test_an_english_change_may_not_delete_a_test(self):
+        self.english_change()
+        self.repo.remove("tests/l10n/XTest.java")
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/XTest.java)", output)
+
+    def test_a_batch_may_still_not_edit_a_test(self):
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "Old words"; }\n'
+                                                                  '    String t() { return "a"; }'))
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("ci_gates: batch change", output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/ChargingTest.java)", output)
+        self.assertNotIn("tests/l10n edits follow", output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [self.CHARGING])
+
+    def test_only_existing_non_gate_tests_are_reported(self):
+        for path, reported in (("tests/l10n/ChargingTest.java", True), ("tests/l10n/MainTextTest.java", True),
+                               ("tests/l10n/LedgerTest.java", False), ("tests/l10n/FmtLegacyTest.java", False),
+                               ("tests/l10n/ReportsStayEnglishTest.java", False),
+                               ("tests/l10n/GlyphCoverageTest.java", False), ("tests/l10n/CatalogCheckTest.java", False),
+                               ("tests/l10n/CatalogUsageTest.java", False), ("tests/l10n/GoldenReports.java", False),
+                               ("tests/l10n/L10nFiles.java", False), ("tests/l10n/sub/ChargingTest.java", False),
+                               ("tests/l10n/golden.sh", False), ("tests/ChargingTest.java", False)):
+            self.assertEqual(ci_gates.english_test_file(path), reported, path)
+
+
+class ProveEnglishRuleTest(unittest.TestCase):
+    def test_g8_follows_ci_gates_for_each_kind(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "prove-english.sh"), encoding="utf-8") as handle:
+            script = handle.read()
+        ordinary = script.index('if [[ "$KIND" == ordinary ]]; then\n    gate "G8')
+        branch = script[ordinary:script.index("fi\n", ordinary)]
+        listed, rest = branch.split("else\n")
+        self.assertNotIn("--base", listed)
+        self.assertIn('--base "$BASE" --tight', rest, "a batch or an English change may only shrink")
+
+
+class ProveEnglishKindsTest(unittest.TestCase):
+    """prove-english.sh itself, on a throwaway repository: the tools are this checkout's, the unit tests and
+    goldens are stubs so that only the kind's rules decide the result."""
+
+    G1_ROW = re.compile(r"^\| G1 ledger of moved literals \| ([^|]+) \|", re.M)
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.addCleanup(self.repo.close)
+        here = os.path.dirname(os.path.abspath(__file__))
+        os.makedirs(self.repo.path("tools/l10n"))
+        for name in os.listdir(here):
+            if name.endswith((".py", ".sh")) and not name.startswith("test_"):
+                shutil.copy(os.path.join(here, name), self.repo.path("tools/l10n"))
+        self.repo.write("tools/l10n/test_stub.py", "import unittest\n\n\nclass T(unittest.TestCase):\n"
+                                                   "    def test_stub(self):\n        pass\n")
+        self.repo.write("tests/l10n/golden.sh", "echo 'golden: PASS: stub'\n")
+        self.repo.write(GOLDEN, "<trk>\n")
+        self.repo.write("res/values/strings.xml", "<resources>\n</resources>\n")
+        os.makedirs(self.repo.path("l10n"))
+        shutil.copytree(os.path.join(here, "..", "..", "l10n", "lang"), self.repo.path("l10n/lang"))
+        self.repo.write(STORE, java_class("PhoneRideStore", '    String name() { return "x_y"; }\n'
+                                          '    String open() { return "<trk>"; }'))
+        self.base = self.repo.commit("base")
+
+    def prove(self, run_tests=False):
+        flags = ["--skip-build"] + ([] if run_tests else ["--skip-tests"])
+        result = subprocess.run(["bash", "tools/l10n/prove-english.sh", self.base] + flags,
+                                cwd=self.repo.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        report = result.stdout.decode("utf-8", "replace")
+        everything = report + result.stderr.decode("utf-8", "replace")
+        match = self.G1_ROW.search(report)
+        self.assertIsNotNone(match, everything)
+        return result.returncode, match.group(1).strip(), report, everything
+
+    def change_a_literal(self):
+        self.repo.write(STORE, java_class("PhoneRideStore", '    String name() { return "x_y"; }\n'
+                                          '    String open() { return "<trk_changed>"; }'))
+
+    def test_an_ordinary_change_of_a_literal_passes_without_claiming_g1(self):
+        self.change_a_literal()
+        self.repo.commit("a fix")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 0, everything)
+        self.assertEqual(g1, "not applied")
+        self.assertIn("ordinary change", report)
+        self.assertRegex(report, r"\| Ledgers agree with the catalog \| PASS \|")
+        self.assertIn("not a proof that English is unchanged", report)
+        self.assertNotIn("every gate that runs locally passed", report)
+        self.assertNotRegex(report, r"\| G1[^|]*\| PASS")
+
+    def test_an_ordinary_golden_update_is_reported_and_a_batch_one_fails(self):
+        self.repo.write(GOLDEN, "<trk updated>\n")
+        self.repo.commit("an ordinary report format change")
+        code, _, report, everything = self.prove()
+        self.assertEqual(code, 0, everything)
+        self.assertRegex(report, r"\| G9 reports stay English \(goldens\) \| REPORT \|")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("now a batch")
+        code, _, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertRegex(report, r"\| G9 reports stay English \(goldens\) \| FAIL \|")
+
+    def test_an_ordinary_change_is_still_held_to_the_catalog(self):
+        self.repo.write("l10n/ledger/b1.tsv", HEADER + "\t".join(
+            ["src/com/jjricks/volt/A.java:1", '["x"]', "zz_gone", "exact", ""]) + "\n")
+        self.base = self.repo.commit("a base whose ledger names a key the catalog lacks")
+        self.change_a_literal()
+        self.repo.commit("a fix")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(g1, "not applied")
+        self.assertRegex(report, r"\| Ledgers agree with the catalog \| FAIL \|")
+        self.assertIn("Result: FAILED", report)
+        self.assertNotIn("not a proof", report)
+
+    def test_a_batch_that_changes_a_literal_fails_g1(self):
+        self.change_a_literal()
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(g1, "FAIL")
+        self.assertIn("batch change", report)
+        self.assertIn("Result: FAILED", report)
+
+    def test_a_conversion_that_forgot_its_ledger_is_a_batch_and_fails_g1(self):
+        self.repo.write(STORE, java_class("PhoneRideStore", '    String name() { return "x_y"; }\n'
+                                          '    String open() { return T.ridesOpen(); }'))
+        self.repo.commit("no ledger, no catalog file")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(g1, "FAIL")
+        self.assertIn("batch change", report)
+
+    def test_an_english_change_runs_g1(self):
+        self.change_a_literal()
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz\t-\ta\tb\towner approved in #999\n")
+        self.repo.commit("an English change")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(g1, "FAIL")
+        self.assertIn("english-change change", report)
+
+    CHAR = "tests/l10n/characterization/RidesEnglishTest.java"
+    OTHER = "tests/l10n/OtherTest.java"
+    # Reads the tests/l10n/*.sources lists as the real tests/run.sh does ("#" starts a comment, the rest is
+    # trimmed) and runs only the tests/l10n/**Test.java entries; a test still pinning "Old words" fails.
+    LIST_ONLY_RUNNER = r"""#!/bin/bash
+for list in tests/l10n/*.sources; do
+  [[ -f "$list" ]] || continue
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+    [[ -n "$line" ]] || continue
+    case "$line" in tests/l10n/*Test.java)
+      grep -q 'Old words' "$line" && { echo "$line failed"; exit 1; }
+      echo "$line passed" ;; esac
+  done < "$list"
+done
+"""
+    UNLISTED = (r"\| G5 tests pass at the first commit \| FAIL \| not an active entry of any tests/l10n/\*\.sources "
+                r"list( at head)?, so tests/run.sh never runs them: " + re.escape(CHAR))
+
+    def english_change_with_characterization(self, first_sources, head_sources=None):
+        """A base with a list-only tests/run.sh; a first commit pinning the new English, with first_sources as
+        tests/l10n/rides.sources (None: no list); then the English change, which may rewrite the list."""
+        self.repo.write("tests/run.sh", self.LIST_ONLY_RUNNER)
+        self.repo.write(self.OTHER, java_class("OtherTest", '    String s() { return "Other words"; }'))
+        self.base = self.repo.commit("a list-only test runner")
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "New words"; }'))
+        if first_sources is not None:
+            self.repo.write("tests/l10n/rides.sources", first_sources)
+        self.repo.commit("pin the new English")
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz\t-\ta\tb\towner approved in #999\n")
+        if head_sources is not None:
+            self.repo.write("tests/l10n/rides.sources", head_sources)
+        self.repo.commit("the English change")
+
+    def assert_unlisted(self):
+        for run_tests in (True, False):
+            code, _, report, everything = self.prove(run_tests=run_tests)
+            self.assertEqual(code, 1, everything)
+            self.assertRegex(report, self.UNLISTED, everything)
+
+    def test_an_english_change_does_not_run_its_characterization_tests_on_the_base_code(self):
+        """Its characterization tests pin the new English, which the base code does not print yet."""
+        self.english_change_with_characterization("# the rides suites\n" + self.CHAR + "\n")
+        _, _, report, everything = self.prove()
+        self.assertIn("english-change change", report)
+        self.assertRegex(report, r"\| G5 characterization first \| PASS \|", everything)
+        self.assertRegex(report, r"\| G5 tests pass at the first commit \| n/a \| an English change's characterization "
+                                 r"tests pin the new English")
+
+    def test_an_english_change_runs_its_registered_characterization_tests_at_head(self):
+        """Re-review of #207: the exemption is from running them on the base code, not from running them at all.
+        An entry with surrounding whitespace and an inline comment is still an entry."""
+        self.english_change_with_characterization("# the rides suites\n  \t" + self.CHAR + "   # the Rides screen\n")
+        _, _, report, everything = self.prove(run_tests=True)
+        self.assertRegex(report, r"\| G5 tests pass at the first commit \| n/a \|", everything)
+        self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| PASS \| 1 suites reported passing \|",
+                         everything)
+
+    def test_an_english_change_with_an_unregistered_characterization_test_fails(self):
+        """Re-review of #207: tests/run.sh would never run it, so G6 passing would prove nothing about it."""
+        self.english_change_with_characterization(None)
+        self.assert_unlisted()
+
+    def test_an_english_change_that_comments_out_its_characterization_entry_fails(self):
+        """Second re-review of #207: a commented-out entry is no entry, though the path is still in the file."""
+        self.english_change_with_characterization(self.CHAR + "\n", head_sources="# " + self.CHAR + "\n")
+        self.assert_unlisted()
+
+    def test_a_characterization_path_in_another_entrys_comment_is_not_an_entry(self):
+        """Second re-review of #207: tests/run.sh runs OtherTest only."""
+        self.english_change_with_characterization(self.OTHER + " # replaces " + self.CHAR + "\n")
+        self.assert_unlisted()
+
+    def test_a_batch_still_runs_its_characterization_tests_at_the_first_commit(self):
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.repo.commit("characterize")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        _, _, report, everything = self.prove()
+        self.assertIn("batch change", report)
+        # --skip-tests (see prove) skips the run itself; the n/a row is the English change's alone.
+        self.assertNotIn("G5 tests pass at the first commit", report, everything)
+
+    def test_a_batch_with_a_commented_out_characterization_entry_fails_at_the_first_commit(self):
+        """Second re-review of #207: the batch check reads the lists the same way."""
+        self.repo.write("tests/run.sh", self.LIST_ONLY_RUNNER)
+        self.base = self.repo.commit("a list-only test runner")
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.repo.write("tests/l10n/rides.sources", "#" + self.CHAR + "\n")
+        self.repo.commit("characterize")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        code, _, report, everything = self.prove(run_tests=True)
+        self.assertIn("batch change", report)
+        self.assertEqual(code, 1, everything)
+        self.assertRegex(report, self.UNLISTED, everything)
+
+    def test_a_batch_that_keeps_its_literals_gets_a_real_g1_pass(self):
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("catalog only")
+        _, g1, report, everything = self.prove()
+        self.assertEqual(g1, "PASS", everything)
+        self.assertNotIn("Ledgers agree with the catalog", report)
+
+    def test_a_kind_ci_gates_could_not_tell_is_held_to_g1(self):
+        self.repo.write("tools/l10n/ci_gates.py", "import sys\nsys.exit(3)\n")
+        self.base = self.repo.commit("ci_gates cannot run")
+        self.change_a_literal()
+        self.repo.commit("a fix")
+        code, g1, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(g1, "FAIL")
+        self.assertIn("unknown change", report)
 
 
 if __name__ == "__main__":

@@ -460,7 +460,7 @@ class ChunkImportTest(ChunkBase):
         draft = self.draft()
         self.assertEqual(self.main("glossary-check", "--tag", "es"), 0)
         self.assertIn("3 rows are claude-only", self.out.getvalue())
-        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-5.1"), 2)
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-6.1-terra"), 2)
         self.assertIn("3 claude-only rows", self.err.getvalue())
         self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "openai.xml")))
         # The judged glossary differs on a safety term and on an ordinary one.
@@ -515,7 +515,7 @@ class ChunkImportTest(ChunkBase):
 
     def test_provider_identity(self):
         self.answer_all(self.prompts())
-        self.assertEqual(self.do_import(model="gpt-5.1"), 2)
+        self.assertEqual(self.do_import(model="gpt-6.1-terra"), 2)
         self.assertIn("not a Claude model id", self.err.getvalue())
         self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "claude-opus.xml")))
         self.assertEqual(self.do_import(), 0)
@@ -534,9 +534,9 @@ class ChunkImportTest(ChunkBase):
         self.assertEqual(self.draft().prompt, "glossary-first")
         self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 0, self.out.getvalue())
         # A chunked draft is a Claude drafter like any other: with API drafts it reaches agreement.
-        self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})
-        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-5.1"), 0)
-        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common", "--model", "gemini-3-pro"), 0)
+        self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH), "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-6.1-terra"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common", "--model", "gemini-3.8-flash"), 0)
         self.main("decide", "--tag", "es", "--area", "common", "--final")
         rows = dict((r["key"], r) for r in translib.read_jsonl(self.paths.decisions("es", "common")))
         self.assertEqual(rows["common_cancel"]["outcome"], "agreed")
