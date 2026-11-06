@@ -1057,15 +1057,25 @@ public final class MoreScreen implements AppScreen {
         cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout box = group();
         box.setTag("preference_riding_display");
+        // Off by default: the status bar keeps the phone's clock and battery (#254). Applies on the next entry.
+        Row hideBar = preferenceToggle(box, "screen", T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(),
+                RidingDisplay.HIDE_STATUS_BAR_KEY, false);
+        hideBar.view.setTag("preference_riding_hide_status_bar");
         RidingBrightness.Store store = RidingDisplay.settings(settings());
+        Runnable[] showReset = new Runnable[1];
         Row reset = row(box, "settings", T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
             RidingBrightness.forget(store);
             host.toast(T.ridingDisplayResetDone());
-            View shown = box.findViewWithTag("preference_riding_brightness_reset");
-            if (shown != null) shown.setVisibility(View.GONE);
+            showReset[0].run();
         });
         reset.view.setTag("preference_riding_brightness_reset");
-        valueRefreshers.add(() -> reset.view.setVisibility(RidingBrightness.learned(store) ? View.VISIBLE : View.GONE));
+        View resetDivider = box.getChildAt(box.indexOfChild(reset.view) - 1);
+        showReset[0] = () -> {
+            int shown = RidingBrightness.learned(store) ? View.VISIBLE : View.GONE;
+            reset.view.setVisibility(shown);
+            resetDivider.setVisibility(shown);
+        };
+        valueRefreshers.add(showReset[0]);
         note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
     }
     private boolean batteryUnrestricted() {

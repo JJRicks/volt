@@ -258,6 +258,9 @@ public final class RidingBrightnessTest {
         check(!manifest.contains("WRITE_SETTINGS"), "the manifest asks for no WRITE_SETTINGS");
         String display = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingDisplay.java")), StandardCharsets.UTF_8);
         check(display.contains("attributes.screenBrightness"), "RidingDisplay sets the window's brightness");
+        // The status bar stays by default (#254); only the owner's setting hides it, and leaving shows it again.
+        check(display.contains("preferences.getBoolean(HIDE_STATUS_BAR_KEY, false)"), "Hide status bar is off by default");
+        check(display.contains("if (hidesStatusBar) statusBar(true);"), "leaving shows the status bar it hid");
     }
 
     private static float last(Fake f) { return f.levels.get(f.levels.size() - 1); }

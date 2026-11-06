@@ -27,6 +27,9 @@
     <string name="riding_display_rotation_lock" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Lock on open</string>
     <!-- Rotation choice: riding mode turns with the phone. -->
     <string name="riding_display_rotation_follow" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Follow phone</string>
+    <!-- Switch row: riding mode hides the phone's status bar too (off by default, so the clock and battery show). -->
+    <string name="riding_display_hide_status_bar" volt:screen="App preferences" volt:purpose="row">Hide status bar</string>
+    <string name="riding_display_hide_status_bar_sub" volt:screen="App preferences" volt:purpose="caption">Clock and battery hidden while riding</string>
     <!-- Note under the choices on a phone with a light sensor. -->
     <string name="riding_display_note" volt:screen="App preferences" volt:purpose="caption">In Volt auto, the − and + at the bottom of riding mode teach Volt your level for the light you are in. Your phone\'s brightness comes back when you leave riding mode.</string>
     <!-- The same note on a phone without a light sensor, where Volt auto is not offered. -->

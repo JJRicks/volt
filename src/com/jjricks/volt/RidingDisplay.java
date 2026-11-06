@@ -11,6 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +19,8 @@ import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -25,11 +28,15 @@ import android.widget.LinearLayout;
 /**
  * Riding mode's window: screen brightness (RidingBrightness, with the − / + slider) and the rotation
  * lock (owner Q14 A). RidingScreen makes one and calls detach() when it closes; everything comes back
- * as it was. The system bars stay with MainActivity, which hides the navigation bar while riding and
- * keeps the status bar for the phone's battery and clock (#254); keep-awake stays there too. The light sensor listens only while the activity is
+ * as it was. MainActivity hides the navigation bar while riding and keeps the status bar for the
+ * phone's battery and clock (#254); keep-awake stays there too. Only the owner's "Hide status bar"
+ * setting (off by default) makes this hide the status bar as well, from the next time riding mode
+ * opens, and show it again on leaving. The light sensor listens only while the activity is
  * resumed and Volt auto is chosen.
  */
 final class RidingDisplay {
+    /** More → Riding mode: hide the status bar too (default off). */
+    static final String HIDE_STATUS_BAR_KEY = "riding_hide_status_bar";
     /** The one attached display: a rebuild's old screen can't undo the new one's window state. */
     private static RidingDisplay current;
 
@@ -42,6 +49,7 @@ final class RidingDisplay {
     private final LinearLayout controls;
     private final Track track;
     private final int previousOrientation;
+    private final boolean hidesStatusBar;
     private boolean listening, detached;
 
     private final SensorEventListener listener = new SensorEventListener() {
@@ -98,6 +106,9 @@ final class RidingDisplay {
         previousOrientation = activity.getRequestedOrientation();
         if (RidingRotation.locks(preferences.getString(RidingRotation.KEY, RidingRotation.LOCK)))
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
+        hidesStatusBar = preferences.getBoolean(HIDE_STATUS_BAR_KEY, false);
+        // Like MainActivity's bar styling, this waits until the screen is attached (Samsung's decor getter).
+        if (hidesStatusBar) controls.post(() -> { if (!detached && current == this) statusBar(false); });
         activity.getApplication().registerActivityLifecycleCallbacks(lifecycle);
         resume();
     }
@@ -122,7 +133,9 @@ final class RidingDisplay {
         if (current != this) return;
         current = null;
         brightness.stop();
-        if (!activity.isDestroyed()) activity.setRequestedOrientation(previousOrientation);
+        if (activity.isDestroyed()) return;
+        activity.setRequestedOrientation(previousOrientation);
+        if (hidesStatusBar) statusBar(true);
     }
 
     private void resume() {
@@ -151,6 +164,24 @@ final class RidingDisplay {
         WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
         attributes.screenBrightness = level < 0 ? WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE : level;
         activity.getWindow().setAttributes(attributes);
+    }
+
+    /** The owner's setting: hide the status bar too (a swipe shows the bars for a moment), or show it again. */
+    private void statusBar(boolean show) {
+        View decor = activity.getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController controller = decor.getWindowInsetsController();
+            if (controller == null) return;
+            if (show) controller.show(WindowInsets.Type.statusBars());
+            else {
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.hide(WindowInsets.Type.statusBars());
+            }
+        } else {
+            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            int visibility = decor.getSystemUiVisibility();
+            decor.setSystemUiVisibility(show ? visibility & ~View.SYSTEM_UI_FLAG_FULLSCREEN : visibility | flags);
+        }
     }
 
     private void changed(int delta) {
