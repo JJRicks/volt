@@ -1,0 +1,4 @@
+# F7, hard-coded text the Spanish beta still showed in English (l10n/README.md). tests/run.sh compiles every
+# path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the base's Live Stats tab labels and the Experimental controls card's model sentences, pinned before the batch.
+tests/l10n/characterization/HardcodedTextEnglishTest.java
