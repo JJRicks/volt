@@ -130,6 +130,31 @@ public final class RidingFramesTest {
         check(RidingFrames.pickerShown(true, 0.4), "a crawl under 1 km/h counts as stopped");
         check(!RidingFrames.pickerShown(true, 5.0), "moving: no picker");
         check(!RidingFrames.pickerShown(false, 0.0), "the scooter isn't stationary: no picker");
+        // Stop, open the sheet, then ride off: the sheet closes and a late tap saves nothing.
+        RidingFrames.PickerSheet sheet = new RidingFrames.PickerSheet();
+        check(!sheet.open(false), "the sheet doesn't open while moving");
+        check(sheet.open(true) && sheet.isOpen(), "the sheet opens while stopped");
+        check(!sheet.update(true) && sheet.isOpen(), "still stopped: the sheet stays");
+        check(sheet.update(false) && !sheet.isOpen(), "riding resumes: the sheet must close");
+        check(!sheet.update(false), "it closes once");
+        check(!sheet.accept(false), "a tap after riding resumed saves nothing");
+        RidingFrames.PickerSheet moving = new RidingFrames.PickerSheet();
+        moving.open(true);
+        check(!moving.accept(false) && !moving.isOpen(), "a tap while moving saves nothing and closes the sheet");
+        RidingFrames.PickerSheet still = new RidingFrames.PickerSheet();
+        still.open(true);
+        check(still.accept(true) && !still.isOpen(), "a tap while stopped is taken once");
+        check(!still.accept(true), "a second tap on the same sheet is not taken");
+        // Open, then the screen is rebuilt (rotation, folding): the old sheet closes and can't save.
+        RidingFrames.PickerSheet old = new RidingFrames.PickerSheet();
+        old.open(true);
+        check(old.close() && !old.isOpen(), "a rebuild closes the old screen's sheet");
+        check(!old.accept(true), "a choice on the old screen's sheet saves nothing");
+        check(!old.open(true), "a closed screen opens no sheet");
+        RidingFrames.PickerSheet shut = new RidingFrames.PickerSheet();
+        shut.open(true);
+        shut.dismissed();
+        check(!shut.close() && !shut.accept(true), "a sheet closed by Back has nothing left to close or take");
         RidingLayout layout = new RidingLayout();
         layout.setContent(RidingLayout.FOCUS, "tile_2", RidingLayout.ODOMETER);
         check(RidingFrames.choose(layout, RidingLayout.HALO) && RidingLayout.HALO.equals(layout.frame()), "choosing Halo");
@@ -154,6 +179,8 @@ public final class RidingFramesTest {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state or control in riding mode");
         check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "the picker follows the stopped state");
+        check(screen.contains("if (sheetState.update(stoppedNow)) dismissSheet();"), "a resumed ride closes the sheet");
+        check(screen.contains("sheetState.close();") && screen.contains("sheetState.accept(stopped("), "the screen owns the sheet on close and on a choice");
         check(!screen.contains(".send(") && !screen.contains("write("), "riding mode sends nothing");
     }
 }

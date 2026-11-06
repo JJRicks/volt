@@ -113,4 +113,47 @@ final class RidingFrames {
         if (RidingLayout.frameDef(frameId) == null || frameId.equals(layout.frame())) return false;
         return layout.setFrame(frameId);
     }
+
+    /**
+     * The picker sheet's life, owned by its screen. It opens only while stopped and on an open
+     * screen; it must close when riding resumes or the screen is closed (rotation, folding, any
+     * rebuild), and a choice counts only on the screen that opened it while still stopped.
+     */
+    static final class PickerSheet {
+        private boolean open, closed;
+
+        /** Opens the sheet; false when the screen is closed or the scooter isn't stopped. */
+        boolean open(boolean stopped) {
+            if (closed || !stopped) return false;
+            open = true;
+            return true;
+        }
+
+        boolean isOpen() { return open; }
+
+        /** The sheet went away by itself (its close button, Back or a tap outside). */
+        void dismissed() { open = false; }
+
+        /** On each refresh: true when an open sheet must be dismissed because riding resumed. */
+        boolean update(boolean stopped) {
+            if (!open || stopped) return false;
+            open = false;
+            return true;
+        }
+
+        /** The screen closes: true when an open sheet must be dismissed with it. */
+        boolean close() {
+            closed = true;
+            boolean was = open;
+            open = false;
+            return was;
+        }
+
+        /** A tapped choice: true only on an open sheet of an open screen while still stopped. The sheet closes either way. */
+        boolean accept(boolean stopped) {
+            boolean ok = open && !closed && stopped;
+            open = false;
+            return ok;
+        }
+    }
 }

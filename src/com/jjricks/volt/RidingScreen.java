@@ -83,6 +83,9 @@ final class RidingScreen implements AppScreen {
     private double fastestKmh;
     private long powerSampleMs = -1;
     private boolean closed;
+    /** The layout picker's sheet, owned here so a rebuild or a resumed ride can close it. */
+    private final RidingFrames.PickerSheet sheetState = new RidingFrames.PickerSheet();
+    private AlertDialog sheet;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
         this.host = host;
@@ -479,10 +482,10 @@ final class RidingScreen implements AppScreen {
      * carry over, since they live in the session.
      */
     private void choose() {
-        if (closed || host.activity() == null) return;
+        if (closed || host.activity() == null || sheet != null) return;
+        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
         Context context = host.activity();
-        final AlertDialog[] self = new AlertDialog[1];
-        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, () -> { if (self[0] != null) self[0].dismiss(); });
+        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
         body.setTag("riding_layout_sheet");
         LinearLayout options = ui.groupCard();
         String[] names = {T.ridingFrameFocus(), T.ridingFrameHalo(), T.ridingFrameTrace()};
@@ -512,7 +515,10 @@ final class RidingScreen implements AppScreen {
             option.setSelected(selected);
             if (Build.VERSION.SDK_INT >= 30 && selected) option.setStateDescription(T.commonSelected());
             option.setOnClickListener(v -> {
-                if (self[0] != null) self[0].dismiss();
+                // Only this screen's sheet, and only while still stopped: a stale or moving choice saves nothing.
+                boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
+                dismissSheet();
+                if (!accepted) return;
                 RidingLayout saved = config.layout();
                 if (!RidingFrames.choose(saved, id)) return;
                 config.save(saved);
@@ -523,11 +529,35 @@ final class RidingScreen implements AppScreen {
             options.addView(option, new LinearLayout.LayoutParams(-1, -2));
         }
         body.addView(options, new LinearLayout.LayoutParams(-1, -2));
-        self[0] = host.showSheet(body);
+        AlertDialog shown = host.showSheet(body);
+        if (shown == null) { sheetState.dismissed(); return; }
+        sheet = shown;
+        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
+    }
+
+    /** Closes the picker sheet if it's showing; safe while the activity is going away. */
+    private void dismissSheet() {
+        AlertDialog d = sheet;
+        sheet = null;
+        sheetState.dismissed();
+        if (d != null && d.isShowing()) {
+            try { d.dismiss(); } catch (IllegalArgumentException ignored) {}
+        }
+    }
+
+    /** Stopped for the picker: the scooter says stationary and the latest speed is under 1 km/h. */
+    private boolean stopped(long now) {
+        BleController ble = service == null ? null : service.ble;
+        return RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
     }
 
     @Override public View view() { return view; }
-    @Override public void close() { closed = true; }
+    @Override public void close() {
+        closed = true;
+        // Rotation, folding and every rebuild close this screen: its sheet goes with it.
+        sheetState.close();
+        dismissSheet();
+    }
 
     /**
      * The top spot. Record is Focus's default (owner): the shared recording control it needs plugs in
@@ -571,8 +601,11 @@ final class RidingScreen implements AppScreen {
         if (ring != null) ring.show(now, units);
         if (trace != null) trace.show(now, units);
         // The picker shows only while stopped (Q17 A): a moving rider sees no control but back.
-        int shown = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh) ? View.VISIBLE : View.GONE;
+        boolean stoppedNow = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
+        int shown = stoppedNow ? View.VISIBLE : View.GONE;
         if (picker.getVisibility() != shown) picker.setVisibility(shown);
+        // A sheet opened while stopped closes once riding resumes; its choices can't be tapped mid-ride.
+        if (sheetState.update(stoppedNow)) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
         float[] offset = RidingBurnIn.offsetDp(now - session.openedMs);
         frame.setTranslationX(ui.dp(offset[0]));
