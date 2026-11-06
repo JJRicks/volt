@@ -28,6 +28,8 @@ public final class MoreTreeTest {
         check(build.contains("holder.removeView(language);"), "the row leaves its holder before it is placed");
         check(count(build, "removeView") == 1, "languageRow() removes only the row from its holder");
         check(build.contains("valueRefreshers.add("), "languageRow() places the row on refresh");
+        check(build.contains("row.sub(LanguageSheet.value(host.activity()))") && !build.contains("row.value("),
+                "the language shows under the title, not in the capped value column");
         check(build.contains("placeLanguageRow(display, language, divider, offered, ui.dp(1))"), "the refresher places the row by offered");
 
         String place = body(source, "private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line)");

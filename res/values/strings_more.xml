@@ -397,6 +397,16 @@
     <string name="more_lab_absent" volt:screen="Experimental controls" volt:purpose="label" volt:safety="experimental">Not reported by this scooter</string>
     <!-- Under the Not reported group. -->
     <string name="more_lab_absent_note" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt can\'t read these back, so it doesn\'t offer them.</string>
+    <!-- The model as the Experimental controls card names it inside a sentence (more_lab_intro_untested, more_lab_intro_verify, more_lab_empty_oem, more_lab_sheet_untested, more_lab_sheet_unverified). %1$s is a model name, such as N65i or UT5 MAX. Use the article or form your language needs inside those sentences. -->
+    <string name="more_lab_model_named" volt:screen="Experimental controls" volt:purpose="model phrase">the %1$s</string>
+    <!-- The model phrase when Volt has no model name or model ID; it goes inside the same sentences as more_lab_model_named. -->
+    <string name="more_lab_model_yours" volt:screen="Experimental controls" volt:purpose="model phrase">your model</string>
+    <!-- Card intro above controls the official app doesn't offer on this model. %1$s is the model phrase (more_lab_model_named, more_lab_model_yours, or a model ID such as Model 24431). Meaning: these controls are untested here; the rider should try one only while the scooter is parked, and Volt then reads the setting back from the scooter to show whether it took. -->
+    <string name="more_lab_intro_untested" volt:screen="Experimental controls" volt:purpose="intro, safety instruction" volt:safety="experimental" volt:dnt="Volt">The official app doesn\'t offer these for %1$s. Try one while parked; Volt reads it back.</string>
+    <!-- Card intro above controls the official app offers on this model but Volt hasn't tested on it. %1$s is the model phrase, as in more_lab_intro_untested. Meaning: the rider should try one only while the scooter is parked, and Volt then reads the setting back from the scooter to show whether it took. -->
+    <string name="more_lab_intro_verify" volt:screen="Experimental controls" volt:purpose="intro, safety instruction" volt:safety="experimental" volt:dnt="Volt">The official app offers these for %1$s, but Volt hasn\'t tested them there. Try one while parked; Volt reads it back.</string>
+    <!-- Card intro for a model in a group whose controls the official app already offers, so Volt has nothing extra to try. %1$s is the model phrase, as in more_lab_intro_untested. Scooter settings is the name of Volt's settings page. -->
+    <string name="more_lab_empty_oem" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental" volt:dnt="Volt">Nothing to try on %1$s: the official app already offers the controls Volt could try. They\'re in Scooter settings.</string>
     <!-- Intro when the product isn't a supported scooter. -->
     <string name="more_lab_empty_product" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Volt sends no scooter commands to this product.</string>
     <!-- Intro on the UT5 MAX. UT5 MAX is a model name. -->
@@ -511,6 +521,10 @@
     <string name="more_lab_status_unconfirmed" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Unconfirmed</string>
     <!-- Status while a try runs and Volt reads the control back, on the control's row and in the try sheet. Narrow; keep it short. -->
     <string name="more_lab_status_checking" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Checking…</string>
+    <!-- Heading of the Try sheet's caution box for a control the official app doesn't offer on this model. %1$s is the model phrase (more_lab_model_named or more_lab_model_yours, or a model ID). -->
+    <string name="more_lab_sheet_untested" volt:screen="Try sheet" volt:purpose="heading" volt:safety="experimental">Untested on %1$s</string>
+    <!-- Heading of the Try sheet's caution box for a control the official app offers on this model but Volt hasn't tested. %1$s is the model phrase, as in more_lab_sheet_untested. -->
+    <string name="more_lab_sheet_unverified" volt:screen="Try sheet" volt:purpose="heading" volt:safety="experimental">Unverified on %1$s</string>
     <!-- Try sheet caution for a control to help verify. -->
     <string name="more_lab_verify_why" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this for your model, but Volt hasn\'t tested it there. Your try and answer go in your next compatibility report.</string>
     <!-- Try sheet: the current value's label, and the tag beside the current value's option. -->

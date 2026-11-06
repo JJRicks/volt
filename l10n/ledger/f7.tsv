@@ -1,0 +1,12 @@
+# Ledger for f7: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+#
+# F7, hard-coded text the Spanish beta (#217) still showed in English: the Experimental controls card's model
+# sentences. tests/l10n/characterization/HardcodedTextEnglishTest.java pinned the base English first.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MoreScreen.java:1582	["The official app doesn't offer these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ". Try one while parked; Volt reads it back."]	more_lab_intro_untested	template	
+src/com/jjricks/volt/MoreScreen.java:1583	["The official app offers these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ", but Volt hasn't tested them there. Try one while parked; Volt reads it back."]	more_lab_intro_verify	template	
+src/com/jjricks/volt/MoreScreen.java:1626	["Nothing to try on ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ": the official app already offers the controls Volt could try. They're in Scooter settings."]	more_lab_empty_oem	template	
+src/com/jjricks/volt/MoreScreen.java:1637	["the ", {"hole": "name", "arg": 1, "type": "s"}]	more_lab_model_named	template	
+src/com/jjricks/volt/MoreScreen.java:1638	["your model"]	more_lab_model_yours	exact	
+src/com/jjricks/volt/MoreScreen.java:1870	{"if": "verify", "then": ["Unverified on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}], "else": ["Untested on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}]}	more_lab_sheet_unverified,more_lab_sheet_untested	choice	the Try sheet heading; each branch is a whole sentence with the model phrase filled in
