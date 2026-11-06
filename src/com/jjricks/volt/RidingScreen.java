@@ -66,8 +66,9 @@ final class RidingScreen implements AppScreen {
     private final TextView status, warning, speedLast, wattsCaption;
     /** The layout picker's disc: shown only while stopped (owner Q17 A). */
     private final FrameLayout picker;
-    /** The frame's big number; every frame has one. */
-    private Cell big;
+    /** The frame's big number; every frame has one. Focus's range, battery and bottom cells are made with it. */
+    private Cell big, highlight, battery;
+    private final List<Cell> bottom = new ArrayList<>();
     private final List<Cell> cells = new ArrayList<>();
     private final List<Chip> chips = new ArrayList<>();
     /** Halo's ring and Trace's chart; null in the frames without them. */
@@ -151,7 +152,7 @@ final class RidingScreen implements AppScreen {
         status.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams pillSize = new LinearLayout.LayoutParams(0, ui.dp(TOUCH_DP), 1);
         pillSize.setMarginStart(ui.dp(12));
-        top.addView(topControl(layout.content("top"), pill), pillSize);
+        top.addView(topControl(layout.content(RidingLayout.FOCUS, "top"), pill), pillSize);
         warning = ui.text("", labelSp(15), true);
         warning.setTextColor(ui.onAccent);
         warning.setGravity(Gravity.CENTER);
@@ -177,11 +178,20 @@ final class RidingScreen implements AppScreen {
         topSize.bottomMargin = ui.dp(side ? 10 : 14);
         frame.addView(top, topSize);
 
-        // The power readout and bar, in every frame.
+        // The cells.
+        // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.
+        big = new Cell(layout.content(RidingLayout.FOCUS, "big"), 200, !(side && configuration.screenHeightDp < RidingFocus.SHORT_HEIGHT_DP));
         speedLast = ui.text("", labelSp(LABEL_SP), false);
         speedLast.setTextColor(ui.dim);
         speedLast.setMaxLines(1);
         speedLast.setVisibility(View.INVISIBLE);
+        big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
+        highlight = new Cell(layout.content(RidingLayout.FOCUS, "highlight"), 84, false);
+        // Focus's cells; Halo and Trace build their own in place of these.
+        battery = new Cell(layout.content(RidingLayout.FOCUS, RidingFocus.BATTERY_ROW), 84, false);
+        battery.addBeside(new Segments(), new LinearLayout.LayoutParams(0, ui.dp(34), 1.15f));
+        for (String spot : RidingFocus.bottomRow(large))
+            bottom.add(new Cell(layout.content(RidingLayout.FOCUS, spot), 60, false));
         watts = new NumberView(64, false);
         wattsCaption = ui.text("", labelSp(LABEL_SP), false);
         wattsCaption.setTextColor(ui.muted);
@@ -212,18 +222,15 @@ final class RidingScreen implements AppScreen {
 
     /** Focus: speed huge at the top, then range, battery with its segments, the bottom row and the power readout. */
     private View focus(boolean shortWindow) {
-        // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.
-        big = cell(layout.content(RidingLayout.FOCUS, "big"), 200, !shortWindow);
-        big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
-        Cell highlight = cell(layout.content(RidingLayout.FOCUS, "highlight"), 84, false);
-        Cell battery = cell(layout.content(RidingLayout.FOCUS, RidingFocus.BATTERY_ROW), 84, false);
-        battery.addBeside(new Segments(), new LinearLayout.LayoutParams(0, ui.dp(34), 1.15f));
+        cells.add(big);
+        cells.add(highlight);
+        cells.add(battery);
+        cells.addAll(bottom);
         LinearLayout bottomRow = row();
-        List<String> bottom = RidingFocus.bottomRow(large);
         for (int i = 0; i < bottom.size(); i++) {
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, 1);
             if (i > 0) p.setMarginStart(ui.dp(14));
-            bottomRow.addView(cell(layout.content(RidingLayout.FOCUS, bottom.get(i)), 60, false), p);
+            bottomRow.addView(bottom.get(i), p);
         }
         if (side) {
             // Speed and the power readout share the left column, so each reading on the right keeps a large number.
@@ -263,12 +270,13 @@ final class RidingScreen implements AppScreen {
      * battery temperature, clock). Sideways the ring takes the middle and the readings the right.
      */
     private View halo(boolean shortWindow) {
+        detach(speedLast);
         big = cell(layout.content("big"), 150, true);
         big.hideLabel();
         big.number.centered = true;
         ring = new Ring(layout.content("ring"), big, speedLast);
-        Cell highlight = cell(layout.content("highlight"), side ? 64 : 76, false);
-        if (side) highlight.card();
+        Cell range = cell(layout.content("highlight"), side ? 64 : 76, false);
+        if (side) range.card();
         LinearLayout tiles = tiles(side ? 52 : 56, false);
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
@@ -286,7 +294,7 @@ final class RidingScreen implements AppScreen {
             middleSize.setMarginStart(ui.dp(12));
             out.addView(middle, middleSize);
             LinearLayout right = column();
-            right.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1));
+            right.addView(range, new LinearLayout.LayoutParams(-1, 0, 1));
             LinearLayout.LayoutParams tilesSize = new LinearLayout.LayoutParams(-1, 0, 1);
             tilesSize.topMargin = ui.dp(10);
             right.addView(tiles, tilesSize);
@@ -302,7 +310,7 @@ final class RidingScreen implements AppScreen {
         }
         LinearLayout readings = column();
         readings.addView(ring, new LinearLayout.LayoutParams(-1, 0, 3.3f));
-        readings.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1.25f));
+        readings.addView(range, new LinearLayout.LayoutParams(-1, 0, 1.25f));
         LinearLayout.LayoutParams tilesSize = new LinearLayout.LayoutParams(-1, 0, 1.25f);
         tilesSize.topMargin = ui.dp(8);
         readings.addView(tiles, tilesSize);
@@ -328,6 +336,7 @@ final class RidingScreen implements AppScreen {
      * readout. Sideways the speed and chart take the left and the readings the right.
      */
     private View trace(boolean shortWindow) {
+        detach(speedLast);
         big = cell(layout.content("big"), side ? 120 : 150, !shortWindow);
         big.hideLabel();
         big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
@@ -347,8 +356,8 @@ final class RidingScreen implements AppScreen {
             head.addView(beside, besideSize);
         }
         trace = new TraceView(layout.content("trace"));
-        Cell highlight = cell(layout.content("highlight"), side ? 60 : 72, false);
-        highlight.card();
+        Cell range = cell(layout.content("highlight"), side ? 60 : 72, false);
+        range.card();
         LinearLayout tiles = tiles(side ? 48 : 56, true);
         if (side) {
             LinearLayout out = row();
@@ -359,7 +368,7 @@ final class RidingScreen implements AppScreen {
             left.addView(trace, traceSize);
             out.addView(left, new LinearLayout.LayoutParams(0, -1, 1.35f));
             LinearLayout right = column();
-            right.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1));
+            right.addView(range, new LinearLayout.LayoutParams(-1, 0, 1));
             LinearLayout.LayoutParams tilesSize = new LinearLayout.LayoutParams(-1, 0, 1);
             tilesSize.topMargin = ui.dp(10);
             right.addView(tiles, tilesSize);
@@ -378,7 +387,7 @@ final class RidingScreen implements AppScreen {
         readings.addView(trace, traceSize);
         LinearLayout.LayoutParams highlightSize = new LinearLayout.LayoutParams(-1, 0, 1.25f);
         highlightSize.topMargin = ui.dp(10);
-        readings.addView(highlight, highlightSize);
+        readings.addView(range, highlightSize);
         LinearLayout.LayoutParams tilesSize = new LinearLayout.LayoutParams(-1, 0, 1.25f);
         tilesSize.topMargin = ui.dp(10);
         readings.addView(tiles, tilesSize);
@@ -386,6 +395,11 @@ final class RidingScreen implements AppScreen {
         powerSize.topMargin = ui.dp(10);
         readings.addView(power, powerSize);
         return readings;
+    }
+
+    /** Takes a view out of the Focus cell it was made in, for another frame to place. */
+    private static void detach(View v) {
+        if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).removeView(v);
     }
 
     /** A cell for a spot's content, refreshed with the others. */
@@ -1365,7 +1379,7 @@ final class RidingScreen implements AppScreen {
                 p.setMarginEnd(ui.dp(6));
                 addView(icon, p);
             }
-            text = ui.text("", labelSp(17), true);
+            text = ui.text(T.ridingNoValue(), labelSp(17), true);
             text.setTypeface(ui.bold());
             text.setMaxLines(1);
             text.setTextColor(mode ? ui.onAccent : ui.text);
@@ -1383,7 +1397,7 @@ final class RidingScreen implements AppScreen {
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
             int visible = mode && s.spoken == null ? GONE : VISIBLE;
             if (getVisibility() != visible) setVisibility(visible);
-            String name = s.rungs.length == 0 ? "" : s.rungs[0];
+            String name = s.rungs.length > 0 ? s.rungs[0] : s.main.toString();
             setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
         }
     }
@@ -1552,7 +1566,7 @@ final class RidingScreen implements AppScreen {
         private List<RidingValues.TracePoint> speeds = new ArrayList<>(), powers = new ArrayList<>();
         private long now;
         private double speedTop = 1;
-        private String units = "mi";
+        private String units;
         TraceView(String content) {
             super(host.activity());
             this.content = content;
@@ -1572,7 +1586,7 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onDraw(Canvas canvas) {
             float w = getWidth(), h = getHeight();
-            if (w <= 0 || h <= 0) return;
+            if (w <= 0 || h <= 0 || units == null) return;
             paint.setShader(null);
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(cardColor());
