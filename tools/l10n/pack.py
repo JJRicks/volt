@@ -6,9 +6,10 @@
   pack.py --tag es --area common --stdout
 
 A pack holds, per English key: the key, its English text, its volt:* metadata and note, the measured
-English width and its budget, glossary hits with the approved term in the language, neighbouring
-strings, and any current translation (with whether it is stale). Plus the language's settings and
-style guide. Packs are generated and never committed (l10n/.gitignore).
+English width and its budget (budget_dp at budget_sp on up to budget_lines lines; with more than one
+line, english_width_dp is the narrowest width that holds the English in that many lines of whole
+words), glossary hits with the approved term in the language, neighbouring strings, and any current
+translation (with whether it is stale). Plus the language's settings and style guide. Packs are generated and never committed (l10n/.gitignore).
 
 Only UI strings go into a pack: the entries of res/values/strings_<area>.xml, without
 translatable="false" keys and without l10n_tag. Reports, diagnostics and user data never live in
@@ -33,7 +34,7 @@ FORMAT = "volt-l10n-pack-v1"
 NEIGHBOURS = 2
 PACK_ENTRY_FIELDS = ("key", "kind", "english", "source_sha1", "formatted", "placeholders", "screen", "purpose", "max",
                      "ladder", "ladder_group", "safety", "dnt", "note", "english_width_dp", "budget_dp",
-                     "budget_sp", "glossary", "neighbours", "current", "status")
+                     "budget_sp", "budget_lines", "glossary", "neighbours", "current", "status")
 LANGUAGE_FIELDS = ("tag", "folder", "endonym", "formality", "plurals", "quote_style", "percent_style",
                    "decimal_style", "script", "font", "rtl", "unit_symbols", "drive_mode_names")
 # Placeholder stand-ins for measuring a template: the same for English and every language, so a
@@ -110,11 +111,11 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
     requests, owners = [], []
     for index, s in enumerate(rows):
         budget = translib.parse_max(s.meta.get("max"))
-        size = budget[1] if budget else 14.0
+        size, lines = (budget[1], budget[2]) if budget else (14.0, 1)
         for text in s.items.values():
-            requests.append((size, sample_text(text, s.formatted)))
+            requests.append((size, sample_text(text, s.formatted), lines))
             owners.append(index)
-    widths = measurer.measure(requests)
+    widths = fontmetrics.measure_lines(measurer, requests)
     width_of = collections.defaultdict(float)
     for owner, width in zip(owners, widths):
         width_of[owner] = max(width_of[owner], width)
@@ -146,6 +147,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
             ("safety", safety[s.key]), ("dnt", translib.dnt_of(s.meta)), ("note", s.note),
             ("english_width_dp", round(width_of[index], 2)),
             ("budget_dp", budget[0] if budget else None), ("budget_sp", budget[1] if budget else None),
+            ("budget_lines", budget[2] if budget else None),
             ("glossary", hits), ("neighbours", neighbours), ("current", current_value), ("status", status)])
         assert tuple(entry) == PACK_ENTRY_FIELDS
         entries.append(entry)

@@ -1502,17 +1502,17 @@ public final class DashboardValidation extends Instrumentation {
                 context + ": value extends outside the card's scrollable content width: " + text);
     }
     /**
-     * Single lines that ellipsize by design rather than wrap or overflow: the Lock bar's
-     * "Last verified" detail, the Lock bar's title once Connect has already become an icon,
-     * and Setting tile labels and values once their value reached its 12 sp floor.
+     * Lines that ellipsize by design rather than wrap or overflow: the Lock bar's one-line
+     * "Last verified" detail, the Lock bar's title (after two lines) once Connect has already become
+     * an icon, and Setting tile labels and values once their value reached its 12 sp floor.
      */
     private boolean ellipsizedByDesign(TextView text) {
-        if (text.getEllipsize() == null || text.getMaxLines() != 1) return false;
+        if (text.getEllipsize() == null || text.getMaxLines() > 2) return false;
         for (View view = text; view != null; view = view.getParent() instanceof View ? (View)view.getParent() : null)
-            if (view.getTag() instanceof String && ((String)view.getTag()).startsWith("setting-tile:")) return true;
+            if (view.getTag() instanceof String && ((String)view.getTag()).startsWith("setting-tile:")) return text.getMaxLines() == 1;
         for (Object lock : (List<?>)field(activity, "dashboardLocks")) {
             if (!Boolean.TRUE.equals(field(lock, "compact"))) continue;
-            if (text == field(lock, "offlineDetail")) return true;
+            if (text == field(lock, "offlineDetail")) return text.getMaxLines() == 1;
             if (text == field(lock, "offlineTitle") && iconOnlyAction((TextView)field(lock, "connectionAction"))) return true;
         }
         return false;

@@ -52,11 +52,23 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 
 - **Keys** are `<area>_<screen>_<meaning>` in lower snake case. Shared words go in
   `strings_common.xml`. Each key becomes `T.camelCase(...)`, for example `T.dashMoveWidget(title)`.
-- **Metadata** (`volt:*`, all optional): `screen`, `purpose`, `max` (`<dp>dp@<sp>sp`), `ladder`
+- **Metadata** (`volt:*`, all optional): `screen`, `purpose`, `max` (`<dp>dp@<sp>sp`, or
+  `<dp>dp@<sp>sp*<lines>`; see Width budgets below), `ladder`
   (`full`, `short`, `compact`), `safety` (lock, ride, alarm, charge, experimental, owner-key, pin,
   privacy, disclaimer; comma-separated), `dnt` (do-not-translate tokens separated by `|`; each
   must appear in the text), `english-fix="pending"` (a known English bug kept byte for byte).
   An XML comment right before the string becomes its note. Any other `volt:` attribute is an error.
+- **Width budgets.** `volt:max="96dp@14sp"` says the text must fit 96 dp on one line at 14 sp, in
+  Saira (`tools/l10n/fontmetrics.py`). A view that wraps between whole words, never at a smaller
+  size, takes a line count: `volt:max="64dp@12sp*2"` (2 to 9 lines) means each line must fit 64 dp,
+  so `check.py` measures a greedy whole-word wrap (split at plain spaces; a no-break space joins its
+  words) and fails a text that needs more lines or has a single word wider than 64 dp. Mark a line
+  count only where the code provably wraps that way (for example `StatusRungs.wholeLines(..., 2)`
+  or `setMaxLines(2)` with the simple break strategy and no hyphenation); a view with
+  `setMaxLines(1)` keeps a one-line budget. Packs carry it as `budget_lines`, and with more than
+  one line `english_width_dp` is the narrowest width that holds the English in that many lines.
+  As for one line, a text over a budget the English fits is an error, and only a warning where the
+  English itself does not fit.
 - **Ladder rungs** are sibling keys: `<key>_short` with `volt:ladder="short"` and `<key>_compact`
   with `volt:ladder="compact"`. A rung may use only placeholders its full key has.
 - **Placeholders** are positional only: `%1$s` (a `CharSequence`), `%1$d` (a `long`), `%1$.1f`

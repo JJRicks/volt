@@ -138,7 +138,8 @@ STYLES = {
 }
 # Pack fields a model sees. Everything else in the pack is for the tools.
 MODEL_FIELDS = ("key", "kind", "english", "placeholders", "screen", "purpose", "note", "safety", "dnt",
-                "ladder", "ladder_group", "budget_dp", "budget_sp", "english_width_dp", "glossary", "neighbours")
+                "ladder", "ladder_group", "budget_dp", "budget_sp", "budget_lines", "english_width_dp", "glossary",
+                "neighbours")
 
 
 def now():
@@ -195,8 +196,11 @@ def instructions(pack, style="standard"):
         "- Use each glossary term's approved translation (\"target\") when one is given.",
         "- Plurals: give every one of these categories: %s." % ", ".join(lang["plurals"]),
         "- Keys ending in _short and _compact are shorter rungs of the same label (\"ladder_group\"). Draft every "
-        "rung. A string with budget_dp must fit that width at budget_sp in the Saira typeface; english_width_dp "
-        "is the English width. %s rather than overflow; never break a word." % (
+        "rung. A string with budget_dp must fit that width at budget_sp in the Saira typeface. budget_lines is how "
+        "many lines the view shows: 1 means the whole string on one line; 2 or more means the view wraps between "
+        "words, so each line, and every single word, must fit budget_dp, in at most that many lines. "
+        "english_width_dp is the English width (on budget_lines lines, the narrowest width that holds it). "
+        "%s rather than overflow; never break a word." % (
             "Abbreviate per the style guide" if guide else "Abbreviate"),
         "- Never change the meaning: locked and unlocked stay distinct; on/off and never/always are never "
         "inverted; \"unverified\" or \"unknown\" never reads as confirmed; numbers, units and the named action "

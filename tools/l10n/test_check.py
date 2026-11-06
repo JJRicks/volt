@@ -376,5 +376,98 @@ class CheckCommandTest(unittest.TestCase):
         self.assertEqual(failed[0]["width_method"], fontmetrics.METHOD_APPROX)
 
 
+class FakeMeasurer(object):
+    """Ten units per character, spaces included: widths a test can work out by hand."""
+    method = "fake"
+
+    def measure(self, requests):
+        return [max(len(line) for line in text.split("\n")) * 10.0 for _size, text in requests]
+
+
+class LineBudgetTest(unittest.TestCase):
+    """volt:max with *N lines: a greedy whole-word wrap into at most N lines of the budget each."""
+
+    def test_parse_and_pattern(self):
+        import gen_catalog
+        self.assertEqual(translib.parse_max("96dp@14sp"), (96.0, 14.0, 1))
+        self.assertEqual(translib.parse_max("64dp@12sp*2"), (64.0, 12.0, 2))
+        for good in ("96dp@14sp", "64dp@12sp*2", "220.5dp@16sp*3"):
+            self.assertTrue(gen_catalog.MAX_PATTERN.match(good), good)
+        for bad in ("64dp@12sp*1", "64dp@12sp*", "64dp@12sp*10", "64dp*2@12sp", "64dp@12sp x2"):
+            self.assertFalse(gen_catalog.MAX_PATTERN.match(bad), bad)
+            self.assertIsNone(translib.parse_max(bad), bad)
+
+    def test_wrapped_width(self):
+        m = FakeMeasurer()
+        # "Luzes de linha": one line is 140; two lines are "Luzes de" (80) / "linha" (50).
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "Luzes de linha", 1)]), [140.0])
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "Luzes de linha", 2)]), [80.0])
+        # Every single word must fit: the narrowest width is the widest word when that is the binding limit.
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "Controlos experimentais", 2)]), [130.0])
+        # Three words in two lines: the best greedy split, never a broken word.
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "aa bb cc", 2)]), [50.0])
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "aa bb cc", 3)]), [20.0])
+        # A no-break space joins its words; a hard break counts as a line.
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "aa\u00a0bb cc", 2)]), [50.0])
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "aa bb\ncc", 2)]), [50.0])
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "aa\nbb\ncc", 2)]), [fontmetrics.NO_FIT])
+        # Mixed batches keep their order.
+        self.assertEqual(fontmetrics.measure_lines(m, [(12, "abc", 1), (12, "ab cd", 2), (12, "x", 1)]),
+                         [30.0, 20.0, 10.0])
+
+    def check_entry(self, budget_dp, lines, english, text):
+        p = copy.deepcopy(self.pt_pack)
+        entry = [e for e in p["entries"] if e["key"] == "common_cancel"][0]
+        entry.update({"budget_dp": budget_dp, "budget_sp": 12.0, "budget_lines": lines,
+                      "english_width_dp": english})
+        targets = {"common_cancel": ("string", {"other": text}, [])}
+        results = check.check_targets(p, targets, fontmetrics.Font(self.repo.paths.font()), FakeMeasurer())
+        return [f for f in results["common_cancel"] if f["check"] == "width"]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo = council_fixture.FixtureRepo()
+        measurer = fontmetrics.Measurer(cls.repo.paths.font(), use_java=False)
+        cls.pt_pack = pack.build_pack(cls.repo.paths, "pt-PT", "common", measurer)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.repo.close()
+
+    def test_two_lines_of_whole_words(self):
+        # Over 64 on one line, but "Luzes de" / "linha" fits two lines of 80: passes at 80*2, fails at 80*1.
+        self.assertEqual(self.check_entry(80, 2, 60, "Luzes de linha"), [])
+        one = self.check_entry(80, 1, 60, "Luzes de linha")
+        self.assertEqual([f["severity"] for f in one], [check.ERROR])
+        # A word wider than a line fails even in two lines.
+        long_word = self.check_entry(80, 2, 60, "Controlos experimentais")
+        self.assertEqual([f["severity"] for f in long_word], [check.ERROR])
+        self.assertIn("in 2 lines of whole words", long_word[0]["message"])
+        self.assertIn("130.0dp", long_word[0]["message"])
+        # Three lines' worth in a two-line budget fails.
+        self.assertEqual([f["severity"] for f in self.check_entry(50, 2, 40, "aaaa bbbb cccc")], [check.ERROR])
+
+    def test_overflowing_english_only_warns(self):
+        # The English needs 90 in two lines (its own widest word): a translation over the budget warns.
+        warn = self.check_entry(80, 2, 90, "Controlos experimentais")
+        self.assertEqual([f["severity"] for f in warn], [check.WARN])
+
+    def test_pack_carries_lines_and_two_line_english_width(self):
+        self.repo.write("res/values/strings_lines.xml", (
+            '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">'
+            '<string name="lines_one" volt:max="64dp@12sp">Line lights</string>'
+            '<string name="lines_two" volt:max="64dp@12sp*2">Line lights</string>'
+            '<string name="lines_none">Line lights</string></resources>'))
+        p = pack.build_pack(self.repo.paths, "pt-PT", "lines", FakeMeasurer())
+        by = dict((e["key"], e) for e in p["entries"])
+        self.assertEqual((by["lines_one"]["budget_lines"], by["lines_one"]["english_width_dp"]), (1, 110.0))
+        self.assertEqual((by["lines_two"]["budget_lines"], by["lines_two"]["english_width_dp"]), (2, 60.0))
+        self.assertEqual((by["lines_none"]["budget_lines"], by["lines_none"]["budget_dp"]), (None, None))
+        self.assertIn("budget_lines", council.MODEL_FIELDS)
+        prompt = council.instructions(p)
+        prompt = prompt if isinstance(prompt, str) else "\n".join(prompt)
+        self.assertIn("budget_lines", prompt)
+
+
 if __name__ == "__main__":
     unittest.main()
