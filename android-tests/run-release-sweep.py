@@ -122,7 +122,8 @@ STEPS = [
     runner('ride-backups', 'run-ride-backups.py', ['RideBackupValidation']),
     runner('rides', 'run-rides.py', ['RidesAnalysisValidation']),
     # Seeds many rides, then times a cold launch and two Rides opens (#234, #240: "Volt launches instantly"). --release
-    # fails when the best of two cold starts per case misses a generous budget (run-rides-timing.py RELEASE_BUDGETS):
+    # fails when the best of two cold starts per case misses a generous budget (run-rides-timing.py RELEASE_BUDGETS;
+    # every run must report every gated time, and the service start command stands in for connection start):
     # a regression costs seconds, load noise tenths. The plan's tight budgets are still reported, not gated.
     runner('rides-timing', 'run-rides-timing.py', ['RidesTimingValidation'], '--release'),
     runner('live-stats', 'run-live-stats.py', ['LiveStatsValidation']),
