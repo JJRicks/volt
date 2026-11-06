@@ -137,7 +137,7 @@ public final class ScooterService extends Service {
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
-            rides = new RideStore(new File(getFilesDir(), "rides"), true);
+            rides = new RideStore(new File(getFilesDir(), "rides"), true, new File(getNoBackupFilesDir(), "rides-index"));
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
