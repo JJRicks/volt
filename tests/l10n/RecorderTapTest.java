@@ -122,6 +122,12 @@ public final class RecorderTapTest {
                 "The timeout takes its own tap's start, says it did not start, and skips a newer tap");
         require(screen.contains("finishPendingStart();\n        closed = true;"), "close() finishes a pending start before marking Home closed");
         require(screen.contains("else start.startRide();"), "A handed-on start runs the same startRide path");
+        // Owner Q1 B: the start runs on Home through the shared control; there is no Rides-tab hop.
+        require(screen.contains("if (RideRecordingApp.of(host).start() != RideRecordingControl.STARTING) recorderStarting = false;"),
+                "The frame starts through RideRecordingControl and a refused start leaves Starting… at once");
+        String main = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8);
+        require(main.contains("public void startRide(){RideRecordingApp.of(MainActivity.this).start();}") && !main.contains("beginRecording"),
+                "Home's startRide (the hand-off) starts in place, without selecting Rides");
 
         System.out.println("RecorderTapTest: " + checks + " checks passed");
     }

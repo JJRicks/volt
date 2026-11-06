@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Maintenance reminders (maintenance plan, PR 2): the Maintenance section and row on the Scooter tab,
+  the Maintenance page, its add, detail, Mark done and Snooze sheets, and the Scooter tab's dot.
+
+  Reminders are ones the owner sets. Volt suggests task names only, never how often (owner answer
+  Q42), and the wording never says a scooter is safe. Distances arrive formatted with their unit
+  ("300 mi", "482.8 km"); dates arrive formatted for the language. Counts use plurals. A single
+  day, week or month has its own whole sentence ("Every week"), so no "Every 1 week" is shown.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- The Scooter tab section and the Maintenance page's title. -->
+    <string name="maintenance_title" volt:screen="Scooter tab, Maintenance" volt:purpose="title">Maintenance</string>
+    <!-- The row in the Maintenance section that opens the Maintenance page. -->
+    <string name="maintenance_row" volt:screen="Scooter tab, Maintenance" volt:purpose="row label">Reminders</string>
+    <!-- Words search matches for the Reminders row, never shown. -->
+    <string name="maintenance_search" volt:screen="Scooter tab" volt:purpose="search keywords">maintenance service reminder reminders check tire tyre pressure brakes bolts folding clean</string>
+    <!-- The Reminders row's value: how many reminders this scooter has. -->
+    <plurals name="maintenance_row_count" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="96dp@14sp">
+        <item quantity="one">%1$d reminder</item>
+        <item quantity="other">%1$d reminders</item>
+    </plurals>
+    <!-- The Reminders row's value, in red: how many checks are due now. -->
+    <plurals name="maintenance_row_due" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="96dp@14sp">
+        <item quantity="one">%1$d due</item>
+        <item quantity="other">%1$d due</item>
+    </plurals>
+    <!-- Spoken for the Scooter tab while a check is due: %1$s is the tab's name. -->
+    <string name="maintenance_tab_due" volt:screen="Bottom bar" volt:purpose="screen reader">%1$s, maintenance due</string>
+
+    <!-- The page's master switch. Off by default. -->
+    <string name="maintenance_switch" volt:screen="Maintenance" volt:purpose="switch label">Maintenance reminders</string>
+    <string name="maintenance_switch_detail" volt:screen="Maintenance" volt:purpose="switch detail">Show checks you set when they\'re due</string>
+    <!-- Shown under the switch while it is off. -->
+    <string name="maintenance_off_explain" volt:screen="Maintenance" volt:purpose="explanation">Turn this on to add your own reminders, like checking tire pressure every 2 weeks or the brakes every 300 mi. Volt shows a check here and on the Scooter tab when it\'s due.</string>
+    <!-- A short note at the bottom of the page. -->
+    <string name="maintenance_disclaimer" volt:screen="Maintenance" volt:purpose="note" volt:safety="disclaimer">These are reminders you set. Check your scooter whenever something feels wrong, whatever a reminder says.</string>
+
+    <!-- Section labels on the page. -->
+    <string name="maintenance_due_now" volt:screen="Maintenance" volt:purpose="section label">Due now</string>
+    <string name="maintenance_coming_up" volt:screen="Maintenance" volt:purpose="section label">Coming up</string>
+    <string name="maintenance_none" volt:screen="Maintenance" volt:purpose="empty state">No reminders yet.</string>
+    <string name="maintenance_add" volt:screen="Maintenance" volt:purpose="button">Add reminder</string>
+    <!-- %1$s is the scooter's model name, like "UT5 MAX". -->
+    <string name="maintenance_manual_title" volt:screen="Maintenance" volt:purpose="section label">From the %1$s manual</string>
+    <string name="maintenance_manual_title_unknown" volt:screen="Maintenance" volt:purpose="section label">From the manual</string>
+    <string name="maintenance_manual_none" volt:screen="Maintenance" volt:purpose="explanation">No intervals listed yet. Volt lists a manual\'s intervals only with the page they come from, so for now you choose how often.</string>
+    <string name="maintenance_manual_unknown" volt:screen="Maintenance" volt:purpose="explanation">Unknown model. Volt can list a manual\'s intervals once it knows which model this is.</string>
+    <string name="maintenance_history" volt:screen="Maintenance" volt:purpose="section label">History</string>
+    <plurals name="maintenance_history_done" volt:screen="Maintenance" volt:purpose="status">
+        <item quantity="one">%1$d check done</item>
+        <item quantity="other">%1$d checks done</item>
+    </plurals>
+    <string name="maintenance_history_none" volt:screen="Maintenance" volt:purpose="status">No checks done yet.</string>
+
+    <!-- Notes about the odometer. %1$s is a date. -->
+    <string name="maintenance_stale" volt:screen="Maintenance" volt:purpose="note">The odometer was last read on %1$s. Rides since then count once Volt connects again.</string>
+    <string name="maintenance_reset" volt:screen="Maintenance" volt:purpose="note">The odometer went backwards (a new dashboard or controller, or a reset?). Distance reminders keep counting from here.</string>
+    <string name="maintenance_never_read" volt:screen="Maintenance" volt:purpose="reason">Connect once so Volt can read the odometer.</string>
+    <string name="maintenance_whole_km" volt:screen="Add reminder" volt:purpose="note">This scooter reports whole kilometers. If it goes more than 255 km between connections, distance can come up short.</string>
+
+    <!-- Status badges on a reminder. -->
+    <string name="maintenance_badge_due" volt:screen="Maintenance" volt:purpose="badge" volt:max="48dp@10.5sp">DUE</string>
+    <string name="maintenance_badge_soon" volt:screen="Maintenance" volt:purpose="badge" volt:max="48dp@10.5sp">SOON</string>
+    <string name="maintenance_badge_snoozed" volt:screen="Maintenance" volt:purpose="badge" volt:max="72dp@10.5sp">SNOOZED</string>
+
+    <!-- How often, by distance: %1$s is the distance with its unit ("300 mi"). -->
+    <string name="maintenance_every_distance" volt:screen="Maintenance" volt:purpose="interval">Every %1$s</string>
+    <!-- How often, by time alone. -->
+    <string name="maintenance_every_day" volt:screen="Maintenance" volt:purpose="interval">Every day</string>
+    <string name="maintenance_every_week" volt:screen="Maintenance" volt:purpose="interval">Every week</string>
+    <string name="maintenance_every_month" volt:screen="Maintenance" volt:purpose="interval">Every month</string>
+    <plurals name="maintenance_every_days" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d day</item>
+        <item quantity="other">Every %1$d days</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d week</item>
+        <item quantity="other">Every %1$d weeks</item>
+    </plurals>
+    <plurals name="maintenance_every_months" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d month</item>
+        <item quantity="other">Every %1$d months</item>
+    </plurals>
+    <!-- How often, by time or distance, whichever comes first: %1$s (or %2$s for the counted forms) is the distance. -->
+    <string name="maintenance_every_day_or" volt:screen="Maintenance" volt:purpose="interval">Every day or %1$s</string>
+    <string name="maintenance_every_week_or" volt:screen="Maintenance" volt:purpose="interval">Every week or %1$s</string>
+    <string name="maintenance_every_month_or" volt:screen="Maintenance" volt:purpose="interval">Every month or %1$s</string>
+    <plurals name="maintenance_every_days_or" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d day or %2$s</item>
+        <item quantity="other">Every %1$d days or %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks_or" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d week or %2$s</item>
+        <item quantity="other">Every %1$d weeks or %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_months_or" volt:screen="Maintenance" volt:purpose="interval">
+        <item quantity="one">Every %1$d month or %2$s</item>
+        <item quantity="other">Every %1$d months or %2$s</item>
+    </plurals>
+
+    <!-- What is left before a check is due. %1$s is a distance with its unit. -->
+    <string name="maintenance_distance_left" volt:screen="Maintenance" volt:purpose="status">%1$s left</string>
+    <string name="maintenance_distance_over" volt:screen="Maintenance" volt:purpose="status">%1$s over</string>
+    <plurals name="maintenance_days_left" volt:screen="Maintenance" volt:purpose="status">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="maintenance_days_over" volt:screen="Maintenance" volt:purpose="status">
+        <item quantity="one">%1$d day overdue</item>
+        <item quantity="other">%1$d days overdue</item>
+    </plurals>
+    <string name="maintenance_due_today" volt:screen="Maintenance" volt:purpose="status">Due today</string>
+    <string name="maintenance_waiting" volt:screen="Maintenance" volt:purpose="status">Waiting for the odometer</string>
+    <!-- %1$s is a date. -->
+    <string name="maintenance_snoozed_until" volt:screen="Maintenance" volt:purpose="status">Snoozed until %1$s</string>
+    <!-- Two parts of one line, such as a status and a date. -->
+    <string name="maintenance_pair" volt:screen="Maintenance" volt:purpose="separator">%1$s · %2$s</string>
+
+    <!-- Buttons on a due reminder and in its detail. Mark done steps down to Done, then a check mark. -->
+    <string name="maintenance_mark_done" volt:screen="Maintenance" volt:purpose="button" volt:ladder="full" volt:max="120dp@12.5sp">Mark done</string>
+    <string name="maintenance_mark_done_short" volt:screen="Maintenance" volt:purpose="button" volt:ladder="short">Done</string>
+    <string name="maintenance_snooze" volt:screen="Maintenance" volt:purpose="button" volt:max="120dp@12.5sp">Snooze</string>
+    <string name="maintenance_edit" volt:screen="Reminder" volt:purpose="button">Edit</string>
+    <string name="maintenance_delete" volt:screen="Reminder" volt:purpose="button">Delete reminder</string>
+    <!-- %1$s is the reminder's name. -->
+    <string name="maintenance_delete_title" volt:screen="Delete reminder" volt:purpose="title">Delete %1$s?</string>
+    <string name="maintenance_delete_body" volt:screen="Delete reminder" volt:purpose="message">Its history is deleted too. This can\'t be undone.</string>
+    <string name="maintenance_delete_action" volt:screen="Delete reminder" volt:purpose="button">Delete</string>
+
+    <!-- Snooze sheet. The choices are counts of days and weeks (maintenance_count_*). -->
+    <string name="maintenance_snooze_explain" volt:screen="Snooze" volt:purpose="explanation">Hides Due until then. It doesn\'t count as done.</string>
+    <plurals name="maintenance_count_days" volt:screen="Maintenance" volt:purpose="choice">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="maintenance_count_weeks" volt:screen="Maintenance" volt:purpose="choice">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weeks</item>
+    </plurals>
+    <plurals name="maintenance_count_months" volt:screen="Maintenance" volt:purpose="choice">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+
+    <!-- Mark done sheet. %1$s is the odometer now, with its unit. -->
+    <string name="maintenance_done_today_at" volt:screen="Mark done" volt:purpose="message">Done today at %1$s</string>
+    <string name="maintenance_done_today" volt:screen="Mark done" volt:purpose="message">Done today</string>
+    <string name="maintenance_change" volt:screen="Mark done" volt:purpose="button">Change</string>
+    <string name="maintenance_when_today" volt:screen="Mark done" volt:purpose="choice">Today</string>
+    <string name="maintenance_when_now" volt:screen="Add reminder" volt:purpose="choice">Now</string>
+    <string name="maintenance_when_earlier" volt:screen="Mark done" volt:purpose="choice">Earlier</string>
+    <string name="maintenance_date" volt:screen="Mark done" volt:purpose="field label">Date</string>
+    <!-- %1$s is the unit, km or mi. -->
+    <string name="maintenance_odometer_then" volt:screen="Mark done" volt:purpose="field label">Odometer then, in %1$s (optional)</string>
+    <string name="maintenance_odometer_then_note" volt:screen="Mark done" volt:purpose="note">Leave it empty to count distance from the odometer now.</string>
+    <string name="maintenance_odometer_ahead" volt:screen="Mark done" volt:purpose="field error">That\'s more than the odometer reads now.</string>
+    <string name="maintenance_odometer_before_reset" volt:screen="Mark done" volt:purpose="field error">That\'s from before the odometer went backwards. Leave it empty instead.</string>
+    <string name="maintenance_number_invalid" volt:screen="Add reminder" volt:purpose="field error">Enter a number.</string>
+
+    <!-- Add and edit sheet. -->
+    <string name="maintenance_add_title" volt:screen="Add reminder" volt:purpose="title">Add reminder</string>
+    <string name="maintenance_edit_title" volt:screen="Edit reminder" volt:purpose="title">Edit reminder</string>
+    <string name="maintenance_what" volt:screen="Add reminder" volt:purpose="field label">What to check</string>
+    <string name="maintenance_name_hint" volt:screen="Add reminder" volt:purpose="hint">Type a name or pick one</string>
+    <string name="maintenance_name_empty" volt:screen="Add reminder" volt:purpose="field error">Enter a name or pick one.</string>
+    <!-- Suggested task names (owner answer Q42). Names only: Volt never suggests how often. -->
+    <string name="maintenance_task_tire_pressure" volt:screen="Maintenance" volt:purpose="task name">Tire pressure</string>
+    <string name="maintenance_task_brakes" volt:screen="Maintenance" volt:purpose="task name">Brakes</string>
+    <string name="maintenance_task_bolts_folding" volt:screen="Maintenance" volt:purpose="task name">Bolts &amp; folding</string>
+    <string name="maintenance_task_lights" volt:screen="Maintenance" volt:purpose="task name">Lights</string>
+    <string name="maintenance_task_clean_dry" volt:screen="Maintenance" volt:purpose="task name">Clean &amp; dry</string>
+    <string name="maintenance_task_battery_storage" volt:screen="Maintenance" volt:purpose="task name">Battery storage</string>
+    <string name="maintenance_remind_after" volt:screen="Add reminder" volt:purpose="field label">Remind me after</string>
+    <string name="maintenance_by_distance" volt:screen="Add reminder" volt:purpose="choice">Distance</string>
+    <string name="maintenance_by_time" volt:screen="Add reminder" volt:purpose="choice">Time</string>
+    <string name="maintenance_by_either" volt:screen="Add reminder" volt:purpose="choice">Either</string>
+    <string name="maintenance_either_note" volt:screen="Add reminder" volt:purpose="note">Whichever comes first.</string>
+    <!-- %1$s is the unit, km or mi. -->
+    <string name="maintenance_distance_field" volt:screen="Add reminder" volt:purpose="field label">Distance, in %1$s</string>
+    <string name="maintenance_time_field" volt:screen="Add reminder" volt:purpose="field label">Time</string>
+    <string name="maintenance_unit_days" volt:screen="Add reminder" volt:purpose="choice">Days</string>
+    <string name="maintenance_unit_weeks" volt:screen="Add reminder" volt:purpose="choice">Weeks</string>
+    <string name="maintenance_unit_months" volt:screen="Add reminder" volt:purpose="choice">Months</string>
+    <string name="maintenance_counting_from" volt:screen="Add reminder" volt:purpose="field label">Counting from</string>
+    <string name="maintenance_save" volt:screen="Add reminder" volt:purpose="button">Save reminder</string>
+    <!-- %1$d is the most reminders one scooter can have. -->
+    <string name="maintenance_full" volt:screen="Add reminder" volt:purpose="error">A scooter can have up to %1$d reminders.</string>
+
+    <!-- Reminder detail. -->
+    <string name="maintenance_detail_interval" volt:screen="Reminder" volt:purpose="row label">How often</string>
+    <string name="maintenance_detail_from" volt:screen="Reminder" volt:purpose="row label">Counting from</string>
+    <string name="maintenance_detail_due" volt:screen="Reminder" volt:purpose="row label">Due</string>
+    <!-- The odometer reading when a distance reminder is due: %1$s is the reading with its unit. -->
+    <string name="maintenance_at_odometer" volt:screen="Reminder" volt:purpose="value">at %1$s</string>
+    <string name="maintenance_event_added" volt:screen="Reminder history" volt:purpose="event">Added</string>
+    <string name="maintenance_event_done" volt:screen="Reminder history" volt:purpose="event">Done</string>
+    <string name="maintenance_event_snoozed" volt:screen="Reminder history" volt:purpose="event">Snoozed</string>
+    <!-- The distance ridden between two Done events: %1$s is the distance with its unit. -->
+    <string name="maintenance_event_after" volt:screen="Reminder history" volt:purpose="value">%1$s after the last</string>
+</resources>

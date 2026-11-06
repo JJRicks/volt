@@ -81,4 +81,24 @@
     <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation" volt:dnt="Volt">The card starts only if the scooter is still connected when you leave Volt, and it\'s charging or has a charging start time set. While it shows, other apps, the official one included, can\'t connect to the scooter. Tap Stop on the card to end it.</string>
     <!-- Notifications are off for Volt: the card can't show. -->
     <string name="charge_live_perm" volt:screen="Live charging sheet" volt:purpose="warning" volt:dnt="Volt">Notifications are off for Volt, so the live charging card can\'t show.</string>
+
+    <!-- ===== More › Developer options: Live Update status (Android 16 promotion) ===== -->
+
+    <!-- Row title: whether Android promotes the live charging card to a Live Update (the status-bar chip). -->
+    <string name="charge_live_update_row" volt:screen="Developer options" volt:purpose="row"
+        volt:max="220dp@15sp">Live Update status</string>
+    <!-- Status: Android shows the card as a Live Update now. -->
+    <string name="charge_live_update_promoted" volt:screen="Developer options" volt:purpose="row detail">Promoted</string>
+    <!-- Status: the owner turned Live Updates off for Volt in Android's settings. Tapping the row opens that setting. -->
+    <string name="charge_live_update_not_allowed" volt:screen="Developer options" volt:purpose="row detail">Not allowed in Android settings</string>
+    <!-- Status: the phone runs Android 15 or older, which has no Live Updates. -->
+    <string name="charge_live_update_old_android" volt:screen="Developer options" volt:purpose="row detail">Android 15 or older</string>
+    <!-- Status: Android 16, but this version has no way to ask for a Live Update. -->
+    <string name="charge_live_update_unavailable" volt:screen="Developer options" volt:purpose="row detail">Not available on this Android version</string>
+    <!-- Status: the card showing now doesn't meet Android's rules for a Live Update. -->
+    <string name="charge_live_update_not_promotable" volt:screen="Developer options" volt:purpose="row detail">Not promotable</string>
+    <!-- Status: the card meets the rules and asked, but Android didn't promote it. -->
+    <string name="charge_live_update_not_promoted" volt:screen="Developer options" volt:purpose="row detail">Not promoted by Android</string>
+    <!-- Status: allowed; nothing to show until the next live charging card. -->
+    <string name="charge_live_update_ready" volt:screen="Developer options" volt:purpose="row detail">Allowed · shows with the next live card</string>
 </resources>
