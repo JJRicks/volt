@@ -297,6 +297,7 @@ python3 -m unittest discover -s tools/l10n
 python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
 python3 tests/hardware-sweep-test.py
+python3 tests/rides-timing-gate-test.py
 python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
 python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 ```
