@@ -78,6 +78,11 @@ class RepositoryFilesTest(unittest.TestCase):
         workflow = l10nlib.read_text(os.path.join(ROOT, ".github", "workflows", "tests.yml"))
         gates = workflow[workflow.index("Localization proof gates"):workflow.index("web-setup:")]
         self.assertIn("python3 tools/l10n/ship_check.py\n", gates)
+        self.assertNotIn("--release", gates, "pull requests run the report-only mode; releases run --release")
+
+    def test_releasing_runs_the_strict_ship_check(self):
+        steps = l10nlib.read_text(os.path.join(ROOT, "RELEASING.md"))
+        self.assertIn("python3 tools/l10n/ship_check.py --release --aapt required", steps)
 
     def test_pseudo_build_repairs_aapts_text_before_the_round_trip(self):
         script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
