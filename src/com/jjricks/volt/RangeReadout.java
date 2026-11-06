@@ -64,6 +64,8 @@ public final class RangeReadout {
     private boolean lastKm;
     /** The presentation lastValue was formatted for: units ("mi", "km", "dual") and the tenths toggle. */
     private String lastUnits; private boolean lastTenths;
+    /** The last displayed distance, in km: what a stale reading freezes and reformats (never the filter target). */
+    private double frozenKm = Double.NaN;
     private Value lastValue;
 
     public RangeReadout() { this(new Params()); }
@@ -78,10 +80,10 @@ public final class RangeReadout {
         if (soc < EMPTY_PERCENT) { clear(); return remember(unitsKey, tenths, new Value(State.ALMOST_EMPTY, null, null, km, 0, false, true, s.held, s.stale)); }
         if (s.stale && lastValue != null && lastValue.state != State.HIDDEN && lastValue.state != State.ALMOST_EMPTY) {
             lastMs = s.monoMs;
-            // The estimate stays frozen, in km; only its presentation follows a units or tenths change.
-            if (lastValue.primary != null && !Double.isNaN(smoothKm) && (!unitsKey.equals(lastUnits) || tenths != lastTenths)) {
+            // The displayed distance stays frozen, in km; only its presentation follows a units or tenths change.
+            if (lastValue.primary != null && !Double.isNaN(frozenKm) && (!unitsKey.equals(lastUnits) || tenths != lastTenths)) {
                 Value v = lastValue;
-                double target = smoothKm / (km ? 1 : KM_PER_MI);
+                double target = frozenKm / (km ? 1 : KM_PER_MI);
                 boolean fine = tenths && (v.state == State.LIVE || v.state == State.LOW) && target < 99.5;
                 double q = fine ? .1 : 1, value = Math.max(0, round(target, q));
                 // Carry the switch into the calm state, so fresh readings continue from here without counting it as a movement.
@@ -123,13 +125,14 @@ public final class RangeReadout {
         }
         step = q; lastState = state; lastKm = km;
         double value = Math.max(0, shown);
+        frozenKm = value * perUnit;
         Double secondary = dual ? (Double) round(value * KM_PER_MI, q) : null;
         boolean approx = state != State.LIVE || s.belowSeen;
         return remember(unitsKey, tenths, new Value(state, value == 0 ? 0d : value, secondary, km, fine ? 1 : 0, approx, state == State.LOW, s.held, s.stale));
     }
 
     private Value remember(String units, boolean tenths, Value v) { lastValue = v; lastUnits = units; lastTenths = tenths; return v; }
-    private void clear() { smoothKm = Double.NaN; shown = Double.NaN; lastState = null; lastMs = -1; }
+    private void clear() { smoothKm = Double.NaN; shown = Double.NaN; frozenKm = Double.NaN; lastState = null; lastMs = -1; }
     /** Rounded to the step; never "-0.0". */
     static double round(double x, double q) { double r = Math.round(x / q) * q; r = Math.round(r * 10) / 10.0; return r == 0 ? 0 : r; }
 }

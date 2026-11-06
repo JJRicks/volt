@@ -239,6 +239,21 @@ public final class LiveRangeEstimatorTest {
         // A switch is not a movement: fresh readings carry on from the reformatted value under the calm rules.
         v = r.update(snap(18000, 23.7, 60, false), "km", false);
         check(!v.stale && v.primary == 24, "Fresh again, same value: no jump after the switch");
+        // The filter target runs ahead of the calm display: the frozen value is what was shown, not the target.
+        r = new RangeReadout(); r.update(snap(0, 24.0, 60, false), "km", false);
+        v = r.update(snap(2000, 40.0, 60, false), "km", false);
+        check(v.primary < 26, "Setup: the rise limit holds the display near 24 km while the target jumps: " + v.primary);
+        double frozenKm = v.primary;
+        v = r.update(snap(4000, 40.0, 60, false, true, false, true), "mi", false);
+        check(v.stale && !v.primaryIsKm, "Stale km -> mi");
+        near(Math.round(frozenKm / RangeReadout.KM_PER_MI), v.primary, 1e-9, "Stale km -> mi: the shown " + frozenKm + " km, converted");
+        v = r.update(snap(6000, 40.0, 60, false, true, false, true), "mi", true);
+        near(Math.round(frozenKm / RangeReadout.KM_PER_MI * 10) / 10.0, v.primary, 1e-9, "Stale tenths on: the same frozen distance");
+        double before = v.primary;
+        v = r.update(snap(8000, 40.0, 60, false), "mi", true);
+        double riseLimit = Math.max(.1, Math.max(.25 * .1, .01 * before) * 3);
+        check(!v.stale && v.primary >= before && v.primary <= before + riseLimit + 1e-9,
+                "Fresh again: resumes from the frozen value under the rise limit, not a jump: " + before + " -> " + v.primary);
     }
 
     private static void readoutCalm() {
