@@ -180,10 +180,18 @@
     <string name="more_language_beta">Beta</string>
     <!-- src:e60432a8df2ea691307cce9e8ea19bc6160dedfd -->
     <string name="more_language_value_beta">%1$s · Beta</string>
-    <!-- src:9c28b700ea0c2b121458230c950ca4455b00fdad -->
-    <string name="more_language_note">Las traducciones beta se hacen con IA y se comprueban automáticamente. Los informes y diagnósticos siguen en inglés. Si ves un problema de redacción, usa «Informar de un problema».</string>
+    <!-- src:92a742d14aed5f09ecbe985c533b94a9fc10d212 -->
+    <string name="more_language_in_progress">En preparación</string>
+    <!-- src:97b5bf16d6fc8f34304276963a202367347f3b1e -->
+    <string name="more_language_in_progress_description">%1$s, en preparación</string>
+    <!-- src:a0c2f3248a33f7d983ce11eaea8f644b051def9c -->
+    <string name="more_language_note">Las traducciones beta se hacen con IA y se comprueban automáticamente. Los informes y diagnósticos siguen en inglés. Para informar de un problema de redacción o solicitar un idioma, usa los botones de abajo.</string>
     <!-- src:75f037b4f554fc87835abcfefdee2ebad470fcd6 -->
     <string name="more_language_android_settings">También puedes cambiarlo en Ajustes de Android › Aplicaciones › Volt › Idioma.</string>
+    <!-- src:ad226a74c0bbd8a8b7d01446f1d6f7424d981e69 -->
+    <string name="more_language_report_error">Informar de un error de traducción</string>
+    <!-- src:5e33d167e97de78e9ac8b7c46db646ea0eca1135 -->
+    <string name="more_language_request">Solicitar un idioma</string>
     <!-- src:77f82a990100f34ce560433c0c929c84c3c851af -->
     <string name="more_history_connected">Historial de lecturas</string>
     <!-- src:c3a14cda2fdcecd7010e01072bf5f4025d7de152 -->
@@ -346,6 +354,16 @@
     <string name="more_lab_absent">Sin datos de este patinete</string>
     <!-- src:680874cbdcabe34a2ba2a217aeaaf52a9f177c87 -->
     <string name="more_lab_absent_note">Volt no puede releerlos, así que no los ofrece.</string>
+    <!-- src:4f219f1adf1eacedede400f8b6c77429e18aa747 -->
+    <string name="more_lab_model_named">el %1$s</string>
+    <!-- src:f06bca47cfa56e04be9f348f8a584800f43aee84 -->
+    <string name="more_lab_model_yours">tu modelo</string>
+    <!-- src:167ca055534a19f8df5517fad8bca6efe77bef63 -->
+    <string name="more_lab_intro_untested">La app oficial no ofrece estos controles para %1$s. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
+    <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
+    <string name="more_lab_intro_verify">La app oficial ofrece estos controles para %1$s, pero Volt no los probó en ese modelo. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
+    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
+    <string name="more_lab_empty_oem">Nada que probar en %1$s: la app oficial ya ofrece los controles que Volt podría probar. Están en «Ajustes del patinete».</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt no envía comandos de patinete a este producto.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -460,6 +478,10 @@
     <string name="more_lab_status_unconfirmed">Sin confirmar</string>
     <!-- src:a2548776624e291a39bccc7703069caa47d707c4 -->
     <string name="more_lab_status_checking">Comprobando…</string>
+    <!-- src:7974a1df65ed7d55cbff973224ff674a6f8684e1 -->
+    <string name="more_lab_sheet_untested">Sin probar en %1$s</string>
+    <!-- src:669d9b9dab9ea36291b4b2e1e7d88dee40a3b0a2 -->
+    <string name="more_lab_sheet_unverified">Sin verificar en %1$s</string>
     <!-- src:a0a4b014ace085a4cf5d3cb5d2d6933186f80418 -->
     <string name="more_lab_verify_why">La app oficial ofrece este control para tu modelo, pero Volt no lo ha probado en él. Tu intento y tu respuesta se incluirán en tu próximo informe de compatibilidad.</string>
     <!-- src:3d0b03a6e53bb490b7e5568ecf8987a35b67d66f -->
