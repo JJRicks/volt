@@ -60,6 +60,9 @@ final class BackupRegistry {
         exclude(app, "ride_auto_export_pending", String.class, PENDING);
         exclude(app, "ride_auto_export_problem", String.class, PENDING);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
+        add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
+        add(app, "charge_live_lock_detail", String.class, PREFERENCES);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);
