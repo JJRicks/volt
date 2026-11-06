@@ -17,13 +17,13 @@
   not fit.
 
   A Quick access button is at least 72 dp wide with 4 dp padding on each side, so its name has 64 dp
-  per line at 12 sp (volt:max="64dp@12sp" on every full name; at the smallest app text size the
-  column narrows with the text, to about 61 dp at 12 sp). The name may wrap onto two lines; one that
-  would take three is shrunk to 10 sp. A single word must fit one line: a wider word is broken in the
-  middle (the English "Experimental", "preferences" and "permissions", 66 to 74 dp at 12 sp, escape
-  that only because their names then run to three lines and shrink). The width check measures the
-  whole name on one line, so a name over the budget can still be right when it wraps between words
-  into two lines.
+  per line at 12 sp (volt:max="64dp@12sp*2" on every full name; at the smallest app text size the
+  column narrows with the text, to about 61 dp at 12 sp). The name wraps between words onto up to two
+  lines and is never shown smaller (QuickAccessGrid.measureContent, StatusRungs.wholeLines): when it
+  does not fit, the button shows the _short rung the same way, and when that does not fit either, the
+  icon alone. A single word must fit one line (the English "Experimental", "preferences" and
+  "permissions", 66 to 74 dp at 12 sp, do not, so those buttons show their icon alone). The width
+  check measures the same greedy whole-word wrap into two lines of 64 dp each.
 
   Tile announcements (the _desc_ entries) are joined in a fixed order after the shortcut's name:
   name, then the value, then why it is muted, then "toggle" or "open". Each entry carries its own
@@ -34,58 +34,58 @@
 
     <!-- Shortcut names (QuickAccessActions.Entry.label(), shortLabel()). Entry.label stays the English. -->
     <!-- Opens the lights menu. -->
-    <string name="dashboard_model_qa_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Lights</string>
+    <string name="dashboard_model_qa_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Lights</string>
     <string name="dashboard_model_qa_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Lights</string>
     <!-- Opens the scooter settings menu. -->
-    <string name="dashboard_model_qa_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Settings</string>
+    <string name="dashboard_model_qa_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Settings</string>
     <string name="dashboard_model_qa_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Settings</string>
     <!-- Opens the Live Stats page (the page's own name). -->
-    <string name="dashboard_model_qa_live_stats" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Live Stats</string>
+    <string name="dashboard_model_qa_live_stats" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Live Stats</string>
     <string name="dashboard_model_qa_live_stats_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Live Stats</string>
     <!-- Opens the Rides page (recorded rides). -->
-    <string name="dashboard_model_qa_rides" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Rides</string>
+    <string name="dashboard_model_qa_rides" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Rides</string>
     <string name="dashboard_model_qa_rides_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Rides</string>
     <!-- Opens the scooter's ride settings (cruise control, energy recovery, speed). -->
-    <string name="dashboard_model_qa_ride_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Ride settings</string>
+    <string name="dashboard_model_qa_ride_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Ride settings</string>
     <string name="dashboard_model_qa_ride_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Ride settings</string>
     <!-- Opens the scooter's battery settings (charge limit, charge schedule). -->
-    <string name="dashboard_model_qa_battery_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Battery settings</string>
+    <string name="dashboard_model_qa_battery_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Battery settings</string>
     <string name="dashboard_model_qa_battery_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Battery settings</string>
     <!-- Opens the settings of the scooter's line (strip) lights. -->
-    <string name="dashboard_model_qa_line_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Line lights</string>
+    <string name="dashboard_model_qa_line_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Line lights</string>
     <string name="dashboard_model_qa_line_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Line lights</string>
     <!-- Opens the settings of the scooter's star (ambient) lights. -->
-    <string name="dashboard_model_qa_star_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Star lights</string>
+    <string name="dashboard_model_qa_star_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Star lights</string>
     <string name="dashboard_model_qa_star_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Star lights</string>
     <!-- Opens the settings of the scooter's own display and its sounds. -->
-    <string name="dashboard_model_qa_dashboard_sound" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Dashboard &amp; sound</string>
+    <string name="dashboard_model_qa_dashboard_sound" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Dashboard &amp; sound</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Dashboard &amp; sound</string>
     <!-- Opens the security menu: the scooter's PIN and the phone-proximity unlock. -->
-    <string name="dashboard_model_qa_pin_proximity" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp" volt:safety="pin" volt:dnt="PIN">PIN &amp; proximity</string>
+    <string name="dashboard_model_qa_pin_proximity" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:safety="pin" volt:dnt="PIN">PIN &amp; proximity</string>
     <string name="dashboard_model_qa_pin_proximity_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="pin" volt:dnt="PIN">PIN &amp; proximity</string>
     <!-- Opens the menu where the scooter's name is changed. -->
-    <string name="dashboard_model_qa_scooter_name" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Scooter name</string>
+    <string name="dashboard_model_qa_scooter_name" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Scooter name</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Scooter name</string>
     <!-- Opens Volt's own app preferences (units, theme). -->
-    <string name="dashboard_model_qa_app_preferences" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">App preferences</string>
+    <string name="dashboard_model_qa_app_preferences" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">App preferences</string>
     <string name="dashboard_model_qa_app_preferences_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">App preferences</string>
     <!-- Opens the list of saved scooters. -->
-    <string name="dashboard_model_qa_my_scooters" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">My scooters</string>
+    <string name="dashboard_model_qa_my_scooters" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">My scooters</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">My scooters</string>
     <!-- Opens the experimental controls (settings the official app hides or that Volt cannot confirm). -->
-    <string name="dashboard_model_qa_experimental" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp" volt:safety="experimental">Experimental controls</string>
+    <string name="dashboard_model_qa_experimental" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:safety="experimental">Experimental controls</string>
     <string name="dashboard_model_qa_experimental_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="experimental">Experimental controls</string>
     <!-- Opens recorded data, history and backups. -->
-    <string name="dashboard_model_qa_data_history" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">Data &amp; history</string>
+    <string name="dashboard_model_qa_data_history" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">Data &amp; history</string>
     <string name="dashboard_model_qa_data_history_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Data &amp; history</string>
     <!-- Opens the app's about page and its Android permissions. -->
-    <string name="dashboard_model_qa_about_permissions" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp">About &amp; permissions</string>
+    <string name="dashboard_model_qa_about_permissions" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2">About &amp; permissions</string>
     <string name="dashboard_model_qa_about_permissions_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">About &amp; permissions</string>
     <!-- Turns on or off Volt's plan to have the battery charged by a chosen time of day. -->
-    <string name="dashboard_model_qa_charge_done_by" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp" volt:safety="charge">Charge done by</string>
+    <string name="dashboard_model_qa_charge_done_by" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:safety="charge">Charge done by</string>
     <string name="dashboard_model_qa_charge_done_by_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by</string>
     <!-- Picks the time of day by which the battery should be charged. -->
-    <string name="dashboard_model_qa_charge_done_time" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp" volt:safety="charge">Charge done by time</string>
+    <string name="dashboard_model_qa_charge_done_time" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:safety="charge">Charge done by time</string>
     <string name="dashboard_model_qa_charge_done_time_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by time</string>
 
     <!-- Shortcut groups, the caption under a name in the shortcut picker (Entry.groupLabel()). -->

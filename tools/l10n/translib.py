@@ -176,11 +176,12 @@ def dnt_of(meta):
 
 
 def parse_max(value):
-    """(dp, sp) from a volt:max such as 96dp@14sp, or None."""
+    """(dp, sp, lines) from a volt:max such as 96dp@14sp (one line) or 64dp@12sp*2 (up to two lines of
+    whole words, each within 64dp), or None."""
     if not value:
         return None
-    m = re.match(r"^(\d+(?:\.\d+)?)dp@(\d+(?:\.\d+)?)sp$", value)
-    return (float(m.group(1)), float(m.group(2))) if m else None
+    m = re.match(r"^(\d+(?:\.\d+)?)dp@(\d+(?:\.\d+)?)sp(?:\*([2-9]))?$", value)
+    return (float(m.group(1)), float(m.group(2)), int(m.group(3) or 1)) if m else None
 
 
 def ladder_base(key, meta):

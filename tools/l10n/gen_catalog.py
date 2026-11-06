@@ -49,7 +49,8 @@ LADDERS = ("full", "short", "compact")
 SAFETY = ("lock", "ride", "alarm", "charge", "experimental", "owner-key", "pin", "privacy", "disclaimer")
 VOLT_ATTRIBUTES = ("screen", "purpose", "max", "ladder", "safety", "dnt", "english-fix")
 KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
-MAX_PATTERN = re.compile(r"^\d+(?:\.\d+)?dp@\d+(?:\.\d+)?sp$")
+# <dp>dp@<sp>sp, then *<lines> when the view wraps whole words onto up to that many lines (2 to 9).
+MAX_PATTERN = re.compile(r"^\d+(?:\.\d+)?dp@\d+(?:\.\d+)?sp(?:\*[2-9])?$")
 ESCAPES = {"n": "\n", "t": "\t", "'": "'", '"': '"', "\\": "\\", "@": "@", "?": "?", "#": "#"}
 ASCII_SPACE = " \t\n\r\f\v"
 JAVA_TYPES = {"s": "CharSequence", "d": "long", "f": "double"}
@@ -286,7 +287,7 @@ def _read_meta(node, where, problems, allowed_plain):
             if value not in SAFETY:
                 problems.append("%s: volt:safety %r is not one of %s" % (where, value, ", ".join(SAFETY)))
     if "max" in meta and not MAX_PATTERN.match(meta["max"]):
-        problems.append("%s: volt:max must look like 96dp@14sp" % where)
+        problems.append("%s: volt:max must look like 96dp@14sp or 64dp@12sp*2" % where)
     if "english-fix" in meta and meta["english-fix"] != "pending":
         problems.append("%s: volt:english-fix may only be \"pending\"" % where)
     return meta, plain

@@ -38,7 +38,8 @@ Checks, per key (a plural is checked per quantity):
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
-  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
+  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py); a
+                budget with *N lines fits when a greedy whole-word wrap takes at most N lines
   polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
                 added where the English has none (on -> "no activada"); per-language lexicons in
                 lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-"); and
@@ -789,18 +790,25 @@ def check_targets(pack, targets, font=None, measurer=None, ladders=True):
                                         language["tag"]))
             continue
         for quantity, text in items.items():
-            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry))))
+            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry)),
+                             entry.get("budget_lines") or 1))
             owners.append((key, quantity if kind == "plural" else None))
     if requests and measurer is not None:
-        widths = measurer.measure(requests)
+        # With budget_lines above 1 a width is the narrowest that holds the text in that many lines of
+        # whole words (fontmetrics.measure_lines), and english_width_dp is the English measured the same way.
+        widths = fontmetrics.measure_lines(measurer, requests)
         for (key, quantity), width in zip(owners, widths):
             entry = entries[key]
             budget = entry["budget_dp"]
+            lines = entry.get("budget_lines") or 1
             if width > budget + 0.01:
                 english_fits = entry["english_width_dp"] <= budget + 0.01
+                shown = "no width" if width >= fontmetrics.NO_FIT else "%.1fdp" % width
+                where = "" if lines == 1 else " in %d lines of whole words" % lines
                 out = finding("width", ERROR if english_fits else WARN,
-                              "%.1fdp at %gsp exceeds the %gdp budget (English %.1fdp; %s)" % (
-                                  width, entry["budget_sp"], budget, entry["english_width_dp"], measurer.method),
+                              "%s at %gsp exceeds the %gdp budget%s (English %.1fdp; %s)" % (
+                                  shown, entry["budget_sp"], budget, where, entry["english_width_dp"],
+                                  measurer.method),
                               quantity)
                 results[key].append(out)
     return results
