@@ -546,7 +546,9 @@ public final class RidesScreen implements AppScreen {
             row.setPadding(0, ui.dp(10), 0, ui.dp(10));
             row.addView(skeletonBlock(9), new LinearLayout.LayoutParams(ui.dp(52), ui.dp(40)));
             LinearLayout words = vertical();
-            words.addView(skeletonBlock(5), new LinearLayout.LayoutParams(ui.dp(i == 1 ? 96 : 128), ui.dp(12)));
+            // The name bar follows the column's width, so it never reaches the distance on a narrow wide-layout list.
+            LinearLayout.LayoutParams name = new LinearLayout.LayoutParams(-1, ui.dp(12)); name.rightMargin = ui.dp(i == 1 ? 72 : 36);
+            words.addView(skeletonBlock(5), name);
             LinearLayout.LayoutParams when = new LinearLayout.LayoutParams(ui.dp(84), ui.dp(10)); when.topMargin = ui.dp(9);
             words.addView(skeletonBlock(5), when);
             LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1); wordsParams.leftMargin = ui.dp(12);
