@@ -291,7 +291,13 @@ public final class RideStore {
         boolean matches(long length, long modified) { return this.length == length && this.modified == modified; }
     }
 
-    public RideStore(File directory) throws IOException {
+    public RideStore(File directory) throws IOException { this(directory, false); }
+    /**
+     * deferFinished: replay only the journals that may be unfinished, so the service can start (and connect) without
+     * reading every saved ride first. A journal whose tail is a STOP row followed by whole RENAME rows is finished and
+     * is left for later; list() on a worker then reads it into the cache. Any other tail is replayed now, as before.
+     */
+    public RideStore(File directory, boolean deferFinished) throws IOException {
         if (directory == null) throw new IllegalArgumentException("Ride directory required");
         this.directory = directory;
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Cannot create ride directory");
@@ -299,6 +305,7 @@ public final class RideStore {
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list ride directory");
         for (File file : files) if (isJournal(file)) {
+            if (deferFinished && endsFinished(file)) continue;
             long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
             if (candidate == null) continue;
@@ -781,6 +788,36 @@ public final class RideStore {
             }
         } finally { reader.close(); }
         return a;
+    }
+    /**
+     * True only when the journal ends with a STOP row followed by nothing but whole RENAME rows, the only rows Volt
+     * appends after STOP. A full replay of such a journal finds it finished (or unreadable without a START), never
+     * unfinished. Quotes, carriage returns, a partial last row or any other event return false, so the caller replays.
+     */
+    static boolean endsFinished(File file) {
+        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(file, "r")) {
+            long length = in.length();
+            int window = (int) Math.min(length, 16384);
+            if (window == 0) return false;
+            byte[] tail = new byte[window];
+            in.seek(length - window); in.readFully(tail);
+            String text = new String(tail, "UTF-8");
+            if (!text.endsWith("\n")) return false;
+            String[] lines = text.substring(0, text.length() - 1).split("\n", -1);
+            // The window's first line may start mid-row; it is never trusted.
+            int first = window < length ? 1 : 0;
+            for (int i = lines.length - 1; i >= first; i--) {
+                String line = lines[i];
+                if (line.indexOf('"') >= 0 || line.indexOf('\r') >= 0) return false;
+                String[] f = line.split(",", -1);
+                if (f.length != 15 || !"1".equals(f[0])) return false;
+                if ("RENAME".equals(f[1])) continue;
+                if (!"STOP".equals(f[1])) return false;
+                Long.parseLong(f[3]); Long.parseLong(f[4]);
+                return true;
+            }
+            return false;
+        } catch (IOException | RuntimeException unreadable) { return false; }
     }
     /** Read a staged journal without recovery or any writes to its containing folder. */
     static Summary inspectJournal(File source) throws IOException {

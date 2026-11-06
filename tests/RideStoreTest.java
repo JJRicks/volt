@@ -33,6 +33,7 @@ public final class RideStoreTest {
         longHistoryNeverRereadsEveryRide();
         unfinishedJournalsAreNeverServedAsFinished();
         listReplayDoesNotBlockRecording();
+        deferredStartReadsOnlyUnfinishedJournals();
         System.out.println("RideStoreTest: " + assertions + " assertions passed");
     }
     private static File directory() throws Exception { return Files.createTempDirectory("navee-rides-test-").toFile(); }
@@ -461,6 +462,37 @@ public final class RideStoreTest {
         lister.join(5000);
         check(!lister.isAlive() && store.activeSummary().sampleCount == 1, "list() finishes and the sample was kept");
         store.stop(WALL + 9 * 86400000L + 2000, 2000);
+    }
+    private static void deferredStartReadsOnlyUnfinishedJournals() throws Exception {
+        File dir = directory(); RideStore setup = new RideStore(dir);
+        List<String> ids = finishedRides(setup, 3, 400);
+        File f0 = new File(dir, ids.get(0) + ".csv"), f1 = new File(dir, ids.get(1) + ".csv"), f2 = new File(dir, ids.get(2) + ".csv");
+        check(f0.length() > 16384 && RideStore.endsFinished(f0), "A long finished journal ends finished");
+        setup.rename(ids.get(1), "Campus loop");
+        check(RideStore.endsFinished(f1), "Plain renames after STOP still end finished");
+        setup.rename(ids.get(2), "Campus, return");
+        check(!RideStore.endsFinished(f2), "A quoted rename is replayed instead of trusted");
+        String auto = setup.start("UT5", "Parked", WALL + 5 * 86400000L, 0); setup.sample(WALL + 5 * 86400000L, 0, snapshot(0, 100, 20, 1));
+        setup.stop(WALL + 5 * 86400000L + 1000, 1000, RideStore.STOP_AUTO_PARKED);
+        check(RideStore.endsFinished(new File(dir, auto + ".csv")), "An automatic parked stop ends finished");
+        String open = setup.start("UT5", "Still recording", WALL + 6 * 86400000L, 0);
+        setup.sample(WALL + 6 * 86400000L, 0, snapshot(0, 100, 20, 1));
+        File openFile = new File(dir, open + ".csv");
+        check(!RideStore.endsFinished(openFile), "An unfinished journal never ends finished");
+        File empty = new File(dir, java.util.UUID.randomUUID() + ".csv"); Files.write(empty.toPath(), new byte[0]);
+        check(!RideStore.endsFinished(empty), "An empty journal is replayed");
+        File cut = directory(); File partial = new File(cut, ids.get(0) + ".csv"); Files.copy(f0.toPath(), partial.toPath());
+        Files.write(partial.toPath(), "1,RENAME,2026".getBytes(StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND);
+        check(!RideStore.endsFinished(partial), "A partial last row is replayed");
+        long before = replays();
+        RideStore deferred = new RideStore(dir, true);
+        check(open.equals(deferred.activeId()) && replays() - before == 3, "A deferred start replays only the open, quoted and empty journals and recovers the same ride");
+        check(empty.delete(), "Fixture removes the unreadable journal");
+        before = replays();
+        check(deferred.list().size() == 5 && replays() - before == 3, "The worker's list() reads the deferred journals once");
+        before = replays(); deferred.list();
+        check(replays() == before, "Then Rides opens from the cache");
+        deferred.stop(WALL + 6 * 86400000L + 2000, 2000);
     }
     private static boolean sameTrend(List<RideStore.Point> a, List<RideStore.Point> b) {
         if (a.size() != b.size()) return false;
