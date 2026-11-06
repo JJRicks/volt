@@ -201,7 +201,8 @@ public final class RidesTimingValidation extends Instrumentation {
             if ((int) field(screen, "savedCount") == count && !((String) field(screen, "historySignature")).isEmpty()) return SystemClock.uptimeMillis();
             SystemClock.sleep(2);
         }
-        throw new AssertionError("History rows never arrived");
+        // Too late: the existing "History rows drawn" check then fails.
+        return until;
     }
     private long firstDrawAfter(long time) {
         synchronized (draws) { for (long[] draw : draws) if (draw[0] >= time) return draw[0]; }
