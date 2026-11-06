@@ -33,7 +33,7 @@ public final class BackupRelabelTest {
         public String language() { return "de"; }
     };
 
-    private static final String DATE = "java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM,java.text.DateFormat.SHORT).format(new Date(staged.createdAtMs))";
+    private static final String DATE = "DisplayTime.dateTime(this,getSharedPreferences(\"app_settings\",MODE_PRIVATE),staged.createdAtMs)";
 
     public static void main(String[] args) throws Exception {
         String code = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/BackupActivity.java")), StandardCharsets.UTF_8);

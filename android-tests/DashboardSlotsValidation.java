@@ -8,9 +8,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.jjricks.volt.AllWidgetsDashboard;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardEditHistory;
 import com.jjricks.volt.DashboardLayout;
+import com.jjricks.volt.Msg;
 import com.jjricks.volt.T;
 
 import org.json.JSONArray;
@@ -67,6 +69,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
             quickAccessPersistence();
             legacyFourColumnSlots();
             temporaryWidthConstraints();
+            exampleCopiesKeepTheirWords();
             editHistoryRestoresStructureOnly();
             editHistoryRestoresBothDisplays();
             editHistoryNoOpsAndBounds();
@@ -297,6 +300,28 @@ public final class DashboardSlotsValidation extends Instrumentation {
         checks.add("Injected example-builder failures leave valid/custom and fresh dashboards usable, preserve saved state, and allow a later retry without regenerating active widget IDs");
         checks.add("Every example type has sensible options and explicit nonoverlapping, gap-free 1–6-column layouts; measured sizing remains safe without rewriting the saved example");
     }
+
+    /** A duplicate of the example's widget shows its original's words in every language; its saved text stays English. */
+    private void exampleCopiesKeepTheirWords() {
+        for (DashboardConfig.Widget widget : AllWidgetsDashboard.create()) {
+            DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(widget);
+            copy.title = widget.title;
+            copy.note = widget.note;
+            require(copy.type.equals(widget.type) && !copy.id.equals(widget.id), "A copy is the same type with its own id");
+            require(words(AllWidgetsDashboard.exampleTitle(copy)).equals(words(AllWidgetsDashboard.exampleTitle(widget)))
+                            && words(AllWidgetsDashboard.exampleNote(copy)).equals(words(AllWidgetsDashboard.exampleNote(widget))),
+                    "A copy of the example's " + widget.type + " does not show its original's words");
+        }
+        DashboardConfig.Widget mine = new DashboardConfig.Widget("note");
+        mine.note = "Check tyre pressure";
+        DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(mine);
+        copy.note = mine.note;
+        require(AllWidgetsDashboard.exampleNote(copy) == null && !AllWidgetsDashboard.isExample(copy),
+                "A copy of the owner's widget became the example's");
+        checks.add("A duplicate of an example widget shows its original's words with English saved text; an owner's stays the owner's");
+    }
+
+    private static String words(Msg message) { return message == null ? "" : message.english(); }
 
     private DashboardConfig withExampleFactory(String profile,
             java.util.function.Supplier<ArrayList<DashboardConfig.Widget>> factory) throws Exception {
@@ -1398,8 +1423,9 @@ public final class DashboardSlotsValidation extends Instrumentation {
 
     /**
      * B12: titles, notes and slot names Volt gave show through the catalogue, in English exactly as
-     * saved, and an owner's own text shows as saved. (A marked language needs a T.Source type, which an
-     * existing test may not declare; DashboardModelTextTest checks the keys against this English.)
+     * saved except the example note's tyre/tire spelling, and an owner's own text shows as saved. (A
+     * marked language needs a T.Source type, which an existing test may not declare;
+     * DashboardModelTextTest checks the keys against this English.)
      */
     private void displayNames() throws Exception {
         T.Source saved = T.source();
@@ -1410,7 +1436,11 @@ public final class DashboardSlotsValidation extends Instrumentation {
             for (DashboardConfig.Widget widget : config.widgets) {
                 require(DashboardConfig.displayTitle(widget).equals(widget.title),
                         "English " + widget.type + " title changed: " + DashboardConfig.displayTitle(widget));
-                require(DashboardConfig.displayNote(widget).equals(widget.note), "English " + widget.type + " note changed");
+                // The example's note is saved as "Check tyre pressure" and shows the catalogue's English, which the
+                // owner-approved D3 fix made US spelling; every other note shows exactly as saved.
+                String note = DashboardConfig.voltNote(widget) != null ? "Check tire pressure" : widget.note;
+                require(DashboardConfig.displayNote(widget).equals(note),
+                        "English " + widget.type + " note changed: " + DashboardConfig.displayNote(widget));
             }
             for (int i = 0; i < DashboardConfig.TYPES.length; i++) {
                 require(DashboardConfig.typeName(i).equals(DashboardConfig.NAMES[i]), "English type name " + i + " changed");

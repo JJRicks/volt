@@ -1,0 +1,9 @@
+# F5, the Rides screen follow-ups left by B15 and B14 (l10n/README.md). tests/run.sh compiles every path
+# listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English RidesScreen builds at the merge base for what F5 changes (number and unit splits, the
+# "Not measured" forms, the sensors summary, battery changes, legend titles, spoken point readings, the
+# sensor icon colours, the storage size), copied from the merge base and pinned before the batch.
+tests/l10n/characterization/RidesFollowupsEnglishTest.java
+# F5's own suite and the plain-Java code it runs for real.
+src/com/jjricks/volt/RideText.java
+tests/l10n/RidesFollowupsTest.java
