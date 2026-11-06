@@ -738,8 +738,10 @@ final class RidingScreen implements AppScreen {
             }
             case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
                 RidingValues.Reading scooter = v.reading(RidingValues.SCOOTER_RANGE_KEY, now);
+                RidingValues.Reading battery = v.reading(RidingValues.BATTERY_KEY, now);
+                Double percent = battery == null ? null : battery.value;
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
-                        scooter == null || scooter.stale, units);
+                        scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
                 s.icon = "route";
                 // The label names whose estimate it is; a chosen source keeps its name with no reading.
                 if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))

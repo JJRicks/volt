@@ -135,7 +135,10 @@ public final class RidingEditorTest {
         return new RangeReadout.Value(state, primary, null, false, decimals, approx, false, false, false);
     }
 
-    /** Volt's range chosen in the editor shows Volt's own estimate, never the scooter's, with distinct values. */
+    /**
+     * Volt's range chosen in the editor shows the learned estimate from past rides at this battery
+     * reading: never this ride's pace, never the scooter's. Learned, live and scooter values all present at once.
+     */
     private static void voltRange() {
         RidingEditor e = new RidingEditor(new RidingLayout());
         e.showFrame(RidingLayout.HALO);
@@ -143,20 +146,33 @@ public final class RidingEditorTest {
         check(e.choose("highlight", RidingLayout.RANGE_VOLT), "Volt's range chosen");
         String content = RidingLayout.parse(e.working().toJson()).content(RidingLayout.HALO, "highlight");
         check(RidingLayout.RANGE_VOLT.equals(content), "Volt's range is saved");
+
+        // Learned: 1000 Wh at 18 Wh/km, so 40 km at 72 %. Live pace: 17.3 km. Scooter: 38.4 km.
+        RidingSession session = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        check(session.learnedKm(72.0) == null, "no learned model: no learned range");
+        session.setPrior(LiveRangeEstimator.Prior.synthetic(18, 1000, null));
+        Double learned = session.learnedKm(72.0);
+        check(learned != null && near(learned, 40), "the learned model's remaining km at 72 %: " + learned);
+        check(session.learnedKm(null) == null, "no battery reading: no learned range");
+        RangeReadout.Value live = readout(RangeReadout.State.LIVE, 17.3, 1, false);
         double scooterKm = 38.4;
-        RidingFocus.Range learned = RidingFocus.range(content, readout(RangeReadout.State.NO_HISTORY, 21.0, 0, true), scooterKm, false, "km");
-        check(learned.kind == RidingFocus.RangeKind.VOLT && near(learned.value, 21) && learned.approx, "the learned estimate, 21, not the scooter's 38: " + learned.kind + " " + learned.value);
-        RidingFocus.Range live = RidingFocus.range(content, readout(RangeReadout.State.LIVE, 17.3, 1, false), scooterKm, false, "km");
-        check(live.kind == RidingFocus.RangeKind.VOLT && near(live.value, 17.3) && live.decimals == 1, "the live energy model's estimate: " + live.value);
-        RidingFocus.Range noEstimate = RidingFocus.range(content, readout(RangeReadout.State.NO_HISTORY, null, 0, false), scooterKm, false, "km");
-        check(noEstimate.kind == RidingFocus.RangeKind.NONE && noEstimate.value == null, "no Volt estimate: no reading, never the scooter's");
-        check(RidingFocus.range(content, null, scooterKm, false, "km").kind == RidingFocus.RangeKind.NONE, "before the first feed: no reading");
-        check(RidingFocus.range(content, readout(RangeReadout.State.HIDDEN, null, 0, false), scooterKm, false, "km").kind == RidingFocus.RangeKind.NONE, "charging: no reading");
-        check(RidingFocus.range(content, readout(RangeReadout.State.ALMOST_EMPTY, null, 0, false), scooterKm, false, "km").kind == RidingFocus.RangeKind.ALMOST_EMPTY, "almost empty still says so");
-        RidingFocus.Range scooter = RidingFocus.range(RidingLayout.RANGE_SCOOTER, readout(RangeReadout.State.NO_HISTORY, 21.0, 0, true), scooterKm, false, "km");
-        check(scooter.kind == RidingFocus.RangeKind.SCOOTER && near(scooter.value, 38), "the scooter's range stays the scooter's");
-        RidingFocus.Range pace = RidingFocus.range(RidingLayout.RANGE_AT_PACE, readout(RangeReadout.State.NO_HISTORY, null, 0, false), scooterKm, false, "km");
-        check(pace.kind == RidingFocus.RangeKind.SCOOTER, "Range at this pace still falls back to the scooter's, labelled as such");
+        RidingFocus.Range volt = RidingFocus.range(content, live, scooterKm, false, learned, 72.0, false, "km");
+        check(volt.kind == RidingFocus.RangeKind.VOLT && near(volt.value, 40) && volt.approx && volt.decimals == 0,
+                "Volt's range shows the learned 40, not the live 17.3 or the scooter's 38: " + volt.kind + " " + volt.value);
+        RidingFocus.Range pace = RidingFocus.range(RidingLayout.RANGE_AT_PACE, live, scooterKm, false, learned, 72.0, false, "km");
+        check(pace.kind == RidingFocus.RangeKind.AT_PACE && near(pace.value, 17.3), "Range at this pace, same state, shows the live 17.3: " + pace.value);
+        RidingFocus.Range scooter = RidingFocus.range(RidingLayout.RANGE_SCOOTER, live, scooterKm, false, learned, 72.0, false, "km");
+        check(scooter.kind == RidingFocus.RangeKind.SCOOTER && near(scooter.value, 38), "the scooter's range, same state, stays the scooter's");
+        check(near(RidingFocus.range(content, live, scooterKm, false, learned, 72.0, false, "mi").value, 25), "in miles: 40 km is about 25 mi");
+        check(RidingFocus.range(content, live, scooterKm, false, learned, 72.0, true, "km").dim, "a stale battery reading dims it");
+
+        RidingFocus.Range noModel = RidingFocus.range(content, live, scooterKm, false, null, 72.0, false, "km");
+        check(noModel.kind == RidingFocus.RangeKind.NONE && noModel.value == null, "no learned model: no reading, never the live pace or the scooter's");
+        check(RidingFocus.range(content, live, scooterKm, false, learned, null, false, "km").kind == RidingFocus.RangeKind.NONE, "no battery reading: no reading");
+        check(RidingFocus.range(content, live, scooterKm, false, "km").kind == RidingFocus.RangeKind.NONE, "the old call without a learned range shows nothing for Volt's range");
+        check(RidingFocus.range(content, live, scooterKm, false, session.learnedKm(1.0), 1.0, false, "km").kind == RidingFocus.RangeKind.ALMOST_EMPTY, "almost empty still says so");
+        RidingFocus.Range fallback = RidingFocus.range(RidingLayout.RANGE_AT_PACE, readout(RangeReadout.State.NO_HISTORY, null, 0, false), scooterKm, false, learned, 72.0, false, "km");
+        check(fallback.kind == RidingFocus.RangeKind.SCOOTER, "Range at this pace still falls back to the scooter's, labelled as such");
     }
 
     private static void disc() {
@@ -219,6 +235,8 @@ public final class RidingEditorTest {
         check(toggle > 0 && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) > toggle
                 && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) < sheet.indexOf("content.addView(reset);"), "every switch refreshes Reset");
         check(screen.contains("content.equals(RidingLayout.RANGE_VOLT)"), "Volt's range keeps its name with no reading");
+        check(screen.contains("session.learnedKm(percent), percent,"), "the screen passes Volt's learned range");
+        check(read("src/com/jjricks/volt/LiveRangeEstimator.java").contains("r::remainingKm"), "the learned range is the learned result's own remainingKm (Home's)");
         check(motion.contains("Ui.motionEnabled()") && motion.contains("disc.setClickable(shown);"), "the motion honours animations off and stops taps");
         for (String s : new String[]{sheet, motion, read("src/com/jjricks/volt/RidingEditor.java")}) {
             check(!s.contains(".send(") && !s.contains("write("), "the editor sends nothing");

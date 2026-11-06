@@ -8,4 +8,5 @@ src/com/jjricks/volt/RidingValues.java
 src/com/jjricks/volt/LiveRangeEstimator.java
 src/com/jjricks/volt/RangeReadout.java
 src/com/jjricks/volt/RidingFocus.java
+src/com/jjricks/volt/RidingSession.java
 tests/l10n/RidingEditorTest.java
