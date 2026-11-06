@@ -32,8 +32,8 @@ BUDGETS = {"rides_cold_first_row_ms": 300, "rides_warm_first_row_ms": 150,
            "rides_cold_longest_main_message_ms": 250, "rides_warm_longest_main_message_ms": 250}
 
 
-def adb(*command, optional=False):
-    result = subprocess.run([args.adb, "-s", args.serial, *command], capture_output=True, text=True)
+def adb(*command, optional=False, timeout=None):
+    result = subprocess.run([args.adb, "-s", args.serial, *command], capture_output=True, text=True, timeout=timeout)
     text = result.stdout + result.stderr
     if result.returncode and not optional:
         raise RuntimeError(text)
@@ -41,7 +41,7 @@ def adb(*command, optional=False):
 
 
 def instrument(*extra):
-    text = adb("shell", "am", "instrument", "-w", "-r", *extra, CLASS)
+    text = adb("shell", "am", "instrument", "-w", "-r", *extra, CLASS, timeout=900)
     values = dict(re.findall(r"INSTRUMENTATION_RESULT: (\w+)=(.*)", text))
     if values.get("result") != "PASS":
         raise RuntimeError(text)

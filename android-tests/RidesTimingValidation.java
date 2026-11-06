@@ -84,12 +84,16 @@ public final class RidesTimingValidation extends Instrumentation {
             result.putLong("process_to_measure_ms", SystemClock.uptimeMillis() - android.os.Process.getStartUptimeMillis());
 
             long t0 = SystemClock.uptimeMillis();
-            activity = (MainActivity) startActivitySync(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            // Not startActivitySync: with a long ride history main never goes idle, and that is what this measures.
+            ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
+            context.startActivity(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            activity = (MainActivity) waitForMonitorWithTimeout(monitor, 60000);
+            check(activity != null, "Volt opened");
             long until = SystemClock.uptimeMillis() + 30000;
             while (activity.service() == null && SystemClock.uptimeMillis() < until) SystemClock.sleep(10);
             check(activity.service() != null, "Service ready");
             long serviceReady = SystemClock.uptimeMillis();
-            SystemClock.sleep(3000); waitForIdleSync();
+            SystemClock.sleep(3000);
             long firstDraw = firstDrawAfter(t0);
             long[] create = message(t0, ": 114"), command = message(t0, ": 115");
             check(create != null && command != null, "Service create and start command seen");
@@ -104,14 +108,15 @@ public final class RidesTimingValidation extends Instrumentation {
 
             for (String pass : new String[]{"rides_cold", "rides_warm"}) {
                 final MainActivity shown = activity;
-                main(() -> invoke(shown, "select", new Class[]{String.class}, "home")); SystemClock.sleep(1500); waitForIdleSync();
+                main(() -> invoke(shown, "select", new Class[]{String.class}, "home")); SystemClock.sleep(1500);
                 long[] selected = new long[2];
                 main(() -> { selected[0] = SystemClock.uptimeMillis(); invoke(shown, "select", new Class[]{String.class}, "rides"); selected[1] = SystemClock.uptimeMillis(); });
-                SystemClock.sleep(2500); waitForIdleSync();
+                SystemClock.sleep(2500);
                 Object screen = field(activity, "screen");
                 check(screen.getClass().getSimpleName().equals("RidesScreen"), "Rides is showing");
                 check((int) field(screen, "savedCount") == seeded.length && ((android.view.ViewGroup) field(screen, "history")).getChildCount() > 0, "History rows drawn");
                 result.putLong(pass + "_select_ms", selected[1] - selected[0]);
+                result.putLong(pass + "_busy_ms", busy(selected[1], selected[1] + 2500));
                 result.putLong(pass + "_first_row_ms", firstDrawAfter(selected[1]) - selected[0]);
                 putLongest(result, pass, selected[0], selected[0] + 2500);
             }
@@ -197,6 +202,12 @@ public final class RidesTimingValidation extends Instrumentation {
                 if (messages.get(i)[0] >= after && labels.get(i).contains("ActivityThread$H") && labels.get(i).endsWith(code)) return messages.get(i);
         }
         return null;
+    }
+    /** Main-thread time spent in messages that started in the window: near the window's length means main never rested. */
+    private long busy(long from, long to) {
+        long total = 0;
+        synchronized (messages) { for (long[] m : messages) if (m[0] >= from && m[0] < to) total += m[1] - m[0]; }
+        return total;
     }
     private void putLongest(Bundle result, String prefix, long from, long to) {
         long longest = -1; String label = "";
