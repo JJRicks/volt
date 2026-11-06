@@ -139,6 +139,8 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             for(int v:new int[]{4,5,6,-1})check(CapabilityResolver.admitExperimental("start_speed",v,d,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,name+": "+v+" km/h is not a try");
             for(int v=0;v<=2;v++)check(ModelRegistry.experimentalCaution("start_speed",v,d)!=null,name+": "+v+" km/h is cautioned");
             check(ModelRegistry.experimentalCaution("start_speed",3,d)==null,name+": 3 km/h needs no caution");
+            for(int v=0;v<=2;v++)check(T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",v,d)),name+": "+v+" km/h shows the stuck-in-P hint");
+            check(T.moreLabWhyRegionStart().contains("3–5 km/h"),name+": the try sheet says the official app offers 3–5 km/h here");
             // A scooter at 4 or 5 km/h (set in Scooter settings) shows as it is in the try sheet.
             byte[] at5=data();at5[19]=5;CapabilityResolver.Decision from5=tryNow("start_speed",d,at5,parked());
             check(from5.available()&&from5.current()==5&&from5.label(5).equals("5 km/h"),name+": 5 km/h shows as it is "+from5.reasonText());
@@ -165,6 +167,10 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         Set<String> never=set(ModelRegistry.NEVER_EXPERIMENTAL);
         for(String key:new String[]{"maximum_speed","drive_speed_limit","overspeed_control"})check(never.contains(key),"Still never experimental: "+key);
         check(ModelRegistry.VERSION==19,"Registry version 19");
+        // The hint is catalog text, and only outside the low-start region.
+        check(T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",1,OemControlsTest.model("22131","ES")))
+            &&T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",0,null))
+            &&T.controlsExperimentalStartSpeed().equals(ModelRegistry.experimentalCaution("start_speed",1,model("22131"))),"Region hint outside the bucket, the usual caution inside it");
     }
 
     /** Every model ID the official app lists: experimental exactly where it hides (or Volt hasn't mapped) an allowed control; never the excluded set. */
