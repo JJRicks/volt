@@ -44,6 +44,14 @@
     <string name="maintenance_manual_title_unknown">Del manual</string>
     <!-- src:03f659b8e00e9ca5fade2ab6775e480f34d36363 -->
     <string name="maintenance_manual_none">Aún no hay intervalos. Volt solo muestra los intervalos de un manual junto con la página de la que salen, así que por ahora eliges tú cada cuánto.</string>
+    <!-- src:6fe6759c5cdefa83eda8b55809fa7aaac4b2884d -->
+    <string name="maintenance_manual_listed">Lo que recomienda el manual. Agrega un intervalo para recibir un recordatorio.</string>
+    <!-- src:536a37aa8fc0739fcb32c88ddb59b52a9e1380fc -->
+    <string name="maintenance_manual_source">%1$s (%2$s), pág. %3$s</string>
+    <!-- src:95d6e5a052d3fe877eab432a0687687067e5a545 -->
+    <string name="maintenance_manual_add">Agregar</string>
+    <!-- src:8cd3db4cf159ed1f6fbf53d2face254189c232ef -->
+    <string name="maintenance_manual_added">Agregado</string>
     <!-- src:482974707753e3476207b7426e32b4f266abe3b3 -->
     <string name="maintenance_manual_unknown">Modelo desconocido. Volt puede mostrar los intervalos de un manual cuando sepa qué modelo es.</string>
     <!-- src:2deed1ef9f0ed4e22b4caa9f0fa01a841518d557 -->
@@ -60,6 +68,8 @@
     <string name="maintenance_stale">Última lectura del odómetro: %1$s. Los viajes posteriores se sumarán cuando Volt vuelva a conectar el patinete.</string>
     <!-- src:2112883eafe451e0996b7e081ceef0efcf31c01f -->
     <string name="maintenance_reset">El odómetro retrocedió (¿una pantalla del patinete o un controlador nuevos, o una puesta a cero?). Los recordatorios por distancia siguen contando desde aquí.</string>
+    <!-- src:8b40298cfdfba790a58baf2f29eaf7876c2ca160 -->
+    <string name="maintenance_distance_next">La distancia se cuenta a partir de la próxima conexión.</string>
     <!-- src:c3c8bac70f46aa28046200ad44f68f67d68d51f1 -->
     <string name="maintenance_never_read">Conecta el patinete una vez para que Volt pueda leer el odómetro.</string>
     <!-- src:feac7ec65a71dc220fc5c431fd1c4c2ea88836da -->
@@ -216,10 +226,14 @@
     <string name="maintenance_name_empty">Escribe un nombre o elige uno.</string>
     <!-- src:9565b01a1f1ae7a5c09b7c6448331a60ede9b912 -->
     <string name="maintenance_task_tire_pressure">Presión de los neumáticos</string>
+    <!-- src:c8816a6b3386c2dd9cb9fe115372bc6fdc157fb6 -->
+    <string name="maintenance_task_tire_tread">Dibujo de los neumáticos</string>
     <!-- src:5bf9d3b57b098ef52f7d25ebc1f04c233cd1feff -->
     <string name="maintenance_task_brakes">Frenos</string>
     <!-- src:4262da6df44354aea9089ef1a1a0519bc0e0dfed -->
     <string name="maintenance_task_bolts_folding">Tornillos y plegado</string>
+    <!-- src:e98a0af8d76acc15916a240b98cff347f4184d81 -->
+    <string name="maintenance_task_steering">Dirección</string>
     <!-- src:1f17401c574aee23f88aed47fc2e41b97fd9e219 -->
     <string name="maintenance_task_lights">Luces</string>
     <!-- src:a06a0040875049932e540c01a1d941b790cdb5ab -->
