@@ -3,7 +3,7 @@ package com.jjricks.volt;
 import java.util.*;
 
 /**
- * Synthetic rides for the live range (docs/validation/live-range.md#synthetic-rides): a simple
+ * Synthetic rides for the live range (docs/validation/live-range.md#synthetic-rides-regression-guards): a simple
  * scooter physics model with noisy readings, streamed through LiveRangeEstimator and RangeReadout.
  * It scores how fast the shown number reacts to a real change in riding and how much it jitters
  * on steady riding. No personal recordings or routes.

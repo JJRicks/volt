@@ -26,8 +26,8 @@ public final class RangeReadout {
     static final double LOW_PERCENT = 5, EMPTY_PERCENT = 2;
 
     static final class Params {
-        /** Time constant of the display filter on the raw range. */
-        double smoothTauS = 2;
+        /** Time constant of the display filter on the raw range: absorbs power noise from the shorter estimator memory. */
+        double smoothTauS = 6;
         /** The shown value moves only once the filtered one is this many steps away from it. */
         double hysteresisSteps = 1;
         /** Fastest fall and rise: the larger of a step rate (steps per s) and a share of the value per s. */

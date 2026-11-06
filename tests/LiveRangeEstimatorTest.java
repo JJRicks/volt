@@ -226,7 +226,7 @@ public final class LiveRangeEstimatorTest {
         double prev = 40, maxDrop = 0;
         for (int i = 1; i <= 60; i++) { v = r.update(snap(i * 2000, 20.0, 60, false), "km", true); maxDrop = Math.max(maxDrop, prev - v.primary); prev = v.primary; }
         check(maxDrop <= 40 * .03 * 3 + 1e-9, "Falls glide: " + maxDrop);
-        near(20, v.primary, .05, "and arrive");
+        near(20, v.primary, .1 + 1e-9, "and arrive within one step (hysteresis)");
         // Rises are slower: 1% per second.
         r = new RangeReadout(); r.update(snap(0, 20.0, 60, false), "km", true);
         for (int i = 1; i <= 10; i++) v = r.update(snap(i * 2000, 40.0, 60, false), "km", true);
@@ -238,7 +238,7 @@ public final class LiveRangeEstimatorTest {
         near(km - 5, v.primary, .2, "and keeps up: " + v.primary);
         // Switching units re-rounds at once.
         v = r.update(snap(602000, 25.0, 60, false), "mi", true);
-        near(15.5, v.primary, 1e-9, "Unit switch re-rounds");
+        near(15.5, v.primary, .1 + 1e-9, "Unit switch re-rounds at once (the filter trails the countdown by under a step)");
     }
 
     /** The synthetic rides in LiveRangeScenarios: react to real changes, hold through stops. */
@@ -246,8 +246,10 @@ public final class LiveRangeEstimatorTest {
         LiveRangeScenarios.Scores s = LiveRangeScenarios.score(2, 9, new LiveRangeEstimator.Params(), new RangeReadout.Params());
         check(s.climbFall63 <= 30, "Climb shows within 30 s: " + s.climbFall63);
         check(s.speedFall63 <= 20, "A faster pace shows within 20 s: " + s.speedFall63);
-        check(s.speedRise63 <= 150, "A slower pace shows within 150 s: " + s.speedRise63);
-        check(s.steadyReversals <= 15, "Steady riding: few reversals: " + s.steadyReversals);
+        check(s.speedRise63 <= 90, "A slower pace shows within 90 s: " + s.speedRise63);
+        check(s.climbRelease63 <= 90, "The end of a climb shows within 90 s: " + s.climbRelease63);
+        check(s.steadyReversals <= 16, "Steady riding: few reversals: " + s.steadyReversals);
+        check(s.largestStepMi <= 1.05, "No single step over about 1 mi: " + s.largestStepMi);
         check(s.stopRise <= .03 && s.coastRise <= .03, "Stops and coasting: at most 3% up: " + s.stopRise + " " + s.coastRise);
         check(s.descentRise <= .1, "A 2-minute descent: at most 10% up: " + s.descentRise);
         List<LiveRangeScenarios.Sample> low = LiveRangeScenarios.run(LiveRangeScenarios.lowBattery(), 2, 7);

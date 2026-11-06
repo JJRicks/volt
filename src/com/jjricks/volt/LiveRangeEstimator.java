@@ -14,15 +14,19 @@ package com.jjricks.volt;
 public final class LiveRangeEstimator {
     /** Tunables (docs/validation/live-range.md#tuning); package-private so the replay tools can sweep them. */
     static final class Params {
-        /** Time constant of the energy-per-km memory, counted only while riding at pace. */
-        double rateTauS = 20;
+        /**
+         * Time constant of the energy-per-km memory, counted only while riding at pace. Tuned on the
+         * owner's recorded rides (docs/validation/live-range.md#tuning): shorter reacts sooner but
+         * reverses more often on noisy power.
+         */
+        double rateTauS = 16;
         /**
          * The shown energy per km follows that memory with these time constants, at pace only: quickly
-         * when it rises (a climb, a faster pace: the range falls) and slowly when it drops (coasting,
-         * a descent: the range rises). Kept moderate both ways, since chasing only rises would bias
-         * the rate upward on noisy power.
+         * when it rises (a climb, a faster pace: the range falls) and more slowly when it drops (an
+         * easier pace: the range rises). The slower drop keeps stops, coasts and descents from lifting
+         * the number, and leans the bias cautious.
          */
-        double riseTauS = 5, relaxTauS = 45;
+        double riseTauS = 3, relaxTauS = 20;
         /** The learned prior starts with the weight of this many seconds at PRIOR_SPEED_KMH. */
         double priorS = 20;
         /**
