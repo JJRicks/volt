@@ -22,10 +22,13 @@ public final class VoltApp extends Application {
     @Override public void onCreate() {
         super.onCreate();
         AppLanguage.migrate(this);
+        // The opt-in daily update check is not a persisted job; each process start puts it back (UpdateCheckJob).
+        UpdateCheckJob.sync(this);
     }
 
     @Override public void onConfigurationChanged(Configuration configuration) {
         super.onConfigurationChanged(configuration);
         AppLanguage.configurationChanged(this);
+        UpdateCheckJob.relabel(this);
     }
 }

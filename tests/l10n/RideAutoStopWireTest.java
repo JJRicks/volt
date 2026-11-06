@@ -272,7 +272,7 @@ public final class RideAutoStopWireTest {
         check("Campus · Bluetooth lost while parked".equals(RideAutoStopText.notice(k.stoppedWith, k.saved, "4:12 PM")), "parked notice unchanged");
         check("Saved automatically after Bluetooth was lost while parked".equals(RideAutoStopText.description(k.saved)), "parked pill unchanged");
         check("Bluetooth lost while parked".equals(RideAutoStopText.notice(RideStore.STOP_AUTO_PARKED, null, null)), "parked, ride unreadable");
-        check("End rides automatically".equals(T.morePrefsAutoStop()) && "When the scooter turns off, or stays out of reach for 5 min".equals(T.morePrefsAutoStopSub()),
+        check("End rides automatically".equals(T.morePrefsAutoStop()) && "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min".equals(T.morePrefsAutoStopSub()),
                 "preference wording");
     }
 

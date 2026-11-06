@@ -14,6 +14,7 @@ public final class ScooterMenuLayoutTest {
         newAndRemoved();
         tolerant();
         wideColumns();
+        shownOrder();
         backup();
         System.out.println("ScooterMenuLayoutTest: " + checks + " checks passed (default order, moves, hiding, anchored inserts, storage, backups)");
     }
@@ -153,14 +154,57 @@ public final class ScooterMenuLayoutTest {
         check(odd.sections().indexOf("Ride") < odd.sections().indexOf("speed") && odd.rows("Ride").get(0).equals("maximum_speed") && odd.rowHidden("turn_sound"), "stray values are skipped, the rest applies: " + odd.sections());
     }
 
+    /** Shown rows per section on a UT5 MAX main page (the top speed card counts as the three rows it is about as tall as). */
+    private static Map<String, Integer> ut5() {
+        Map<String, Integer> w = new HashMap<>();
+        w.put("speed", 3); w.put("Ride", 7); w.put("Battery", 9); w.put("Lights", 3); w.put("Dashboard & sound", 3); w.put("Security", 2); w.put("Profile", 1);
+        return w;
+    }
+
     private static void wideColumns() {
         ScooterMenuLayout layout = ScooterMenuLayout.defaults(today());
-        check(layout.wideLeftCount() == 2, "default wide page: Top speed and Ride on the left");
-        layout.hide("Ride");
-        check(layout.wideLeftCount() == 3, "a hidden first section doesn't fill the left column");
+        check(layout.wideLeftCount(ut5()) == 2, "default wide page: Top speed and Ride on the left (10 of 28 rows; with Battery it would be 19)");
+        layout.moveSection("Battery", -1);
+        check(layout.wideLeftCount(ut5()) == 2, "Battery above Ride: Top speed and Battery on the left (12 of 28)");
         layout.reset();
-        layout.moveSection("speed", 3);
-        check(layout.wideLeftCount() == 1, "Ride first: only Ride on the left");
+        layout.hide("Ride");
+        check(layout.wideLeftCount(ut5()) == 3, "a hidden Ride counts for nothing: Top speed, Ride's empty slot and Battery on the left (12 of 21)");
+        layout.reset();
+        layout.moveSection("Profile", -99);
+        check(layout.wideLeftCount(ut5()) == 3, "Profile first: Profile, Top speed and Ride on the left (11 of 28)");
+        layout.reset();
+        Map<String, Integer> w = ut5();
+        w.put("speed", 0);
+        check(layout.wideLeftCount(w) == 3, "no top speed card: the empty first section stays left with Ride and Battery (16 of 25)");
+        Map<String, Integer> two = new HashMap<>();
+        two.put("Ride", 4); two.put("Battery", 4);
+        check(layout.wideLeftCount(two) == 2, "an even split: the empty leading section goes left with Ride (tie: the shorter left column)");
+        check(layout.wideLeftCount(new HashMap<String, Integer>()) == layout.sections().size(), "no rows at all: everything left");
+        Map<String, Integer> one = new HashMap<>();
+        one.put("Profile", 1);
+        check(layout.wideLeftCount(one) == layout.sections().size(), "a single section with rows is left, the empty ones before it too");
+        Map<String, Integer> odd = ut5();
+        odd.put("Ride", -5);
+        check(layout.wideLeftCount(odd) == 3, "a negative weight counts as none");
+    }
+
+    private static void shownOrder() {
+        ScooterMenuLayout layout = ScooterMenuLayout.defaults(today());
+        layout.hide("traction_control");
+        // The editor shows Ride without traction control (hidden) and maximum speed (not offered on this model).
+        check(layout.placeRows("Ride", Arrays.asList("start_speed", "cruise_control", "energy_recovery", "hill_start_assist")), "the editor's order applies");
+        check(layout.rows("Ride").equals(Arrays.asList("start_speed", "cruise_control", "traction_control", "energy_recovery", "hill_start_assist", "maximum_speed")),
+                "hidden and unoffered rows keep their slots: " + layout.rows("Ride"));
+        check(!layout.placeRows("Ride", Arrays.asList("start_speed", "cruise_control", "energy_recovery", "hill_start_assist")), "the same order again changes nothing");
+        check(!layout.placeRows("Ride", Arrays.asList("charge_limit", "start_speed")), "a row from another section is ignored, never joins Ride");
+        check(layout.rows("Ride").size() == 6 && !layout.rows("Ride").contains("charge_limit"), "Ride keeps its own rows");
+        check(!layout.placeRows("Nowhere", Arrays.asList("x")), "an unknown section changes nothing");
+        layout.hide("Lights");
+        check(layout.placeSections(Arrays.asList("Battery", "speed", "Ride", "Dashboard & sound", "Security", "Profile")), "the shown sections' order applies");
+        check(layout.sections().equals(Arrays.asList("Battery", "speed", "Ride", "Lights", "Dashboard & sound", "Security", "Profile")),
+                "the hidden Lights keeps its slot: " + layout.sections());
+        check(!layout.placeSections(Arrays.asList("Battery", "Battery", "speed")), "a repeated id doesn't move anything twice");
+        check(ScooterMenuLayout.resolve(today(), layout.toJson()).sections().equals(layout.sections()), "the placed order is saved");
     }
 
     private static void backup() {
@@ -173,6 +217,10 @@ public final class ScooterMenuLayoutTest {
         files.put("ScooterMenuLayout.java", "final class ScooterMenuLayout{static final String PREFIX = \"scooter_menu_v1_\";}");
         files.put("Screen.java", "class Screen{void a(android.content.SharedPreferences p,String id){p.getString(ScooterMenuLayout.PREFIX+id,null);}}");
         check(BackupRegistryTest.scan(files).isEmpty(), "the registry scan finds the menu key classified: " + BackupRegistryTest.scan(files));
+        BackupRegistry.Rule editing = BackupRegistry.rule("app_settings", ScooterMenuLayout.EDITING);
+        BackupRegistry.Rule dashboard = BackupRegistry.rule("app_settings", "dashboard_editing");
+        check(editing != null && editing.excluded() && editing.reason.equals(dashboard.reason) && editing.type == Boolean.class && !editing.perProfile, "the editor's open flag stays on this device, like dashboard_editing");
+        check(ScooterMenuLayout.EDITING.equals("scooter_menu_editing"), "the editing flag key");
         files.put("ScooterMenuLayout.java", files.get("ScooterMenuLayout.java").replace("scooter_menu_v1_", "scooter_menu_v9_"));
         check(!BackupRegistryTest.scan(files).isEmpty(), "and would fail on an unregistered menu key");
         check(ScooterMenuLayout.PREFIX.equals("scooter_menu_v1_"), "the stored key prefix");

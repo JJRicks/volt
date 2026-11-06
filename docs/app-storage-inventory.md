@@ -53,6 +53,9 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when both copies are turned off. |
 | `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when both copies are turned off. |
 | `ride_auto_export_problem` | String | global | Pending | Why rides are waiting: `folder` (no folder, or it or its grant is gone) or `save` (a write failed). Absent when nothing failed. |
+| `update_auto_check` | Boolean | global | Durable | More › Updates: the opt-in automatic update check, at most once a day. Default off. UpdateCheckJob. Runs only with `update_check_consented` also set; a restored choice is scheduled the next time Volt's process starts. |
+| `update_auto_last` | Long | global | Device | Wall-clock time of the last finished automatic check; the next one waits a day from it (UpdateSchedule). |
+| `update_auto_told` | String | global | Device | The newest version the automatic check announced, or a manual check showed, so each release is announced once. |
 | `ride_export_choice` | String | global | Durable | Ride details' Export ride data sheet: the formats checked last time, as ids (`sensor_csv`, `analysis_json`, `route_csv`, `gpx`, `phone_raw`, `motion_raw`, `combined_json`), comma-separated. Absent means Sensor CSV and Analysis JSON. RideExportFiles. |
 | `ride_export_folder_hint` | String (URI) | global | Device | The folder a several-file export last went to, used only as the folder picker's starting place. No grant is kept. |
 | `dashboard_columns` | Integer | global | Durable | Column choice shared by every scooter's dashboard. DashboardConfig. |
@@ -83,6 +86,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `more_away_boot`, `stats_away_boot` | Integer | global | Device | Boot count paired with the above. |
 | `stats_query`, `stats_chart_query` | String | global | Device | Search text. |
 | `dashboard_editing` | Boolean | global | Device | Home edit mode is open. |
+| `scooter_menu_editing` | Boolean | global | Device | The Scooter tab's menu editor is open. ScooterMenuLayout.EDITING. |
 
 No fold or window posture is persisted. `FoldMonitor` reads the live window state, and per-width arrangements are stored inside the dashboard JSON, so they travel with Dashboards.
 

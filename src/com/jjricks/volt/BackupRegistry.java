@@ -65,11 +65,17 @@ final class BackupRegistry {
         add(app, "ride_export_choice", String.class, PREFERENCES);
         exclude(app, "ride_export_folder_hint", String.class, PERMISSION);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // The automatic update check (UpdateCheckJob): the switch travels; when it last ran and what it announced stay here.
+        add(app, "update_auto_check", Boolean.class, PREFERENCES);
+        exclude(app, "update_auto_last", Long.class, DEVICE);
+        exclude(app, "update_auto_told", String.class, DEVICE);
         // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
         add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
         add(app, "charge_live_lock_detail", String.class, PREFERENCES);
         // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
         exclude(app, "charge_live_stopped", String.class, DEVICE);
+        // The last live card's Live Update verdict (Developer options) describes this phone's Android only.
+        exclude(app, "charge_live_update_last", String.class, DEVICE);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);
@@ -106,6 +112,7 @@ final class BackupRegistry {
         for (String key : "more_wide_menu_scroll more_away_boot stats_away_boot".split(" ")) exclude(app, key, Integer.class, DEVICE);
         exclude(app, "more_away_elapsed", Long.class, DEVICE);exclude(app, "stats_away_elapsed", Long.class, DEVICE);
         exclude(app, "dashboard_editing", Boolean.class, DEVICE);
+        exclude(app, ScooterMenuLayout.EDITING, Boolean.class, DEVICE);
         // The language choice belongs to this phone; on Android 13 and later the system owns it (AppLanguage).
         exclude(app, "app_language", String.class, DEVICE);exclude(app, "app_language_migrated", Boolean.class, DEVICE);
         add("profiles", "items", String.class, SCOOTERS);add("profiles", "active", String.class, SCOOTERS);add("profiles", "legacy_migrated", Boolean.class, SCOOTERS);
