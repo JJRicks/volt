@@ -5,32 +5,32 @@
     <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luces</string>
     <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Ajustes</string>
     <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Ajustes</string>
-    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Estadísticas en vivo</string>
-    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Estadísticas en vivo</string>
+    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Estadísticas en vivo</string>
+    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Estadísticas en vivo</string>
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viajes</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viajes</string>
     <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Conducción</string>
     <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Conducción</string>
     <string name="dashboard_model_qa_battery_settings" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Batería</string>
     <string name="dashboard_model_qa_battery_settings_short" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Batería</string>
-    <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luces de línea</string>
+    <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6" volt:attempt="2">Luz de línea</string>
     <string name="dashboard_model_qa_line_lights_short" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luces de línea</string>
-    <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Luces de estrella</string>
+    <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc" volt:attempt="2">Luz de estrella</string>
     <string name="dashboard_model_qa_star_lights_short" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Estrella</string>
     <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Pantalla y sonido</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Pantalla y sonido</string>
     <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN y proximidad</string>
     <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN y proximidad</string>
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nombre del patinete</string>
-    <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nombre del patinete</string>
+    <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac" volt:attempt="2">Nombre</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Ajustes de la app</string>
     <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Ajustes de la app</string>
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Patinetes</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mis patinetes</string>
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Controles experimentales</string>
-    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimental</string>
+    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Controles experimentales</string>
     <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Datos e historial</string>
-    <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Datos e historial</string>
+    <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0" volt:attempt="2">Datos e historial</string>
     <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info y permisos</string>
     <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info y permisos</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Fin de carga</string>

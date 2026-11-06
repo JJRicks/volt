@@ -1,0 +1,2 @@
+{"back":"Show online map?","key":"maps_consent_title","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"9d5d38d3390d33f87884334bad629831625fab66","target":"¿Mostrar mapa en línea?"}
+{"back":"Activate base map","key":"maps_consent_enable","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"bb9ac0845ace7f8b7f2e08bf11f66831ce335172","target":"Activar mapa base"}

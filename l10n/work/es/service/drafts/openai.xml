@@ -156,7 +156,7 @@
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">La carga se reanudó %1$s después de la hora de inicio, por lo que el reloj del patinete podría estar atrasado %2$s.%3$s</string>
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">El patinete no pausó la carga. Su reloj podría estar adelantado o el patinete ignoró la programación.%1$s</string>
     <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">La carga seguía pausada 5 minutos después de la hora de inicio. El reloj del patinete podría estar atrasado más de 5 minutos o la programación no permitió reanudar la carga. Si el cargador estaba desconectado, haz la prueba de nuevo.%1$s</string>
-    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt estableció la hora del patinete justo antes de esta prueba, por lo que es posible que el patinete no mantenga la hora establecida. Hasta que se resuelva, un enchufe inteligente es un temporizador más seguro. Informa de un problema con diagnósticos para que podamos investigarlo."</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4" volt:attempt="2">" Volt ajustó el reloj del patinete justo antes de esta prueba, así que es posible que el patinete no mantenga la hora que se le estableció. Hasta que se solucione, un enchufe inteligente es un temporizador más seguro. Para informar de un problema, incluye los diagnósticos para que podamos investigarlo."</string>
     <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">La batería alcanzó su límite de carga durante la prueba, por lo que no se pudo determinar el resultado. Haz la prueba de nuevo con la carga más lejos del límite.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">La prueba se interrumpió. Comprueba que la carga se reanudó. Si no se reanudó, desactiva la carga programada.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">No se pudo iniciar la prueba.</string>
@@ -164,7 +164,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt no pudo confirmar si la programación se desactivó. Desactiva la carga programada para que la carga continúe."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertas de batería</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Alertas de nivel de carga, batería llena y batería baja que activas en «Patinete» › «Batería»</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de batería que activas en «Patinete» › «Batería»: nivel de carga, batería llena y batería baja</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Detener</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Detén la grabación de carga antes de iniciar un viaje</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Sal primero de la simulación</string>

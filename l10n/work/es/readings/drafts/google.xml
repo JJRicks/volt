@@ -178,14 +178,14 @@
     <string name="readings_uwb_version_short" volt:src="0aa048e2ec4b4b8ee7c3621f41bd21ad1f830914">Firmware de proximidad</string>
     <string name="readings_uwb_version_compact" volt:src="2e011bb8ea2fdea95c1677a7df8b47edb1a71cb6">FW proximidad</string>
     <string name="readings_scooter_serial" volt:src="bb7af5a44ba75bd1c2e4a6ce599979656dcff6ae">Número de serie del patinete</string>
-    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">N.º de serie del patinete</string>
+    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe" volt:attempt="2">Serie del patinete</string>
     <string name="readings_battery_serial_raw" volt:src="c2fa7c6ec826cbb85b9c04e2310ffb0fe2bb0c37">Respuesta del número de serie de la batería (en bruto)</string>
-    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">N.º de serie de la batería (en bruto)</string>
+    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6" volt:attempt="2">Serie de batería (en bruto)</string>
     <string name="readings_warning_code" volt:src="6f0188bab92e86b0766dcf7b1f95ede2c64346ce">Código de advertencia activo</string>
     <string name="readings_warning_code_short" volt:src="92fb7eb6ac49b53d8ddc28b1490fbd4947deb0ea">Código de advertencia</string>
     <string name="readings_warning_code_compact" volt:src="63647a656653eda2f9ed432b853672b34a5d0ac4">Advertencia</string>
     <string name="readings_lock_push_warning" volt:src="239a62b4d4ac8ddf6bd51480f3d161228b260b01">Advertencia de movimiento bloqueado (en bruto)</string>
-    <string name="readings_lock_push_warning_short" volt:src="b392996949fa4bb67e39ba9912e65604622c1c5a">Movimiento bloqueado (en bruto)</string>
+    <string name="readings_lock_push_warning_short" volt:src="b392996949fa4bb67e39ba9912e65604622c1c5a" volt:attempt="2">Movimiento en bloqueo (en bruto)</string>
     <string name="readings_hide_e9" volt:src="ecf2a3aa4b8b5842c7b276a54095ebc674902f96">Indicador de visualización de E9 (en bruto)</string>
     <string name="readings_hide_e9_short" volt:src="40a54d78e0f827f43dd4386f508a3ec4cc88fe3e">Indicador de E9 (en bruto)</string>
     <string name="readings_ride_report_format" volt:src="978644e29f908b2e6e869c51eafd8661b56f42ae">Formato de informe de viaje</string>
