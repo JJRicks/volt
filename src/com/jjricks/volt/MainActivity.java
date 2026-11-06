@@ -329,9 +329,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The Scooter tab's dot while a maintenance check is due (owner answer Q39 B). */
     private void refreshMaintenanceDot(){
-        ScooterService s=scooterService;String scope=s==null||s.maintenance==null?"":s.maintenanceScope();
-        boolean due=!scope.isEmpty()&&s.maintenance.summary(scope,System.currentTimeMillis(),java.time.ZoneId.systemDefault()).dot();
-        MaintenanceScreen.markTab(design,scooterTab,scooterTabCorner,due);
+        MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
+        MaintenanceScreen.markTab(design,scooterTab,scooterTabCorner,summary!=null&&summary.dot());
     }
     /** BLE packets update lock/pending state immediately; heavy screen refreshes share the 1 Hz pulse. */
     private void automaticRefresh(){
@@ -1525,7 +1524,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             sections.put(MaintenanceScreen.SECTION,maintenanceSection);bodies.put(MaintenanceScreen.SECTION,maintenanceBody);labels.put(MaintenanceScreen.SECTION,maintenanceLabel);if(!expanded)view.addView(maintenanceSection);
             SettingLine maintenanceLine=new SettingLine("gear",T.maintenanceRow(),null);maintenanceLine.chevron(this::showMaintenance);maintenanceValue=maintenanceLine.value;
             maintenanceLine.line.setTag(MaintenanceScreen.ROW);
-            addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,""});
+            addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
             shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
             menuRow(MaintenanceScreen.ROW,maintenanceLine.card);
             // The default menu is the order just built, so a new row added the usual way gets its usual spot in a saved layout too.
@@ -1541,26 +1540,25 @@ public final class MainActivity extends Activity implements ScreenHost {
             syncMenu();
             applyFilter();
             page.addView(view,new LinearLayout.LayoutParams(-1,-2));
-            if(!lights&&MaintenanceScreen.SECTION.equals(preferences.getString(MaintenanceScreen.PAGE_PREF,"")))openMaintenance();
+            if(!lights&&MaintenanceScreen.remembered(preferences))openMaintenance();
         }
         private void openMaintenance(){
             maintenance=new MaintenanceScreen(MainActivity.this,this::closeMaintenance,expanded);
             view.setVisibility(View.GONE);page.addView(maintenance.view(),new LinearLayout.LayoutParams(-1,-2));
         }
-        private void showMaintenance(){Motion.page(scroll,1,()->{clearSearch();preferences.edit().putString(MaintenanceScreen.PAGE_PREF,MaintenanceScreen.SECTION).apply();openMaintenance();if(scroll!=null)scroll.scrollTo(0,0);});}
+        private void showMaintenance(){Motion.page(scroll,1,()->{clearSearch();MaintenanceScreen.remember(preferences,true);openMaintenance();if(scroll!=null)scroll.scrollTo(0,0);});}
         /** Back to the main Scooter page; false when the Maintenance page was not open. */
         boolean closeMaintenance(){
             if(maintenance==null)return false;
             MaintenanceScreen leaving=maintenance;
             Motion.page(scroll,-1,()->{leaving.close();page.removeView(leaving.view());if(maintenance==leaving)maintenance=null;view.setVisibility(View.VISIBLE);
-                preferences.edit().putString(MaintenanceScreen.PAGE_PREF,"").apply();refresh();if(scroll!=null)scroll.scrollTo(0,0);});
+                MaintenanceScreen.remember(preferences,false);refresh();if(scroll!=null)scroll.scrollTo(0,0);});
             return true;
         }
         private void refreshMaintenance(){
             if(maintenance!=null)maintenance.refresh();
-            String scope=scooterService==null||scooterService.maintenance==null?"":scooterService.maintenanceScope();
-            MaintenanceView.Summary summary=scope.isEmpty()?null:scooterService.maintenance.summary(scope,System.currentTimeMillis(),java.time.ZoneId.systemDefault());
-            String value=summary==null?"":MaintenanceView.rowValue(summary);
+            MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
+            String value=MaintenanceScreen.rowValue(summary);
             if(!value.contentEquals(maintenanceValue.getText()))maintenanceValue.setText(value);
             maintenanceValue.setTextColor(summary!=null&&summary.dot()?design.accent:design.muted);
         }

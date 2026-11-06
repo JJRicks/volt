@@ -45,6 +45,8 @@ final class MaintenanceScreen {
     static final String SECTION = "maintenance", ROW = "maintenance_reminders";
     /** The Scooter tab's page preference while this subpage is open (the Lights page uses its own value). */
     static final String PAGE_PREF = "scooter_section";
+    /** The row's English search words: none, its catalog search words serve every language. */
+    static final String NO_WORDS = "";
     private static final String UNITS_PREF = "units", UNITS_DEFAULT = "mi", RESET_SEEN = "reset_seen";
     private static final String TAG_SWITCH = "maintenance_switch", TAG_ADD = "maintenance_add", TAG_SAVE = "maintenance_save",
             TAG_NAME = "maintenance_name", TAG_DISTANCE = "maintenance_distance", TAG_TIME = "maintenance_time",
@@ -783,6 +785,22 @@ final class MaintenanceScreen {
         content.addView(buttons);
         show(content);
     }
+
+    // ---- The Scooter tab's row and dot --------------------------------------------------------
+
+    /** Whether the Maintenance page was open (it reopens after a rebuild). */
+    static boolean remembered(SharedPreferences preferences) { return SECTION.equals(preferences.getString(PAGE_PREF, "")); }
+
+    static void remember(SharedPreferences preferences, boolean open) { preferences.edit().putString(PAGE_PREF, open ? SECTION : "").apply(); }
+
+    /** The active scooter's counts, or null without a service or an active scooter. */
+    static MaintenanceView.Summary summary(ScooterService service) {
+        String scope = service == null || service.maintenance == null ? "" : service.maintenanceScope();
+        return scope.isEmpty() ? null : service.maintenance.summary(scope, System.currentTimeMillis(), zone());
+    }
+
+    /** The Reminders row's value; empty without an active scooter. */
+    static String rowValue(MaintenanceView.Summary summary) { return summary == null ? "" : MaintenanceView.rowValue(summary); }
 
     // ---- The Scooter tab's dot ----------------------------------------------------------------
 
