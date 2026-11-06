@@ -218,6 +218,9 @@ public final class ScooterSimulation {
         reading(telemetry, "trip_km", 6.84 + phase * speed / 3600, 2, Telemetry.SUFFIX_KM, time);
         reading(telemetry, "trip_minutes", 23.5 + phase / 60, 1, Telemetry.SUFFIX_MINUTE, time);
         reading(telemetry, "temperature_c", 31.2, 1, Telemetry.SUFFIX_CELSIUS, time);
+        // This trip's top and average speed, for Halo's ring tick and dot (riding-mode plan PR 3).
+        reading(telemetry, "maximum_speed_kmh", 35.6, 1, Telemetry.SUFFIX_KMH, time);
+        reading(telemetry, "average_speed_kmh", 21.4, 1, Telemetry.SUFFIX_KMH, time);
         if (script.equals(WARNING)) telemetry.putSimulationSample("warning_code", Telemetry.format(14, 0), 14.0, time);
     }
 
