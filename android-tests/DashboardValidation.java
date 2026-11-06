@@ -757,8 +757,8 @@ public final class DashboardValidation extends Instrumentation {
             require(readings.contains("98"), "Reading tiles did not render the cached health value: " + readings);
 
             String settings = bodyText(tile("shortcuts")).toLowerCase(Locale.ROOT);
-            require(settings.contains("top speed") && settings.contains("charge schedule"),
-                    "Setting tiles lack their default Top speed and Charge schedule tiles: " + settings);
+            require(settings.contains("max. speed") && settings.contains("charge schedule"),
+                    "Setting tiles lack their default Max. speed and Charge schedule tiles: " + settings);
             View schedule = ((View)tile("shortcuts")).findViewWithTag("setting-tile:feature:timed_charging");
             require(schedule != null && "setting-action:power".equals(((View)field(schedule, "icon")).getTag()),
                     "Charge schedule toggles directly but lacks its power-button cue");

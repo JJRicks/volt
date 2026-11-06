@@ -429,9 +429,9 @@ public final class MyScootersValidation extends Instrumentation {
                 set(capture, "message", ""); set(capture, "owner", identity.newInstance("000000000000", 0));
                 invoke(screen, "render", new Class<?>[]{});
             });
-            setupShot(screen, "ready-owner", null, "Ready to import", "Owner identity found", "NAVEE restored", "Import owner setup", "Discard");
+            setupShot(screen, "ready-owner", null, "Ready to import", "Owner key found", "NAVEE restored", "Import owner setup", "Discard");
             main(() -> { set(capture, "owner", identity.newInstance("000000000000", 1)); invoke(screen, "render", new Class<?>[]{}); });
-            setupShot(screen, "ready-shared", null, "Ready to import", "Shared-user identity found", "NAVEE restored", "Import owner setup", "Discard");
+            setupShot(screen, "ready-shared", null, "Ready to import", "Shared-rider key found", "NAVEE restored", "Import owner setup", "Discard");
             main(() -> {
                 require(text(setupRoot(screen), "000000000000") == null, "Shizuku setup showed the captured identity");
                 TextView discard = text(setupRoot(screen), "Discard");

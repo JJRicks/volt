@@ -46,7 +46,8 @@ public final class ServiceTextTest {
                         same(ServiceEnglishTest.learningSummary(charger, qualified, noSnapshot, sessions),
                                 learningSummary(charger, qualified, noSnapshot ? null : sessions), "learning summary");
         for (ChargeSessionStore.Stop stop : ChargeSessionStore.Stop.values())
-            same(ServiceEnglishTest.stopped(stop), stopped(stop).toString(), "stop status " + stop);
+            same(stop == ChargeSessionStore.Stop.IDENTITY_CHANGED ? "Charge recording stopped · different scooter" : ServiceEnglishTest.stopped(stop),
+                    stopped(stop).toString(), "stop status " + stop);
         for (String time : new String[]{"1:00 AM", "23:30", "%1$s"})
             for (int soc : new int[]{0, 5, 99, 100, -1})
                 for (int armed : new int[]{0, 38, 100})

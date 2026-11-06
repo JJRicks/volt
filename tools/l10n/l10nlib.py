@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import unicodedata
 
 # ---------------------------------------------------------------------------
 # Java lexing
@@ -212,15 +213,22 @@ def has_letters(value):
     return any(ch.isalpha() for ch in without_format_specs(value))
 
 
+def _is_symbol_chunk(chunk):
+    """True for a whitespace-separated chunk holding a non-ASCII symbol ("✓", "☆", "⚠\ufe0e"). ASCII
+    symbols do not count: "x = " and "a + " are code and log shapes, not a word and a mark."""
+    return any(ord(ch) > 0x7f and unicodedata.category(ch).startswith("S") for ch in chunk)
+
+
 def is_multiword(value):
-    """Two or more words of letters separated by whitespace, for example "Turn off"."""
-    words = 0
+    """Two or more words of letters separated by whitespace ("Turn off"), or a word and a symbol set
+    apart by whitespace ("Unrestricted ✓", "☆ Star"): a shown label with a mark, not a key."""
+    words = symbols = 0
     for chunk in re.split(r"\s+", without_format_specs(value).strip()):
         if _WORDS.search(chunk):
             words += 1
-            if words >= 2:
-                return True
-    return False
+        elif _is_symbol_chunk(chunk):
+            symbols += 1
+    return words >= 2 or (words == 1 and symbols >= 1)
 
 
 def is_english_looking(value):

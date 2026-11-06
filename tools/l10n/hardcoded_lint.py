@@ -8,8 +8,9 @@ Flags three kinds of string literal in src/**/*.java:
              announceForAccessibility, setAccessibilityPaneTitle, setChartTitle and Paint drawText
   helper     an English-looking literal (not a lower-case key or id) inside a call of one of Volt's own
              text helpers (HELPER_SINKS: ui.text, button, secondaryButton, sectionLabel, row,
-             detailRow, dialogButtons, new SegmentedSelector, ...), so single-word labels count too
-  multiword  any other literal with two or more words of letters, for example "Turn off"
+             detailRow, value, dialogButtons, new SegmentedSelector, ...), so single-word labels count too
+  multiword  any other literal with two or more words of letters, for example "Turn off", or a word and
+             a symbol set apart by a space, for example "Unrestricted ✓" (l10nlib.is_multiword)
 
 Every file that has findings today has a baseline, l10n/baseline/<File>.txt, listing them (no line
 numbers, so rebases do not churn it). The check fails when a file has a finding its baseline does not
@@ -49,7 +50,7 @@ HELPER_SINKS = {"text", "caption", "button", "secondaryButton", "dangerButton", 
                 "footnote", "header", "footer", "dialogTitle", "note", "link", "info", "passwordField", "input",
                 "showSheet", "row", "dialogButtons", "failed", "done", "setBusy", "retry", "status", "fine", "reset",
                 "event", "define", "end", "outstanding", "conflict", "pause", "group", "label", "SegmentedSelector",
-                "addRow"}
+                "addRow", "value"}
 BASELINE_DIR = os.path.join("l10n", "baseline")
 SOURCE_DIR = "src"
 TOOL_PATH = "tools/l10n/hardcoded_lint.py"

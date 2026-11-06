@@ -1,14 +1,14 @@
 {
-  "_about": "Model preferences for tools/l10n/council.py. For each provider and role, the first pattern (a Python regular expression searched in the model id) that matches any listed model wins, and among its matches the highest version (natural sort) is chosen. Ids matching an exclude pattern are never chosen. The back-translator also skips every model that drafted the area. Edit this file, or pass --prefer, to change the choice; the exact ids used are recorded in the drafts and decisions.",
+  "_about": "Model preferences for tools/l10n/council.py. For each provider and role, the first pattern (a Python regular expression searched in the model id) that matches any listed model wins, and among its matches the highest version (natural sort) is chosen. Ids matching an exclude pattern are never chosen. The back-translator also skips every model that drafted the area. Owner decision of 2026-11-05: modest current models, not the top end. Drafting uses OpenAI's terra line (gpt-6.1-terra) and Google's plain flash line (gemini-3.8-flash); back-translation uses OpenAI's sol line (gpt-6.1-sol), a model that drafts nothing. Each pattern names a line rather than a version, so a newer version of the same line (gpt-6.2-terra, gemini-3.9-flash) is chosen when it appears, and no pattern names a top-end line (pro, argon), so the choice never moves up a tier on its own. When the line's newest model drafted the area, the Google back-translator takes the next-newest plain flash, then flash-lite. Edit this file, or pass --prefer, to change the choice; the exact ids used are recorded in the drafts and decisions.",
   "openai": {
     "api": "responses",
     "exclude": ["audio", "realtime", "search", "transcribe", "tts", "image", "embedding", "moderation", "codex", "instruct", "chat-latest", "deep-research", "computer-use", "oss"],
-    "draft": ["^gpt-\\d+(\\.\\d+)?$", "^gpt-\\d+(\\.\\d+)?-\\d{4}-\\d{2}-\\d{2}$", "^gpt-4\\.1$", "^gpt-4o$"],
-    "backtranslate": ["^gpt-\\d+(\\.\\d+)?-mini$", "^gpt-4\\.1-mini$", "^gpt-4o-mini$", "^gpt-\\d+(\\.\\d+)?$"]
+    "draft": ["^gpt-\\d+(\\.\\d+)?-terra$"],
+    "backtranslate": ["^gpt-\\d+(\\.\\d+)?-sol$", "^gpt-\\d+(\\.\\d+)?-terra$"]
   },
   "google": {
     "exclude": ["tts", "image", "embedding", "aqa", "vision", "live", "audio", "computer-use", "robotics", "gemma", "learnlm", "veo", "imagen"],
-    "draft": ["^gemini-\\d+(\\.\\d+)?-pro$", "^gemini-\\d+(\\.\\d+)?-pro-preview", "^gemini-\\d+(\\.\\d+)?-flash$"],
-    "backtranslate": ["^gemini-\\d+(\\.\\d+)?-flash$", "^gemini-\\d+(\\.\\d+)?-flash-preview", "^gemini-\\d+(\\.\\d+)?-pro$"]
+    "draft": ["^gemini-\\d+(\\.\\d+)?-flash$"],
+    "backtranslate": ["^gemini-\\d+(\\.\\d+)?-flash$", "^gemini-\\d+(\\.\\d+)?-flash-lite$"]
   }
 }

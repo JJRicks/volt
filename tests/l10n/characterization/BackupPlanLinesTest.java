@@ -156,8 +156,8 @@ public final class BackupPlanLinesTest {
         check("Incomplete JSON.".equals(message(() -> BackupJson.parse("[1,", 8))), "cut JSON");
         check("The backup has invalid scooter profiles.".equals(message(() -> BackupProfiles.parse(5L))), "profiles that are not text");
         check("The backup has unreadable scooter profiles.".equals(message(() -> BackupProfiles.parse("[{"))), "profiles that are not JSON");
-        check("The pairing file contains unsupported fields.".equals(message(() -> BackupArchive.stage(phone, new java.io.ByteArrayInputStream("{\"format\":\"navee-offline-owner-v1\",\"extra\":1}".getBytes(StandardCharsets.UTF_8)), null))), "a pairing file with an unknown field");
-        check("The pairing file has an invalid owner identity.".equals(message(() -> BackupArchive.stage(phone, new java.io.ByteArrayInputStream("{\"format\":\"navee-offline-owner-v1\",\"owner_identity\":\"nothex\"}".getBytes(StandardCharsets.UTF_8)), null))), "a pairing file with a bad identity");
+        check("The owner setup file contains unsupported fields.".equals(message(() -> BackupArchive.stage(phone, new java.io.ByteArrayInputStream("{\"format\":\"navee-offline-owner-v1\",\"extra\":1}".getBytes(StandardCharsets.UTF_8)), null))), "a pairing file with an unknown field");
+        check("The owner setup file has an invalid owner key.".equals(message(() -> BackupArchive.stage(phone, new java.io.ByteArrayInputStream("{\"format\":\"navee-offline-owner-v1\",\"owner_identity\":\"nothex\"}".getBytes(StandardCharsets.UTF_8)), null))), "a pairing file with a bad identity");
         BackupArchive.Prepared prepared = phone.stage(complete);
         check("Choose what to restore.".equals(message(() -> BackupArchive.plan(phone, prepared, Collections.<String>emptySet(), false, null))), "no category");
         check("Choose where each scooter's data goes.".equals(message(() -> BackupArchive.plan(phone, prepared, set(BackupRegistry.RIDES), false, Collections.singletonMap(A, C)))), "an unresolved scooter");
