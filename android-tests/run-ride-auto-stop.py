@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Automatic ride end presentation checks on synthetic journals; disposable emulator only, never a phone serial."""
+"""Automatic ride end checks on synthetic journals and synthetic recordings left to the service tick; disposable emulator only, never a phone serial."""
 import argparse
 import json
 from pathlib import Path
@@ -14,12 +14,13 @@ parser.add_argument('--app', type=Path, required=True)
 parser.add_argument('--runner', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
 parser.add_argument('--case', action='append', help='widthxheight:theme:system-font-scale[:reduced]')
+parser.add_argument('--no-live', action='store_true', help='skip the went-quiet checks through the service tick (about 2.5 minutes per case)')
 args = parser.parse_args()
 if not re.fullmatch(r'emulator-\d+', args.serial):
     parser.error('An explicit emulator serial is required; physical devices are refused')
 prefix = [args.adb, '-s', args.serial]
-def run(*values, check=True):
-    result = subprocess.run(prefix + list(values), text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+def run(*values, check=True, timeout=180):
+    result = subprocess.run(prefix + list(values), text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
     if check and result.returncode:
         raise RuntimeError(result.stdout)
     return result.stdout
@@ -46,8 +47,10 @@ try:
         for permission in ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT', 'POST_NOTIFICATIONS'):
             run('shell', 'pm', 'grant', 'com.jjricks.volt', 'android.permission.' + permission)
         runner = 'RideAutoStopValidation'
+        # The went-quiet checks wait out the real 1-minute countdown twice.
         output = run('shell', 'am', 'instrument', '-w', '-e', 'theme', theme, '-e', 'variant', case.replace(':', '-'),
-                     'com.jjricks.volt.tests/com.jjricks.volt.tests.' + runner)
+                     '-e', 'live', '0' if args.no_live else '1',
+                     'com.jjricks.volt.tests/com.jjricks.volt.tests.' + runner, timeout=600)
         destination = args.out / case.replace(':', '-'); destination.mkdir(exist_ok=True)
         (destination / 'result.txt').write_text(output)
         directory = 'auto-stop-validation'
