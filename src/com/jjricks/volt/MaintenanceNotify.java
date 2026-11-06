@@ -24,12 +24,15 @@ import java.util.function.BooleanSupplier;
  * <li>A check that was stopped (its run token ended), or whose reminder was turned off while it ran,
  *     posts nothing and writes nothing.</li>
  * <li>The daily job exists only while some scooter has reminders on and a notify reminder that time
- *     can make due (a time part, or a snooze still running).</li>
+ *     can make due (a time part, or a snooze still running). A snooze that ended since the last check
+ *     is checked before the job is dropped, so its notice is never lost ({@link #replan}).</li>
+ * <li>A notice names its scooter. Its tap opens the Maintenance page only while that scooter is the
+ *     active one; it never switches scooters ({@link #route}).</li>
  * </ul>
  * Pure Java: {@link MaintenanceNotices} posts on Android.
  */
 final class MaintenanceNotify {
-    static final String CHANNEL = "maintenance", OPEN = "open_maintenance";
+    static final String CHANNEL = "maintenance", OPEN = "open_maintenance", PROFILE = "maintenance_profile";
     /** The daily job: about once a day, at a time Android picks within the last few hours of each day. */
     static final long PERIOD_MS = 86_400_000L, FLEX_MS = 6 * 3_600_000L;
     /** Every check and every quiet check takes it, in the service and the daily job alike. */
@@ -95,6 +98,56 @@ final class MaintenanceNotify {
     static boolean needsJob(Collection<Settings> scooters, long nowWall) {
         for (Settings s : scooters) if (needsJob(s, nowWall)) return true;
         return false;
+    }
+
+    /**
+     * Whether a notify reminder's snooze has ended without a check seeing it end: its cycle (with that
+     * snooze end) is not in the bookkeeping yet. {@link #replan} checks such a scope before it decides
+     * whether the daily job is still needed.
+     */
+    static boolean unchecked(Settings s, Map<String, Cycle> seen, long nowWall) {
+        if (!s.on) return false;
+        for (Reminder r : s.reminders) {
+            if (!r.notify || r.snoozeUntil <= 0 || r.snoozeUntil > nowWall) continue;
+            Cycle was = seen.get(r.id);
+            if (was == null || was.snooze != r.snoozeUntil) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Before the daily job is planned or dropped: each scope whose snooze ended unchecked gets its
+     * normal {@link #check} first (same lock, same run token), then the job need is read from the latest
+     * reminders. Returns whether the daily job is still needed.
+     */
+    static boolean replan(MaintenanceKeeper keeper, Collection<String> scopes, long nowWall, ZoneId zone,
+                          BooleanSupplier live, Poster poster) {
+        List<Settings> all = new ArrayList<>();
+        for (String scope : scopes) {
+            if (scope == null || scope.isEmpty()) continue;
+            Settings s = keeper.load(scope);
+            if (live.getAsBoolean() && unchecked(s, decodeSeen(keeper.seen(scope)), nowWall)) {
+                check(keeper, scope, nowWall, zone, false, live, poster);
+                s = keeper.load(scope);
+            }
+            all.add(s);
+        }
+        return needsJob(all, nowWall);
+    }
+
+    /** Where a notice's tap goes: {@link #OPEN_PAGE} for the active scooter, {@link #OTHER} for another saved one. */
+    enum Route { NONE, OPEN_PAGE, OTHER }
+
+    /**
+     * A notice's tap. It never selects a scooter or starts Bluetooth: the Maintenance page opens only when
+     * the scooter the notice names is the active one. A notice for another saved scooter says which one
+     * it was; one without a scooter, or for a scooter since forgotten, just opens Volt.
+     */
+    static Route route(String noticeScope, String activeProfile, Collection<String> savedProfiles) {
+        if (noticeScope == null || noticeScope.isEmpty()) return Route.NONE;
+        String id = MaintenanceKeeper.profileOf(noticeScope);
+        if (id.isEmpty() || !savedProfiles.contains(id)) return Route.NONE;
+        return id.equals(activeProfile) ? Route.OPEN_PAGE : Route.OTHER;
     }
 
     /**

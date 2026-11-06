@@ -156,7 +156,7 @@ public final class ScooterService extends Service {
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         maintenanceNotices = new MaintenanceNotices(this, profiles);
         maintenance.listen(this::maintenanceChanged);
-        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis());
+        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
         // A guided test interrupted by process death stays outstanding; nothing is written on restart.
         ble.recoverTests();try{
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
@@ -2024,7 +2024,7 @@ public final class ScooterService extends Service {
         } else {
             MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), true, this::maintenanceLive, maintenanceNotices);
         }
-        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis());
+        MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
     }
 
     private String activeProfileId(){ScooterProfiles.Profile profile=profiles==null?null:profiles.active();

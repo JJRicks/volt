@@ -30,7 +30,7 @@ public final class MaintenanceJobService extends JobService {
                 long now = System.currentTimeMillis();
                 MaintenanceNotices.checkAll(this, keeper, profiles, now, live);
                 // No longer needed (a snooze ended, say): the next run doesn't happen.
-                if (live.getAsBoolean()) MaintenanceNotices.plan(this, keeper, profiles, now);
+                if (live.getAsBoolean()) MaintenanceNotices.plan(this, keeper, profiles, now, live);
             } catch (RuntimeException failed) {
                 // The next run tries again.
             } finally {

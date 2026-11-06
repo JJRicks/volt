@@ -229,16 +229,25 @@ public final class MainActivity extends Activity implements ScreenHost {
         else selectedPage="home";
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
-        // A maintenance notice's tap opens the Maintenance page on the Scooter tab.
-        if(saved==null&&MaintenanceNotices.opened(getIntent(),preferences))selectedPage=MaintenanceScreen.PAGE;
+        // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
+        MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE)selectedPage=MaintenanceScreen.PAGE;
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
         rebuild();
+        maintenanceTapOther(tap);
+    }
+    /** A notice for a saved scooter that isn't the active one: say which, and never switch scooters. */
+    private void maintenanceTapOther(MaintenanceNotices.Tap tap){
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OTHER)toast(T.maintenanceNoticeOther(tap.name));
     }
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);setIntent(intent);
-        if(startupRedirect||preferences==null||!MaintenanceNotices.opened(intent,preferences))return;
+        if(startupRedirect||preferences==null)return;
+        MaintenanceNotices.Tap tap=MaintenanceNotices.tapped(intent,preferences,scooterService!=null&&scooterService.profiles!=null?scooterService.profiles:new ScooterProfiles(this));
+        if(tap==null)return;
+        if(tap.route!=MaintenanceNotify.Route.OPEN_PAGE){maintenanceTapOther(tap);return;}
         // Focus mode stays up; the page opens when the Scooter tab is next shown.
         if(riding!=null||onboarding!=null)return;
         captureScroll();selectedPage=MaintenanceScreen.PAGE;preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();

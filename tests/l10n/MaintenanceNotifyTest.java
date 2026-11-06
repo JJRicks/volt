@@ -49,7 +49,9 @@ public final class MaintenanceNotifyTest {
         stoppedOrTurnedOff();
         simulationAndForget();
         bookkeeping();
-        System.out.println("MaintenanceNotifyTest: " + checks + " checks passed (job rules, once per cycle, snooze end, restart, quiet page change, grouped notice, stop and opt-out races, simulation, forget, bookkeeping)");
+        replanAfterSnooze();
+        taps();
+        System.out.println("MaintenanceNotifyTest: " + checks + " checks passed (job rules, once per cycle, snooze end, restart, quiet page change, grouped notice, stop and opt-out races, simulation, forget, bookkeeping, re-plan after a snooze, notice taps)");
     }
 
     private static Reminder time(String id, int days, long base, boolean notify) {
@@ -223,5 +225,64 @@ public final class MaintenanceNotifyTest {
                 && MaintenanceNotify.decodeSeen("[1,2]").isEmpty(), "unreadable means nothing notified");
         check(MaintenanceNotify.decodeSeen("{\"r1\":{\"base\":5},\"r2\":{\"base\":1,\"snooze\":0}}").keySet().equals(Collections.singleton("r2")), "an incomplete entry is skipped");
         check(!new MaintenanceNotify.Cycle(1, 2, 3).equals(new MaintenanceNotify.Cycle(1, 2, 4)) && new MaintenanceNotify.Cycle(1, Double.NaN, 3).equals(new MaintenanceNotify.Cycle(1, Double.NaN, 3)), "cycle equality");
+    }
+
+    /**
+     * #267 review: a distance reminder is snoozed while the scooter is away, so the daily job is planned for
+     * the snooze. The snooze ends, and Volt starts (re-plans) before the job runs: the re-plan checks first,
+     * posts the one notice and only then lets the job go.
+     */
+    private static void replanAfterSnooze() {
+        Memory memory = new Memory(); Shade shade = new Shade();
+        MaintenanceKeeper keeper = keeper(memory, "p1", distance("chain", 100, 0, true));
+        keeper.observe("p1", 1000, MaintenanceDistance.BITS_32, WALL - DAY);
+        keeper.observe("p1", 1100, MaintenanceDistance.BITS_32, WALL);
+        check(MaintenanceNotify.check(keeper, "p1", WALL, UTC, false, LIVE, shade), "due by distance while connected");
+        keeper.update("p1", s -> MaintenancePolicy.snooze(s.find("chain"), 1, WALL + 1000, 1100, UTC));
+        MaintenanceNotify.check(keeper, "p1", WALL + 2000, UTC, true, LIVE, shade);
+        List<String> scopes = Arrays.asList("p1", "p2");
+        check(MaintenanceNotify.replan(keeper, scopes, WALL + DAY / 2, UTC, LIVE, shade) && shade.posts.size() == 1, "snoozed and disconnected: the job is planned, nothing posts");
+        check(!MaintenanceNotify.unchecked(keeper.load("p1"), MaintenanceNotify.decodeSeen(keeper.seen("p1")), WALL + DAY / 2), "a running snooze is not unchecked");
+        long after = WALL + 2 * DAY;
+        check(MaintenanceNotify.unchecked(keeper.load("p1"), MaintenanceNotify.decodeSeen(keeper.seen("p1")), after), "the snooze ended and no check saw it");
+        // A stopped re-plan (backup started, service ending) checks nothing.
+        check(MaintenanceNotify.replan(keeper, scopes, after, UTC, () -> false, shade) == false && shade.posts.size() == 1 && MaintenanceNotify.unchecked(keeper.load("p1"), MaintenanceNotify.decodeSeen(keeper.seen("p1")), after), "a stopped re-plan posts and writes nothing");
+        // App start re-plans before the delayed job runs.
+        check(!MaintenanceNotify.replan(keeper, scopes, after, UTC, LIVE, shade), "then the job is no longer needed");
+        check(shade.posts.size() == 2 && shade.posts.get(1).equals(Collections.singletonList("chain")), "but first exactly one notice: " + shade.posts);
+        check(!MaintenanceNotify.unchecked(keeper.load("p1"), MaintenanceNotify.decodeSeen(keeper.seen("p1")), after), "the check saw the end");
+        check(!MaintenanceNotify.replan(keeper, scopes, after + 60_000, UTC, LIVE, shade) && shade.posts.size() == 2, "a second re-plan posts nothing");
+        check(!MaintenanceNotify.check(keeper, "p1", after + DAY, UTC, false, LIVE, shade) && shade.posts.size() == 2, "nor does the late job, if it still runs");
+        // Seen on the page after the end (a quiet check): the re-plan has nothing to post.
+        Memory paged = new Memory(); Shade pageShade = new Shade();
+        MaintenanceKeeper page = keeper(paged, "p3", distance("chain", 100, 0, true));
+        page.observe("p3", 1000, MaintenanceDistance.BITS_32, WALL - DAY);
+        page.observe("p3", 1100, MaintenanceDistance.BITS_32, WALL);
+        page.update("p3", s -> MaintenancePolicy.snooze(s.find("chain"), 1, WALL, 1100, UTC));
+        MaintenanceNotify.check(page, "p3", WALL + 2 * DAY, UTC, true, LIVE, pageShade);
+        check(!MaintenanceNotify.replan(page, Collections.singletonList("p3"), WALL + 2 * DAY, UTC, LIVE, pageShade) && pageShade.posts.isEmpty(), "seen on the page: nothing to post");
+        // Another scooter's time reminder still keeps the job.
+        Memory both = new Memory(); Shade bothShade = new Shade();
+        MaintenanceKeeper two = keeper(both, "p4", time("tires", 30, WALL, true));
+        check(MaintenanceNotify.replan(two, Arrays.asList("p4", "p5"), WALL + DAY, UTC, LIVE, bothShade) && bothShade.posts.isEmpty(), "a time reminder keeps the job");
+    }
+
+    /**
+     * #267 review: a notice names its scooter. MainActivity routes a cold start (onCreate) and a warm tap
+     * (onNewIntent) through the same route(), with two saved scooters.
+     */
+    private static void taps() {
+        List<String> saved = Arrays.asList("a", "b");
+        check(MaintenanceNotify.route("a", "a", saved) == MaintenanceNotify.Route.OPEN_PAGE, "the active scooter's notice opens its Maintenance page");
+        check(MaintenanceNotify.route("b", "a", saved) == MaintenanceNotify.Route.OTHER, "another saved scooter's notice: a note naming it, no switch");
+        check(MaintenanceNotify.route("b", "b", saved) == MaintenanceNotify.Route.OPEN_PAGE, "once the owner selects it, its notice opens the page");
+        check(MaintenanceNotify.route(MaintenanceKeeper.simulationScope("a"), "a", saved) == MaintenanceNotify.Route.OPEN_PAGE, "the simulator's notice belongs to its scooter");
+        check(MaintenanceNotify.route(MaintenanceKeeper.simulationScope("b"), "a", saved) == MaintenanceNotify.Route.OTHER, "and not to another");
+        check(MaintenanceNotify.route("c", "a", saved) == MaintenanceNotify.Route.NONE, "a forgotten scooter's stale notice just opens Volt");
+        check(MaintenanceNotify.route("b", "a", Collections.singletonList("a")) == MaintenanceNotify.Route.NONE, "b forgotten after its notice posted");
+        check(MaintenanceNotify.route(null, "a", saved) == MaintenanceNotify.Route.NONE && MaintenanceNotify.route("", "a", saved) == MaintenanceNotify.Route.NONE
+                && MaintenanceNotify.route(MaintenanceKeeper.simulationScope(""), "a", saved) == MaintenanceNotify.Route.NONE, "no scooter named: just Volt");
+        check(MaintenanceNotify.route("a", null, saved) == MaintenanceNotify.Route.OTHER, "no active scooter: never the page");
+        check(MaintenanceNotify.route("a", "a", Collections.emptyList()) == MaintenanceNotify.Route.NONE, "no saved scooters: just Volt");
     }
 }

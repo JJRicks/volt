@@ -223,4 +223,6 @@
         <item quantity="one">%2$s and %1$d more</item>
         <item quantity="other">%2$s and %1$d more</item>
     </plurals>
+    <!-- A toast after tapping a maintenance notice for a saved scooter that isn't the one selected now: %1$s is that scooter's name. Volt doesn't switch scooters by itself. -->
+    <string name="maintenance_notice_other" volt:screen="Notifications" volt:purpose="message">Maintenance is due on %1$s. Select it in My scooters.</string>
 </resources>

@@ -43,9 +43,12 @@ final class MaintenanceNotices implements MaintenanceNotify.Poster {
             String text = n == 1 ? first : T.maintenanceNoticeMore(n - 1, n - 1, first);
             Notification.InboxStyle lines = new Notification.InboxStyle();
             for (MaintenancePolicy.Reminder r : due) lines.addLine(MaintenanceView.name(r));
-            Intent open = new Intent(context, MainActivity.class).putExtra(MaintenanceNotify.OPEN, true)
+            // The tap names this notice's scope. Its own action and a request code per scope keep each
+            // scooter's tap apart from the others and from the service's own taps.
+            Intent open = new Intent(context, MainActivity.class).setAction(MaintenanceNotify.OPEN)
+                    .putExtra(MaintenanceNotify.OPEN, true).putExtra(MaintenanceNotify.PROFILE, scope)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            PendingIntent tap = PendingIntent.getActivity(context, NOTICE, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent tap = PendingIntent.getActivity(context, scope.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             Notification notice = new Notification.Builder(context, MaintenanceNotify.CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(title).setContentText(text).setStyle(n > 1 ? lines : new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(tap).setAutoCancel(true).setOnlyAlertOnce(true).setCategory(Notification.CATEGORY_REMINDER)
@@ -101,26 +104,49 @@ final class MaintenanceNotices implements MaintenanceNotify.Poster {
 
     /**
      * Schedules the daily job while a scooter needs it (MaintenanceNotify.needsJob) and cancels it otherwise.
-     * A job already planned is left alone, so its day is not restarted by every change. Persisted: Android
-     * plans it again after a restart (RECEIVE_BOOT_COMPLETED, a permission with no prompt).
+     * A snooze that ended since the last check is checked first ({@link MaintenanceNotify#replan}), so
+     * dropping the job never loses its notice. A job already planned is left alone, so its day is not
+     * restarted by every change. Persisted: Android plans it again after a restart (RECEIVE_BOOT_COMPLETED,
+     * a permission with no prompt). {@code live} is the caller's run token, as for a check.
      */
-    static void plan(Context context, MaintenanceKeeper keeper, ScooterProfiles profiles, long nowWall) {
+    static void plan(Context context, MaintenanceKeeper keeper, ScooterProfiles profiles, long nowWall, BooleanSupplier live) {
         try {
-            List<MaintenanceStore.Settings> all = new ArrayList<>();
-            if (profiles != null) for (ScooterProfiles.Profile p : profiles.all()) all.add(keeper.load(p.id));
+            List<String> scopes = new ArrayList<>();
+            if (profiles != null) for (ScooterProfiles.Profile p : profiles.all()) scopes.add(p.id);
+            boolean needed = MaintenanceNotify.replan(keeper, scopes, nowWall, ZoneId.systemDefault(), live, new MaintenanceNotices(context, profiles));
+            if (!live.getAsBoolean()) return;
             JobScheduler jobs = context.getSystemService(JobScheduler.class);
-            if (!MaintenanceNotify.needsJob(all, nowWall)) { jobs.cancel(JOB); return; }
+            if (!needed) { jobs.cancel(JOB); return; }
             if (jobs.getPendingJob(JOB) != null) return;
             jobs.schedule(new JobInfo.Builder(JOB, new ComponentName(context, MaintenanceJobService.class))
                     .setPeriodic(MaintenanceNotify.PERIOD_MS, MaintenanceNotify.FLEX_MS).setPersisted(true).setRequiresBatteryNotLow(true).build());
         } catch (RuntimeException unavailable) { }
     }
 
-    /** A tap on a maintenance notice: the Maintenance page opens next time the Scooter tab is built. Consumes the extra. */
-    static boolean opened(Intent intent, SharedPreferences preferences) {
-        if (intent == null || !intent.getBooleanExtra(MaintenanceNotify.OPEN, false)) return false;
+    /** A notice's tap, read once: where it goes and the name of the scooter it named. */
+    static final class Tap {
+        final MaintenanceNotify.Route route; final String name;
+        Tap(MaintenanceNotify.Route route, String name) { this.route = route; this.name = name; }
+    }
+
+    /**
+     * A tap on a maintenance notice, or null for any other start. It consumes the extras and never selects
+     * a scooter: for the active scooter the Maintenance page opens next time the Scooter tab is built.
+     */
+    static Tap tapped(Intent intent, SharedPreferences preferences, ScooterProfiles profiles) {
+        if (intent == null || !intent.getBooleanExtra(MaintenanceNotify.OPEN, false)) return null;
+        String scope = intent.getStringExtra(MaintenanceNotify.PROFILE);
         intent.removeExtra(MaintenanceNotify.OPEN);
-        MaintenanceScreen.remember(preferences, true);
-        return true;
+        intent.removeExtra(MaintenanceNotify.PROFILE);
+        List<String> saved = new ArrayList<>();
+        String name = "";
+        ScooterProfiles.Profile active = profiles == null ? null : profiles.active();
+        if (profiles != null) for (ScooterProfiles.Profile p : profiles.all()) {
+            saved.add(p.id);
+            if (scope != null && p.id.equals(MaintenanceKeeper.profileOf(scope))) name = p.shownName();
+        }
+        MaintenanceNotify.Route route = MaintenanceNotify.route(scope, active == null ? null : active.id, saved);
+        if (route == MaintenanceNotify.Route.OPEN_PAGE) MaintenanceScreen.remember(preferences, true);
+        return new Tap(route, name);
     }
 }
