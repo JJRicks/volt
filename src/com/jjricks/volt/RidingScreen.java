@@ -61,6 +61,8 @@ final class RidingScreen implements AppScreen {
     private final NumberView watts;
     /** Labels, units and dividers: the static chrome RidingBurnIn dims on a long ride. */
     private final List<View> chrome = new ArrayList<>();
+    /** Brightness, rotation lock and hidden status bar while riding mode is open (its slider sits below). */
+    private final RidingDisplay display;
     private long powerSampleMs = -1;
     private boolean closed;
 
@@ -215,13 +217,18 @@ final class RidingScreen implements AppScreen {
             body.addView(readings, readingsSize);
         }
         frame.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
+        display = new RidingDisplay(host.activity(), ui, preferences);
+        frame.addView(display.controls(), RidingDisplay.slot(ui));
         // The big watt number sits on the bar's zero line, so the eye always finds it in the same place.
         body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> bar.post(this::alignZero));
         refresh();
     }
 
     @Override public View view() { return view; }
-    @Override public void close() { closed = true; }
+    @Override public void close() {
+        closed = true;
+        display.detach();
+    }
 
     /**
      * The top spot. Record is Focus's default (owner): the shared recording control it needs plugs in

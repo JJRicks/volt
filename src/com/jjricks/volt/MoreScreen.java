@@ -1039,6 +1039,31 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
+        ridingPreferences();
+    }
+    /** Riding mode's screen: brightness (Phone by default, owner Q20 A) and the rotation lock (Q14 A). */
+    private void ridingPreferences() {
+        label(T.ridingDisplaySection());
+        boolean sensor = RidingDisplay.hasLightSensor(host.activity());
+        String[] labels = sensor ? new String[]{T.ridingDisplayPhone(), T.ridingDisplayAuto(), T.ridingDisplayFixed()}
+                : new String[]{T.ridingDisplayPhone(), T.ridingDisplayFixed()};
+        String[] values = sensor ? new String[]{RidingBrightness.PHONE, RidingBrightness.AUTO, RidingBrightness.FIXED}
+                : new String[]{RidingBrightness.PHONE, RidingBrightness.FIXED};
+        segmentedField(T.ridingDisplayBrightness(), RidingBrightness.MODE_KEY, labels, values, RidingBrightness.PHONE);
+        segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
+                new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
+        LinearLayout box = group();
+        box.setTag("preference-riding-display");
+        RidingBrightness.Store store = RidingDisplay.settings(settings());
+        Row reset = row(box, "settings", T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
+            RidingBrightness.forget(store);
+            host.toast(T.ridingDisplayResetDone());
+            View shown = box.findViewWithTag("preference-riding-brightness-reset");
+            if (shown != null) shown.setVisibility(View.GONE);
+        });
+        reset.view.setTag("preference-riding-brightness-reset");
+        valueRefreshers.add(() -> reset.view.setVisibility(RidingBrightness.learned(store) ? View.VISIBLE : View.GONE));
+        note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
     }
     private boolean batteryUnrestricted() {
         try {
