@@ -13,6 +13,16 @@ final class TileRung {
         return fullWidth <= room ? full : brief;
     }
 
+    /**
+     * The narrow-label ladder over any number of rungs (D2): the index of the first rung whose measured width
+     * (pixels, at the size it may not go below) fits room, or -1 when none does, where the caller shows its icon
+     * alone. widths run longest rung first; a rung is never shrunk or broken to make it fit.
+     */
+    static int first(float[] widths, float room) {
+        for (int i = 0; i < widths.length; i++) if (widths[i] <= room) return i;
+        return -1;
+    }
+
     /** True when pick differs in content from the shown text, the only case the label's text is set. */
     static boolean needsSet(CharSequence pick, CharSequence shown) {
         if (pick == null || shown == null) return pick != shown;
