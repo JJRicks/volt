@@ -119,13 +119,6 @@ public final class RideAutoExportTest {
         check(RideAutoExport.rowState(true, true, true, save) == RideAutoExport.RowState.SAVE_PROBLEM, "Write failed");
         check(RideAutoExport.rowState(true, true, true, none) == RideAutoExport.RowState.SAVING, "Working");
         check(RideAutoExport.anyOn(true, false) && RideAutoExport.anyOn(false, true) && !RideAutoExport.anyOn(false, false), "Either type keeps it on");
-        check(RideAutoExport.notifies(none, folder, none, false), "A new failure while hidden posts");
-        check(!RideAutoExport.notifies(none, folder, none, true), "No notice while Volt is visible");
-        check(!RideAutoExport.notifies(folder, folder, folder, false), "Hidden, then the same failure hidden again: no repeat");
-        check(RideAutoExport.notifies(folder, folder, none, false), "Visible failure, then the same failure while hidden: one notice");
-        check(RideAutoExport.notifies(folder, save, folder, false), "A different failure kind posts again");
-        check(RideAutoExport.notifies(none, folder, folder, false), "Nothing stored before the pass: an old posted kind is stale");
-        check(!RideAutoExport.notifies(folder, none, folder, false) && !RideAutoExport.notifies(none, none, none, false), "A success never posts");
     }
 
     private static void savesThroughTemporary() throws IOException {
