@@ -49,6 +49,9 @@ final class RidingScreen implements AppScreen {
     private final FrameLayout view;
     private final LinearLayout frame;
     private final View dot;
+    private final LinearLayout statusPill;
+    /** A phone-width window: the warning chip shows its short rung so the status pill keeps room. */
+    private final boolean narrow;
     private final TextView status, warning, speedLast, wattsCaption;
     private final Cell big, highlight, battery;
     private final List<Cell> bottom = new ArrayList<>();
@@ -110,9 +113,11 @@ final class RidingScreen implements AppScreen {
         back.setOnClickListener(v -> { if (!closed) leave.run(); });
         back.addView(ui.icon("back", 26, ui.text), new FrameLayout.LayoutParams(ui.dp(26), ui.dp(26), Gravity.CENTER));
         top.addView(back, new LinearLayout.LayoutParams(ui.dp(TOUCH_DP), ui.dp(TOUCH_DP)));
-        LinearLayout pill = new LinearLayout(context);
+        narrow = configuration.screenWidthDp < 600;
+        LinearLayout pill = statusPill = new LinearLayout(context);
         pill.setOrientation(LinearLayout.HORIZONTAL);
         pill.setGravity(Gravity.CENTER);
+        pill.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         pill.setPadding(ui.dp(18), 0, ui.dp(18), 0);
         pill.setBackground(ui.shape(ui.dark ? ui.surface : ui.raised, TOUCH_DP / 2, 0));
         dot = new View(context);
@@ -120,6 +125,7 @@ final class RidingScreen implements AppScreen {
         dotSize.setMarginEnd(ui.dp(10));
         pill.addView(dot, dotSize);
         status = ui.text("", labelSp(17), true);
+        status.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         ui.fitStatusLine(status);
         pill.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
         status.setGravity(Gravity.CENTER);
@@ -141,7 +147,8 @@ final class RidingScreen implements AppScreen {
         frame.addView(top, topSize);
 
         // The cells.
-        big = new Cell(layout.content(RidingLayout.FOCUS, "big"), 200, true);
+        // Stacked, the unit sits under the speed; side by side, beside it, so the number keeps the short column's height.
+        big = new Cell(layout.content(RidingLayout.FOCUS, "big"), 200, !side);
         speedLast = ui.text("", labelSp(LABEL_SP), false);
         speedLast.setTextColor(ui.dim);
         speedLast.setMaxLines(1);
@@ -173,8 +180,11 @@ final class RidingScreen implements AppScreen {
             bottomRow.addView(bottom.get(i), p);
         }
         if (side) {
+            // Speed and the power readout share the left column, so each reading on the right keeps a large number.
             LinearLayout speed = column();
-            speed.addView(big, new LinearLayout.LayoutParams(-1, 0, 1));
+            speed.addView(big, new LinearLayout.LayoutParams(-1, 0, 2.3f));
+            divider(speed);
+            speed.addView(power, new LinearLayout.LayoutParams(-1, 0, 1f));
             LinearLayout.LayoutParams speedSize = new LinearLayout.LayoutParams(0, -1, 1.1f);
             speedSize.setMarginStart(ui.dp(18));
             body.addView(speed, speedSize);
@@ -184,8 +194,6 @@ final class RidingScreen implements AppScreen {
             readings.addView(battery, new LinearLayout.LayoutParams(-1, 0, 1f));
             divider(readings);
             readings.addView(bottomRow, new LinearLayout.LayoutParams(-1, 0, 1f));
-            divider(readings);
-            readings.addView(power, new LinearLayout.LayoutParams(-1, 0, 1f));
             LinearLayout.LayoutParams readingsSize = new LinearLayout.LayoutParams(0, -1, 1);
             readingsSize.setMarginStart(ui.dp(24));
             body.addView(readings, readingsSize);
@@ -273,24 +281,34 @@ final class RidingScreen implements AppScreen {
         status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
         if (link == RidingFocus.Link.CONNECTED) {
             String mode = mode(ble);
-            if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort());
-            else ui.statusRungs(status, T.ridingStatusConnectedModeShort());
+            // The green dot alone is the last rung: the pill's icon (the narrow-label ladder).
+            if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort(), "");
+            else ui.statusRungs(status, T.ridingStatusConnectedModeShort(), "");
+            statusPill.setContentDescription(mode != null ? T.ridingStatusConnectedMode(mode) : T.ridingStatusConnectedModeShort());
         } else if (link == RidingFocus.Link.RECONNECTING) {
             ui.statusRungs(status, T.ridingStatusReconnecting());
+            statusPill.setContentDescription(T.ridingStatusReconnecting());
         } else {
             long last = session.lastReadingMs(now);
             if (last >= 0) {
                 String ago = clock(now - last);
                 ui.statusRungs(status, T.ridingStatusNotConnectedSeen(ago), T.ridingStatusNotConnectedSeenShort(ago),
                         T.ridingStatusNotConnectedSeenCompact());
-            } else ui.statusRungs(status, T.ridingStatusNotConnectedSeenCompact());
+                statusPill.setContentDescription(T.ridingStatusNotConnectedSeen(ago));
+            } else {
+                ui.statusRungs(status, T.ridingStatusNotConnectedSeenCompact());
+                statusPill.setContentDescription(T.ridingStatusNotConnectedSeenCompact());
+            }
         }
         RidingValues.Reading code = session.values.reading("warning_code", now);
         long warningCode = code == null ? 0 : Math.round(code.value);
         if (warningCode > 0) {
             String number = Fmt.integer(warningCode);
             warning.setVisibility(View.VISIBLE);
-            ui.statusRungs(warning, T.ridingWarningCode(number), T.ridingWarningCodeShort(number));
+            // On a phone the chip yields room to a Reconnecting or Not connected pill: the red chip and its number stay.
+            if (narrow && link != RidingFocus.Link.CONNECTED) ui.statusRungs(warning, number);
+            else if (narrow) ui.statusRungs(warning, T.ridingWarningCodeShort(number));
+            else ui.statusRungs(warning, T.ridingWarningCode(number), T.ridingWarningCodeShort(number));
             warning.setContentDescription(T.ridingWarningSpoken(number));
             warning.setAlpha(code.stale ? .6f : 1);
         } else warning.setVisibility(View.GONE);
@@ -737,13 +755,14 @@ final class RidingScreen implements AppScreen {
         @Override protected void onDraw(Canvas canvas) {
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0 || main.length() == 0) return;
-            float size = maxPx;
+            // The no-reading dash is a mark, not a number: half size, so it never reads as a bar.
+            float size = TextUtils.equals(main, T.ridingNoValue()) ? maxPx * .5f : maxPx;
             float fractionShare = .46f, unitShare = unitBelow ? .30f : .42f;
             for (int pass = 0; pass < 2; pass++) {
                 big.setTextSize(size);
                 small.setTextSize(size * unitShare);
                 float width = small.measureText(prefix, 0, prefix.length()) + big.measureText(main, 0, main.length())
-                        + measureFraction(size * fractionShare) + (unitBelow ? 0 : small.measureText(suffix, 0, suffix.length()));
+                        + measureFraction(size * fractionShare) + (unitBelow ? 0 : gap() + small.measureText(suffix, 0, suffix.length()));
                 if (unitBelow) width = Math.max(width, small.measureText(suffix, 0, suffix.length()));
                 float cap = capHeight(big), unitCap = capHeight(small);
                 float height = cap + (unitBelow && suffix.length() > 0 ? unitCap * 1.9f : 0) + ui.dp(4);
@@ -769,8 +788,13 @@ final class RidingScreen implements AppScreen {
             }
             if (suffix.length() > 0) {
                 if (unitBelow) canvas.drawText(suffix, 0, suffix.length(), 0, baseline + capHeight(small) * 1.9f, small);
-                else canvas.drawText(suffix, 0, suffix.length(), x, baseline, small);
+                else canvas.drawText(suffix, 0, suffix.length(), x + gap(), baseline, small);
             }
+        }
+        /** A unit symbol set straight after the number (speed's "mph") gets a thin space; formatted text brings its own. */
+        private float gap() {
+            return suffix.length() > 0 && !Character.isWhitespace(suffix.charAt(0)) && Character.isLetter(suffix.charAt(0))
+                    ? small.getTextSize() * .3f : 0;
         }
         private float measureFraction(float size) {
             if (fraction.length() == 0) return 0;
