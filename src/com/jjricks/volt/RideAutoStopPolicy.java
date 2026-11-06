@@ -156,7 +156,7 @@ public final class RideAutoStopPolicy {
 
     /**
      * As above, with the scooter's latest odometer and trip readings in km (NaN when unknown), which
-     * rule 3 counts as motion when they go up.
+     * rule 3 counts as motion when they go up. Same as the plain call followed by {@link #distance}.
      */
     public void connected(long now, String boundProfile, String transportSerial, int transport,
             long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
@@ -169,7 +169,7 @@ public final class RideAutoStopPolicy {
         }
         if (!bound || transport != connection) { bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now; }
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
-        if (stillFrom > 0) still(now, motionMono, speedRaw, driving, odometerKm, tripKm);
+        if (stillFrom > 0) { still(now, motionMono, speedRaw, driving); distance(now, odometerKm, tripKm); }
         if (motionMono <= 0) { clearRun(); clearSpeed(); return; }
         // Preserve a parked run during complete radio silence until the loss watchdog fires.
         // Other fresh frames with old motion establish uncertainty and invalidate that run.
@@ -255,13 +255,22 @@ public final class RideAutoStopPolicy {
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
     private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; }
-    /** Rule 3's motion evidence from one connected observation. */
-    private void still(long now, long pushMono, int speedRaw, int driving, double odometerKm, double tripKm) {
+    /** Rule 3's speed evidence from one connected observation. */
+    private void still(long now, long pushMono, int speedRaw, int driving) {
         if (pushMono > 0 && pushMono != stillPush && pushMono <= now && now - pushMono <= MOTION_FRESH_MS) {
             stillPush = pushMono;
             if (speedRaw > 0 || driving == 1) stillFrom = Math.max(stillFrom, pushMono);
         }
-        if (rose(stillOdometer, odometerKm) || rose(stillTrip, tripKm)) stillFrom = now;
+    }
+
+    /**
+     * The scooter's latest odometer and trip in km (NaN when missing or stale), right after a
+     * {@link #connected} observation at the same time: going up is rule 3 motion. Ignored while this
+     * ride's scooter is not connected; a drop (trip reset) only moves the baseline.
+     */
+    public void distance(long now, double odometerKm, double tripKm) {
+        if (!clock(now) || !bound || stillFrom <= 0) return;
+        if (rose(stillOdometer, odometerKm) || rose(stillTrip, tripKm)) stillFrom = Math.max(stillFrom, now);
         if (odometerKm >= 0) stillOdometer = odometerKm;
         if (tripKm >= 0) stillTrip = tripKm;
     }

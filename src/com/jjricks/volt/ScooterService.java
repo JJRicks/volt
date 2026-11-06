@@ -1407,9 +1407,10 @@ public final class ScooterService extends Service {
             rideAutoStop.reset();rideAutoStopDisconnects=ble.intentionalDisconnectSequence();return;
         }
         if(ble.connected()){ScooterProfiles.Profile bound=ble.profile();
-            rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),
-                    rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));}
+            rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus());}
         else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
+        // Rule 3 also counts the odometer or trip going up as motion.
+        if(ble.connected())rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));
     }
     /** The transport's fresh odometer or trip reading in km for rule 3, NaN when missing or stale. */
     private double rideDistance(String key,long mono){

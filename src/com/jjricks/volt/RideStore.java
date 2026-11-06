@@ -129,7 +129,11 @@ public final class RideStore {
         /** Null while recording; "" for a rider's stop (and every older journal); otherwise a STOP token. */
         public final String stopReason;
         public final boolean automaticStop;
-        /** Volt ended it for no motion while connected ({@link RideStore#STOP_AUTO_NO_MOTION}); also an {@link #automaticStop}. */
+        /**
+         * Volt ended it for no motion while connected ({@link RideStore#STOP_AUTO_NO_MOTION}). Kept apart
+         * from {@link #automaticStop}, which means an end after a Bluetooth loss (the parked and quiet
+         * rules); a screen showing any automatic end checks both. The analysis JSON names it by its token.
+         */
         public final boolean noMotionStop;
         /**
          * What a rider sees as the end. For an automatic stop it is the last real reading (any fresh
@@ -157,12 +161,12 @@ public final class RideStore {
             Map<String, String> params = quiet ? stopParameters(details) : Collections.<String, String>emptyMap();
             stopReason = quiet ? STOP_AUTO_QUIET : details;
             noMotionStop = STOP_AUTO_NO_MOTION.equals(stopReason);
-            automaticStop = quiet || noMotionStop || STOP_AUTO_PARKED.equals(stopReason);
+            automaticStop = quiet || STOP_AUTO_PARKED.equals(stopReason);
             long last = parseLong(params.get("last"), -1);
             stopLastReadingMonotonicMs = last < -1 ? -1 : last;
             stopDisconnectCode = disconnectCode(params);
             stopPhoneBluetoothOff = "off".equals(params.get("phone_bt"));
-            boolean trim = automaticStop && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
+            boolean trim = (automaticStop || noMotionStop) && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
             // A no-motion stop ends at its last motion, so the ten idle minutes never count; with no motion at all, as other automatic stops.
             boolean still = noMotionStop && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
             shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
@@ -256,7 +260,7 @@ public final class RideStore {
             m.put("netWhPerKm", netWhPerKm); m.put("netWhPerMile", netWhPerMile);
             m.put("efficiencyStatus", efficiencyStatus);
             m.put("stopReason", stopReason == null ? null : STOP_AUTO_QUIET.equals(stopReason) ? "automatic_quiet_disconnect"
-                    : noMotionStop ? STOP_AUTO_NO_MOTION : automaticStop ? "automatic_parked_disconnect" : stopReason.isEmpty() ? "rider" : stopReason);
+                    : automaticStop ? "automatic_parked_disconnect" : stopReason.isEmpty() ? "rider" : stopReason);
             m.put("shownEndWallMs", shownEndWallMs); m.put("shownElapsedMs", shownElapsedMs);
             return Collections.unmodifiableMap(m);
         }

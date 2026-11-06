@@ -299,7 +299,7 @@ public final class RideNoMotionStopTest {
         s.battery(lastMotion + NO_MOTION + 5000);
         check(s.stoppedAt == lastMotion + NO_MOTION, "the loop ends it 10 min after the last motion: " + (s.stoppedAt - lastMotion));
         RideStore.Summary r = s.saved;
-        check(r.noMotionStop && r.automaticStop && RideStore.STOP_AUTO_NO_MOTION.equals(r.stopReason), "no-motion stop token");
+        check(r.noMotionStop && !r.automaticStop && RideStore.STOP_AUTO_NO_MOTION.equals(r.stopReason), "no-motion stop token, apart from the Bluetooth-loss stops");
         check(r.shownEndWallMs == WALL0 + lastMotion && r.shownElapsedMs == lastMotion - 10_000, "shown end is the last motion: " + (r.shownElapsedMs - (lastMotion - 10_000)));
         check(r.endWallMs == WALL0 + s.stoppedAt && r.elapsedMs == s.stoppedAt - 10_000 && r.gapCount == 0 && r.shownGapCount == 0, "raw end kept for integrity checks");
         check(r.toJson().contains("\"stopReason\":\"automatic_no_motion\"") && r.toJson().contains("\"shownElapsedMs\":" + (lastMotion - 10_000)), "analysis JSON names the stop and the shown end");
@@ -363,7 +363,8 @@ public final class RideNoMotionStopTest {
         check(observe.indexOf("settings.getBoolean(RIDE_AUTO_STOP,true)") < observe.indexOf("rideAutoStop.connected(") && observe.contains("rideAutoStop.reset();"),
                 "End rides automatically off resets the policy before any connected observation");
         check(observe.contains("if(destroyed||simulating()||!isRecording()){rideAutoStop=null;return;}"), "charges and simulations never reach the policy");
-        check(observe.contains("rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono)"), "the service passes the odometer and trip");
+        check(observe.contains("if(ble.connected())rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));")
+                && observe.indexOf("rideAutoStop.distance(") > observe.indexOf("rideAutoStop.connected("), "the service passes the odometer and trip right after the connected observation");
         String stop = between(src, "private void autoStopNoMotion(RideAutoStopPolicy policy,long now){", "\n    }");
         check(stop.contains("policy.dueNoMotion(now)") && stop.contains("policy!=rideAutoStop") && stop.contains("policy.owns(rides.activeId())") && stop.contains("!isRecording()"),
                 "rule 3 checks ownership before stopping");
