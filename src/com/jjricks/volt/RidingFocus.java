@@ -40,6 +40,16 @@ final class RidingFocus {
         return !(largeText && heightDp >= STACKED_MIN_HEIGHT_DP);
     }
 
+    /** Labels grow with the text size up to this; a short side-by-side window (a phone sideways) caps them lower. */
+    static final float LABEL_CAP = 1.4f, SHORT_LABEL_CAP = 1.15f;
+    /** Below this height a side-by-side window is short. */
+    static final int SHORT_HEIGHT_DP = 420;
+
+    /** How far labels grow with the text size, so a short window's numbers keep their height. */
+    static float labelCap(boolean sideBySide, int heightDp) {
+        return sideBySide && heightDp < SHORT_HEIGHT_DP ? SHORT_LABEL_CAP : LABEL_CAP;
+    }
+
     /** The bottom row's spots at this text size. */
     static List<String> bottomRow(boolean largeText) {
         List<String> out = new ArrayList<>(BOTTOM_ROW);

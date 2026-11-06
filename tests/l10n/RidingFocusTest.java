@@ -44,6 +44,8 @@ public final class RidingFocusTest {
         check(!RidingFocus.sideBySide(600, 600, false), "a square window stacks");
         check(RidingFocus.bottomRow(false).equals(Arrays.asList("tile_2", "tile_3", "tile_4")), "three bottom cells");
         check(RidingFocus.bottomRow(true).equals(Arrays.asList("tile_2", "tile_4")), "large text drops ride time, keeps battery temperature");
+        check(RidingFocus.labelCap(true, 344) == RidingFocus.SHORT_LABEL_CAP, "a sideways phone caps labels lower");
+        check(RidingFocus.labelCap(true, 604) == RidingFocus.LABEL_CAP && RidingFocus.labelCap(false, 344) == RidingFocus.LABEL_CAP, "elsewhere the usual cap");
         RidingLayout layout = new RidingLayout();
         check(RidingLayout.BATTERY.equals(layout.content(RidingLayout.FOCUS, RidingFocus.BATTERY_ROW)), "the battery row");
         check(RidingLayout.TRIP.equals(layout.content(RidingLayout.FOCUS, "tile_2")), "trip first in the bottom row");

@@ -36,8 +36,9 @@ import java.util.Locale;
  * taps (back, 56 dp); the gauge area ignores them, so a bump or a glove changes nothing.
  */
 final class RidingScreen implements AppScreen {
-    /** Label size before the cap; labels grow with the text size up to LABEL_SCALE_CAP, numbers stay fixed. */
-    private static final float LABEL_SP = 15, LABEL_SCALE_CAP = 1.4f, TOUCH_DP = 56;
+    /** Label size before the cap; labels grow with the text size up to RidingFocus.labelCap, numbers stay fixed. */
+    private static final float LABEL_SP = 15, TOUCH_DP = 56;
+    private final float labelCap;
     private final ScreenHost host;
     private final Ui ui;
     private final ScooterService service;
@@ -79,6 +80,7 @@ final class RidingScreen implements AppScreen {
         boolean large = RidingFocus.largeText(ui.textScale * context.getResources().getConfiguration().fontScale);
         android.content.res.Configuration configuration = context.getResources().getConfiguration();
         boolean side = RidingFocus.sideBySide(configuration.screenWidthDp, configuration.screenHeightDp, large);
+        labelCap = RidingFocus.labelCap(side, configuration.screenHeightDp);
 
         view = new FrameLayout(context);
         view.setBackgroundColor(ui.bg);
@@ -147,8 +149,8 @@ final class RidingScreen implements AppScreen {
         frame.addView(top, topSize);
 
         // The cells.
-        // Stacked, the unit sits under the speed; side by side, beside it, so the number keeps the short column's height.
-        big = new Cell(layout.content(RidingLayout.FOCUS, "big"), 200, !side);
+        // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.
+        big = new Cell(layout.content(RidingLayout.FOCUS, "big"), 200, !(side && configuration.screenHeightDp < RidingFocus.SHORT_HEIGHT_DP));
         speedLast = ui.text("", labelSp(LABEL_SP), false);
         speedLast.setTextColor(ui.dim);
         speedLast.setMaxLines(1);
@@ -575,7 +577,7 @@ final class RidingScreen implements AppScreen {
 
     private static String clock(long ms) { return RidingFocus.clockText(ms); }
 
-    private float labelSp(float sp) { return sp * Math.min(ui.textScale, LABEL_SCALE_CAP) / ui.textScale; }
+    private float labelSp(float sp) { return sp * Math.min(ui.textScale, labelCap) / ui.textScale; }
 
     private LinearLayout column() {
         LinearLayout l = new LinearLayout(host.activity());
