@@ -1218,6 +1218,7 @@ def fmt_wrapper(hole):
 FMT_SPECS = (
     (re.compile(r"%\.([0-6])f"), "decimal", ("locale", "value", "1")),
     (re.compile(r"%,\.([0-6])f"), "grouped", ("locale", "value", "1")),
+    (re.compile(r"%,d"), "groupedInteger", ("locale", "value")),
     (re.compile(r"%d"), "integer", ("value",)),
 )
 # %d prints the locale's digits; Fmt.integer always prints Latin digits, which these locales do too.

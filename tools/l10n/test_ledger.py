@@ -725,7 +725,8 @@ class FormatRowTest(RepoCase):
     static String range(double a, double b) { return String.format(Locale.US, "%.1f–%.1f mph", a, b); }
     static String plain(int n) { return String.format("%d mph", n); }
     static String either(double x, String u) { return String.format(Locale.US, "%.2f %s", x,
-        u.equals("km/h") ? "mph" : "mi"); }''')}
+        u.equals("km/h") ? "mph" : "mi"); }
+    static String total(long n) { return String.format(Locale.US, "%,d W", n); }''')}
     FMT_TEST = "tests/l10n/FmtLegacyTest.java"
     SOURCES = "tests/l10n/b1.sources"
     SPEED = [spec("%.1f", 1, "kmh / KM_PER_MILE", "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"), " ",
@@ -738,7 +739,7 @@ class FormatRowTest(RepoCase):
         self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { DisplayUnits.speed(1); "
                                                   "DisplayUnits.count(1); DisplayUnits.watts(1); DisplayUnits.range(1, 2); "
                                                   "DisplayUnits.plain(1); Fmt.decimal(Locale.US, 1, 1); "
-                                                  "Fmt.grouped(Locale.US, 1, 0); Fmt.integer(1); }"))
+                                                  "Fmt.grouped(Locale.US, 1, 0); Fmt.groupedInteger(Locale.US, 1); Fmt.integer(1); }"))
         self.repo.write(self.SOURCES, "# G10\n%s  # parity\n" % self.FMT_TEST)
 
     def convert(self, old, new):
@@ -780,6 +781,19 @@ class FormatRowTest(RepoCase):
                          "fmt_range")]
         problems, _, _ = self.check(rows)
         self.assertEqual(problems, [])
+
+    def test_grouped_integer_passes(self):
+        self.convert('String.format(Locale.US, "%,d W", n)', "T.fmtQuantity(Fmt.groupedInteger(Locale.US, n), T.unitsWatt())")
+        rows = [self.row(11, [spec("%,d", 1, "n", "Fmt.groupedInteger(Locale.US, n)"), " ", unit("W", "units_watt", 2)])]
+        problems, _, _ = self.check(rows)
+        self.assertEqual(problems, [])
+
+    def test_grouped_integer_through_a_double_fails(self):
+        # %,d is exact for every long; Fmt.grouped goes through a double, which is not past 2^53.
+        self.convert('String.format(Locale.US, "%,d W", n)', "T.fmtQuantity(Fmt.grouped(Locale.US, n, 0), T.unitsWatt())")
+        rows = [self.row(11, [spec("%,d", 1, "n", "Fmt.grouped(Locale.US, n, 0)"), " ", unit("W", "units_watt", 2)])]
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any("the specifier %,d of n prints as Fmt.groupedInteger(Locale.US, n)" in p for p in problems), problems)
 
     def test_wrong_unit_key_in_the_code_fails(self):
         problems, _, _ = self.speed(call=self.SPEED_CALL.replace("unitsMph", "unitsKmh"))
