@@ -123,7 +123,7 @@ public final class BleController {
     /**
      * The link is up and answering on the cadence it is on (StatusCadence): with Volt open or recording, exactly ready();
      * out of sight, where status is asked for every 15 s, a status read up to the background silence limit still counts.
-     * For background facts (the live charging card, charge alerts, the connection notice), never for controls.
+     * For background facts (the live charging card, charge alerts, the charge reference gate), never for controls.
      */
     public boolean linked(){if(simulating()||visible||recording)return ready();return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),false);}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}

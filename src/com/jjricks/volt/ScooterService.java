@@ -2619,7 +2619,7 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
-                                : ble.linked() ? T.serviceNoticeConnected() : "Volt";
+                                : ble.ready() ? T.serviceNoticeConnected() : "Volt";
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,
         // distance beside a running clock while recording, a progress bar while a ride is saved.
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
@@ -2631,7 +2631,7 @@ public final class ScooterService extends Service {
                         ? null
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
-                                : ble.linked() ? connectedText() : ble.displayMessage();
+                                : ble.ready() ? connectedText() : ble.displayMessage();
         if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();
