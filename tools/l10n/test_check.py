@@ -288,6 +288,62 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(check.single_number_categories("fr"), set())
         self.assertEqual(check.single_number_categories("cs"), {"one", "many"})
 
+    def build_scooters_skipped(self, one, other, tags=("pt-BR", "pt-PT", "es")):
+        """Packs of a fixture whose English common_scooters_skipped has these one and other forms."""
+        repo = council_fixture.FixtureRepo()
+        try:
+            path = "res/values/strings_common.xml"
+            text = repo.read(path)
+            for old, new in (('<item quantity="one">%1$d scooter skipped</item>', '<item quantity="one">%s</item>' % one),
+                             ('<item quantity="other">%1$d scooters skipped</item>',
+                              '<item quantity="other">%s</item>' % other)):
+                self.assertIn(old, text)
+                text = text.replace(old, new)
+            repo.write(path, text)
+            packs = {tag: pack.build_pack(repo.paths, tag, "common", self.measurer) for tag in tags}
+        finally:
+            repo.close()
+
+        def run(tag, value):
+            targets = {"common_scooters_skipped": ("plural", translib.items_of("plural", value), [])}
+            return check.check_targets(packs[tag], targets, self.font, self.measurer)["common_scooters_skipped"]
+        return run
+
+    def test_a_count_the_english_spells_as_1_is_kept_by_the_placeholder(self):
+        # English "1 scooter skipped" for one. Brazilian "one" also covers 0, so it must keep %1$d, and that
+        # placeholder stands for the English 1 (dashboard_slot_summary: no draft could pass both rules).
+        # Where "one" is exactly 1 (pt-PT, es), the 1 must still appear or the placeholder must be kept.
+        run = self.build_scooters_skipped("1 scooter skipped", "%1$d scooters skipped")
+        kept = {"one": "%1$d patinete ignorado", "many": "%1$d de patinetes ignorados", "other": "%1$d patinetes ignorados"}
+        self.assertEqual(self.checks(run("pt-BR", kept)), [])
+        self.assertEqual(self.checks(run("pt-BR", kept), check.WARN), [])
+        # Writing the 1 out where "one" also covers 0 still fails, now on the placeholder alone.
+        self.assertEqual(self.checks(run("pt-BR", dict(kept, one="1 patinete ignorado"))), ["placeholders"])
+        # A form with neither the 1 nor the count still loses the English number.
+        self.assertEqual(self.checks(run("pt-BR", dict(kept, one="Um patinete ignorado"))), ["numbers", "placeholders"])
+        # Where "one" is exactly 1, writing the 1 out passes, and so does keeping the placeholder.
+        self.assertEqual(self.checks(run("pt-PT", dict(kept, one="1 patinete ignorado"))), [])
+        self.assertEqual(self.checks(run("es", {"one": "1 patinete omitido", "many": "%1$d de patinetes omitidos",
+                                                "other": "%1$d patinetes omitidos"})), [])
+        # The other forms gain nothing from the rule: a number the English lacks still warns.
+        self.assertEqual(self.checks(run("pt-BR", dict(kept, other="%1$d patinetes ignorados (1)")), check.WARN),
+                         ["numbers"])
+
+    def test_a_fixed_1_both_english_forms_share_is_not_the_count(self):
+        # "A scooter skipped after 1 minute" / "%1$d scooters skipped after 1 minute": the 1 is a duration, not
+        # the count (Codex's counterexample on #293), so keeping %1$d doesn't excuse dropping it.
+        run = self.build_scooters_skipped("A scooter skipped after 1 minute", "%1$d scooters skipped after 1 minute",
+                                          tags=("pt-BR",))
+        good = {"one": "%1$d patinete ignorado após 1 minuto", "many": "%1$d de patinetes ignorados após 1 minuto",
+                "other": "%1$d patinetes ignorados após 1 minuto"}
+        self.assertEqual(self.checks(run("pt-BR", good)), [])
+        self.assertEqual(self.checks(run("pt-BR", dict(good, one="%1$d patinetes ignorados"))), ["numbers"])
+        # A spelled count and a fixed 1 together: the placeholder stands for one 1 only.
+        run = self.build_scooters_skipped("1 scooter skipped after 1 minute", "%1$d scooters skipped after 1 minute",
+                                          tags=("pt-BR",))
+        self.assertEqual(self.checks(run("pt-BR", good)), [])
+        self.assertEqual(self.checks(run("pt-BR", dict(good, one="%1$d patinete ignorado"))), ["numbers"])
+
     def test_added_negation(self):
         # Alarm on -> "alarm not on" is an error in a safety key, and so is the off word itself
         # ("desactivada", lexicon.STATE_WORDS); another prefixed word alone warns for the judge.
