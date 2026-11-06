@@ -55,6 +55,8 @@ public final class DashboardScreen implements AppScreen {
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
     private boolean editing, closed;
+    /** A tapped recorder start that has not run yet; its frame or close() runs it, exactly once. */
+    private final RecorderTap.PendingStart recorderStart = new RecorderTap.PendingStart();
     /** The header's "last seen" time, or 0 while connected or connecting; cards with the same age omit theirs. */
     private long headerSeenMs;
     /** Card content opacity while editing, so the editor handles read clearly on top. */
@@ -2517,8 +2519,11 @@ public final class DashboardScreen implements AppScreen {
             Haptics.tick(recorder);
             refreshRecorder();
             View anchor = recorder;
+            recorderStart.arm();
+            // The card leaving the window alone (a redraw) does not drop the start; closing Home
+            // takes it first and hands it on (close()), so this runs it only while Home is open.
             anchor.postOnAnimation(() -> anchor.post(() -> {
-                if (closed || !recorderStarting || !anchor.isAttachedToWindow()) return;
+                if (closed || !recorderStart.take()) return;
                 actions.startRide();
                 host.redraw();
             }));
@@ -6831,9 +6836,37 @@ public final class DashboardScreen implements AppScreen {
         return false;
     }
 
+    /**
+     * A start tapped just before Home closes (a tab switch, a rebuild, the app going away) is not
+     * lost: while the app stays open it runs right after the screen change, through the same
+     * Rides start and its checks; when the app is going away Volt says it did not start.
+     */
+    private void finishPendingStart() {
+        Activity activity = host.activity();
+        boolean staying = !activity.isFinishing() && !activity.isDestroyed()
+                && !activity.isChangingConfigurations() && !DataMaintenance.active();
+        int action = RecorderTap.onClose(recorderStart.pending(), staying);
+        if (action == RecorderTap.CLOSE_NOTHING || !recorderStart.take()) return;
+        Context app = activity.getApplicationContext();
+        if (action == RecorderTap.CLOSE_HAND_OFF) {
+            Actions start = actions;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (activity.isFinishing() || activity.isDestroyed()) recorderNotStarted(app);
+                else start.startRide();
+            });
+        } else {
+            recorderNotStarted(app);
+        }
+    }
+
+    private static void recorderNotStarted(Context app) {
+        Toast.makeText(app, T.dashboardRecorderNotStarted(), Toast.LENGTH_LONG).show();
+    }
+
     @Override
     public void close() {
         hideNotice();
+        finishPendingStart();
         closed = true;
         chargingHero.stopReveal();
         cancelWidgetReveal();

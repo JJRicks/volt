@@ -61,7 +61,55 @@ public final class RecorderTapTest {
         require(config.contains("cell.h = Math.max(cell.h, widgets.get(i).minimumHeight("),
                 "A saved recorder height above the minimum is kept");
 
+        // An accepted tap is never dropped and never starts twice (DashboardScreen: the start's
+        // frame and close() both take the same PendingStart; a hand-off runs startRide once).
+        Sim sim = new Sim();
+        sim.tap(); sim.close(true); sim.frame();
+        require(sim.starts == 1 && sim.reports == 0, "Tap, then a tab switch before the frame: the start is handed on and runs once");
+        sim = new Sim();
+        sim.tap(); sim.close(true); sim.frame(); sim.reopen(); sim.frame();
+        require(sim.starts == 1 && sim.reports == 0, "Tap, then a rebuild before the frame: one start, the new Home has nothing pending");
+        sim = new Sim();
+        sim.tap(); sim.close(false); sim.frame();
+        require(sim.starts == 0 && sim.reports == 1, "Tap, then the window goes away before the frame: Volt says it did not start");
+        sim = new Sim();
+        sim.tap(); sim.frame(); sim.close(true);
+        require(sim.starts == 1 && sim.reports == 0, "Tap, frame, then close: no second start at close");
+        sim = new Sim();
+        sim.tap(); sim.frame(); sim.frame();
+        require(sim.starts == 1, "A repeated frame callback never starts twice");
+        sim = new Sim();
+        sim.close(true); sim.close(false);
+        require(sim.starts == 0 && sim.reports == 0, "Closing with nothing tapped does nothing");
+        require(RecorderTap.onClose(false, true) == RecorderTap.CLOSE_NOTHING && RecorderTap.onClose(false, false) == RecorderTap.CLOSE_NOTHING,
+                "Nothing pending: close does nothing");
+        require(RecorderTap.onClose(true, true) == RecorderTap.CLOSE_HAND_OFF, "Pending, app staying: hand the start on");
+        require(RecorderTap.onClose(true, false) == RecorderTap.CLOSE_REPORT, "Pending, app going away: report it");
+
+        // DashboardScreen wires it that way: the frame takes the start and close() finishes it first.
+        String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/DashboardScreen.java")), StandardCharsets.UTF_8);
+        require(screen.contains("if (closed || !recorderStart.take()) return;"), "The frame callback takes the pending start");
+        require(screen.contains("finishPendingStart();\n        closed = true;"), "close() finishes a pending start before marking Home closed");
+        require(screen.contains("else start.startRide();"), "A handed-on start runs the same startRide path");
+
         System.out.println("RecorderTapTest: " + checks + " checks passed");
+    }
+
+    /** The DashboardScreen start flow, minus Android: one PendingStart shared by the frame and close(). */
+    private static final class Sim {
+        RecorderTap.PendingStart pending = new RecorderTap.PendingStart();
+        boolean closed;
+        int starts, reports;
+        void tap() { pending.arm(); }
+        void frame() { if (!closed && pending.take()) starts++; }
+        void close(boolean staying) {
+            int action = RecorderTap.onClose(pending.pending(), staying);
+            if (action != RecorderTap.CLOSE_NOTHING && pending.take()) {
+                if (action == RecorderTap.CLOSE_HAND_OFF) starts++; else reports++;
+            }
+            closed = true;
+        }
+        void reopen() { pending = new RecorderTap.PendingStart(); closed = false; }
     }
 
     private static void require(boolean condition, String message) {

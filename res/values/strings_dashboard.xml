@@ -395,6 +395,10 @@
          is recording. It replaces "Record ride" on the same line; a card too narrow for it keeps
          the short "Record". Also spoken. -->
     <string name="dashboard_recorder_starting" volt:screen="Home ride recorder widget" volt:purpose="state word" volt:max="80dp@15sp">Starting…</string>
+    <!-- Brief message after a Home "Start recording" tap that could not run because Volt closed
+         or restarted its window in the same moment. Nothing was recorded; the rider can start
+         again from Home or Rides. -->
+    <string name="dashboard_recorder_not_started" volt:screen="Home ride recorder widget" volt:purpose="error">Recording didn\'t start. Try again.</string>
     <!-- Spoken for the recorder's button when not recording. -->
     <string name="dashboard_record_saving" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Saving the last ride</string>
     <string name="dashboard_start_recording" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Start recording</string>
