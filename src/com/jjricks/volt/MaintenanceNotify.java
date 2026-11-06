@@ -65,6 +65,16 @@ final class MaintenanceNotify {
 
     private MaintenanceNotify() { }
 
+    /**
+     * Whether a due reminder is still in the cycle already notified: the same cycle, or that one with its
+     * distance base set since by the first odometer reading (MaintenancePolicy.settle), which starts no new cycle.
+     */
+    static boolean continues(Cycle was, Cycle current) {
+        if (was == null) return false;
+        if (was.equals(current)) return true;
+        return Double.isNaN(was.acc) && !Double.isNaN(current.acc) && was.base == current.base && was.snooze == current.snooze;
+    }
+
     static Cycle cycle(Reminder r) { return new Cycle(r.baseWall, r.baseAccKm, r.snoozeUntil); }
 
     /**
@@ -79,7 +89,7 @@ final class MaintenanceNotify {
             Cycle was = seen.get(r.id), current = cycle(r);
             if (state == MaintenancePolicy.State.DUE && r.notify) {
                 out.due.add(r);
-                if (!quiet && !current.equals(was)) out.fresh.add(r);
+                if (!quiet && !continues(was, current)) out.fresh.add(r);
                 out.seen.put(r.id, current);
             } else if (state == MaintenancePolicy.State.SNOOZED && r.notify && was != null) {
                 out.seen.put(r.id, was);

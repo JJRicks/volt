@@ -18,6 +18,11 @@ final class MaintenanceDefaults {
      */
     static final String TIRE_PRESSURE = "tire_pressure", BRAKES = "brakes", BOLTS_FOLDING = "bolts_folding", LIGHTS = "lights",
             CLEAN_DRY = "clean_dry", BATTERY_STORAGE = "battery_storage";
+    static final String TIRE_TREAD = "tire_tread", STEERING = "steering";
+    /**
+     * The tasks the add sheet offers and an interval may name. TIRE_TREAD and STEERING have their names
+     * already and join this list with the first manual entries that use them.
+     */
     static final List<String> TASKS = Collections.unmodifiableList(Arrays.asList(TIRE_PRESSURE, BRAKES, BOLTS_FOLDING, LIGHTS, CLEAN_DRY, BATTERY_STORAGE));
 
     static boolean task(String id) { return TASKS.contains(id); }
@@ -65,7 +70,8 @@ final class MaintenanceDefaults {
     static Result forModel(String model, List<Interval> table) {
         if (model == null || model.trim().isEmpty()) return new Result(Kind.UNKNOWN_MODEL, Collections.<Interval>emptyList());
         List<Interval> found = new ArrayList<>();
-        for (Interval interval : table) if (interval.model.equals(model.trim())) found.add(interval);
+        // Case-blind: a scooter's own name reads "UT5 MAX", the model list says "UT5 Max".
+        for (Interval interval : table) if (interval.model.equalsIgnoreCase(model.trim())) found.add(interval);
         return found.isEmpty() ? new Result(Kind.NOT_LISTED, found) : new Result(Kind.LISTED, found);
     }
 
