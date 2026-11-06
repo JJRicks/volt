@@ -109,6 +109,11 @@ public final class BleController {
         simulationRegion=next;tickSimulation();changed();
     }
     public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
+    /**
+     * Riding-mode screenshot scripts (ScooterSimulation ids; "" for none). Memory only; no command exists.
+     * The dropout script holds the link in Connecting, so readings go stale as on a real dropout.
+     */
+    public void setSimulationScript(String id){if(simulation==null)return;simulation.setScript(id);state=ScooterSimulation.DROPOUT.equals(simulation.script())?State.CONNECTING:State.READY;if(state==State.READY)updateSimulation();changed();}
     public void setSimulationCharging(boolean charging){if(simulation==null)return;simulation.setCharging(charging);tickSimulation();changed();}
     private void connectSimulation(){if(simulation==null)return;state=State.READY;updateSimulation();notice(M.bleSimulatedConnection());}
     /** Simulation changes need no caption or toast: the persistent banner already says the data is simulated. */

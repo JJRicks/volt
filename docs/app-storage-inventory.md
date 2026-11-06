@@ -53,6 +53,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when both copies are turned off. |
 | `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when both copies are turned off. |
 | `ride_auto_export_problem` | String | global | Pending | Why rides are waiting: `folder` (no folder, or it or its grant is gone) or `save` (a write failed). Absent when nothing failed. |
+| `ride_export_choice` | String | global | Durable | Ride details' Export ride data sheet: the formats checked last time, as ids (`sensor_csv`, `analysis_json`, `route_csv`, `gpx`, `phone_raw`, `motion_raw`, `combined_json`), comma-separated. Absent means Sensor CSV and Analysis JSON. RideExportFiles. |
+| `ride_export_folder_hint` | String (URI) | global | Device | The folder a several-file export last went to, used only as the folder picker's starting place. No grant is kept. |
 | `dashboard_columns` | Integer | global | Durable | Column choice shared by every scooter's dashboard. DashboardConfig. |
 | `dashboard_v1_<pid>` | String (JSON) | per scooter | Durable | Active dashboard: widgets, parameters, notes and a cell for every column count (folded and unfolded layouts live inside each widget). |
 | `dashboard_slot_v1_<pid>_<0..2>` | String (JSON) | per scooter | Durable | Saved layout slots. |
@@ -136,6 +138,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `files/missing-export` | — | — | Placeholder path MainActivity uses when no pending export is recorded; never created. |
 | `no_backup/app-data-transfer/` | Pending | — | Restore stages, transaction (`scope.bin`, `additions.bin`, `previous/`, `incoming/`, state marker). |
 | `no_backup/ride-transfer/` | Pending | — | Ride-restore stages and transaction. |
+| `no_backup/rides-index/<uuid>.sum` (+ `<uuid>.<n>.sum.tmp`) | Cache | ride's | Saved summary and 600-point chart preview of one finished ride, so the first Rides open after a restart does not replay every journal. RideSummaryStore. Keyed by ride id, journal length, journal modified time and `ANALYSIS_VERSION`; a mismatch, a damaged entry or an unfinished journal is ignored and rebuilt from the journal. Entries without a journal are pruned at service start. Never in any backup, ride backup or export. |
 | `cache/map-tiles/<sha256>/…` | Cache | — | Downloaded basemap tiles, `.meta`, `.part`, `network.meta`. MapTiles. |
 | `cache/charge-exports/charges-*.json` | Cache | one scooter | Developer charge export; removed after 24 h. |
 | `cache/ride-<uuid>.csv` | Cache | — | Ride sensor CSV export. |
@@ -145,6 +148,8 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 Volt does not use external app storage, other databases or other private folders. Instrumentation tests use `getExternalFilesDir()` for disposable fixtures only.
 
 ## Not stored on disk
+
+- Saved ride summaries (`no_backup/rides-index`) are the one derived ride cache on disk. **Bump `RideSummaryStore.ANALYSIS_VERSION` whenever summary or preview maths changes** (anything that makes a replay of an unchanged journal give a different `RideStore.Summary` or `Point`), so old entries miss and are rebuilt. A restore needs nothing from it: restored journals have new modified times and are replayed.
 
 - Learned range, battery capacity and charge-curve results are computed in memory from rides, history and charge journals (ScooterService caches, cleared on restart). A restore needs no derived-cache import: the next process recomputes them.
 - Live readings, command results, connection feedback, simulation and fold posture are in memory only.

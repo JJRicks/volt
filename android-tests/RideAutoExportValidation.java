@@ -27,7 +27,7 @@ import com.jjricks.volt.*;
  * Disposable empty emulator only. Automatic ride copies (RideAutoExport) end to end: the folder picker
  * activity driving the real system picker (a new Download/VoltRides folder, a cancelled pick, choosing the
  * folder again), synthetic phone recordings stopped from the notification with Volt hidden and the screen
- * off, both types (Route CSV, and ride JSON as All (JSON) or Export JSON), the manual Rides exports through
+ * off, both types (Route CSV, and ride JSON as Scooter and phone JSON or Analysis JSON), the manual Rides exports through
  * the real save picker for a byte comparison, re-export without duplicates, the keep-alive and maintenance
  * block while a copy runs, and the failure paths: folder deleted (retried on the next ride end and at app
  * start), grant revoked (retried after choosing the folder again), a restored setting with no folder, and
@@ -376,11 +376,11 @@ public final class RideAutoExportValidation extends Instrumentation {
         folderClean();
     }
 
-    /** The real Rides exports, Export phone data, Route CSV and All (JSON), through Android's save picker into Download. */
+    /** The real Rides exports, Export ride data with only Route CSV or only Scooter and phone JSON checked, through Android's save picker into Download. */
     private void manualExportsMatch() {
         String id = rides.get("B");
-        manualExport(id, 0, csvName(id));
-        manualExport(id, 4, combinedName(id));
+        manualExport(id, T.ridesExportRouteCsv(), csvName(id));
+        manualExport(id, T.ridesExportCombinedJson(), combinedName(id));
         String sums = shellText("sha256sum /sdcard/Download/" + csvName(id) + " " + FOLDER_PATH + "/" + csvName(id) + " /sdcard/Download/" + combinedName(id) + " " + FOLDER_PATH + "/" + combinedName(id));
         String[] lines = sums.trim().split("\n");
         check(lines.length == 4 && lines[0].split(" ")[0].equals(lines[1].split(" ")[0]), "Route CSV copy byte-identical to the manual export:\n" + sums);
@@ -388,15 +388,22 @@ public final class RideAutoExportValidation extends Instrumentation {
         notes.add("manual vs automatic: " + sums.trim().replace('\n', ' '));
         folderClean();
     }
-    private void manualExport(String id, int item, String name) {
+    private void manualExport(String id, String format, String name) {
         main(() -> method(activity, "select", new Class<?>[]{String.class}, "rides")); settle();
         RidesScreen screen = (RidesScreen) field(activity, "screen"); boolean wide = (boolean) field(screen, "wide");
         main(() -> method(screen, wide ? "selectRide" : "showDetails", new Class<?>[]{String.class}, id)); settle();
-        String export = T.ridesExportPhone();
-        await(() -> text(rideRoot(screen), export) != null, 15000, "Route loaded with its export button");
-        main(() -> text(rideRoot(screen), export).performClick()); settle();
-        AlertDialog chooser = (AlertDialog) ((List<?>) field(screen, "dialogs")).get(((List<?>) field(screen, "dialogs")).size() - 1);
-        main(() -> chooser.getListView().performItemClick(chooser.getListView().getChildAt(item), item, item));
+        // The button's label can step down to "Export" or the icon on a narrow screen; its spoken label stays the full one.
+        String export = T.ridesExportData();
+        await(() -> byDescription(rideRoot(screen), export) != null, 15000, "Ride details with the Export ride data button");
+        int before = ((List<?>) field(screen, "dialogs")).size();
+        main(() -> byDescription(rideRoot(screen), export).performClick());
+        await(() -> ((List<?>) field(screen, "dialogs")).size() > before && text(rideRoot(screen), format) != null, 15000, "Export ride data sheet lists " + format);
+        View sheet = rideRoot(screen);
+        // Only this format checked, so Export takes the one-file Save dialog.
+        main(() -> uncheckAll(sheet));
+        main(() -> ((CheckBox) text(sheet, format)).setChecked(true)); settle();
+        check(((CheckBox) text(sheet, format)).isChecked() && text(sheet, T.ridesExportHintOne()) != null, "Sheet: only " + format + " checked, one-file hint");
+        main(() -> text(sheet, T.ridesExportAction()).performClick());
         node("SAVE", 15000); SystemClock.sleep(800);
         // DocumentsUI may reopen the last folder Volt used; the manual copy goes to Download itself.
         if (findNode("Files in " + FOLDER_NAME) != null || findBreadcrumb(FOLDER_NAME)) { tap(nodeExact("Download", 5000)); SystemClock.sleep(1000); }
@@ -871,6 +878,7 @@ public final class RideAutoExportValidation extends Instrumentation {
     // ---- Shared helpers (as RideAutoStopValidation) ----------------------------------------------
 
     private View rideRoot(RidesScreen screen) { List<?> dialogs = (List<?>) field(screen, "dialogs"); return dialogs.isEmpty() ? screen.view() : ((AlertDialog) dialogs.get(dialogs.size() - 1)).getWindow().getDecorView(); }
+    private static void uncheckAll(View view) { if (view instanceof CheckBox) ((CheckBox) view).setChecked(false); if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) uncheckAll(((ViewGroup) view).getChildAt(i)); }
     private void closeDialogs(RidesScreen screen) { main(() -> { for (Object d : new ArrayList<>((List<?>) field(screen, "dialogs"))) ((AlertDialog) d).dismiss(); }); settle(); }
     private void centre(View row) {
         main(() -> { View v = row; while (v != null && !(v instanceof ScrollView)) v = v.getParent() instanceof View ? (View) v.getParent() : null;

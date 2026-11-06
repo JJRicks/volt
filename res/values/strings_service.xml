@@ -318,6 +318,12 @@
     <string name="service_ride_phone_bluetooth_off_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">Phone Bluetooth stayed off. Ended at %1$s, its last reading.</string>
     <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last reading. -->
     <string name="service_ride_phone_bluetooth_off_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">%1$s · Phone Bluetooth stayed off. Ended at %2$s, its last reading.</string>
+    <!-- Volt ended a ride on its own: the scooter stayed connected but showed no movement (no speed, no distance) for 10 minutes, for example after the rider parked with the phone still nearby. Used when the ride or its last movement is unknown. The 10 matches the rule in the app; the notice wraps, so no width budget. -->
+    <string name="service_ride_no_motion" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">No movement for 10 minutes</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last movement (for example 4:12 PM), which the saved ride shows as its end. -->
+    <string name="service_ride_no_motion_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">No movement for 10 minutes. Ended at %1$s, its last movement.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last movement. -->
+    <string name="service_ride_no_motion_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · No movement for 10 minutes. Ended at %2$s, its last movement.</string>
 
     <!-- ===== The connection notice (always shown while the service runs) ===== -->
 

@@ -24,6 +24,7 @@ public final class DashboardScreen implements AppScreen {
 
         default void quickAction(String id) { navigate(id); }
 
+        /** Starts a ride from Home, staying on Home (RideRecordingControl.start). */
         void startRide();
 
         void rename();
@@ -47,6 +48,8 @@ public final class DashboardScreen implements AppScreen {
     private WidgetReveal widgetReveal;
     private String pendingAddedWidgetId, revealWidgetId;
     private final FrameLayout edit, renameControl;
+    /** Home's RIDE button, left of the pencil; hidden while editing. */
+    private final View ride;
     /** Home header: connection status line (hidden while editing) and the scooter name. */
     private final TextView status, profileName;
     private final View add, layoutButton;
@@ -55,6 +58,8 @@ public final class DashboardScreen implements AppScreen {
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
     private boolean editing, closed;
+    /** A tapped recorder start that has not run yet: its frame or close() runs it, or its timeout cancels it, exactly once. */
+    private final RecorderTap.PendingStart recorderStart = new RecorderTap.PendingStart();
     /** The header's "last seen" time, or 0 while connected or connecting; cards with the same age omit theirs. */
     private long headerSeenMs;
     /** Card content opacity while editing, so the editor handles read clearly on top. */
@@ -171,6 +176,8 @@ public final class DashboardScreen implements AppScreen {
         historyActions.addView(divider, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(20)));
         historyActions.addView(redo, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         headerActions.addView(historyActions, new LinearLayout.LayoutParams(-2, ui.dp(48)));
+        ride = RidingScreen.entry(host, host::openRiding);
+        headerActions.addView(ride, new LinearLayout.LayoutParams(-2, ui.dp(48)));
         LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(-2, ui.dp(48));
         editSize.setMarginStart(ui.dp(8));
         headerActions.addView(edit, editSize);
@@ -672,6 +679,7 @@ public final class DashboardScreen implements AppScreen {
         // A red Done pill replaces the round pencil.
         ui.editToggle(edit, editing, T.commonDone());
         edit.setContentDescription(editing ? T.dashboardFinishEditing() : T.dashboardEditDashboard());
+        ride.setVisibility(editing ? View.GONE : View.VISIBLE);
         updateHistoryControls();
         renameControl.setVisibility(
                 editing && service != null && service.profiles.active() != null ? View.VISIBLE : View.GONE);
@@ -1876,7 +1884,7 @@ public final class DashboardScreen implements AppScreen {
         IconReadingStrip tripStats;
         InfoTiles infoTiles;
         float jiggleAngle;
-        Boolean recordingShown;
+        Boolean recordingShown, startingShown;
         long capacityChecked, capacityRequest;
         ImageView photo;
         TextView photoHint;
@@ -1884,6 +1892,16 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout scooterRow, scooterInfo;
         RecordLead recorder;
         boolean compactRecorder;
+        /** The recorder card's own start target is installed (not editing), and whether it is live now. */
+        boolean recorderCard, wideTap;
+        /** A start was tapped and waits for its first frame to draw: the card shows "Starting…". */
+        boolean recorderStarting;
+        /** Room (px) for the recorder's one-line title on a short card, or -1 while it may wrap. */
+        int recorderRoom = -1;
+        /** The title rung the last measure laid out: 0 full, 1 short, -1 the disc alone. */
+        int recorderRung;
+        /** The recording's elapsed time as shown ("12:48"), or null when not recording. */
+        String recorderClock;
         FrameLayout photoPane;
         final ArrayList<LinearLayout> scooterStats = new ArrayList<>();
         int scooterColumns;
@@ -1925,7 +1943,13 @@ public final class DashboardScreen implements AppScreen {
             }
             heading.setVisibility(untitled(widget.type) ? View.GONE : View.VISIBLE);
             content.addView(heading, new LinearLayout.LayoutParams(-1, -2));
-            body = column();
+            body = new LinearLayout(host.activity()) {
+                @Override protected void dispatchSetPressed(boolean pressed) {
+                    super.dispatchSetPressed(pressed);
+                    pressRecorder(pressed);
+                }
+            };
+            body.setOrientation(LinearLayout.VERTICAL);
             if (lockType(widget.type) || widget.type.equals("metric")
                     || widget.type.equals("gauge") || widget.type.equals("ride"))
                 body.setGravity(Gravity.CENTER_VERTICAL);
@@ -1992,6 +2016,7 @@ public final class DashboardScreen implements AppScreen {
         /** Volt card: surface, 20 dp corners; a faint edge while editing, red while dragged or recording. */
         android.graphics.drawable.Drawable chrome() {
             boolean recording = widget.type.equals("ride") && service != null && service.isRecording();
+            boolean starting = widget.type.equals("ride") && recorderStarting && !recording;
             // Reading and setting tiles are separate small cards; the widget card returns for editing.
             if (frameless(widget.type) && !editing && !dragging) return null;
             GradientDrawable card = new GradientDrawable();
@@ -1999,7 +2024,8 @@ public final class DashboardScreen implements AppScreen {
             if (recording) {
                 card.setOrientation(GradientDrawable.Orientation.TL_BR);
                 card.setColors(new int[] {blend(ui.surface, ui.accent, ui.dark ? .14f : .08f), ui.surface});
-            } else card.setColor(ui.surface);
+            } else if (starting) card.setColor(blend(ui.surface, ui.accent, ui.dark ? .12f : .07f));
+            else card.setColor(ui.surface);
             if (dragging) card.setStroke(ui.dp(1.5f), ui.accent);
             else if (recording) card.setStroke(ui.dp(1), blend(ui.surface, ui.accent, .32f));
             else if (editing) card.setStroke(ui.dp(1), Ui.withAlpha(ui.text, ui.dark ? 22 : 30));
@@ -2424,14 +2450,9 @@ public final class DashboardScreen implements AppScreen {
             RecordLead lead = new RecordLead(disc, words);
             recorder = lead;
             rideButton = lead;
-            lead.setOnClickListener(
-                    v -> {
-                        if (service != null && service.isRecording()) service.stopRide();
-                        // The grey disc starts a connection instead of explaining that one is needed.
-                        else if (service != null && !service.ble.ready()) host.connect();
-                        else actions.startRide();
-                        host.redraw();
-                    });
+            // The grey disc starts a connection instead of explaining that one is needed.
+            lead.setOnClickListener(v -> recorderAction(RecorderTap.lead(service != null && service.isRecording(),
+                    service == null || service.ble.ready(), recorderStarting)));
             line.addView(lead, new LinearLayout.LayoutParams(0, -2, 1));
             FrameLayout more = new FrameLayout(host.activity());
             more.addView(new GlyphView("chevron", ui.muted),
@@ -2443,6 +2464,95 @@ public final class DashboardScreen implements AppScreen {
             more.setOnClickListener(v -> actions.navigate("rides"));
             line.addView(more, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
             body.addView(line, new LinearLayout.LayoutParams(-1, -2));
+            if (!editing) {
+                // Like the Lock bar, the whole card is the start target: the card covers its padding
+                // and the body covers the empty space inside the scroll viewport, which takes its own
+                // touches. The disc and the arrow keep theirs. refreshRecorder decides when it is live,
+                // and the listener asks RecorderTap again, so it never stops a ride or acts in edit mode.
+                View.OnClickListener wide = v -> recorderAction(RecorderTap.card(editing, rideButton.isEnabled(),
+                        service != null && service.isRecording(), service == null || service.ble.ready(),
+                        recorderStarting));
+                setOnClickListener(wide);
+                body.setOnClickListener(wide);
+                body.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                recorderCard = true;
+            }
+        }
+
+        /** A press anywhere on a live recorder card lights the disc, the control it stands for. */
+        private void pressRecorder(boolean pressed) {
+            if (recorder != null && (wideTap || !pressed)) recorder.setPressed(pressed);
+        }
+
+        @Override protected void dispatchSetPressed(boolean pressed) {
+            super.dispatchSetPressed(pressed);
+            pressRecorder(pressed);
+        }
+
+        private void recorderAction(int action) {
+            if (action == RecorderTap.STOP) { RideRecordingApp.of(host).stop(); return; }
+            else if (action == RecorderTap.CONNECT) host.connect();
+            else if (action == RecorderTap.START) { startRecorder(); return; }
+            else return;
+            host.redraw();
+        }
+
+        /**
+         * Draws "Starting…" first, then starts: the ring, the wash, the word and a tick reach the
+         * screen before the start. postOnAnimation runs at the next frame and the inner post after
+         * that frame is drawn. The ride starts right here on Home (owner Q1 B), through the same
+         * RideRecordingControl checks as the Rides tab; a refused start has said why in a toast, so
+         * the card leaves "Starting…" at once. While the location prompt is open it stays.
+         */
+        private void startRecorder() {
+            recorderStarting = true;
+            Haptics.tick(recorder);
+            refreshRecorder();
+            View anchor = recorder;
+            int token = recorderStart.arm();
+            Context app = host.activity().getApplicationContext();
+            // The card leaving the window alone (a redraw) does not drop the start; closing Home
+            // takes it first and hands it on (close()), so this runs it only while Home is open.
+            anchor.postOnAnimation(() -> anchor.post(() -> {
+                if (closed || !recorderStart.take(token)) return;
+                if (RideRecordingApp.of(host).start() != RideRecordingControl.STARTING) recorderStarting = false;
+                host.redraw();
+            }));
+            // Safety net: a start that never got going never sticks. Still waiting for its frame:
+            // cancelled for good, and said so, since the card goes back to idle. Already run (and
+            // refused, or the screen stayed): the card just leaves "Starting…". A newer tap owns the card.
+            anchor.postDelayed(() -> {
+                if (!recorderStart.latest(token)) return;
+                if (RecorderTap.timeoutCancels(recorderStart, token)) recorderNotStarted(app);
+                if (!recorderStarting) return;
+                recorderStarting = false;
+                if (!closed && anchor.isAttachedToWindow()) refreshRecorder();
+            }, 3000);
+        }
+
+        /**
+         * Shows the recorder's title, on a short card the first rung that fits on one line: the full
+         * label, then a shorter one (the bare time while recording). False when neither fits, and
+         * the disc stands alone. The spoken label stays the full one. The title fills its column, so
+         * a new text alone never re-measures the card: outside a measure, a change of rung asks for one.
+         */
+        private boolean showRecorderTitle() { return showRecorderTitle(false); }
+
+        private boolean showRecorderTitle(boolean measuring) {
+            String full = recorderClock != null ? T.dashboardRecordingClock(recorderClock)
+                    : recorderStarting ? T.dashboardRecorderStarting() : T.dashboardRecordRide();
+            // "Starting…" too wide for the card keeps the short label, so the word never vanishes on a tap.
+            String brief = recorderClock != null ? recorderClock : T.dashboardRecordShort();
+            int rung = 0;
+            if (recorderRoom >= 0) {
+                android.graphics.Paint paint = rideTitle.getPaint();
+                rung = TileRung.first(new float[] {paint.measureText(full), paint.measureText(brief)}, recorderRoom);
+            }
+            CharSequence shown = rung == 1 ? brief : full;
+            if (TileRung.needsSet(shown, rideTitle.getText())) rideTitle.setText(shown);
+            if (measuring) recorderRung = rung;
+            else if (rung != recorderRung && recorder != null) recorder.requestLayout();
+            return rung >= 0;
         }
 
         /** Disc and words side by side, stacking on narrow cards so the words stay readable. */
@@ -2465,10 +2575,13 @@ public final class DashboardScreen implements AppScreen {
             @Override
             protected void onMeasure(int widthSpec, int heightSpec) {
                 int availableWidth = MeasureSpec.getSize(widthSpec);
-                boolean iconOnly = availableWidth < ui.dp(92 * ui.textScale
-                        * getResources().getConfiguration().fontScale)
-                        || (compactRecorder && availableWidth < ui.dp(44)
-                                + rideTitle.getPaint().measureText(rideTitle.getText().toString()));
+                // A short card keeps one line: the title's ladder picks a rung that fits beside the
+                // 28 dp disc (12 dp gap, 4 dp end padding; 1 px for rounding), else the disc alone.
+                // A taller card may wrap the full title, and needs 92 dp for words beside the disc.
+                recorderRoom = compactRecorder ? Math.max(0, availableWidth - ui.dp(44) - 1) : -1;
+                boolean fits = showRecorderTitle(true);
+                boolean iconOnly = compactRecorder ? !fits : availableWidth < ui.dp(92 * ui.textScale
+                        * getResources().getConfiguration().fontScale);
                 boolean narrow = !compactRecorder && MeasureSpec.getSize(widthSpec) < ui.dp(170 * ui.textScale);
                 setMinimumHeight(ui.dp(compactRecorder ? 48 : 56));
                 setPadding(0, compactRecorder ? 0 : ui.dp(4), ui.dp(4), compactRecorder ? 0 : ui.dp(4));
@@ -3531,12 +3644,16 @@ public final class DashboardScreen implements AppScreen {
                     || state == BleController.State.CONNECTING || state == BleController.State.AUTHENTICATING
                     || state == BleController.State.SCANNING || state == BleController.State.WAITING);
             boolean enabled = service != null && (recording || ready) && !saving;
+            // The ride is recording: "Starting…" has done its job.
+            if (recording) recorderStarting = false;
+            boolean starting = recorderStarting;
             // Disconnected, the grey disc stays tappable and starts a connection.
             rideButton.setEnabled(enabled || (service != null && !recording && !saving && !connecting));
             recordDisc.setBackground(oval(enabled || recording ? ui.accent : ui.raised));
             recordGlyph.set(recording ? "stop" : "record", enabled || recording ? ui.onAccent : ui.dim);
-            if (recordingShown == null || recordingShown != recording) {
+            if (recordingShown == null || recordingShown != recording || startingShown != starting) {
                 recordingShown = recording;
+                startingShown = starting;
                 setBackground(chrome());
             }
             RideStore.Summary summary = recording ? service.rides.activeSummary() : null;
@@ -3545,9 +3662,10 @@ public final class DashboardScreen implements AppScreen {
                 String clock = seconds >= 3600
                         ? String.format(Fmt.locale(Locale.US), "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
                         : String.format(Fmt.locale(Locale.US), "%d:%02d", seconds / 60, seconds % 60);
-                rideTitle.setText(T.dashboardRecordingClock(clock));
+                recorderClock = clock;
                 rideTitle.setTextColor(ui.danger);
                 rideTitle.setTypeface(ui.semibold());
+                showRecorderTitle();
                 ArrayList<String> parts = new ArrayList<>();
                 if (summary != null && summary.distanceKm != null) parts.add(distance(summary.distanceKm));
                 if (summary != null && summary.measuredThroughputWh != null)
@@ -3555,9 +3673,10 @@ public final class DashboardScreen implements AppScreen {
                 rideButton.setContentDescription(DashboardWords.recordingSpoken(clock, parts));
                 rideDetail.setText(parts.isEmpty() ? T.dashboardMeasuring() : android.text.TextUtils.join(" · ", parts));
             } else {
-                rideTitle.setText(T.dashboardRecordRide());
+                recorderClock = null;
                 rideTitle.setTextColor(enabled ? ui.text : ui.muted);
                 rideTitle.setTypeface(ui.medium());
+                showRecorderTitle();
                 rideDetail.setText(saving ? T.dashboardSavingRide() : connecting ? T.dashboardConnecting() : "");
                 rideButton.setContentDescription(saving ? T.dashboardRecordSaving()
                         : ready ? T.dashboardStartRecording() : connecting ? T.dashboardRecordConnecting()
@@ -3566,6 +3685,30 @@ public final class DashboardScreen implements AppScreen {
             // A hidden caption is never re-measured by setText alone; show it when it has words.
             int detail = rideDetail.length() > 0 && !compactRecorder ? View.VISIBLE : View.GONE;
             if (rideDetail.getVisibility() != detail) rideDetail.setVisibility(detail);
+            // Starting (only ever from a ready disc, so no caption shows): the disc looks pressed,
+            // with a soft red ring, and says what is happening.
+            if (starting) startingRecorder();
+            // While a card tap would start (or connect), the card is the one spoken control with the
+            // disc's label, and the disc steps out of focus so it is not announced twice. Recording,
+            // starting, saving or editing, the card goes inert and the disc is the control again.
+            boolean wide = recorderCard && RecorderTap.card(editing, rideButton.isEnabled(), recording,
+                    service == null || ready, starting) != RecorderTap.NONE;
+            if (wideTap && !wide && !starting) recorder.setPressed(false);
+            wideTap = wide;
+            setClickable(wide);
+            body.setClickable(wide);
+            setFocusable(wide);
+            setImportantForAccessibility(wide ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            setContentDescription(wide ? rideButton.getContentDescription() : null);
+            rideButton.setFocusable(!wide);
+            rideButton.setImportantForAccessibility(wide ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+        }
+
+        private void startingRecorder() {
+            GradientDrawable ring = oval(ui.accent);
+            ring.setStroke(ui.dp(3), blend(ui.accent, ui.surface, .45f));
+            recordDisc.setBackground(ring);
+            rideButton.setContentDescription(T.dashboardRecorderStarting());
         }
 
         private GradientDrawable oval(int fill) {
@@ -6698,9 +6841,37 @@ public final class DashboardScreen implements AppScreen {
         return false;
     }
 
+    /**
+     * A start tapped just before Home closes (a tab switch, a rebuild, the app going away) is not
+     * lost: while the app stays open it runs right after the screen change, through the same
+     * RideRecordingControl start and its checks, on whatever screen is then showing; when the app is going away Volt says it did not start.
+     */
+    private void finishPendingStart() {
+        Activity activity = host.activity();
+        boolean staying = !activity.isFinishing() && !activity.isDestroyed()
+                && !activity.isChangingConfigurations() && !DataMaintenance.active();
+        int action = RecorderTap.onClose(recorderStart.pending(), staying);
+        if (action == RecorderTap.CLOSE_NOTHING || !recorderStart.take()) return;
+        Context app = activity.getApplicationContext();
+        if (action == RecorderTap.CLOSE_HAND_OFF) {
+            Actions start = actions;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (activity.isFinishing() || activity.isDestroyed()) recorderNotStarted(app);
+                else start.startRide();
+            });
+        } else {
+            recorderNotStarted(app);
+        }
+    }
+
+    private static void recorderNotStarted(Context app) {
+        Toast.makeText(app, T.dashboardRecorderNotStarted(), Toast.LENGTH_LONG).show();
+    }
+
     @Override
     public void close() {
         hideNotice();
+        finishPendingStart();
         closed = true;
         chargingHero.stopReveal();
         cancelWidgetReveal();

@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.Fmt;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.PhoneRideStore;
@@ -48,6 +49,7 @@ import com.jjricks.volt.RidesScreen;
 import com.jjricks.volt.RouteMapView;
 import com.jjricks.volt.ScooterCommands;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.T;
 import com.jjricks.volt.Ui;
 
 /** UI checks on a fresh emulator only. No owner profile, sensor recording, radio or network work. */
@@ -200,8 +202,11 @@ public final class UiOrganizationValidation extends Instrumentation {
             main(() -> scroller.fullScroll(View.FOCUS_UP)); waitForIdleSync();
             screenshot("synthetic-route-top-dark");
             main(() -> scroller.fullScroll(View.FOCUS_DOWN)); waitForIdleSync();
-            TextView export = findText(dialogRoot, "Export phone data");
-            require(export != null, "Route export action is missing"); reveal(export); requireFullyVisible(export, "Phone export action");
+            // The phone section's own export button became ride details' one Export ride data sheet (#253):
+            // the preview now ends with the motion-sample note, which must still scroll fully into view.
+            TextView last = findText(dialogRoot, T.ridesMotionSamples(fixture.motionSampleCount, Fmt.groupedInteger(java.util.Locale.US, fixture.motionSampleCount)));
+            require(last != null, "Route preview's last block is missing"); reveal(last); requireFullyVisible(last, "Route preview's last block");
+            require(findText(dialogRoot, T.ridesExportData()) == null, "Route preview kept a separate export action");
             screenshot("synthetic-route-bottom-dark");
             main(() -> {
                 require(!((Boolean)field(map, "streets")), "Preview enabled network tile loading");
@@ -209,7 +214,7 @@ public final class UiOrganizationValidation extends Instrumentation {
             });
             click(preview.getButton(AlertDialog.BUTTON_POSITIVE)); preview = null;
             assertNoScooterWork();
-            check("Synthetic route renders offline, responds to touch/zoom/color controls, and scrolls to phone exports");
+            check("Synthetic route renders offline, responds to touch/zoom/color controls, and scrolls to its last block");
 
             result.putString("result", "PASS"); result.putStringArrayList("checks", new ArrayList<>(checks));
             result.putStringArrayList("screenshots", new ArrayList<>(screenshots));
