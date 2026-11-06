@@ -78,6 +78,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
         } finally {
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks);
             result.putStringArrayList("screenshots", screenshots); result.putBoolean("physical_device_tested", false);
+            if (open != null) try { touch((long)open[0], MotionEvent.ACTION_UP, open[1], open[2]); } catch (Throwable ignored) { }
             try { getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_UNFREEZE); } catch (Throwable ignored) { }
             if (admitted && activity != null) try { main(() -> { if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -178,6 +179,13 @@ public final class ScooterMenuEditValidation extends Instrumentation {
 
     /** Presses a section's grip and waits until the sections have folded and the section has lifted: x, y, down time. */
     private float[] press(String section) {
+        // Bring the header to the upper third of the page first: below the fold it may sit off screen or under the tab bar.
+        main(() -> {
+            View scroll = (View)field(activity, "scroll"); int[] page = new int[2], at = new int[2];
+            scroll.getLocationOnScreen(page); header(section).getLocationOnScreen(at);
+            scroll.scrollBy(0, at[1] - page[1] - scroll.getHeight() / 3);
+        });
+        settle();
         View[] grip = new View[1];
         main(() -> grip[0] = gripOf(header(section)));
         int[] at = new int[2];
@@ -202,7 +210,12 @@ public final class ScooterMenuEditValidation extends Instrumentation {
         await(() -> !Boolean.TRUE.equals(field(editor(), "folded")) && field(field(editor(), "sections"), "held") == null, "The dragged section did not settle");
         settle(); SystemClock.sleep(500); settle();
     }
-    private void touch(long down, int action, float x, float y) { inject(MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0)); }
+    /** The open gesture (down time, x, y), so a failed check still lifts the finger: the system keeps an injected pointer down otherwise. */
+    private float[] open;
+    private void touch(long down, int action, float x, float y) {
+        inject(MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0));
+        open = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ? null : new float[]{down, x, y};
+    }
 
     private void hideRow() throws Exception {
         main(() -> {
