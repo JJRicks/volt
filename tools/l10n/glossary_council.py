@@ -413,12 +413,6 @@ def draft_prompt(rows, examples):
             len(body), EXAMPLES, note, json.dumps(body, ensure_ascii=False, indent=1))
 
 
-# Token usage: shared with council.py (providers.py).
-recorded_responses = providers.recorded_responses
-usage_of = providers.usage_of
-add_usage = providers.add_usage
-
-
 def vendor_draft(paths, provider, tag, model=None, out=None):
     """Draft the round's rows with one provider; writes drafts/<provider>.json."""
     out = out or sys.stdout
@@ -438,10 +432,10 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
     drafted, notes, problems, reported, usage = collections.OrderedDict(), {}, [], None, {}
     for index in range(0, len(rows), CHUNK_ROWS):
         chunk = rows[index:index + CHUNK_ROWS]
-        with recorded_responses() as responses:
-            text, reported = providers.generate(provider, model, system, draft_prompt(chunk, examples))
-        chunk_usage = usage_of(responses[-1]) if responses else None
-        add_usage(usage, chunk_usage)
+        text, reported, chunk_usage = council.generate_logged(
+            paths, tag, AREA, "glossary-draft", provider, model, system, draft_prompt(chunk, examples),
+            chunk=index // CHUNK_ROWS, rows=len(chunk))
+        providers.add_usage(usage, chunk_usage)
         value = providers.parse_json_reply(text)
         terms = value.get("terms") if isinstance(value.get("terms"), dict) else {}
         chunk_notes = value.get("notes") if isinstance(value.get("notes"), dict) else {}
@@ -466,7 +460,7 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
                 problems.append("%s: not asked for; ignored" % term_id)
         council.log_run(paths, tag, AREA, collections.OrderedDict([
             ("stage", "glossary-draft"), ("provider", provider), ("model", model), ("model_reported", reported),
-            ("chunk", index // CHUNK_ROWS), ("rows", len(chunk)), ("received", received), ("usage", chunk_usage)]))
+            ("chunk", index // CHUNK_ROWS), ("rows", len(chunk)), ("received", received), ("calls", 1)]))
     # Rows the provider left out stay listed, without a term, so the draft is current for them.
     for fields in rows:
         if fields[0] not in drafted:

@@ -132,6 +132,26 @@ def now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def generate_logged(paths, tag, area, step, provider, model, system, prompt, **fields):
+    """providers.generate, writing one api-call row to runs.jsonl for each provider response the moment it
+    arrives, before its reply is parsed or checked, so a step that fails later still counts what it was billed.
+    These rows are the only ones that carry usage; a step's own row records how many calls it made.
+    (text, reported model id, that call's usage or None)."""
+    usage = None
+    with providers.recorded_responses() as responses:
+        try:
+            text, reported = providers.generate(provider, model, system, prompt)
+        finally:
+            for response in responses:
+                one = providers.usage_of(response)
+                if one:
+                    usage = providers.add_usage(usage or collections.OrderedDict(), one)
+                log_run(paths, tag, area, collections.OrderedDict(
+                    [("stage", "api-call"), ("step", step), ("provider", provider), ("model", model)]
+                    + list(fields.items()) + [("usage", one)]))
+    return text, reported, usage
+
+
 def log_run(paths, tag, area, row):
     row = collections.OrderedDict([("when", now())] + list(row.items()))
     path = paths.work(tag, area, "runs.jsonl")
@@ -338,8 +358,8 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style="standa
     system = instructions(pack, style)
     collected, reported, problems = [], None, []
     for index, chunk in enumerate(chunks(pack, entries)):
-        with providers.recorded_responses() as responses:
-            text, reported = providers.generate(provider, model, system, user_prompt(pack, chunk))
+        text, reported, _ = generate_logged(paths, tag, area, "draft", provider, model, system,
+                                            user_prompt(pack, chunk), draft=name, chunk=index, keys=len(chunk))
         strings = reply_strings(providers.parse_json_reply(text))
         got, chunk_problems = replies_to_entries(pack, strings, [e["key"] for e in chunk])
         collected.extend(got)
@@ -347,7 +367,7 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style="standa
         log_run(paths, tag, area, collections.OrderedDict([
             ("stage", "draft"), ("draft", name), ("provider", provider), ("model", model),
             ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got)),
-            ("usage", providers.usage_of(responses[-1]) if responses else None)]))
+            ("calls", 1)]))
     path = save_draft(paths, pack, name, model, reported, collected, style, replace=True)
     out.write("%s: %d of %d keys drafted by %s%s\n" % (paths.rel(path), len(collected), len(entries), model,
                                                        " (reported %s)" % reported if reported != model else ""))
@@ -377,13 +397,13 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         return None
     by_key = dict((e["key"], e) for e in pack["entries"])
     entries = [by_key[k] for k in failed if k in by_key]
-    collected, reported, usage = [], draft.model_reported, {}
-    for chunk in chunks(pack, entries):
-        with providers.recorded_responses() as responses:
-            text, reported = providers.generate(provider, draft.model,
-                                                instructions(pack, draft.prompt or "standard"),
-                                                user_prompt(pack, chunk, failed))
-        providers.add_usage(usage, providers.usage_of(responses[-1]) if responses else None)
+    collected, reported, calls = [], draft.model_reported, 0
+    for index, chunk in enumerate(chunks(pack, entries)):
+        text, reported, _ = generate_logged(paths, tag, area, "redraft", provider, draft.model,
+                                            instructions(pack, draft.prompt or "standard"),
+                                            user_prompt(pack, chunk, failed), draft=name, chunk=index,
+                                            keys=len(chunk))
+        calls += 1
         got, problems = replies_to_entries(pack, reply_strings(providers.parse_json_reply(text)),
                                            [e["key"] for e in chunk])
         collected.extend(got)
@@ -392,8 +412,7 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
     save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "redraft"), ("draft", name), ("provider", provider), ("model", draft.model),
-        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected)),
-        ("usage", usage or None)]))
+        ("model_reported", reported), ("keys", len(entries)), ("received", len(collected)), ("calls", calls)]))
     out.write("%s: redrafted %d keys (attempt %d); run check again\n" % (name, len(collected), MAX_ATTEMPTS))
     return path
 
@@ -1233,8 +1252,12 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
 
 
 def usage_summary(paths, tag, area=None, since=None):
-    """{"<provider> <model>": {"runs", "unrecorded", <summed token counts>}} from the runs.jsonl files of a
-    language (every area, the glossary round included), or of one area; since is an ISO time (UTC)."""
+    """{"<provider> <model>": {"calls", "unrecorded", <summed token counts>}} from the runs.jsonl files of a
+    language (every area, the glossary round included), or of one area; since is an ISO time (UTC).
+
+    Usage comes from api-call rows (one per provider response, written as it arrived) and from older step rows
+    that carried their own usage. A step row with neither usage nor a calls count predates usage logging and
+    counts as one unrecorded call; a step row with a calls count is covered by its api-call rows."""
     base = os.path.dirname(paths.work(tag, "x"))
     areas = [area] if area else sorted(a for a in os.listdir(base) if os.path.isdir(os.path.join(base, a))) \
         if os.path.isdir(base) else []
@@ -1243,9 +1266,12 @@ def usage_summary(paths, tag, area=None, since=None):
         for row in translib.read_jsonl(paths.work(tag, name, "runs.jsonl")):
             if row.get("provider") not in providers.KEY_ENV or (since and row.get("when", "") < since):
                 continue
+            billed = row.get("stage") == "api-call" or isinstance(row.get("usage"), dict)
+            if not billed and "calls" in row:
+                continue
             total = totals.setdefault("%s %s" % (row["provider"], row.get("model")),
-                                      collections.OrderedDict([("runs", 0), ("unrecorded", 0)]))
-            total["runs"] += 1
+                                      collections.OrderedDict([("calls", 0), ("unrecorded", 0)]))
+            total["calls"] += 1
             if isinstance(row.get("usage"), dict):
                 providers.add_usage(total, row["usage"])
             else:
@@ -1258,10 +1284,10 @@ def print_usage(totals, out=None):
     if not totals:
         out.write("no API runs\n")
     for name, total in totals.items():
-        out.write("%s: %d runs%s\n" % (name, total["runs"], " (%d logged no usage)" % total["unrecorded"]
-                                      if total["unrecorded"] else ""))
+        out.write("%s: %d calls%s\n" % (name, total["calls"], " (%d logged no usage)" % total["unrecorded"]
+                                       if total["unrecorded"] else ""))
         for field, value in total.items():
-            if field not in ("runs", "unrecorded"):
+            if field not in ("calls", "unrecorded"):
                 out.write("  %s %d\n" % (field, value))
 
 
@@ -1515,19 +1541,19 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
         out.write("no safety keys to back-translate\n")
         return 0
     model = pick_model(provider, "backtranslate", model, prefer, avoid=drafters)
-    stored, reported, usage = 0, model, {}
+    stored, reported, calls = 0, model, 0
     keys = list(targets)
     for start in range(0, len(keys), CHUNK):
         part = collections.OrderedDict((k, targets[k]) for k in keys[start:start + CHUNK])
-        with providers.recorded_responses() as responses:
-            text, reported = providers.generate(provider, model, backtranslate_instructions(pack),
-                                                backtranslate_prompt(pack, part))
-        providers.add_usage(usage, providers.usage_of(responses[-1]) if responses else None)
+        text, reported, _ = generate_logged(paths, tag, area, "backtranslate", provider, model,
+                                            backtranslate_instructions(pack), backtranslate_prompt(pack, part),
+                                            chunk=start // CHUNK, keys=len(part))
+        calls += 1
         stored += store_backtranslation(paths, pack, part, reply_strings(providers.parse_json_reply(text)),
                                         provider, model, reported, drafters)
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "backtranslate"), ("provider", provider), ("model", model), ("model_reported", reported),
-        ("keys", len(keys)), ("received", stored), ("usage", usage or None)]))
+        ("keys", len(keys)), ("received", stored), ("calls", calls)]))
     out.write("back-translated %d of %d safety keys with %s\n" % (stored, len(keys), model))
     return stored
 
