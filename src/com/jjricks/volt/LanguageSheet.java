@@ -19,7 +19,8 @@ import java.util.Locale;
  *
  * The row is offered only once a language other than English ships (beta or stable in
  * l10n/lang/*.tsv), or with the pseudo APK while Developer options are on, where the sheet also lists
- * en-XA and ar-XB for layout checks. Until then English builds show no row at all.
+ * en-XA and ar-XB for layout checks. Until then English builds show no row at all. Below the choices,
+ * an In progress section lists the draft languages, which cannot be chosen (LanguagePicker).
  *
  * Choosing goes through AppLanguage.choose. On API 33 and later the platform's per-app language is the
  * source of truth: the framework recreates the activities, and the row mirrors getApplicationLocales()
@@ -61,8 +62,7 @@ final class LanguageSheet {
         List<String> tags = new ArrayList<>(), labels = new ArrayList<>();
         List<Boolean> betas = new ArrayList<>();
         tags.add(""); labels.add(T.moreLanguageSystem(systemName(activity))); betas.add(false);
-        for (int i = 0; i < AppLanguages.size(); i++) {
-            if (!AppLanguages.shipped(i)) continue;
+        for (int i : LanguagePicker.choices(AppLanguages.STATUSES)) {
             tags.add(AppLanguages.tag(i)); labels.add(AppLanguages.endonym(i)); betas.add(beta(i));
         }
         if (developer && pseudoBuild(activity)) {
@@ -105,6 +105,7 @@ final class LanguageSheet {
             options.addView(option, new LinearLayout.LayoutParams(-1, -2));
         }
         body.addView(options, new LinearLayout.LayoutParams(-1, -2));
+        inProgress(ui, body);
         TextView note = ui.caption(T.moreLanguageNote());
         note.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
         body.addView(note);
@@ -114,6 +115,38 @@ final class LanguageSheet {
             body.addView(android);
         }
         self[0] = host.showSheet(body);
+    }
+
+    /**
+     * The In progress section: each draft language in its own words, in the muted secondary-text colour,
+     * neither clickable nor focusable, and read as "Deutsch, in progress" rather than as a button. Absent
+     * when no language is in draft.
+     */
+    private static void inProgress(Ui ui, LinearLayout body) {
+        int[] drafts = LanguagePicker.inProgress(AppLanguages.STATUSES);
+        if (drafts.length == 0) return;
+        TextView heading = ui.sectionLabel(T.moreLanguageInProgress());
+        heading.setTag("language_in_progress_heading");
+        body.addView(heading);
+        LinearLayout pending = ui.groupCard();
+        pending.setTag("language_in_progress");
+        for (int k = 0; k < drafts.length; k++) {
+            String endonym = AppLanguages.endonym(drafts[k]);
+            LinearLayout row = new LinearLayout(ui.context);
+            row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setMinimumHeight(ui.dp(52)); row.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+            row.setTag("language_in_progress_option");
+            TextView name = ui.text(endonym, 15, false);
+            name.setTextColor(ui.muted);
+            name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setClickable(false); row.setFocusable(false);
+            row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            row.setContentDescription(T.moreLanguageInProgressDescription(endonym));
+            if (k > 0) ui.divider(pending);
+            pending.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        }
+        body.addView(pending, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private static void apply(ScreenHost host, String tag, Runnable changed) {

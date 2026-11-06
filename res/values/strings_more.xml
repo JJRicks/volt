@@ -211,6 +211,10 @@
     <string name="more_language_beta" volt:screen="Language" volt:purpose="chip">Beta</string>
     <!-- The Language row's value for a beta language. %1$s is the language's own name ("Español"), never translated. -->
     <string name="more_language_value_beta" volt:screen="Language" volt:purpose="value">%1$s · Beta</string>
+    <!-- Heading above the languages whose translation is still being made: listed, greyed out and not yet choosable. -->
+    <string name="more_language_in_progress" volt:screen="Language" volt:purpose="section title">In progress</string>
+    <!-- What a screen reader says for one of those languages. %1$s is the language's own name ("Deutsch"), never translated. -->
+    <string name="more_language_in_progress_description" volt:screen="Language" volt:purpose="accessibility description">%1$s, in progress</string>
     <!-- Below the options. "Report an issue" is the More menu row (more_report_issue): use the same words. -->
     <string name="more_language_note" volt:screen="Language" volt:purpose="note">Beta translations are made with AI and checked automatically. Reports and diagnostics stay in English. To report a wording problem, use Report an issue.</string>
     <!-- Android 13 and later only. Use the names Android's own Settings app shows in this language. -->
