@@ -124,7 +124,7 @@ public final class ServiceConsumersTest {
         check(count(s, "c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());"
                 + "c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());") == 1,
                 "the schedule context takes reasonMessage()'s English");
-        check(!s.contains("ble.message()") && count(s, ": ble.ready() ? connectedText() : ble.displayMessage();") == 1,
+        check(!s.contains("ble.message()") && count(s, ": ble.linked() ? connectedText() : ble.displayMessage();") == 1,
                 "the connection notice falls back to displayMessage()");
         check(count(s, "alertPausedNotice(event,profile.displayName())") == 1, "the paused notice names the scooter with displayName()");
         check(count(s, "String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();") == 1,

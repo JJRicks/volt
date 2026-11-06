@@ -2636,7 +2636,8 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
-                                : ble.ready() ? T.serviceNoticeConnected() : "Volt";
+                                : ble.linked() ? T.serviceNoticeConnected() : "Volt";
+        // linked(), not ready(): out of sight status comes every 15 s, and the notice must not read the gaps as lost (StatusCadence).
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,
         // distance beside a running clock while recording, a progress bar while a ride is saved.
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
@@ -2648,7 +2649,7 @@ public final class ScooterService extends Service {
                         ? null
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
-                                : ble.ready() ? connectedText() : ble.displayMessage();
+                                : ble.linked() ? connectedText() : ble.displayMessage();
         if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();
