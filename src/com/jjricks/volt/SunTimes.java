@@ -44,6 +44,54 @@ final class SunTimes {
         return new Day(Day.Kind.NORMAL, utcDay + Math.round(rise * MINUTE), utcDay + Math.round(set * MINUTE));
     }
 
+    /**
+     * The sun's altitude in degrees at an instant (the same NOAA equations, with the sun's position at
+     * that instant rather than at a day's noon).
+     */
+    static double altitude(long epochMs, double latitude, double longitude) {
+        double t = century(epochMs / (double) DAY + 2440587.5);
+        double declination = declination(t);
+        double utcMinutes = Math.floorMod(epochMs, DAY) / (double) MINUTE;
+        double hour = Math.toRadians((utcMinutes + equationOfTime(t) + 4 * longitude) / 4 - 180);
+        double lat = Math.toRadians(latitude);
+        return Math.toDegrees(Math.asin(Math.sin(lat) * Math.sin(declination) + Math.cos(lat) * Math.cos(declination) * Math.cos(hour)));
+    }
+
+    /** Where night begins: the sun's centre 0.833° below the horizon. */
+    static final double HORIZON = 90 - ZENITH;
+    /** Sampling step for nights(): a dip below the horizon shorter than this can be missed (polar edges only). */
+    static final long STEP_MS = 5 * MINUTE;
+
+    /**
+     * The nights between fromMs and toMs as [start, end) spans in epoch ms, from the sun's actual horizon
+     * crossings, so a sunset after local midnight, a polar day or night and the days between are all the
+     * same case. Each crossing is found to the second; its time is the first instant on the new side. A
+     * span that starts before fromMs or runs past toMs is cut there.
+     */
+    static java.util.List<long[]> nights(long fromMs, long toMs, double latitude, double longitude) {
+        java.util.List<long[]> spans = new java.util.ArrayList<>();
+        long at = fromMs;
+        boolean below = altitude(at, latitude, longitude) < HORIZON;
+        long start = below ? fromMs : -1;
+        while (at < toMs) {
+            long next = Math.min(toMs, at + STEP_MS);
+            boolean nowBelow = altitude(next, latitude, longitude) < HORIZON;
+            if (nowBelow != below) {
+                long lo = at, hi = next;
+                while (hi - lo > 1000) {
+                    long mid = lo + (hi - lo) / 2;
+                    if ((altitude(mid, latitude, longitude) < HORIZON) == below) lo = mid; else hi = mid;
+                }
+                if (nowBelow) start = hi;
+                else { spans.add(new long[]{start, hi}); start = -1; }
+                below = nowBelow;
+            }
+            at = next;
+        }
+        if (below) spans.add(new long[]{start, toMs});
+        return spans;
+    }
+
     /** Minutes after 00:00 UTC of julianDay's date, refined once at the event; null when it doesn't happen. */
     private static Double event(boolean rise, double julianDay, double latitude, double longitude) {
         Double minutes = minutes(rise, century(julianDay + 0.5 - longitude / 360), latitude, longitude);

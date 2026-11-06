@@ -32,6 +32,8 @@ public final class NightScheduleTest {
         published();
         almanacAgreement();
         polar();
+        midnightCrossing();
+        altitudeTruth();
         dateLine();
         dstDays();
         customWindows();
@@ -123,6 +125,102 @@ public final class NightScheduleTest {
         // The first sunrise after the polar night (mid-January) shows up as the next switch once it's close.
         NightSchedule.State january = sun(tromso, OSLO, at(OSLO, "2027-01-14T10:00"));
         check(january.night && january.nextMs > 0, "the polar night's end is found once it's within the window");
+    }
+
+    /**
+     * Review round 2 (#279): near midnight sun a sunset can fall after local midnight. Tromsø's Jul 26
+     * sunset is at 00:10 on Jul 27, so night starts then, not at 00:00; after May 17's sunrise the next
+     * switch is its sunset at 00:20 on May 18, the last before the polar day.
+     */
+    private static void midnightCrossing() {
+        NightSchedule.Place tromso = new NightSchedule.Place(69.6, 18.9, NightSchedule.Source.RIDE);
+        SunTimes.Day jul26 = SunTimes.day(LocalDate.parse("2026-07-26"), OSLO, 69.6, 18.9);
+        check(jul26.kind == SunTimes.Day.Kind.NORMAL && clock(jul26.setMs, OSLO).equals("00:10"), "Tromsø Jul 26 sets at 00:10 on the 27th: " + clock(jul26.setMs, OSLO));
+        for (String t : new String[]{"2026-07-26T23:59", "2026-07-27T00:00", "2026-07-27T00:05"}) {
+            NightSchedule.State before = sun(tromso, OSLO, at(OSLO, t));
+            check(!before.night && Math.abs(before.nextMs - jul26.setMs) <= 2 * MINUTE, "Tromsø " + t + ": still day, night vision turns on at the 00:10 sunset");
+        }
+        NightSchedule.State after = sun(tromso, OSLO, at(OSLO, "2026-07-27T00:15"));
+        SunTimes.Day jul27 = SunTimes.day(LocalDate.parse("2026-07-27"), OSLO, 69.6, 18.9);
+        check(after.night && Math.abs(after.nextMs - jul27.riseMs) <= 2 * MINUTE, "Tromsø Jul 27 00:15: night until the 01:32 sunrise");
+
+        SunTimes.Day may17 = SunTimes.day(LocalDate.parse("2026-05-17"), OSLO, 69.6, 18.9);
+        check(clock(may17.setMs, OSLO).equals("00:20") && SunTimes.day(LocalDate.parse("2026-05-18"), OSLO, 69.6, 18.9).kind == SunTimes.Day.Kind.ALWAYS_DAY,
+                "May 17 sets at 00:20 on the 18th, which has no sunset");
+        NightSchedule.State morning = sun(tromso, OSLO, at(OSLO, "2026-05-17T06:00"));
+        check(!morning.night && Math.abs(morning.nextMs - may17.setMs) <= 2 * MINUTE, "after May 17's sunrise the next switch is its 00:20 sunset");
+        NightSchedule.State dip = sun(tromso, OSLO, at(OSLO, "2026-05-18T00:30"));
+        check(dip.night && dip.nextMs > at(OSLO, "2026-05-18T00:30") && dip.nextMs < at(OSLO, "2026-05-18T02:00"), "the last short night before the polar day ends within the hour");
+        // Longyearbyen, Apr 18-19: the last nights before the polar day shrink fast; the sun is back up
+        // at 01:31 on the 19th (0.25° above the line), so that night has ended.
+        NightSchedule.Place longyearbyen = new NightSchedule.Place(78.2, 15.6, NightSchedule.Source.RIDE);
+        ZoneId svalbard = ZoneId.of("Arctic/Longyearbyen");
+        check(!sun(longyearbyen, svalbard, at(svalbard, "2026-04-19T01:31")).night, "Longyearbyen Apr 19 01:31: day again");
+        NightSchedule.State polarDay = sun(tromso, OSLO, at(OSLO, "2026-05-18T06:00"));
+        check(!polarDay.night && polarDay.nextMs == -1, "then midnight sun: no switch in the window");
+    }
+
+    /**
+     * The schedule against the sun's actual altitude (the Astronomical Almanac's low-precision formulas,
+     * not SunTimes): night exactly when the sun's centre is below -0.833°. Through 2026 every 7 h 13 min
+     * at the edges of the polar day and night and at ordinary places, and every 7 minutes for three days
+     * around Tromsø's midnight sunsets. Moments within 0.25° of the line are skipped (the two formulas
+     * differ by a few minutes there). The next switch is checked as well: 3 minutes either side of it,
+     * the sun is on the two sides of the line (or close to it).
+     */
+    private static void altitudeTruth() {
+        Object[][] places = {
+                {69.6, 18.9, OSLO}, {78.2, 15.6, ZoneId.of("Arctic/Longyearbyen")}, {67.0, 25.0, ZoneId.of("Europe/Helsinki")},
+                {-77.8, 166.7, ZoneId.of("Antarctica/McMurdo")}, {-66.0, 140.0, ZoneId.of("Antarctica/DumontDUrville")},
+                {64.1, -21.9, ZoneId.of("Atlantic/Reykjavik")}, {40.76, -111.89, DENVER}, {1.87, -157.43, KIRITIMATI}, {-36.85, 174.76, AUCKLAND},
+        };
+        int compared = 0, switches = 0;
+        for (Object[] place : places) {
+            double lat = (Double) place[0], lon = (Double) place[1];
+            ZoneId zone = (ZoneId) place[2];
+            long from = at(zone, "2026-01-01T00:00"), to = at(zone, "2027-01-01T00:00");
+            for (long now = from; now < to; now += 7 * HOUR + 13 * MINUTE) { compared += truth(lat, lon, zone, now); switches += switchTruth(lat, lon, zone, now); }
+        }
+        for (String day : new String[]{"2026-05-16T00:00", "2026-07-25T12:00"})
+            for (long now = at(OSLO, day), end = now + 3 * 24 * HOUR; now < end; now += 7 * MINUTE) {
+                compared += truth(69.6, 18.9, OSLO, now);
+                if ((now / MINUTE) % 49 == 0) switches += switchTruth(69.6, 18.9, OSLO, now);
+            }
+        check(compared > 9000 && switches > 6000, "enough moments compared: " + compared + ", switches " + switches);
+    }
+
+    private static int truth(double lat, double lon, ZoneId zone, long now) {
+        double altitude = altitude(now, lat, lon);
+        if (Math.abs(altitude + 0.833) < 0.25) return 0;
+        NightSchedule.State state = sun(new NightSchedule.Place(lat, lon, NightSchedule.Source.RIDE), zone, now);
+        check(state.night == (altitude < -0.833), String.format("%.1f, %.1f at %s: altitude %.2f° but night=%s", lat, lon,
+                Instant.ofEpochMilli(now).atZone(zone), altitude, state.night));
+        return 1;
+    }
+
+    private static int switchTruth(double lat, double lon, ZoneId zone, long now) {
+        NightSchedule.State state = sun(new NightSchedule.Place(lat, lon, NightSchedule.Source.RIDE), zone, now);
+        if (state.nextMs < 0) return 0;
+        check(state.nextMs > now, "the next switch is ahead");
+        double before = altitude(state.nextMs - 3 * MINUTE, lat, lon) + 0.833, after = altitude(state.nextMs + 3 * MINUTE, lat, lon) + 0.833;
+        String where = String.format("%.1f, %.1f switch at %s (%s): %.2f° then %.2f°", lat, lon, Instant.ofEpochMilli(state.nextMs).atZone(zone), state.night ? "dawn" : "dusk", before, after);
+        if (state.night) check(before < 0.25 && after > -0.25, where); else check(before > -0.25 && after < 0.25, where);
+        check(sun(new NightSchedule.Place(lat, lon, NightSchedule.Source.RIDE), zone, state.nextMs).night != state.night, where + ": the schedule flips there");
+        return 1;
+    }
+
+    /** The sun's altitude in degrees (Astronomical Almanac, low precision: about 0.01°). */
+    private static double altitude(long epochMs, double latitude, double longitude) {
+        double n = epochMs / 86_400_000.0 + 2440587.5 - 2451545.0;
+        double l = Math.toRadians((280.460 + 0.9856474 * n) % 360), g = Math.toRadians((357.528 + 0.9856003 * n) % 360);
+        double lambda = l + Math.toRadians(1.915) * Math.sin(g) + Math.toRadians(0.020) * Math.sin(2 * g);
+        double epsilon = Math.toRadians(23.439 - 0.0000004 * n);
+        double ra = Math.atan2(Math.cos(epsilon) * Math.sin(lambda), Math.cos(lambda));
+        double dec = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
+        double gmst = (18.697374558 + 24.06570982441908 * n) % 24;
+        double hour = Math.toRadians(gmst * 15 + longitude) - ra;
+        double lat = Math.toRadians(latitude);
+        return Math.toDegrees(Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(hour)));
     }
 
     /** Kiritimati (UTC+14): the local day's sun, not the UTC day's. */
