@@ -795,7 +795,9 @@ public final class DashboardScreen implements AppScreen {
 
     /** An inline spinner keeps "Connecting…" on its single status line. */
     private CharSequence connectingLabel() {
-        android.text.SpannableString text = new android.text.SpannableString(DashboardWords.connectingText());
+        android.text.SpannableString text = new android.text.SpannableString("Connecting…  ￼");
+        // English keeps the line above; U+FFFC, the spinner's place, cannot be catalog text (GlyphCoverageTest).
+        if (!Fmt.legacy()) text = new android.text.SpannableString(DashboardWords.connectingText());
         TextView owner = status;
         android.graphics.drawable.Drawable spinner =
                 new android.graphics.drawable.Drawable() {

@@ -36,7 +36,7 @@ final class DashboardWords {
      * draws its spinner. The mark stays out of the catalog: Saira has no glyph for it (GlyphCoverageTest).
      */
     static String connectingText() {
-        return T.bleStatusConnecting() + "  \uFFFC";
+        return T.bleStatusConnecting() + new String(new char[]{32, 32, 0xFFFC});
     }
 
     /** The status line's spoken form; lastSeen (or null) only when neither ready nor connecting. */
