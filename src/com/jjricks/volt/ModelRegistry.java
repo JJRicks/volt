@@ -650,7 +650,6 @@ public final class ModelRegistry {
      * Kick-start is the speed at which the motor starts helping, not a speed limit.
      */
     static final FeatureVariant START_LOW_TRY=startSpeed("0_3",range(0,3)).withShown(range(4,5),kmhLabels(range(4,5),false)).lab();
-    private static final String REGION_START_NOTE="OEM 2.1.9 offers only 3–5 km/h in this region";
     static{
         for(FeatureVariant v:new FeatureVariant[]{OEM_CRUISE,OEM_TCS,START_0_5,OEM_WALK_ASSIST,OEM_POWER_ASSIST,OEM_DESCENT,OEM_TAIL,OEM_AUTO,OEM_TURN,OEM_PROMPT_TONE,LIMIT_8_32})
             TRY.put(v.feature,v.lab());
@@ -668,7 +667,7 @@ public final class ModelRegistry {
         Rule rule=rule(feature,d,r,s);
         if(r.layer==Layer.UT5_MAX){
             // Version 19: a UT5 MAX held to 3–5 km/h by its serial region tries the lower kick-start too.
-            if(feature.equals("start_speed")&&rule.variant==Ut5.START_3_5&&offered(rule))return tryable(Ut5.START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,REGION_START_NOTE);
+            if(feature.equals("start_speed")&&rule.variant==Ut5.START_3_5&&offered(rule))return tryable(Ut5.START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,rule.oemNote);
             return rule.variant!=null&&rule.variant.lab?tryable(rule.variant,rule.evidence,rule.oemNote):rule;
         }
         boolean hidden=rule.support==CapabilityResolver.Support.INCOMPATIBLE&&rule.reason==CapabilityResolver.Reason.MODEL_EXCLUDED;
@@ -680,7 +679,7 @@ public final class ModelRegistry {
         // official app offers 3–5 km/h (group M included). Inside it nothing changes: an offered row is not a try.
         if(feature.equals("start_speed")&&r.layer==Layer.OEM_GROUP&&!r.conflict&&!officialLowStart(d)){
             if(v!=null)v=START_LOW_TRY;
-            else if(rule.variant==START_3_5&&offered(rule))return tryable(START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,REGION_START_NOTE);
+            else if(rule.variant==START_3_5&&offered(rule))return tryable(START_LOW_TRY,CapabilityResolver.Evidence.VOLT_LAB,rule.oemNote);
         }
         return v==null?rule:tryable(v,CapabilityResolver.Evidence.VOLT_LAB,hidden?"OEM 2.1.9 hides this for this model":"Volt hasn't mapped whether the official app offers this here");
     }
@@ -957,10 +956,13 @@ public final class ModelRegistry {
      * the official app doesn't offer the control at all, so the words describe the effect, not its prompt.
      */
     public static String experimentalCaution(String feature,int value,DeviceDescriptor d){
+        return experimentalCaution(feature,value);
+    }
+    /** experimentalCaution for a scooter inside the official low-start region (or any scooter, for controls other than kick-start). */
+    public static String experimentalCaution(String feature,int value){
         switch(feature){
             case "traction_control": return value==0?T.controlsExperimentalTractionControl():null;
-            // Version 19: below the region's official 3–5 km/h, the hint says what one tester saw and how to undo it.
-            case "start_speed": return value>=3?null:officialLowStart(d)?T.controlsExperimentalStartSpeed():T.controlsExperimentalStartSpeedRegion();
+            case "start_speed": return value<3?T.controlsExperimentalStartSpeed():null;
             case "energy_recovery": return value==0?T.controlsExperimentalEnergyRecovery():null;
             case "speed_limit": return value!=0?T.controlsExperimentalSpeedLimit():null;
             default: return null;

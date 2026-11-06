@@ -204,8 +204,7 @@ public final class ControlsTextTest {
         check(cautions > 0, "some caution was shown");
         for (String key : new String[]{"traction_control", "start_speed", "energy_recovery", "speed_limit"})
             for (int value : new int[]{0, 1, 2, 5})
-                for (DeviceDescriptor d : ControlsEnglishTest.descriptors().values())
-                    if (ModelRegistry.experimentalCaution(key, value, d) != null) check(marked(ModelRegistry.experimentalCaution(key, value, d)), "experimental " + key);
+                if (ModelRegistry.experimentalCaution(key, value) != null) check(marked(ModelRegistry.experimentalCaution(key, value)), "experimental " + key);
         // The model line: the words come from the catalogue; modelLine stays English for reports.
         for (Map.Entry<String, DeviceDescriptor> e : ControlsEnglishTest.descriptors().entrySet()) {
             CharSequence shown = ModelRegistry.modelLineText(e.getValue());

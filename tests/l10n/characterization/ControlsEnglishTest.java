@@ -27,7 +27,7 @@ import java.util.TreeSet;
  *     label over its domain and around it, plus an OEM-group Decision's label (where it differs) and
  *     oemLabel (where it is not null);
  *   - ModelRegistry.caution for every variant on the OEM-group layer with each kind of OEM note, and
- *     experimentalCaution for every feature key (in and, where it differs, outside the low-start region);
+ *     experimentalCaution for every feature key;
  *   - ModelRegistry.modelLine for unknown, known, serial-only, advertised, conflicting and simulated
  *     scooters;
  *   - NaveeModels' series names and descriptions and search results;
@@ -123,13 +123,7 @@ public final class ControlsEnglishTest {
         keys.add("clock_sync");
         keys.add("");
         for (String key : keys)
-            for (int value : VALUES) {
-                // Registry 19: the caution depends on the scooter's region; a US serial keeps the base listing's lines.
-                out.add("experimental " + key + " " + value + "\t" + ModelRegistry.experimentalCaution(key, value, serial("Q2443ZZ9US7777777")));
-                String outside = ModelRegistry.experimentalCaution(key, value, serial("Q2443ZZ9ES7777777"));
-                if (!java.util.Objects.equals(outside, ModelRegistry.experimentalCaution(key, value, serial("Q2443ZZ9US7777777"))))
-                    out.add("experimental outside region " + key + " " + value + "\t" + outside);
-            }
+            for (int value : VALUES) out.add("experimental " + key + " " + value + "\t" + ModelRegistry.experimentalCaution(key, value));
 
         for (Map.Entry<String, DeviceDescriptor> e : descriptors().entrySet())
             out.add("modelLine " + e.getKey() + "\t" + ModelRegistry.modelLine(e.getValue()));

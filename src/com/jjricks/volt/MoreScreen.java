@@ -2050,8 +2050,6 @@ public final class MoreScreen implements AppScreen {
     }
     /** Where the official app offers this control instead (OEM tables), in plain words. */
     private static String labWhy(String key, DeviceDescriptor d) {
-        // A lower kick-start try beside the region's 3–5 km/h Scooter settings row: the official app does offer it here.
-        if (key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(d)) return T.moreLabWhyRegionStart();
         int[] n = ModelRegistry.offeredElsewhere(key, d);
         return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])
                 : T.moreLabWhyNone();

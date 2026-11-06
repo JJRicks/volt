@@ -19,13 +19,12 @@ public final class ExperimentalControlsTest {
     public static void main(String[] args) {
         split(); lowStart(); sweep(); ranking(); gates(); writeGate(); helpVerify(); variants(); unchanged(); simulation();
                 // Experimental tries carry the ordinary rows' cautions for the same changes.
-        DeviceDescriptor us=model("22131"),eu=OemControlsTest.model("22131","ES");
-        check(ModelRegistry.experimentalCaution("start_speed",0,us)!=null&&ModelRegistry.experimentalCaution("start_speed",2,us)!=null&&ModelRegistry.experimentalCaution("start_speed",3,us)==null,"Kick-start below 3 km/h is cautioned");
-        check(ModelRegistry.experimentalCaution("start_speed",1,us).equals(T.controlsExperimentalStartSpeed())&&ModelRegistry.experimentalCaution("start_speed",1,eu).equals(T.controlsExperimentalStartSpeedRegion())
-            &&ModelRegistry.experimentalCaution("start_speed",0,null).equals(T.controlsExperimentalStartSpeedRegion())&&ModelRegistry.experimentalCaution("start_speed",3,eu)==null,
-            "Below the region's 3–5 km/h, the kick-start caution says stuck-in-P and 3 km/h");
-        check(ModelRegistry.experimentalCaution("traction_control",0,us)!=null&&ModelRegistry.experimentalCaution("traction_control",1,us)==null,"Traction control off is cautioned");
-        check(ModelRegistry.experimentalCaution("energy_recovery",0,us)!=null&&ModelRegistry.experimentalCaution("energy_recovery",2,us)==null&&ModelRegistry.experimentalCaution("cruise_control",0,us)==null,"Motor braking off is cautioned; others are not");
+        check(ModelRegistry.experimentalCaution("start_speed",0)!=null&&ModelRegistry.experimentalCaution("start_speed",2)!=null&&ModelRegistry.experimentalCaution("start_speed",3)==null,"Kick-start below 3 km/h is cautioned");
+        check(ModelRegistry.experimentalCaution("traction_control",0)!=null&&ModelRegistry.experimentalCaution("traction_control",1)==null,"Traction control off is cautioned");
+        check(ModelRegistry.experimentalCaution("energy_recovery",0)!=null&&ModelRegistry.experimentalCaution("energy_recovery",2)==null&&ModelRegistry.experimentalCaution("cruise_control",0)==null,"Motor braking off is cautioned; others are not");
+        // With the scooter (version 19): inside the low-start region the caution is unchanged.
+        check(java.util.Objects.equals(ModelRegistry.experimentalCaution("start_speed",1,model("22131")),ModelRegistry.experimentalCaution("start_speed",1))
+            &&ModelRegistry.experimentalCaution("start_speed",3,model("22131"))==null&&ModelRegistry.experimentalCaution("traction_control",0,null)!=null,"Kick-start caution in the low-start region is unchanged");
 System.out.println("ExperimentalControls tests passed: "+assertions+" assertions");
     }
 
@@ -72,7 +71,7 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         ModelRegistry.Rule ultraCap=ModelRegistry.experimentalRule("speed_limit",model("25852"),null,null);
         check(ultraCap.support==CapabilityResolver.Support.KNOWN_ENCODING&&ultraCap.variant.lab&&ultraCap.variant.cmd==0x6b&&ultraCap.variant.allows(0)&&ultraCap.variant.allows(8)
             &&ultraCap.variant.allows(32)&&!ultraCap.variant.allows(33)&&!ultraCap.variant.allows(7),"UT5 Ultra X custom speed cap: Off or 8–32 km/h, as a try: "+ultraCap);
-        check(ModelRegistry.experimentalCaution("speed_limit",20,null)!=null&&ModelRegistry.experimentalCaution("speed_limit",0,null)==null,"A cap says it limits riding speed; Off needs no caution");
+        check(ModelRegistry.experimentalCaution("speed_limit",20)!=null&&ModelRegistry.experimentalCaution("speed_limit",0)==null,"A cap says it limits riding speed; Off needs no caution");
         for(String pid:new String[]{"25731","25041"}){ModelRegistry.Rule offered=ModelRegistry.rule("speed_limit",model(pid),null,null);
             check(offered.support==CapabilityResolver.Support.KNOWN_ENCODING&&offered.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&!offered.variant.lab,
                 "Where the official app offers a cap ("+pid+"), it stays an ordinary row: "+offered);}
@@ -138,8 +137,8 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             check(t.experimental()&&t.available()&&t.evidence==CapabilityResolver.Evidence.VOLT_LAB&&Arrays.equals(t.values(),new int[]{0,1,2,3}),name+": the try offers 0–3 km/h "+t+" "+t.reasonText());
             for(int v=0;v<=3;v++)check(CapabilityResolver.admitExperimental("start_speed",v,d,status(data()),parked()).available(),name+": "+v+" km/h may be tried");
             for(int v:new int[]{4,5,6,-1})check(CapabilityResolver.admitExperimental("start_speed",v,d,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,name+": "+v+" km/h is not a try");
-            for(int v=0;v<=2;v++)check(T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",v,d)),name+": "+v+" km/h shows the stuck-in-P hint");
-            check(ModelRegistry.experimentalCaution("start_speed",3,d)==null,name+": 3 km/h needs no hint");
+            for(int v=0;v<=2;v++)check(ModelRegistry.experimentalCaution("start_speed",v,d)!=null,name+": "+v+" km/h is cautioned");
+            check(ModelRegistry.experimentalCaution("start_speed",3,d)==null,name+": 3 km/h needs no caution");
             // A scooter at 4 or 5 km/h (set in Scooter settings) shows as it is in the try sheet.
             byte[] at5=data();at5[19]=5;CapabilityResolver.Decision from5=tryNow("start_speed",d,at5,parked());
             check(from5.available()&&from5.current()==5&&from5.label(5).equals("5 km/h"),name+": 5 km/h shows as it is "+from5.reasonText());
