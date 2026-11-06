@@ -24,6 +24,7 @@ public final class DashboardScreen implements AppScreen {
 
         default void quickAction(String id) { navigate(id); }
 
+        /** Starts a ride from Home, staying on Home (RideRecordingControl.start). */
         void startRide();
 
         void rename();
@@ -2502,7 +2503,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void recorderAction(int action) {
-            if (action == RecorderTap.STOP) service.stopRide();
+            if (action == RecorderTap.STOP) { RideRecordingApp.of(host).stop(); return; }
             else if (action == RecorderTap.CONNECT) host.connect();
             else if (action == RecorderTap.START) { startRecorder(); return; }
             else return;
@@ -2511,8 +2512,10 @@ public final class DashboardScreen implements AppScreen {
 
         /**
          * Draws "Starting…" first, then starts: the ring, the wash, the word and a tick reach the
-         * screen before the tab switch and the start, which do the same as before. postOnAnimation
-         * runs at the next frame and the inner post after that frame is drawn.
+         * screen before the start. postOnAnimation runs at the next frame and the inner post after
+         * that frame is drawn. The ride starts right here on Home (owner Q1 B), through the same
+         * RideRecordingControl checks as the Rides tab; a refused start has said why in a toast, so
+         * the card leaves "Starting…" at once. While the location prompt is open it stays.
          */
         private void startRecorder() {
             recorderStarting = true;
@@ -2525,7 +2528,7 @@ public final class DashboardScreen implements AppScreen {
             // takes it first and hands it on (close()), so this runs it only while Home is open.
             anchor.postOnAnimation(() -> anchor.post(() -> {
                 if (closed || !recorderStart.take(token)) return;
-                actions.startRide();
+                if (RideRecordingApp.of(host).start() != RideRecordingControl.STARTING) recorderStarting = false;
                 host.redraw();
             }));
             // Safety net: a start that never got going never sticks. Still waiting for its frame:
@@ -6854,7 +6857,7 @@ public final class DashboardScreen implements AppScreen {
     /**
      * A start tapped just before Home closes (a tab switch, a rebuild, the app going away) is not
      * lost: while the app stays open it runs right after the screen change, through the same
-     * Rides start and its checks; when the app is going away Volt says it did not start.
+     * RideRecordingControl start and its checks, on whatever screen is then showing; when the app is going away Volt says it did not start.
      */
     private void finishPendingStart() {
         Activity activity = host.activity();
