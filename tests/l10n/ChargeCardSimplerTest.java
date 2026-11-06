@@ -182,7 +182,8 @@ public final class ChargeCardSimplerTest {
         String live = between(start, "else if(STOP_CHARGE_LIVE.equals(action)){", "else if(\"DISCONNECT\".equals(action))");
         check(live.contains("stopChargeLive();") && live.indexOf("stopChargeLive();") < live.indexOf("noticeDisconnect()"), "the card's Disconnect ends the hold first");
         check(live.contains("if(backgroundConnection()&&noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}"), "with Background connection on, it then drops the link as DISCONNECT does");
-        check(start.contains("else if(\"DISCONNECT\".equals(action)){if(noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}}"), "the plain notice's Disconnect runs the same noticeDisconnect");
+        check(start.contains("else if(\"DISCONNECT\".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible){stopIdleWork();return START_NOT_STICKY;}}"), "the plain notice's Disconnect is unchanged");
+        check(between(src, "private boolean noticeDisconnect(){", "    }").contains("ble.disconnect();\n        return !isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible;"), "noticeDisconnect is DISCONNECT's disconnect and stop condition, word for word");
         String drop = between(src, "private boolean noticeDisconnect(){", "    }");
         String rest = drop.replace("ble.disconnect();", "");
         check(drop.contains("ble.disconnect();") && !rest.contains("ble.") && !rest.contains("connectLast(") && !rest.contains("write") && !rest.contains("send"), "dropping the link sends the scooter nothing");

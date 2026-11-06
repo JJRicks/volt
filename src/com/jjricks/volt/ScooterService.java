@@ -242,7 +242,7 @@ public final class ScooterService extends Service {
             // Background connection on (owner, 2026-11-06, "Option A"): the card's Disconnect also drops the link, as the plain notice's does.
             if(backgroundConnection()&&noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}
         }
-        else if("DISCONNECT".equals(action)){if(noticeDisconnect()){stopIdleWork();return START_NOT_STICKY;}}
+        else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!rideAutoExportBusy()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
         applyWorkPolicy(!stopAction||isRecording());warmRides();return isRecording()?START_STICKY:START_NOT_STICKY;
     }
     private boolean ridesWarming;
@@ -1079,7 +1079,7 @@ public final class ScooterService extends Service {
         settings.edit().putString(CHARGE_LIVE_STOPPED,out.toString()).apply();
     }
     /**
-     * A notice's Disconnect: drops the link (no scooter command; BleController.disconnect stops reconnecting) and says
+     * The card's Disconnect with Background connection on, word for word what the plain notice's DISCONNECT does: drops the link (no scooter command; BleController.disconnect stops reconnecting) and says
      * whether nothing else needs the service, which then stops until something starts it again, such as opening Volt.
      */
     private boolean noticeDisconnect(){
