@@ -1052,6 +1052,8 @@ public final class MoreScreen implements AppScreen {
         segmentedField(T.ridingDisplayBrightness(), RidingBrightness.MODE_KEY, labels, values, RidingBrightness.PHONE);
         segmentedField(T.ridingDisplayRotation(), RidingRotation.KEY, new String[]{T.ridingDisplayRotationLock(), T.ridingDisplayRotationFollow()},
                 new String[]{RidingRotation.LOCK, RidingRotation.FOLLOW}, RidingRotation.LOCK);
+        View gap = new View(host.activity());
+        cardDestination.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout box = group();
         box.setTag("preference_riding_display");
         RidingBrightness.Store store = RidingDisplay.settings(settings());
