@@ -165,6 +165,8 @@
     <string name="rides_saved_automatically_quiet_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after the scooter turned off or went out of range</string>
     <!-- Screen-reader text of the Saved automatically pill when the phone's own Bluetooth stayed off and Volt ended the ride after 5 minutes. -->
     <string name="rides_saved_automatically_phone_bluetooth_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride" volt:dnt="Bluetooth">Saved automatically after the phone\'s Bluetooth stayed off</string>
+    <!-- Screen-reader text of the Saved automatically pill when the scooter stayed connected but showed no movement for 10 minutes and Volt ended the ride. Spoken only, so no width budget. -->
+    <string name="rides_saved_automatically_no_motion_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:safety="ride">Saved automatically after 10 minutes with no movement</string>
     <string name="rides_notes_section" volt:screen="Rides, ride details" volt:purpose="label">Notes</string>
     <string name="rides_export_csv" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
     <string name="rides_export_csv_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
