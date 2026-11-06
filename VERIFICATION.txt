@@ -1,3 +1,43 @@
+VOLT 1.12.0 — OPENS INSTANTLY, RIDING MODE, LIVE CHARGING, MAINTENANCE (versionCode 55)
+November 6, 2026
+
+- Every pull request merged since 1.11.1 passed CI (core-tests and web-setup)
+  on its final head, and main's Core and setup tests pass. Each one's
+  pure-Java suites cover its change: the ride cache and saved ride summaries,
+  the Rides list off the UI thread, riding mode's layouts, values, live range
+  and brightness, the live charging hold, card and background cadence,
+  maintenance distance, policy and notifications, the Scooter tab editor,
+  the update check, ride export and auto-save, ride auto-end, the wide-layout
+  rule and the narrow-label ladder.
+- Spanish: every key went through the translation council; the pull request
+  checks (ship_check with aapt, the catalog and golden checks) passed. Keys
+  added after the Spanish batches fall back to English until a top-up.
+- Launch and Rides timing (#234, #240) were measured on disposable emulators
+  only, with synthetic rides and Bluetooth off: about 0.3 s to the first
+  frame with 41 one-hour rides, from about 4 s. The service start command
+  stands in for connection start; it is not a connection time.
+- TODO: run-release-sweep.py on the release candidate, including the
+  rides-timing gate (cold launch and two Rides opens against RELEASE_BUDGETS).
+- TODO: ship_check --release --aapt required on the release commit (no
+  shipped language may fall back to English).
+- TODO: VOLT_RELEASE=1 bash build.sh, and the commit it printed:
+  <commit>. Signing certificate compared with the 1.11.1 release: <result>.
+- TODO: owner-present hardware sweep (run-hardware-sweep.py --parked), parked
+  since 1.11.0: <result>.
+- TODO: real-phone checks only the owner can do:
+  - the live charging card in the background through a real charge;
+  - a maintenance reminder notification after a reboot, and under battery
+    saver;
+  - the 24-hour update check;
+  - riding mode brightness in sunlight;
+  - the connection notice staying Connected with Volt out of sight;
+  - night vision (not in this release; still being built).
+- Physical scope: riding mode, live charging, maintenance reminders, the
+  Scooter tab editor and the launch timing are tested on emulators and in
+  JVM suites, not yet on a real phone with a scooter.
+
+--- Previous verification ---
+
 VOLT 1.11.1 — OWNER SETUP ON ANDROID 11, BATTERY ALERT STOP (versionCode 54)
 November 2, 2026
 
