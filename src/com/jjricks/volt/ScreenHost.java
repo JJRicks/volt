@@ -32,4 +32,6 @@ public interface ScreenHost {
     default void emailReport(CompatibilityReport report) { }
     /** Asks which listed NAVEE model this scooter is and keeps the answer on its profile. */
     default void chooseScooterModel(String profileId) { }
+    /** Opens riding mode (Home's RIDE button). It only reads; it never records or sends a command. */
+    default void openRiding() { }
 }

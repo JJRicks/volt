@@ -96,6 +96,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AppScreen screen;
     /** First-run setup; while it is showing there is no header or tab bar. */
     private OnboardingScreen onboarding;
+    /** Open riding mode (Home's RIDE button): kept across rotations and rebuilds; null when closed. */
+    private RidingSession riding;
+    /** Riding mode was open when the activity was recreated; it reopens once the service is bound. */
+    private boolean ridingRestore;
     private TextView simulationNotice;
     private boolean displayedSimulation;
     private TextView connectionTitle,connectionAction,lockTitle,profileTitle,offlineTitle,offlineDetail;
@@ -219,6 +223,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
         if(saved!=null){selectedPage=saved.getString("page","home");for(String page:pages)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);}
+        if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else selectedPage="home";
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
@@ -259,6 +264,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
         captureScroll();saved.putString("page",selectedPage);saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);
+        saved.putBoolean("riding",riding!=null||ridingRestore);
         for(String page:pages)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
         super.onSaveInstanceState(saved);
     }
@@ -271,6 +277,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void navigateBack(){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
+        if(riding!=null){closeRiding();return;}
         if(screen instanceof DashboardScreen&&((DashboardScreen)screen).back())return;
         if(screen instanceof ControlsScreen&&((ControlsScreen)screen).back())return;
         if(screen instanceof MoreScreen&&((MoreScreen)screen).back())return;
@@ -349,6 +356,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (chargeLiveSheet != null) chargeLiveSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
         boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
+        // Riding mode always keeps the screen on: it's a handlebar display (riding-mode plan).
+        awake|=resumed&&riding!=null&&screen instanceof RidingScreen;
         if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
     /** Rebuild under a crossfade from the current window; a direction (tab order) brings the new page in from that side. */
@@ -387,6 +396,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;openRidingSession();}
+        if(riding!=null&&scooterService!=null){
+            // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
+            screen=new RidingScreen(this,riding,this::closeRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
+            setContentView(root);root.requestApplyInsets();styleSystemBars();
+            rebuilding=false;redraw();return;
+        }
         LinearLayout shell=column();root.addView(shell,new FrameLayout.LayoutParams(-1,-1));
         simulationNotice = design.text(T.mainSimulationBanner(), 12, true);
         simulationNotice.setTag("simulation-banner");
@@ -445,8 +462,38 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(destroyed||root!=currentRoot)return;
                 WindowInsetsController controller=currentRoot.getWindowInsetsController();
                 if(controller!=null){int mask=WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;controller.setSystemBarsAppearance(dark?0:mask,mask);}
+                // Riding mode hides the navigation bar (a swipe shows it for a moment); the status bar stays for the clock.
+                if(controller!=null&&riding!=null){controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);controller.hide(WindowInsets.Type.navigationBars());}
+                else if(controller!=null)controller.show(WindowInsets.Type.navigationBars());
             });
+        }else if(riding!=null){
+            View decor=getWindow().getDecorView();
+            decor.setSystemUiVisibility(decor.getSystemUiVisibility()|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
+    }
+    /** Opens riding mode. It only reads: it never records (owner Q12 A), sends a command or touches the lock. */
+    @Override public void openRiding(){
+        if(scooterService==null||riding!=null||onboarding!=null)return;
+        captureScroll();openRidingSession();transitionRebuild(0);
+    }
+    /** Creates the session, makes it the open one, then asks for its prior: a cached answer arrives at once. */
+    private void openRidingSession(){
+        String id=ridingProfileId();
+        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime());
+        riding=session;
+        if(scooterService.simulating()){
+            // Sample data has no ride history: a synthetic battery model, so Range at this pace shows (never persisted).
+            session.setPrior(LiveRangeEstimator.Prior.synthetic(18,1000,null));
+        }else session.requestPrior(answer->scooterService.requestLearnedRangeEstimate(result->answer.accept(LiveRangeEstimator.Prior.of(result))),
+                ()->destroyed||scooterService==null||riding!=session?null:ridingProfileId());
+    }
+    private String ridingProfileId(){
+        ScooterProfiles.Profile profile=scooterService.profiles==null?null:scooterService.profiles.active();
+        return profile==null?"unconfigured":profile.id;
+    }
+    private void closeRiding(){
+        if(riding==null)return;
+        riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
     }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){

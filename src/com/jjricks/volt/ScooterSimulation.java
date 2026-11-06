@@ -13,6 +13,10 @@ public final class ScooterSimulation {
     private long chargeStart;
     /** Synthetic advertised model ID; "" is the default UT5 MAX simulator. Never stored or exported. */
     private String model = "";
+    /** Riding-mode screenshot scripts: memory only, display samples only, never a command. */
+    static final String RIDING = "riding", STOPPED = "stopped", DROPOUT = "dropout", LOW_AMBER = "low_amber",
+            LOW_RED = "low_red", WARNING = "warning";
+    private String script = "";
 
     private static final class Sample {
         final String text;
@@ -143,6 +147,12 @@ public final class ScooterSimulation {
     }
     public String model() { return model; }
 
+    /** A riding-mode script id; "" or an unknown id gives the plain parked samples. */
+    public void setScript(String id) {
+        script = java.util.Arrays.asList(RIDING, STOPPED, DROPOUT, LOW_AMBER, LOW_RED, WARNING).contains(id) ? id : "";
+    }
+    public String script() { return script; }
+
     public boolean charging() { return charging; }
     public void setCharging(boolean value) { charging = value; }
 
@@ -190,6 +200,29 @@ public final class ScooterSimulation {
         telemetry.putSimulationSample("current_sign_state", charging ? "1 (simulation)" : "0 (simulation)",
                 charging ? 1.0 : 0.0, elapsedMs);
         telemetry.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
+        if (!script.isEmpty() && !charging) ride(telemetry, elapsedMs, phase);
+    }
+
+    /** A ride for riding mode's screenshots: speed and power that swing into regen, a growing trip. */
+    private void ride(Telemetry telemetry, long time, double phase) {
+        boolean moving = !script.equals(STOPPED);
+        double speed = moving ? 24.3 + 5.5 * Math.sin(phase / 9) : 0;
+        double watts = moving ? 540 + 720 * Math.sin(phase / 7) : 6;
+        double battery = script.equals(LOW_RED) ? 11 : script.equals(LOW_AMBER) ? 24 : 72;
+        if (script.equals(LOW_RED) || script.equals(LOW_AMBER)) { speed *= .7; watts *= .7; }
+        reading(telemetry, "speed_kmh", speed, 1, Telemetry.SUFFIX_KMH, time);
+        reading(telemetry, "power_w", watts, 1, Telemetry.SUFFIX_WATT, time);
+        reading(telemetry, "current_a", watts / 50.4, 2, Telemetry.SUFFIX_AMP, time);
+        reading(telemetry, "battery_percent", battery, 0, Telemetry.SUFFIX_PERCENT, time);
+        reading(telemetry, "remaining_range_km", battery * .5, 1, Telemetry.SUFFIX_RANGE, time);
+        reading(telemetry, "trip_km", 6.84 + phase * speed / 3600, 2, Telemetry.SUFFIX_KM, time);
+        reading(telemetry, "trip_minutes", 23.5 + phase / 60, 1, Telemetry.SUFFIX_MINUTE, time);
+        reading(telemetry, "temperature_c", 31.2, 1, Telemetry.SUFFIX_CELSIUS, time);
+        if (script.equals(WARNING)) telemetry.putSimulationSample("warning_code", Telemetry.format(14, 0), 14.0, time);
+    }
+
+    private static void reading(Telemetry telemetry, String key, double number, int decimals, String suffix, long time) {
+        telemetry.putSimulationSample(key, Telemetry.format(number, decimals) + suffix, number, time);
     }
 
     private static void quantity(Telemetry telemetry, String key, double number,
