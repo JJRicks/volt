@@ -120,8 +120,12 @@ public final class ChargeLiveState {
      * When the shown card is reposted (Codex review of #274): at once when its dedupe key changes; for the power
      * alone, when it moved by at least POWER_MIN_W and POWER_MIN_SHARE of the shown value, and at most once per
      * POWER_PACE_MS since the card was last posted. So a big change or a lost or regained reading reaches the card,
-     * a few watts of wobble don't, and a burst of readings costs one repost per pace. Not thread-safe; the service
-     * calls it on its handler.
+     * a few watts of wobble don't, and a burst of readings costs one repost per pace.
+     *
+     * The baseline is what was really posted (round 4): due() only asks, and posted() records the card that a post
+     * carried, whichever path built it (a paced or coalesced post, startForeground, any other updateNotification),
+     * or null when the connection notice went out without the card. Not thread-safe; the service calls it on its
+     * handler.
      */
     public static final class Reposts {
         public static final int POWER_MIN_W = 10;
@@ -131,11 +135,15 @@ public final class ChargeLiveState {
         private Integer watts;
         private long postedMs;
 
-        /** True when the card should be posted again now; it then counts as posted at nowMs. */
+        /** True when the card should be posted again now. It records nothing: posted() does, once a post goes out. */
         public boolean due(ChargeLiveState live, long nowMs) {
-            boolean due = key == null || !live.dedupeKey.equals(key) || powerMoved(watts, live.watts, nowMs - postedMs);
-            if (due) { key = live.dedupeKey; watts = live.watts; postedMs = nowMs; }
-            return due;
+            return key == null || !live.dedupeKey.equals(key) || powerMoved(watts, live.watts, nowMs - postedMs);
+        }
+
+        /** A connection notice went out at nowMs carrying this card, or no card (null): the new baseline. */
+        public void posted(ChargeLiveState live, long nowMs) {
+            if (live == null) { key = null; watts = null; return; }
+            key = live.dedupeKey; watts = live.watts; postedMs = nowMs;
         }
 
         /** Forget the last post (a new hold, a new lock screen choice): the next check posts. */

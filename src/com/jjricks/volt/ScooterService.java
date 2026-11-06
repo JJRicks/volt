@@ -103,6 +103,8 @@ public final class ScooterService extends Service {
     private final ChargeLiveHold chargeLive=new ChargeLiveHold();
     private boolean chargeLiveHeld,chargeLiveUpdating;
     private final ChargeLiveState.Reposts chargeLiveReposts=new ChargeLiveState.Reposts();
+    /** The live card the last notification() built (null: none); what a connection notice post then carries. */
+    private ChargeLiveState chargeLiveBuilt;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
     /** The card's Disconnect (Stop before 2026-11-06): ends Volt's own hold and card, and never sends the scooter anything. */
     static final String STOP_CHARGE_LIVE="stop_charge_live";
@@ -2581,6 +2583,7 @@ public final class ScooterService extends Service {
         Notification notice = notification();
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
+        chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
         notices.posted(71, SystemClock.elapsedRealtime());
@@ -2636,6 +2639,7 @@ public final class ScooterService extends Service {
         }
         // The live card takes the charge recording's place, or the plain connected notice's while the hold runs.
         ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
+        chargeLiveBuilt = live;
         if (live != null) {
             title = live.title;
             text = live.text;
@@ -2712,7 +2716,7 @@ public final class ScooterService extends Service {
         if(liveUpdateLast.asked()&&!destroyed)handler.postDelayed(liveUpdateProbe,1500);
     }
     private void notifyNow(int id,java.util.function.Supplier<Notification> build){
-        try{Notification notice=build.get();if(notice!=null)getSystemService(NotificationManager.class).notify(id,notice);}
+        try{Notification notice=build.get();if(notice!=null){getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());}}
         catch(RuntimeException unavailable){}
         if(id==71)liveUpdatePosted();
     }
