@@ -1139,6 +1139,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout recording = group();
         Row history = preferenceToggle(recording, "history", T.moreHistorySave(), T.moreHistoryWhileConnected(), "history_enabled", true);
         valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? T.moreHistoryWhileConnected() : T.moreHistoryOffKept()));
+        autoSaveGroup();
 
         LinearLayout storage = ui.card(); historyStorageCard = storage; cardDestination.addView(storage);
         LinearLayout head = row();
@@ -1171,6 +1172,63 @@ public final class MoreScreen implements AppScreen {
         LinearLayout clear = group();
         dangerRow(clear, T.moreHistoryClearScooter(), () -> clearHistory(false));
         dangerRow(clear, T.moreHistoryClearAll(), () -> clearHistory(true));
+    }
+    /**
+     * Ride auto-save (RideAutoExport), off by default: one switch per file type and one folder row both share.
+     * Turning a type on with no usable folder opens the folder picker (RideAutoExportPickerActivity); the switch
+     * shows on only once a folder is kept. The folder row shows where files go, or the one stored failure, and
+     * opens the picker to change the folder without touching either switch. While both are off it stays in
+     * place, greyed out. ScooterService does the copying.
+     */
+    private void autoSaveGroup() {
+        label(T.moreAutoSaveHeading());
+        LinearLayout box = group();
+        autoSaveSwitch(box, "route", T.moreAutoSaveRouteCsv(), T.moreAutoSaveRouteCsvSub(), RideAutoExport.ROUTE_CSV);
+        autoSaveSwitch(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), RideAutoExport.JSON);
+        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+            if (RideAutoExportFolder.anyOn(settings())) chooseAutoSaveFolder(null);
+        });
+        valueRefreshers.add(() -> {
+            RideAutoExport.RowState state = autoSaveFolderState();
+            folder.enabled(state != RideAutoExport.RowState.OFF);
+            folder.view.setClickable(state != RideAutoExport.RowState.OFF);
+            folder.sub(autoSaveFolderLine(state));
+            boolean warn = state == RideAutoExport.RowState.CHOOSE_FOLDER || state == RideAutoExport.RowState.FOLDER_PROBLEM || state == RideAutoExport.RowState.SAVE_PROBLEM;
+            folder.sub.setTextColor(warn ? ui.orange : state == RideAutoExport.RowState.OFF ? ui.dim : ui.muted);
+        });
+        footnote(T.moreAutoSaveFolderNote());
+    }
+    private void autoSaveSwitch(LinearLayout box, String icon, String title, String sub, String key) {
+        Row[] self = new Row[1];
+        self[0] = toggleRow(box, icon, title, sub, on -> {
+            if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(key); }
+            else { RideAutoExportFolder.set(host.activity(), settings(), key, on); host.redraw(); }
+        });
+        valueRefreshers.add(() -> refreshSwitch(self[0], settings().getBoolean(key, false), true));
+    }
+    /** The folder row's state: either type on decides it, with the one stored folder, grant and failure id. */
+    private RideAutoExport.RowState autoSaveFolderState() {
+        SharedPreferences settings = settings();
+        android.net.Uri chosen = RideAutoExportFolder.chosen(settings);
+        return RideAutoExport.rowState(RideAutoExportFolder.anyOn(settings), chosen != null,
+                RideAutoExportFolder.granted(host.activity(), chosen), RideAutoExportFolder.problem(settings));
+    }
+    /** The folder row's sub-label for a state; the folder's own path is a value, shown as the phone names it. */
+    private String autoSaveFolderLine(RideAutoExport.RowState state) {
+        switch (state) {
+            case CHOOSE_FOLDER: return T.moreAutoSaveChooseFolder();
+            case FOLDER_PROBLEM: return T.moreAutoSaveFolderProblem();
+            case SAVE_PROBLEM: return T.moreAutoSaveSaveProblem();
+            case SAVING:
+                String folder = RideAutoExportFolder.label(RideAutoExportFolder.chosen(settings()));
+                return folder == null ? T.moreAutoSaveSavingChosen() : T.moreAutoSaveSavingTo(folder);
+            default: return T.moreAutoSaveNoFolder();
+        }
+    }
+    /** typeKey: the type to turn on once a folder is kept, or null to change the folder only. */
+    private void chooseAutoSaveFolder(String typeKey) {
+        try { host.activity().startActivity(RideAutoExportPickerActivity.intent(host.activity(), typeKey)); }
+        catch (RuntimeException missing) { host.toast(T.moreAutoSaveNoPicker()); }
     }
     private void refreshHistoryStorage() {
         if (historyUsage == null || service() == null || service().history == null || historyStoragePending) return;

@@ -8,7 +8,7 @@ or external services you choose to use.
 
 Bluetooth controls, diagnostics, and recording do not use a Volt account or
 server. The app has no analytics SDK, advertising SDK, automatic crash uploader,
-or automatic ride upload. It saves the following in Android's private app
+or automatic ride upload (Auto-save rides writes to a folder you choose; it uploads nothing). It saves the following in Android's private app
 storage:
 
 | Data | Purpose |
@@ -139,7 +139,22 @@ if you do not want them retained there.
 | Compatibility report | Model ID, region and SKU derived from the serial, firmware versions, read outcomes and lengths, status-field presence and setting values, and control decisions; excludes the serial, scooter address, owner identity, PINs, names, times of day, routes and raw payloads. A fresh random report ID is used each time; it is not stored. Guided tests and Experimental controls tries add the setting, its before and tried values, step outcomes with times relative to the try, your yes/no answer, whether it was set back or kept, and for tries the result and the model layer |
 
 Exports only go to a destination you choose through the file picker or helper.
-A destination may itself sync to a cloud service. The backup password is
+A destination may itself sync to a cloud service.
+
+**Auto-save rides** (More → Data & history, off by default) is the one export
+that runs without a prompt: after each ride you end, Volt writes that ride's
+Route CSV and/or ride JSON into one folder you chose through Android's folder
+picker. The Route CSV holds every GPS point's time, precise latitude and
+longitude, accuracy, speed, altitude, grade, power, battery and scooter speed.
+The ride JSON holds the same route points and route totals, plus the ride's
+analysis (its name and notes, start and end times, odometer and distance,
+energy, speed, battery, voltage, temperatures, coverage and Volt's own id for
+the scooter profile);
+for a ride with no phone recording it holds the analysis only. Neither holds raw
+phone or motion samples, owner credentials, scooter addresses or serials. Volt
+keeps access to that folder only, and gives it back when both switches are off.
+If the folder syncs to a cloud service, so do these files. Volt still uploads
+nothing itself. The backup password is
 not saved or recoverable. Use a strong password and keep it separately; see
 [the backup format](docs/app-data-backup.md) for technical details and exclusions.
 Older unencrypted `.voltrides` ride backups can still be restored; Volt no longer creates them.
