@@ -525,5 +525,102 @@ class LineBudgetTest(unittest.TestCase):
         self.assertIn("budget_lines", prompt)
 
 
+class OverflowShortTest(unittest.TestCase):
+    """volt:overflow="short": a full rung over its budget passes, with a warning, when the short rung the
+    screen shows instead fits the full's budget (Quick access, QuickAccessGrid.measureContent)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo = council_fixture.FixtureRepo()
+        # FakeMeasurer: ten units a character. Every English word fits 64 (at most six letters).
+        cls.repo.write("res/values/strings_qa.xml", (
+            '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">'
+            '<string name="qa_pin" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">PIN prox</string>'
+            '<string name="qa_pin_short" volt:ladder="short" volt:max="90dp@12.5sp">PIN prox</string>'
+            '<string name="qa_lights" volt:ladder="full" volt:max="64dp@12sp*2">Lights</string>'
+            '<string name="qa_lights_short" volt:ladder="short" volt:max="90dp@12.5sp">Lights</string>'
+            '</resources>'))
+        cls.pack = pack.build_pack(cls.repo.paths, "pt-PT", "qa", FakeMeasurer())
+        cls.font = fontmetrics.Font(cls.repo.paths.font())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.repo.close()
+
+    def widths(self, key, full, short=None, **kw):
+        targets = collections.OrderedDict([(key, ("string", {"other": full}, []))])
+        if short is not None:
+            targets[key + "_short"] = ("string", {"other": short}, [])
+        results = check.check_targets(self.pack, targets, self.font, FakeMeasurer(), **kw)
+        return [f for f in results[key] if f["check"] == "width"], results
+
+    def test_pack_carries_the_mark(self):
+        by = dict((e["key"], e) for e in self.pack["entries"])
+        self.assertEqual(by["qa_pin"]["overflow"], "short")
+        self.assertIsNone(by["qa_pin_short"]["overflow"])
+        self.assertIsNone(by["qa_lights"]["overflow"])
+        self.assertEqual(check.overflow_rung(by, "qa_pin"), "qa_pin_short")
+        self.assertIsNone(check.overflow_rung(by, "qa_lights"))
+        self.assertIsNone(check.overflow_rung(by, "qa_pin_short"))
+
+    def test_marked_full_over_budget_with_a_fitting_short_warns(self):
+        # "proximidade" is 110 wide; "PIN" / "prox." fits two lines of 64 (and 90 on one line).
+        found, results = self.widths("qa_pin", "PIN e proximidade", "PIN prox.")
+        self.assertEqual([f["severity"] for f in found], [check.WARN])
+        self.assertIn("110.0dp", found[0]["message"])
+        self.assertIn("the screen shows the short rung \u00abPIN prox.\u00bb where the full does not fit",
+                      found[0]["message"])
+        self.assertTrue(check.is_ok(results["qa_pin"]))
+        self.assertEqual([f for f in results["qa_pin_short"] if f["check"] == "width"], [])
+
+    def test_marked_full_over_budget_with_a_short_that_does_not_fit_fails(self):
+        # The short fits its own 90dp line, but "proximid." (90) does not fit the full's 64dp lines.
+        found, results = self.widths("qa_pin", "PIN e proximidade", "PIN proximid.")
+        self.assertEqual([f["severity"] for f in found], [check.ERROR])
+        self.assertIn("the short rung \u00abPIN proximid.\u00bb, shown where the full does not fit, does not fit "
+                      "either (90.0dp)", found[0]["message"])
+        self.assertFalse(check.is_ok(results["qa_pin"]))
+
+    def test_marked_full_without_its_short_fails_unless_checked_later(self):
+        found, _ = self.widths("qa_pin", "PIN e proximidade")
+        self.assertEqual([f["severity"] for f in found], [check.ERROR])
+        self.assertIn("no short rung was drafted with it", found[0]["message"])
+        later, _ = self.widths("qa_pin", "PIN e proximidade", short_checked_later=True)
+        self.assertEqual([f["severity"] for f in later], [check.WARN])
+        self.assertIn("council.decide", later[0]["message"])
+
+    def test_marked_full_that_fits_has_no_finding(self):
+        self.assertEqual(self.widths("qa_pin", "PIN e prox", "PIN")[0], [])
+
+    def test_unmarked_full_over_budget_fails_as_before(self):
+        found, _ = self.widths("qa_lights", "Luzinhas grandes", "Luzes")
+        self.assertEqual([f["severity"] for f in found], [check.ERROR])
+        self.assertEqual(found[0]["message"], "80.0dp at 12sp exceeds the 64dp budget in 2 lines of whole words "
+                                              "(English 60.0dp; fake)")
+        # short_checked_later changes nothing for an unmarked key.
+        later, _ = self.widths("qa_lights", "Luzinhas grandes", short_checked_later=True)
+        self.assertEqual(later, found)
+
+    def test_decided_pair(self):
+        def row(key, outcome, text):
+            return collections.OrderedDict([("key", key), ("outcome", outcome), ("text", text), ("reason", "r")])
+
+        def decide(full, short, short_outcome="agreed"):
+            rows = collections.OrderedDict([("qa_pin", row("qa_pin", "judged", full)),
+                                            ("qa_pin_short", row("qa_pin_short", short_outcome, short))])
+            return council.overflow_pair_fallbacks(self.pack, rows, self.font, FakeMeasurer())
+
+        kept = decide("PIN e proximidade", "PIN prox.")
+        self.assertEqual((kept["qa_pin"]["outcome"], kept["qa_pin"]["text"]), ("judged", "PIN e proximidade"))
+        dropped = decide("PIN e proximidade", "PIN proximid.")
+        self.assertEqual((dropped["qa_pin"]["outcome"], dropped["qa_pin"]["text"]), ("fallback-english", None))
+        self.assertIn("with the decided short rung", dropped["qa_pin"]["reason"])
+        self.assertIn("was: r", dropped["qa_pin"]["reason"])
+        self.assertEqual(dropped["qa_pin_short"]["outcome"], "agreed")  # decide() then falls the group back
+        # A short rung that fell back is the ladder rule's to handle; a full that fits is untouched.
+        self.assertEqual(decide("PIN e proximidade", None, "fallback-english")["qa_pin"]["outcome"], "judged")
+        self.assertEqual(decide("PIN e prox", "PIN proximid.")["qa_pin"]["outcome"], "judged")
+
+
 if __name__ == "__main__":
     unittest.main()

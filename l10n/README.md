@@ -54,7 +54,7 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   `strings_common.xml`. Each key becomes `T.camelCase(...)`, for example `T.dashMoveWidget(title)`.
 - **Metadata** (`volt:*`, all optional): `screen`, `purpose`, `max` (`<dp>dp@<sp>sp`, or
   `<dp>dp@<sp>sp*<lines>`; see Width budgets below), `ladder`
-  (`full`, `short`, `compact`), `safety` (lock, ride, alarm, charge, experimental, owner-key, pin,
+  (`full`, `short`, `compact`), `overflow` (`short` only; see Ladder rungs below), `safety` (lock, ride, alarm, charge, experimental, owner-key, pin,
   privacy, disclaimer; comma-separated), `dnt` (do-not-translate tokens separated by `|`; each
   must appear in the text), `english-fix="pending"` (a known English bug kept byte for byte).
   An XML comment right before the string becomes its note. Any other `volt:` attribute is an error.
@@ -71,6 +71,15 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   English itself does not fit.
 - **Ladder rungs** are sibling keys: `<key>_short` with `volt:ladder="short"` and `<key>_compact`
   with `volt:ladder="compact"`. A rung may use only placeholders its full key has.
+- **Overflow to the short rung.** `volt:overflow="short"` on a `volt:ladder="full"` key with a
+  `volt:max` says the view that budget describes shows the group's `_short` rung, measured the same
+  way, where the full text does not fit (Quick access: `QuickAccessGrid.measureContent`). Mark it
+  only where every width-limited screen of the full key does that; `gen_catalog.py` refuses it
+  without a `_short` sibling of the same kind. `check.py` then measures the drafted short rung at the
+  full key's budget (its sp, its lines, whole words): if it fits, a full text over the budget is
+  only a warning naming the short rung shown instead; if not, it stays an error, saying the short
+  does not fit either. `council.py decide` checks the decided full and short together the same way.
+  The attribute is metadata, so it changes no `source_sha1`.
 - **Placeholders** are positional only: `%1$s` (a `CharSequence`), `%1$d` (a `long`), `%1$.1f`
   (a `double`), and `%%` for a percent sign. Number them from `%1$` with no gaps. A `%n$s` takes no
   width, precision or flag (`%1$-8s`, `%1$.2s`): `Fmt.compose` finds each argument by private-use

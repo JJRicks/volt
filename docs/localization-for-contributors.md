@@ -57,6 +57,7 @@ All are optional. `volt:english-fix` also exists, for a known English bug in mov
 | `volt:screen`, `volt:purpose` | Where the text appears and what it is, for translators |
 | `volt:max` | Width budget, `<dp>dp@<sp>sp` |
 | `volt:ladder` | `full`, `short` or `compact`; see [Narrow labels](#narrow-labels) |
+| `volt:overflow` | `short`, on a full rung whose screen shows the `_short` rung where the full doesn't fit; see [Narrow labels](#narrow-labels) |
 | `volt:safety` | `lock`, `ride`, `alarm`, `charge`, `experimental`, `owner-key`, `pin`, `privacy`, `disclaimer`, comma-separated |
 | `volt:dnt` | Do-not-translate tokens separated by `\|`; each must appear in the text |
 | `translatable="false"`, `formatted="false"` | Plain Android attributes |
@@ -189,7 +190,7 @@ Use the full label, then a short one, then a compact one. Never break a word or 
 <string name="more_lab_status_waiting_short" volt:ladder="short">Your answer</string>
 ```
 
-A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, or `LadderPill`, which is private to `MoreScreen`). No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
+A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, or `LadderPill`, which is private to `MoreScreen`). Where the only width-limited view of a full rung falls back to its short rung in the same room, as Quick access does, mark the full rung `volt:overflow="short"`. The translation checker then accepts a full text over its `volt:max`, with a warning, when the short rung fits that same budget. No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
 
 Right-to-left languages are on hold. The manifest has `supportsRtl="true"`, but no check requires right-to-left layout yet.
 

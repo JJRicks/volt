@@ -8,8 +8,9 @@
 A pack holds, per English key: the key, its English text, its volt:* metadata and note, the measured
 English width and its budget (budget_dp at budget_sp on up to budget_lines lines; with more than one
 line, english_width_dp is the narrowest width that holds the English in that many lines of whole
-words), glossary hits with the approved term in the language, neighbouring strings, and any current
-translation (with whether it is stale). Plus the language's settings and style guide. Packs are generated and never committed (l10n/.gitignore).
+words; overflow "short" on a full rung whose screen shows the group's _short rung where the full
+does not fit, see check.py's width check), glossary hits with the approved term in the language,
+neighbouring strings, and any current translation (with whether it is stale). Plus the language's settings and style guide. Packs are generated and never committed (l10n/.gitignore).
 
 Only UI strings go into a pack: the entries of res/values/strings_<area>.xml, without
 translatable="false" keys and without l10n_tag. Reports, diagnostics and user data never live in
@@ -33,7 +34,7 @@ import translib  # noqa: E402
 FORMAT = "volt-l10n-pack-v1"
 NEIGHBOURS = 2
 PACK_ENTRY_FIELDS = ("key", "kind", "english", "source_sha1", "formatted", "placeholders", "screen", "purpose", "max",
-                     "ladder", "ladder_group", "safety", "dnt", "note", "english_width_dp", "budget_dp",
+                     "ladder", "ladder_group", "overflow", "safety", "dnt", "note", "english_width_dp", "budget_dp",
                      "budget_sp", "budget_lines", "glossary", "neighbours", "current", "status")
 LANGUAGE_FIELDS = ("tag", "folder", "endonym", "formality", "plurals", "quote_style", "percent_style",
                    "decimal_style", "script", "font", "rtl", "unit_symbols", "drive_mode_names")
@@ -143,7 +144,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
             ("source_sha1", sha), ("formatted", s.formatted),
             ("placeholders", collections.OrderedDict((str(i), args[i]) for i in sorted(args))),
             ("screen", s.meta.get("screen")), ("purpose", s.meta.get("purpose")), ("max", s.meta.get("max")),
-            ("ladder", s.meta.get("ladder")), ("ladder_group", group_of.get(s.key)),
+            ("ladder", s.meta.get("ladder")), ("ladder_group", group_of.get(s.key)), ("overflow", s.meta.get("overflow")),
             ("safety", safety[s.key]), ("dnt", translib.dnt_of(s.meta)), ("note", s.note),
             ("english_width_dp", round(width_of[index], 2)),
             ("budget_dp", budget[0] if budget else None), ("budget_sp", budget[1] if budget else None),
