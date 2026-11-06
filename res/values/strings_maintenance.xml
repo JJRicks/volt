@@ -200,4 +200,29 @@
     <string name="maintenance_event_snoozed" volt:screen="Reminder history" volt:purpose="event">Snoozed</string>
     <!-- The distance ridden between two Done events: %1$s is the distance with its unit. -->
     <string name="maintenance_event_after" volt:screen="Reminder history" volt:purpose="value">%1$s after the last</string>
+
+    <!-- Notifications (maintenance plan, PR 3). The add and edit sheets' switch: a notification once when this check is due. -->
+    <string name="maintenance_notify" volt:screen="Add reminder" volt:purpose="switch label">Notify me</string>
+    <string name="maintenance_notify_detail" volt:screen="Add reminder" volt:purpose="switch detail">A notification once when it\'s due</string>
+    <!-- Name of the notification channel in Android's settings. It makes no sound. -->
+    <string name="maintenance_channel" volt:screen="Android notification settings" volt:purpose="channel name">Maintenance reminders</string>
+    <!-- Description of the Maintenance reminders channel in Android's settings. "Scooter › Maintenance" is where reminders are set. -->
+    <string name="maintenance_channel_detail" volt:screen="Android notification settings" volt:purpose="channel description">Checks you set in Scooter › Maintenance, once when each is due</string>
+    <!-- The notice's title: %1$d is how many checks are due, %2$s is the scooter's name. -->
+    <plurals name="maintenance_notice_title" volt:screen="Notifications" volt:purpose="title">
+        <item quantity="one">%1$d check due on %2$s</item>
+        <item quantity="other">%1$d checks due on %2$s</item>
+    </plurals>
+    <!-- The notice's title for a scooter with no name: %1$d is how many checks are due. -->
+    <plurals name="maintenance_notice_title_plain" volt:screen="Notifications" volt:purpose="title">
+        <item quantity="one">%1$d check due</item>
+        <item quantity="other">%1$d checks due</item>
+    </plurals>
+    <!-- The notice's text when more than one check is due: %1$d is how many others, %2$s is the first check's name. -->
+    <plurals name="maintenance_notice_more" volt:screen="Notifications" volt:purpose="message">
+        <item quantity="one">%2$s and %1$d more</item>
+        <item quantity="other">%2$s and %1$d more</item>
+    </plurals>
+    <!-- A toast after tapping a maintenance notice for a saved scooter that isn't the one selected now: %1$s is that scooter's name. Volt doesn't switch scooters by itself. -->
+    <string name="maintenance_notice_other" volt:screen="Notifications" volt:purpose="message">Maintenance is due on %1$s. Select it in My scooters.</string>
 </resources>
