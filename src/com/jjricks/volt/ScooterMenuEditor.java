@@ -150,6 +150,10 @@ final class ScooterMenuEditor {
         LinearLayout card = new LinearLayout(screens.activity());
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackground(ui.shape(ui.surface, 20, ui.outline));
+        // Rows stay inside the outline and its rounded corners.
+        int stroke = Math.max(1, ui.dp(1));
+        card.setPadding(stroke, stroke, stroke, stroke);
+        card.setClipToOutline(true);
         card.setTag(section);
         LinearLayout header = new LinearLayout(screens.activity());
         header.setGravity(Gravity.CENTER_VERTICAL);

@@ -1541,8 +1541,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             page.addView(view,new LinearLayout.LayoutParams(-1,-2));
             // The editor stays open through a rebuild (rotation, theme, fold), like Home's (dashboard_editing).
             boolean editing=preferences.getBoolean(ScooterMenuLayout.EDITING,false);
+            // A new Activity may build this page before the service has said which scooter is active: refresh() opens it then.
             if(editing&&canEdit())openEditor();
-            else if(editing)preferences.edit().putBoolean(ScooterMenuLayout.EDITING,false).apply();
+            else if(editing&&!menuProfile.isEmpty())preferences.edit().putBoolean(ScooterMenuLayout.EDITING,false).apply();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){updateEditAction();}public void afterTextChanged(Editable text){}});
             updateEditAction();
         }
@@ -1818,7 +1819,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(leaving)preferences.edit().putBoolean(ScooterMenuLayout.EDITING,false).apply();
         }
         @Override public void refresh(){
-            if(syncMenu()){applyFilter();if(editor!=null)editor.render();}
+            if(syncMenu()){applyFilter();if(editor!=null)editor.render();else if(canEdit()&&preferences.getBoolean(ScooterMenuLayout.EDITING,false))openEditor();}
             updateEditAction();
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
