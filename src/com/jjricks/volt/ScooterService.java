@@ -1986,8 +1986,9 @@ public final class ScooterService extends Service {
         maintenanceRecording = recording;
         if (!valid || !scope.equals(maintenanceFed)) {
             if (!maintenanceFed.isEmpty()) maintenance.flush(maintenanceFed);
-            // The connection ended: one check with the distance it counted.
-            if (!maintenanceFed.isEmpty()) checkMaintenance(maintenanceFed);
+            // The connection ended: one check with the distance it counted. A simulation's notice goes with the simulation.
+            if (!maintenanceFed.isEmpty() && MaintenanceKeeper.simulation(maintenanceFed)) { if (maintenanceNotices != null) maintenanceNotices.cancel(maintenanceFed); }
+            else if (!maintenanceFed.isEmpty()) checkMaintenance(maintenanceFed);
             maintenanceFed = valid ? scope : "";
             maintenanceReadingMs = -1;
             if (!valid) return;
@@ -1998,9 +1999,9 @@ public final class ScooterService extends Service {
         boolean first = maintenanceReadingMs < 0;
         maintenanceReadingMs = odometer.updatedMs;
         int bits = simulating() ? MaintenanceDistance.BITS_32 : ble.telemetry.odometerBits();
-        maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
-        // Connected: the first reading brings the rides counted since the last connection.
-        if (first) checkMaintenance(scope);
+        MaintenanceDistance.Outcome outcome = maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
+        // Connected (the first reading brings rides counted since the last connection), or a new reading while reminders are on.
+        if (first || outcome != null) checkMaintenance(scope);
     }
 
     /** One maintenance check for a scope (MaintenanceNotify): posts what newly became due. */

@@ -10,8 +10,9 @@ import java.util.function.BooleanSupplier;
 
 /**
  * When a maintenance reminder notifies (maintenance plan, PR 3; owner answer Q40 A). Kept light: no push
- * and no Firebase. A check runs when Volt connects to a scooter, when a ride ends, when the connection
- * ends, and from one daily {@link MaintenanceJobService} run while a reminder needs it.
+ * and no Firebase. A check runs when Volt connects to a scooter, on each new odometer reading while
+ * reminders are on, when a ride ends, when the connection ends, and from one daily
+ * {@link MaintenanceJobService} run while a reminder needs it. Each check is one read of the reminders.
  *
  * <ul>
  * <li>One notice per scooter, listing its due checks whose notify choice is on.</li>
