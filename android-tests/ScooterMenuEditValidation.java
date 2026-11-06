@@ -289,7 +289,7 @@ public final class ScooterMenuEditValidation extends Instrumentation {
             View caption = card(ROW).findViewWithTag("menu_hidden_caption");
             require(caption == null || caption.getVisibility() != View.VISIBLE, "Hidden caption outside a search");
         });
-        main(() -> ((android.widget.ScrollView)field(activity, "scroll")).fullScroll(View.FOCUS_DOWN)); settle();
+        main(() -> { android.widget.ScrollView scroll = (android.widget.ScrollView)field(activity, "scroll"); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); }); settle();
         main(() -> require(footer().isShown() && onScreen(footer()), "Footer is not at the bottom of the page"));
         screenshot("live-footer");
         // Search still finds the hidden row: it says Hidden, and its control works.
