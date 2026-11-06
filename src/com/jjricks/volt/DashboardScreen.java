@@ -30,6 +30,9 @@ public final class DashboardScreen implements AppScreen {
 
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
+
+        /** Opens riding mode (Home's RIDE button). It only reads; it never records or sends a command. */
+        default void ride() {}
     }
 
     private final ScreenHost host;
@@ -47,6 +50,8 @@ public final class DashboardScreen implements AppScreen {
     private WidgetReveal widgetReveal;
     private String pendingAddedWidgetId, revealWidgetId;
     private final FrameLayout edit, renameControl;
+    /** Home's RIDE button, left of the pencil; hidden while editing. */
+    private final View ride;
     /** Home header: connection status line (hidden while editing) and the scooter name. */
     private final TextView status, profileName;
     private final View add, layoutButton;
@@ -171,6 +176,8 @@ public final class DashboardScreen implements AppScreen {
         historyActions.addView(divider, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(20)));
         historyActions.addView(redo, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         headerActions.addView(historyActions, new LinearLayout.LayoutParams(-2, ui.dp(48)));
+        ride = RidingScreen.entry(host, actions::ride);
+        headerActions.addView(ride, new LinearLayout.LayoutParams(-2, ui.dp(48)));
         LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(-2, ui.dp(48));
         editSize.setMarginStart(ui.dp(8));
         headerActions.addView(edit, editSize);
@@ -690,6 +697,7 @@ public final class DashboardScreen implements AppScreen {
             edit.setBackground(ripple(Ui.withAlpha(ui.accent, 35), null, roundDisc()));
         }
         edit.setContentDescription(editing ? T.dashboardFinishEditing() : T.dashboardEditDashboard());
+        ride.setVisibility(editing ? View.GONE : View.VISIBLE);
         updateHistoryControls();
         renameControl.setVisibility(
                 editing && service != null && service.profiles.active() != null ? View.VISIBLE : View.GONE);
