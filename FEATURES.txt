@@ -33,7 +33,8 @@ NEW IN 1.12.0
   restart it opens from saved ride summaries.
 - Riding mode: Home's RIDE button opens a full-screen view (Focus, Halo or
   Trace) with big speed, range at this pace, battery and power. It has its
-  own brightness and rotation lock, and sends no scooter command.
+  own brightness and rotation lock, a layout editor, and night vision on a
+  sunset-to-sunrise or custom schedule. It sends no scooter command.
 - Live charging: after you leave Volt during a charge, a live card on the
   lock screen and in notifications shows the level, the finish time and the
   power, with Disconnect; on Android 16 and later it can be a Live Update.
@@ -655,8 +656,10 @@ order. Maintenance (Scooter > Maintenance > Reminders, off by default) keeps
 local reminders by distance, time or either, counted from odometer readings the
 scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
 Scooter tab dot and an optional quiet notification once per due cycle (a daily
-JobScheduler check for time reminders; no push service). No manual intervals
-are listed for any model yet. Emulator- and JVM-tested; a reminder after a
+JobScheduler check for time reminders; no push service). Where a NAVEE manual
+states a schedule (GT3, ST3, V25/V40/V50, S40/S60, S65C and K100 series; not
+the UT5 MAX, whose quick guide has none), the page lists each interval with
+the manual and page, and Add prefills a reminder from it. Emulator- and JVM-tested; a reminder after a
 reboot or under battery saver is not yet checked on a real phone.
 
 Riding mode (Home's RIDE button) is a full-screen, read-only view that keeps the
@@ -670,7 +673,18 @@ More > App preferences > Riding mode sets brightness (Phone by default, Volt
 auto from the light sensor with learned per-band offsets, or Fixed), rotation
 (Lock on open or Follow phone) and Hide status bar (off by default). It never
 writes Android's brightness setting, sends no scooter command and has no lock
-control. Tested with simulated samples on emulators only.
+control. The tune disc (shown while stopped, sliding in and out over 220 ms)
+opens the layout editor: drawn previews of the three frames, what each spot
+shows, and per-frame Power bar, Chips and Tenths switches, saved per scooter
+only on Done, with Reset for the frame on show. Volt's range there is the
+learned estimate from past rides. Night vision (moon button; More > App
+preferences > Riding mode > Night vision: Off, On or Scheduled) draws riding
+mode red on black, rescales Volt auto and Fixed brightness to a dim night
+range, hides the status bar and fades over about 450 ms. Scheduled uses sunset
+to sunrise, computed on the phone from the last recorded ride's area (rounded
+to about 10 km, after asking) or the time zone, or custom times; a moon tap
+lasts until the next switch. Nothing is sent. Tested with simulated samples
+on emulators only.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size
 (Volt's Text size times the system font scale), so a 725 dp unfolded phone uses
@@ -998,7 +1012,8 @@ done by or Scheduled charging start is set. Volt's connection notice becomes a
 card with the level, target, finish time and power; the lock screen shows
 Details, Level or Hidden. It ends at the limit (or 99%), after 3 minutes without
 charging or with stale readings, after 12 hours, about 18 s out of reach, or on
-Disconnect, which lasts until Volt is opened again. While it shows, other apps,
+Disconnect, which keeps the card off for that scooter's charge, even across a
+service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
 a Live Update (status-bar chip and segmented bar); More > Developer options >
 Live Update status reports the outcome. It keeps only the battery reads Volt
