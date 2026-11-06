@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="more_language_in_progress" volt:src="92a742d14aed5f09ecbe985c533b94a9fc10d212">En proceso</string>
+    <string name="more_language_in_progress_description" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, en proceso</string>
     <string name="more_title" volt:src="17d5c3c485c5a79c9f4347c053466c35512e698c">Más</string>
     <string name="more_back_to_more" volt:src="3c40c1308f809bafc68da50bc8e3cefb59d69c5e">Volver a «Más»</string>
     <string name="more_back_to" volt:src="5754ef66b78377eed60c649b811212ced4eb3c28">Volver a «%1$s»</string>
@@ -90,7 +92,16 @@
     <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Predeterminado del sistema (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Beta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Beta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Las traducciones beta se hacen con IA y se revisan automáticamente. Los informes y diagnósticos siguen en inglés. Para informar de un problema de redacción, usa «Informar de un problema».</string>
+    <string name="more_language_note" volt:src="a0c2f3248a33f7d983ce11eaea8f644b051def9c">Las traducciones beta se hacen con IA y se comprueban automáticamente. Los informes y diagnósticos siguen en inglés. Para informar de un problema de redacción o solicitar un idioma, usa los botones de abajo.</string>
+    <string name="more_language_report_error" volt:src="ad226a74c0bbd8a8b7d01446f1d6f7424d981e69">Informar de un error de traducción</string>
+    <string name="more_language_request" volt:src="5e33d167e97de78e9ac8b7c46db646ea0eca1135">Solicitar un idioma</string>
+    <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">el modelo %1$s</string>
+    <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">tu modelo</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">La app oficial no ofrece estos controles para %1$s. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">La app oficial ofrece estos controles para %1$s, pero Volt no los probó en ese modelo. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
+    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">No hay nada que probar en %1$s: la app oficial ya ofrece los controles que Volt podría probar. Están en «Ajustes del patinete».</string>
+    <string name="more_lab_sheet_untested" volt:src="7974a1df65ed7d55cbff973224ff674a6f8684e1">Sin probar en %1$s</string>
+    <string name="more_lab_sheet_unverified" volt:src="669d9b9dab9ea36291b4b2e1e7d88dee40a3b0a2">Sin verificar en %1$s</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">También puedes cambiarlo en Android: «Ajustes» › «Aplicaciones» › «Volt» › «Idioma».</string>
     <string name="more_history_connected" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Historial de lecturas</string>
     <string name="more_history_save" volt:src="c3a14cda2fdcecd7010e01072bf5f4025d7de152">Guardar historial de lecturas</string>
