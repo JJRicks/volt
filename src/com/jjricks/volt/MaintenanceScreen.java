@@ -606,21 +606,25 @@ final class MaintenanceScreen {
                 if (unit[0] == MaintenanceView.MONTH) months = count; else days = count * unit[0];
                 if (count <= 0 || months > MaintenancePolicy.MAX_MONTHS || days > MaintenancePolicy.MAX_DAYS) { time.setError(T.maintenanceNumberInvalid()); return; }
             }
-            double baseAcc = s.distance.everRead() ? s.distance.accumulatedKm : Double.NaN;
+            // An earlier odometer reading, in km (NaN: count from the latest reading at save time).
+            double typedKm = Double.NaN;
             if (existing == null && earlier[0] && odometer.getVisibility() == View.VISIBLE && odometer.length() > 0) {
                 double typedRaw = parse(odometer.getText().toString());
                 if (Double.isNaN(typedRaw)) { odometer.setError(T.maintenanceNumberInvalid()); return; }
-                MaintenanceDistance.AtRaw at = s.distance.accumulatedAtRaw(MaintenanceView.toKm(typedRaw, units));
-                if (at.kind != MaintenanceDistance.Backdate.OK) { odometer.setError(backdateError(at.kind)); return; }
-                baseAcc = at.accKm;
+                typedKm = MaintenanceView.toKm(typedRaw, units);
+                if (!checkBackdate(odometer, typedKm)) return;
             }
             String customName = task[0].isEmpty() ? typed : "";
             String chosenTask = task[0]; Double interval = km; int intervalDays = days, intervalMonths = months;
-            long now = System.currentTimeMillis(), base = earlier[0] ? fromWall[0] : now; double baseKm = baseAcc;
+            long now = System.currentTimeMillis(), base = earlier[0] ? fromWall[0] : now; double atKm = typedKm;
+            MaintenanceDistance.Backdate[] refused = {null};
             boolean saved = change(x -> {
                 if (existing == null) {
+                    // The baseline comes from the document being written, so readings that arrived while the sheet was open count before it.
+                    MaintenanceDistance.AtRaw at = MaintenanceView.baseline(x.distance, atKm);
+                    if (at.kind != MaintenanceDistance.Backdate.OK) { refused[0] = at.kind; return; }
                     MaintenancePolicy.Reminder r = MaintenancePolicy.create(MaintenanceView.newId(x, now), chosenTask, customName, interval, intervalDays, intervalMonths,
-                            true, base, baseKm, now);
+                            true, base, at.accKm, now);
                     MaintenancePolicy.add(x.reminders, r);
                 } else {
                     MaintenancePolicy.Reminder r = x.find(existing.id); if (r == null) return;
@@ -629,11 +633,21 @@ final class MaintenanceScreen {
                     if (r.byDistance() && Double.isNaN(r.baseAccKm) && x.distance.everRead()) r.baseAccKm = x.distance.accumulatedKm;
                 }
             });
+            if (refused[0] != null) { odometer.setError(backdateError(refused[0])); return; }
             if (saved) close();
         });
         save.setTag(TAG_SAVE);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(18); content.addView(save, sp);
         show(content);
+    }
+
+    /** Checks a typed earlier odometer reading against the latest document; shows why on the field when it can't be used. */
+    private boolean checkBackdate(EditText field, double typedKm) {
+        MaintenanceStore.Settings latest = load();
+        MaintenanceDistance.AtRaw at = latest == null ? null : MaintenanceView.baseline(latest.distance, typedKm);
+        if (at == null || at.kind == MaintenanceDistance.Backdate.OK) return true;
+        field.setError(backdateError(at.kind));
+        return false;
     }
 
     private static String backdateError(MaintenanceDistance.Backdate kind) {
@@ -729,21 +743,24 @@ final class MaintenanceScreen {
         content.addView(pastBox);
         change.setOnClickListener(v -> { earlier[0] = true; today.setVisibility(View.GONE); change.setVisibility(View.GONE); pastBox.setVisibility(View.VISIBLE); });
         TextView confirm = ui.button(T.maintenanceMarkDone(), () -> {
-            double acc = s.distance.everRead() ? s.distance.accumulatedKm : Double.NaN;
+            // An earlier odometer reading, in km (NaN: done at the latest reading at save time).
+            double typedKm = Double.NaN;
             if (earlier[0] && offerOdometer && odometer.length() > 0) {
                 double typed = parse(odometer.getText().toString());
                 if (Double.isNaN(typed)) { odometer.setError(T.maintenanceNumberInvalid()); return; }
-                MaintenanceDistance.AtRaw at = s.distance.accumulatedAtRaw(MaintenanceView.toKm(typed, units));
-                if (at.kind != MaintenanceDistance.Backdate.OK) { odometer.setError(backdateError(at.kind)); return; }
-                acc = at.accKm;
+                typedKm = MaintenanceView.toKm(typed, units);
+                if (!checkBackdate(odometer, typedKm)) return;
             }
-            long now = System.currentTimeMillis(), doneWall = earlier[0] ? when[0] : now; double accThen = acc;
-            // The latest count, if the odometer moved while the sheet was open and the reading is today's.
+            long now = System.currentTimeMillis(), doneWall = earlier[0] ? when[0] : now; double atKm = typedKm;
+            MaintenanceDistance.Backdate[] refused = {null};
+            // Both the latest count and an earlier reading's place on it come from the document being written.
             boolean saved = change(x -> {
                 MaintenancePolicy.Reminder target = x.find(id); if (target == null) return;
-                double then = !earlier[0] && x.distance.everRead() ? x.distance.accumulatedKm : accThen;
-                MaintenancePolicy.markDone(target, doneWall, then, now);
+                MaintenanceDistance.AtRaw at = MaintenanceView.baseline(x.distance, atKm);
+                if (at.kind != MaintenanceDistance.Backdate.OK) { refused[0] = at.kind; return; }
+                MaintenancePolicy.markDone(target, doneWall, at.accKm, now);
             });
+            if (refused[0] != null) { odometer.setError(backdateError(refused[0])); return; }
             if (saved) close();
         });
         confirm.setTag(TAG_CONFIRM);

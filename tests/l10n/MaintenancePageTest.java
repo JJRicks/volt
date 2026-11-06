@@ -40,6 +40,7 @@ public final class MaintenancePageTest {
             keeperUpdateKeepsDistance();
             keeperSimulation();
             keeperForget();
+            savedWhileReadingsArrive();
             distances();
             intervals();
             summaryAndOrder();
@@ -48,7 +49,7 @@ public final class MaintenancePageTest {
         } finally {
             Locale.setDefault(phone);
         }
-        System.out.println("MaintenancePageTest: " + checks + " checks passed (keeper off, throttle, flush, restore, update, simulation, forget; km/mi/dual text, intervals, summary, order, history, names)");
+        System.out.println("MaintenancePageTest: " + checks + " checks passed (keeper off, throttle, flush, restore, update, simulation, forget, save after a reading; km/mi/dual text, intervals, summary, order, history, names)");
     }
 
     private static MaintenanceKeeper on(Memory memory, String scope) {
@@ -125,6 +126,35 @@ public final class MaintenancePageTest {
         check(!memory.map.containsKey(MaintenanceStore.key("p1")) && !memory.map.containsKey(MaintenanceStore.seenKey("p1")) && !keeper.unwritten("p1"), "forget removes the document and its bookkeeping");
         keeper.flush("p1");
         check(!memory.map.containsKey(MaintenanceStore.key("p1")) && memory.map.containsKey(MaintenanceStore.key("p2")), "nothing comes back, other scooters stay");
+    }
+
+    /** Round 2 (#257): a sheet opened before a reading must not start its reminder partway through. */
+    private static void savedWhileReadingsArrive() {
+        Memory memory = new Memory(); MaintenanceKeeper keeper = on(memory, "p1");
+        keeper.observe("p1", 1000, MaintenanceDistance.BITS_32, WALL);
+        keeper.update("p1", x -> MaintenancePolicy.add(x.reminders, MaintenancePolicy.create("brakes", MaintenanceDefaults.BRAKES, "", 100.0, 0, 0, true, WALL, x.distance.accumulatedKm, WALL)));
+        Settings sheet = keeper.load("p1");
+        // 10 km arrive while the Add reminder and Mark done sheets are open.
+        keeper.observe("p1", 1010, MaintenanceDistance.BITS_32, WALL + 60_000);
+        long now = WALL + 120_000;
+        keeper.update("p1", x -> {
+            MaintenanceDistance.AtRaw at = MaintenanceView.baseline(x.distance, Double.NaN);
+            MaintenancePolicy.add(x.reminders, MaintenancePolicy.create("tires", "", "Tires", 100.0, 0, 0, true, now, at.accKm, now));
+        });
+        Settings after = keeper.load("p1");
+        MaintenancePolicy.Status fresh = MaintenanceView.status(after, after.find("tires"), now, UTC);
+        check(sheet.distance.accumulatedKm == 0 && Math.abs(fresh.kmLeft - 100) < 1e-9 && fresh.fraction == 0, "a new Now reminder has its full 100 km left: " + fresh.kmLeft);
+        keeper.update("p1", x -> MaintenancePolicy.markDone(x.find("brakes"), now, MaintenanceView.baseline(x.distance, Double.NaN).accKm, now));
+        after = keeper.load("p1");
+        check(Math.abs(MaintenanceView.status(after, after.find("brakes"), now, UTC).kmLeft - 100) < 1e-9, "Mark done today counts from the latest reading");
+        // An earlier reading is placed on the latest count: 1,005 km was 5 km before the latest reading.
+        MaintenanceDistance.AtRaw earlier = MaintenanceView.baseline(after.distance, 1005);
+        check(earlier.kind == MaintenanceDistance.Backdate.OK && Math.abs(earlier.accKm - 5) < 1e-9, "an earlier reading on the latest count");
+        check(MaintenanceView.baseline(sheet.distance, 1005).kind == MaintenanceDistance.Backdate.AHEAD
+                && MaintenanceView.baseline(after.distance, 1005).kind == MaintenanceDistance.Backdate.OK, "the sheet's copy would refuse a reading the latest one accepts");
+        check(MaintenanceView.baseline(after.distance, 1020).kind == MaintenanceDistance.Backdate.AHEAD, "ahead of the latest reading is refused");
+        Settings blind = new Settings();
+        check(Double.isNaN(MaintenanceView.baseline(blind.distance, Double.NaN).accKm) && MaintenanceView.baseline(blind.distance, Double.NaN).kind == MaintenanceDistance.Backdate.OK, "never read: a NaN count");
     }
 
     private static void distances() {

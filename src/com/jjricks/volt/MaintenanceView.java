@@ -215,6 +215,17 @@ final class MaintenanceView {
         return MaintenanceDistance.round(s.distance.lastRawKm + status.kmLeft);
     }
 
+    /**
+     * Where a new reminder or a Done counts from, taken from the document being written (never a sheet's
+     * older copy, so a reading that came in while the sheet was open is not counted against it): the latest
+     * count, or with typedRawKm (not NaN) the count at that earlier odometer reading. NaN count while the
+     * odometer was never read.
+     */
+    static MaintenanceDistance.AtRaw baseline(MaintenanceDistance d, double typedRawKm) {
+        if (Double.isNaN(typedRawKm)) return new MaintenanceDistance.AtRaw(MaintenanceDistance.Backdate.OK, d.everRead() ? d.accumulatedKm : Double.NaN);
+        return d.accumulatedAtRaw(typedRawKm);
+    }
+
     /** The calendar-day due date of a time reminder, or 0. */
     static long dueDate(MaintenancePolicy.Reminder r, ZoneId zone) { return r.byTime() ? MaintenancePolicy.dueWall(r, zone) : 0; }
 
