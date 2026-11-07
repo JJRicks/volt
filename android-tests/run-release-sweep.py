@@ -30,7 +30,11 @@ without a census, and a step with no census at all, are reported, since G7 then 
 build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
 (LocaleValidation under en-XA and ar-XB); without --pseudo-app they are skipped. Each language with status
 beta or stable in l10n/lang/*.tsv (English, the source, aside) also gets locale-<tag>-<size> steps at every
-size on the normal --app APK (LocaleValidation under that language, with its rtl field). All locale-* steps
+size on the normal --app APK (LocaleValidation under that language, with its rtl field), and
+locale-<tag>-scooter-<size> steps (-e walk scooter: Home's shortcuts and Setting tiles on the simulator, the
+Maintenance row and page with seeded reminders, riding mode's recording, reconnecting, not connected and
+Ride saved pills, all of which the page walk never reaches without a scooter or a ride; en-XA gets them
+too, as locale-en-XA-scooter-<size>). All locale-* steps
 report only: their findings never fail the sweep. They never join the census, so run them as their own
 sweep (own --out, no --census) rather than in a G7 run.
 
@@ -175,12 +179,20 @@ for locale in ('en-XA', 'ar-XB'):
         (size, theme, text), w = case, size_name(case)
         STEPS.append(inst(f'locale-{locale}-{w}', T + 'LocaleValidation', '-e', 'locale', locale, '-e', 'theme', theme, '-e', 'text_scale', text,
                           '-e', 'variant', f'{locale}-{w}', size=size, pseudo=True))
+        # The scooter walk's screens checked for unextracted text too; ar-XB's right-to-left checks are on hold (owner).
+        if locale == 'en-XA':
+            STEPS.append(inst(f'locale-{locale}-scooter-{w}', T + 'LocaleValidation', '-e', 'walk', 'scooter', '-e', 'locale', locale, '-e', 'theme', theme,
+                              '-e', 'text_scale', text, '-e', 'variant', f'{locale}-scooter-{w}', size=size, pseudo=True))
 # Each shipped language on the normal APK (plan 7.2 step 6), report only like the pseudo-locales.
 for tag, rtl in shipped_languages():
     for case in SIZES:
         (size, theme, text), w = case, size_name(case)
         STEPS.append(inst(f'locale-{tag}-{w}', T + 'LocaleValidation', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(), '-e', 'theme', theme,
                           '-e', 'text_scale', text, '-e', 'variant', f'{tag}-{w}', size=size, report_only=True))
+        # The states the page walk can't reach without a scooter or a ride: Home's shortcuts and Setting tiles on the
+        # simulator, the Maintenance row and page with seeded reminders, and riding mode's recording pill.
+        STEPS.append(inst(f'locale-{tag}-scooter-{w}', T + 'LocaleValidation', '-e', 'walk', 'scooter', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(),
+                          '-e', 'theme', theme, '-e', 'text_scale', text, '-e', 'variant', f'{tag}-scooter-{w}', size=size, report_only=True))
 
 
 def registered():
@@ -397,7 +409,7 @@ try:
             except Exception as error: output += f'\nANR log unavailable: {error}'
         (args.out / f'{step["name"]}.txt').write_text(output)
         report_only = step.get('report_only', False)
-        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems)=\d+', output)[:8])
+        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems|truncated_tiles)=\d+', output)[:9])
         if output.startswith('skipped:'): detail = output
         error = re.search(r'error=(.{0,240})', output)
         result = dict(step=step['name'], passed=passed or report_only, seconds=round(time.monotonic() - started))

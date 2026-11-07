@@ -236,17 +236,13 @@
     <string name="more_history_off_kept" volt:screen="Data &amp; history" volt:purpose="caption">Off · last readings kept</string>
     <!-- Small group heading above the automatic ride copy rows, below the readings history row. -->
     <string name="more_auto_save_heading" volt:screen="Data &amp; history" volt:purpose="label">Ride auto-save</string>
-    <!-- Switch: copy each finished ride's Route CSV (the Rides export of that name) to a folder the rider chose. "Route CSV" names that export. -->
-    <string name="more_auto_save_route_csv" volt:screen="Data &amp; history" volt:purpose="row" volt:dnt="CSV">Auto-save Route CSV</string>
-    <!-- Under the Route CSV switch: what the file holds. Rides without GPS locations get no Route CSV. -->
-    <string name="more_auto_save_route_csv_sub" volt:screen="Data &amp; history" volt:purpose="caption">The phone\'s GPS route, for rides with locations</string>
-    <!-- Switch: copy each finished ride's data as a JSON file to the same folder. -->
-    <string name="more_auto_save_json" volt:screen="Data &amp; history" volt:purpose="row" volt:dnt="JSON">Auto-save ride JSON</string>
-    <!-- Under the ride JSON switch: what the file holds. The phone recording is included when the ride has one. -->
-    <string name="more_auto_save_json_sub" volt:screen="Data &amp; history" volt:purpose="caption">Ride summary, plus the phone recording if there is one</string>
-    <!-- Row title: the one folder both auto-save files go to. Tapping it opens the folder picker. -->
+    <!-- The one auto-save switch: after each ride ends, Volt saves a copy of it to a folder the rider chose. -->
+    <string name="more_auto_save_json" volt:screen="Data &amp; history" volt:purpose="row">Auto-save rides</string>
+    <!-- Under the auto-save switch: what it saves. "Everything in one JSON" is the name of that file on the ride's Export ride data sheet (rides_export_everything_json); use the same words. -->
+    <string name="more_auto_save_json_sub" volt:screen="Data &amp; history" volt:purpose="caption" volt:dnt="JSON">One file per ride: Everything in one JSON</string>
+    <!-- Row title: the folder the auto-saved files go to. Tapping it opens the folder picker. -->
     <string name="more_auto_save_folder" volt:screen="Data &amp; history" volt:purpose="row">Folder</string>
-    <!-- Under the folder row while both auto-save switches are off; the row is greyed out. -->
+    <!-- Under the folder row while auto-save is off; the row is greyed out. -->
     <string name="more_auto_save_no_folder" volt:screen="Data &amp; history" volt:purpose="caption">No folder chosen yet</string>
     <!-- Under the folder row while saving works. %1$s is the folder's path as the phone names it, such as Download/VoltRides. -->
     <string name="more_auto_save_saving_to" volt:screen="Data &amp; history" volt:purpose="caption">Saving to %1$s</string>

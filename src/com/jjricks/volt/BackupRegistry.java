@@ -53,8 +53,10 @@ final class BackupRegistry {
         for (String key : "theme units temperature_unit time_format stats_density phone_placement map_tile_url map_tile_attribution map_tile_attribution_url stats_favourite_order ride_chart_key last_ride_label".split(" ")) add(app, key, String.class, PREFERENCES);
         for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
-        // Automatic ride copies (RideAutoExport): each type's choice travels; the folder grant, the waiting rides and
-        // the last problem belong to this phone.
+        // Automatic ride copies (RideAutoExport): the switch (ride_auto_export_json, the old ride JSON switch's key) and
+        // the retired Route CSV switch travel, so an older backup with either on restores auto-save on, and an older Volt
+        // restores a newer backup's switch as its ride JSON copy. The folder grant, the waiting rides and the last
+        // problem belong to this phone.
         add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
         add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);

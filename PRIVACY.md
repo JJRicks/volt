@@ -145,16 +145,15 @@ A destination may itself sync to a cloud service.
 
 **Auto-save rides** (More → Data & history, off by default) is the one export
 that runs without a prompt: after each ride you end, Volt writes that ride's
-Route CSV and/or ride JSON into one folder you chose through Android's folder
-picker. The Route CSV holds every GPS point's time, precise latitude and
-longitude, accuracy, speed, altitude, grade, power, battery and scooter speed.
-The ride JSON holds the same route points and route totals, plus the ride's
-analysis (its name and notes, start and end times, odometer and distance,
-energy, speed, battery, voltage, temperatures, coverage and Volt's own id for
-the scooter profile);
-for a ride with no phone recording it holds the analysis only. Neither holds raw
-phone or motion samples, owner credentials, scooter addresses or serials. Volt
-keeps access to that folder only, and gives it back when both switches are off.
+Everything in one JSON (the same file as the Export ride data sheet's) into one
+folder you chose through Android's folder picker. It holds the ride's analysis
+(its name and notes, start and end times, odometer and distance, energy, speed,
+battery, voltage, temperatures and coverage), its scooter readings, and when the
+ride has them the phone's journal with every GPS fix's time, precise latitude and
+longitude, accuracy, speed and altitude, the motion samples and the route. It
+leaves out owner credentials, scooter addresses, scooter and battery serials and
+Volt's scooter profile id ([details](docs/ride-export-everything.md#privacy)). Volt
+keeps access to that folder only, and gives it back when the switch is turned off.
 If the folder syncs to a cloud service, so do these files. Volt still uploads
 nothing itself. The backup password is
 not saved or recoverable. Use a strong password and keep it separately; see
