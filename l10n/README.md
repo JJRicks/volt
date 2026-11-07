@@ -1090,6 +1090,35 @@ the owner has confirmed the language's decisions below.
 The Language row (plan section 5) stays hidden, and `AndroidManifest.xml` names
 `res/xml/locales_config.xml` only from the first language pull request.
 
+### Width headroom: run this before starting a language
+
+Spanish and both Portuguese runs found English width budgets too tight for any longer language
+only mid-run, after drafts had failed (`maintenance_row_due`, widened in #299; the two-line budgets
+of #292; the 90 dp Home Setting tiles; the 210 dp riding status pill). Before the first pack of a
+new language, list the budgets it is likely to break:
+
+```
+python3 tools/l10n/budget_headroom.py                 # keys whose English x 1.3 exceeds the budget
+python3 tools/l10n/budget_headroom.py --growth 1.4    # a longer language
+python3 tools/l10n/budget_headroom.py --json          # the same report as JSON (--all: every budgeted key)
+```
+
+It measures every English key with a `volt:max` exactly as `pack.py` measures `english_width_dp`
+(the number `check.py`'s width check uses: Saira through java.awt, placeholders as
+`pack.sample_text` replaces them; a `*2` budget as the narrowest width that holds the text in two
+lines of whole words), and sorts the tight keys by the growth their budget allows. For a ladder it
+says whether the lower rungs still fit, and for a `volt:overflow="short"` full rung whether its
+short rung fits the full's budget. From the shipped languages' `l10n/decisions/<tag>/`, judge
+rulings and `res/values-*/` it marks the keys proven tight (`P`): a short rung shown in place of
+the full, a width-driven merge, English kept for width, or a decided text still over its budget,
+plus each shipped text's width. A finding against a budget the key no longer has is shown as
+`older` and proves nothing about the current one; the English `volt:overflow` marker alone is no
+proof either. A proven key within the growth is listed separately (the factor is too small there).
+
+The report changes nothing. Widening a budget needs proof that the view has that room (the layout,
+on a device), and is its own decision and pull request, never part of a language run. With
+placeholder samples (`8888`, `888`) some counters read wider than any real value (`%1$d/7`).
+
 ### Decisions per language
 
 Owner decisions of 2026-11-02: the 7.4 table as proposed (German **du**), and **both** Portuguese
