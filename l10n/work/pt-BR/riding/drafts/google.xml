@@ -11,6 +11,25 @@
     <string name="riding_status_not_connected_seen" volt:src="66ad8087bc6e353d966f613727ab8c2c990010d3">Não conectado · última leitura: %1$s</string>
     <string name="riding_status_not_connected_seen_short" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Última leitura: %1$s</string>
     <string name="riding_status_not_connected_seen_compact" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Não conectado</string>
+    <string name="riding_status_recording" volt:src="92a272b9824526f5c9fa0a71fdef7fc3244edc04">REC %1$s</string>
+    <string name="riding_status_recording_reconnecting" volt:src="306dc71fe5e8917139a044e445848148e32c71a5">REC %1$s · Reconectando…</string>
+    <string name="riding_status_recording_reconnecting_short" volt:src="a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0">%1$s · Reconectando…</string>
+    <string name="riding_status_recording_not_connected" volt:src="7cd145f757ae7a410c862537586232a2535d1996">REC %1$s · Desconectado</string>
+    <string name="riding_status_recording_not_connected_short" volt:src="c894ef6f85a4af280fdf302c4e3731f2ca80af4a">%1$s · Desconectado</string>
+    <string name="riding_status_ride_saved" volt:src="166b70664fe37ad9af57fecda1f9f9f2c61367db">Viagem salva</string>
+    <string name="riding_status_ride_saved_short" volt:src="c4dbb000e520ac67b53954b2491af6d11503fa5d">Salva</string>
+    <string name="riding_status_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Viagem salva automaticamente</string>
+    <string name="riding_status_ride_saved_auto_short" volt:src="166b70664fe37ad9af57fecda1f9f9f2c61367db">Viagem salva</string>
+    <plurals name="riding_status_recording_spoken_seconds" volt:src="cd1fa9ce620a2f671eefe37b0289c88bb87dd43b">
+        <item quantity="one">Gravando há %1$d segundo</item>
+        <item quantity="many">Gravando há %1$d segundos</item>
+        <item quantity="other">Gravando há %1$d segundos</item>
+    </plurals>
+    <plurals name="riding_status_recording_spoken_minutes" volt:src="067aed83a78c97c43b0496e58010ee02f3170a91">
+        <item quantity="one">Gravando há %1$d minuto</item>
+        <item quantity="many">Gravando há %1$d minutos</item>
+        <item quantity="other">Gravando há %1$d minutos</item>
+    </plurals>
     <string name="riding_warning_code" volt:src="d59d2df814aa1b90683f7d9bb9d3752e8b38f37d">Código %1$s do patinete</string>
     <string name="riding_warning_code_short" volt:src="e1dcca3c7ed74e7c9d5f0a5eafd9e91033c6a842">Código %1$s</string>
     <string name="riding_warning_spoken" volt:src="ffebbfe9d09ee9e2270b4fb7238870e8d289bc58">O patinete informa o código de aviso %1$s</string>
