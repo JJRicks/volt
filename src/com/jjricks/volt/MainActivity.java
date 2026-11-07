@@ -3991,14 +3991,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(pendingOwnerFile().exists()){maybeApplyOwnerImport();if(pendingOwnerFile().exists())toast(T.mainImportOwnerWaiting());return;}
         Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");intent.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});startActivityForResult(intent,IMPORT_OWNER);
     }
-    @Override public void saveText(String name,String mime,String content){prepareSave(name,mime,null,content==null?"":content,"");}
-    @Override public void saveFile(String name,String mime,File content){if(content==null||!content.isFile()){toast(T.mainImportExportMissing());return;}prepareSave(name,mime,content,null,"");}
+    @Override public void saveText(String name,String mime,String content){prepareSave(name,mime,null,content==null?"":content,"",null);}
+    @Override public void saveFile(String name,String mime,File content){saveFile(name,mime,content,null);}
+    /** copied runs once the pending copy of content is written or failed (on the copy thread), or now when the save is refused. */
+    @Override public void saveFile(String name,String mime,File content,Runnable copied){if(content==null||!content.isFile()){toast(T.mainImportExportMissing());if(copied!=null)copied.run();return;}prepareSave(name,mime,content,null,"",copied);}
     /** Like saveText; the report's tries count as reported only once the file is written (a refused, cancelled or failed save leaves them unreported). */
-    @Override public void saveReport(CompatibilityReport report){prepareSave("volt-compat-report.json","application/json",null,report.json(),android.text.TextUtils.join(",",report.included()));}
-    private void prepareSave(String name,String mime,File source,String text,String reportTests){
-        if(documents.contains("path")){toast(T.mainImportFinishSave());return;}
+    @Override public void saveReport(CompatibilityReport report){prepareSave("volt-compat-report.json","application/json",null,report.json(),android.text.TextUtils.join(",",report.included()),null);}
+    private void prepareSave(String name,String mime,File source,String text,String reportTests,Runnable copied){
+        if(documents.contains("path")){toast(T.mainImportFinishSave());if(copied!=null)copied.run();return;}
         File staging=new File(getFilesDir(),"pending-export-"+System.currentTimeMillis());preparingExports.add(staging.getAbsolutePath());documents.edit().putString("path",staging.getAbsolutePath()).putString("name",name).putString("mime",mime).putString("report_tests",reportTests).putBoolean("ready",false).putBoolean("picker",false).commit();
-        new Thread(()->{try(OutputStream out=new FileOutputStream(staging)){if(source==null)out.write(text.getBytes(StandardCharsets.UTF_8));else try(InputStream in=new FileInputStream(source)){copy(in,out);}documents.edit().putBoolean("ready",true).commit();handler.post(this::maybeLaunchSave);}catch(Exception e){staging.delete();documents.edit().clear().commit();handler.post(()->toast(T.mainImportPrepareFailed()));}finally{preparingExports.remove(staging.getAbsolutePath());}},"Volt-export").start();
+        new Thread(()->{try(OutputStream out=new FileOutputStream(staging)){if(source==null)out.write(text.getBytes(StandardCharsets.UTF_8));else try(InputStream in=new FileInputStream(source)){copy(in,out);}documents.edit().putBoolean("ready",true).commit();handler.post(this::maybeLaunchSave);}catch(Exception e){staging.delete();documents.edit().clear().commit();handler.post(()->toast(T.mainImportPrepareFailed()));}finally{preparingExports.remove(staging.getAbsolutePath());if(copied!=null)copied.run();}},"Volt-export").start();
     }
     private void maybeLaunchSave(){
         if(!resumed||destroyed||!documents.getBoolean("ready",false)||documents.getBoolean("picker",false))return;
