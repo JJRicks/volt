@@ -18,12 +18,12 @@
     <!-- Words search matches for the Reminders row, never shown. -->
     <string name="maintenance_search" volt:screen="Scooter tab" volt:purpose="search keywords">maintenance service reminder reminders check tire tyre pressure brakes bolts folding clean</string>
     <!-- The Reminders row's value: how many reminders this scooter has. -->
-    <plurals name="maintenance_row_count" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="96dp@14sp">
+    <plurals name="maintenance_row_count" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="120dp@14sp">
         <item quantity="one">%1$d reminder</item>
         <item quantity="other">%1$d reminders</item>
     </plurals>
     <!-- The Reminders row's value, in red: how many checks are due now. -->
-    <plurals name="maintenance_row_due" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="96dp@14sp">
+    <plurals name="maintenance_row_due" volt:screen="Scooter tab, Maintenance" volt:purpose="row value" volt:max="120dp@14sp">
         <item quantity="one">%1$d due</item>
         <item quantity="other">%1$d due</item>
     </plurals>
