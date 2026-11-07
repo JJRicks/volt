@@ -38,6 +38,10 @@
     <string name="dashboard_model_qa_dashboard_sound">Ecrã e som</string>
     <!-- src:68215b4d7c2a68e6ee50e513ef519782322bcc3d -->
     <string name="dashboard_model_qa_dashboard_sound_short">Ecrã e som</string>
+    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
+    <string name="dashboard_model_qa_pin_proximity">PIN e proximidade</string>
+    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
+    <string name="dashboard_model_qa_pin_proximity_short">PIN</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
     <string name="dashboard_model_qa_scooter_name">Nome da trotinete</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
