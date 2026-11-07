@@ -393,8 +393,10 @@ final class RidingValues {
      * lower count, a higher one than the time since the last report allows, or a drop in the trip's
      * distance or top speed (tripEvidence) is a new trip. A dropped and restored link alone is not.
      *
-     * Still ambiguous: a power cycle within TRIP_RESUME_MS that shows the same minute before the old trip
-     * had moved (distance and top speed 0 on both sides) carries on the old count, at most a few minutes.
+     * Still ambiguous: a power cycle within TRIP_RESUME_MS of the last report that shows the same minute,
+     * before the old trip had moved (under 1 km and under 1 km/h top speed), carries on the old count. The
+     * extra time is the old trip's age, which is small unless the scooter sat on without moving while its
+     * minute stood still: TRIP_RESUME_MS counts from the last report, not from the old trip's start.
      */
     private void tripMinutes(double minutes, long updatedMs, Track t) {
         if (minutes < 0) return;
@@ -415,13 +417,14 @@ final class RidingValues {
     }
 
     /**
-     * The trip's distance or top speed. Falling to 0, or by a whole unit (whole-unit v0 reports round down),
-     * means the scooter started a new trip: drop any carried clock and re-anchor on this report's minute,
-     * or on the next one if it hasn't arrived yet.
+     * The trip's distance or top speed. Falling by a whole unit or more means the scooter started a new trip:
+     * drop any carried clock and re-anchor on this report's minute, or on the next one if it hasn't arrived
+     * yet. A smaller drop, even to 0, is not evidence: a whole-unit (0x91) report rounds down what a tenths
+     * (0x92) report showed, so 0.4 km can come back as 0 within the same trip (Codex #319).
      */
     private void tripEvidence(boolean km, double value, long updatedMs) {
         double mark = km ? tripKmMark : tripMaxMark;
-        if (!Double.isNaN(mark) && value < mark && (value == 0 || mark - value >= 1)) {
+        if (!Double.isNaN(mark) && mark - value >= 1) {
             resumeTrip = null;
             if (tripStartMs != null && tripSeenMs == updatedMs) tripStartMs = updatedMs - (long) Math.floor(tripMinutesSeen) * 60_000L;
             else tripRestarted = true;
