@@ -151,7 +151,7 @@
     <string name="main_row_automatic" volt:src="7cc5c52d9c2eaf670ceda69e4b2041a8273c3f75">Automatisch</string>
     <string name="main_row_recording_label" volt:src="374d752d4ec090ca389412f8ffd678eb005c26e1">Aufzeichnungsbezeichnung · zum Ändern beenden</string>
     <string name="main_row_detected" volt:src="a79d9f71fb103e4c06cd244d9162f636c10d4050">Anhand der Leistung erkannt</string>
-    <string name="main_row_stop_recording" volt:src="7b5cf4a8fb17d50fbbf6d6b84d380bbd56dfa09b">Ladeaufzeichnung beenden, um zu ändern</string>
+    <string name="main_row_stop_recording" volt:src="7b5cf4a8fb17d50fbbf6d6b84d380bbd56dfa09b" volt:attempt="2">Ladeaufzeichnung: Aufzeichnung beenden, um zu ändern</string>
     <string name="main_row_auto_family" volt:src="c62917fcac984dd11ad7f1f31b672a2eeb815b74">Auto · %1$s</string>
     <string name="main_row_clock_sending" volt:src="9973834e08ba8da79a1adcc5a1ecac4feb226472">Scooter-Uhr, wird gesendet</string>
     <string name="main_row_clock_sent" volt:src="892afbe1b111339be86edcf4321d95181001ae49">Scooter-Uhr, gesendet: %1$s, nicht verifiziert</string>
@@ -210,7 +210,7 @@
     <string name="main_alert_need_delivery" volt:src="2fe9a27470a00caa2e4f8780aad72a2536ec960c">Schalte „Mich benachrichtigen“ oder „Alarmton“ ein, um Warnungen zu erhalten.</string>
     <string name="main_alert_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Zulassen</string>
     <string name="main_alert_background" volt:src="0440aa644eee1353b8538acecbf2c8319c6731e6">Während eine Ladewarnung wartet, bleibt Volt bis zu 12 Stunden mit einer Benachrichtigung im Hintergrund verbunden. Für die Warnung bei niedrigem Akkustand muss Volt bereits verbunden sein.</string>
-    <string name="main_alert_saver" volt:src="6147007e524ee0c6985e546210ea4a69acec6664">Telefone, die Apps im Hintergrund beenden, wie etwa von Xiaomi, können die Warnung verhindern. Stelle in den App-Einstellungen von Volt die Akkunutzung auf „Keine Einschränkungen“.</string>
+    <string name="main_alert_saver" volt:src="6147007e524ee0c6985e546210ea4a69acec6664" volt:attempt="2">Telefone, die Apps im Hintergrund schließen, wie Xiaomi, können zum Stopp der Warnung führen. Stelle in den App-Einstellungen von Volt die Akkunutzung auf „Keine Einschränkungen“.</string>
     <string name="main_alert_app_settings" volt:src="e027ba7d5a84b691b335ad6c39f34add35befe61">App-Einstellungen</string>
     <string name="main_alert_app_settings_description" volt:src="31d09b12bf9dd84b12a07f89dd9ee73558ba2514">App-Einstellungen von Volt öffnen</string>
     <string name="main_alert_perm_app" volt:src="8e38264c04dc8b8a5a0077c7fafeb0f35b19ce39">Benachrichtigungen sind für Volt ausgeschaltet, daher funktionieren Warnungen nur, solange Volt geöffnet ist.</string>
@@ -231,9 +231,9 @@
     <string name="main_schedule_measure_first" volt:src="d6553813488969b1daeb4c57e601e62b3af319e5">Zuerst messen</string>
     <string name="main_schedule_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Jetzt planen</string>
     <string name="main_schedule_setting_schedule" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Zeitplan wird eingestellt…</string>
-    <string name="main_schedule_measuring_title" volt:src="a8d9366cc9def7f060e7b73607076a9924fe1dea">Ladevorgang wird gemessen</string>
-    <string name="main_schedule_keep_measuring" volt:src="960104c18e3f0a2695a7a9924fdad92edf62aec2">Messung fortsetzen</string>
-    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6">Messung beenden</string>
+    <string name="main_schedule_measuring_title" volt:src="a8d9366cc9def7f060e7b73607076a9924fe1dea" volt:attempt="2">Messung läuft für diesen Ladevorgang</string>
+    <string name="main_schedule_keep_measuring" volt:src="960104c18e3f0a2695a7a9924fdad92edf62aec2" volt:attempt="2">Weiter (Messung läuft)</string>
+    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6" volt:attempt="2">Stopp (Messung läuft)</string>
     <string name="main_schedule_turn_off_schedule" volt:src="f0c1ab81d1afb51fcfbd4b43e292fc060e215985">Zeitplan ausschalten</string>
     <string name="main_schedule_schedule_off" volt:src="f32114cec219414324ae03fc8c2a3357f7150ba4">Zeitplan aus. Das Laden startet jetzt, wenn das Ladegerät angeschlossen ist.</string>
     <string name="main_schedule_connect_the_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Verbinde dich zuerst mit dem Scooter</string>
@@ -261,10 +261,10 @@
     <string name="main_schedule_measure_body" volt:src="4aaf91df09b9a18bf845e5b3a2bf1e6b812e3d6e">Volt hat den Beginn dieses Ladevorgangs nicht erfasst und würde daher für ein frisch angeschlossenes Ladegerät planen, das meist früher fertig wird. Wenn das Ladegerät etwa 10 Minuten lang beobachtet wird, kann Volt näher an deiner Wunschzeit planen – weiterhin mit dem 20-Minuten-Puffer. Volt bleibt verbunden und zeigt eine Benachrichtigung an, bis der Ladezeitplan eingestellt ist.</string>
     <string name="main_schedule_measure_body_foreground" volt:src="5673f418330efbba68fc248fcfe4c05a417ddbe4">Volt hat den Beginn dieses Ladevorgangs nicht erfasst und würde daher für ein frisch angeschlossenes Ladegerät planen, das meist früher fertig wird. Wenn das Ladegerät etwa 10 Minuten lang beobachtet wird, kann Volt näher an deiner Wunschzeit planen – weiterhin mit dem 20-Minuten-Puffer. Volt bleibt auch im Hintergrund verbunden und zeigt eine Benachrichtigung an, bis der Ladezeitplan eingestellt ist.</string>
     <string name="main_schedule_measuring_toast" volt:src="a99b6de3f2b3b4caf511025f8b63a33ca8139c74">Messung läuft · „Fertig geladen bis“ wird innerhalb von %1$s min eingestellt</string>
-    <string name="main_schedule_measuring_body" volt:src="2809250f5f424494b1c5d50c5b630054fa3a16cb">„Fertig geladen bis“ wird innerhalb von %1$s min automatisch eingestellt. „Jetzt planen“ plant mit dem, was Volt bisher weiß. „Messung beenden“ lässt „Fertig geladen bis“ ausgeschaltet.</string>
+    <string name="main_schedule_measuring_body" volt:src="2809250f5f424494b1c5d50c5b630054fa3a16cb" volt:attempt="2">„Fertig geladen bis“ wird automatisch innerhalb von %1$s min eingestellt. „Jetzt planen“ plant mit dem, was Volt bisher weiß. „Stopp (Messung läuft)“ lässt „Fertig geladen bis“ aus.</string>
     <string name="main_schedule_test_body" volt:src="13292e94bc01b1908f6a12d50a853f8d691f0913">Fortsetzung des Ladens: voraussichtlich %1$s. „Test abbrechen“ schaltet den Ladezeitplan aus und stellt deinen Ladestart wieder her.</string>
     <string name="main_schedule_measuring_value" volt:src="d2d17b4ff028a481fef1793f35d6ee88bee67b1c">Messung läuft · %1$s min</string>
-    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18">Halte zum Ändern an</string>
+    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18" volt:attempt="2">Aufzeichnung beenden, um zu ändern</string>
     <string name="main_row_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Nicht geplant</string>
     <string name="main_row_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (angelernt)</string>
     <string name="main_row_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Scooter</string>
@@ -351,7 +351,7 @@
     <string name="main_range_summary_likely" volt:src="a4eb4ff87e19de879c10827db01b11ccd26ca323">Ca. %1$s bei %2$s %% · voraussichtlich %3$s</string>
     <string name="main_charger_intro" volt:src="36adec62784c3623faceed52ac48a1ac83a01980">Die Automatik erkennt Ladegeräte des UT5 MAX anhand der aktuellen Ladeleistung. Du kannst stattdessen selbst ein Ladegerät auswählen.</string>
     <string name="main_charger_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
-    <string name="main_charger_stop_recording" volt:src="80d783bf7b6fd999862b3f074bf832f930f3e404">Beende die Ladeaufzeichnung, bevor du das Ladegerät änderst.</string>
+    <string name="main_charger_stop_recording" volt:src="80d783bf7b6fd999862b3f074bf832f930f3e404" volt:attempt="2">Ladeaufzeichnung: Aufzeichnung beenden vor dem Wechseln des Ladegeräts.</string>
     <string name="main_charger_note" volt:src="708c8dc251e647b0bf4a9cc05e889169e043db92">Beim Verbinden bei fast vollem Akku kann das Ladegerät unklar bleiben; Volt nutzt die aktuelle Laderate, bis es bekannt ist. Diese Einstellung ändert nur Schätzungen und wird für diesen Scooter gespeichert.</string>
     <string name="main_edit_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Übernehmen</string>
     <string name="main_edit_not_connected" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Nicht verbunden</string>
@@ -395,7 +395,7 @@
     <string name="main_import_unavailable" volt:src="b6792feab65de72cf8c88aecba5c00a4daeaaebe">Importierter Scooter ist nicht verfügbar. Wähle die Datei erneut aus.</string>
     <string name="main_import_imported_owner" volt:src="bc9a29eef7f919ad9dba26459ee22661c6878627">Besitzer-Einrichtung importiert</string>
     <string name="main_import_paused" volt:src="3d7629a8ac12cc759e89147261e9ffff67fdf8e1">Import pausiert. Wird erneut versucht.</string>
-    <string name="main_import_too_big" volt:src="2b433aa41ee81ed77194f333fe5c0244b3b8ff3f">Besitzer-Einrichtungsdateien müssen kleiner als 1 MiB sein.</string>
+    <string name="main_import_too_big" volt:src="2b433aa41ee81ed77194f333fe5c0244b3b8ff3f" volt:attempt="2">Dateien für die Besitzer-Einrichtung müssen kleiner als 1 MiB sein.</string>
     <string name="main_import_replace_body" volt:src="945ba4cb3da60388775a84840764f9e06fb787e7">Das Dashboard für %1$s und alle 3 Slots werden ersetzt.</string>
     <string name="main_name_imported" volt:src="6eff3139294476aca4c67af9a2602e8a128ea0ac">Importierter Scooter</string>
     <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe">„Fertig geladen bis“ ist aus; die Uhrzeit des Scooters konnte nicht bestätigt werden</string>

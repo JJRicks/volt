@@ -28,7 +28,7 @@
         <item quantity="one">Aus %1$d früheren Ladevorgang</item>
         <item quantity="other">Aus %1$d früheren Ladevorgängen</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Ladegerät passt nicht · Schätzung nach Ladestrom</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Ladegerät weicht ab · Schätzung anhand der Laderate</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Schätzung nach Ladestrom</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Der ausgewählte Scooter hat sich während der Messung geändert</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Die Uhrzeit des Telefons hat sich während der Messung geändert</string>

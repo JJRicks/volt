@@ -97,7 +97,7 @@
     <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Leere Notiz. Notiz bearbeiten</string>
     <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Notiz</string>
     <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Fahrt aufzeichnen</string>
-    <string name="dashboard_record_short" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Aufnahme</string>
+    <string name="dashboard_record_short" volt:src="73efc7c413b95081edaff9094760e244ceb41319" volt:attempt="2">Start</string>
     <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Fahrten ansehen</string>
     <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s, nicht gemeldet</string>
     <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Akku</string>
@@ -208,7 +208,7 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Zeitfenster</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Benötigte Fahrten</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">90-%-Bereich</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ladung je % der Akkuanzeige</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Laden pro %% der Akkuanzeige</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Ladeprüfung</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Abdeckung</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Akkutemperatur</string>
@@ -392,8 +392,8 @@
         <item quantity="one">%1$d Tag</item>
         <item quantity="other">%1$d Tage</item>
     </plurals>
-    <string name="dashboard_recording_spoken" volt:src="42a3ec19ca039c0d3cfe5c704acd877eed62a18d">Aufzeichnung: %1$s. Beenden &amp; speichern</string>
-    <string name="dashboard_recording_spoken_parts" volt:src="543107fa182d2cbeb83b1d2257513ceef111b403">Aufzeichnung: %1$s, %2$s. Beenden &amp; speichern</string>
+    <string name="dashboard_recording_spoken" volt:src="42a3ec19ca039c0d3cfe5c704acd877eed62a18d" volt:attempt="2">Aufzeichnung läuft: %1$s. Aufzeichnung beenden &amp; speichern</string>
+    <string name="dashboard_recording_spoken_parts" volt:src="543107fa182d2cbeb83b1d2257513ceef111b403" volt:attempt="2">Aufzeichnung läuft: %1$s, %2$s. Aufzeichnung beenden &amp; speichern</string>
     <string name="dashboard_recording_spoken_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="dashboard_scale_maximum_in" volt:src="bb914ca34e8c256845c5c3853eda58d2e07d23ce">Skalenmaximum in %1$s</string>
     <string name="dashboard_scale_minimum_in" volt:src="1b901ce0b176e22d3dcb439b4453a257d4c556df">Skalenminimum in %1$s</string>

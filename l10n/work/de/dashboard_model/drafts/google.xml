@@ -10,7 +10,7 @@
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Fahrten</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Fahrten</string>
     <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Fahr-Einst.</string>
-    <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Fahr-Einstellungen</string>
+    <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be" volt:attempt="2">Fahr-Einst.</string>
     <string name="dashboard_model_qa_battery_settings" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Akku-Einst.</string>
     <string name="dashboard_model_qa_battery_settings_short" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Akku-Einstellungen</string>
     <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Lichtleiste</string>

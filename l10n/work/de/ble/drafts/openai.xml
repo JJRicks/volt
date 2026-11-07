@@ -4,7 +4,7 @@
     <string name="ble_status_not_connected" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Nicht verbunden</string>
     <string name="ble_status_searching" volt:src="843972942cebb292d9f98d72b7f665e780316706">Suche läuft…</string>
     <string name="ble_status_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Verbindung wird hergestellt…</string>
-    <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Besitzerschlüssel wird geprüft…</string>
+    <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a" volt:attempt="2">Besitzerschlüssel des Besitzers wird geprüft…</string>
     <string name="ble_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Verbunden</string>
     <string name="ble_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Verbindung getrennt</string>
     <string name="ble_status_disconnected_short" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Getrennt</string>
@@ -16,7 +16,7 @@
     <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Berechtigung „Geräte in der Nähe“ erforderlich</string>
     <string name="ble_bluetooth_off" volt:src="4debe331fb38bcc98e9858d56866deca5ce1f911">Bluetooth aus</string>
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Kein Scooter gefunden</string>
-    <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Besitzerschlüssel abgelehnt</string>
+    <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8" volt:attempt="2">Besitzerschlüssel des Besitzers abgelehnt</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">Eingeschränkte Funktionen bei diesem Modell</string>
     <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Wähle eine volle Stunde innerhalb der nächsten 48 Stunden.</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">Verbindung fehlgeschlagen</string>
@@ -24,7 +24,7 @@
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Verbindung verloren</string>
     <string name="ble_failed_unsupported_scooter" volt:src="d86a2ec5c2df20c4dd8b14d5443d04d295c13269">Scooter nicht unterstützt</string>
     <string name="ble_failed_send" volt:src="a63f34d9ba366500decec000ed5b673e242397ff">Senden fehlgeschlagen</string>
-    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Prüfung des Besitzerschlüssels fehlgeschlagen</string>
+    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c" volt:attempt="2">Prüfung des Besitzerschlüssels des Besitzers fehlgeschlagen</string>
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Firmware nicht unterstützt</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Scooter nicht erkannt</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Nicht der gespeicherte Scooter</string>
@@ -47,13 +47,13 @@
     <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Beschäftigt. Versuche es gleich erneut.</string>
     <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">Modell-ID erfasst</string>
     <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID nicht erfasst</string>
-    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Beende zuerst die Aufzeichnung</string>
+    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb" volt:attempt="2">Zuerst die Aufzeichnung beenden</string>
     <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Warte, bis die aktuelle Änderung abgeschlossen ist.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Beende zuerst die Kompatibilitätsprüfung</string>
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Verbinde dich zuerst</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Warte auf eine neue Verbindung zum Scooter.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Behebe die Ursache der Warnung %1$d des Scooters, bevor du ihn sperrst.</string>
-    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Halte den Scooter zuerst an</string>
+    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244" volt:attempt="2">Halte den Scooter zuerst bis zum Stopp an.</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Zurzeit nicht verfügbar</string>
     <string name="ble_outside_domain" volt:src="83ccb0307f7518bc4a90026bca28b92ed5084d52">Die offizielle App bietet diesen Wert nicht an</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: bereits eingestellt.</string>
@@ -85,7 +85,7 @@
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Beende zuerst das laufende Ausprobieren.</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testprotokolle sind nicht verfügbar</string>
     <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Überprüfe zuerst das nicht abgeschlossene Ausprobieren.</string>
-    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Nichts zurückzustellen</string>
+    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b" volt:attempt="2">Nichts zum Zurückstellen</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Das Zurückstellen ist fehlgeschlagen. Es wurde nichts geändert.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Beende zuerst den laufenden Test.</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test nicht gefunden</string>
