@@ -76,10 +76,11 @@ Accepted abbreviations:
 | Capacidade | **Capac.** | 66 → 38 | |
 | estimado, estimada, estimativa | **est.** | | *Autonomia est.* (88) |
 | aproximadamente | **aprox.** | | |
+| proximidade | **prox.** | 73 → 30 | Only in *PIN e prox.* (about 64), the 90dp Setting tile's name for PIN & proximity (#297). Everywhere else, the full word |
 | máximo, mínimo | **máx.**, **mín.** | | |
 | informações | **info** | | A short word, no period: *Info e permissões* on the 64dp shortcut (102 on one line, wraps at a space); the one-line tile says *Permissões* |
 
-Measured words that fit as they are, under the 62dp tile budget: *Bloqueio* 51, *Definições* 60.6 (tight), *Bateria* 42, *Viagens* 47. For the 90dp tile: *Condução* 57 for Ride settings, *Trotinetes* 59 for My scooters, *Em direto* 56 for Live Stats (*Dados em direto* is 94.5), *Histórico* 51 for Data & history, *Experimental* 77 for Experimental controls, *Preferências* 73 for App preferences, *Permissões* 67 for About & permissions, *Carga até* 55 for Charge done by, *Hora limite* 64 for its time, *Carregamento* 82 for Charge schedule, *PIN* for PIN & proximity. *Bloqueada* is 62.2, so it can't take a 62dp budget: the tile that names the feature says *Bloqueio*. Report any state that doesn't fit; don't shorten it.
+Measured words that fit as they are, under the 62dp tile budget: *Bloqueio* 51, *Definições* 60.6 (tight), *Bateria* 42, *Viagens* 47. For the 90dp tile: *Condução* 57 for Ride settings, *Trotinetes* 59 for My scooters, *Em direto* 56 for Live Stats (*Dados em direto* is 94.5), *Histórico* 51 for Data & history, *Experimental* 77 for Experimental controls, *Preferências* 73 for App preferences, *Permissões* 67 for About & permissions, *Carga até* 55 for Charge done by, *Hora limite* 64 for its time, *Carregamento* 82 for Charge schedule, *PIN e prox.* (about 64) for PIN & proximity (the tile always shows the short name, so it names both parts of the menu). *Bloqueada* is 62.2, so it can't take a 62dp budget: the tile that names the feature says *Bloqueio*. Report any state that doesn't fit; don't shorten it.
 
 An abbreviation ends in a period, and the period counts toward the width.
 
