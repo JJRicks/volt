@@ -22,6 +22,36 @@
     <string name="riding_status_not_connected_seen_short">Última leitura: %1$s</string>
     <!-- src:188490eaa6ecd6b05fd354c8aa752241f6ae6a82 -->
     <string name="riding_status_not_connected_seen_compact">Não conectada</string>
+    <!-- src:92a272b9824526f5c9fa0a71fdef7fc3244edc04 -->
+    <string name="riding_status_recording">REC %1$s</string>
+    <!-- src:306dc71fe5e8917139a044e445848148e32c71a5 -->
+    <string name="riding_status_recording_reconnecting">REC %1$s · A reconectar…</string>
+    <!-- src:a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0 -->
+    <string name="riding_status_recording_reconnecting_short">%1$s · A reconectar…</string>
+    <!-- src:7cd145f757ae7a410c862537586232a2535d1996 -->
+    <string name="riding_status_recording_not_connected">REC %1$s · Não conectada</string>
+    <!-- src:c894ef6f85a4af280fdf302c4e3731f2ca80af4a -->
+    <string name="riding_status_recording_not_connected_short">%1$s · Não conectada</string>
+    <!-- src:166b70664fe37ad9af57fecda1f9f9f2c61367db -->
+    <string name="riding_status_ride_saved">Viagem guardada</string>
+    <!-- src:c4dbb000e520ac67b53954b2491af6d11503fa5d -->
+    <string name="riding_status_ride_saved_short">Guardada</string>
+    <!-- src:42878a885535e9b4f60fdfcea021a21fff4b0386 -->
+    <string name="riding_status_ride_saved_auto">Guardada automaticamente</string>
+    <!-- src:166b70664fe37ad9af57fecda1f9f9f2c61367db -->
+    <string name="riding_status_ride_saved_auto_short">Viagem guardada</string>
+    <!-- src:cd1fa9ce620a2f671eefe37b0289c88bb87dd43b -->
+    <plurals name="riding_status_recording_spoken_seconds">
+        <item quantity="one">A gravar há %1$d segundo</item>
+        <item quantity="many">A gravar há %1$d de segundos</item>
+        <item quantity="other">A gravar há %1$d segundos</item>
+    </plurals>
+    <!-- src:067aed83a78c97c43b0496e58010ee02f3170a91 -->
+    <plurals name="riding_status_recording_spoken_minutes">
+        <item quantity="one">A gravar há %1$d minuto</item>
+        <item quantity="many">A gravar há %1$d de minutos</item>
+        <item quantity="other">A gravar há %1$d minutos</item>
+    </plurals>
     <!-- src:d59d2df814aa1b90683f7d9bb9d3752e8b38f37d -->
     <string name="riding_warning_code">Código da trotinete %1$s</string>
     <!-- src:e1dcca3c7ed74e7c9d5f0a5eafd9e91033c6a842 -->
