@@ -165,6 +165,8 @@
     <string name="controls_reason_no_choices">Keine Optionen gemeldet</string>
     <!-- src:1db5de4c19ecc9b8d764c0e1d2078327ec4ee875 -->
     <string name="controls_reason_busy">Warte auf die laufende Änderung</string>
+    <!-- src:b2e9ba8c346162f0f43557018788c4582205f244 -->
+    <string name="controls_reason_moving">Halte den Scooter zuerst an</string>
     <!-- src:7d366b04fb98f47fcd6a9cada29fe29179322594 -->
     <string name="controls_reason_no_motion_report">Noch keine Meldung zur Bewegung</string>
     <!-- src:2e0006ecc188f50540cd0247a5ebe0556793e978 -->
