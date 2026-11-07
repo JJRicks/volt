@@ -26,7 +26,7 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 | 🛴 **Riding mode** | A full-screen ride view with big speed, range at this pace and power, in three layouts you can edit, with night vision after sunset. |
 | 🔋 **Battery insights** | Optional range learned from your rides, charging estimates, a live charging card on the lock screen and experimental usable ride energy. |
 | 🔧 **Maintenance** | Distance and time reminders, with a quiet notification when a check is due. |
-| 🌐 **Languages** | English, Spanish (beta) and Portuguese (Portugal, beta), with more in progress. |
+| 🌐 **Languages** | English, plus Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French and Italian (all beta), with more in progress. |
 
 ## Install & connect
 
