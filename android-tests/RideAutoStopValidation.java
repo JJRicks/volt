@@ -293,7 +293,7 @@ public final class RideAutoStopValidation extends Instrumentation {
     private String walkingPowerOff() throws Exception {
         Context context = getTargetContext(); SharedPreferences settings = context.getSharedPreferences("app_settings", 0);
         Class<?> folder = Class.forName("com.jjricks.volt.RideAutoExportFolder");
-        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, String.class, boolean.class}, context, settings, "ride_auto_export_json", true);
+        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, boolean.class}, context, settings, true);
         RideAutoStopPolicy policy = liveRide("Walk to the rack", 180000, 12000, 30, RideAutoStopPolicy.Loss.RECOVERABLE);
         call(folder, null, "queue", new Class<?>[]{SharedPreferences.class, String.class}, settings, policy.rideId);
         check(!settings.contains("ride_auto_export_problem"), "No automatic copy has run yet");
@@ -316,7 +316,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         // stopRide's rideFullySaved → startRideAutoExport ran: the ride's JSON needs a folder and none is chosen, so the pass
         // leaves the ride waiting with its problem.
         await(() -> settings.contains("ride_auto_export_problem") && settings.getString("ride_auto_export_pending", "").contains(policy.rideId), "Automatic ride copy ran after the automatic end");
-        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, String.class, boolean.class}, context, settings, "ride_auto_export_json", false);
+        call(folder, null, "set", new Class<?>[]{Context.class, SharedPreferences.class, boolean.class}, context, settings, false);
         return policy.rideId;
     }
 
