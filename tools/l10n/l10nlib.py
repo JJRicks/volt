@@ -4,10 +4,13 @@ Standard library only. Every tool in tools/l10n imports this module from its own
 """
 
 import collections
+import fcntl
 import json
 import os
 import re
+import stat
 import subprocess
+import tempfile
 import unicodedata
 
 # ---------------------------------------------------------------------------
@@ -439,9 +442,58 @@ def read_text(path):
 
 
 def write_text(path, text):
+    """Replace the file at path with text, atomically: the bytes go to a temporary file in the same directory,
+    which then takes the file's place with os.replace, so a reader (or a second process) sees the whole old
+    file or the whole new one, never a truncated or half-written one. A symlink keeps pointing where it did
+    (its target is replaced), and an existing file keeps its permission bits."""
+    path = os.path.realpath(path) if os.path.islink(path) else path
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
     data = text.encode("utf-8")  # before opening: text that cannot be encoded leaves the file as it was
-    with open(path, "wb") as handle:
-        handle.write(data)
+    try:
+        mode = stat.S_IMODE(os.stat(path).st_mode)
+    except FileNotFoundError:
+        umask = os.umask(0)
+        os.umask(umask)
+        mode = 0o666 & ~umask
+    handle, temporary = tempfile.mkstemp(prefix="." + os.path.basename(path) + ".", suffix=".tmp",
+                                         dir=directory or ".")
+    try:
+        with os.fdopen(handle, "wb") as out:
+            out.write(data)
+        os.chmod(temporary, mode)
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+
+
+def append_line(path, line):
+    """Append one line (a newline is added) to the file at path as a single write, holding an exclusive
+    fcntl.flock on the file meanwhile, so several processes logging to one file never lose or interleave a
+    row. A file whose last line has no newline gets one first, so the new line never joins it."""
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    data = (line + "\n").encode("utf-8")
+    descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        try:
+            size = os.fstat(descriptor).st_size
+            if size:
+                with open(path, "rb") as reader:
+                    reader.seek(size - 1)
+                    if reader.read(1) != b"\n":
+                        data = b"\n" + data
+            written = 0
+            while written < len(data):
+                written += os.write(descriptor, data[written:])
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)

@@ -126,5 +126,78 @@ class TsvTest(unittest.TestCase):
             l10nlib.read_tsv("x\ty\n", ("a", "b"))
 
 
+class ConcurrentWriteTest(unittest.TestCase):
+    """Several processes on one area: council.log_run keeps every row, and write_text never leaves a torn file."""
+
+    PROCESSES = 6
+    ROWS = 100
+
+    def setUp(self):
+        import tempfile
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, self.root)
+
+    def run_processes(self, script, *args):
+        import subprocess
+        here = os.path.dirname(os.path.abspath(__file__))
+        children = [subprocess.Popen([sys.executable, "-c", script, here, self.root, str(n)] + list(args))
+                    for n in range(self.PROCESSES)]
+        for child in children:
+            self.assertEqual(child.wait(timeout=120), 0)
+
+    def test_log_run_from_several_processes_keeps_every_row(self):
+        script = ("import sys, collections\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import council, translib\n"
+                  "paths = translib.Paths(sys.argv[2])\n"
+                  "for i in range(int(sys.argv[4])):\n"
+                  "    council.log_run(paths, 'xx', 'core', collections.OrderedDict([('stage', 'api-call'),\n"
+                  "        ('writer', int(sys.argv[3])), ('n', i), ('usage', {'input_tokens': i})]))\n")
+        self.run_processes(script, str(self.ROWS))
+        import json
+        import translib
+        path = translib.Paths(self.root).work("xx", "core", "runs.jsonl")
+        lines = l10nlib.read_text(path).split("\n")
+        self.assertEqual(lines[-1], "")
+        rows = [json.loads(line) for line in lines[:-1]]  # each line on its own is valid JSON
+        self.assertEqual(len(rows), self.PROCESSES * self.ROWS)
+        self.assertEqual(sorted((r["writer"], r["n"]) for r in rows),
+                         [(w, n) for w in range(self.PROCESSES) for n in range(self.ROWS)])
+        for writer in range(self.PROCESSES):  # each process's rows stay in its own order
+            self.assertEqual([r["n"] for r in rows if r["writer"] == writer], list(range(self.ROWS)))
+
+    def test_append_line_after_a_last_line_without_newline(self):
+        path = os.path.join(self.root, "a", "runs.jsonl")
+        os.makedirs(os.path.dirname(path))
+        with open(path, "wb") as handle:
+            handle.write(b'{"n":0}')
+        l10nlib.append_line(path, '{"n":1}')
+        self.assertEqual(l10nlib.read_text(path), '{"n":0}\n{"n":1}\n')
+
+    def test_write_text_is_whole_under_concurrent_writers(self):
+        script = ("import sys, os\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import l10nlib\n"
+                  "path = os.path.join(sys.argv[2], 'pack.json')\n"
+                  "body = ('writer %s\\n' % sys.argv[3]) * 20000\n"
+                  "for _ in range(int(sys.argv[4])):\n"
+                  "    l10nlib.write_text(path, body)\n"
+                  "    text = l10nlib.read_text(path)\n"
+                  "    assert len(set(text.splitlines())) == 1 and len(text) == len(body), 'torn file'\n")
+        self.run_processes(script, "30")
+        self.assertEqual([n for n in os.listdir(self.root) if n != "pack.json"], [])  # no temporary file left
+
+    def test_write_text_keeps_mode_and_symlink(self):
+        target = os.path.join(self.root, "target.txt")
+        l10nlib.write_text(target, "one\n")
+        os.chmod(target, 0o640)
+        link = os.path.join(self.root, "link.txt")
+        os.symlink(target, link)
+        l10nlib.write_text(link, "two\n")
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(l10nlib.read_text(target), "two\n")
+        self.assertEqual(os.stat(target).st_mode & 0o777, 0o640)
+
+
 if __name__ == "__main__":
     unittest.main()

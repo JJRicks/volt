@@ -176,9 +176,9 @@ def generate_logged(paths, tag, area, step, provider, model, system, prompt, **f
 
 def log_run(paths, tag, area, row):
     row = collections.OrderedDict([("when", now())] + list(row.items()))
-    path = paths.work(tag, area, "runs.jsonl")
-    previous = l10nlib.read_text(path) if os.path.exists(path) else ""
-    l10nlib.write_text(path, previous + translib.dump_json_line(row) + "\n")
+    # One locked append per row: two processes on one area (judge prep and API drafts, say) both keep every
+    # row, usage included. Rewriting the whole file lost rows to the other process's rewrite.
+    l10nlib.append_line(paths.work(tag, area, "runs.jsonl"), translib.dump_json_line(row))
 
 
 # ---------------------------------------------------------------------------
