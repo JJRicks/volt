@@ -1306,7 +1306,19 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    back-translated by a model that drafted nothing, listed as `safety-judged-confirmation`, and
    `safety-judged` only after a confirm of that text and that back-translation on a later line; a
    `fallback` of the merged text keeps English for good. A merge that answers no refusal never
-   counts for a unanimous key. Either way the back-translation
+   counts for a unanimous key. **Two stuck paths** (2026-11-06) list keys no draft can fix any
+   more, each with a `stuck` field and the verdicts `merge` or `fallback`. `all-failed`: a
+   non-safety key whose drafts all fail while every provider with a draft in the area has had both
+   attempts (`excused`); its candidates carry their findings, a merge that passes the checks is
+   `judged`, one that fails is listed again (`stuck.merge`, `merge_problem`, `merge_findings`), and
+   a `fallback` keeps English. `short-for-full`: a `_short` rung whose `volt:overflow="short"` full
+   rung fails only because that short rung does not fit the full's budget either; the short rung is
+   listed even after a confirm or pick, and `stuck` names the full rung, its text, both budgets and
+   why. The merge must pass the checks, fit its own budget (no width finding) and fit the full's;
+   it supersedes the earlier rulings for that English. A non-safety one is `judged`; a safety one is
+   a judged text, back-translated and confirmed as above (`safety-judged-confirmation`), never
+   accepted without that. The full rung is then measured with the merged short rung and passes with
+   the overflow warning. A `fallback` keeps both rungs English. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1789,6 +1801,12 @@ change a check inside a language or batch pull request.
   is the judged text, which needs its back-translation and a later `confirm` naming it, and a later
   `fallback` keeps English for good) or a second `fallback` (English stays). A `confirm` before any
   merge is the latest ruling as before, and a `merge` that answers no refusal counts for nothing.
+  For a `short-for-full` short rung, the lines after the latest `pick` or `confirm` of a text too
+  wide for the full rung answer it: a fitting `merge` (a later merge replaces it; a safety one then
+  needs its back-translation and a later `confirm`), or a `fallback` (English stays and the key is
+  not listed, though a later fitting merge still answers it, as for a refused unanimous text; after
+  a merge, a fallback refuses the merged text for good). For `all-failed`, the latest line is the ruling, as for any
+  non-safety key.
   A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
   and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,

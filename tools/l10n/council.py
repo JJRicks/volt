@@ -73,7 +73,14 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
                            is listed again as safety-refused: a merge there (it must pass the checks)
                            is judged in the same way (back-translated, then a confirm on a later
                            line: safety-judged); a second fallback, or a fallback of the merged text,
-                           keeps English. Read in file order, the rulings of the current English
+                           keeps English. Two stuck paths (2026-11-06) take a merge or a fallback:
+                           all-failed, a non-safety key whose drafts all fail with no attempt left
+                           (all_failed(); a merge that passes is judged, one that fails is listed
+                           again), and short-for-full, a short rung that alone keeps its
+                           volt:overflow="short" full rung from passing, listed even after a confirm
+                           or pick (short_for_full(); the merge must fit its own budget and the
+                           full's, and a safety one is back-translated and confirmed as above).
+                           Read in file order, the rulings of the current English
                            decide this: judge-requests.jsonl never does.
                            confirm (safety keys): every item of SAFETY_CONFIRMATIONS set to true,
                            text the confirmed text and back the back-translation the judge saw,
@@ -1387,20 +1394,34 @@ Candidate = collections.namedtuple("Candidate", "draft provider model model_repo
 KeyState = collections.namedtuple("KeyState", "entry candidates passing agreed unanimous providers stale excused")
 
 
-def analyze(paths, pack, drafts=None, use_java=True):
+def analyze(paths, pack, drafts=None, use_java=True, short_texts=None):
     """{key: KeyState} for every pack entry, with the checks recomputed on every draft.
 
     A draft entry whose volt:src is not the current English's hash (or is missing) is stale: it is
     no candidate, it is not checked, and its draft counts as missing that key (so a ladder it no
     longer covers fails the ladder check). It is listed in KeyState.stale, never relabelled.
+
+    short_texts ({short key: items}, from council_states()) are short rungs the judge rewrote for a
+    volt:overflow="short" full rung (short-for-full, see short_for_full()): each draft's full rung is
+    then measured with that short rung instead of the draft's own (its ladder findings are kept), as
+    the screen will show the decided short rung. The short rung's own candidates are unchanged.
     """
     drafts = translib.list_drafts(paths, pack["tag"], pack["area"]) if drafts is None else drafts
     font = fontmetrics.Font(paths.font())
     measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
     retried = retried_missing(paths, pack["tag"], pack["area"])
+    entries = dict((e["key"], e) for e in pack["entries"])
     results = {}
     for draft in drafts:
-        results[draft.name] = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
+        targets = checklib.draft_targets(draft, pack)
+        results[draft.name] = checklib.check_targets(pack, targets, font, measurer)
+        for full, target in targets.items():
+            short = checklib.overflow_rung(entries, full)
+            if not short or short not in (short_texts or {}) or full not in results[draft.name]:
+                continue
+            pair = collections.OrderedDict([(full, target), (short, (entries[short]["kind"], short_texts[short], []))])
+            rechecked = checklib.check_targets(pack, pair, font, measurer, ladders=False)[full]
+            results[draft.name][full] = rechecked + [f for f in results[draft.name][full] if f["check"] == "ladder"]
     states = collections.OrderedDict()
     for entry in pack["entries"]:
         key = entry["key"]
@@ -1563,7 +1584,7 @@ def load_judge_history(paths, pack):
 Refusal = collections.namedtuple("Refusal", "fallback merge after open")
 
 
-def unanimous_refusals(paths, pack, states):
+def unanimous_refusals(paths, pack, states, skip=()):
     """{key: Refusal} for each unanimous safety key the judge refused (the recovery path of 2026-11-06).
 
     A unanimous safety key normally takes only a confirm or a fallback. Read in judge.jsonl order (the
@@ -1578,11 +1599,13 @@ def unanimous_refusals(paths, pack, states):
     A merge that does not follow a refusal, and a pick, never count here; a confirm before any merge
     returns the key to its ordinary path (latest ruling wins, as before). Keys with no refusal are left
     out. Without a merge (open, or declined: not open) the decision is the ordinary one, a fallback.
+    Keys in skip (short rungs on the short-for-full path, short_for_full()) are left out: their rulings
+    answer that request.
     """
     history = load_judge_history(paths, pack)
     out = collections.OrderedDict()
     for key, state in states.items():
-        if not (state.entry.get("safety") and state.unanimous and key in history):
+        if key in skip or not (state.entry.get("safety") and state.unanimous and key in history):
             continue
         phase, fallback, merge, after = "agreed", None, None, None
         for ruling in history[key]:
@@ -1625,9 +1648,223 @@ def check_merge(paths, pack, entry, ruling, use_java=True, cache=None):
     return None, "the judge's merged text failed the checks", findings
 
 
-def judged_safety_texts(paths, pack, states, use_java=True, refusals=None):
-    """{key: (items or None, why, selection, findings)} for each judgeable_safety() key, and for each
-    unanimous safety key whose refusal the judge answered with a merge (unanimous_refusals()).
+# ---------------------------------------------------------------------------
+# Stuck keys: all-failed and short-for-full (2026-11-06)
+# ---------------------------------------------------------------------------
+
+# The full rung's width finding when its own draft's short rung does not fit the full's budget either
+# (check.check_targets' message for a volt:overflow="short" full rung).
+SHORT_DOES_NOT_FIT = "does not fit either"
+
+# full: the volt:overflow="short" full rung; why: its failing width finding; full_texts: the full rung's
+# drafts that fail only for that; phase: open (listed as short-for-full), merged (a merge that fits both
+# budgets answered it), declined (a fallback while open), refused (a fallback of the merged text); merge:
+# that merge ruling and items its text; after: the confirm or fallback after it; failed: the latest merge
+# that did not fit (while open), with problem and findings.
+ShortForFull = collections.namedtuple(
+    "ShortForFull", "full why full_texts phase merge items after failed problem findings")
+# phase: open (listed as all-failed), merged (the latest ruling is a merge that passes), declined (the latest
+# ruling is a fallback); failed: the latest ruling while open (a merge that fails, or a pick), with problem
+# and findings.
+AllFailed = collections.namedtuple("AllFailed", "phase failed problem findings")
+
+
+def _measure_cache(paths, use_java, cache):
+    if "font" not in cache:
+        cache["font"] = fontmetrics.Font(paths.font())
+        cache["measurer"] = fontmetrics.Measurer(paths.font(), use_java=use_java)
+    return cache["font"], cache["measurer"]
+
+
+def budget_view(entry):
+    """{"dp", "sp", "lines"} of an entry's volt:max (or None without one)."""
+    if not entry.get("budget_dp"):
+        return None
+    return collections.OrderedDict([("dp", entry["budget_dp"]), ("sp", entry["budget_sp"]),
+                                    ("lines", entry.get("budget_lines") or 1)])
+
+
+def short_at_full_budget(paths, pack, full_entry, short_entry, items, use_java=True, cache=None):
+    """Width errors for a short rung's text measured at its full rung's budget (the room the screen shows
+    it in where the full rung does not fit: its size, lines and width, as check.check_targets measures the
+    pair). [] when it fits, or when the language's font is not measured here."""
+    if not full_entry.get("budget_dp") or pack["language"].get("font") != "saira":
+        return []
+    _, measurer = _measure_cache(paths, use_java, {} if cache is None else cache)
+    lines = full_entry.get("budget_lines") or 1
+    quantities = list(items)
+    widths = fontmetrics.measure_lines(measurer, [
+        (full_entry["budget_sp"], packlib.sample_text(items[q], checklib._formatted(short_entry)), lines)
+        for q in quantities])
+    out = []
+    for q, width in zip(quantities, widths):
+        if width > full_entry["budget_dp"] + 0.01:
+            shown = "no width" if width >= fontmetrics.NO_FIT else "%.1fdp" % width
+            out.append(checklib.finding("width", checklib.ERROR, "%s at %gsp exceeds %s's %gdp budget%s, where the "
+                                        "screen shows this short rung instead (%s)" % (
+                                            shown, full_entry["budget_sp"], full_entry["key"], full_entry["budget_dp"],
+                                            "" if lines == 1 else " in %d lines of whole words" % lines,
+                                            measurer.method),
+                                        q if short_entry["kind"] == "plural" else None))
+    return out
+
+
+def check_short_merge(paths, pack, entry, full_entry, ruling, use_java=True, cache=None):
+    """(items or None, why, findings) for a judge's merged short rung answering short-for-full: it must pass
+    check.py's checks, fit its own budget (no width finding at all) and fit its full rung's budget."""
+    items, why, findings = check_merge(paths, pack, entry, ruling, use_java, cache)
+    if items is None:
+        return None, why, findings
+    if any(f["check"] == "width" and f["severity"] != checklib.INFO for f in findings):
+        return None, "the judge's merged short rung does not fit its own budget", findings
+    wide = short_at_full_budget(paths, pack, full_entry, entry, items, use_java, cache)
+    if wide:
+        return None, "the judge's merged short rung does not fit %s's budget" % full_entry["key"], findings + wide
+    return items, None, findings
+
+
+def short_for_full(paths, pack, states, use_java=True, cache=None):
+    """{short key: ShortForFull} for each short rung that alone keeps its full rung from passing.
+
+    A full rung marked volt:overflow="short" whose drafts all fail, at least one of them only because its
+    draft's short rung does not fit the full's budget either (check.py's width error, and no other error),
+    is stuck: no draft path fixes it, since the short rung passes its own checks and is never redrafted,
+    and a confirmed or picked short rung is never listed again. Its short rung (when a draft of it passes
+    its own checks) is then listed as short-for-full, for a merge or a fallback, even if it was confirmed or picked:
+    the new ruling supersedes the old for that English. Read in judge.jsonl order (current English), the
+    rulings after the latest pick or confirm of a text that does not fit the full's budget answer it:
+
+      - a merge that passes the checks, fits its own budget and fits the full's (check_short_merge()) is
+        the short rung's text (merged); a later merge replaces it, and one that does not fit lists the key
+        again with the failure (open);
+      - a fallback while open declines: the short rung (and so its ladder group) stays English and is
+        not listed, but a later merge still answers it (as unanimous_refusals() replays a refusal: a
+        fallback, then a merge, its back-translation and a confirm);
+      - after a merge, a fallback refuses the merged text for good, and a confirm is the latest confirm.
+
+    A non-safety merged text is decided as judged. A safety one is a judged safety text (see
+    judged_safety_texts()): a model that drafted nothing back-translates exactly that text and the judge
+    confirms it (safety-judged-confirmation), as for safety-refused; it is never accepted without that.
+    states must be analyze()'s plain states (not council_states()'s, which already measure the full rung
+    with the merged short).
+    """
+    cache = {} if cache is None else cache
+    entries = dict((e["key"], e) for e in pack["entries"])
+    history = load_judge_history(paths, pack)
+    out = collections.OrderedDict()
+    for full, fstate in states.items():
+        short = checklib.overflow_rung(entries, full)
+        if not short or short not in states or not fstate.candidates or fstate.passing:
+            continue
+        sstate = states[short]
+        if not sstate.passing:
+            continue  # the short rung fails its own checks: not this path
+        stuck = []
+        for c in fstate.candidates:
+            errors = [f for f in c.findings if f["severity"] == checklib.ERROR]
+            if errors and all(f["check"] == "width" and SHORT_DOES_NOT_FIT in f["message"] for f in errors):
+                stuck.append((c, errors[0]["message"]))
+        if not stuck:
+            continue
+        rulings = history.get(short, [])
+        start = 0
+        for i, r in enumerate(rulings):
+            if r["verdict"] in ("pick", "confirm"):
+                items = translib.items_of(sstate.entry["kind"], r.get("text"))
+                if items is None or short_at_full_budget(paths, pack, entries[full], sstate.entry, items, use_java,
+                                                         cache):
+                    start = i + 1
+        phase, merge, items, after, failed, problem, findings = "open", None, None, None, None, None, []
+        for r in rulings[start:]:
+            verdict = r["verdict"]
+            if phase == "refused":
+                break
+            if verdict == "merge":
+                got, why, found = check_short_merge(paths, pack, sstate.entry, entries[full], r, use_java, cache)
+                if got is not None:
+                    phase, merge, items, after, failed, problem, findings = "merged", r, got, None, None, None, found
+                else:
+                    phase, merge, items, after, failed, problem, findings = "open", None, None, None, r, why, found
+            elif verdict == "fallback":
+                if phase == "merged":
+                    phase, after = "refused", r
+                else:
+                    phase = "declined"
+            elif verdict == "confirm" and phase == "merged":
+                after = r
+        texts = []
+        for c, _ in stuck:
+            text = translib.text_value(fstate.entry["kind"], c.items)
+            if text not in texts:
+                texts.append(text)
+        out[short] = ShortForFull(full, stuck[0][1], texts, phase, merge, items, after, failed, problem, findings)
+    return out
+
+
+def all_failed(paths, pack, states, drafts, skip=(), use_java=True, cache=None):
+    """{key: AllFailed} for each non-safety key whose drafts all fail with nothing left to redraft.
+
+    A key with drafts where no candidate passes, and every provider with a draft in the area is excused
+    for it (excused_providers(): both attempts at the key for the current English, still failing or
+    missing), would otherwise fall back to English for good. It is listed as all-failed, for a merge or a
+    fallback, with every candidate's findings. The latest ruling (current English) answers it, as for any
+    non-safety key: a merge that passes the checks is decided as judged; a merge that fails (or a pick:
+    no draft passes) lists it again with the failure; a fallback keeps English and ends the listing.
+    The short rungs in skip (short_for_full()'s) take that path instead, and their full rungs, which
+    fail only because of them, wait for it. Safety keys never take this path.
+    """
+    providers_in_area = set(d.provider for d in drafts)
+    skip = set(skip) | set(s.full for s in (skip.values() if isinstance(skip, dict) else ()))
+    rulings, _ = load_judge(paths, pack)
+    out = collections.OrderedDict()
+    for key, state in states.items():
+        entry = state.entry
+        if (entry.get("safety") or key in skip or not state.candidates or state.passing or not providers_in_area
+                or not providers_in_area <= set(state.excused)):
+            continue
+        ruling = rulings.get(key)
+        if ruling is None:
+            out[key] = AllFailed("open", None, None, [])
+        elif ruling["verdict"] == "fallback":
+            out[key] = AllFailed("declined", None, None, [])
+        elif ruling["verdict"] == "merge":
+            items, why, findings = check_merge(paths, pack, entry, ruling, use_java, cache)
+            out[key] = (AllFailed("merged", None, None, findings) if items is not None else
+                        AllFailed("open", ruling, why, findings))
+        else:
+            out[key] = AllFailed("open", ruling, "the judge ruled %s; no draft passes, so only a merge or a "
+                                 "fallback counts" % ruling["verdict"], [])
+    return out
+
+
+def council_states(paths, pack, drafts=None, use_java=True):
+    """(states, shorts): analyze()'s states and short_for_full()'s stuck short rungs. When the judge merged
+    a short rung that fits (merged, and not refused), the full rungs are measured with it (analyze()'s
+    short_texts), so a full rung that failed only because of its short rung passes, with the overflow
+    warning, and takes its ordinary path (agreed, or for a safety key its back-translation and confirm)."""
+    drafts = translib.list_drafts(paths, pack["tag"], pack["area"]) if drafts is None else drafts
+    states = analyze(paths, pack, drafts, use_java)
+    shorts = short_for_full(paths, pack, states, use_java)
+    merged = collections.OrderedDict((k, s.items) for k, s in shorts.items() if s.phase == "merged")
+    if merged:
+        states = analyze(paths, pack, drafts, use_java, short_texts=merged)
+    return states, shorts
+
+
+def stuck_view(failed, problem, findings, extra=()):
+    """A judge request's stuck field: the latest ruling that did not answer the key (a failed merge), why,
+    and its findings (no info findings), plus extra fields."""
+    return collections.OrderedDict(list(extra) + [
+        ("merge", failed.get("text") if failed else None), ("merge_problem", problem if failed else None),
+        ("merge_findings", [f for f in findings if f["severity"] != checklib.INFO] if failed else [])])
+
+
+def judged_safety_texts(paths, pack, states, use_java=True, refusals=None, shorts=None):
+    """{key: (items or None, why, selection, findings)} for each judgeable_safety() key, for each
+    unanimous safety key whose refusal the judge answered with a merge (unanimous_refusals()), and for
+    each safety short rung the judge rewrote for its full rung (shorts: short_for_full(), from
+    council_states(); a merged short is its text, a refused one gives no text, an open or declined one
+    is left out, and none of them takes the other paths here).
 
     items is the text of the judge's latest pick or merge for that key: a pick counts only while the
     named draft passes and still has the copied text, and a merge only while it passes the checks.
@@ -1638,10 +1875,20 @@ def judged_safety_texts(paths, pack, states, use_java=True, refusals=None):
     """
     rulings, _ = load_judge(paths, pack)
     selections = load_selections(paths, pack)
-    refusals = unanimous_refusals(paths, pack, states) if refusals is None else refusals
+    shorts = shorts or {}
+    refusals = unanimous_refusals(paths, pack, states, shorts) if refusals is None else refusals
     cache = {}
     out = collections.OrderedDict()
     for key, state in states.items():
+        if key in shorts:
+            sff = shorts[key]
+            if not state.entry.get("safety"):
+                continue
+            if sff.phase == "merged":
+                out[key] = (sff.items, None, sff.merge, sff.findings)
+            elif sff.phase == "refused":
+                out[key] = (None, "the judge refused its merged short rung: %s" % sff.after.get("reason"), None, [])
+            continue
         refusal = refusals.get(key)
         if refusal is not None and refusal.merge is not None:
             if refusal.after is not None and refusal.after["verdict"] == "fallback":
@@ -1713,9 +1960,9 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
     out = out or sys.stdout
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
-    states = analyze(paths, pack, drafts, use_java)
+    states, shorts = council_states(paths, pack, drafts, use_java)
     drafters = all_drafter_models(drafts)
-    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
+    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java, shorts=shorts),
                                       load_backtranslations(paths, pack), drafters)
     if not targets:
         out.write("no safety keys to back-translate\n")
@@ -1824,8 +2071,8 @@ def import_backtranslation(paths, tag, area, source, model, use_java=True, out=N
                                  "\n  ".join(problems))
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
-    states = analyze(paths, pack, drafts, use_java)
-    current = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java))
+    states, shorts = council_states(paths, pack, drafts, use_java)
+    current = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java, shorts=shorts))
     targets = collections.OrderedDict()
     for key in strings:
         state = current.get(key)
@@ -1853,8 +2100,8 @@ def backtranslation_prompt_file(paths, tag, area, use_java=True):
     """
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
-    states = analyze(paths, pack, drafts, use_java)
-    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
+    states, shorts = council_states(paths, pack, drafts, use_java)
+    targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java, shorts=shorts),
                                       load_backtranslations(paths, pack), all_drafter_models(drafts))
     request = backtranslation_request(tag, area, targets)
     request_path = backtranslation_request_path(paths, tag, area, request["id"])
@@ -1931,21 +2178,56 @@ def judge_requests(paths, tag, area, use_java=True):
     lists it again. A merge that passes is then a judged text, back-translated and listed as
     safety-judged-confirmation exactly as above; once the judge declines to merge, or refuses the
     merged text, the key is no longer listed.
+
+    Two stuck paths (2026-11-06) carry a stuck field, which no other row has. A non-safety key whose
+    drafts all fail, with nothing left to redraft (all_failed()), is listed as all-failed for a merge or
+    a fallback, its candidates showing why each failed; a merge that fails lists it again, with
+    stuck.merge, merge_problem and merge_findings. A short rung that alone keeps its volt:overflow="short"
+    full rung from passing (short_for_full()) is listed as short-for-full for a merge or a fallback, even
+    after a confirm or pick; stuck names the full rung, its text, both budgets and why it fails, since
+    the merged short must fit its own budget and the full's. A non-safety merge that fits is decided as
+    judged; a safety one is back-translated and listed as safety-judged-confirmation, as above.
     """
     pack = packlib.load_pack(paths, tag, area)
-    states = analyze(paths, pack, use_java=use_java)
+    drafts = translib.list_drafts(paths, tag, area)
+    states, shorts = council_states(paths, pack, drafts, use_java)
     backs = load_backtranslations(paths, pack)
-    refusals = unanimous_refusals(paths, pack, states)
-    judged = judged_safety_texts(paths, pack, states, use_java, refusals)
+    refusals = unanimous_refusals(paths, pack, states, shorts)
+    judged = judged_safety_texts(paths, pack, states, use_java, refusals, shorts)
+    failing = all_failed(paths, pack, states, drafts, shorts, use_java)
+    entries = dict((e["key"], e) for e in pack["entries"])
     rows = []
     for key, state in states.items():
         entry = state.entry
         safety = entry.get("safety") or []
         if not state.candidates:
             continue
-        back, text, refusal = None, None, None
+        back, text, refusal, stuck = None, None, None, None
         verdicts = ["confirm", "fallback"] if safety else ["pick", "merge", "fallback"]
-        if safety and state.unanimous and key in refusals:
+        if key in shorts:
+            sff = shorts[key]
+            if sff.phase in ("declined", "refused") or (sff.phase == "merged" and not safety):
+                continue  # answered: English stays, or the merged short is decided as judged
+            if sff.phase == "merged":
+                back = current_backtranslation(state._replace(agreed=sff.items), backs.get(key))
+                if back is None:
+                    continue  # back-translate the merged short first, then the judge confirms it
+                reason, text = "safety-judged-confirmation", sff.items
+            else:
+                full = entries[sff.full]
+                reason, verdicts = "short-for-full", ["merge", "fallback"]
+                text = state.agreed or (representative(state.passing) if state.passing else None)
+                if safety and state.unanimous:
+                    back = current_backtranslation(state, backs.get(key))
+                stuck = stuck_view(sff.failed, sff.problem, sff.findings, [
+                    ("full", sff.full), ("full_english", full["english"]), ("full_text", sff.full_texts),
+                    ("full_budget", budget_view(full)), ("budget", budget_view(entry)), ("why", sff.why)])
+        elif key in failing:
+            if failing[key].phase != "open":
+                continue  # a merge that passes is decided as judged; a fallback keeps English
+            reason, verdicts = "all-failed", ["merge", "fallback"]
+            stuck = stuck_view(failing[key].failed, failing[key].problem, failing[key].findings)
+        elif safety and state.unanimous and key in refusals:
             refused = refusals[key]
             items, why, selection = judged[key][:3] if key in judged else (None, None, None)
             if items is not None:
@@ -1997,7 +2279,7 @@ def judge_requests(paths, tag, area, use_java=True):
              else collections.OrderedDict()),
             ("verdicts", verdicts),
             ("confirm", list(SAFETY_CONFIRMATIONS) if "confirm" in verdicts else []),
-            ("refusal", refusal)]))
+            ("refusal", refusal)] + ([("stuck", stuck)] if stuck is not None else [])))
     return pack, rows
 
 
@@ -2043,6 +2325,17 @@ def write_judge_requests(paths, tag, area, use_java=True):
         "is its back-translation. Confirm or fall back exactly as for safety-confirmation, copying the request's "
         "text and backtranslation.back. A confirm of any other text, or of a text without that back-translation, "
         "counts for nothing, and a new pick or merge needs a new back-translation and a new confirm.",
+        "- all-failed: every draft failed the checks (each candidate's findings say why) and no provider has an "
+        "attempt left. Merge a text that keeps the English meaning and passes the checks (often the fix is "
+        "shorter wording for the width budget in context), or answer fallback to keep English. A merge that "
+        "fails comes back with stuck.merge, merge_problem and merge_findings.",
+        "- short-for-full: this short rung (its text field, already accepted) passes its own checks, but its full "
+        "rung (stuck.full, stuck.full_text) is too wide, and the screen shows this short rung in the full's room "
+        "(stuck.full_budget) where the full does not fit; this short rung is too wide there too (stuck.why). "
+        "Merge a shorter short rung that keeps the English meaning and fits both its own budget (stuck.budget) "
+        "and the full's (an abbreviation such as \"prox.\" is fine; never break a word), or answer fallback to keep "
+        "English for both rungs. Your merge replaces the earlier ruling. A safety key's merge is not used yet: a "
+        "model that drafted nothing back-translates it, and it comes back to you as safety-judged-confirmation.",
         "- Use the language rules below; the context field of each request shows the screen, purpose and budget.",
         instructions(pack, "standard"),
     ])
@@ -2100,6 +2393,10 @@ def decide(paths, tag, area, final=False, use_java=True):
     group falls back as a whole when any rung does. A full rung marked volt:overflow="short" is checked
     again with its group's decided short rung (as check.py checks a draft's pair): one over its budget
     stands only if that short rung fits the full's budget, else it falls back, and its group with it.
+    A non-safety key whose drafts all fail with no attempt left (all_failed()) is judged from the
+    judge's merge (a merge that passes the checks; a fallback, or none, keeps English). A short rung on
+    the short-for-full path (short_for_full()) takes decide_short_for_full(), and its full rung is
+    checked with the merged short rung (council_states()).
     Keys still waiting for a judge ruling or a
     back-translation are pending; with final=True they fall back instead.
 
@@ -2109,11 +2406,12 @@ def decide(paths, tag, area, final=False, use_java=True):
     """
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
-    states = analyze(paths, pack, drafts, use_java)
+    states, shorts = council_states(paths, pack, drafts, use_java)
     rulings, problems = load_judge(paths, pack)
     backs = load_backtranslations(paths, pack)
-    refusals = unanimous_refusals(paths, pack, states)
-    judged = judged_safety_texts(paths, pack, states, use_java, refusals)
+    refusals = unanimous_refusals(paths, pack, states, shorts)
+    judged = judged_safety_texts(paths, pack, states, use_java, refusals, shorts)
+    failing = all_failed(paths, pack, states, drafts, shorts, use_java)
     drafters = all_drafter_models(drafts)
     previous = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
     font = fontmetrics.Font(paths.font())
@@ -2154,6 +2452,10 @@ def decide(paths, tag, area, final=False, use_java=True):
                 rows[key] = old
             else:
                 rows[key] = row(entry, state, "fallback-english", "no current drafts" if state.stale else "no drafts")
+            continue
+        if key in shorts:
+            rows[key] = decide_short_for_full(entry, state, shorts[key], judged.get(key), backs.get(key), drafters,
+                                              pending, row)
             continue
         if entry.get("safety"):
             if not state.unanimous:
@@ -2227,7 +2529,7 @@ def decide(paths, tag, area, final=False, use_java=True):
             rows[key] = row(entry, state, "agreed", "%d of %d drafts agree" % (
                 len(state.passing), len(state.candidates)), state.agreed, checks=checks)
             continue
-        if not state.passing:
+        if not state.passing and key not in failing:
             rows[key] = row(entry, state, "fallback-english", "no draft passed the checks")
             continue
         if ruling is None:
@@ -2257,6 +2559,8 @@ def decide(paths, tag, area, final=False, use_java=True):
         elif verdict == "merge":
             items = translib.items_of(entry["kind"], ruling.get("text"))
             if items is None:
+                if key in failing:  # all-failed: listed again with the failure, for a new merge or a fallback
+                    pending.append((key, "a new merge or fallback ruling (all drafts failed)"))
                 rows[key] = row(entry, state, "fallback-english", "judge's merged text has the wrong shape",
                                 judge=ruling)
             else:
@@ -2267,9 +2571,13 @@ def decide(paths, tag, area, final=False, use_java=True):
                     rows[key] = row(entry, state, "judged", "judge merged: %s" % ruling["reason"], items, ruling,
                                     checks=findings)
                 else:
+                    if key in failing:  # all-failed: listed again with the failure, for a new merge or a fallback
+                        pending.append((key, "a new merge or fallback ruling (all drafts failed)"))
                     rows[key] = row(entry, state, "fallback-english", "judge's merged text failed the checks",
                                     judge=ruling, checks=findings)
         else:
+            if key in failing:
+                pending.append((key, "a merge or fallback ruling (all drafts failed)"))
             rows[key] = row(entry, state, "fallback-english", "verdict %s is only for safety keys" % verdict,
                             judge=ruling)
 
@@ -2330,6 +2638,33 @@ def overflow_pair_fallbacks(pack, rows, font, measurer):
                 "; ".join(f["message"] for f in widths), rows[key]["reason"])
             rows[key]["text"] = None
     return rows
+
+
+def decide_short_for_full(entry, state, sff, judged, back, drafters, pending, row):
+    """The decision row for a short rung on the short-for-full path (short_for_full()).
+
+    Open: English, waiting for the judge's merge or fallback (pending), with the failed merge if any.
+    Declined or refused: English. Merged: a non-safety short is judged with the merged text; a safety
+    short takes decide_judged_safety() with judged (judged_safety_texts()' row for it) and the latest
+    ruling after the merge (or the merge), so it is safety-judged only after a model that drafted
+    nothing back-translated exactly that text and the judge confirmed it.
+    """
+    why = "short-for-full: %s fails only because this short rung does not fit its budget (%s)" % (sff.full, sff.why)
+    if sff.phase == "open":
+        pending.append((entry["key"], "a short-for-full ruling (a merge that fits both budgets, or a fallback)"))
+        if sff.failed is not None:
+            return row(entry, state, "fallback-english", "%s; %s" % (why, sff.problem), judge=sff.failed,
+                       checks=[f for f in sff.findings if f["severity"] != checklib.INFO])
+        return row(entry, state, "fallback-english", "%s; not judged" % why)
+    if sff.phase == "declined":
+        return row(entry, state, "fallback-english", "%s; the judge ruled fallback" % why)
+    if sff.phase == "refused":
+        return row(entry, state, "fallback-english", "%s; the judge refused its merged short rung: %s" % (
+            why, sff.after.get("reason")), judge=sff.after)
+    if entry.get("safety"):
+        return decide_judged_safety(entry, state, why, judged, sff.after or sff.merge, back, drafters, pending, row)
+    return row(entry, state, "judged", "%s; judge merged a shorter short rung: %s" % (why, sff.merge.get("reason")),
+               sff.items, sff.merge, checks=[f for f in sff.findings if f["severity"] != checklib.INFO])
 
 
 def decide_judged_safety(entry, state, why, judged, ruling, back, drafters, pending, row):
