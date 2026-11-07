@@ -88,6 +88,17 @@ November 7, 2026
   "Charging" and "estimating time left" instead of Connected until Volt was
   opened. The release notes list it as a known limit; the fix is planned for
   1.12.1, with a more balanced card layout.
+- Release path: the published APK is a release-key build of the merge
+  commit. It is checked three times: when built, before its assets are
+  uploaded to the draft, and again before publishing. Each time, its
+  contents outside META-INF must match the swept build, it must carry
+  1.11.1's certificate, it must be zipaligned and it must read 1.12.0 (55).
+  The draft's body must equal the final notes: all seven languages, the
+  live charging card limit, and none of the earlier draft's "until
+  Brazilian Portuguese is ready" wording. Any failed check stops the
+  release. Tested by feeding the build step's checks a differently signed
+  APK and an older 1.12.0 build; both were refused. The earlier draft body
+  was refused too.
 - Real-phone checks only the owner can do, not yet done:
   - the live charging card in the background through a full real charge;
   - a maintenance reminder notification after a reboot, and under battery
