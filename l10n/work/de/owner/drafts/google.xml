@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <string name="owner_shizuku_title" volt:src="c9636c7ede7b9610b58963cfa0273a8dce007b72">Einrichtung nur am Telefon</string>
+    <string name="owner_shizuku_main_profile_only" volt:src="9feb5a68b8740f95681154ac1466983a644abad1">Nur im Android-Hauptprofil.</string>
+    <string name="owner_shizuku_import_backup" volt:src="381afce9a36947119565397388392c20ade240ba">Backup importieren</string>
+    <string name="owner_shizuku_back_to_choices" volt:src="200b9443aac4cec42a3fc8bd4193fa205aedfde7">Zurück zur Einrichtungsauswahl</string>
+    <string name="owner_shizuku_needs_android_11" volt:src="6390dbd9379a6b9f580799e0783b64c74fcafea1">Erfordert Android 11 oder höher.</string>
+    <string name="owner_shizuku_connecting_title" volt:src="5d006cefe48f252748471b8b59a1109c5824a525">Scooter in NAVEE verbinden</string>
+    <string name="owner_shizuku_restoring_title" volt:src="22742f70b1986bdde7a6317edf9d0f59bde30380">NAVEE-Protokollierung wird wiederhergestellt…</string>
+    <string name="owner_shizuku_preparing_title" volt:src="23b6b5501196b942d4a2f7834a868c4a8a2a173f">Auslesen wird vorbereitet…</string>
+    <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Verbinde dich in NAVEE und kehre dann zurück.</string>
+    <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Lass Shizuku weiterlaufen.</string>
+    <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Auslesen abbrechen</string>
+    <plurals name="owner_countdown_seconds_left" volt:src="117181f9d57065ad51050d70700613ef1e97827a">
+        <item quantity="one">Noch %1$d Sekunde</item>
+        <item quantity="other">Noch %1$d Sekunden</item>
+    </plurals>
+    <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s verbleibend</string>
+    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Einrichtung beenden?</string>
+    <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Warte hier, bis NAVEE wiederhergestellt ist.</string>
+    <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Weiter warten</string>
+    <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Einrichtung beenden</string>
+    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Zuerst Bereinigung abschließen</string>
+    <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Die NAVEE-Protokollierung ist möglicherweise noch eingeschaltet.</string>
+    <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">NAVEE-Protokollierung wiederherstellen</string>
+    <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Zurück</string>
+    <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Bereit zum Importieren</string>
+    <string name="owner_shizuku_shared_identity_found" volt:src="d66323703ac9e0839a21f678b24c68ff37fdce90">Mitnutzer-Schlüssel gefunden</string>
+    <string name="owner_shizuku_owner_identity_found" volt:src="f4adc890a390a92df1d54d9a62730e7e9c836df3">Besitzerschlüssel gefunden</string>
+    <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">NAVEE wiederhergestellt</string>
+    <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Besitzer-Einrichtung importieren</string>
+    <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Verwerfen</string>
+    <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Shizuku starten</string>
+    <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku installiert</string>
+    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1">Install.</string>
+    <string name="owner_shizuku_running" volt:src="95edb635c6a1e52241514201596f24fdbfee39e8">Shizuku läuft</string>
+    <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e">Öffnen</string>
+    <string name="owner_shizuku_setup_guide" volt:src="a7d9140e980c3ea35d0172716f309744b04d6448">Shizuku-Einrichtungsanleitung</string>
+    <string name="owner_shizuku_install_shizuku" volt:src="a2db2fcdc51a887f9971593d7640c055a52e6e4b">Shizuku installieren</string>
+    <string name="owner_shizuku_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Shizuku öffnen</string>
+    <string name="owner_shizuku_allow_title" volt:src="c00593b9bca561d4085d06dea7aa4c4d6199c8ce">Vorübergehenden Zugriff erlauben</string>
+    <string name="owner_shizuku_allow_warning" volt:src="20d3857731639b5a4a00b50f6a7df0a8a5821e27">Umfassender Debugging-Zugriff wird gewährt. Wird nur hier verwendet. Es wird nichts hochgeladen.</string>
+    <string name="owner_shizuku_open_shizuku_description" volt:src="b53379f5934b58dddb10b4ba9fa0765656d0e5a1">Shizuku öffnen, um Volt zuzulassen</string>
+    <string name="owner_shizuku_help" volt:src="f1bdb02d6ec6dd8b8ab16ef3a60fc1537313f6b3">Shizuku-Hilfe</string>
+    <string name="owner_shizuku_allow_access" volt:src="eb0418c06e6a6d9058b66457924a77e08cab566a">Shizuku-Zugriff erlauben</string>
+    <string name="owner_shizuku_allow_access_description" volt:src="2e88ad03a09b6fd7198a9230da461005cc510e9f">Fordert umfassenden Debugging-Zugriff von Shizuku an; startet das Auslesen nicht</string>
+    <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Shizuku-Verbindung prüfen</string>
+    <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Prüft, ob Shizuku läuft</string>
+    <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Auslesen von deinem Scooter</string>
+    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Verbinde dich zuerst in der NAVEE-App mit deinem geparkten Scooter.</string>
+    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Das Auslesen startet die NAVEE-App neu und schaltet die Protokollierung vorübergehend ein. Lass Shizuku laufen, bis die Bereinigung abgeschlossen ist.</string>
+    <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Ich besitze diesen Scooter oder habe die Erlaubnis.</string>
+    <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Auslesen starten</string>
+    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, erledigt</string>
+    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, noch nicht</string>
+    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, noch nicht. %2$s</string>
+    <string name="owner_steps_description" volt:src="7377e94793cdc4d9aefd72d30f41b659970c914c">Schritt %1$d von 3</string>
+    <string name="owner_status_access_denied" volt:src="cae25526d0f496164d3eb9244f08695bdfc797c8">Zugriff verweigert</string>
+    <string name="owner_status_not_running" volt:src="54010bfefb6d488c6e1259e53b9726e17585488b">Shizuku läuft nicht</string>
+    <string name="owner_status_update_shizuku" volt:src="c5ed2868ca02d7759579dba7b4916779a8b9ac2d">Shizuku aktualisieren</string>
+    <string name="owner_status_root_unsupported" volt:src="5519e39b0d4356bae71e0c9e5da02f46b8b9e61a">Root-Shizuku wird nicht unterstützt. Starte es mit kabellosem Debugging.</string>
+    <string name="owner_status_allow_in_shizuku" volt:src="76697c1aaf702336da47932c8acd5fea587a1043">Volt in Shizuku zulassen</string>
+    <string name="owner_status_shizuku_stopped" volt:src="aa45b05b1d9bcee4575d265753ae1d1dc866fdef">Shizuku wurde beendet</string>
+    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Bereinigung unbekannt. Wiederherstellung am Computer nutzen.</string>
+    <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Konnte nicht starten. Nichts wurde geändert.</string>
+    <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Hilfsprogramm startete nicht</string>
+    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Bereinigung der Protokollierung unbestätigt</string>
+    <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Nichts gefunden in 90 s</string>
+    <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Mehrere Scooter. Verbinde dich mit einem.</string>
+    <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">Ein weiteres Auslesen läuft</string>
+    <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt konnte das Protokoll der NAVEE-App nicht lesen</string>
+    <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Beendet</string>
+    <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Auslesen fehlgeschlagen</string>
+    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Protokollierung erneut wiederherstellen</string>
+    <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">NAVEE-Protokollierung wird wiederhergestellt…</string>
+    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Verbindung zu Shizuku verloren. Protokollierung wiederherstellen.</string>
+    <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Kein Browser gefunden</string>
+    <string name="owner_setup_empty_or_large" volt:src="19d5fe0538740551de57168c33d54fd920c6ce08">Die Besitzer-Einrichtungsdatei ist leer oder zu groß.</string>
+    <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 Hex-Zeichen erforderlich</string>
+    <string name="owner_setup_no_identity" volt:src="b147e42ee8379471878498ae4d3a9f30b197e989">Kein Besitzerschlüssel in der Datei</string>
+    <string name="owner_setup_unsupported_role" volt:src="caf895d1a13d5c149e906c58aadd3ec988ed1a12">Nicht unterstützte Rolle</string>
+    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207">Diese Datei enthält widersprüchliche Besitzerschlüssel oder Rollen. Lies eine einzelne NAVEE-Kontoverbindung aus oder importiere ein privates Einrichtungs-Backup.</string>
+    <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Import fehlgeschlagen. Wähle die Datei erneut aus.</string>
+    <string name="owner_setup_enter_identity" volt:src="61ea1a66e824f413d1f78a1dd63978f6767b84a6">Gib einen 12-stelligen Besitzerschlüssel ein.</string>
+    <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Scooter</string>
+</resources>
