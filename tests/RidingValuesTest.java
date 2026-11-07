@@ -28,9 +28,12 @@ public final class RidingValuesTest {
         meterMatchesRecording();
         unknownUntilSign();
         timers();
+        rideTimeNeverFreezes();
+        rideTimeAcrossReopen();
+        tripRestartEvidence();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time never freezes or snaps back, trip restarts vs reconnects, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -644,6 +647,150 @@ public final class RidingValuesTest {
         values.setRecordingStart(null);
         trip = values.trip(1.2, 200_000);
         check(!trip.fromRecording && near(trip.km, 3.7, 1e-9) && values.recordingTimeMs(200_000) == null, "otherwise the scooter's trip");
+    }
+
+    /**
+     * Owner, Nov 7: ride time froze at 2:00 or 3:00. The scooter's whole-minute trip counter can stand still
+     * (a stop early in a trip) while its reports keep coming every second; ride time kept counting past it
+     * and then pinned at the next whole minute. It must keep counting and never run backwards.
+     */
+    private static void rideTimeNeverFreezes() {
+        RidingValues values = new RidingValues();
+        long t = 1_000_000;
+        values.sample("trip_minutes", 2, 0x92, t);
+        long previous = values.rideTimeMs(t);
+        check(previous == 2 * 60_000L, "anchored at the scooter's whole minutes: " + previous);
+        for (int s = 1; s <= 300; s++) {
+            long now = t + s * 1000L;
+            values.sample("trip_minutes", 2, 0x92, now);
+            long shown = values.rideTimeMs(now);
+            check(shown - previous == 1000, "ride time keeps counting while the scooter's minute stands still, at "
+                    + s + " s: " + previous + " -> " + shown);
+            previous = shown;
+        }
+        // The scooter's minute moves on again: ride time doesn't jump back to it.
+        long now = t + 301_000;
+        values.sample("trip_minutes", 3, 0x92, now);
+        check(values.rideTimeMs(now) - previous == 1000, "and doesn't snap back when the minute ticks over: " + values.rideTimeMs(now));
+        // A scooter minute ahead of ours still pulls ride time forward.
+        now += 1000;
+        values.sample("trip_minutes", 9, 0x92, now);
+        check(values.rideTimeMs(now) == 9 * 60_000L, "a scooter count ahead of ours moves it forward: " + values.rideTimeMs(now));
+        // Power cycled: the trip starts over.
+        now += 1000;
+        values.sample("trip_minutes", 0, 0x92, now);
+        check(values.rideTimeMs(now) == 0, "a lower count is a new trip: " + values.rideTimeMs(now));
+        // A long silence and then a higher count: a different trip, not hours of this one.
+        values.sample("trip_minutes", 1, 0x92, now + 1000);
+        now += 2 * 3_600_000L;
+        values.sample("trip_minutes", 4, 0x92, now);
+        check(values.rideTimeMs(now) == 4 * 60_000L, "after a long gap the scooter's count re-anchors: " + values.rideTimeMs(now));
+    }
+
+    /** Leaving riding mode and coming back keeps the count instead of snapping back to the scooter's whole minute. */
+    private static void rideTimeAcrossReopen() {
+        RidingValues first = new RidingValues();
+        long t = 5_000_000;
+        for (int s = 0; s <= 150; s++) first.sample("trip_minutes", 2, 0x92, t + s * 1000L);
+        long before = first.rideTimeMs(t + 150_000);
+        RidingValues.TripClock clock = first.tripClock();
+        check(clock != null, "a trip clock to carry over");
+        RidingValues reopened = new RidingValues();
+        reopened.resumeTrip(clock);
+        long now = t + 160_000;
+        check(reopened.rideTimeMs(now) == null, "nothing shows before this session's first trip report");
+        reopened.sample("trip_minutes", 2, 0x92, now);
+        check(reopened.rideTimeMs(now) == before + 10_000, "reopened, ride time carries on: " + before
+                + " then " + reopened.rideTimeMs(now));
+        RidingValues newTrip = new RidingValues();
+        newTrip.resumeTrip(clock);
+        newTrip.sample("trip_minutes", 0, 0x92, now);
+        check(newTrip.rideTimeMs(now) == 0, "a new trip since then starts over");
+        RidingValues later = new RidingValues();
+        later.resumeTrip(clock);
+        now = t + 3_600_000L;
+        later.sample("trip_minutes", 7, 0x92, now);
+        check(later.rideTimeMs(now) == 7 * 60_000L, "a carried clock that's long out of date is dropped");
+        check(new RidingValues().tripClock() == null, "no clock before a trip report");
+        new RidingValues().resumeTrip(null);
+    }
+
+    /** One ride report's trip fields at one time; minutesFirst sets the order they land in. */
+    private static void report(RidingValues v, double minutes, double km, double max, long t, boolean minutesFirst) {
+        report(v, minutes, km, max, t, minutesFirst, 0x92);
+    }
+    private static void report(RidingValues v, double minutes, double km, double max, long t, boolean minutesFirst, int type) {
+        if (minutesFirst) v.sample("trip_minutes", minutes, type, t);
+        v.sample("trip_km", km, type, t);
+        v.sample("maximum_speed_kmh", max, type, t);
+        if (!minutesFirst) v.sample("trip_minutes", minutes, type, t);
+    }
+
+    /**
+     * Codex #319: a power cycle can show the same minute as before (0 while the old trip's counter stood
+     * still), so the minute alone can't tell a restart from a reconnect. The trip's distance and top speed
+     * start over at 0 on a power cycle; a dropped link that comes back keeps them.
+     */
+    private static void tripRestartEvidence() {
+        for (boolean minutesFirst : new boolean[]{true, false}) {
+            String order = minutesFirst ? " (minutes first)" : " (distance first)";
+            // Live: three minutes at a standing-still 0, 0.4 km and 12 km/h top speed so far.
+            RidingValues live = new RidingValues();
+            long t = 2_000_000;
+            for (int s = 0; s <= 180; s++) report(live, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            long now = t + 195_000;
+            report(live, 0, 0, 0, now, minutesFirst);
+            check(live.rideTimeMs(now) == 0, "a same-minute power cycle with the trip reset starts over" + order + ": " + live.rideTimeMs(now));
+            report(live, 0, 0, 0, now + 1000, minutesFirst);
+            check(live.rideTimeMs(now + 1000) == 1000, "and counts the new trip from there" + order);
+
+            RidingValues link = new RidingValues();
+            for (int s = 0; s <= 180; s++) report(link, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            report(link, 0, 0.4, 12, now, minutesFirst);
+            check(link.rideTimeMs(now) == 195_000, "a dropped link that comes back without a reset carries on" + order + ": " + link.rideTimeMs(now));
+
+            // Reopened riding mode with the saved anchor.
+            RidingValues.TripClock clock = link.tripClock();
+            RidingValues restarted = new RidingValues();
+            restarted.resumeTrip(clock);
+            long later = now + 15_000;
+            report(restarted, 0, 0, 0, later, minutesFirst);
+            check(restarted.rideTimeMs(later) == 0, "reopened after a same-minute power cycle starts over" + order + ": " + restarted.rideTimeMs(later));
+            RidingValues reconnected = new RidingValues();
+            reconnected.resumeTrip(clock);
+            report(reconnected, 0, 0.5, 12, later, minutesFirst);
+            check(reconnected.rideTimeMs(later) == 210_000, "reopened after a reconnect without a reset carries on" + order + ": " + reconnected.rideTimeMs(later));
+
+            // Codex #319: a whole-unit (0x91) report shows 0.4 km as 0. Same trip, top speed unchanged: carries on.
+            RidingValues formats = new RidingValues();
+            for (int s = 0; s <= 180; s++) report(formats, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            report(formats, 0, 0, 12, now, minutesFirst, 0x91);
+            check(formats.rideTimeMs(now) == 195_000, "0.4 km in tenths then 0 in whole units is the same trip" + order + ": " + formats.rideTimeMs(now));
+            RidingValues reopenedFormats = new RidingValues();
+            reopenedFormats.resumeTrip(clock);
+            report(reopenedFormats, 0, 0, 12, later, minutesFirst, 0x91);
+            check(reopenedFormats.rideTimeMs(later) == 210_000, "and after reopening" + order + ": " + reopenedFormats.rideTimeMs(later));
+            // A real reset in whole units: the top speed falls from 12 to 0.
+            RidingValues formatsReset = new RidingValues();
+            for (int s = 0; s <= 180; s++) report(formatsReset, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            report(formatsReset, 0, 0, 0, now, minutesFirst, 0x91);
+            check(formatsReset.rideTimeMs(now) == 0, "a whole-unit report of a real reset still starts over" + order + ": " + formatsReset.rideTimeMs(now));
+            // Distance alone is evidence once it falls by a whole kilometre.
+            RidingValues farther = new RidingValues();
+            for (int s = 0; s <= 180; s++) report(farther, 0, 1.4, 12, t + s * 1000L, minutesFirst);
+            report(farther, 0, 0, 12, now, minutesFirst, 0x91);
+            check(farther.rideTimeMs(now) == 0, "a distance drop of a whole kilometre starts over" + order + ": " + farther.rideTimeMs(now));
+        }
+        // Whole-unit (v0) reports: a small rounding wobble is not a reset.
+        RidingValues v0 = new RidingValues();
+        report(v0, 1, 3.7, 27.9, 0, true);
+        report(v0, 1, 3, 27, 1000, true);
+        check(v0.rideTimeMs(1000) == 61_000, "a rounding drop under a whole unit keeps the trip: " + v0.rideTimeMs(1000));
+        // Documented ambiguity: a power cycle before the old trip moved (under 1 km and 1 km/h) carries on.
+        RidingValues still = new RidingValues();
+        for (int s = 0; s <= 60; s++) report(still, 0, 0, 0, s * 1000L, true);
+        report(still, 0, 0, 0, 75_000, true);
+        check(still.rideTimeMs(75_000) == 75_000, "a restart that looks identical can't be told apart (documented)");
     }
 
     private static void battery() {
