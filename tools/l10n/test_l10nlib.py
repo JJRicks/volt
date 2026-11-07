@@ -187,6 +187,28 @@ class ConcurrentWriteTest(unittest.TestCase):
         self.run_processes(script, "30")
         self.assertEqual([n for n in os.listdir(self.root) if n != "pack.json"], [])  # no temporary file left
 
+    def test_new_files_from_threads_take_the_umask_and_leave_it(self):
+        # In a child process, so the umask set here touches no other test.
+        script = ("import sys, os, threading\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import l10nlib\n"
+                  "os.umask(0o077)\n"
+                  "sys.setswitchinterval(1e-6)  # switch threads often, so a umask race would show\n"
+                  "def write(n):\n"
+                  "    for i in range(200):\n"
+                  "        l10nlib.write_text(os.path.join(sys.argv[2], 't%d-%d.txt' % (n, i)), 'x')\n"
+                  "threads = [threading.Thread(target=write, args=(n,)) for n in range(8)]\n"
+                  "[t.start() for t in threads]\n"
+                  "[t.join() for t in threads]\n"
+                  "print(oct(os.umask(0o077)))\n"
+                  "print(sorted(set(oct(os.stat(os.path.join(sys.argv[2], f)).st_mode & 0o777)\n"
+                  "                 for f in os.listdir(sys.argv[2]))))\n"
+                  "print(len(os.listdir(sys.argv[2])))\n")
+        import subprocess
+        out = subprocess.run([sys.executable, "-c", script, os.path.dirname(os.path.abspath(__file__)), self.root],
+                             check=True, capture_output=True, text=True).stdout.split("\n")
+        self.assertEqual(out[:3], ["0o77", "['0o600']", "1600"])
+
     def test_write_text_keeps_mode_and_symlink(self):
         target = os.path.join(self.root, "target.txt")
         l10nlib.write_text(target, "one\n")

@@ -9,8 +9,8 @@ import json
 import os
 import re
 import stat
+import secrets
 import subprocess
-import tempfile
 import unicodedata
 
 # ---------------------------------------------------------------------------
@@ -454,15 +454,19 @@ def write_text(path, text):
     try:
         mode = stat.S_IMODE(os.stat(path).st_mode)
     except FileNotFoundError:
-        umask = os.umask(0)
-        os.umask(umask)
-        mode = 0o666 & ~umask
-    handle, temporary = tempfile.mkstemp(prefix="." + os.path.basename(path) + ".", suffix=".tmp",
-                                         dir=directory or ".")
+        mode = None  # a new file: the OS applies the umask, as open() would; os.umask is process-wide, never set it
+    while True:
+        temporary = os.path.join(directory or ".", ".%s.%s.tmp" % (os.path.basename(path), secrets.token_hex(6)))
+        try:
+            handle = os.open(temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+            break
+        except FileExistsError:
+            continue
     try:
         with os.fdopen(handle, "wb") as out:
+            if mode is not None:
+                os.fchmod(out.fileno(), mode)
             out.write(data)
-        os.chmod(temporary, mode)
         os.replace(temporary, path)
     except BaseException:
         try:
