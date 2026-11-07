@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <string name="stats_sections_description" volt:src="9e0367dcba3b84d2dce9f7397b7050551ffb5b8c">Section Statistiques en direct</string>
+    <string name="stats_tab_overview" volt:src="ad5db4edb299a9ca622aa7b531d7e30f1216f17c">Aperçu</string>
+    <string name="stats_tab_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Relevés</string>
+    <string name="stats_tab_charts" volt:src="e70c83922397efd17a9ff999248dd873c7cc2019">Graphiques</string>
+    <string name="stats_tab_diagnostics" volt:src="1a6b5eb30d87b7a41c7f72b3a94300e46fcf920f">Diagnostic</string>
+    <string name="stats_overview_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">En attente de relevés</string>
+    <string name="stats_battery_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Aucun relevé</string>
+    <string name="stats_battery_last_seen" volt:src="a0e42ea848425633bedcf0672916de65f04613e0">Dernier relevé</string>
+    <string name="stats_range_not_reported" volt:src="1524c2e0c8ca9fb12511aee92137db2974a9feba">Autonomie : aucune donnée</string>
+    <string name="stats_range_value" volt:src="9575fdc766e3037d43e4eed4c04558cca09612a0">Autonomie : %1$s</string>
+    <string name="stats_range_dual" volt:src="9257d10c55c65d555bf81865872fdf9ffe77b927">%1$s %2$s / %3$s %4$s</string>
+    <string name="stats_range_left" volt:src="5ca597725bbd592dc373cc50fb294f044281f716">≈ %1$s d’autonomie</string>
+    <string name="stats_pack" volt:src="7305c09306f71cd3a9a847aba50df344c0476f96">"Batterie "</string>
+    <string name="stats_health" volt:src="e544cfbd1106ca8a2f22872651264197cf3088ce">"Santé "</string>
+    <string name="stats_health_after" volt:src="bc7007e92b79ce515dcba705f8acf4dafc22ec9f">" · Santé "</string>
+    <string name="stats_health_chip" volt:src="e5330657ca46d0337bca7f1ed58500e45222aeb4">estimé</string>
+    <string name="stats_health_chip_said" volt:src="44ab1cf14452bf9ba80cfa2a8194beda700d1c57">" estimé"</string>
+    <string name="stats_favourites_title" volt:src="91b868ff34eb152a2fbe1819c04a8ffe2ddb5f88">Favoris</string>
+    <string name="stats_favourites_empty_hint" volt:src="899f78540d787eb99f5cbaae33a49d8307beecd6">☆ Marquez des relevés d’une étoile pour les épingler ici</string>
+    <string name="stats_favourites_reorder_description" volt:src="d2234518a6ed0019ab31744d1058305093d75800">Réorganiser les relevés et graphiques favoris</string>
+    <string name="stats_favourites_reorder" volt:src="0ed8c589cdba0529ce1ecf5df404f7ba43d89297">Réorganiser les favoris</string>
+    <string name="stats_order_chart" volt:src="6292f1f9deb066cc6806366a337b86406679e9df">%1$s · Graphique</string>
+    <string name="stats_order_chart_said" volt:src="136d9d61982c0357d07adaa693c5d11fcbfb79da">Graphique %1$s</string>
+    <string name="stats_order_reading_said" volt:src="21a658c09b0c763af5a494add8feefc603190eb2">Relevé %1$s</string>
+    <string name="stats_search_hint" volt:src="3f3dacec55518e55832c230ba1007f8e0ae1fc27">Rechercher</string>
+    <string name="stats_readings_search_description" volt:src="a88cfa2eb4042e813a09dfc16a907ea63913d1da">Rechercher des mesures de la trottinette</string>
+    <string name="stats_readings_no_matches" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Aucun relevé correspondant</string>
+    <plurals name="stats_readings_count" volt:src="664d53147e458bec0e58d9ab22a19ef9bcfe860d">
+        <item quantity="one">%1$d relevé</item>
+        <item quantity="many">%1$d de relevés</item>
+        <item quantity="other">%1$d relevés</item>
+    </plurals>
+    <string name="stats_group_readings" volt:src="cd32d5930a57da42ab5084930a186480a28a355d">Relevés : %1$s</string>
+    <string name="stats_group_readings_state" volt:src="541a76794e68d3285c625a37aaed3466bdbadea3">Relevés : %1$s, %2$s</string>
+    <string name="stats_group_readings_expanded_said" volt:src="6d384e154d2b379f6c806080adbbda34f490a667">développés</string>
+    <string name="stats_group_readings_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">réduits</string>
+    <string name="stats_state_expanded" volt:src="1538c46aada1cbb42e96f9595b253badd8683dd2">Développé</string>
+    <string name="stats_state_collapsed" volt:src="0be1811727168032f500c3cabd9714064a08cf45">Réduit</string>
+    <string name="stats_favourite_add" volt:src="b020afbc4cf7defe3823e9844f6695dc9f0b3111">Ajouter %1$s aux favoris</string>
+    <string name="stats_favourite_remove" volt:src="d985e24c39fae8a0b52bb4a13bc4146a488bce68">Retirer %1$s des favoris</string>
+    <string name="stats_favourite_on" volt:src="630aab5bfddb08e40e8b208763385c693717f5a7">Favori</string>
+    <string name="stats_favourite_off" volt:src="c40ebe8035304ad1741a60799507d27de204a473">Non favori</string>
+    <string name="stats_age_not_supplied" volt:src="d64ae9acf06e0be181c78fd79264a96b9ff2a7b5">Non fourni</string>
+    <string name="stats_age_live" volt:src="b1fced280353b87b11fee1e32b9e59db69af9d98">En direct</string>
+    <string name="stats_last_seen" volt:src="a0e42ea848425633bedcf0672916de65f04613e0">Dernier relevé</string>
+    <string name="stats_last_seen_when" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Dernier relevé : %1$s</string>
+    <string name="stats_row_description" volt:src="f9161e063e3ee8e297439b74db813b69bb7615d6">%1$s, %2$s, %3$s. Appuyez pour afficher les détails.</string>
+    <string name="stats_drive_mode_description" volt:src="3ae2e5fba4a74bf6240be2af7e4f61161d253a33">Mode de conduite, %1$s, %2$s</string>
+    <string name="stats_raw_chip" volt:src="5e6f80961053a6caae64131e1686b9db7d4821a7">BRUT</string>
+    <string name="stats_raw_said" volt:src="e03a198b11f175173458a88d6469be7ba62c9717">valeur brute %1$s</string>
+    <string name="stats_value_dual" volt:src="969e7175b73e42ae03be78f35610fd43284b206e">"%1$s  /  %2$s"</string>
+    <string name="stats_scooter_range" volt:src="1361cc0b30b68186a4439469f85f1a5f6a427085">Autonomie de la trottinette</string>
+    <string name="stats_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Mode de conduite</string>
+    <string name="stats_detail_raw_live" volt:src="3f0a50034b6855b624d028c96ee659fbf849ca2b">%1$s (brut) · En direct</string>
+    <string name="stats_detail_raw_live_when" volt:src="ad48475d1cca63f89ed0fdd4245e9a7767b7f0a0">%1$s (brut) · En direct %2$s</string>
+    <string name="stats_detail_raw_seen" volt:src="533742e9f0494dc3383bf675a2954847e7e18683">%1$s (brut) · Dernier relevé</string>
+    <string name="stats_detail_raw_seen_when" volt:src="6fdb9541692d6c25b0f34fcbb147b37440720615">%1$s (brut) · Dernier relevé : %2$s</string>
+    <string name="stats_detail_live" volt:src="095f932327fe97fa0e6460023aab5b7b11d5ebf4">%1$s · En direct</string>
+    <string name="stats_detail_live_when" volt:src="f9e6eaf6da9e5ce4091f9634652f385403df9c6e">%1$s · En direct %2$s</string>
+    <string name="stats_detail_seen" volt:src="f20c6dbe179c5434035bdba5908d7199bc7769b1">%1$s · Dernier relevé</string>
+    <string name="stats_detail_seen_when" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Dernier relevé : %2$s</string>
+    <string name="stats_detail_health_note" volt:src="74b89e1881f6649a499984abec613ac9d52bf1f8">\n\nL’état de santé indiqué est une estimation du contrôleur, pas un test de capacité mesurée.</string>
+    <string name="stats_detail_energy_note" volt:src="e47d7bc5280e2ff4869940b23642e710043f6eb1">\n\nNon utilisé pour l’énergie du trajet.</string>
+    <string name="stats_detail_add_favourite" volt:src="6a0d55568513256d4760559f43bfae770a237bae">Ajouter aux favoris</string>
+    <string name="stats_detail_remove_favourite" volt:src="98b140e7ac5d36d9cef208d3405b4aaa0b0942bb">Retirer des favoris</string>
+    <string name="stats_charts_search_description" volt:src="92bfab0769d5a09dd6b8ca7551e32e13ab15edac">Rechercher dans les graphiques enregistrés</string>
+    <string name="stats_charts_empty" volt:src="25b6dac3482b72fcaea28e69c6fe04ecd85515cf">Aucune donnée de graphique pour le moment</string>
+    <string name="stats_charts_no_matches" volt:src="25e54026bfde6f1148cf65603d6118fa49ed6edd">Aucun graphique correspondant</string>
+    <plurals name="stats_charts_count" volt:src="a5a59a742f9e84ed999229949898d78cafdcb1f9">
+        <item quantity="one">%1$d graphique</item>
+        <item quantity="many">%1$d de graphiques</item>
+        <item quantity="other">%1$d graphiques</item>
+    </plurals>
+    <string name="stats_chart_group_state" volt:src="20f4bee7f4190f58d033fff8548212e7bf6d5138">Graphiques %1$s, %2$s</string>
+    <string name="stats_chart_group_expanded_said" volt:src="6d384e154d2b379f6c806080adbbda34f490a667">développés</string>
+    <string name="stats_chart_group_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">réduits</string>
+    <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">Agrandir le graphique %1$s</string>
+    <string name="stats_chart_favourite_add" volt:src="d94e1cf679b1a504a9585f96ed39b3d892e555e2">Ajouter le graphique %1$s aux favoris</string>
+    <string name="stats_chart_favourite_remove" volt:src="742ec2bd95cf11eca26f4d23813022c4a9a97f7f">Retirer le graphique %1$s des favoris</string>
+    <string name="stats_chart_live" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
+    <string name="stats_chart_sample" volt:src="a5b35279430d09a040e5014d4041977af7a7e0c4">%1$s · Échantillon</string>
+    <string name="stats_chart_last_seen" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Dernier relevé : %2$s</string>
+    <string name="stats_chart_no_data" volt:src="368ef449b24b92884d5696983fc2de64f3cff670">Aucune donnée sur cette période</string>
+    <string name="stats_chart_loading" volt:src="8ed194dd56ac0842cd5257f3bac3e72232c26669">Chargement du graphique…</string>
+    <string name="stats_chart_close" volt:src="a8cb29259fe3efe192a0f1e63e1079e5a27e7ff4">Fermer le graphique agrandi</string>
+    <string name="stats_window_2_min" volt:src="f4b4a7befc8b71487aa484f6662f0f268dce7d60">2 min</string>
+    <string name="stats_window_10_min" volt:src="1c0a9e51a1ff3c9e497ce5bffefaf333a86fd593">10 min</string>
+    <string name="stats_window_1_hour" volt:src="65adf4d048d8ba9ff6f37c54a45fcf0074ddc7d8">1 heure</string>
+    <string name="stats_window_6_hours" volt:src="a03fd0896e3089431700415d0e84ca8668e4c6e0">6 heures</string>
+    <string name="stats_window_24_hours" volt:src="434d93bfcaf120802f9b0c3757163b19b5a5db9c">24 heures</string>
+    <string name="stats_window_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 jours</string>
+    <string name="stats_window_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 jours</string>
+    <string name="stats_window_all" volt:src="7bc49be9c2447d81fab0633a184d5553b98271e0">Tout</string>
+    <string name="stats_diagnostics_title" volt:src="1a6b5eb30d87b7a41c7f72b3a94300e46fcf920f">Diagnostics</string>
+    <string name="stats_diagnostics_refresh" volt:src="43e87dff7d327e85ee909596fbaff7a9506cd563">Actualiser</string>
+    <string name="stats_diagnostics_refresh_description" volt:src="63951b70d5e5ce95d798fc87e41d290931cf4c42">Actualiser les relevés de diagnostic</string>
+    <string name="stats_diagnostics_refreshing" volt:src="c4bd17e73e8cee648a56bc97b24173462cec6145">Actualisation des relevés de diagnostic…</string>
+    <string name="stats_diagnostics_export" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Exporter</string>
+    <string name="stats_diagnostics_export_description" volt:src="8fe551f1f8097c7c7bb719d828a54cddea125fa3">Exporter les diagnostics au format JSON. Exclut les clés de propriétaire et le code PIN</string>
+    <string name="stats_diagnostics_privacy" volt:src="97c7b6a08e6433a9e035ef74717bd35e60ab8a08">Exclut les clés de propriétaire et le code PIN</string>
+    <string name="stats_diagnostics_device" volt:src="c6f2a5f3f4a496fbaa7dd6f317329f7f87ce27a9">Appareil</string>
+    <string name="stats_diagnostics_events" volt:src="be8d3abf276c8a8b18d3d7f36f9418fee84f87b5">Événements de connexion récents</string>
+    <string name="stats_diagnostics_payloads" volt:src="1319991bbf5982e3be3a0d91002ae118c8783599">Données brutes de lecture</string>
+    <string name="stats_none_yet" volt:src="8fd5b8ee0205b52b81e3b75d609f71e16791159c">Aucun pour l’instant</string>
+    <string name="stats_event_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="stats_charge_history_title" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Enregistrements de recharge</string>
+    <string name="stats_charge_recording_title" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Enregistrement de recharge</string>
+    <string name="stats_charge_history_loading" volt:src="2623443eae468af22647be27d95086815e93817f">Chargement des enregistrements…</string>
+    <string name="stats_charge_history_failed" volt:src="3fb56a961a17c614181d1655eea5deeb4fce567c">Impossible de charger les enregistrements.</string>
+    <string name="stats_charge_history_retry" volt:src="f667cf687a057be2ab3a8277e65dcb88a6918ae7">Réessayer</string>
+    <string name="stats_charge_history_empty" volt:src="74f937cd3cfc2f2c1325c9dd2a335dcbab10c784">Aucun enregistrement de recharge sauvegardé pour le moment.</string>
+    <string name="stats_charge_history_current" volt:src="e8c1a7d0fbaa4f6f734ae211bd7734cac196859f">L’enregistrement en cours apparaîtra ici après son arrêt.</string>
+    <string name="stats_charge_history_back" volt:src="accd0957cdef2eb20859915e24c1137e3302eaac">Retour aux enregistrements de recharge</string>
+    <string name="stats_charge_history_close" volt:src="5cca0e2e6496885f9ef22a318cc2d4355b2aebd1">Fermer les enregistrements de recharge</string>
+    <string name="stats_charge_row_description" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
+    <string name="stats_charge_finish_not_observed" volt:src="9041b739b1b5ece945f8e0e229a84f9af2093968">Fin non observée</string>
+    <string name="stats_charge_full_observed" volt:src="88b2405e1fbc60f57f292500f7355c2cf504cadc">100 % observé</string>
+    <string name="stats_charge_paused_schedule" volt:src="5fe12fa5912fa93fcbd7acd836b52fd480aaec57">" · en pause pendant %1$s pour la programmation"</string>
+    <plurals name="stats_charge_charger_stopped" volt:src="d84328903fbcc2b3a708b6e7ecadeff4524e5a58">
+        <item quantity="one">" · le chargeur s’est arrêté %1$d fois (%2$s)"</item>
+        <item quantity="many">" · le chargeur s’est arrêté %1$d de fois (%2$s)"</item>
+        <item quantity="other">" · le chargeur s’est arrêté %1$d fois (%2$s)"</item>
+    </plurals>
+    <string name="stats_charge_duration_hours" volt:src="db8837fa251f29b98d5bfda88c57ed6f55cbd39d">%1$s h %2$s min</string>
+    <string name="stats_charge_duration_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
+    <string name="stats_charge_battery_span" volt:src="8391a43ef2ca8f7e4241b3cedd5a05a9b05feb2b">%1$s %% → %2$s %%</string>
+    <string name="stats_charge_no_battery_samples" volt:src="92f478a1b0046cf38751abb75d626913308a6f39">Aucun échantillon de batterie</string>
+    <string name="stats_charge_high_speed_charger" volt:src="9ec5f925a9b77c56e064c86213dc87de2c07fd6f">Chargeur rapide</string>
+    <string name="stats_charge_stock_charger" volt:src="62ca2a26699e289edf4906ae3497990eda2ea81c">Chargeur d’origine</string>
+    <string name="stats_charge_source_personal" volt:src="ff8ebfc6f9a3deea60d1b520653c1de4d1202db6">Courbe personnelle</string>
+    <string name="stats_charge_source_stock" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Référence d’origine</string>
+    <string name="stats_charge_source_fast" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Référence rapide</string>
+    <string name="stats_charge_source_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Vitesse actuelle</string>
+    <string name="stats_charge_source_unavailable" volt:src="ec778bdbd8e41fbe8f6966056c6546961946e622">Indisponible</string>
+    <string name="stats_charge_estimator" volt:src="1d89b5e601c65937e36c6775a88876095024716c">%1$s · Estimateur %2$s</string>
+    <plurals name="stats_charge_learned" volt:src="5420cbcc443bf439de193528c604c46a6192feb3">
+        <item quantity="one">" · %1$d recharge apprise"</item>
+        <item quantity="many">" · %1$d de recharges apprises"</item>
+        <item quantity="other">" · %1$d recharges apprises"</item>
+    </plurals>
+    <string name="stats_charge_target" volt:src="a9ba98b28af45920a796015628f44bf908888201">" · objectif %1$s %%"</string>
+    <string name="stats_charge_readings" volt:src="661404f9cae10402c0e471e5795d2c3cdfd5172e">Relevés de recharge</string>
+    <string name="stats_charge_expand" volt:src="26224794d040727bfb4450df85da7177284c6fe4">Agrandir le graphique de recharge</string>
+    <string name="stats_charge_chart" volt:src="c441ffa30daaeb8fc1a67744cab7b26fb317d820">Graphique de recharge</string>
+    <string name="stats_charge_fit_whole" volt:src="58b3137a84973695ca6e2daa0a847b1310d74ac9">Ajuster toute la recharge</string>
+    <string name="stats_charge_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Ajuster</string>
+    <string name="stats_charge_zoom_out" volt:src="56cbe1d499420929a144d0a898a2c5fc582d5615">Zoom arrière sur le graphique de recharge</string>
+    <string name="stats_charge_zoom_in" volt:src="442618022a01ba69470f2aa260aa464e496c163b">Zoom avant sur le graphique de recharge</string>
+    <string name="stats_charge_no_comparison" volt:src="18d4847d9dc74e8c6eecb6daf6a07f3c53ea65c1">Fin non observée ; aucune comparaison réelle.</string>
+    <string name="stats_charge_observed_full" volt:src="e9755d913dfb71036b40c6136a47b1516f6b6dc8">100 %% observé · %1$s</string>
+    <string name="stats_charge_estimates_not_saved" volt:src="34621739e8117bbf37eec583aa9d1f547b0b5e5f">Les estimations n’ont pas été sauvegardées dans cet enregistrement.\n%1$s</string>
+    <string name="stats_charge_series_no_data" volt:src="ef89f5adbf19dfcbb9869273528971b9b8ff0d48">%1$s · aucune donnée</string>
+    <string name="stats_charge_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, aucun échantillon enregistré</string>
+    <string name="stats_charge_sample_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">À %1$s</string>
+    <string name="stats_charge_cell_description" volt:src="4fcac77563f0e9e702814edf630e3d27d96af7b8">%1$s : %2$s, %3$s</string>
+    <string name="stats_charge_close_expanded" volt:src="76bda29b2ee863ce9684de196f548ebf74b7a295">Fermer le graphique de recharge agrandi</string>
+    <string name="stats_row_charging_state" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Recharge</string>
+    <string name="stats_row_self_discharge_raw" volt:src="3e4243dbbb1a14eab6aea61985725551f3872135">Autodécharge</string>
+    <string name="stats_row_extreme_temperature_charge_raw" volt:src="3dfa95806cd04ad8bba612faefb414c94fdf980b">Durée de recharge temp. extrême</string>
+    <string name="stats_row_temperature_sign_state" volt:src="4c8c9d6a369628c15ed80991a34d0295989895d3">Signe de température</string>
+    <string name="stats_row_current_sign_state" volt:src="a1133deb7e4bdb439b89dbbc18ed6821404aee01">Sens du courant</string>
+    <string name="stats_row_driving_status" volt:src="f7265863ad98dbfc8648a4d125d8ae807c3c2fc7">État de conduite</string>
+    <string name="stats_row_binding_status" volt:src="0281fbf6f7600ad050eb841157c487cb3cd033a4">Liaison du compte</string>
+    <string name="stats_row_cruise_control" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Régulateur</string>
+    <string name="stats_row_tail_light" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Feu arrière</string>
+    <string name="stats_row_energy_recovery" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Récupération</string>
+    <string name="stats_row_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Algorithme d’autonomie</string>
+    <string name="stats_row_auto_sensor" volt:src="5d9da02544ef2daf50ce56ae1ff0aec08451c828">Phare automatique</string>
+    <string name="stats_row_tyre_reminder" volt:src="5ad54b23bcf0ecea5e915116d253099f5813bbf3">Rappel des pneus</string>
+    <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Motif en bandes</string>
+    <string name="stats_row_traction_control" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Antipatinage</string>
+    <string name="stats_row_turn_sound" volt:src="cb472220793ecbbd5ab3c9e044deb8a692a60bb6">Son du clignotant</string>
+    <string name="stats_row_proximity_key" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Déverrouillage par proximité</string>
+    <string name="stats_row_night_mode" volt:src="a9897a7a21973a1cc8d2995438da457dee70256a">Mode nuit</string>
+    <string name="stats_row_range_algorithm_mode" volt:src="6fd161e587c50069b067077e5112373b3adb58c4">Mode d’autonomie</string>
+    <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Motif en étoiles</string>
+    <string name="stats_row_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Vitesse de démarrage</string>
+    <string name="stats_row_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Limite de vitesse</string>
+    <string name="stats_row_volume" volt:src="49c26a1170a87fab1c4d8970b76c3666329b250e">Audio</string>
+    <string name="stats_row_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Langue vocale</string>
+    <string name="stats_row_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Éclairage du logo</string>
+    <string name="stats_row_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Feu de jour</string>
+    <string name="stats_row_maximum_speed_setting" volt:src="6c84403a8d738cc045c51c7643ef0e9abf64f46a">Réglage de vitesse max.</string>
+    <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Réglage du mode</string>
+    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Octet de mode des réglages</string>
+    <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Programmation de recharge</string>
+    <string name="stats_row_low_power" volt:src="b8528f58a68d9d264698b24b3a94b85d9f6e5e4c">Mode batterie faible</string>
+    <string name="stats_row_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Recharge programmée</string>
+    <string name="stats_row_auto_lock_time" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Durée de verrouillage</string>
+    <string name="stats_row_speed_limit_eligibility" volt:src="7ea8f13a990927f7319388066003782d95afae12">Éligibilité de vitesse</string>
+    <string name="stats_row_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Météo</string>
+    <string name="stats_row_slope_assist" volt:src="40df7d5e809b5d5f4d2b7142e582bdbf1428792a">Réglages d’assistance</string>
+    <string name="stats_row_long_range_mode" volt:src="e01f9a5d1d632caa90d9a99ee75ad2af33253600">Longue autonomie</string>
+    <string name="stats_row_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Contrôle de survitesse</string>
+    <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Alerte de survitesse</string>
+    <string name="stats_row_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Limite de vitesse Drive</string>
+    <string name="stats_row_battery_serial_raw" volt:src="e019db8b162ae9c1f54809c6493beed2765122ab">Numéro de série de la batterie</string>
+    <string name="stats_row_lock_push_warning" volt:src="24bfcde62ec3c5dbc262ae60c12b6374c266f477">Mouvement sous verrouillage</string>
+    <string name="stats_row_hide_e9" volt:src="61fb804227518b96a7c4a5a058631345f44d7c61">Indicateur E9</string>
+    <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Lecture de trajet</string>
+    <string name="stats_row_fault_history_raw" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Historique des erreurs</string>
+</resources>

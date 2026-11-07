@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="riding_night_vision" volt:src="2e78264e53a83638333b35875351a59f303ee56d">Vision nocturne</string>
+    <string name="riding_night_off" volt:src="1a3a5312083d6e01b851e509937825a5aa74ef7b">Désactivée</string>
+    <string name="riding_night_on" volt:src="a84504c0e510dfc286d6a3b204ca352b95648266">Activée</string>
+    <string name="riding_night_scheduled" volt:src="0b00212512b31d019955a276cf227413a439cabe">Programmée</string>
+    <string name="riding_night_schedule" volt:src="35c56281be5e205cc961e9b8f1752f8913f46546">Programmation</string>
+    <string name="riding_night_sun" volt:src="ae1a07b1ae57551eb5c577acbe7c4b9dc01b9181" volt:attempt="2">Coucher – lever du soleil</string>
+    <string name="riding_night_custom" volt:src="6bb709db62a2f0d83c7059c95c8c0ccf120b5fb7">Heures personnalisées</string>
+    <string name="riding_night_from" volt:src="ddf7f13cfb721ccc9faef70e3d12e1880d289d73">Coucher du soleil calculé selon</string>
+    <string name="riding_night_from_ride" volt:src="4f232b8046102bac40763c06c05bdbf36e7713f5">Zone de trajet</string>
+    <string name="riding_night_from_zone" volt:src="a1556a2acb7b72b1dc3219bc211a267dc7ce75d7">Fuseau horaire</string>
+    <string name="riding_night_source_ride" volt:src="133268d1eb750f46a37f790bcd4d6b6825b2e036">À partir du dernier lieu où vous avez enregistré un trajet, arrondi à environ 10 km</string>
+    <string name="riding_night_source_ride_none" volt:src="408bdbe2cbb7e57bb122225325e131f6687df36d">Estimé à partir de votre fuseau horaire jusqu’à l’enregistrement d’un trajet avec position</string>
+    <string name="riding_night_source_zone" volt:src="d5ce4d15a1db7d2db5267fd9748f0f08cbf4fdc8">Estimé à partir de votre fuseau horaire</string>
+    <string name="riding_night_source_none" volt:src="1889a46b325201d40c91212c4339a167b8d826bb">Volt ne peut pas estimer le coucher du soleil dans ce fuseau horaire et utilise donc vos heures personnalisées</string>
+    <string name="riding_night_starts" volt:src="75fb0634bfb44ec6b7cf705dd5288afcf0a48a9e">Début</string>
+    <string name="riding_night_ends" volt:src="084cd20bdceadcff2983dc13fe36242ca36f54ea">Fin</string>
+    <string name="riding_night_next_on" volt:src="eb576c5c29196cbb63360a651b874e1674b3efa6">Activation de la vision nocturne : %1$s</string>
+    <string name="riding_night_next_off" volt:src="18f06c47aa58079119846a13120fc7a9f0d0870e">Désactivation de la vision nocturne : %1$s</string>
+    <string name="riding_night_no_sunset" volt:src="f36179a705de06d2276e71421adf948ce0ff6e47">Pas de coucher du soleil aujourd’hui</string>
+    <string name="riding_night_no_sunrise" volt:src="5bd2798c8f5a049dba331ebef5af7ef8e5498300">Pas de lever du soleil aujourd’hui</string>
+    <string name="riding_night_note" volt:src="7cf956c1680223aec8eabca1f6b5ed61bbd53b4b">La lune en haut du mode de conduite active ou désactive la vision nocturne. Avec une programmation, un appui reste valable jusqu’au prochain changement. La vision nocturne réduit aussi la luminosité en modes automatique de Volt et fixe.</string>
+    <string name="riding_night_consent_title" volt:src="27454400510ec30db65950b7972bcd83fdf93b4e">Utiliser votre zone de trajet pour le coucher du soleil ?</string>
+    <string name="riding_night_consent_body" volt:src="cff63c86f7cedaff93d519a1846e46a01a737750">Volt peut calculer le coucher et le lever du soleil sur ce téléphone à partir du dernier lieu où vous avez enregistré un trajet, arrondi à environ 10 km. Rien n’est envoyé ailleurs et ce lieu n’est ni conservé ni sauvegardé. Sans cette donnée, Volt fait une estimation à partir de votre fuseau horaire, qui peut avoir un écart de 10 à 30 minutes.</string>
+    <string name="riding_night_consent_allow" volt:src="ffec42c872762c2ca8d20e43e916156af6266416">Utiliser la zone de trajet</string>
+    <string name="riding_night_consent_zone" volt:src="5476e70cdbf691e5109a752a733b700ce3a7ebbf">Utiliser le fuseau horaire</string>
+    <string name="riding_night_button_on" volt:src="cdc824a868a9588d7f7e19ebc290b0d07f126be4">Vision nocturne, activée</string>
+    <string name="riding_night_button_off" volt:src="af3eb9d3f5ac09f55b54f697ef9195e9596ed858">Vision nocturne, désactivée</string>
+</resources>

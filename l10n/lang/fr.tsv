@@ -1,11 +1,11 @@
-# French (fr). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# French (fr). Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/fr/); ships as beta. See l10n/README.md for each field.
 # Every space in quote_style, percent_style and decimal_style is a no-break space (U+00A0), never U+202F, which Saira lacks. decimal_style is an example of the separators.
 field	value
 tag	fr
 folder	values-fr
 endonym	Français
 wave	1
-status	draft
+status	beta
 formality	vous
 plurals	one,many,other
 quote_style	« … » “…”
