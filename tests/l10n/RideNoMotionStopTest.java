@@ -46,6 +46,10 @@ public final class RideNoMotionStopTest {
             noMotionAtAll();
             switchOff();
             disconnectHandsOver();
+            shortBlipKeepsCount();
+            carriedDeadlineWaitsForReadings();
+            carriedDeadlineNeedsComparableReading();
+            repeatedBlipsKeepOriginalEvidence();
             clockBackwards();
             silentLinkOrOtherScooter();
             storeShownEnd();
@@ -185,7 +189,7 @@ public final class RideNoMotionStopTest {
         check(RideStore.STOP_AUTO_NO_MOTION.equals(s.stoppedWith), "and ends 10 min after the switch came back on");
     }
 
-    /** A disconnect mid-countdown: the link rules take over exactly as before; a reconnect counts afresh. */
+    /** A disconnect mid-countdown: the link rules take over exactly as before; a reconnect after a long gap counts afresh. */
     private static void disconnectHandsOver() {
         // Speed-0 pushes, then the drop: the parked rule's grace, as before.
         RideAutoStopPolicy p = policy();
@@ -211,8 +215,8 @@ public final class RideNoMotionStopTest {
         ride(r, T0, T0 + 60_000, 200);
         for (t = last + 1000; t <= last + 8 * MIN; t += 1000) push(r, t, 0, 0);
         r.disconnected(t + 2000, true);
-        long back = t + 20_000; r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
-        check(!r.armed() && r.noMotionSince() == back, "the reconnect cancels the quiet countdown and starts rule 3 again from the reconnect");
+        long back = t - 1000 + RideAutoStopPolicy.RECONNECT_CARRY_MS + 1; r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
+        check(!r.armed() && r.noMotionSince() == back, "a reconnect more than a minute after the last frame cancels the quiet countdown and starts rule 3 again from the reconnect");
         boolean early = false;
         for (long u = back + 1000; u < back + NO_MOTION; u += 1000) { r.connected(u, PROFILE, SERIAL, 2, u, 0, -1, -1); early |= r.dueNoMotion(u); }
         check(!early, "the 8 min before the drop never count");
@@ -224,6 +228,257 @@ public final class RideNoMotionStopTest {
         u.disconnected(T0 + 70_000, false);
         check(!u.armed() && !u.noMotionArmed(), "an unrecoverable loss cancels everything, rule 3 too");
     }
+
+    /**
+     * The owner's ride of 2026-11-06: parked with the link up (battery frames only), then a native
+     * disconnect about 6 s after the last frame and an authenticated reconnect about 10 s after it. The
+     * blip must not restart the 10 minutes, and repeated blips must not keep the ride open forever.
+     */
+    private static void shortBlipKeepsCount() {
+        long carry = RideAutoStopPolicy.RECONNECT_CARRY_MS;
+        RideAutoStopPolicy p = policy();
+        ride(p, T0, T0 + 60_000, 200);
+        long last = T0 + 60_000;
+        for (long t = last + 1000; t <= last + 3 * MIN; t += 1000) battery(p, t, last, 200, 1);
+        long frame = last + 3 * MIN;
+        p.disconnected(frame + 6000, true);
+        check(p.quiet() == RideAutoStopPolicy.Quiet.LONG && !p.noMotionArmed(), "the drop hands over to the quiet rule");
+        // Reconnect: the serial is not read yet on the first observation, then it is.
+        p.connected(frame + 9000, PROFILE, "", 2, frame + 9000, 0, -1, -1);
+        check(!p.armed() && !p.noMotionArmed(), "the reconnect cancels the quiet countdown; no serial yet, no count");
+        p.connected(frame + 10_000, PROFILE, SERIAL, 2, frame + 10_000, 0, -1, -1);
+        check(p.noMotionSince() == last, "a reconnect within a minute keeps counting from the motion before the drop");
+        check(!dueDuring2(p, frame + 10_000, last + NO_MOTION - 1000), "still recording until 10 min after the last motion");
+        p.connected(last + NO_MOTION, PROFILE, SERIAL, 2, last + NO_MOTION, 0, -1, -1);
+        check(p.dueNoMotion(last + NO_MOTION), "ends 10 min after the last motion, not 10 min after the blip");
+
+        // A blip every 4 minutes would have restarted the count forever; now it ends on time.
+        RideAutoStopPolicy b = policy();
+        ride(b, T0, T0 + 60_000, 200);
+        int transport = 1; long t = last; boolean fired = false;
+        while (t < last + NO_MOTION + MIN && !fired) {
+            t += 1000;
+            if ((t - last) % (4 * MIN) == 0) { b.disconnected(t + 6000, true); t += 10_000; transport++; }
+            b.connected(t, PROFILE, SERIAL, transport, t, 0, -1, -1);
+            fired = b.dueNoMotion(t);
+        }
+        check(fired && t >= last + NO_MOTION && t <= last + NO_MOTION + 1000, "repeated short blips do not keep a parked ride open");
+
+        // Exactly at the bound carries; a millisecond later counts afresh.
+        RideAutoStopPolicy e = policy();
+        ride(e, T0, T0 + 60_000, 200);
+        e.disconnected(last + 6000, true);
+        e.connected(last + carry, PROFILE, SERIAL, 2, last + carry, 0, -1, -1);
+        check(e.noMotionSince() == last, "a reconnect exactly a minute after the last frame still carries");
+        RideAutoStopPolicy f = policy();
+        ride(f, T0, T0 + 60_000, 200);
+        f.disconnected(last + 6000, true);
+        f.connected(last + carry + 1, PROFILE, SERIAL, 2, last + carry + 1, 0, -1, -1);
+        check(f.noMotionSince() == last + carry + 1, "a longer gap counts afresh from the reconnect");
+
+        // Distance gained during the gap still counts as motion, against the baseline from before the drop.
+        RideAutoStopPolicy d = policy();
+        push(d, T0, 0, 0); d.distance(T0, 100.0, 5.0);
+        long since = d.noMotionSince();
+        battery(d, T0 + 5 * MIN, T0, 0, 0); d.distance(T0 + 5 * MIN, 100.0, 5.0);
+        d.disconnected(T0 + 5 * MIN + 6000, true);
+        long back = T0 + 5 * MIN + 20_000;
+        d.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
+        check(d.noMotionSince() == since, "carried before the first distance reading");
+        d.distance(back, 100.1, 5.1);
+        check(d.noMotionSince() == back, "the odometer gained across the gap is motion");
+        // A fresh speed push after the reconnect is motion as before.
+        RideAutoStopPolicy m = policy();
+        ride(m, T0, T0 + 60_000, 200);
+        m.disconnected(last + 6000, true);
+        push2(m, last + 10_000, 150, 1);
+        check(m.noMotionSince() == last + 10_000, "riding again after the blip counts as motion");
+
+        // Another scooter, a reset or an unrecoverable loss in between drops the held count.
+        RideAutoStopPolicy o = policy();
+        ride(o, T0, T0 + 60_000, 200);
+        o.disconnected(last + 6000, true);
+        o.connected(last + 8000, PROFILE, "OTHERSERIAL0000", 2, last + 8000, 0, -1, -1);
+        o.connected(last + 10_000, PROFILE, SERIAL, 3, last + 10_000, 0, -1, -1);
+        check(o.noMotionSince() == last + 10_000, "another scooter in between drops the held count");
+        RideAutoStopPolicy r = policy();
+        ride(r, T0, T0 + 60_000, 200);
+        r.disconnected(last + 6000, true); r.reset();
+        r.connected(last + 10_000, PROFILE, SERIAL, 2, last + 10_000, 0, -1, -1);
+        check(r.noMotionSince() == last + 10_000, "a reset in between drops the held count");
+        RideAutoStopPolicy u = policy();
+        ride(u, T0, T0 + 60_000, 200);
+        u.disconnected(last + 6000, false);
+        u.connected(last + 10_000, PROFILE, SERIAL, 2, last + 10_000, 0, -1, -1);
+        check(u.noMotionSince() == last + 10_000, "an unrecoverable loss drops the held count");
+    }
+    /**
+     * Codex's #303 review: a carried count whose 10 minutes ran out during the gap must not end the ride on
+     * the reconnect's first frame, before a fresh distance reading could show the scooter moved meanwhile.
+     */
+    private static void carriedDeadlineWaitsForReadings() {
+        long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        // Codex's repro: the count starts at 1,000 ms, the link drops just before 600,001 ms, back at 601,001 ms, no readings.
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, Double.NaN, Double.NaN);
+        check(p.noMotionSince() == 1000, "the count starts at the first observation");
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, Double.NaN, Double.NaN);
+        p.disconnected(600_000, true);
+        long back = 601_001;
+        p.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); p.distance(back, Double.NaN, Double.NaN);
+        check(p.noMotionSince() == 1000 && !p.dueNoMotion(back), "the reconnect's first frame does not end the ride");
+        boolean early = false;
+        for (long t = back + 1000; t < back + wait; t += 1000) { p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); p.distance(t, Double.NaN, Double.NaN); early |= p.dueNoMotion(t); }
+        check(!early, "no distance reading: still recording for the whole wait");
+        p.connected(back + wait, PROFILE, SERIAL, 2, back + wait, 0, -1, -1); p.distance(back + wait, Double.NaN, Double.NaN);
+        check(p.dueNoMotion(back + wait), "but no longer: a scooter that never reports distance cannot keep the ride open");
+
+        // The first fresh reading after the drop shows the scooter moved: the ride keeps recording, counted from then.
+        RideAutoStopPolicy m = policy();
+        m.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); m.distance(1000, 100.0, 5.0);
+        m.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); m.distance(600_000, 100.0, 5.0);
+        m.disconnected(600_000, true);
+        m.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); m.distance(back, Double.NaN, Double.NaN);
+        check(!m.dueNoMotion(back), "nothing judged yet");
+        long read = back + 2000;
+        m.connected(read, PROFILE, SERIAL, 2, read, 0, -1, -1); m.distance(read, 100.3, 5.3);
+        check(!m.dueNoMotion(read) && m.noMotionSince() == read, "distance gained in the gap is motion: the count restarts and the ride goes on");
+        check(!dueDuring2(m, read, read + NO_MOTION - 1000), "a full 10 min from that reading");
+        // A riding push after the reconnect does the same.
+        RideAutoStopPolicy r = policy();
+        r.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1);
+        r.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); r.disconnected(600_000, true);
+        r.connected(back, PROFILE, SERIAL, 2, back, back, 180, 1);
+        check(!r.dueNoMotion(back) && r.noMotionSince() == back, "riding again after the gap keeps the ride");
+
+        // The first fresh reading shows no movement: the carried count ends the ride at once.
+        RideAutoStopPolicy n = policy();
+        n.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); n.distance(1000, 100.0, 5.0);
+        n.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); n.distance(600_000, 100.0, 5.0);
+        n.disconnected(600_000, true);
+        n.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); n.distance(back, Double.NaN, Double.NaN);
+        // A reading no newer than the last frame plus its 3 s age may predate the drop: it decides nothing.
+        long stale = 600_000 + RideAutoStopPolicy.READING_AGE_MS;
+        RideAutoStopPolicy o = policy();
+        o.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); o.distance(1000, 100.0, 5.0);
+        o.connected(598_000, PROFILE, SERIAL, 1, 598_000, 0, -1, -1); o.distance(598_000, 100.0, 5.0);
+        o.disconnected(600_000, true);
+        o.connected(stale - 2000, PROFILE, SERIAL, 2, stale - 2000, 0, -1, -1); o.distance(stale - 2000, 100.0, 5.0);
+        check(!o.dueNoMotion(stale - 2000), "a reading that may predate the drop does not release the wait");
+        long fresh = back + 3000;
+        n.connected(fresh, PROFILE, SERIAL, 2, fresh, 0, -1, -1); n.distance(fresh, 100.0, 5.0);
+        check(n.dueNoMotion(fresh) && n.noMotionSince() == 0, "an unchanged fresh reading after the drop ends the ride at once");
+    }
+    /**
+     * Codex's #303 round 3: only a fresh reading of a metric that had a value before the gap, and has not gone
+     * down since, can show the scooter did not move; a metric with no baseline or a reset trip decides nothing.
+     */
+    private static void carriedDeadlineNeedsComparableReading() {
+        long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        double NaN = Double.NaN;
+        // Codex's repro: odometer 100 km known, trip unknown; back at 604 s with no odometer and a first trip of 0 km.
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, 100.0, NaN);
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, 100.0, NaN);
+        p.disconnected(600_000, true);
+        long back = 604_000;
+        p.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); p.distance(back, NaN, 0.0);
+        check(!p.dueNoMotion(back), "a trip with no value before the gap does not show the scooter stood still");
+        long t = back + 1000;
+        p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); p.distance(t, NaN, 0.0);
+        check(!p.dueNoMotion(t), "nor does the same trip a second later (its baseline is from after the gap)");
+        // Then the odometer arrives, unchanged: comparable with its pre-gap value, so the carried count ends it.
+        long odo = back + 4000;
+        p.connected(odo, PROFILE, SERIAL, 2, odo, 0, -1, -1); p.distance(odo, 100.0, 0.0);
+        check(p.dueNoMotion(odo), "a later odometer reading equal to its pre-gap value releases the hold");
+        // The same, but the odometer comes back higher: motion, the ride goes on.
+        RideAutoStopPolicy q = policy();
+        q.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); q.distance(1000, 100.0, NaN);
+        q.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); q.distance(600_000, 100.0, NaN);
+        q.disconnected(600_000, true);
+        q.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); q.distance(back, NaN, 0.0);
+        q.connected(odo, PROFILE, SERIAL, 2, odo, 0, -1, -1); q.distance(odo, 100.4, 0.1);
+        check(!q.dueNoMotion(odo) && q.noMotionSince() == odo, "an odometer gained over the gap is motion");
+
+        // A trip reset across the gap (5 km before, 0 km after; odometer unavailable) decides nothing.
+        RideAutoStopPolicy r = policy();
+        r.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); r.distance(1000, NaN, 5.0);
+        r.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); r.distance(600_000, NaN, 5.0);
+        r.disconnected(600_000, true);
+        r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); r.distance(back, NaN, 0.0);
+        check(!r.dueNoMotion(back) && r.noMotionSince() == 1000, "a reset trip is neither motion nor proof of standing still");
+        boolean early = false;
+        for (t = back + 1000; t < back + wait; t += 1000) { r.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); r.distance(t, NaN, 0.0); early |= r.dueNoMotion(t); }
+        check(!early, "a reset trip keeps the hold for the whole wait, even as it repeats 0 km");
+        r.connected(back + wait, PROFILE, SERIAL, 2, back + wait, 0, -1, -1); r.distance(back + wait, NaN, 0.0);
+        check(r.dueNoMotion(back + wait), "then the 30 s bound ends it");
+        // A reset trip with a comparable odometer: the odometer decides.
+        RideAutoStopPolicy s2 = policy();
+        s2.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); s2.distance(1000, 100.0, 5.0);
+        s2.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); s2.distance(600_000, 100.0, 5.0);
+        s2.disconnected(600_000, true);
+        s2.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); s2.distance(back, 100.0, 0.0);
+        check(s2.dueNoMotion(back), "an unchanged odometer beside a reset trip shows the scooter stood still");
+    }
+    /**
+     * Codex's #303 round 4: two blips in a row. A trip first seen between them must not become the baseline
+     * that releases the hold; the original odometer still decides, and the 30 s bound runs from the first reconnect.
+     */
+    private static RideAutoStopPolicy twoBlips() {
+        double NaN = Double.NaN;
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, 100.0, NaN);
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, 100.0, NaN);
+        p.disconnected(600_000, true);
+        p.connected(604_000, PROFILE, SERIAL, 2, 604_000, 0, -1, -1); p.distance(604_000, NaN, 0.0);
+        check(!p.dueNoMotion(604_000), "first reconnect: a trip with no baseline decides nothing");
+        p.disconnected(605_000, true);
+        p.connected(609_000, PROFILE, SERIAL, 3, 609_000, 0, -1, -1); p.distance(609_000, NaN, 0.0);
+        return p;
+    }
+    private static void repeatedBlipsKeepOriginalEvidence() {
+        double NaN = Double.NaN; long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        RideAutoStopPolicy p = twoBlips();
+        check(!p.dueNoMotion(609_000) && p.noMotionSince() == 1000, "Codex's repro: the trip seen between the blips is not a baseline");
+        // The original odometer comes back higher: motion, the count restarts.
+        RideAutoStopPolicy up = twoBlips();
+        up.connected(611_000, PROFILE, SERIAL, 3, 611_000, 0, -1, -1); up.distance(611_000, 100.2, 0.0);
+        check(!up.dueNoMotion(611_000) && up.noMotionSince() == 611_000, "an odometer above its pre-gap 100 km is motion");
+        // The original odometer comes back at exactly 100 km: the scooter stood still, the ride ends.
+        RideAutoStopPolicy same = twoBlips();
+        same.connected(611_000, PROFILE, SERIAL, 3, 611_000, 0, -1, -1); same.distance(611_000, 100.0, 0.0);
+        check(same.dueNoMotion(611_000), "an odometer back at exactly 100 km releases the hold");
+        // A trip that reset before the first gap stays ruled out across the second.
+        RideAutoStopPolicy reset = policy();
+        reset.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); reset.distance(1000, NaN, 5.0);
+        reset.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); reset.distance(600_000, NaN, 5.0);
+        reset.disconnected(600_000, true);
+        reset.connected(604_000, PROFILE, SERIAL, 2, 604_000, 0, -1, -1); reset.distance(604_000, NaN, 0.0);
+        reset.disconnected(605_000, true);
+        reset.connected(609_000, PROFILE, SERIAL, 3, 609_000, 0, -1, -1); reset.distance(609_000, NaN, 0.0);
+        check(!reset.dueNoMotion(609_000), "a trip reset in the first gap stays ruled out after the second");
+        // Blips every 5 s with no comparable reading: due at the bound from the FIRST reconnect, not extended.
+        RideAutoStopPolicy flap = policy();
+        flap.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); flap.distance(1000, 100.0, NaN);
+        flap.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); flap.distance(600_000, 100.0, NaN);
+        flap.disconnected(600_000, true);
+        long first = 604_000, t = first; int transport = 2; boolean wrong = false, fired = false;
+        while (t <= first + wait + 10_000 && !fired) {
+            flap.connected(t, PROFILE, SERIAL, transport, t, 0, -1, -1); flap.distance(t, NaN, 0.0);
+            fired = flap.dueNoMotion(t);
+            if (!fired && t >= first + wait) wrong = true; // should have fired by the bound
+            if (fired && t < first + wait) wrong = true;   // fired before it
+            if (!fired) { t += 1000; if ((t - first) % 5000 == 0) { flap.disconnected(t, true); t += 2000; transport++; } }
+        }
+        check(fired && !wrong, "a flapping link cannot extend the wait past 30 s from the first reconnect");
+    }
+    /** As dueDuring, on transport 2 with no motion push on it. */
+    private static boolean dueDuring2(RideAutoStopPolicy p, long from, long to) {
+        for (long t = from + 1000; t <= to; t += 1000) { p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); if (p.dueNoMotion(t)) return true; }
+        return false;
+    }
+    /** One fresh motion push on transport 2. */
+    private static void push2(RideAutoStopPolicy p, long at, int speed, int driving) { p.connected(at, PROFILE, SERIAL, 2, at, at, speed, driving); }
 
     private static void clockBackwards() {
         RideAutoStopPolicy p = policy();

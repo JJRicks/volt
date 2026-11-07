@@ -268,7 +268,8 @@ no-motion rule):
 - when the phone's Bluetooth is switched off and stays off for 5 minutes;
 - when the scooter stays connected but shows no motion for 10 minutes: no
   speed above 0, no driving, no odometer or trip going up. Missing speed
-  reports count as no motion. A disconnection hands over to the rules above.
+  reports count as no motion. A disconnection hands over to the rules above;
+  a reconnect within a minute of the last frame keeps the count from before it.
 
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.
