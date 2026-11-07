@@ -25,7 +25,7 @@ public final class RecordingPillTest {
             T.install(null);
             Locale.setDefault(saved);
         }
-        System.out.println("RecordingPillTest: " + checks + " checks passed (look, rungs, spoken, pulse, separate timers)");
+        System.out.println("RecordingPillTest: " + checks + " checks passed (look, rungs, alternating, spoken, pulse, separate timers)");
     }
 
     private static void look() {
@@ -38,16 +38,28 @@ public final class RecordingPillTest {
     }
 
     private static void rungs() {
-        check(Arrays.equals(RecordingPill.rungs(768_900, RidingFocus.Link.CONNECTED), new String[]{"REC 12:48", "12:48"}),
+        RidingFocus.Link on = RidingFocus.Link.CONNECTED, re = RidingFocus.Link.RECONNECTING, off = RidingFocus.Link.NOT_CONNECTED;
+        check(Arrays.equals(RecordingPill.rungs(768_900, on, false, 0, true), new String[]{"REC 12:48", "12:48"}),
                 "connected: REC and the time, then the time alone");
-        check(Arrays.equals(RecordingPill.rungs(3_768_000, RidingFocus.Link.CONNECTED), new String[]{"REC 1:02:48", "1:02:48"}), "past an hour");
-        check(Arrays.equals(RecordingPill.rungs(768_900, RidingFocus.Link.RECONNECTING),
+        check(Arrays.equals(RecordingPill.rungs(3_768_000, on, true, 0, true), new String[]{"REC 1:02:48", "1:02:48"}), "past an hour");
+        check(Arrays.equals(RecordingPill.rungs(768_900, re, true, 0, true),
                 new String[]{"REC 12:48 · Reconnecting…", "12:48 · Reconnecting…", "Reconnecting…"}),
-                "reconnecting keeps its word to the last rung");
-        check(Arrays.equals(RecordingPill.rungs(768_900, RidingFocus.Link.NOT_CONNECTED),
+                "reconnecting with room: both, the problem's word last");
+        check(Arrays.equals(RecordingPill.rungs(768_900, off, true, 0, true),
                 new String[]{"REC 12:48 · Not connected", "12:48 · Not connected", "Not connected"}),
-                "not connected keeps its words to the last rung");
-        check(RecordingPill.rungs(-5, RidingFocus.Link.CONNECTED)[0].equals("REC 0:00"), "never a negative time");
+                "not connected with room: both, the problem's words last");
+        check(RecordingPill.rungs(-5, on, true, 0, true)[0].equals("REC 0:00"), "never a negative time");
+        // No room for both: the pill alternates every 3 s, starting with the time.
+        check(Arrays.equals(RecordingPill.rungs(768_900, off, false, 0, true), new String[]{"REC 12:48", "12:48"}), "first half: the time");
+        check(Arrays.equals(RecordingPill.rungs(768_900, off, false, 2_999, true), new String[]{"REC 12:48", "12:48"}), "still the time");
+        check(Arrays.equals(RecordingPill.rungs(768_900, off, false, 3_000, true), new String[]{"Not connected"}), "second half: the problem");
+        check(Arrays.equals(RecordingPill.rungs(768_900, re, false, 5_999, true), new String[]{"Reconnecting…"}), "reconnecting's second half");
+        check(Arrays.equals(RecordingPill.rungs(768_900, off, false, 6_000, true), new String[]{"REC 12:48", "12:48"}), "back to the time");
+        // With the system's animations off, no alternating: the problem's words hold.
+        for (long t = 0; t < 12_000; t += 1_000)
+            check(Arrays.equals(RecordingPill.rungs(768_900, off, false, t, false), new String[]{"Not connected"}), "holds the problem at " + t);
+        check(RecordingPill.rungs(768_900, on, false, 3_000, false).length == 2, "connected never alternates");
+        check(RecordingPill.ALTERNATE_MS == 3000, "3 s halves");
     }
 
     private static void spoken() {

@@ -19,17 +19,38 @@ final class RecordingPill {
         return link == RidingFocus.Link.CONNECTED ? Look.RECORDING : Look.RECORDING_PROBLEM;
     }
 
+    /** How long each half of an alternating pill shows: the recording's time, then the link problem. */
+    static final long ALTERNATE_MS = 3000;
+
     /**
-     * The recording pill's text, full first, for the narrow-label ladder: the time stays while there is
-     * room, and a link problem keeps its words to the last rung (the red pill and dot still say recording).
+     * The recording pill's text, full first, for the narrow-label ladder. Connected: "REC 12:48", then the
+     * time alone. With a link problem the pill names both while the short line ("12:48 · Not connected")
+     * fits. Where it doesn't (a phone, with the night disc beside the pill), the pill alternates between the
+     * time and the problem every ALTERNATE_MS; with the system's animations off it holds the problem's words,
+     * the more urgent half (the red pill and dot still say recording, and TalkBack hears both).
+     *
+     * @param roomForBoth whether the short line with both fits the pill at its smallest readable size
      */
-    static String[] rungs(long recordingMs, RidingFocus.Link link) {
+    static String[] rungs(long recordingMs, RidingFocus.Link link, boolean roomForBoth, long nowMs, boolean motionEnabled) {
         String clock = RidingFocus.clockText(recordingMs);
         if (link == RidingFocus.Link.CONNECTED) return new String[]{T.ridingStatusRecording(clock), clock};
+        String[] both = both(clock, link);
+        if (roomForBoth) return both;
+        if (motionEnabled && timeHalf(nowMs)) return new String[]{T.ridingStatusRecording(clock), clock};
+        return new String[]{both[2]};
+    }
+
+    /** With a link problem: the full line, the short line with both, and the problem's words alone. */
+    static String[] both(String clock, RidingFocus.Link link) {
         if (link == RidingFocus.Link.RECONNECTING) return new String[]{T.ridingStatusRecordingReconnecting(clock),
                 T.ridingStatusRecordingReconnectingShort(clock), T.ridingStatusReconnecting()};
         return new String[]{T.ridingStatusRecordingNotConnected(clock), T.ridingStatusRecordingNotConnectedShort(clock),
                 T.ridingStatusNotConnectedSeenCompact()};
+    }
+
+    /** Whether an alternating pill shows the time now (the first half of each cycle). */
+    static boolean timeHalf(long nowMs) {
+        return Math.floorMod(nowMs / ALTERNATE_MS, 2L) == 0;
     }
 
     /**

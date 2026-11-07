@@ -643,7 +643,7 @@ final class RidingScreen implements AppScreen {
         if (look != RecordingPill.Look.STATUS) {
             dot.setBackground(recordingDot(look));
             status.setTextColor(ui.onAccent);
-            ui.statusRungs(status, RecordingPill.rungs(recordingMs, link));
+            ui.statusRungs(status, RecordingPill.rungs(recordingMs, link, roomForBoth(recordingMs, link), now, Ui.motionEnabled()));
             long seen = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
             statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, seen >= 0 ? clock(now - seen) : null));
         }
@@ -685,6 +685,15 @@ final class RidingScreen implements AppScreen {
             pulse.addUpdateListener(a -> dot.setAlpha((Float) a.getAnimatedValue()));
             pulse.start();
         }
+    }
+
+    /** Whether the recording pill's short line with a link problem ("12:48 · Not connected") fits, at the line's smallest size. */
+    private boolean roomForBoth(long recordingMs, RidingFocus.Link link) {
+        if (link == RidingFocus.Link.CONNECTED || status.getWidth() <= 0) return true;
+        String line = RecordingPill.both(clock(recordingMs), link)[1];
+        android.text.TextPaint paint = new android.text.TextPaint(status.getPaint());
+        if (status.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM) paint.setTextSize(status.getAutoSizeMinTextSize());
+        return paint.measureText(line) <= status.getWidth() - status.getCompoundPaddingLeft() - status.getCompoundPaddingRight();
     }
 
     /** The recording dot: solid white, or a hollow white ring while the link has a problem. */
