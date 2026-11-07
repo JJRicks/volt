@@ -1237,6 +1237,18 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    agent's instructions; the agent writes its JSON reply and runs `council.py import-claude ...
    --from <reply> --model <its model id>`, which writes `drafts/claude-<name>.xml` with the right
    escaping. An agent may write that XML itself; `import-claude` without `--from` validates it.
+   **A later draft of an area tops up the earlier one.** `draft openai|google` asks only for the
+   needed keys (new and stale, with their ladders), and when the draft file exists it merges: the
+   drafted keys replace their entries and every other key stays, with its `volt:attempt`. A key the
+   reply leaves out keeps its old entry only while that entry translates the current English, so
+   `redraft` sends a stale one as lacking; a key that has had its redraft keeps `volt:attempt="2"`,
+   so a top-up does not buy it another. A top-up uses the draft's model and style unless `--model`,
+   `--prefer` or `--style` says otherwise (one model and one style per draft): a run by another
+   model or style replaces the draft only if it drafts every key the draft holds, and otherwise
+   refuses before sending anything. `--all` drafts every key and starts the draft over, the way a
+   first draft does, and so does any run that drafts every key the draft holds. `import-claude --from` merges a reply the same way: a reply by the draft's
+   model in its style replaces the keys it answers, and one by another model or style must answer
+   every key the draft holds (or delete the draft file to start over).
    **Every draft entry records the English it translated** (`volt:src`, the source hash below):
    API drafts are stamped from the pack they were made from, and each string in a Claude prompt
    carries a `src` that the agent copies unchanged into its reply (`"src": {"<key>": "<src>"}`)
@@ -1263,8 +1275,8 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
    `redraft openai|google` also sends back, in the same calls and also as attempt 2, each needed key
    the provider left out of its draft; a key the redraft still gets no usable text of is listed in
-   that redraft's `runs.jsonl` row (`missing`) and is never sent again (a new full `draft` of that
-   provider starts over). A provider that has had both attempts at a key, and whose draft of it is
+   that redraft's `runs.jsonl` row (`missing`) and is never sent again (a new `draft` of that provider
+   that replaces the whole draft starts over; a top-up keeps the list). A provider that has had both attempts at a key, and whose draft of it is
    still missing or still failing, is **excused**: it no longer blocks the key (owner, 2026-11-05:
    the council lifts quality; it does not chase one stubborn translator). See step 5.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
