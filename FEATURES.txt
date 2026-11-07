@@ -42,7 +42,8 @@ NEW IN 1.12.0
   quiet notification when a check is due.
 - Arrange the Scooter tab: reorder, hide and add back its sections and
   settings, per scooter.
-- Spanish (beta), and a Language row with Units and Text size.
+- Spanish and Portuguese (Portugal), both beta, and a Language row with Units
+  and Text size.
 - More > Updates with an opt-in daily update check; one Export ride data
   button; ride auto-save to a folder; rides end on their own when the scooter
   is switched off, out of reach or parked for 10 minutes.
