@@ -1253,7 +1253,8 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    draft over, the way a first draft does, and so does any run that drafts every key the draft
    holds. `import-claude --from` merges a reply the same way: a reply by the draft's model in its
    style replaces the keys it answers, and one by another model or style must answer every key the
-   draft holds (or delete the draft file to start over).
+   draft holds (or delete the draft file to start over). `import-claude --from --redraft`, like
+   `--from-chunks`, refuses a model other than the one the draft names.
    **Every draft entry records the English it translated** (`volt:src`, the source hash below):
    API drafts are stamped from the pack they were made from, and each string in a Claude prompt
    carries a `src` that the agent copies unchanged into its reply (`"src": {"<key>": "<src>"}`)

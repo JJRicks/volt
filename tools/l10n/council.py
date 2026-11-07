@@ -620,6 +620,16 @@ def claude_prompt(paths, tag, area, name, style, redraft=False):
     return path
 
 
+def refuse_other_claude_model(paths, path, previous, model):
+    """A redraft or chunk import files its texts under the draft's one model: another model refuses."""
+    if previous is not None and previous.model != model:
+        raise translib.L10nError(
+            "%s was drafted by %s, not %s, and a draft names one model. Another --name takes another model, but two "
+            "claude-* drafts that agree are enough for decide to write agreed, and merge.py then writes res/: read "
+            "\"Drafting a whole language with Claude alone\" in l10n/README.md first" % (
+                paths.rel(path), previous.model, model))
+
+
 def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=False, out=None):
     """Validate drafts/claude-*.xml; with source, first convert a JSON reply into drafts/claude-<name>.xml."""
     out = out or sys.stdout
@@ -640,8 +650,9 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
             if not os.path.exists(path):
                 raise translib.L10nError("%s does not exist; --redraft replaces keys of an existing draft" % path)
             previous = translib.read_draft(path)
+            refuse_other_claude_model(paths, path, previous, model)
             save_draft(paths, pack, draft_name, previous.model, previous.model_reported, got, previous.prompt,
-                       attempt=MAX_ATTEMPTS)
+                       attempt=MAX_ATTEMPTS, new_reported=dict((k, model) for k, _, _, _, _ in got))
         else:
             got, problems = replies_to_entries(
                 pack, strings, [e["key"] for e in pack["entries"] if e["key"] in strings], srcs)
@@ -946,12 +957,7 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
             fields["id"], "" if fields["redraft"] else "not ", "pass" if fields["redraft"] else "do not pass"))
     path = draft_file(paths, tag, area, draft_name)
     previous = translib.read_draft(path) if os.path.exists(path) else None
-    if previous is not None and previous.model != model:
-        raise translib.L10nError(
-            "%s was drafted by %s, not %s, and a draft names one model. Another --name takes another model, but two "
-            "claude-* drafts that agree are enough for decide to write agreed, and merge.py then writes res/: read "
-            "\"Drafting a whole language with Claude alone\" in l10n/README.md first" % (
-                paths.rel(path), previous.model, model))
+    refuse_other_claude_model(paths, path, previous, model)
     if redraft and previous is None:
         raise translib.L10nError("%s does not exist; a redraft replaces keys of an existing draft" % paths.rel(path))
     count = len(fields["chunks"])

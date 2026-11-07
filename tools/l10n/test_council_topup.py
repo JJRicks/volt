@@ -294,6 +294,26 @@ class ClaudeImportTopUpTest(TopUpBase):
         self.assertEqual(self.text(draft, "common_cancel"), "Anular")
         self.assertEqual(self.text(draft, "common_dont"), cf.SPANISH["common_dont"])
 
+    def test_redraft_by_another_model_is_refused(self):
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH)), 0)
+        before = self.repo.read(self.PATH)
+        failed = {"common_cancel": [{"check": "glossary", "severity": "error", "message": "x"}]}
+        with unittest.mock.patch.object(council, "failed_keys", lambda *a: failed):
+            self.assertEqual(self.claude_reply({"common_cancel": "Anular"}, model="claude-sonnet-5", redraft=True), 2)
+            self.assertIn("claude-opus-5-5, not claude-sonnet-5", self.err.getvalue())
+            self.assertEqual(self.repo.read(self.PATH), before)
+            drafters = self.drafters()
+            self.assertNotIn("claude-sonnet-5", drafters)
+            # The draft's own model may redraft; its text is filed under that model.
+            self.assertEqual(self.claude_reply({"common_cancel": "Anular"}, redraft=True), 0)
+        draft = translib.read_draft(self.repo.path(self.PATH))
+        self.assertEqual(self.text(draft, "common_cancel"), "Anular")
+        self.assertEqual(draft.entries["common_cancel"].attempt, 2)
+        self.assertEqual(self.drafters(), {"claude-opus-5-5"})
+
+    def drafters(self):
+        return council.all_drafter_models(translib.list_drafts(self.paths, "es", "common"))
+
     def test_partial_reply_of_another_model_is_refused(self):
         self.assertEqual(self.claude_reply(dict(cf.SPANISH)), 0)
         before = self.repo.read(self.PATH)
