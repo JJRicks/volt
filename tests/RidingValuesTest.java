@@ -25,10 +25,12 @@ public final class RidingValuesTest {
         inferredWindow();
         inferredFromFrames();
         inferredThenStrongerRegen();
+        meterMatchesRecording();
+        unknownUntilSign();
         timers();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -535,6 +537,91 @@ public final class RidingValuesTest {
             check(near(values.rideEnergyWh(), confirmedWh + values.inferredDrawWh() + values.unconfirmedEnergyWh(), 1e-12) && values.inferredDrawWh() >= 0,
                     "total = confirmed + inferred + unconfirmed" + label);
         }
+    }
+
+    /** The recording's power for the latest frame: voltage x current from the same report (RideStore.Accumulator.accept). */
+    private static Double recordingW(Telemetry telemetry) {
+        Telemetry.Metric v = null, a = null;
+        for (Telemetry.Metric m : telemetry.metrics()) { if (m.key.equals("voltage_v")) v = m; if (m.key.equals("current_a")) a = m; }
+        return v == null || a == null || v.numericValue == null || a.numericValue == null || v.updatedMs != a.updatedMs || v.sourceCmd != a.sourceCmd
+                ? null : v.numericValue * a.numericValue;
+    }
+
+    /** One screen refresh: RidingScreen.showPower's call into the bar's GaugeSmoother. */
+    private static long barSampleMs = -1;
+    private static void refreshBar(RidingValues values, GaugeSmoother bar, long now) {
+        RidingValues.Power p = values.power(now);
+        RidingValues.Reading r = values.reading("power_w", now);
+        if (p.watts == null || r == null) return;
+        boolean fresh = r.updatedMs != barSampleMs;
+        barSampleMs = r.updatedMs;
+        bar.follow(p.watts, r.intervalMs, fresh, now);
+    }
+
+    /**
+     * Owner, Nov 6: the live power meter got confused on regen while the ride graphs were right.
+     * UT5 MAX polls 0x72 (current magnitude) then 0x79 (its sign); 0x72 lands signed with the
+     * previous sign, and 0x79 re-signs it in place. Draw, a brake into regen, and back: after every
+     * poll the meter's reading, direction and bar match the recording's voltage x current.
+     */
+    private static void meterMatchesRecording() {
+        Telemetry telemetry = new Telemetry();
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        GaugeSmoother bar = new GaugeSmoother();
+        barSampleMs = -1;
+        // Amps per 2 s poll: draw, a two-poll brake, draw again. The scooter sends the magnitude and the sign apart.
+        double[] amps = {10, 12, 11, -4, -3.5, 9, 10};
+        telemetry.accept(0x79, signs(0, 0), 0);
+        values.update(telemetry.metrics());
+        long t = 2000;
+        for (int i = 0; i < amps.length; i++, t += 2000) {
+            telemetry.accept(0x72, batteryRead(70, 50000, (int) Math.round(Math.abs(amps[i]) * 1000)), t);
+            values.update(telemetry.metrics());
+            refreshBar(values, bar, t + 10);
+            // Before 0x79 the reading carries the previous sign, in the recording just the same.
+            check(near(values.power(t + 10).watts, recordingW(telemetry), 1e-6), "between 0x72 and 0x79 the meter reads what the recording reads, poll " + i);
+            telemetry.accept(0x79, signs(0, amps[i] < 0 ? 1 : 0), t + 80);
+            values.update(telemetry.metrics());
+            refreshBar(values, bar, t + 90);
+            double recorded = recordingW(telemetry), expected = 50 * amps[i];
+            RidingValues.Power p = values.power(t + 90);
+            check(near(recorded, expected, 1e-6), "the recording has V x A signed by 0x79, poll " + i + ": " + recorded);
+            check(near(p.watts, recorded, 1e-6), "the meter shows the recording's watts, poll " + i + ": " + p.watts + " vs " + recorded);
+            check(p.direction == (recorded < 0 ? RidingValues.Direction.REGEN : RidingValues.Direction.DRAW), "negative is regen, as in the recording, poll " + i + ": " + p.direction);
+            check(bar.target() == p.watts && Math.signum(bar.value(t + 106)) == Math.signum(recorded),
+                    "the bar is on the recording's side one frame after 0x79, poll " + i + ": " + bar.value(t + 106));
+            for (long f = t + 90; f < t + 2000; f += 16)
+                check(Math.signum(bar.value(f)) != -Math.signum(recorded), "the bar never shows the other direction while it glides, poll " + i + " at " + f);
+        }
+        check(near(values.power(t).peakRegenW, 200, 1e-6) && near(values.power(t).peakDrawW, 600, 1e-6), "peaks from the corrected readings");
+    }
+
+    /**
+     * No sign yet (riding mode opened before the first 0x79): the recording can't tell either, and
+     * keeps the unsigned magnitude; the meter shows that magnitude as unknown (grey), never as draw
+     * or regen. The first sign re-signs that same reading, and the meter and bar follow at once.
+     */
+    private static void unknownUntilSign() {
+        Telemetry telemetry = new Telemetry();
+        RidingValues values = new RidingValues();
+        values.setNominalIntervals(1000, 2000);
+        GaugeSmoother bar = new GaugeSmoother();
+        barSampleMs = -1;
+        telemetry.accept(0x72, batteryRead(70, 50000, 4000), 1000);
+        values.update(telemetry.metrics());
+        refreshBar(values, bar, 1010);
+        RidingValues.Power p = values.power(1010);
+        check(near(recordingW(telemetry), 200, 1e-6), "the recording holds the magnitude before any sign");
+        check(p.direction == RidingValues.Direction.UNKNOWN && near(p.watts, 200, 1e-6) && p.peakDrawW == 0 && p.peakRegenW == 0,
+                "the meter shows it as unknown, claiming neither draw nor regen: " + p.direction);
+        telemetry.accept(0x79, signs(0, 1), 1080);
+        values.update(telemetry.metrics());
+        refreshBar(values, bar, 1090);
+        p = values.power(1090);
+        check(near(recordingW(telemetry), -200, 1e-6) && near(p.watts, -200, 1e-6) && p.direction == RidingValues.Direction.REGEN,
+                "the first sign makes it regen in both: " + p.watts + " " + p.direction);
+        check(bar.target() == -200 && bar.value(1106) < 0, "and the bar moves to regen at once: " + bar.value(1106));
     }
 
     private static void timers() {
