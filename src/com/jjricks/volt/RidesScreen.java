@@ -1690,7 +1690,13 @@ public final class RidesScreen implements AppScreen {
     }
     /** One file: Android's Save dialog, where the rider can rename it, exactly as each old export button did. */
     private void saveSingle(RideExportFiles.Format format, String id, RideStore.Summary summary, PhoneRideStore.Track track) {
-        try { saveOne(format, id, summary, track); }
+        if (format == RideExportFiles.Format.EVERYTHING_JSON) saveLater(format, id, summary, track);
+        else saveSingle(format, id, () -> RideExportFiles.payload(format, id, service.rides, summary, service.phoneRides, track, host.activity().getCacheDir(), AppVersion.name(host.activity())));
+    }
+    /** One export's content, made now or handed over from a background thread. */
+    private interface Made { RideExportFiles.Payload get() throws IOException; }
+    private void saveSingle(RideExportFiles.Format format, String id, Made made) {
+        try { saveOne(format, id, made.get()); }
         catch (RideExportFiles.Missing missing) { host.toast(T.ridesToastNoPhoneData()); }
         catch (IOException failure) { host.toast(format == RideExportFiles.Format.SENSOR_CSV ? T.ridesToastExportCsvFailed() : T.ridesToastExportFailed()); }
     }
@@ -1700,15 +1706,17 @@ public final class RidesScreen implements AppScreen {
      */
     private void saveSeveral(Set<RideExportFiles.Format> chosen, String id, RideStore.Summary summary, PhoneRideStore.Track track) {
         final RideStore rides = service.rides; final PhoneRideStore store = service.phoneRides;
-        final File cache = host.activity().getCacheDir();
+        final File cache = host.activity().getCacheDir(); final String version = AppVersion.name(host.activity());
         final List<RideExportFiles.Format> formats = new ArrayList<>(chosen);
         try {
             phoneLoader.execute(() -> {
                 File staging = null; boolean missing = false;
                 try {
                     staging = RideExportFiles.newStaging(cache, System.currentTimeMillis());
-                    for (RideExportFiles.Format format : formats)
-                        RideExportFiles.stage(staging, format, id, RideExportFiles.payload(format, id, rides, summary, store, track, cache));
+                    for (RideExportFiles.Format format : formats) {
+                        RideExportFiles.Payload payload = RideExportFiles.payload(format, id, rides, summary, store, track, cache, version);
+                        try { RideExportFiles.stage(staging, format, id, payload); } finally { payload.discard(); }
+                    }
                 } catch (IOException | RuntimeException failure) {
                     missing = failure instanceof RideExportFiles.Missing;
                     RideExportFiles.remove(staging); staging = null;
@@ -1722,11 +1730,35 @@ public final class RidesScreen implements AppScreen {
             });
         } catch (java.util.concurrent.RejectedExecutionException screenClosed) { }
     }
-    /** Hands one export to Android's Save dialog: text through saveText, a file through saveFile, as each button always did. */
-    private void saveOne(RideExportFiles.Format format, String id, RideStore.Summary summary, PhoneRideStore.Track track) throws IOException {
-        RideExportFiles.Payload payload = RideExportFiles.payload(format, id, service.rides, summary, service.phoneRides, track, host.activity().getCacheDir());
+    /**
+     * One file that takes a moment to make (Everything on a long ride): written into the cache off the main thread,
+     * then handed to Android's Save dialog like any other file.
+     */
+    private void saveLater(RideExportFiles.Format format, String id, RideStore.Summary summary, PhoneRideStore.Track track) {
+        final RideStore rides = service.rides; final PhoneRideStore store = service.phoneRides;
+        final File cache = host.activity().getCacheDir(); final String version = AppVersion.name(host.activity());
+        try {
+            phoneLoader.execute(() -> {
+                RideExportFiles.Payload made = null; IOException failed = null;
+                try { made = RideExportFiles.payload(format, id, rides, summary, store, track, cache, version); }
+                catch (IOException failure) { failed = failure; }
+                catch (RuntimeException failure) { failed = new IOException(failure); }
+                final RideExportFiles.Payload ready = made; final IOException failure = failed;
+                host.activity().runOnUiThread(() -> {
+                    if (host.activity().isDestroyed()) { if (ready != null) ready.discard(); return; }
+                    saveSingle(format, id, () -> { if (failure != null) throw failure; return ready; });
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException screenClosed) { }
+    }
+    /**
+     * Hands one export to Android's Save dialog: text through saveText, a file through saveFile, as each button always
+     * did. A file the payload owns (Everything) is discarded once the host has copied it, or could not.
+     */
+    private void saveOne(RideExportFiles.Format format, String id, RideExportFiles.Payload payload) {
         String name = RideExportFiles.name(format, id);
         if (payload.text != null) host.saveText(name, format.mime, payload.text);
+        else if (payload.owned != null) host.saveFile(name, format.mime, payload.file, payload::discard);
         else host.saveFile(name, format.mime, payload.file);
     }
     /**

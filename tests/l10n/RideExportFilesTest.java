@@ -64,11 +64,11 @@ public final class RideExportFilesTest {
 
     private static void names() {
         String id = "1a2b3c4d-0000-4000-8000-000000000001";
-        String[][] expected = {{"sensor_csv", "ride-1a2b3c4d-sensors.csv", "text/csv"}, {"analysis_json", "ride-1a2b3c4d-analysis.json", "application/json"},
+        String[][] expected = {{"everything_json", "ride-1a2b3c4d-everything.json", "application/json"}, {"sensor_csv", "ride-1a2b3c4d-sensors.csv", "text/csv"}, {"analysis_json", "ride-1a2b3c4d-analysis.json", "application/json"},
                 {"route_csv", "ride-1a2b3c4d-route.csv", "text/csv"}, {"gpx", "ride-1a2b3c4d.gpx", "application/gpx+xml"},
                 {"phone_raw", "ride-1a2b3c4d-phone.csv", "text/csv"}, {"motion_raw", "ride-1a2b3c4d-motion.csv", "text/csv"},
                 {"combined_json", "ride-1a2b3c4d-combined.json", "application/json"}};
-        check(RideExportFiles.Format.values().length == expected.length, "Seven formats");
+        check(RideExportFiles.Format.values().length == expected.length, "Eight formats");
         for (int i = 0; i < expected.length; i++) {
             RideExportFiles.Format f = RideExportFiles.Format.values()[i];
             check(f.id.equals(expected[i][0]) && RideExportFiles.Format.of(f.id) == f, "Format order and id " + f);
@@ -163,13 +163,16 @@ public final class RideExportFilesTest {
                 check(RideExportFiles.why(format, null) == (format.phone ? RideExportFiles.Unavailable.NO_PHONE : RideExportFiles.Unavailable.NONE), "No phone files: " + format);
                 check(RideExportFiles.why(format, phone(true, false, false, null, false)) == (format.phone ? RideExportFiles.Unavailable.NO_PHONE : RideExportFiles.Unavailable.NONE), "Another ride saving, none here: " + format);
             }
-            check(RideExportFiles.listed(null).equals(Arrays.asList(RideExportFiles.Format.SENSOR_CSV, RideExportFiles.Format.ANALYSIS_JSON)), "A scooter ride lists its two files");
+            List<RideExportFiles.Format> scooterFiles = new ArrayList<>(Arrays.asList(RideExportFiles.Format.SENSOR_CSV, RideExportFiles.Format.ANALYSIS_JSON));
+            if (RideExportFiles.EVERYTHING_ON_SHEET) scooterFiles.add(0, RideExportFiles.Format.EVERYTHING_JSON);
+            int everything = RideExportFiles.EVERYTHING_ON_SHEET ? 1 : 0;
+            check(RideExportFiles.listed(null).equals(scooterFiles), "A scooter ride lists its two files (and Everything once the sheet has it)");
             PhoneRideStore.Track gps = f.phone.load(f.combined), motionOnly = f.phone.load(f.motionOnly);
             RideExportFiles.Phone full = phone(false, true, true, gps, false);
-            check(RideExportFiles.listed(full).size() == 7, "A phone recording lists all seven");
+            check(RideExportFiles.listed(full).size() == 7 + everything, "A phone recording lists all seven (and Everything)");
             for (RideExportFiles.Format format : all) check(RideExportFiles.why(format, full) == RideExportFiles.Unavailable.NONE, "Everything offered: " + format);
             RideExportFiles.Phone saving = phone(true, true, true, null, false);
-            for (RideExportFiles.Format format : all) check(RideExportFiles.why(format, saving) == (format.phone ? RideExportFiles.Unavailable.SAVING : RideExportFiles.Unavailable.NONE), "Saving: " + format);
+            for (RideExportFiles.Format format : all) check(RideExportFiles.why(format, saving) == (format.phone || format == RideExportFiles.Format.EVERYTHING_JSON ? RideExportFiles.Unavailable.SAVING : RideExportFiles.Unavailable.NONE), "Saving: " + format);
             RideExportFiles.Phone noFixes = phone(false, true, true, motionOnly, false);
             check(motionOnly.locationCount == 0 && motionOnly.motionSampleCount > 0, "Motion-only fixture");
             check(RideExportFiles.why(RideExportFiles.Format.ROUTE_CSV, noFixes) == RideExportFiles.Unavailable.NO_FIXES
@@ -185,18 +188,19 @@ public final class RideExportFilesTest {
             f.phone.start(nothing, 1700000400000L, 1000); f.phone.stop(nothing, 1700000401000L, 2000);
             PhoneRideStore.Track empty = f.phone.load(nothing);
             check(empty.locationCount == 0 && empty.motionSampleCount == 0, "Empty recording fixture");
-            check(RideExportFiles.listed(phone(false, true, true, empty, false)).size() == 2, "A recording with nothing in it is hidden, as Export phone data was");
+            check(RideExportFiles.listed(phone(false, true, true, empty, false)).size() == 2 + everything, "A recording with nothing in it is hidden, as Export phone data was");
         } finally { f.delete(); }
     }
 
     private static void choice() throws IOException {
         Fixture f = new Fixture();
         try {
-            Set<RideExportFiles.Format> first = RideExportFiles.parse(null);
-            check(first.equals(RideExportFiles.DEFAULT) && first.size() == 2 && first.contains(RideExportFiles.Format.SENSOR_CSV) && first.contains(RideExportFiles.Format.ANALYSIS_JSON), "Nothing remembered: Sensor CSV and Analysis JSON");
-            check(RideExportFiles.parse("").isEmpty(), "An empty choice stays empty");
-            check(RideExportFiles.parse("gpx,bogus,,route_csv,gpx").equals(EnumSet.of(RideExportFiles.Format.GPX, RideExportFiles.Format.ROUTE_CSV)), "Unknown and repeated ids dropped");
-            check(RideExportFiles.format(EnumSet.of(RideExportFiles.Format.COMBINED_JSON, RideExportFiles.Format.SENSOR_CSV)).equals("sensor_csv,combined_json"), "Stored in sheet order");
+            Set<RideExportFiles.Format> first = RideExportFiles.parse(null, false);
+            check(RideExportFiles.parse(null).equals(RideExportFiles.DEFAULT), "Nothing remembered: the default");
+            check(first.size() == 2 && first.contains(RideExportFiles.Format.SENSOR_CSV) && first.contains(RideExportFiles.Format.ANALYSIS_JSON), "Nothing remembered, without Everything: Sensor CSV and Analysis JSON");
+            check(RideExportFiles.parse("", false).isEmpty(), "An empty choice stays empty without Everything");
+            check(RideExportFiles.parse("gpx,bogus,,route_csv,gpx", false).equals(EnumSet.of(RideExportFiles.Format.GPX, RideExportFiles.Format.ROUTE_CSV)), "Unknown and repeated ids dropped");
+            check(RideExportFiles.format(EnumSet.of(RideExportFiles.Format.COMBINED_JSON, RideExportFiles.Format.SENSOR_CSV), false).equals("sensor_csv,combined_json"), "Stored in sheet order");
             Set<RideExportFiles.Format> phoneChoice = EnumSet.of(RideExportFiles.Format.ROUTE_CSV, RideExportFiles.Format.GPX, RideExportFiles.Format.SENSOR_CSV);
             check(RideExportFiles.initial(phoneChoice, null).equals(EnumSet.of(RideExportFiles.Format.SENSOR_CSV)), "A scooter ride checks only what it offers");
             RideExportFiles.Phone noFixes = phone(false, true, true, f.phone.load(f.motionOnly), false);
@@ -249,7 +253,7 @@ public final class RideExportFilesTest {
             Locale.setDefault(before);
             T.install(null);
         }
-        check(english.size() == 14, "Two scooter-ride files, five phone-ride files and seven combined-ride files: " + english.keySet());
+        check(english.size() == 14 + (RideExportFiles.EVERYTHING_ON_SHEET ? 2 : 0), "Two scooter-ride files, five phone-ride files and seven combined-ride files: " + english.keySet());
         check(guarded.equals(english), "The same files without the catalog and in a German default locale");
     }
     private static Map<String, String> everything() throws IOException {

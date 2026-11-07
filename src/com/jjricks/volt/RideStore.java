@@ -463,16 +463,30 @@ public final class RideStore {
 
     public synchronized String start(String scooterId, String label, long wallMillis,
             long monotonicMillis) throws IOException {
+        return start(scooterId, label, wallMillis, monotonicMillis, null);
+    }
+    /**
+     * As above; timeZone is the phone's time zone id when the ride began. A valid id is kept in START's details as
+     * time_zone=&lt;id&gt; (the Everything export reads it back for local clock times); null or anything else
+     * leaves details empty, as rides recorded before it were.
+     */
+    public synchronized String start(String scooterId, String label, long wallMillis,
+            long monotonicMillis, String timeZone) throws IOException {
         if (active != null) throw new IllegalStateException("A ride is already recording");
         if (wallMillis < 0 || monotonicMillis < 0) throw new IllegalArgumentException("Invalid clock");
         String id = UUID.randomUUID().toString();
         Accumulator candidate = new Accumulator(id, trim(scooterId, 160), trim(label, 200), wallMillis, monotonicMillis);
         candidate.direction = defaultDirection;
         String start = row("START", wallMillis, monotonicMillis, "", candidate.scooterId, "", candidate.label,
-                "", "", "", "", candidate.direction.name(), "");
+                "", "", "", "", candidate.direction.name(), timeZoneDetail(timeZone));
         writeNew(file(id), HEADER + start);
         active = candidate;
         return id;
+    }
+
+    /** START's details for a time zone id: empty unless it looks like a zone id (letters, digits and _+-/ only). */
+    static String timeZoneDetail(String timeZone) {
+        return timeZone != null && timeZone.matches("[A-Za-z0-9_+/-]{1,64}") ? RideExportEverything.TIME_ZONE_DETAIL + timeZone : "";
     }
 
     /** The map is a current snapshot, including unavailable/stale fields if desired. */
@@ -765,6 +779,8 @@ public final class RideStore {
         if (index != null) index.remove(id);
         return true;
     }
+    /** The ride's journal file, for exports that stream it (RideExportEverything); it may not exist. */
+    File journal(String id) { return file(id); }
     public synchronized void exportCsv(String id, File destination) throws IOException {
         File source = file(id);
         if (!source.isFile()) throw new IOException("Ride does not exist");
@@ -1317,7 +1333,7 @@ public final class RideStore {
         return out.append('\n').toString();
     }
     /** Streaming RFC4180 reader. A partial final row or quoted field is discarded. */
-    private static List<String> csvRecord(Reader reader) throws IOException {
+    static List<String> csvRecord(Reader reader) throws IOException {
         ArrayList<String> result = new ArrayList<String>();
         StringBuilder field = new StringBuilder();
         boolean quoted = false, afterQuote = false, began = false;

@@ -146,7 +146,9 @@ wall/monotonic timestamps, frame ID, sensor key, numeric/text value, unit, sourc
 command, sensor time/age, current-direction interpretation and recording events.
 `BEGIN` / `SENSOR` / `COMMIT` preserve sample boundaries; only committed frames
 are accepted during replay. `GAP` / `HEARTBEAT` / `RECOVER` describe missing
-exposure and process recovery without inventing samples. A `STOP` row's details
+exposure and process recovery without inventing samples. A `START` row's details
+column holds `time_zone=<id>`, the phone's time zone when the ride began, so exports
+can show local clock times; rides recorded by older versions leave it empty. A `STOP` row's details
 column is empty when the rider stopped, `AUTO_PARKED_DISCONNECT` when Volt
 ended the ride after a parked loss, or `AUTO_QUIET_DISCONNECT;last=<monotonic ms
 of the last real reading, -1 none>;code=<native disconnect code, -1
@@ -173,6 +175,9 @@ insufficient evidence, not zero.
 Each file is byte for byte what the separate Export CSV, Export JSON and Export phone
 data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
 choice is `ride_export_choice`.
+
+[Everything (JSON)](ride-export-everything.md) (`RideExportEverything`) is one file with
+all of these recordings on their own clocks; it is not on the sheet yet.
 
 Phone and motion journals are separate from the scooter journal. Combined JSON
 can include precise route coordinates; GPX contains time and position. Inline
