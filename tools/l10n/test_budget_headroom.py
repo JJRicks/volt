@@ -174,6 +174,31 @@ class HeadroomTest(unittest.TestCase):
         self.assertEqual(rows["gauge_pill_short"]["evidence"], [])
         self.assertFalse(rows["gauge_pill_short"]["proven"])
 
+    def ruled(self, rulings):
+        """gauge_roomy's evidence with these fallback rulings in this file order (300dp@14sp today)."""
+        rows = [dict(r, key="gauge_roomy", verdict="fallback") for r in rulings]
+        self.repo.write("l10n/work/es/gauge/judge.jsonl", "".join(json.dumps(r) + "\n" for r in rows))
+        return self.rows(self.report())["gauge_roomy"]
+
+    def test_an_older_ruling_does_not_hide_a_current_one(self):
+        current = {"reason": "Too wide: 320 dp against the 300 dp budget", "source_sha1": SHA["gauge_roomy"]}
+        stale = {"reason": "Too wide: 320 dp against the 300 dp budget", "source_sha1": OLD}
+        old_budget = {"reason": "Too wide: 260 dp against the 240 dp budget", "source_sha1": SHA["gauge_roomy"]}
+        for first, second, label in ((stale, current, "stale"), (old_budget, current, "older"),
+                                     (current, stale, "stale"), (current, old_budget, "older")):
+            row = self.ruled([first, second])
+            got = [(e["kind"], e["older_budget"], e["stale_source"]) for e in row["evidence"]]
+            other = ("fallback-width", "240dp", False) if label == "older" else ("fallback-width", None, True)
+            want = [("fallback-width", None, False), other]
+            if first is not current:
+                want.reverse()
+            self.assertEqual(got, want, (label, first is current))
+            self.assertTrue(row["proven"], (label, first is current))
+        # Only older or stale rulings: listed, not proof. The same ruling twice is listed once.
+        row = self.ruled([stale, old_budget, old_budget])
+        self.assertEqual(len(row["evidence"]), 2)
+        self.assertFalse(row["proven"])
+
     def test_observed_shipped_widths(self):
         rows = self.rows(self.report())
         observed = rows["gauge_word"]["observed"]["es"]

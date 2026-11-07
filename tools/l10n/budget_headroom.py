@@ -231,14 +231,18 @@ def collect_evidence(paths, tag, folder, english_keys, budgeted, current=None):
                                                _findings_older(draft_findings, key, budgeted), old_english))
         judge_path = paths.work(tag, area, "judge.jsonl")
         if os.path.exists(judge_path):
+            # Every distinct width fallback counts: an early ruling for older English or an older budget
+            # must not hide a later one for today's. Only a repeat of the same ruling (same English, same
+            # reason) is dropped.
             seen = set()
             for row in translib.read_jsonl(judge_path):
                 key = row.get("key")
                 if key not in english_keys or row.get("verdict") != "fallback" or not width_reason(row.get("reason")):
                     continue
-                if key in seen:
+                same = (key, row.get("source_sha1"), row.get("reason"))
+                if same in seen:
                     continue
-                seen.add(key)
+                seen.add(same)
                 outcome = decided.get(key, (None, None))[0]
                 now = " (translated now: %s)" % outcome if outcome in TRANSLATED else ""
                 evidence[key].append(_evidence(tag, "fallback-width", (row.get("reason") or "") + now,
