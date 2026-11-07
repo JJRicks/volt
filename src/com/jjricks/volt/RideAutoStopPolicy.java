@@ -53,7 +53,10 @@ import java.util.Objects;
  *      Distance gained during the gap still counts as motion at the first fresh reading. A carried count
  *      cannot end the ride until a fresh odometer or trip reading from after the drop has been judged, or
  *      {@link #CARRY_EVIDENCE_MS} after the reconnect when none arrives, so a rider who set off during
- *      the gap is not cut off before the readings show it. After a longer gap the countdown starts again
+ *      the gap is not cut off before the readings show it. A new drop while that wait is unresolved keeps
+ *      the original pre-gap baselines (and the metrics already ruled out) and the original deadline, so a
+ *      value first seen between two blips is never taken as proof and a flapping link cannot extend the
+ *      wait past {@link #CARRY_EVIDENCE_MS} after the first reconnect. After a longer gap the countdown starts again
  *      from the reconnect, since the scooter may have moved meanwhile.
  *    - No phone GPS guard, as for the Bluetooth-off rule (owner answer Q30 B).
  *
@@ -128,6 +131,8 @@ public final class RideAutoStopPolicy {
     private double stillOdometer = Double.NaN, stillTrip = Double.NaN;
     /** Rule 3 across a drop: the countdown's start and baselines at the loss, and that loss's last frame (0 when none). */
     private long heldFrom, heldFrame;
+    /** The held count's own wait was still unresolved at the drop: its deadline, kept for the next reconnect (0 when none). */
+    private long heldHold;
     private double heldOdometer = Double.NaN, heldTrip = Double.NaN;
     /** Rule 3 after a carried reconnect: no ending before this time (0 when not waiting) unless a distance reading after {@link #carryAfter} arrives. */
     private long carryHold, carryAfter;
@@ -196,7 +201,7 @@ public final class RideAutoStopPolicy {
             bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now;
             if (heldFrom > 0 && heldFrame > 0 && now >= heldFrame && now - heldFrame <= RECONNECT_CARRY_MS) {
                 stillFrom = heldFrom; stillOdometer = heldOdometer; stillTrip = heldTrip;
-                carryHold = now + CARRY_EVIDENCE_MS; carryAfter = heldFrame + READING_AGE_MS;
+                carryHold = heldHold > 0 ? heldHold : now + CARRY_EVIDENCE_MS; carryAfter = heldFrame + READING_AGE_MS;
                 carryOdometer = heldOdometer; carryTrip = heldTrip;
             }
             clearHeld();
@@ -241,7 +246,11 @@ public final class RideAutoStopPolicy {
             boolean slow = speedRaw >= 0 && speedRaw <= WALKING_RAW && lastFrame > 0
                     && lastFrame >= speedMono && lastFrame - speedMono <= MOTION_FRESH_MS
                     && now - lastFrame <= LOSS_WINDOW_MS;
-            if (stillFrom > 0) { heldFrom = stillFrom; heldFrame = frame; heldOdometer = stillOdometer; heldTrip = stillTrip; }
+            if (stillFrom > 0) {
+                heldFrom = stillFrom; heldFrame = frame; heldOdometer = stillOdometer; heldTrip = stillTrip; heldHold = 0;
+                // Unresolved carry: keep the original pre-gap baselines and deadline, never values learned since.
+                if (carryHold > 0) { heldHold = carryHold; heldOdometer = carryOdometer; heldTrip = carryTrip; }
+            }
             clearRun(); clearSpeed(); clearStill(); lastMotion = lastFrame = 0;
             lostFrame = frame;
             if (parked) lossMono = now;
@@ -291,7 +300,7 @@ public final class RideAutoStopPolicy {
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
     private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; carryHold = carryAfter = 0; carryOdometer = carryTrip = Double.NaN; }
-    private void clearHeld() { heldFrom = heldFrame = 0; heldOdometer = heldTrip = Double.NaN; }
+    private void clearHeld() { heldFrom = heldFrame = heldHold = 0; heldOdometer = heldTrip = Double.NaN; }
     /** Rule 3's speed evidence from one connected observation. */
     private void still(long now, long pushMono, int speedRaw, int driving) {
         if (pushMono > 0 && pushMono != stillPush && pushMono <= now && now - pushMono <= MOTION_FRESH_MS) {

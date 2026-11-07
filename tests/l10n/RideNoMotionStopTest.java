@@ -49,6 +49,7 @@ public final class RideNoMotionStopTest {
             shortBlipKeepsCount();
             carriedDeadlineWaitsForReadings();
             carriedDeadlineNeedsComparableReading();
+            repeatedBlipsKeepOriginalEvidence();
             clockBackwards();
             silentLinkOrOtherScooter();
             storeShownEnd();
@@ -418,6 +419,58 @@ public final class RideNoMotionStopTest {
         s2.disconnected(600_000, true);
         s2.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); s2.distance(back, 100.0, 0.0);
         check(s2.dueNoMotion(back), "an unchanged odometer beside a reset trip shows the scooter stood still");
+    }
+    /**
+     * Codex's #303 round 4: two blips in a row. A trip first seen between them must not become the baseline
+     * that releases the hold; the original odometer still decides, and the 30 s bound runs from the first reconnect.
+     */
+    private static RideAutoStopPolicy twoBlips() {
+        double NaN = Double.NaN;
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, 100.0, NaN);
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, 100.0, NaN);
+        p.disconnected(600_000, true);
+        p.connected(604_000, PROFILE, SERIAL, 2, 604_000, 0, -1, -1); p.distance(604_000, NaN, 0.0);
+        check(!p.dueNoMotion(604_000), "first reconnect: a trip with no baseline decides nothing");
+        p.disconnected(605_000, true);
+        p.connected(609_000, PROFILE, SERIAL, 3, 609_000, 0, -1, -1); p.distance(609_000, NaN, 0.0);
+        return p;
+    }
+    private static void repeatedBlipsKeepOriginalEvidence() {
+        double NaN = Double.NaN; long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        RideAutoStopPolicy p = twoBlips();
+        check(!p.dueNoMotion(609_000) && p.noMotionSince() == 1000, "Codex's repro: the trip seen between the blips is not a baseline");
+        // The original odometer comes back higher: motion, the count restarts.
+        RideAutoStopPolicy up = twoBlips();
+        up.connected(611_000, PROFILE, SERIAL, 3, 611_000, 0, -1, -1); up.distance(611_000, 100.2, 0.0);
+        check(!up.dueNoMotion(611_000) && up.noMotionSince() == 611_000, "an odometer above its pre-gap 100 km is motion");
+        // The original odometer comes back at exactly 100 km: the scooter stood still, the ride ends.
+        RideAutoStopPolicy same = twoBlips();
+        same.connected(611_000, PROFILE, SERIAL, 3, 611_000, 0, -1, -1); same.distance(611_000, 100.0, 0.0);
+        check(same.dueNoMotion(611_000), "an odometer back at exactly 100 km releases the hold");
+        // A trip that reset before the first gap stays ruled out across the second.
+        RideAutoStopPolicy reset = policy();
+        reset.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); reset.distance(1000, NaN, 5.0);
+        reset.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); reset.distance(600_000, NaN, 5.0);
+        reset.disconnected(600_000, true);
+        reset.connected(604_000, PROFILE, SERIAL, 2, 604_000, 0, -1, -1); reset.distance(604_000, NaN, 0.0);
+        reset.disconnected(605_000, true);
+        reset.connected(609_000, PROFILE, SERIAL, 3, 609_000, 0, -1, -1); reset.distance(609_000, NaN, 0.0);
+        check(!reset.dueNoMotion(609_000), "a trip reset in the first gap stays ruled out after the second");
+        // Blips every 5 s with no comparable reading: due at the bound from the FIRST reconnect, not extended.
+        RideAutoStopPolicy flap = policy();
+        flap.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); flap.distance(1000, 100.0, NaN);
+        flap.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); flap.distance(600_000, 100.0, NaN);
+        flap.disconnected(600_000, true);
+        long first = 604_000, t = first; int transport = 2; boolean wrong = false, fired = false;
+        while (t <= first + wait + 10_000 && !fired) {
+            flap.connected(t, PROFILE, SERIAL, transport, t, 0, -1, -1); flap.distance(t, NaN, 0.0);
+            fired = flap.dueNoMotion(t);
+            if (!fired && t >= first + wait) wrong = true; // should have fired by the bound
+            if (fired && t < first + wait) wrong = true;   // fired before it
+            if (!fired) { t += 1000; if ((t - first) % 5000 == 0) { flap.disconnected(t, true); t += 2000; transport++; } }
+        }
+        check(fired && !wrong, "a flapping link cannot extend the wait past 30 s from the first reconnect");
     }
     /** As dueDuring, on transport 2 with no motion push on it. */
     private static boolean dueDuring2(RideAutoStopPolicy p, long from, long to) {
