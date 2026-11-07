@@ -202,14 +202,6 @@
     <string name="more_history_off_kept">Desactivado · se conservan las últimas lecturas</string>
     <!-- src:3306dbdeccfc25335130c26851c550b072b30c74 -->
     <string name="more_auto_save_heading">Guardado automático de viajes</string>
-    <!-- src:2d843aa9d08b999648f569b7c7c6c8f6474c8085 -->
-    <string name="more_auto_save_route_csv">Guardar automáticamente el CSV de ruta</string>
-    <!-- src:af4791ddad6e51aba3baed3b9ae0a8a5490d4f53 -->
-    <string name="more_auto_save_route_csv_sub">La ruta GPS del teléfono, para viajes con ubicaciones</string>
-    <!-- src:83eb41da14f19b3d8736b66249aa3fad84ea8143 -->
-    <string name="more_auto_save_json">Guardar automáticamente el JSON del viaje</string>
-    <!-- src:0180df032c9283264b2b6accabda326729907b9f -->
-    <string name="more_auto_save_json_sub">Resumen del viaje, más la grabación del teléfono si la hay</string>
     <!-- src:8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec -->
     <string name="more_auto_save_folder">Carpeta</string>
     <!-- src:bcbd72a20ff44510ee37859d1aa734922a772667 -->

@@ -11,10 +11,11 @@ import java.util.*;
  *
  * Every file but Everything (JSON) is byte for byte what the separate Export CSV, Export JSON and Export phone data
  * buttons wrote: RideStore.exportCsv's copy of the sensor journal, Summary.toJson, Track.toCsv, toGpx, the phone's
- * raw journal and motion files as they are, and RideAutoExport.combinedJson. Everything (JSON) is
+ * raw journal and motion files as they are, and combinedJson. Everything (JSON) is
  * RideExportEverything's one file with all of those recordings (docs/ride-export-everything.md). Files, names and stored values are
  * English and locale-independent; nothing here reads the catalog (RideExportFilesTest proves it under a
- * throwing text source). Automatic ride copies (RideAutoExport) keep their own path and settings.
+ * throwing text source). Automatic ride copies (RideAutoExport) save this class's Everything payload, with their own
+ * folder and settings.
  */
 final class RideExportFiles {
     private RideExportFiles() { }
@@ -260,13 +261,17 @@ final class RideExportFiles {
                 return new Payload(summary.toJson(), null);
             case ROUTE_CSV: return new Payload(need(track).toCsv(), null);
             case GPX: return new Payload(need(track).toGpx(), null);
-            case COMBINED_JSON: return new Payload(RideAutoExport.combinedJson(summary, need(track)), null);
+            case COMBINED_JSON: return new Payload(combinedJson(summary, need(track)), null);
             default: {
                 File file = rawFile(format, phone, rideId);
                 if (!file.isFile()) throw new Missing(name(format, rideId));
                 return new Payload(null, file);
             }
         }
+    }
+    /** Scooter and phone JSON's text: the analysis (null without a scooter journal) and the phone track. */
+    static String combinedJson(RideStore.Summary scooter, PhoneRideStore.Track phone) {
+        return "{\"scooter\":" + (scooter == null ? "null" : scooter.toJson()) + ",\"phone\":" + phone.toJson() + "}";
     }
     private static PhoneRideStore.Track need(PhoneRideStore.Track track) throws IOException {
         if (track == null) throw new IOException("The phone recording is not loaded");
