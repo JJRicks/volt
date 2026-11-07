@@ -1,0 +1,8 @@
+# Ride details' Everything (JSON) export (RideExportEverything, docs/ride-export-everything.md). tests/run.sh compiles
+# every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# The file's schema shape, a byte-for-byte rebuild of the scooter journal, phone journal and motion file from it,
+# identifiers left out, the recorded time zone, the remembered choice with and without Everything on the sheet, the
+# same bytes under a throwing text source, and a one-hour synthetic ride's size and time.
+src/com/jjricks/volt/RideExportEverything.java
+src/com/jjricks/volt/RideExportFiles.java
+tests/l10n/RideExportEverythingTest.java

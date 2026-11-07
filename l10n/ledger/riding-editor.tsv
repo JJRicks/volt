@@ -1,0 +1,5 @@
+# Ledger for riding-editor: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/RidingScreen.java:493	["riding_layout_sheet"]	-	removed	whole block: RidingScreen.choose(), the plain frame list, is deleted; edit() opens the layout editor (RidingLayoutSheet) in its place and tags its sheet riding_layout_editor
+src/com/jjricks/volt/RidingScreen.java:515	["check"]	-	removed	whole block: RidingScreen.choose(), the plain frame list, is deleted; the layout editor (RidingLayoutSheet) shows the frames as thumbnails and the choices as radio rows, with no check icon

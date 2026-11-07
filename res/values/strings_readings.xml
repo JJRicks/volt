@@ -177,8 +177,8 @@
     <string name="readings_overspeed_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed control (raw)</string>
     <string name="readings_overspeed_alert" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed alert setting (raw)</string>
     <string name="readings_overspeed_alert_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed alert (raw)</string>
-    <string name="readings_drive_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive mode speed limit setting (raw)</string>
-    <string name="readings_drive_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Drive speed limit (raw)</string>
+    <string name="readings_drive_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="Drive">Drive mode speed limit setting (raw)</string>
+    <string name="readings_drive_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:dnt="Drive">Drive speed limit (raw)</string>
 
     <!-- Device readings. -->
     <string name="readings_meter_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Meter firmware</string>

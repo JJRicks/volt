@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="service_wait_backup" volt:src="ad050a8c30a8cf5b578006a5884bc1ff0b909043">Aguarde a conclusão do backup ou da restauração</string>
+    <string name="service_stop_recording_first" volt:src="4fd630cc644ce85af927e714376db75a7a098657">Pare a gravação atual primeiro</string>
+    <string name="service_wait_ride_saving" volt:src="dde7a768fd375aa9b91eed6384cbc875b9291969">Aguarde a viagem terminar de ser salva</string>
+    <string name="service_wait_scooter_change" volt:src="9ae1c7f912aeba28b610a96d05e83c0423c361f4">Aguarde a conclusão da alteração atual no patinete</string>
+    <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Aguarde a conclusão do teste da programação</string>
+    <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">A manutenção dos dados do app já está em andamento</string>
+    <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Aguarde a gravação do telefone terminar de ser salva</string>
+    <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Aguarde até a cópia da viagem terminar de ser salva</string>
+    <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Conclua primeiro a exportação atual do carregamento</string>
+    <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Aguarde o Volt terminar de definir a programação de carregamento</string>
+    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Aguarde “Carga pronta até” terminar a medição</string>
+    <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Aguarde a conclusão da limpeza do histórico</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Conclua primeiro a configuração do proprietário e restaure o registro de atividades da NAVEE</string>
+    <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Conclua primeiro a exportação atual</string>
+    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Conclua primeiro a importação da configuração do proprietário</string>
+    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Não foi possível preparar os dados do app. Abra o Volt novamente.</string>
+    <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Conclua a gravação atual antes de simular</string>
+    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ainda não há gravação de carregamento</string>
+    <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">O armazenamento das gravações de carregamento está indisponível</string>
+    <string name="service_charge_enable_developer" volt:src="552c52b2aed3c9588b58961a1b1d9ad75cd3e3ce">Ative primeiro as “Opções do desenvolvedor”</string>
+    <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Desative a simulação para gravar um carregamento real</string>
+    <string name="service_charge_finish_ride" volt:src="42f19d08bb0f01402fef4a0b43f0d3acca15a40e">Conclua primeiro a gravação da viagem</string>
+    <string name="service_charge_preparing_export" volt:src="8b9565bee6a3846a078faedfae32e7b0a36a7f14">Preparando a exportação do carregamento</string>
+    <string name="service_charge_loading" volt:src="42bf22207416110b128d467977f6f1624c6524f5">Aguarde… lendo as gravações de carregamento salvas</string>
+    <string name="service_charge_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Conecte o patinete primeiro</string>
+    <string name="service_charge_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Aguarde novas leituras de carregamento</string>
+    <string name="service_charge_battery_full" volt:src="b767f3faf2b7ab930807e4a02653bc447d3a7f87">A bateria já está em 100%%</string>
+    <string name="service_charge_allow_notifications" volt:src="e982c4836d18d4cc16eb6e57ca5ce5529f464397">Permita as notificações do app para que a ação “Parar” continue disponível</string>
+    <string name="service_charge_choose_charger" volt:src="3ccb3921e30374f743508a8b459817be50de48f9">Escolha o carregador conectado</string>
+    <string name="service_charge_started" volt:src="80f0bd07fc7b2bc4187d664cf1346cc7f38b3498">Gravação de carregamento iniciada</string>
+    <string name="service_charge_start_failed" volt:src="b316a3ec634f15dc4841b44a387cd90b2eb9428f">Não foi possível iniciar a gravação de carregamento</string>
+    <string name="service_charge_reconnecting" volt:src="e9d9e07e4ba154a2e05d56356ecf75f00b41778b">Reconectando · %1$s s</string>
+    <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Carregador original · o carregador parou · aguardando a retomada</string>
+    <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Carregador original · pausado até o início programado</string>
+    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Carregador original · amostras locais: %1$s</string>
+    <plurals name="service_charge_stock_samples_count" volt:src="9d16c78dbd36572bab00578db0e0a3551ca03acf">
+        <item quantity="one">Carregador original · %1$s amostra local</item>
+        <item quantity="many">Carregador original · %1$s amostras locais</item>
+        <item quantity="other">Carregador original · %1$s amostras locais</item>
+    </plurals>
+    <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Carregador rápido · o carregador parou · aguardando a retomada</string>
+    <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Carregador rápido · pausado até o início programado</string>
+    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Carregador rápido · amostras locais: %1$s</string>
+    <plurals name="service_charge_fast_samples_count" volt:src="6800ddcf187c635621dce44f3a5619535ae5d60a">
+        <item quantity="one">Carregador rápido · %1$s amostra local</item>
+        <item quantity="many">Carregador rápido · %1$s amostras locais</item>
+        <item quantity="other">Carregador rápido · %1$s amostras locais</item>
+    </plurals>
+    <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Não aplicado até que o carregador seja identificado · gravações armazenadas: %1$s</string>
+    <plurals name="service_charge_learning_unknown_count" volt:src="a6fbf8526f101a68d48f3c2712760fe256ed14cb">
+        <item quantity="one">Não aplicado até o carregador ser identificado · %1$s gravação armazenada</item>
+        <item quantity="many">Não aplicado até o carregador ser identificado · %1$s gravações armazenadas</item>
+        <item quantity="other">Não aplicado até o carregador ser identificado · %1$s gravações armazenadas</item>
+    </plurals>
+    <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s carregamento qualificado com carregador rápido · gravações armazenadas: %2$s</string>
+    <plurals name="service_charge_recordings_stored" volt:src="7d1afdde6652f343523a9dc4d891d80a70cf73f2">
+        <item quantity="one">%1$s gravação armazenada</item>
+        <item quantity="many">%1$s gravações armazenadas</item>
+        <item quantity="other">%1$s gravações armazenadas</item>
+    </plurals>
+    <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s carregamentos qualificados com carregador rápido · gravações armazenadas: %2$s</string>
+    <plurals name="service_charge_learning_fast_count" volt:src="895a8b5a30809d23bccf65fb7966af79635b1696">
+        <item quantity="one">%1$s carregamento qualificado com o carregador rápido · %2$s</item>
+        <item quantity="many">%1$s carregamentos qualificados com o carregador rápido · %2$s</item>
+        <item quantity="other">%1$s carregamentos qualificados com o carregador rápido · %2$s</item>
+    </plurals>
+    <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">%1$s carregamento qualificado com carregador original · gravações armazenadas: %2$s</string>
+    <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">%1$s carregamentos qualificados com carregador original · gravações armazenadas: %2$s</string>
+    <plurals name="service_charge_learning_stock_count" volt:src="503999cd4b9fd7618f17940c7888894eda44cb2f">
+        <item quantity="one">%1$s carregamento qualificado com o carregador original · %2$s</item>
+        <item quantity="many">%1$s carregamentos qualificados com o carregador original · %2$s</item>
+        <item quantity="other">%1$s carregamentos qualificados com o carregador original · %2$s</item>
+    </plurals>
+    <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Gravações de carregamento excluídas</string>
+    <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">Não foi possível excluir as gravações de carregamento</string>
+    <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">Nenhuma gravação de carregamento salva para este patinete</string>
+    <string name="service_charge_export_failed" volt:src="40864ec60c9a18190a7e1a6e17f7a43ec7a4a5d2">Não foi possível exportar as gravações de carregamento</string>
+    <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">A gravação de carregamento atingiu o limite de armazenamento ou de tempo</string>
+    <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Gravação de carregamento salva · a bateria atingiu 100%%</string>
+    <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Gravação de carregamento salva</string>
+    <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">A gravação de carregamento parou após um erro de armazenamento</string>
+    <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">A gravação de carregamento parou · %1$s</string>
+    <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">carregamento encerrado</string>
+    <string name="service_charge_stop_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">desconectado</string>
+    <string name="service_charge_stop_profile_changed" volt:src="b173f0857c0b3be53f3083f67910026742280083">perfil alterado</string>
+    <string name="service_charge_stop_readings_stopped" volt:src="b4c0e343df8c5ff6bee17cc10eb62e9433badebb">leituras interrompidas</string>
+    <string name="service_charge_stop_limit" volt:src="ec19ee005f7201024d5b54161c87880895bfe636">limite</string>
+    <string name="service_charge_stop_process_ended" volt:src="a020b418f75b2f8f7a6381b7eb8d88cd864a4172">processo encerrado</string>
+    <string name="service_charge_stop_interrupted" volt:src="4990fa492de579ec49a07c599aa420b73eed5337">interrompida</string>
+    <string name="service_charge_stop_recovery_timeout" volt:src="9731706961c9e5abd0e63c53081c5027cb8622ba">tempo de reconexão esgotado</string>
+    <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">falha na conexão</string>
+    <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth desativado</string>
+    <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">permissão perdida</string>
+    <string name="service_charge_stop_identity_changed" volt:src="797bb568d0e9ea59223f2eeec94d76db7460c586">patinete diferente</string>
+    <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Gravação interrompida; não foi possível finalizar o arquivo de carregamento</string>
+    <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Aguarde a detecção do carregador ou selecione um carregador</string>
+    <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">“Carga pronta até” não iniciou o carregamento</string>
+    <string name="service_missed_title_schedule" volt:src="bee23b65a6abd7239871dcf29f238f045ab35407">O carregamento programado não começou</string>
+    <string name="service_missed_done_by_dialog" volt:src="9f6666bdc6b0ddd647793012a35705ed13da556e">Início programado do carregamento: %1$s. A bateria ainda está em %2$s%% (%3$s%% quando a programação foi definida). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. O Volt pode desativar a programação para que o carregamento comece agora.</string>
+    <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Início programado do carregamento: %1$s. A bateria ainda está em %2$s%% (%3$s%% quando a programação foi definida). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. Abra o Volt para desativar a programação e fazer o carregamento começar agora.</string>
+    <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Início programado do carregamento: %1$s. A bateria ainda está em %2$s%% (%3$s%% no momento do teste). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. O Volt pode desativar a programação para que o carregamento comece agora.</string>
+    <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Início programado do carregamento: %1$s. A bateria ainda está em %2$s%% (%3$s%% no momento do teste). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. Abra o Volt para desativar a programação e fazer o carregamento começar agora.</string>
+    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Retomada definida pelo teste da programação: %1$s. A bateria ainda está em %2$s%% (%3$s%% no momento do teste). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. O Volt pode desativar a programação para que o carregamento comece agora.</string>
+    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Retomada definida pelo teste da programação: %1$s. A bateria ainda está em %2$s%% (%3$s%% no momento do teste). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. Abra o Volt para desativar a programação e fazer o carregamento começar agora.</string>
+    <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Horário definido: %1$s. A bateria ainda está em %2$s%% (%3$s%% quando a programação foi definida). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. O Volt pode desativar a programação para que o carregamento comece agora.</string>
+    <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Horário definido: %1$s. A bateria ainda está em %2$s%% (%3$s%% quando a programação foi definida). Verifique se o carregador está conectado e se a luz dele fica vermelha no horário de início. Abra o Volt para desativar a programação e fazer o carregamento começar agora.</string>
+    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Esta carga foi medida. Retomada do carregamento: %1$s; conclusão até %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Planejado como uma carga nova. Retomada do carregamento: %1$s; conclusão até %2$s.</string>
+    <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">“Carga pronta até” está desativado.</string>
+    <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
+    <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. “Carga pronta até” está desativado.</string>
+    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">A permissão de Bluetooth foi removida durante a medição</string>
+    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">O Volt foi fechado durante a medição. “Carga pronta até” está desativado.</string>
+    <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">“Carga pronta até” está definido. %1$s</string>
+    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">“Carga pronta até” não foi definido. %1$s</string>
+    <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">“Carga pronta até” está definido</string>
+    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">“Carga pronta até” não foi definido</string>
+    <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Abra o Volt novamente</string>
+    <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Teste cancelado. O carregamento programado está desativado.</string>
+    <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Definindo a programação…</string>
+    <string name="service_test_pausing" volt:src="65e2bd4326b7da4fbe8b08ccaf2085b5e7dd79c1">Pausando o carregamento…</string>
+    <string name="service_test_ending" volt:src="6a0c1f0c045938f28b1dc93e5c88015e15739990">Desativando a programação…</string>
+    <string name="service_test_resumes_in" volt:src="741c5a78b510347260ecfd786f024d4452b6ca21">Retomada em %1$s:%2$s</string>
+    <string name="service_test_waiting" volt:src="6549bbdc7445740b977c65102d0fee8a279bf6b5">Aguardando a retomada do carregamento</string>
+    <string name="service_test_title_passed" volt:src="dcb571d9de7df16c36f00b66a878a9c20f575f6c">O carregamento programado funciona</string>
+    <string name="service_test_title_early" volt:src="0bf33921dfad57049c36e900b7ea95b1fe7e1f1b">O carregamento foi retomado antes da hora</string>
+    <string name="service_test_title_late" volt:src="00092ee4187b5180e78141563e71e7883e41eb5f">O carregamento foi retomado com atraso</string>
+    <string name="service_test_title_no_pause" volt:src="ec6fc3ed1b0292c043cf2893873103d2cc1be8a9">O patinete não pausou</string>
+    <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72">O carregamento não foi retomado</string>
+    <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Teste do carregamento programado interrompido</string>
+    <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Teste cancelado</string>
+    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">O teste não foi concluído</string>
+    <string name="service_test_passed_on_time" volt:src="0dafb048ea96a47f02073efff7fb1a02dea7cffc">O relógio e a programação do patinete funcionam. O carregamento foi retomado no horário de início.</string>
+    <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundo antes do início.</string>
+    <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundo depois do início.</string>
+    <string name="service_test_passed_seconds_before" volt:src="4d0a7e2e8b19afa3560c66ac24c8f4856e7e5325">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos antes do início.</string>
+    <plurals name="service_test_passed_before_count" volt:src="cbe3c4cf9a15ba3979dff54dd084d36bb12d1828">
+        <item quantity="one">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundo antes do início.</item>
+        <item quantity="many">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos antes do início.</item>
+        <item quantity="other">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos antes do início.</item>
+    </plurals>
+    <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos depois do início.</string>
+    <plurals name="service_test_passed_after_count" volt:src="a4537fc2503749b4a58e4633fdc5281cd9dca570">
+        <item quantity="one">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundo depois do início.</item>
+        <item quantity="many">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos depois do início.</item>
+        <item quantity="other">O relógio e a programação do patinete funcionam. O carregamento foi retomado %1$s segundos depois do início.</item>
+    </plurals>
+    <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
+        <item quantity="one">cerca de %1$d minuto</item>
+        <item quantity="many">cerca de %1$d minutos</item>
+        <item quantity="other">cerca de %1$d minutos</item>
+    </plurals>
+    <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">O carregamento foi retomado %1$s antes do início, então o relógio do patinete pode estar adiantado em %2$s.%3$s</string>
+    <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">O carregamento foi retomado %1$s depois do início, então o relógio do patinete pode estar atrasado em %2$s.%3$s</string>
+    <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">O patinete não pausou. O relógio dele pode estar adiantado, ou ele ignorou a programação.%1$s</string>
+    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">O carregamento ainda estava pausado 5 minutos depois do início. O relógio do patinete pode estar atrasado em mais de 5 minutos, ou a programação dele não liberou o carregamento. Se o carregador foi desconectado, teste novamente.%1$s</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" O Volt definiu o relógio do patinete logo antes deste teste, então o patinete pode não estar mantendo o horário recebido. Até que isso seja resolvido, uma tomada inteligente é um temporizador mais seguro. Use “Relatar um problema” com o diagnóstico para que possamos investigar."</string>
+    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">A bateria atingiu o limite de carga durante o teste, então não foi possível determinar o resultado. Teste novamente com a carga mais abaixo do limite.</string>
+    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">O teste foi interrompido. Verifique se o carregamento foi retomado. Se não foi, desative o carregamento programado.</string>
+    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Não foi possível iniciar o teste.</string>
+    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Não foi possível iniciar o teste: %1$s.</string>
+    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" O Volt não conseguiu confirmar se a programação foi desativada. Desative o carregamento programado para que o carregamento continue."</string>
+    <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
+    <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertas de bateria</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de bateria: nível de carga, carga completa e bateria fraca, que você ativa em “Patinete › Bateria”</string>
+    <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Parar</string>
+    <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Pare a gravação de carregamento antes de iniciar uma viagem</string>
+    <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Saia da simulação primeiro</string>
+    <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Finalizando a viagem anterior</string>
+    <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Viagem salva automaticamente</string>
+    <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Cópia da viagem não salva</string>
+    <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">O Volt não consegue acessar sua pasta de salvamento automático. Abra o Volt e escolha a pasta novamente. Suas viagens continuam salvas no Volt.</string>
+    <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">O Volt não conseguiu gravar na sua pasta de salvamento automático. Ele vai tentar novamente depois da sua próxima viagem. Suas viagens continuam salvas no Volt.</string>
+    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Sinal Bluetooth perdido com o patinete parado</string>
+    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Sinal Bluetooth perdido com o patinete parado</string>
+    <string name="service_ride_quiet_lost" volt:src="4e91beb92f47ac8e8850aadc386fbe314269da11">Patinete desligado ou fora de alcance</string>
+    <string name="service_ride_quiet_lost_at" volt:src="458752a56ccec967956520f1e7e7fb3d1bbf6372">Patinete desligado ou fora de alcance. Término: %1$s, horário da última leitura.</string>
+    <string name="service_ride_quiet_lost_label_at" volt:src="14fea5a72b31cad36cd59e08ac7fd56ca8968c4d">%1$s · Patinete desligado ou fora de alcance. Término: %2$s, horário da última leitura.</string>
+    <string name="service_ride_phone_bluetooth_off" volt:src="1cc26a9f52c231a705e74ae1b9c9e1a50ecbc99b">O Bluetooth do telefone ficou desligado</string>
+    <string name="service_ride_phone_bluetooth_off_at" volt:src="1f8822cd34c4bc1bf78d319141b1ea138678cba4">O Bluetooth do telefone ficou desligado. Término: %1$s, horário da última leitura.</string>
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:src="33246da082f7b90d3ef4f36414e0451cf6d4c98b">%1$s · O Bluetooth do telefone ficou desligado. Término: %2$s, horário da última leitura.</string>
+    <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Sem movimento por 10 minutos</string>
+    <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Sem movimento por 10 minutos. Término: %1$s, horário do último movimento.</string>
+    <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Sem movimento por 10 minutos. Término: %2$s, horário do último movimento.</string>
+    <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Conexão do patinete e gravação</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Medindo a carga para “Carga pronta até”</string>
+    <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Verificando o carregamento programado</string>
+    <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Gravação de carregamento · reconectando</string>
+    <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Gravação de carregamento ativa</string>
+    <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Salvando a viagem</string>
+    <string name="service_notice_ride_active" volt:src="9ad2e30cf8a5de52dd1e49495363158fed5bc8a8">Gravação da viagem ativa</string>
+    <string name="service_notice_ride_attention" volt:src="b59463e9d015f05da66fcb7daacf51b3dcf55f85">A gravação precisa de atenção</string>
+    <string name="service_notice_connected" volt:src="043ef303a7dde859a4f0661d22054c3664b40dd1">Patinete conectado</string>
+    <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">A programação será definida em até %1$s min · mantenha o carregador conectado</string>
+    <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · mantenha o telefone perto do patinete</string>
+    <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">A gravação da viagem precisa de atenção</string>
+    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Os dados dos sensores do telefone não estão sendo salvos</string>
+    <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Parar de monitorar</string>
+    <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Programar agora</string>
+    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Cancelar teste</string>
+    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Parar gravação de carregamento</string>
+    <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Parar gravação</string>
+    <string name="service_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Desconectar</string>
+    <string name="service_notice_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Patinete</string>
+    <string name="service_notice_scooter_battery" volt:src="7a50ce085dfe20bbc1b8d76de540dd3cf63e5e02">%1$s · %2$s%%</string>
+</resources>

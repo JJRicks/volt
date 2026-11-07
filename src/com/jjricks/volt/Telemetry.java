@@ -359,6 +359,7 @@ public final class Telemetry {
         }
         rawFrames.clear();
         responseStatuses.clear();
+        odometerBits = 0;
         homeMode = false;
         rawVoltage = rawCurrent = rawTemperature = null;
         voltageCmd = currentCmd = temperatureCmd = -1;
@@ -526,7 +527,12 @@ public final class Telemetry {
             measured(data, 7, 1, false, "average_speed_kmh", 1, SUFFIX_KMH, 0, cmd, time);
             measured(data, 8, 1, false, "odometer_km", 1, SUFFIX_KM, 0, cmd, time);
         }
+        odometerBits = !expanded ? 8 : has(data, 14, 4) && unsigned(data, 14, 4, false) > 0 ? 32 : has(data, 12, 2) ? 16 : 0;
     }
+
+    /** The odometer field the last ride report used: 8 (v0 whole km), 16 or 32 (v1 tenths), or 0. Maintenance distance wraps by it. */
+    private int odometerBits;
+    public synchronized int odometerBits() { return odometerBits; }
 
     private void firmware(byte[] data, int cmd, long time) {
         String[] names = {"meter_version", "controller_version", "battery_version", "screen_version", "uwb_version"};

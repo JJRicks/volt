@@ -44,11 +44,13 @@ import com.jjricks.volt.BleController;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardLayout;
 import com.jjricks.volt.DashboardScreen;
+import com.jjricks.volt.DisplayTime;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.Ui;
+import com.jjricks.volt.WideLayout;
 
 /**
  * Isolated native measurement regressions for arbitrary window sizes and OEM fold callbacks.
@@ -72,7 +74,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         try {
             admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                    .putString("theme", "dark").putString("units", "mi")
+                    .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
                     .putFloat("text_scale", Float.parseFloat(arguments.getString("text_scale", "1"))).commit(), "Fixture settings failed");
             seed();
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -99,6 +101,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 verifyCloseoutGeometry();
             } else if (mode.equals("example")) {
                 verifyAllWidgetsExample();
+            } else if (mode.equals("tiles")) {
+                verifyReadingTileSpan();
             } else if (mode.equals("compact")) {
                 verifyCompactReadingHeights();
             } else if (mode.equals("capacity")) {
@@ -166,6 +170,94 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
+    /**
+     * Reading tiles: the last tile spans a part-filled last row (ReadingSpan). Home with one to four
+     * readings, then the plan's 230 and 312 x 182 dp cards with three readings, LTR and RTL.
+     */
+    private void verifyReadingTileSpan() throws Exception {
+        String[] pool = {"power_w", "temperature_c", "battery_health_percent", "odometer_km"};
+        for (int count = 1; count <= pool.length; count++) {
+            final int shown = count;
+            main(() -> {
+                DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
+                widget.keys.clear();
+                widget.keys.addAll(Arrays.asList(pool).subList(0, shown));
+                invoke(dashboard(), "render");
+            });
+            settleMotion(); stopUiPulse();
+            main(() -> invoke(dashboard(), "refresh")); settle();
+            main(() -> {
+                View card = (View)tile("tiles");
+                ((ScrollView)field(activity, "scroll")).scrollTo(0, Math.max(0, card.getTop() - activity.ui().dp(160)));
+                overlayGeometry.add("tiles home count=" + shown + " " + assertReadingSpan(card, shown));
+            });
+            screenshot("tiles-" + count);
+        }
+        check("Home's Reading tiles with one to four readings: the last tile spans any part-filled last row, full rows unchanged");
+        main(() -> {
+            DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
+            widget.keys.clear();
+            widget.keys.addAll(Arrays.asList(pool).subList(0, 3));
+            invoke(dashboard(), "render");
+        });
+        settleMotion(); stopUiPulse();
+        main(() -> invoke(dashboard(), "refresh")); settle();
+        main(() -> {
+            View card = (View)tile("tiles");
+            int width = card.getWidth(), height = card.getHeight();
+            try {
+                for (int direction : new int[] {View.LAYOUT_DIRECTION_LTR, View.LAYOUT_DIRECTION_RTL}) {
+                    card.setLayoutDirection(direction);
+                    for (int[] size : new int[][] {{230, 182}, {312, 182}}) {
+                        measureCard(card, activity.ui().dp(size[0]), activity.ui().dp(size[1]));
+                        String rtl = direction == View.LAYOUT_DIRECTION_RTL ? "rtl" : "ltr";
+                        overlayGeometry.add("tiles card " + size[0] + "x" + size[1] + " " + rtl + " " + assertReadingSpan(card, 3));
+                        saveCardBitmap(card, "tiles-span-" + size[0] + "x" + size[1] + "-" + rtl);
+                    }
+                }
+            } finally {
+                card.setLayoutDirection(View.LAYOUT_DIRECTION_INHERIT);
+                measureCard(card, width, height);
+            }
+        });
+        check("Three Reading tiles in 230 and 312 x 182 dp cards: a wrapped third tile spans from the first tile's edge to the second's, LTR and RTL");
+    }
+
+    /** The last tile covers its own column to the row's far edge; every other tile stays one cell. */
+    private String assertReadingSpan(View card, int count) {
+        ViewGroup readings = (ViewGroup)field(card, "readingTiles");
+        require(readings.getChildCount() == count, "Reading tiles show " + readings.getChildCount() + " of " + count);
+        int columns = ((Number)field(readings, "columns")).intValue(), gap = activity.ui().dp(10);
+        boolean rtl = readings.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        View first = readings.getChildAt(0), last = readings.getChildAt(count - 1);
+        int cell = first.getWidth();
+        // The row's far edge: the last column of the first row, from one-cell stride.
+        int rowStart = rtl ? first.getRight() : first.getLeft();
+        int rowEnd = rtl ? rowStart - columns * cell - (columns - 1) * gap : rowStart + columns * cell + (columns - 1) * gap;
+        for (int i = 0; i < count - 1; i++)
+            require(readings.getChildAt(i).getWidth() == cell, "Reading tile " + i + " is not one cell wide");
+        int lastColumn = (count - 1) % columns;
+        int columnStart = rtl ? rowStart - lastColumn * (cell + gap) : rowStart + lastColumn * (cell + gap);
+        require((rtl ? last.getRight() : last.getLeft()) == columnStart, "Last Reading tile left its column");
+        require(Math.abs((rtl ? last.getLeft() : last.getRight()) - rowEnd) <= 1, "Last Reading tile does not reach the row's end edge");
+        require(Math.abs(rowEnd - (rtl ? 0 : readings.getWidth())) <= columns, "Reading tile row does not fill its card");
+        if (count > columns) {
+            View above = readings.getChildAt(count - 1 - columns);
+            require(last.getTop() > above.getBottom(), "Wrapped Reading tile overlaps the row above");
+        }
+        for (int i = 0; i < count; i++) {
+            ViewGroup tile = (ViewGroup)readings.getChildAt(i);
+            for (TextView text : texts(tile)) {
+                android.text.Layout layout = text.getLayout();
+                if (layout == null || text.getVisibility() != View.VISIBLE) continue;
+                float usable = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
+                for (int line = 0; line < layout.getLineCount(); line++)
+                    require(layout.getLineMax(line) <= usable + 1, "Reading tile text clips: " + text.getText());
+            }
+        }
+        return "columns=" + columns + " cell=" + cell + " last=" + last.getLeft() + ".." + last.getRight() + " width=" + readings.getWidth();
+    }
+
     /** Restore the shipped example; do not construct a lookalike in the fixture. */
     private void verifyAllWidgetsExample() throws Exception {
         final AtomicReference<String> savedExample = new AtomicReference<>();
@@ -1190,14 +1282,16 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         final DashboardScreen previous = dashboard();
         float density = activity.getResources().getDisplayMetrics().density;
         shell("wm size " + Math.round(widthDp * density) + "x" + Math.round(heightDp * density));
-        final boolean expanded = widthDp >= 650;
+        // The app's rule (WideLayout): width over text scale reaches 650 dp; this method's sizes run at 1x text.
+        final float textScale = activity.ui().textScale * activity.getResources().getConfiguration().fontScale;
+        final boolean expanded = WideLayout.wide(widthDp, textScale);
         await(() -> field(activity, "screen") instanceof DashboardScreen && grid().getWidth() > 0
-                        && (activity.getResources().getConfiguration().screenWidthDp >= 650) == expanded
+                        && WideLayout.wide(activity.getResources().getConfiguration().screenWidthDp, textScale) == expanded
                         && (!expectRebuild || dashboard() != previous),
                 "Window configuration did not select the " + (expanded ? "expanded" : "compact") + " dashboard");
         settleMotion(); stopUiPulse();
         main(() -> {
-            require((Boolean)field(activity, "expanded") == expanded, "Activity window class disagrees with the 650dp breakpoint");
+            require((Boolean)field(activity, "expanded") == expanded, "Activity window class disagrees with the wide-layout rule (WideLayout)");
             require(((Number)field(grid(), "columns")).intValue() == 5, "Window change altered the five-column choice");
             for (DashboardConfig.Widget widget : dashboardConfig().widgets)
                 require(dashboardConfig().widgetLayouts(widget) == widget.layouts(expanded),
@@ -1850,7 +1944,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                         // A card as old as the header's "last seen" omits its own age; an older one shows a clock and age.
                         require(!state.equals("stale") || (footer.getVisibility() == View.VISIBLE
                                         ? String.valueOf(footer.getContentDescription()).startsWith("Last seen")
-                                        : ((TextView)field(dashboard(), "status")).getText().toString().contains("last seen")),
+                                        : headerShowsSeen()),
                                 "Stale gauge lost its visible timestamp");
                         Bitmap image = Bitmap.createBitmap(gauge.getWidth(), gauge.getHeight(), Bitmap.Config.ARGB_8888);
                         try {
@@ -1942,7 +2036,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 require(tripValues.get(key).length() > 1 && !"—".contentEquals(tripValues.get(key).getText()),
                         "Compact fixture is missing a numeric trip reading: " + key);
             require(((View)field(tile("trip"), "footer")).getVisibility() == View.VISIBLE
-                            || ((TextView)field(dashboard(), "status")).getText().toString().contains("last seen"),
+                            || headerShowsSeen(),
                     "Compact fixture must show its stale age on the card or in the header");
             for (String type : new String[]{"trip", "readings", "charging"}) {
                 View card = (View)tile(type);
@@ -2266,6 +2360,13 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 measureCard(card, activity.ui().dp(dp), activity.ui().dp(54));
                 drawEditorFrame(card);
                 assertEditorControls(); // One-row controls must leave the resize target its own lane.
+            }
+            // The recorder now stays one row down to half a phone's width (2 of 5 columns, about 144 dp)
+            // and its 112 dp floor: the editor bar still leaves separate move, menu and resize targets.
+            for (int dp : new int[]{112, 120, 144}) {
+                measureCard(card, activity.ui().dp(dp), activity.ui().dp(54));
+                drawEditorFrame(card);
+                assertEditorControls();
             }
             measureCard(card, activity.ui().dp(113), activity.ui().dp(170));
             // Large text can select compact recorder content even in a physically tall card.
@@ -2795,7 +2896,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             forceMeasure(((ViewGroup)view).getChildAt(i));
         view.forceLayout();
     }
-    /** Single lines that ellipsize by design (TextFit): the Lock bar's detail, and its title beside an icon-only Connect. */
+    /** Lines that ellipsize by design (TextFit): the Lock bar's detail, and its two-line title beside an icon-only Connect. */
     private boolean ellipsizedByDesign(TextView text) { return TextFit.ellipsizedByDesign(activity, text); }
     private static boolean iconOnlyAction(TextView text) { return TextFit.iconOnlyAction(text); }
     private void assertText(TextView text, View ancestor, String context) { TextFit.assertText(text, ancestor, context); }
@@ -2808,6 +2909,22 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
     }
     private SharedPreferences settings() { return getTargetContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE); }
     private DashboardScreen dashboard() { return (DashboardScreen)field(activity, "screen"); }
+    /**
+     * The header shows the last seen age: its full rung ("Disconnected · last seen 10:06 AM") or, where that doesn't fit,
+     * the narrow-label ladder's short rung without the words last seen ("Disconnected · 10:06 AM", #211). Either must
+     * carry the header's own last seen time: "Disconnected · last seen" with no time, or a bare "Disconnected", fails.
+     */
+    private boolean headerShowsSeen() {
+        String shown = ((TextView)field(dashboard(), "status")).getText().toString();
+        long seen = ((Number)field(dashboard(), "headerSeenMs")).longValue();
+        if (seen <= 0) return false;
+        String time = DisplayTime.recent(activity, (SharedPreferences)field(dashboard(), "preferences"), seen, System.currentTimeMillis());
+        require(!showsSeenTime("Disconnected · last seen", time) && !showsSeenTime("Disconnected", time)
+                        && showsSeenTime("Disconnected · last seen " + time, time) && showsSeenTime("Disconnected · " + time, time),
+                "Header last seen check accepts a header without its time");
+        return showsSeenTime(shown, time);
+    }
+    private static boolean showsSeenTime(String shown, String time) { return !time.isEmpty() && shown.contains(time); }
     private ViewGroup grid() { return (ViewGroup)field(dashboard(), "grid"); }
     private View root() { return (View)field(activity, "root"); }
     private List<?> tiles() { return (List<?>)field(dashboard(), "tiles"); }
