@@ -38,7 +38,10 @@ Evidence (the shipped languages' record, so a key marked here is proven tight, n
   over-budget   the decided text still exceeds its budget (accepted as a warning where the English
                 does not fit either).
 A width finding measured against a budget the key no longer has (the budget changed since, as
-#292 and #299 changed some) is listed as "older <budget>" and proves nothing about the current one.
+#292 and #299 changed some) is listed as "older <budget>" and proves nothing about the current one; a
+fallback counts as older only when every width finding behind it (its own and its drafts') is. A
+decision or ruling whose source_sha1 is not today's English, and a shipped text whose src marker is
+not, is listed as "stale English" and proves nothing about today's text either.
 The shipped text's own width is listed too (observed growth = its width / the English width).
 A key is proven when a shipped language has evidence on the key itself against its current budget
 (the English volt:overflow marker alone, or a sibling rung's evidence, is shown but is not proof).
@@ -129,11 +132,29 @@ def _read_language_folder(paths, folder):
     return out
 
 
-def _evidence(tag, kind, detail, source, older_budget=None):
+def _evidence(tag, kind, detail, source, older_budget=None, stale_source=False):
     """One piece of evidence. older_budget names the budget a width finding was measured against when
-    that is no longer the key's budget (the finding was made before the budget changed)."""
+    that is no longer the key's budget (the finding was made before the budget changed); stale_source is
+    True when the decision or ruling translated other English than today's (its source_sha1 differs)."""
     return collections.OrderedDict([("tag", tag), ("kind", kind), ("detail", detail), ("source", source),
-                                    ("older_budget", older_budget)])
+                                    ("older_budget", older_budget), ("stale_source", bool(stale_source))])
+
+
+def _findings_older(findings, key, budgeted):
+    """The older budget(s) a set of width findings was measured against, or None when any of them was
+    measured against the key's current budget (or names no budget): only a set made entirely against
+    other budgets is older evidence."""
+    if not findings or key not in budgeted:
+        return None
+    olders = []
+    for f in findings:
+        then = checked_budget(f.get("message"))
+        if then is None or then == budgeted[key]:
+            return None
+        text = _budget_text(then)
+        if text not in olders:
+            olders.append(text)
+    return ", ".join(olders)
 
 
 def _budget_text(budget):
@@ -141,17 +162,25 @@ def _budget_text(budget):
     return "%gdp@%gsp%s" % (dp, sp, "" if lines == 1 else "*%d" % lines)
 
 
-def collect_evidence(paths, tag, folder, english_keys, budgeted):
-    """({key: [evidence]}, {key: {quantity: text}} of the shipped text) for one language.
+def collect_evidence(paths, tag, folder, english_keys, budgeted, current=None):
+    """({key: [evidence]}, {key: ({quantity: text}, stale)} of the shipped text) for one language.
 
     english_keys is the set of every translatable English key, budgeted {key: (dp, sp, lines)} the
-    keys with a volt:max."""
+    keys with a volt:max, current {key: source_sha1 of today's English}. Evidence from a decision or
+    ruling of other English is kept but marked stale_source; a shipped text whose src marker is not
+    today's English is marked stale."""
+    current = current or {}
+
+    def stale(key, sha):
+        return key in current and sha != current[key]
     evidence = collections.defaultdict(list)
     shipped = _read_language_folder(paths, folder) if folder else {}
     texts = {}
     for key, entry in shipped.items():
         if key in budgeted:
-            texts[key] = collections.OrderedDict((q, it.text) for q, it in entry.items.items())
+            note = (entry.note or "").strip()
+            src = note[4:].strip() if note.startswith("src:") else None
+            texts[key] = (collections.OrderedDict((q, it.text) for q, it in entry.items.items()), stale(key, src))
         if entry.meta.get("overflow"):
             evidence[key].append(_evidence(tag, "overflow", "volt:overflow=%s in res/%s" % (
                 entry.meta["overflow"], folder), "res"))
@@ -166,30 +195,40 @@ def collect_evidence(paths, tag, folder, english_keys, budgeted):
             key = row.get("key")
             if key not in english_keys:
                 continue
-            decided[key] = row.get("outcome")
+            decided[key] = (row.get("outcome"), row.get("source_sha1"))
+            old_english = stale(key, row.get("source_sha1"))
             checks = _width_findings(row.get("checks"))
             for f in checks:
                 message = f.get("message", "")
-                then = checked_budget(message)
-                older = _budget_text(then) if then and key in budgeted and then != budgeted[key] else None
                 kind = "short-rung" if SHORT_SHOWN in message else "over-budget"
-                evidence[key].append(_evidence(tag, kind, message, where, older))
+                evidence[key].append(_evidence(tag, kind, message, where, _findings_older([f], key, budgeted),
+                                               old_english))
+            draft_findings = [f for a in row.get("alternatives") or [] for f in _width_findings(a.get("findings"))]
             drafts_failed = [a for a in row.get("alternatives") or [] if _width_findings(a.get("findings"))]
             judge = row.get("judge") or {}
             if judge.get("verdict") == "merge" and (width_reason(judge.get("reason")) or drafts_failed):
                 why = judge.get("reason") or ""
-                if drafts_failed and not width_reason(why):
+                if width_reason(why):
+                    older = _older_dp(why, key, budgeted)
+                else:
                     why = "%d draft(s) failed the width check; %s" % (len(drafts_failed), why)
+                    older = _findings_older(draft_findings, key, budgeted)
                 evidence[key].append(_evidence(tag, "merge-width", "«%s»: %s" % (
                     translib.text_value(row.get("kind"), translib.items_of(row.get("kind"), row.get("text")))
-                    if row.get("text") is not None else "", why), where, _older_dp(judge.get("reason"), key, budgeted)))
+                    if row.get("text") is not None else "", why), where, older, old_english))
             if row.get("outcome") not in TRANSLATED:
-                if checks or drafts_failed or width_reason(row.get("reason")):
+                findings = checks + draft_findings
+                if findings or width_reason(row.get("reason")):
+                    # Older only when every width finding (its own and its drafts') was made against
+                    # other budgets; with no findings, the budget the reason names decides.
+                    older = _findings_older(findings, key, budgeted) if findings else \
+                        _older_dp(row.get("reason"), key, budgeted)
                     evidence[key].append(_evidence(tag, "fallback-width", "outcome %s: %s" % (
-                        row.get("outcome"), row.get("reason") or ""), where))
+                        row.get("outcome"), row.get("reason") or ""), where, older, old_english))
             elif folder and shipped and key not in shipped and drafts_failed:
                 evidence[key].append(_evidence(tag, "fallback-width", "missing from res/%s; %d draft(s) failed the "
-                                               "width check" % (folder, len(drafts_failed)), where))
+                                               "width check" % (folder, len(drafts_failed)), where,
+                                               _findings_older(draft_findings, key, budgeted), old_english))
         judge_path = paths.work(tag, area, "judge.jsonl")
         if os.path.exists(judge_path):
             seen = set()
@@ -200,9 +239,11 @@ def collect_evidence(paths, tag, folder, english_keys, budgeted):
                 if key in seen:
                     continue
                 seen.add(key)
-                now = " (translated now: %s)" % decided[key] if decided.get(key) in TRANSLATED else ""
+                outcome = decided.get(key, (None, None))[0]
+                now = " (translated now: %s)" % outcome if outcome in TRANSLATED else ""
                 evidence[key].append(_evidence(tag, "fallback-width", (row.get("reason") or "") + now,
-                                               paths.rel(judge_path), _older_dp(row.get("reason"), key, budgeted)))
+                                               paths.rel(judge_path), _older_dp(row.get("reason"), key, budgeted),
+                                               stale(key, row.get("source_sha1"))))
     return evidence, texts
 
 
@@ -234,7 +275,8 @@ def analyze(paths, growth=DEFAULT_GROWTH, tags=None, use_java=True, measurer=Non
     shipped_texts = {}
     for tag in tags:
         lang = languages.get(tag)
-        found, texts = collect_evidence(paths, tag, lang.folder if lang else None, set(by_key), budgets)
+        current = dict((s.key, translib.source_sha1(s.kind, s.items)) for s in rows)
+        found, texts = collect_evidence(paths, tag, lang.folder if lang else None, set(by_key), budgets, current)
         for key, items in found.items():
             evidence[key].extend(items)
         shipped_texts[tag] = (lang, texts)
@@ -261,7 +303,7 @@ def analyze(paths, growth=DEFAULT_GROWTH, tags=None, use_java=True, measurer=Non
                 ask(("short-at-full", key), sp, text, short.formatted, lines)
         for tag, (lang, texts) in shipped_texts.items():
             if key in texts and (lang is None or lang.font == "saira"):
-                for text in texts[key].values():
+                for text in texts[key][0].values():
                     ask((tag, key), sp, text, s.formatted, lines)
     widths = fontmetrics.measure_lines(measurer, requests) if requests else []
     measured = collections.defaultdict(float)
@@ -301,7 +343,7 @@ def analyze(paths, growth=DEFAULT_GROWTH, tags=None, use_java=True, measurer=Non
             if (tag, key) in measured and english:
                 w = round(measured[(tag, key)], 2)
                 observed[tag] = collections.OrderedDict([("width_dp", w), ("growth", round(w / english, 3)),
-                                                         ("fits", w <= dp + 0.01)])
+                                                         ("fits", w <= dp + 0.01), ("stale", texts[key][1])])
         group_evidence = []
         if key in groups:
             for other in groups[key][1]:
@@ -329,8 +371,8 @@ def analyze(paths, growth=DEFAULT_GROWTH, tags=None, use_java=True, measurer=Non
 def proven(row):
     """Whether a shipped language needed help with this key's current budget: language evidence on the
     key itself, not only the English volt:overflow marker, a sibling rung's, or a finding made against
-    an older budget."""
-    return any(e["tag"] and not e["older_budget"] for e in row["evidence"])
+    an older budget or for other English than today's."""
+    return any(e["tag"] and not e["older_budget"] and not e["stale_source"] for e in row["evidence"])
 
 
 def selected(report, everything=False):
@@ -346,7 +388,8 @@ def _kinds(items):
     counts = collections.OrderedDict()
     for e in items:
         label = e["kind"] + ("" if not e["tag"] else ":" + e["tag"]) + (" (older %s)" % e["older_budget"]
-                                                                         if e["older_budget"] else "")
+                                                                         if e["older_budget"] else "") + (
+            " (stale English)" if e.get("stale_source") else "")
         counts[label] = counts.get(label, 0) + 1
     return ", ".join(counts)
 
@@ -380,8 +423,9 @@ def _print_rows(rows, growth, out):
         out.write("    english: %s\n" % english.replace("\n", " / "))
         out.write("    ladder:  %s\n" % _ladder_text(row, growth))
         if row["observed"]:
-            out.write("    shipped: %s\n" % ", ".join("%s %.1fdp x%.2f%s" % (
-                tag, o["width_dp"], o["growth"], "" if o["fits"] else " OVER") for tag, o in row["observed"].items()))
+            out.write("    shipped: %s\n" % ", ".join("%s %.1fdp x%.2f%s%s" % (
+                tag, o["width_dp"], o["growth"], "" if o["fits"] else " OVER", " (stale English)" if o["stale"] else "")
+                for tag, o in row["observed"].items()))
         if row["evidence"]:
             out.write("    proven:  %s\n" % _kinds(row["evidence"]))
         if row["rung_evidence"]:

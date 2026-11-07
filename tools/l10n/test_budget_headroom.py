@@ -19,6 +19,7 @@ GAUGE = """<?xml version="1.0" encoding="utf-8"?>
     <string name="gauge_roomy" volt:max="300dp@14sp">Speed</string>
     <string name="gauge_tile" volt:max="64dp@12sp*2">Experimental controls</string>
     <string name="gauge_word" volt:max="80dp@14sp">Regen</string>
+    <string name="gauge_label" volt:max="80dp@14sp">Trip energy</string>
     <plurals name="gauge_count" volt:max="96dp@14sp">
         <item quantity="one">%1$d reminder</item>
         <item quantity="other">%1$d reminders</item>
@@ -29,16 +30,24 @@ GAUGE = """<?xml version="1.0" encoding="utf-8"?>
 
 SHIPPED = """<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n">
+    <!-- src:{gauge_pill} -->
     <string name="gauge_pill">Reconectando con %1$s</string>
+    <!-- src:{gauge_word} -->
     <string name="gauge_word">Recup.</string>
+    <!-- src:{old} -->
+    <string name="gauge_label">Energía del viaje</string>
 </resources>
 """
+OLD = "0" * 40  # the source hash of English that has since changed
 
 
-def decision(key, outcome="agreed", text="x", checks=(), judge=None, alternatives=()):
+SHA = {}  # today's source hash per fixture key, filled in setUp
+
+
+def decision(key, outcome="agreed", text="x", checks=(), judge=None, alternatives=(), sha=None):
     return {"format": "volt-l10n-decision-v1", "key": key, "kind": "string", "outcome": outcome, "text": text,
             "reason": "", "checks": list(checks), "judge": judge, "alternatives": list(alternatives),
-            "english": "", "safety": [], "source_sha1": "0" * 40, "stale_drafts": [], "models": {},
+            "english": "", "safety": [], "source_sha1": sha or SHA[key], "stale_drafts": [], "models": {},
             "backtranslation": None}
 
 
@@ -50,12 +59,22 @@ class HeadroomTest(unittest.TestCase):
     def setUp(self):
         self.repo = council_fixture.FixtureRepo()
         self.repo.write("res/values/strings_gauge.xml", GAUGE)
-        self.repo.write("res/values-es/strings_gauge.xml", SHIPPED)
+        sources, _ = translib.load_source(self.repo.paths)
+        SHA.clear()
+        SHA.update((s.key, translib.source_sha1(s.kind, s.items)) for s in sources["gauge"])
+        self.repo.write("res/values-es/strings_gauge.xml", SHIPPED.format(old=OLD, **SHA))
         short = ("219.0dp at 17sp exceeds the 120dp budget (English 214.4dp; java.awt); the screen shows the short "
                  "rung «Reconectando» where the full does not fit, and it fits (110.0dp)")
         rows = [
             decision("gauge_pill", checks=[width(short)]),
-            decision("gauge_tile", checks=[width("86.0dp at 12sp exceeds the 64dp budget (English 115.5dp; java.awt)")]),
+            # A fallback whose every width finding (its own and its drafts') was made against older budgets.
+            decision("gauge_tile", outcome="fallback-english", text=None,
+                     checks=[width("86.0dp at 12sp exceeds the 64dp budget (English 115.5dp; java.awt)")],
+                     alternatives=[{"findings": [width("60.0dp at 12sp exceeds the 48dp budget", "error")]}]),
+            # Evidence for English that has since changed (its decision and ruling hold another hash).
+            decision("gauge_label", outcome="judged", text="Energía", sha=OLD,
+                     checks=[width("95.0dp at 14sp exceeds the 80dp budget (English 70.0dp; java.awt)")],
+                     judge={"verdict": "merge", "reason": "«Energía del viaje» is 95 dp against the 80 dp budget"}),
             decision("gauge_word", outcome="judged", text="Recup.",
                      judge={"verdict": "merge", "reason": "«Recuperación» is 83.7 dp against the 80 dp budget"}),
             decision("gauge_roomy", outcome="judged", judge={"verdict": "merge", "reason": "Glossary term"}),
@@ -64,9 +83,12 @@ class HeadroomTest(unittest.TestCase):
         ]
         self.repo.write("l10n/decisions/es/gauge.jsonl", "".join(json.dumps(r) + "\n" for r in rows))
         self.repo.write("l10n/work/es/gauge/judge.jsonl", "".join(json.dumps(r) + "\n" for r in [
-            {"key": "gauge_word", "verdict": "fallback", "reason": "Recuperación is 83.7 dp against the 80 dp budget"},
-            {"key": "gauge_roomy", "verdict": "fallback", "reason": "Meaning changed"},
-            {"key": "gauge_tile", "verdict": "fallback", "reason": "Overflows the 48dp tile"},
+            {"key": "gauge_word", "verdict": "fallback", "reason": "Recuperación is 83.7 dp against the 80 dp budget",
+             "source_sha1": SHA["gauge_word"]},
+            {"key": "gauge_label", "verdict": "fallback", "reason": "Too wide: 95 dp against the 80 dp budget",
+             "source_sha1": OLD},
+            {"key": "gauge_roomy", "verdict": "fallback", "reason": "Meaning changed", "source_sha1": SHA["gauge_roomy"]},
+            {"key": "gauge_tile", "verdict": "fallback", "reason": "Overflows the 48dp tile", "source_sha1": SHA["gauge_tile"]},
         ]))
         self.paths = self.repo.paths
 
@@ -126,9 +148,21 @@ class HeadroomTest(unittest.TestCase):
             return [(e["tag"], e["kind"], e["older_budget"]) for e in rows[key]["evidence"]]
 
         self.assertEqual(kinds("gauge_pill"), [(None, "overflow", None), ("es", "short-rung", None)])
-        # A finding made against a budget the key no longer has is labelled, and proves nothing now.
-        self.assertEqual(kinds("gauge_tile"), [("es", "over-budget", "64dp@12sp"), ("es", "fallback-width", "48dp")])
+        # Findings made against budgets the key no longer has are labelled, the fallback built on them
+        # too, and none of them proves anything about the current budget.
+        self.assertEqual(kinds("gauge_tile"), [("es", "over-budget", "64dp@12sp"),
+                                               ("es", "fallback-width", "64dp@12sp, 48dp@12sp"),
+                                               ("es", "fallback-width", "48dp")])
         self.assertFalse(rows["gauge_tile"]["proven"])
+        self.assertFalse(any(e["stale_source"] for e in rows["gauge_tile"]["evidence"]))
+        # Evidence for English that has since changed is kept, marked stale, and proves nothing either.
+        label = rows["gauge_label"]["evidence"]
+        self.assertEqual([(e["kind"], e["older_budget"], e["stale_source"]) for e in label],
+                         [("over-budget", None, True), ("merge-width", None, True), ("fallback-width", None, True)])
+        self.assertFalse(rows["gauge_label"]["proven"])
+        self.assertTrue(rows["gauge_label"]["observed"]["es"]["stale"])
+        self.assertFalse(rows["gauge_word"]["observed"]["es"]["stale"])
+        self.assertFalse(any(e["stale_source"] for e in rows["gauge_word"]["evidence"]))
         self.assertEqual(kinds("gauge_word"), [("es", "merge-width", None), ("es", "fallback-width", None)])
         self.assertIn("translated now: judged", rows["gauge_word"]["evidence"][1]["detail"])
         self.assertTrue(rows["gauge_word"]["proven"])
@@ -169,6 +203,7 @@ class HeadroomTest(unittest.TestCase):
         self.assertIn("growth x1.5", text)
         self.assertIn("gauge_roomy", text)
         self.assertIn("short-rung:es", text)
+        self.assertIn("(stale English)", text)
         self.assertIn("one: %1$d reminder | other: %1$d reminders", text)
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
