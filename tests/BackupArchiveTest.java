@@ -60,7 +60,9 @@ public final class BackupArchiveTest {
         BackupArchive.Plan plan = fresh.plan(prepared, BackupTestStore.all(), true, null);
         check(plan.lines.get(0).equals("Replaces everything on this phone") && plan.lines.contains("Online map: on"), "replace preview names the mode and the online map");
         BackupTransaction.apply(fresh, plan);
-        check(durable(fresh.preferences()).equals(durable(sourcePrefs)), "complete reset roundtrip restores every durable value, unassigned keys included");
+        // The fixture still holds the retired Route CSV auto-save switch on; a backup stores it as the one switch (RideAutoExport.normalize).
+        Map<String, Map<String, Object>> expected = durable(sourcePrefs); RideAutoExport.normalize(expected.get("app_settings"));
+        check(durable(fresh.preferences()).equals(expected), "complete reset roundtrip restores every durable value, unassigned keys included");
         check("only exact restores keep me".equals(fresh.preferences().get("app_settings").get("legacy_removed_key")), "unassigned keys travel only in complete backups");
         check(excluded(fresh.preferences()).equals(BackupTestStore.empty()), "device, pending and wizard keys are never restored");
         check(fresh.fileHashes().equals(sourceFiles), "every recording and the history database are byte-identical");
@@ -73,7 +75,7 @@ public final class BackupArchiveTest {
         Map<String, Map<String, Object>> phoneExcluded = excluded(phone.preferences());
         phone.restore(complete, BackupTestStore.all(), true, null);
         Map<String, Map<String, Object>> after = phone.preferences();
-        check(durable(after).equals(durable(sourcePrefs)) && phone.fileHashes().equals(sourceFiles), "Replace everything replaces every category");
+        check(durable(after).equals(expected) && phone.fileHashes().equals(sourceFiles), "Replace everything replaces every category");
         phoneExcluded.get("app_settings").remove("dashboard_restore_undo_v1_" + C); phoneExcluded.get("onboarding").clear();
         check(excluded(after).equals(phoneExcluded), "this phone's device keys stay; a stale dashboard undo and finished-setup wizard state go");
     }

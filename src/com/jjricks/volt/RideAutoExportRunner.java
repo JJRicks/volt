@@ -68,20 +68,20 @@ final class RideAutoExportRunner {
 
     /** Worker thread. Reads the stored choice, writes the files, then stores what is still waiting. */
     private RideAutoExport.Problem pass(RideStore rides, PhoneRideStore phone) {
-        List<String> pending; boolean routeCsv, json; Uri folderUri;
+        List<String> pending; boolean on; Uri folderUri;
         synchronized (RideAutoExportFolder.LOCK) {
-            routeCsv = RideAutoExportFolder.routeCsv(settings); json = RideAutoExportFolder.json(settings);
+            on = RideAutoExportFolder.on(settings);
             pending = RideAutoExport.parse(settings.getString(RideAutoExport.PENDING, ""));
             folderUri = RideAutoExportFolder.chosen(settings);
         }
-        if (pending.isEmpty() || !RideAutoExport.anyOn(routeCsv, json)) return RideAutoExport.Problem.NONE;
+        if (pending.isEmpty() || !on) return RideAutoExport.Problem.NONE;
         RideAutoExport.Folder folder = null;
         try { if (folderUri != null) folder = new RideAutoExportFolder(context, folderUri); } catch (RideAutoExport.Unavailable gone) { folder = null; }
-        RideAutoExport.Result result = RideAutoExport.run(pending, routeCsv, json, RideAutoExport.stores(rides, phone), folder);
+        RideAutoExport.Result result = RideAutoExport.run(pending, RideAutoExport.stores(rides, phone, context.getCacheDir(), AppVersion.name(context)), folder);
         int waiting;
         synchronized (RideAutoExportFolder.LOCK) {
             // Turned off meanwhile: the list and the problem were already cleared; do not bring them back.
-            if (!RideAutoExportFolder.anyOn(settings)) return RideAutoExport.Problem.NONE;
+            if (!RideAutoExportFolder.on(settings)) return RideAutoExport.Problem.NONE;
             String left = RideAutoExport.remove(settings.getString(RideAutoExport.PENDING, ""), result.finished);
             SharedPreferences.Editor edit = settings.edit().putString(RideAutoExport.PENDING, left);
             if (result.problem == RideAutoExport.Problem.NONE) edit.remove(RideAutoExport.PROBLEM);

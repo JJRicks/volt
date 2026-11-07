@@ -35,9 +35,21 @@ final class RideAutoExportFolder implements RideAutoExport.Folder {
 
     // ---- The stored choice ------------------------------------------------------------------------
 
-    static boolean routeCsv(SharedPreferences settings) { return settings.getBoolean(RideAutoExport.ROUTE_CSV, false); }
-    static boolean json(SharedPreferences settings) { return settings.getBoolean(RideAutoExport.JSON, false); }
-    static boolean anyOn(SharedPreferences settings) { return RideAutoExport.anyOn(routeCsv(settings), json(settings)); }
+    /** The switch, with the retired Route CSV switch counting as on (RideAutoExport.LEGACY_ROUTE_CSV). */
+    static boolean on(SharedPreferences settings) {
+        return RideAutoExport.on(settings.getBoolean(RideAutoExport.ON, false), settings.getBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false));
+    }
+    /**
+     * Once at app start: the retired Route CSV switch on becomes the switch on (RideAutoExport.normalize), so the stored
+     * values, and any backup made from them, say on under the ride JSON key. The folder, its grant and the waiting rides
+     * are left as they are.
+     */
+    static void migrate(SharedPreferences settings) {
+        synchronized (LOCK) {
+            if (!settings.getBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false)) return;
+            settings.edit().putBoolean(RideAutoExport.ON, true).putBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false).commit();
+        }
+    }
     static RideAutoExport.Problem problem(SharedPreferences settings) { return RideAutoExport.Problem.of(settings.getString(RideAutoExport.PROBLEM, "")); }
 
     /** True while this installation still holds a persisted read and write grant for the tree. */
@@ -59,55 +71,54 @@ final class RideAutoExportFolder implements RideAutoExport.Folder {
         try { return tree == null ? null : RideAutoExport.folderLabel(DocumentsContract.getTreeDocumentId(tree)); }
         catch (RuntimeException invalid) { return null; }
     }
-    /** What the settings row for one type says. */
-    static RideAutoExport.RowState rowState(Context context, SharedPreferences settings, String typeKey) {
+    /** What the folder row says. */
+    static RideAutoExport.RowState rowState(Context context, SharedPreferences settings) {
         Uri folder = chosen(settings);
-        return RideAutoExport.rowState(settings.getBoolean(typeKey, false), folder != null, granted(context, folder), problem(settings));
+        return RideAutoExport.rowState(on(settings), folder != null, granted(context, folder), problem(settings));
     }
-    /** True when a type can be turned on without the picker: a folder is stored and still granted. */
+    /** True when auto-save can be turned on without the picker: a folder is stored and still granted. */
     static boolean ready(Context context, SharedPreferences settings) { return granted(context, chosen(settings)); }
 
     /**
-     * The picker returned a folder: keep its grant across restarts, give up the previous folder's, turn on
-     * the type that asked for it (typeKey; null keeps both as they are) and clear the last problem.
+     * The picker returned a folder: keep its grant across restarts, give up the previous folder's, turn auto-save
+     * on when the switch asked for the folder (turnOn; false leaves it as it is) and clear the last problem.
      * Throws SecurityException when Android refuses to keep the grant; nothing is stored then.
      */
-    static void keep(Context context, SharedPreferences settings, Uri picked, String typeKey) {
+    static void keep(Context context, SharedPreferences settings, Uri picked, boolean turnOn) {
         context.getContentResolver().takePersistableUriPermission(picked, GRANT);
         synchronized (LOCK) {
             Uri previous = chosen(settings);
             if (previous != null && !previous.equals(picked)) release(context, previous);
             SharedPreferences.Editor edit = settings.edit().putString(RideAutoExport.FOLDER, picked.toString()).remove(RideAutoExport.PROBLEM);
-            if (RideAutoExport.ROUTE_CSV.equals(typeKey) || RideAutoExport.JSON.equals(typeKey)) edit.putBoolean(typeKey, true);
+            if (turnOn) edit.putBoolean(RideAutoExport.ON, true).putBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false);
             edit.commit();
-            // Both off meanwhile (a folder change confirmed after the last switch went off): hold no grant.
-            if (!anyOn(settings)) { release(context, picked); settings.edit().remove(RideAutoExport.FOLDER).commit(); }
+            // Off meanwhile (a folder change confirmed after the switch went off): hold no grant.
+            if (!on(settings)) { release(context, picked); settings.edit().remove(RideAutoExport.FOLDER).commit(); }
         }
     }
     /**
-     * Turns one type on or off. Turning the last one off forgets the folder, gives up its grant and drops
-     * the rides still waiting and the last problem; recorded rides are untouched.
+     * Turns auto-save on or off; the retired Route CSV switch is written off either way. Off forgets the folder, gives
+     * up its grant and drops the rides still waiting and the last problem; recorded rides and saved files are untouched.
      */
-    static void set(Context context, SharedPreferences settings, String typeKey, boolean on) {
-        if (!RideAutoExport.ROUTE_CSV.equals(typeKey) && !RideAutoExport.JSON.equals(typeKey)) throw new IllegalArgumentException(typeKey);
+    static void set(Context context, SharedPreferences settings, boolean on) {
         synchronized (LOCK) {
-            settings.edit().putBoolean(typeKey, on).commit();
-            if (anyOn(settings)) return;
+            settings.edit().putBoolean(RideAutoExport.ON, on).putBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false).commit();
+            if (on) return;
             Uri previous = chosen(settings);
             if (previous != null) release(context, previous);
             settings.edit().remove(RideAutoExport.FOLDER).remove(RideAutoExport.PENDING).remove(RideAutoExport.PROBLEM).commit();
         }
     }
-    /** A ride ended: it waits until each type that is on has been written. Persisted first, so a later pass or restart finds it. */
+    /** A ride ended: it waits until its file has been written. Persisted first, so a later pass or restart finds it. */
     static void queue(SharedPreferences settings, String rideId) {
         if (rideId == null) return;
         synchronized (LOCK) {
-            if (!anyOn(settings)) return;
+            if (!on(settings)) return;
             settings.edit().putString(RideAutoExport.PENDING, RideAutoExport.add(settings.getString(RideAutoExport.PENDING, ""), rideId)).commit();
         }
     }
     static boolean waiting(SharedPreferences settings) {
-        synchronized (LOCK) { return anyOn(settings) && !RideAutoExport.parse(settings.getString(RideAutoExport.PENDING, "")).isEmpty(); }
+        synchronized (LOCK) { return on(settings) && !RideAutoExport.parse(settings.getString(RideAutoExport.PENDING, "")).isEmpty(); }
     }
     private static void release(Context context, Uri tree) {
         try { context.getContentResolver().releasePersistableUriPermission(tree, GRANT); } catch (RuntimeException notHeld) { }
@@ -129,15 +140,14 @@ final class RideAutoExportFolder implements RideAutoExport.Folder {
             throw new RideAutoExport.Unavailable("The folder could not be listed", gone);
         }
     }
-    @Override public byte[] read(String name) throws IOException {
+    @Override public InputStream open(String name) throws IOException {
         Uri file = find(name);
         if (file == null) return null;
-        try (InputStream in = resolver.openInputStream(file)) {
-            if (in == null) throw new IOException("Unreadable " + name);
-            ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buffer = new byte[16384]; int n;
-            while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
-            return out.toByteArray();
-        } catch (SecurityException | IllegalArgumentException | IllegalStateException failure) { throw new IOException(failure); }
+        InputStream in;
+        try { in = resolver.openInputStream(file); }
+        catch (SecurityException | IllegalArgumentException | IllegalStateException failure) { throw new IOException(failure); }
+        if (in == null) throw new IOException("Unreadable " + name);
+        return in;
     }
     @Override public void delete(String name) throws IOException {
         Uri file = find(name);
@@ -145,15 +155,15 @@ final class RideAutoExportFolder implements RideAutoExport.Folder {
         try { if (!DocumentsContract.deleteDocument(resolver, file)) throw new IOException("Could not delete " + name); }
         catch (SecurityException | IllegalArgumentException | IllegalStateException failure) { throw new IOException(failure); }
     }
-    @Override public String create(String name, byte[] data) throws IOException {
+    @Override public String create(String name, File data) throws IOException {
         Uri file;
         try { file = DocumentsContract.createDocument(resolver, root, TEMPORARY_MIME, name); }
         catch (SecurityException | IllegalArgumentException | IllegalStateException failure) { throw new IOException(failure); }
         if (file == null) throw new IOException("The folder did not create " + name);
         try (ParcelFileDescriptor descriptor = resolver.openFileDescriptor(file, "wt")) {
             if (descriptor == null) throw new IOException("Unwritable " + name);
-            try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
-                out.write(data); out.flush();
+            try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor()); InputStream in = new FileInputStream(data)) {
+                RideExportFiles.copy(in, out); out.flush();
                 try { out.getFD().sync(); } catch (IOException notSupported) { /* a pipe from a cloud provider */ }
             }
         } catch (IOException | RuntimeException failure) {

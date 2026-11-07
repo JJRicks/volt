@@ -75,9 +75,7 @@ public final class RideExportFilesTest {
             check(RideExportFiles.name(f, id).equals(expected[i][1]), f + " keeps its old file name: " + RideExportFiles.name(f, id));
             check(f.mime.equals(expected[i][2]), f + " keeps its old MIME type");
         }
-        check(RideExportFiles.name(RideExportFiles.Format.ROUTE_CSV, id).equals(RideAutoExport.routeCsvName(id))
-                && RideExportFiles.name(RideExportFiles.Format.COMBINED_JSON, id).equals(RideAutoExport.combinedJsonName(id))
-                && RideExportFiles.name(RideExportFiles.Format.ANALYSIS_JSON, id).equals(RideAutoExport.analysisJsonName(id)), "Automatic copies keep the same names");
+        check(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id).equals(RideAutoExport.everythingName(id)), "Automatic copies keep the same name");
         check(RideExportFiles.Format.of("CSV") == null && RideExportFiles.Format.of(null) == null, "Unknown ids read as nothing");
         check(RideExportFiles.CHOICE.equals("ride_export_choice") && RideExportFiles.FOLDER_HINT.equals("ride_export_folder_hint"), "Stored keys");
         BackupRegistry.Rule choice = BackupRegistry.rule("app_settings", RideExportFiles.CHOICE), hint = BackupRegistry.rule("app_settings", RideExportFiles.FOLDER_HINT);
