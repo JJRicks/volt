@@ -39,6 +39,17 @@ final class RideAutoExportFolder implements RideAutoExport.Folder {
     static boolean on(SharedPreferences settings) {
         return RideAutoExport.on(settings.getBoolean(RideAutoExport.ON, false), settings.getBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false));
     }
+    /**
+     * Once at app start: the retired Route CSV switch on becomes the switch on (RideAutoExport.normalize), so the stored
+     * values, and any backup made from them, say on under the ride JSON key. The folder, its grant and the waiting rides
+     * are left as they are.
+     */
+    static void migrate(SharedPreferences settings) {
+        synchronized (LOCK) {
+            if (!settings.getBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false)) return;
+            settings.edit().putBoolean(RideAutoExport.ON, true).putBoolean(RideAutoExport.LEGACY_ROUTE_CSV, false).commit();
+        }
+    }
     static RideAutoExport.Problem problem(SharedPreferences settings) { return RideAutoExport.Problem.of(settings.getString(RideAutoExport.PROBLEM, "")); }
 
     /** True while this installation still holds a persisted read and write grant for the tree. */

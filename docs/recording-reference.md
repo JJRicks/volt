@@ -232,8 +232,11 @@ default; `ride_auto_export_json`), that saves each ride you end into one folder,
 - **Earlier builds.** Test builds before 1.12.0 had two switches, Auto-save Route CSV
   (`ride_auto_export_route_csv`) and Auto-save ride JSON (`ride_auto_export_json`).
   Either one on, in the settings or in a restored backup, means auto-save is on, with
-  the same folder; rides still waiting are saved as Everything files. Setting the
-  switch writes `ride_auto_export_route_csv` as off, so a new backup carries it off.
+  the same folder; rides still waiting are saved as Everything files. When Volt
+  starts, an old Route CSV switch that is on becomes the switch (`ride_auto_export_json`
+  on, `ride_auto_export_route_csv` off, folder and waiting rides kept); setting the
+  switch writes the old key off too, and a backup always stores it that way, so a new
+  backup carries it off.
   Restored into one of those builds, a new backup turns on its ride JSON switch when
   auto-save was on (that build then saves its own ride JSON files) and leaves both off
   otherwise. Files the old switches saved (`-route.csv`, `-combined.json`,

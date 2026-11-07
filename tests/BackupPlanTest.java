@@ -176,8 +176,11 @@ public final class BackupPlanTest {
         Map<String, Map<String, Object>> after = phone.preferences(); Map<String, Object> app = after.get("app_settings");
         check("light".equals(app.get("theme")) && !app.containsKey("stats_chart_window") && !app.containsKey("keep_screen_awake") && Boolean.TRUE.equals(app.get("ride_auto_stop")), "App preferences: the backup wins and keys it lacks go back to default");
         check(app.get("last_page").equals("home") && app.get("more_away_boot").equals(9), "device keys stay");
-        check(Boolean.TRUE.equals(app.get("ride_auto_export_route_csv")) && Boolean.FALSE.equals(app.get("ride_auto_export_json")), "both automatic ride copy choices travel");
-        check(RideAutoExport.on(Boolean.TRUE.equals(app.get(RideAutoExport.ON)), Boolean.TRUE.equals(app.get(RideAutoExport.LEGACY_ROUTE_CSV))), "an older backup with only the Route CSV copy on restores auto-save on");
+        check(Boolean.TRUE.equals(app.get("ride_auto_export_json")) && Boolean.FALSE.equals(app.get("ride_auto_export_route_csv")), "a phone with only the old Route CSV switch on, untouched since the update, backs up the ride JSON key on and Route CSV off");
+        check(Boolean.TRUE.equals(app.get(RideAutoExport.ON)), "so an older Volt restoring it turns on its ride JSON switch, and this one restores auto-save on");
+        Map<String, Object> kept = source.preferences().get("app_settings");
+        check(Boolean.TRUE.equals(kept.get("ride_auto_export_route_csv")) && Boolean.FALSE.equals(kept.get("ride_auto_export_json")) && kept.containsKey("ride_auto_export_folder") && kept.containsKey("ride_auto_export_pending"),
+                "the backup changes only its own copy: the phone's settings, folder and waiting rides are untouched");
         check(!app.containsKey("ride_auto_export_folder") && !app.containsKey("ride_auto_export_pending") && !app.containsKey("ride_auto_export_problem"), "the folder grant, waiting rides and last problem stay on the phone that had them");
         check(app.get("dashboard_v1_" + C).equals("[{\"id\":\"w-a\"}]") && !app.containsKey("dashboard_slot_v1_" + C + "_1") && app.get("dashboard_slot_v1_" + C + "_2").equals("slot two a") && !app.containsKey("dashboard_restore_undo_v1_" + C)
                 && app.get("dashboard_v1_" + B).equals("[{\"id\":\"w-b\"}]") && Integer.valueOf(4).equals(app.get("dashboard_columns")), "Dashboards replace each mapped scooter's dashboard and slots and drop its undo");

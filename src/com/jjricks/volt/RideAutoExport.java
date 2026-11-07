@@ -109,6 +109,17 @@ final class RideAutoExport {
 
     /** Whether auto-save is on: the switch, or the retired Route CSV switch from before it (see LEGACY_ROUTE_CSV). */
     static boolean on(boolean stored, boolean legacyRouteCsv) { return stored || legacyRouteCsv; }
+    /**
+     * Moves the retired Route CSV switch onto the switch's key: on means ON true and LEGACY_ROUTE_CSV false, so a backup
+     * restored into an older Volt turns on its ride JSON switch. Leaves every other key (folder, waiting rides) as it is.
+     * Returns true when it changed the values.
+     */
+    static boolean normalize(Map<String, Object> settings) {
+        if (settings == null || !Boolean.TRUE.equals(settings.get(LEGACY_ROUTE_CSV))) return false;
+        settings.put(ON, Boolean.TRUE);
+        settings.put(LEGACY_ROUTE_CSV, Boolean.FALSE);
+        return true;
+    }
 
     static List<String> parse(String stored) {
         List<String> ids = new ArrayList<>();

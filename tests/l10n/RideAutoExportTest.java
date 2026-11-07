@@ -101,6 +101,18 @@ public final class RideAutoExportTest {
         // A newer backup holds what set wrote: (on, false). An older Volt reads ride_auto_export_json as its ride JSON switch.
         check(RideAutoExport.ON.equals("ride_auto_export_json"), "The switch keeps the old ride JSON key, so an older Volt restores it as that switch");
         check(!RideAutoExport.on(false, false) && RideAutoExport.on(true, false), "What set writes reads back as the switch, here and in an older Volt");
+        // The update's migration and the backup copy: Route CSV only becomes (true, false); the folder and waiting rides stay.
+        Map<String, Object> routeOnly = new LinkedHashMap<>();
+        routeOnly.put(RideAutoExport.LEGACY_ROUTE_CSV, true); routeOnly.put(RideAutoExport.ON, false);
+        routeOnly.put(RideAutoExport.FOLDER, "content://tree"); routeOnly.put(RideAutoExport.PENDING, A);
+        check(RideAutoExport.normalize(routeOnly) && Boolean.TRUE.equals(routeOnly.get(RideAutoExport.ON)) && Boolean.FALSE.equals(routeOnly.get(RideAutoExport.LEGACY_ROUTE_CSV))
+                && "content://tree".equals(routeOnly.get(RideAutoExport.FOLDER)) && A.equals(routeOnly.get(RideAutoExport.PENDING)) && routeOnly.size() == 4, "Route CSV only: normalized to the switch on, folder and waiting rides kept");
+        check(!RideAutoExport.normalize(routeOnly), "Normalizing twice changes nothing");
+        Map<String, Object> jsonOnly = new LinkedHashMap<>(); jsonOnly.put(RideAutoExport.ON, true);
+        Map<String, Object> off = new LinkedHashMap<>(); off.put(RideAutoExport.ON, false); off.put(RideAutoExport.LEGACY_ROUTE_CSV, false);
+        Map<String, Object> fresh = new LinkedHashMap<>();
+        check(!RideAutoExport.normalize(jsonOnly) && jsonOnly.size() == 1 && !RideAutoExport.normalize(off) && Boolean.FALSE.equals(off.get(RideAutoExport.ON))
+                && !RideAutoExport.normalize(fresh) && fresh.isEmpty() && !RideAutoExport.normalize(null), "Ride JSON only, off and a fresh install are left as they are");
     }
 
     private static void waitingList() {
