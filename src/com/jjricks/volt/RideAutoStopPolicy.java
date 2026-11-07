@@ -50,8 +50,11 @@ import java.util.Objects;
  *    - A reconnect within {@link #RECONNECT_CARRY_MS} of the last frame heard keeps counting from the
  *      motion before the drop, with the same odometer and trip baselines, so a few-second Bluetooth blip
  *      at the destination does not restart the 10 minutes (the owner's ride of 2026-11-06 had one).
- *      Distance gained during the gap still counts as motion at the first fresh reading. After a longer
- *      gap the countdown starts again from the reconnect, since the scooter may have moved meanwhile.
+ *      Distance gained during the gap still counts as motion at the first fresh reading. A carried count
+ *      cannot end the ride until a fresh odometer or trip reading from after the drop has been judged, or
+ *      {@link #CARRY_EVIDENCE_MS} after the reconnect when none arrives, so a rider who set off during
+ *      the gap is not cut off before the readings show it. After a longer gap the countdown starts again
+ *      from the reconnect, since the scooter may have moved meanwhile.
  *    - No phone GPS guard, as for the Bluetooth-off rule (owner answer Q30 B).
  *
  * Any other loss (permission revoked, owner rejected), {@link #reset()} and a clock that moves
@@ -69,6 +72,13 @@ public final class RideAutoStopPolicy {
     public static final long NO_MOTION_MS = 600_000;
     /** Rule 3: a reconnect this soon after the last frame heard keeps the countdown from before the drop. */
     public static final long RECONNECT_CARRY_MS = 60_000;
+    /**
+     * Rule 3: after a carried reconnect, the longest wait for a fresh distance reading before the carried
+     * count may end the ride anyway (a scooter that never reports distance cannot keep a ride open).
+     */
+    public static final long CARRY_EVIDENCE_MS = 30_000;
+    /** The service feeds distance readings at most this old (RideStore.MAX_SENSOR_AGE_MS). */
+    static final long READING_AGE_MS = 3_000;
 
     /** How the authenticated connection went away. */
     public enum Loss {
@@ -119,6 +129,8 @@ public final class RideAutoStopPolicy {
     /** Rule 3 across a drop: the countdown's start and baselines at the loss, and that loss's last frame (0 when none). */
     private long heldFrom, heldFrame;
     private double heldOdometer = Double.NaN, heldTrip = Double.NaN;
+    /** Rule 3 after a carried reconnect: no ending before this time (0 when not waiting) unless a distance reading after {@link #carryAfter} arrives. */
+    private long carryHold, carryAfter;
 
     public RideAutoStopPolicy(String rideId, String profile, String serial) {
         if (rideId == null || rideId.isEmpty() || profile == null || profile.isEmpty() || serial == null || serial.isEmpty())
@@ -182,6 +194,7 @@ public final class RideAutoStopPolicy {
             bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now;
             if (heldFrom > 0 && heldFrame > 0 && now >= heldFrame && now - heldFrame <= RECONNECT_CARRY_MS) {
                 stillFrom = heldFrom; stillOdometer = heldOdometer; stillTrip = heldTrip;
+                carryHold = now + CARRY_EVIDENCE_MS; carryAfter = heldFrame + READING_AGE_MS;
             }
             clearHeld();
         }
@@ -264,6 +277,8 @@ public final class RideAutoStopPolicy {
     public boolean dueNoMotion(long now) {
         if (!clock(now) || !bound || stillFrom <= 0 || lastFrame <= 0 || now - lastFrame > LOSS_WINDOW_MS
                 || now - stillFrom < NO_MOTION_MS) return false;
+        // A carried count waits for a distance reading from after the drop, or for the bound.
+        if (carryHold > 0 && now < carryHold) return false;
         clearStill(); return true;
     }
 
@@ -272,7 +287,7 @@ public final class RideAutoStopPolicy {
 
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
-    private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; }
+    private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; carryHold = carryAfter = 0; }
     private void clearHeld() { heldFrom = heldFrame = 0; heldOdometer = heldTrip = Double.NaN; }
     /** Rule 3's speed evidence from one connected observation. */
     private void still(long now, long pushMono, int speedRaw, int driving) {
@@ -292,6 +307,8 @@ public final class RideAutoStopPolicy {
         if (rose(stillOdometer, odometerKm) || rose(stillTrip, tripKm)) stillFrom = Math.max(stillFrom, now);
         if (odometerKm >= 0) stillOdometer = odometerKm;
         if (tripKm >= 0) stillTrip = tripKm;
+        // A reading at most READING_AGE_MS old, seen after carryAfter, was taken after the drop: judged now.
+        if (carryHold > 0 && now > carryAfter && (odometerKm >= 0 || tripKm >= 0)) carryHold = 0;
     }
     /** A distance reading went up by at least its 0.1 km step; a drop (trip reset) only moves the baseline. */
     private static boolean rose(double before, double after) { return before >= 0 && after >= 0 && after > before + 1e-6; }

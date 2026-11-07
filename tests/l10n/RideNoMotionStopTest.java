@@ -47,6 +47,7 @@ public final class RideNoMotionStopTest {
             switchOff();
             disconnectHandsOver();
             shortBlipKeepsCount();
+            carriedDeadlineWaitsForReadings();
             clockBackwards();
             silentLinkOrOtherScooter();
             storeShownEnd();
@@ -308,6 +309,63 @@ public final class RideNoMotionStopTest {
         u.disconnected(last + 6000, false);
         u.connected(last + 10_000, PROFILE, SERIAL, 2, last + 10_000, 0, -1, -1);
         check(u.noMotionSince() == last + 10_000, "an unrecoverable loss drops the held count");
+    }
+    /**
+     * Codex's #303 review: a carried count whose 10 minutes ran out during the gap must not end the ride on
+     * the reconnect's first frame, before a fresh distance reading could show the scooter moved meanwhile.
+     */
+    private static void carriedDeadlineWaitsForReadings() {
+        long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        // Codex's repro: the count starts at 1,000 ms, the link drops just before 600,001 ms, back at 601,001 ms, no readings.
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, Double.NaN, Double.NaN);
+        check(p.noMotionSince() == 1000, "the count starts at the first observation");
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, Double.NaN, Double.NaN);
+        p.disconnected(600_000, true);
+        long back = 601_001;
+        p.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); p.distance(back, Double.NaN, Double.NaN);
+        check(p.noMotionSince() == 1000 && !p.dueNoMotion(back), "the reconnect's first frame does not end the ride");
+        boolean early = false;
+        for (long t = back + 1000; t < back + wait; t += 1000) { p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); p.distance(t, Double.NaN, Double.NaN); early |= p.dueNoMotion(t); }
+        check(!early, "no distance reading: still recording for the whole wait");
+        p.connected(back + wait, PROFILE, SERIAL, 2, back + wait, 0, -1, -1); p.distance(back + wait, Double.NaN, Double.NaN);
+        check(p.dueNoMotion(back + wait), "but no longer: a scooter that never reports distance cannot keep the ride open");
+
+        // The first fresh reading after the drop shows the scooter moved: the ride keeps recording, counted from then.
+        RideAutoStopPolicy m = policy();
+        m.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); m.distance(1000, 100.0, 5.0);
+        m.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); m.distance(600_000, 100.0, 5.0);
+        m.disconnected(600_000, true);
+        m.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); m.distance(back, Double.NaN, Double.NaN);
+        check(!m.dueNoMotion(back), "nothing judged yet");
+        long read = back + 2000;
+        m.connected(read, PROFILE, SERIAL, 2, read, 0, -1, -1); m.distance(read, 100.3, 5.3);
+        check(!m.dueNoMotion(read) && m.noMotionSince() == read, "distance gained in the gap is motion: the count restarts and the ride goes on");
+        check(!dueDuring2(m, read, read + NO_MOTION - 1000), "a full 10 min from that reading");
+        // A riding push after the reconnect does the same.
+        RideAutoStopPolicy r = policy();
+        r.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1);
+        r.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); r.disconnected(600_000, true);
+        r.connected(back, PROFILE, SERIAL, 2, back, back, 180, 1);
+        check(!r.dueNoMotion(back) && r.noMotionSince() == back, "riding again after the gap keeps the ride");
+
+        // The first fresh reading shows no movement: the carried count ends the ride at once.
+        RideAutoStopPolicy n = policy();
+        n.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); n.distance(1000, 100.0, 5.0);
+        n.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); n.distance(600_000, 100.0, 5.0);
+        n.disconnected(600_000, true);
+        n.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); n.distance(back, Double.NaN, Double.NaN);
+        // A reading no newer than the last frame plus its 3 s age may predate the drop: it decides nothing.
+        long stale = 600_000 + RideAutoStopPolicy.READING_AGE_MS;
+        RideAutoStopPolicy o = policy();
+        o.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); o.distance(1000, 100.0, 5.0);
+        o.connected(598_000, PROFILE, SERIAL, 1, 598_000, 0, -1, -1); o.distance(598_000, 100.0, 5.0);
+        o.disconnected(600_000, true);
+        o.connected(stale - 2000, PROFILE, SERIAL, 2, stale - 2000, 0, -1, -1); o.distance(stale - 2000, 100.0, 5.0);
+        check(!o.dueNoMotion(stale - 2000), "a reading that may predate the drop does not release the wait");
+        long fresh = back + 3000;
+        n.connected(fresh, PROFILE, SERIAL, 2, fresh, 0, -1, -1); n.distance(fresh, 100.0, 5.0);
+        check(n.dueNoMotion(fresh) && n.noMotionSince() == 0, "an unchanged fresh reading after the drop ends the ride at once");
     }
     /** As dueDuring, on transport 2 with no motion push on it. */
     private static boolean dueDuring2(RideAutoStopPolicy p, long from, long to) {
