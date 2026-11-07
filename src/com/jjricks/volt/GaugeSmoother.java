@@ -54,6 +54,23 @@ final class GaugeSmoother {
         if (d == 0) crossS = 0;
     }
 
+    /**
+     * Follows a reading that can change sign and be corrected in place, such as power (Telemetry
+     * re-signs the latest current after a 0x79 reply but keeps its measurement time). A new reading
+     * glides there, and so does a correction of the latest one, so the gauge never keeps a sign the
+     * reading no longer has. A change of sign restarts from zero: the shown sign is always the latest
+     * reading's, and smoothing never shows draw while the reading is regen, or the other way round.
+     *
+     * @param newReading true for a new measurement; false for the latest one again, possibly corrected
+     */
+    void follow(double value, long intervalMs, boolean newReading, long nowMs) {
+        if (!Double.isFinite(value)) return;
+        if (!started) { snap(value, nowMs); return; }
+        if (!newReading && value == target) return;
+        if (value * value(nowMs) < 0) snap(0, nowMs);
+        setTarget(value, intervalMs, nowMs);
+    }
+
     /** The value to draw at this time. */
     double value(long nowMs) {
         if (!started) return Double.NaN;
