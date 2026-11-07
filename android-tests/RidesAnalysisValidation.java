@@ -635,8 +635,11 @@ public final class RidesAnalysisValidation extends Instrumentation {
             TextView everything=text(root(),"Everything in one JSON");
             check(everything instanceof android.widget.CheckBox&&everything.isEnabled()&&((android.widget.CheckBox)everything).isChecked(),"Everything is listed and checked by default");
             check(!((android.widget.CheckBox)text(root(),"Sensor CSV")).isChecked(),"Sensor CSV is no longer checked by default");
-            int[] top=new int[2],below=new int[2];everything.getLocationOnScreen(top);text(root(),"Sensor CSV").getLocationOnScreen(below);
-            check(top[1]<below[1],"Everything is listed first");
+            int[] everythingAt=new int[2];
+            int[] sensorAt=new int[2];
+            everything.getLocationOnScreen(everythingAt);
+            text(root(),"Sensor CSV").getLocationOnScreen(sensorAt);
+            check(everythingAt[1]<sensorAt[1],"Everything is listed first");
             check(everything.getLayout()!=null&&everything.getLayout().getLineCount()==1&&everything.getLayout().getEllipsisCount(0)==0,"Everything's label fits on one line");
             check(text(root(),"ride-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
             screenshot("export-sheet-"+attempt);
