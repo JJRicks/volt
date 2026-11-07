@@ -29,9 +29,9 @@
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Jusqu’à la limite de recharge : %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Temps jusqu’à %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Jusqu’à %1$s</string>
-    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Temps jusqu’à 100 % en l’absence de limite</string>
-    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Jusqu’à 100 % en l’absence de limite</string>
-    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % en l’absence de limite</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00" volt:attempt="2">Durée jusqu’à 100 % si la recharge n’est pas limitée</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0" volt:attempt="2">Jusqu’à 100 % si aucune limite</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d" volt:attempt="2">100 % si aucune limite</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Temps avant charge complète (estimé)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Temps avant charge complète (estimé)</string>
     <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Avant charge complète (estimé)</string>
@@ -216,7 +216,7 @@
     <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Mise à jour des trajets enregistrés…</string>
     <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Dernière estimation · actualisation indisponible</string>
     <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Estimation indisponible</string>
-    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09">Données de trajet insuffisantes</string>
+    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Pas assez de données de trajet</string>
     <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">Trajets : %1$s · %2$s–%3$s %4$s</string>
     <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">Trajets : %1$s · points utilisés : %2$s</string>
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s %% de %2$s %3$s</string>

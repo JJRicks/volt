@@ -203,7 +203,7 @@
     <string name="rides_export_combined_json" volt:src="cabbadd1f3d041c7be57fa7cc8c165457ef9e8f0">JSON trottinette et téléphone</string>
     <string name="rides_export_reason_saving" volt:src="6f92cd2421210e27477c12730f6d86fc18ed61d4">Finalisation en cours</string>
     <string name="rides_export_reason_no_fixes" volt:src="bf44c691a26de70e504c6d7db0953e425f36c8de">Aucun point GPS pour ce trajet</string>
-    <string name="rides_export_reason_unreadable" volt:src="db494efbcdf014ad52348a867e289652f1aa3971">Impossible de lire l’enregistrement du téléphone</string>
+    <string name="rides_export_reason_unreadable" volt:src="db494efbcdf014ad52348a867e289652f1aa3971" volt:attempt="2">Enregistrement du téléphone illisible</string>
     <string name="rides_export_reason_not_recorded" volt:src="de3dc7f6f58664d660d10ce5ab5144da25f629fa">Non enregistré pour ce trajet</string>
     <string name="rides_export_unavailable_description" volt:src="750a68a79a98884a2808d7a6fd555256480588f4">%1$s, indisponible : %2$s</string>
     <string name="rides_export_hint_one" volt:src="b5ae4fa92876738dd43bc27f72a6e8c71b4176e9">Android demandera où enregistrer le fichier.</string>

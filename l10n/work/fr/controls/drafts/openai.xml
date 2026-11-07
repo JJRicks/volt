@@ -85,7 +85,7 @@
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Valeur inconnue · impossible de la modifier en toute sécurité</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">La trottinette n’indique aucun choix</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Attendez la fin de la modification en cours</string>
-    <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Immobilisez d’abord la trottinette</string>
+    <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244" volt:attempt="2">Immobilisez d’abord la trottinette jusqu’à l’arrêt complet</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Aucune donnée sur le mouvement pour le moment</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Résolvez d’abord l’avertissement de la trottinette</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Déverrouillez d’abord la trottinette</string>

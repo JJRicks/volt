@@ -227,7 +227,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Connectez la trottinette pour essayer ces commandes.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">En attente d’un état actualisé de la trottinette.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Immobilisez la trottinette pour essayer ces commandes.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Immobilisez la trottinette : vous pourrez essayer ces commandes à l’arrêt.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">En attente d’une indication de la trottinette qu’elle est immobile.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Résolvez le problème indiqué par l’avertissement de la trottinette pour essayer ces commandes.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Déverrouillez la trottinette pour essayer ces commandes.</string>
@@ -359,7 +359,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">D’origine</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapide</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Auto reconnaît les chargeurs UT5 MAX à partir de la puissance en temps réel. En cas d’incertitude, Volt utilise le rythme de recharge actuel ; choisissez un chargeur pour remplacer ce choix.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto reconnaît les chargeurs UT5 MAX d’après la puissance en temps réel. Si Volt n’en est pas certaine, elle utilise la vitesse de recharge actuelle ; choisissez un chargeur pour passer outre.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Courbes de recharge sauvegardées</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Enregistrer cette recharge</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Arrêter l’enregistrement de recharge</string>

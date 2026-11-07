@@ -266,7 +266,7 @@
     <string name="main_schedule_measuring_body" volt:src="2809250f5f424494b1c5d50c5b630054fa3a16cb">La fonction « Finir la recharge à » sera réglée automatiquement dans un délai de %1$s min. La programmation utilise maintenant les données dont Volt dispose pour le moment. L’arrêt de la mesure laissera la fonction « Finir la recharge à » désactivée.</string>
     <string name="main_schedule_test_body" volt:src="13292e94bc01b1908f6a12d50a853f8d691f0913">Reprise prévue de la recharge : %1$s. L’annulation du test désactivera la programmation et rétablira votre réglage de début de recharge.</string>
     <string name="main_schedule_measuring_value" volt:src="d2d17b4ff028a481fef1793f35d6ee88bee67b1c">Mesure en cours · %1$s min</string>
-    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18">Immobilisez la trottinette pour modifier ce réglage</string>
+    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18" volt:attempt="2">Immobilisez la trottinette pour modifier le réglage</string>
     <string name="main_row_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Non programmé</string>
     <string name="main_row_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (appris)</string>
     <string name="main_row_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Trottinette</string>
@@ -391,7 +391,7 @@
     <string name="main_import_finish_save" volt:src="1430bcda34330ace0ed8864e91272cdd8d127e97">Terminez l’enregistrement en cours avant de lancer une autre exportation.</string>
     <string name="main_import_retry_setup" volt:src="01315cc902d4e334c63b641f1feef477c69bb64f">Échec de l’importation. Reprenez la configuration.</string>
     <string name="main_import_not_layout" volt:src="7160b91c0944b9926fdd8c408827d48ab49afdd2">Ce n’est pas un fichier de disposition Volt. Rien n’a changé.</string>
-    <string name="main_import_setup_unreadable" volt:src="cb87d1ff8f382a286f9ee1ad4f755fd7db222b6e">Impossible de lire le fichier de configuration de propriétaire.</string>
+    <string name="main_import_setup_unreadable" volt:src="cb87d1ff8f382a286f9ee1ad4f755fd7db222b6e" volt:attempt="2">Le fichier de configuration de propriétaire n’a pas pu être lu.</string>
     <string name="main_import_pick_again" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Échec de l’importation. Sélectionnez à nouveau le fichier.</string>
     <string name="main_import_no_longer_matches" volt:src="3ca77c7fe5b844b84587f5ca89fe5f058046a573">La configuration enregistrée ne correspond plus. Sélectionnez à nouveau le fichier.</string>
     <string name="main_import_removed" volt:src="9a7ad6259aa10899572e0011ef5fdff6ab49b4e5">Cette trottinette a été supprimée. Sélectionnez à nouveau le fichier.</string>
@@ -403,8 +403,8 @@
     <string name="main_name_imported" volt:src="6eff3139294476aca4c67af9a2602e8a128ea0ac">Trottinette importée</string>
     <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe">La fonction « Finir la recharge à » est désactivée ; l’heure de la trottinette n’a pas pu être confirmée</string>
     <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73">La recharge programmée est désactivée ; l’heure de la trottinette n’a pas pu être confirmée</string>
-    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25">La fonction « Finir la recharge à » est désactivée ; le rétablissement du début de recharge n’a pas été confirmé</string>
-    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef">La recharge programmée est désactivée ; le rétablissement du début de recharge n’a pas été confirmé</string>
+    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25" volt:attempt="2">La fonction « Finir la recharge à » est désactivée ; rétablissement du début de recharge non confirmé</string>
+    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef" volt:attempt="2">La recharge programmée est désactivée ; rétablissement du début de recharge non confirmé</string>
     <string name="main_schedule_off_restore_done_by" volt:src="c12d42e46a43a00107ac1ee995db019120af9eea">La fonction « Finir la recharge à » est désactivée ; le début de recharge n’a pas pu être rétabli : %1$s</string>
     <string name="main_schedule_off_restore_scheduled" volt:src="c97d87ddd7151568bc429e3511dbb60260b81813">La recharge programmée est désactivée ; le début de recharge n’a pas pu être rétabli : %1$s</string>
     <string name="main_range_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Compris</string>

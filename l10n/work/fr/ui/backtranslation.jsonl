@@ -1,0 +1,3 @@
+{"back":"Charging","key":"ui_battery_ring_charging","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74","target":"En recharge"}
+{"back":"Charging · %1$s","key":"ui_battery_ring_charging_caption","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa","target":"En recharge · %1$s"}
+{"back":"WALK","key":"ui_drive_mode_walk","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"3d3deb53e35f87f97abfa11ce97215f57cb7b4ff","target":"WALK"}

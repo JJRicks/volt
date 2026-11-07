@@ -1,0 +1,2 @@
+{"back":"Display the online map?","key":"maps_consent_title","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"9d5d38d3390d33f87884334bad629831625fab66","target":"Afficher la carte en ligne ?"}
+{"back":"Enable the map background","key":"maps_consent_enable","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"bb9ac0845ace7f8b7f2e08bf11f66831ce335172","target":"Activer le fond de carte"}

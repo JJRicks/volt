@@ -7,7 +7,7 @@
     <string name="riding_display_auto" volt:src="758e754e8e495959ed5e6c7ed937cbd0a422c575">Volt auto</string>
     <string name="riding_display_fixed" volt:src="7482fcb06d1ca8c86d7e8f14c8443f48fcc87206">Fixe</string>
     <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Rotation de l’écran</string>
-    <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba">Verrouiller à l’ouverture</string>
+    <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba" volt:attempt="2">Verrouiller à l’ouverture</string>
     <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Suivre le téléphone</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Masquer la barre d’état</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Horloge et batterie masquées pendant la conduite</string>

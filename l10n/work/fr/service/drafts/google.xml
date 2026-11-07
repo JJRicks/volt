@@ -13,7 +13,7 @@
     <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Attendez que Volt termine le réglage de la programmation de recharge</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Attendez la fin de la mesure par « Finir la recharge à »</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Attendez la fin du nettoyage de l’historique</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Terminez d’abord la configuration de propriétaire et rétablissez le journal d’activité de NAVEE</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Terminez d’abord la configuration de propriétaire et restaurez le journal d’activité de NAVEE</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Terminez d’abord l’exportation en cours</string>
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Terminez d’abord l’importation de la configuration de propriétaire</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Impossible de préparer les données de l’application. Rouvrez Volt.</string>
@@ -158,14 +158,14 @@
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">La trottinette ne s’est pas mise en pause. Son horloge est peut-être en avance, ou elle a ignoré la programmation.%1$s</string>
     <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">La recharge était encore en pause 5 minutes après l’heure prévue. L’horloge de la trottinette a peut-être plus de 5 minutes de retard, ou sa programmation ne s’est pas désactivée. Si le chargeur a été débranché, recommencez le test.%1$s</string>
     <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt a réglé l’horloge de la trottinette juste avant ce test ; il se peut donc que la trottinette ne conserve pas l’heure transmise. Tant que ce problème n’est pas résolu, une prise connectée constitue une minuterie plus sûre. Signalez un problème avec les diagnostics afin que nous puissions analyser la situation."</string>
-    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">La batterie a atteint sa limite de recharge pendant le test, impossible donc de vérifier. Réessayez le test nettement en dessous de la limite.</string>
+    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109" volt:attempt="2">La batterie a atteint sa limite de recharge pendant le test, il n’a donc pas été possible de le déterminer. Testez à nouveau bien en dessous de la limite.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Le test a été interrompu. Vérifiez que la recharge a repris. Si ce n’est pas le cas, désactivez la recharge programmée.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Le test n’a pas pu démarrer.</string>
     <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Le test n’a pas pu démarrer : %1$s.</string>
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt n’a pas pu confirmer la désactivation de la programmation. Désactivez la recharge programmée pour que la recharge se poursuive."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertes de batterie</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Alertes de niveau de charge, de batterie pleine et faible que vous activez dans Trottinette › Batterie</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertes de batterie pour le niveau de charge, la batterie pleine et la batterie faible que vous activez dans Trottinette › Batterie</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Arrêter</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Arrêtez l’enregistrement de recharge avant de commencer un trajet</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Quittez d’abord la simulation</string>

@@ -44,9 +44,9 @@
     <string name="riding_label_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batterie</string>
     <string name="riding_label_trip" volt:src="e6690f1fdb91549124869903ea8609d008969ca7">Parcours</string>
     <string name="riding_label_ride_distance" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Trajet</string>
-    <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b">Durée du parcours</string>
+    <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b" volt:attempt="2">Durée</string>
     <string name="riding_label_ride_time_short" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Durée</string>
-    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Enregistrement</string>
+    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28" volt:attempt="2">Enreg.</string>
     <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">Rec.</string>
     <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Vit. moy.</string>
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Moy.</string>
@@ -89,7 +89,7 @@
     <string name="riding_ring_max" volt:src="b12784bd1a78199af50601c39355d949c5494ee0">vit. de pointe %1$s</string>
     <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Récup.</string>
     <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">Il y a 1 min</string>
-    <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">maintenant</string>
+    <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054" volt:attempt="2">à présent</string>
     <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Vitesse et puissance sur la dernière minute</string>
     <string name="riding_editor_spots" volt:src="4d5c0c039a2c6e0d4d5a12798d4230fde242e986">Ce qu’affiche chaque emplacement</string>
     <string name="riding_editor_options" volt:src="460b030078bb1e2362fec1cb7522c49c96ebcece">Options</string>

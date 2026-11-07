@@ -7,7 +7,7 @@
     <string name="riding_night_scheduled" volt:src="0b00212512b31d019955a276cf227413a439cabe">Programmée</string>
     <string name="riding_night_schedule" volt:src="35c56281be5e205cc961e9b8f1752f8913f46546">Programmation</string>
     <string name="riding_night_sun" volt:src="ae1a07b1ae57551eb5c577acbe7c4b9dc01b9181">Du coucher au lever</string>
-    <string name="riding_night_custom" volt:src="6bb709db62a2f0d83c7059c95c8c0ccf120b5fb7">Horaires personnalisés</string>
+    <string name="riding_night_custom" volt:src="6bb709db62a2f0d83c7059c95c8c0ccf120b5fb7" volt:attempt="2">Horaire personnalisé</string>
     <string name="riding_night_from" volt:src="ddf7f13cfb721ccc9faef70e3d12e1880d289d73">Coucher du soleil selon</string>
     <string name="riding_night_from_ride" volt:src="4f232b8046102bac40763c06c05bdbf36e7713f5">Zone du trajet</string>
     <string name="riding_night_from_zone" volt:src="a1556a2acb7b72b1dc3219bc211a267dc7ce75d7">Fuseau horaire</string>
