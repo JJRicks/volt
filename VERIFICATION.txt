@@ -12,43 +12,47 @@ November 6, 2026
 - Spanish: its strings come from the translation council (#217 and later
   batches). ship_check --release shows zero English fallback for Spanish:
   0 of 3773 keys, with aapt compiling 3990 texts.
+- Portuguese (Portugal): its strings come from the same council (#288, then
+  #289 to #297). ship_check --release shows zero English fallback for
+  Portuguese (Portugal): 0 of 3773 keys, with aapt compiling 3990 texts.
 - Launch and Rides timing (#234, #240) were measured on disposable emulators
   only, with synthetic rides and Bluetooth off: about 0.3 s to the first
   frame with 41 one-hour rides, from about 4 s. The service start command
   stands in for connection start; it is not a connection time.
-- Release candidate checks on the final tree: commit 23070dfe, which is main
-  after #285 (the Maximum speed rename), #286 (the More list on wide screens)
-  and #287 (the Drive mark), plus this release's changelog. This verification
-  update changes no app code.
-  - ship_check --release --aapt required: PASS, Spanish 0 of 3773 keys
-    falling back, aapt compiling 3990 Spanish texts exactly.
+- Release candidate checks on the final tree: commit 6a95d65d, which is main
+  after #288 to #297 (Portuguese (Portugal)), plus this release's changelog
+  and README lines. Its tree is identical to main after #297 merged into this
+  branch. This verification update changes no app code.
+  - ship_check --release --aapt required: PASS, Spanish and Portuguese
+    (Portugal) each 0 of 3773 keys falling back, aapt compiling 3990 texts
+    for each exactly.
   - Pinned Shizuku dependencies verified; tests/run.sh passes (155 suites,
-    about 1.98 million checks); owner-capture guard (11), capture-owner (22)
+    about 1.99 million checks); owner-capture guard (11), capture-owner (22)
     and hardware-sweep (14) tests pass.
   - VOLT_RELEASE=1 bash build.sh with a local contributor key on that commit:
     versionName 1.12.0 (no -dev), versionCode 55. This is the build the sweep
     below ran.
 - run-release-sweep.py on that build (Medium Phone API 36.1 emulator,
   synthetic data, Bluetooth off): all 69 gating steps passed in one run,
-  including responsive, responsive-modes, charge-capture and motion-polish.
-  Of its 9 report-only steps, the three Spanish reports ran (below). The six
-  pseudo-locale reports (en-XA and ar-XB at three sizes) were skipped: the
-  sweep was given no pseudo-locale build. The sweep's own "78/78" summary
-  counts report-only steps as passed even when they are skipped.
-  - An earlier candidate (main after #283) needed reruns: three validations
-    were outdated by reviewed changes (#211, #250) until #283 updated them, and
-    motion-polish hung once in am instrument while the Mac was loaded.
+  including responsive, responsive-modes, charge-capture and motion-polish,
+  with no reruns. Of its 12 report-only steps, the six Spanish and Portuguese
+  (Portugal) reports ran (below). The six pseudo-locale reports (en-XA and
+  ar-XB at three sizes) were skipped: the sweep was given no pseudo-locale
+  build. The sweep's own "81/81" summary counts report-only steps as passed
+  even when they are skipped.
+  - Earlier candidates needed reruns: three validations were outdated by
+    reviewed changes (#211, #250) until #283 updated them, and motion-polish
+    hung once in am instrument while the Mac was loaded.
   - rides-timing passed (best of two cold starts, slowest case): first frame
-    229 ms and service start command 204 ms (budgets 1.5 s), Rides first row
-    43 ms and longest main-thread message 34 ms cold, 21 ms warm (budget 1 s).
-    One single cold run (41 one-hour rides at 344 dp) stalled the main thread
-    for 367 ms, above the 250 ms everyday target; its repeat took 15 ms. The
-    service start command stands in for connection start; it is not a
-    connection time.
-  - locale-es reports (report only, not gating): 0 fit, direction, glued,
-    unfilled or unextracted problems at 344 dp, 725 dp and 725 dp with large
-    font (23 screens each). #286 fixed the two More-list labels that broke
-    mid-word at 725 dp.
+    171 ms and service start command 172 ms (budgets 1.5 s), Rides first row
+    39 ms and longest main-thread message 33 ms cold, 32 ms warm (budget 1 s).
+    The slowest single cold run held the main thread for 91 ms, under the
+    250 ms everyday target. The service start command stands in for
+    connection start; it is not a connection time.
+  - locale-es and locale-pt-PT reports (report only, not gating): 0 fit,
+    direction, glued, unfilled or unextracted problems at 344 dp, 725 dp and
+    725 dp with large font (23 screens each, per language). #286 fixed the two
+    More-list labels that broke mid-word at 725 dp.
 - No owner-present hardware sweep yet (run-hardware-sweep.py --parked, parked
   since 1.11.0). The owner runs it before publishing.
 - Real-phone checks only the owner can do, not yet done:
