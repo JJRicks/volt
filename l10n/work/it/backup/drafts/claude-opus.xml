@@ -47,7 +47,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Salvataggio non riuscito. Riprova in un\'altra posizione.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Backup salvato.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Ripristino</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Scegli un backup di Volt per recuperare i dati salvati dell\'app. Funzionano anche i file meno recenti di configurazione del proprietario, delle corse e del layout; prima del ripristino vedrai esattamente cosa contengono.</string>
+    <string name="backup_restore_intro" volt:src="3edbbca81c00f0869ecd161d0877696640456cf8">Scegli un backup di Volt per recuperare i dati salvati dell\'app. Funzionano anche i vecchi file di configurazione del proprietario, delle corse e del layout; vedrai esattamente cosa contengono prima del ripristino.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Le autorizzazioni e l\'accoppiamento Bluetooth non sono inclusi.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Scegli il file</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Non è stato possibile aprire un selettore di file.</string>
@@ -79,7 +79,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Per quale monopattino è questa configurazione?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Destinazione del layout:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Destinazione dei dati di «%1$s»:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Questo file di configurazione può essere usato da più di un monopattino. Scegli un monopattino esistente o aggiungine un altro.</string>
+    <string name="backup_owner_choice" volt:src="deece19b3157d087723c77b3e5938e54cf6160d0">Più monopattini possono usare questo file di configurazione del proprietario. Scegli un monopattino esistente o aggiungi un altro monopattino.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Scegli un monopattino…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Aggiungi un altro monopattino</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Aggiungi dal backup</string>
