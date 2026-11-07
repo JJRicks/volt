@@ -9,14 +9,14 @@
     <string name="controls_feature_auto_sensor" volt:src="cb07d62156abcb45a74caa94986b7c241ebf6e48">Feux automatiques</string>
     <string name="controls_feature_traction_control" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Contrôle de traction</string>
     <string name="controls_feature_turn_sound" volt:src="19860ddd145bce9bd14f3e4eb17684670f0d812e">Son des clignotants</string>
-    <string name="controls_feature_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Unités de l’écran de la trottinette</string>
+    <string name="controls_feature_display_units" volt:src="2ff1c881310d89d6b6570ba47432ef99c788d66b">Unités de l’écran de la trottinette</string>
     <string name="controls_feature_range_algorithm" volt:src="5e8878e318a80c02005de3c926acef4dbfb7c600">Estimation d’autonomie</string>
     <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Vitesse de démarrage</string>
-    <string name="controls_feature_speed_limit" volt:src="eae0a786d24497605ec2abc368fb032b5599a2c3">Limite de vitesse personnalisée</string>
+    <string name="controls_feature_speed_limit" volt:src="4790622900ea5816a4b27925c7cad468f98740a6">Limite de vitesse personnalisée</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Vitesse maximale</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Double moteur</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9">Limite de vitesse du mode Drive</string>
-    <string name="controls_feature_charge_limit" volt:src="69ff0b43f5632ac15b553dfeeab26e66e603e019">Limite de recharge</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90">Limite de vitesse du mode de conduite Drive</string>
+    <string name="controls_feature_charge_limit" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Limite de recharge</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Recharge programmée</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Heure de début de recharge</string>
     <string name="controls_feature_lock_expiry" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Durée de verrouillage</string>
@@ -37,7 +37,7 @@
     <string name="controls_feature_light_pattern" volt:src="3239188baa808e18ac1dd53a33e49b824ddbdb78">%1$s : motif</string>
     <string name="controls_feature_light_color" volt:src="b8c5d740f7f6d2100d197f849fac96450d6e85ed">%1$s : couleur</string>
     <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s : couleur Boost</string>
-    <string name="controls_feature_acceleration_about" volt:src="6ff0ecbed4c6617cdf05fd33be56868ab6c7f0e9">Eco/Turbo sur d’autres modèles.</string>
+    <string name="controls_feature_acceleration_about" volt:src="fcf339c861a400488abaf5e72b2ff55f0871d5dd">Eco/Turbo sur d’autres modèles.</string>
     <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Le bouton d’alimentation les met en pause jusqu’au redémarrage.</string>
     <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Seule l’estimation sera modifiée.</string>
     <string name="controls_feature_maximum_speed_about" volt:src="2e9ec9d25e4fbb0fb06e1c25c85ee3a430b9216f">Mode Sport uniquement.</string>
@@ -85,7 +85,7 @@
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Valeur inconnue · impossible de modifier en toute sécurité</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Aucun choix indiqué</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Attendez la fin de la modification en cours</string>
-    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Immobilisez d’abord la trottinette</string>
+    <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Immobilisez d’abord la trottinette</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Mouvement : aucune donnée pour l’instant</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Réglez d’abord le problème à l’origine de l’avertissement de la trottinette</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Déverrouillez d’abord</string>
@@ -107,16 +107,16 @@
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Nécessite une vraie trottinette</string>
     <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Confirmez que la trottinette est immobile</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Aucun test en cours</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Valeur non autorisée par l’application officielle (OEM)</string>
+    <string name="controls_refusal_outside_domain" volt:src="83ccb0307f7518bc4a90026bca28b92ed5084d52">L’application officielle ne propose pas cette valeur</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Désactivée ou 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Désactivée ou 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Indisponible pour le moment</string>
-    <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">L’accès au code PIN est réservé au propriétaire authentifié</string>
-    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">Le code PIN doit contenir quatre chiffres (0 à 9)</string>
+    <string name="controls_refusal_pin_owner" volt:src="483d8ca6599b3a1403f1669291517c391972d529">L’accès au code PIN nécessite une connexion en tant que propriétaire</string>
+    <string name="controls_refusal_pin_digits" volt:src="e05106de1275db3482e73c1d0d1a616bb42333a5">Le code PIN doit contenir quatre chiffres</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">Un code PIN doit être défini avant son activation</string>
-    <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">La modification du déverrouillage par proximité est réservée au propriétaire authentifié</string>
-    <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Associez ce téléphone avant d’activer le déverrouillage par proximité</string>
-    <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Définissez et activez le code PIN du guidon avant d’activer le déverrouillage par proximité</string>
+    <string name="controls_refusal_proximity_owner" volt:src="7a3d9993ad79d48f59e7a95a0a4f7a17e5e561ce">La modification du déverrouillage par proximité nécessite une connexion en tant que propriétaire</string>
+    <string name="controls_refusal_proximity_bond" volt:src="5202b710f3512aed31d470de96e7adb657b33565">Associez ce téléphone avant d’activer le déverrouillage par proximité</string>
+    <string name="controls_refusal_proximity_pin" volt:src="98af0415be393c700e663c6ff4eaeb536b7d9b57">Définissez et activez le code PIN du guidon avant d’activer le déverrouillage par proximité</string>
     <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">L’application officielle demande une confirmation avant cette modification. Volt ne l’a pas testée sur ce modèle.</string>
     <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt n’a pas testé cette modification sur ce modèle.</string>
     <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">L’application officielle affiche une mise en garde pour cette modification. Volt ne l’a pas testée sur ce modèle.</string>
@@ -127,9 +127,10 @@
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Vitesse de démarrage inférieure à 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Au-dessus de 32 km/h : vérifiez la réglementation là où vous roulez. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Le contrôle de traction sera désactivé. Roulez en douceur sur sol mouillé ou meuble jusqu’à ce que vous sachiez comment la trottinette se comporte.</string>
-    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Avec un réglage inférieur à 3 km/h, le moteur peut faire démarrer la trottinette à l’arrêt dès que vous actionnez l’accélérateur.</string>
-    <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">La récupération d’énergie sera désactivée : le moteur ne freinera plus, et vos freins travailleront davantage pour vous arrêter.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_start_speed" volt:src="1dde06a75fcf7f5479f0e10b9ebb4cd9af0c91e8">Une vitesse de démarrage inférieure à 3 km/h permet au moteur d’entraîner la trottinette depuis l’arrêt dès que vous actionnez l’accélérateur.</string>
+    <string name="controls_experimental_start_speed_region" volt:src="d2d497d1972364eef4417e4bf90df4eb7aec3f0c">Valeur inférieure à la plage officielle pour cette région. Après un verrouillage ou un déverrouillage, certaines trottinettes restent sur P au réveil jusqu’à leur redémarrage. Si c’est le cas de la vôtre, définissez 3 km/h.</string>
+    <string name="controls_experimental_energy_recovery" volt:src="7f7b50de012785a2ff6e1bff2a886f3b848c6b80">La récupération d’énergie sera désactivée : vos freins assureront une plus grande part du freinage.</string>
+    <string name="controls_experimental_speed_limit" volt:src="fc6fd13ec7ff4620a356431586574897b470778c">Votre vitesse sera limitée pendant la conduite, sous votre réglage « Vitesse maximale ». « Rétablir » remet votre réglage précédent.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modèle %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Modèle %1$s (non confirmé)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Hautes performances</string>
@@ -163,5 +164,6 @@
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Votre trottinette indique le mode %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Nommés : %1$s</string>
     <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Je ne sais pas</string>
+    <string name="controls_drive_mode_choice_used" volt:src="6b1d21cc93a3d7e6deb5fcbb96d6dfac9acc0ace">%1$s ✓</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

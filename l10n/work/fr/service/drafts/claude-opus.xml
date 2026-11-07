@@ -8,8 +8,9 @@
     <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Attendez la fin du test de la recharge programmée</string>
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">La maintenance des données de l’application est déjà en cours</string>
     <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Attendez que l’enregistrement du téléphone soit sauvegardé</string>
+    <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Attendez la fin de la copie du trajet</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Terminez d’abord l’exportation en cours des enregistrements de recharge</string>
-    <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Attendez la fin de la programmation de la recharge</string>
+    <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Attendez que Volt termine le réglage de la programmation de recharge</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Attendez la fin de la mesure de « Finir la recharge à »</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Attendez la fin du nettoyage de l’historique</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Terminez d’abord la configuration de propriétaire et rétablissez le journal d’activité de NAVEE</string>
@@ -35,14 +36,44 @@
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Chargeur d’origine · chargeur arrêté · en attente de reprise</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Chargeur d’origine · en pause jusqu’au début programmé</string>
     <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Chargeur d’origine · échantillons locaux : %1$s</string>
+    <plurals name="service_charge_stock_samples_count" volt:src="9d16c78dbd36572bab00578db0e0a3551ca03acf">
+        <item quantity="one">Chargeur d’origine · %1$s échantillon local</item>
+        <item quantity="many">Chargeur d’origine · %1$s d’échantillons locaux</item>
+        <item quantity="other">Chargeur d’origine · %1$s échantillons locaux</item>
+    </plurals>
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Chargeur rapide · chargeur arrêté · en attente de reprise</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Chargeur rapide · en pause jusqu’au début programmé</string>
     <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Chargeur rapide · échantillons locaux : %1$s</string>
+    <plurals name="service_charge_fast_samples_count" volt:src="6800ddcf187c635621dce44f3a5619535ae5d60a">
+        <item quantity="one">Chargeur rapide · %1$s échantillon local</item>
+        <item quantity="many">Chargeur rapide · %1$s d’échantillons locaux</item>
+        <item quantity="other">Chargeur rapide · %1$s échantillons locaux</item>
+    </plurals>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Non appliqué tant que le chargeur n’est pas connu · enregistrements conservés : %1$s</string>
+    <plurals name="service_charge_learning_unknown_count" volt:src="a6fbf8526f101a68d48f3c2712760fe256ed14cb">
+        <item quantity="one">Non appliqué tant que le chargeur n’est pas connu · %1$s enregistrement stocké</item>
+        <item quantity="many">Non appliqué tant que le chargeur n’est pas connu · %1$s d’enregistrements stockés</item>
+        <item quantity="other">Non appliqué tant que le chargeur n’est pas connu · %1$s enregistrements stockés</item>
+    </plurals>
     <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">Recharge retenue avec chargeur rapide : %1$s · enregistrements conservés : %2$s</string>
+    <plurals name="service_charge_recordings_stored" volt:src="7d1afdde6652f343523a9dc4d891d80a70cf73f2">
+        <item quantity="one">%1$s enregistrement stocké</item>
+        <item quantity="many">%1$s d’enregistrements stockés</item>
+        <item quantity="other">%1$s enregistrements stockés</item>
+    </plurals>
     <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">Recharges retenues avec chargeur rapide : %1$s · enregistrements conservés : %2$s</string>
+    <plurals name="service_charge_learning_fast_count" volt:src="895a8b5a30809d23bccf65fb7966af79635b1696">
+        <item quantity="one">%1$s recharge qualifiée (chargeur rapide) · %2$s</item>
+        <item quantity="many">%1$s de recharges qualifiées (chargeur rapide) · %2$s</item>
+        <item quantity="other">%1$s recharges qualifiées (chargeur rapide) · %2$s</item>
+    </plurals>
     <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">Recharge retenue avec chargeur d’origine : %1$s · enregistrements conservés : %2$s</string>
     <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">Recharges retenues avec chargeur d’origine : %1$s · enregistrements conservés : %2$s</string>
+    <plurals name="service_charge_learning_stock_count" volt:src="503999cd4b9fd7618f17940c7888894eda44cb2f">
+        <item quantity="one">%1$s recharge qualifiée (chargeur d’origine) · %2$s</item>
+        <item quantity="many">%1$s de recharges qualifiées (chargeur d’origine) · %2$s</item>
+        <item quantity="other">%1$s recharges qualifiées (chargeur d’origine) · %2$s</item>
+    </plurals>
     <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Enregistrements de recharge effacés</string>
     <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">Impossible d’effacer les enregistrements de recharge</string>
     <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">Aucun enregistrement de recharge sauvegardé pour cette trottinette</string>
@@ -63,7 +94,7 @@
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">échec de la connexion</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth désactivé</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">autorisation perdue</string>
-    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">autre trottinette détectée</string>
+    <string name="service_charge_stop_identity_changed" volt:src="797bb568d0e9ea59223f2eeec94d76db7460c586">autre trottinette</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Enregistrement arrêté ; impossible de finaliser le fichier de recharge</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Attendez la détection du chargeur ou sélectionnez un chargeur</string>
     <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">« Finir la recharge à » n’a pas démarré la recharge</string>
@@ -106,7 +137,17 @@
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s seconde avant l’heure de début.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s seconde après l’heure de début.</string>
     <string name="service_test_passed_seconds_before" volt:src="4d0a7e2e8b19afa3560c66ac24c8f4856e7e5325">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s secondes avant l’heure de début.</string>
+    <plurals name="service_test_passed_before_count" volt:src="cbe3c4cf9a15ba3979dff54dd084d36bb12d1828">
+        <item quantity="one">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s seconde avant l’heure de début.</item>
+        <item quantity="many">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s de secondes avant l’heure de début.</item>
+        <item quantity="other">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s secondes avant l’heure de début.</item>
+    </plurals>
     <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s secondes après l’heure de début.</string>
+    <plurals name="service_test_passed_after_count" volt:src="a4537fc2503749b4a58e4633fdc5281cd9dca570">
+        <item quantity="one">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s seconde après l’heure de début.</item>
+        <item quantity="many">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s de secondes après l’heure de début.</item>
+        <item quantity="other">L’horloge et la programmation de la trottinette fonctionnent. La recharge a repris %1$s secondes après l’heure de début.</item>
+    </plurals>
     <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
         <item quantity="one">environ %1$d minute</item>
         <item quantity="many">environ %1$d de minutes</item>
@@ -130,8 +171,20 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Quittez d’abord la simulation</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Finalisation du trajet précédent…</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Trajet sauvegardé automatiquement</string>
+    <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Copie du trajet non enregistrée</string>
+    <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Volt ne peut pas accéder à votre dossier de copie automatique. Ouvrez Volt et choisissez de nouveau le dossier. Vos trajets sont conservés dans Volt.</string>
+    <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Volt n’a pas pu écrire dans votre dossier de copie automatique. Volt réessaiera après votre prochain trajet. Vos trajets sont conservés dans Volt.</string>
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Connexion Bluetooth perdue, trottinette à l’arrêt</string>
     <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Connexion Bluetooth perdue, trottinette à l’arrêt</string>
+    <string name="service_ride_quiet_lost" volt:src="4e91beb92f47ac8e8850aadc386fbe314269da11">Trottinette éteinte ou hors de portée</string>
+    <string name="service_ride_quiet_lost_at" volt:src="458752a56ccec967956520f1e7e7fb3d1bbf6372">Trottinette éteinte ou hors de portée. Fin : %1$s (dernier relevé).</string>
+    <string name="service_ride_quiet_lost_label_at" volt:src="14fea5a72b31cad36cd59e08ac7fd56ca8968c4d">%1$s · Trottinette éteinte ou hors de portée. Fin : %2$s (dernier relevé).</string>
+    <string name="service_ride_phone_bluetooth_off" volt:src="1cc26a9f52c231a705e74ae1b9c9e1a50ecbc99b">Bluetooth du téléphone resté désactivé</string>
+    <string name="service_ride_phone_bluetooth_off_at" volt:src="1f8822cd34c4bc1bf78d319141b1ea138678cba4">Bluetooth du téléphone resté désactivé. Fin : %1$s (dernier relevé).</string>
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:src="33246da082f7b90d3ef4f36414e0451cf6d4c98b">%1$s · Bluetooth du téléphone resté désactivé. Fin : %2$s (dernier relevé).</string>
+    <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Aucun mouvement pendant 10 minutes</string>
+    <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Aucun mouvement pendant 10 minutes. Fin : %1$s (dernier mouvement).</string>
+    <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Aucun mouvement pendant 10 minutes. Fin : %2$s (dernier mouvement).</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Connexion de la trottinette et enregistrement</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Mesure de la recharge pour « Finir la recharge à »</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Test de la recharge programmée</string>

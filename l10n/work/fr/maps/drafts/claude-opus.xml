@@ -2,17 +2,17 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="maps_track_no_fixes" volt:src="c96f7977cd44d70f62166a13431905fd5b605455">Aucun point GPS exploitable enregistré</string>
-    <plurals name="maps_track_fixes" volt:src="a38c4d8085459c95a918745e2adef25b32b5fb46">
+    <plurals name="maps_track_fixes" volt:src="c79110d1e3f0f5c3cd7055067bb27b237368ab1d">
         <item quantity="one">%1$d point GPS</item>
         <item quantity="many">%1$d de points GPS</item>
         <item quantity="other">%1$d points GPS</item>
     </plurals>
-    <plurals name="maps_track_fixes_low_quality" volt:src="2dc86546f80ff6b4627cb91526c191d0dd0f371e">
+    <plurals name="maps_track_fixes_low_quality" volt:src="f717a9b1d0725399e06b0e14c9b10dcba723bbce">
         <item quantity="one">%1$s · %2$d point de faible qualité exclu</item>
         <item quantity="many">%1$s · %2$d de points de faible qualité exclus</item>
         <item quantity="other">%1$s · %2$d points de faible qualité exclus</item>
     </plurals>
-    <plurals name="maps_track_fixes_outliers" volt:src="f3a8030b94fba20b0b5de355eb56f1ecffd59cf1">
+    <plurals name="maps_track_fixes_outliers" volt:src="37dec52013aa06a955a5e45583fa6227b161147d">
         <item quantity="one">%1$s · %2$d valeur d’altitude aberrante exclue</item>
         <item quantity="many">%1$s · %2$d de valeurs d’altitude aberrantes exclues</item>
         <item quantity="other">%1$s · %2$d valeurs d’altitude aberrantes exclues</item>
@@ -39,7 +39,7 @@
     <string name="maps_custom_attribution_link" volt:src="9f1b264e9447d310a87508d82f7980ab7fe77bb0">Lien d’attribution HTTPS</string>
     <string name="maps_custom_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Enregistrer</string>
     <string name="maps_custom_error_url" volt:src="a68d38fa9a1fa27c5684e1d3918a580df10e27fb">Utilisez HTTPS avec {z}, {x} et {y}.</string>
-    <string name="maps_custom_error_attribution" volt:src="6bd3b592a82c228aa9a379463c5f49e8045585ce">Ajoutez l’attribution exigée par le fournisseur.</string>
+    <string name="maps_custom_error_attribution" volt:src="9418b57452287143963cdb3f847081940d9d560a">Ajoutez l’attribution exigée par le fournisseur.</string>
     <string name="maps_custom_error_link" volt:src="561a6f76123adc88efc2b11c1d84eb08edd487e4">Utilisez un lien HTTPS vers la licence ou le droit d’auteur.</string>
     <string name="maps_tiles_blocked" volt:src="d57f3f6b0125c264465bf0f9c9db3a470e02c366">Accès bloqué par le fournisseur de carte</string>
     <string name="maps_tiles_rate_limited" volt:src="247a775a587a7c163f22dd0f99261d5ad06bd42e">Limite de requêtes du fournisseur de carte · réessayez plus tard</string>
