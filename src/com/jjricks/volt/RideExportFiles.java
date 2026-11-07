@@ -209,7 +209,15 @@ final class RideExportFiles {
      */
     static final class Payload {
         final String text; final File file;
-        private Payload(String text, File file) { this.text = text; this.file = file; }
+        /**
+         * A staging folder that holds only this export's file (Everything), or null. Whoever takes the payload calls
+         * discard once the file has been copied, failed or been given up; removeStale catches a save the process lost.
+         */
+        final File owned;
+        private Payload(String text, File file) { this(text, file, null); }
+        private Payload(String text, File file, File owned) { this.text = text; this.file = file; this.owned = owned; }
+        /** Removes the folder this payload owns, with its file. Safe to call more than once, and on any payload. */
+        void discard() { remove(owned); }
         /** The bytes that land in the saved file. */
         byte[] bytes() throws IOException {
             if (text != null) return text.getBytes(StandardCharsets.UTF_8);
@@ -223,8 +231,9 @@ final class RideExportFiles {
      * One format's content. summary is the ride's analysis (null for a phone recording without a scooter journal);
      * track is the loaded phone recording, needed by the route, GPX and combined files. The sensor CSV is RideStore's
      * copy of the journal into cache (as Export CSV made it, ride-&lt;id&gt;.csv), then saved from there.
-     * Everything is written as a stream into cache (ride-&lt;id&gt;-everything.json), with appVersion as its app
-     * version, then saved from there; it can take a moment on a long ride, so callers make it off the main thread.
+     * Everything is written as a stream, with appVersion as its app version, into a new staging folder of its own
+     * (see newStaging), under its saved name; the payload owns that folder, so the caller calls discard once the file
+     * is copied. It can take a moment on a long ride, so callers make it off the main thread.
      */
     static Payload payload(Format format, String rideId, RideStore rides, RideStore.Summary summary,
                            PhoneRideStore phone, PhoneRideStore.Track track, File cacheDir) throws IOException {
@@ -234,10 +243,13 @@ final class RideExportFiles {
                            PhoneRideStore phone, PhoneRideStore.Track track, File cacheDir, String appVersion) throws IOException {
         switch (format) {
             case EVERYTHING_JSON: {
-                File output = new File(cacheDir, "ride-" + rideId + format.suffix);
-                RideExportEverything.write(output, rideId, appVersion, rides.journal(rideId), summary,
-                        phone == null ? null : phone.rawCsv(rideId), phone == null ? null : phone.motionCsv(rideId), track);
-                return new Payload(null, output);
+                File own = newStaging(cacheDir, System.currentTimeMillis());
+                File output = new File(own, name(format, rideId));
+                try {
+                    RideExportEverything.write(output, rideId, appVersion, rides.journal(rideId), summary,
+                            phone == null ? null : phone.rawCsv(rideId), phone == null ? null : phone.motionCsv(rideId), track);
+                } catch (IOException | RuntimeException | Error failure) { remove(own); throw failure; }
+                return new Payload(null, output, own);
             }
             case SENSOR_CSV: {
                 File output = new File(cacheDir, "ride-" + rideId + ".csv"); rides.exportCsv(rideId, output);

@@ -24,6 +24,7 @@ public final class RideExportEverythingTest {
         shapeAndRoundTrip();
         scooterOnlyAndOlderRide();
         choice();
+        lifecycle();
         throwingTextSource();
         oneHour();
         System.out.println("RideExportEverythingTest: " + checks + " checks passed");
@@ -100,6 +101,82 @@ public final class RideExportEverythingTest {
         return RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, version).file;
     }
 
+    // ---- Where the file lives -----------------------------------------------------------------------------------
+
+    /** Staging folders (ride-export-*) in the cache right now. */
+    private static List<File> stagings(File cache) {
+        List<File> out = new ArrayList<>();
+        File[] files = cache.listFiles();
+        if (files != null) for (File x : files) if (RideExportFiles.isStaging(x)) out.add(x);
+        return out;
+    }
+
+    /**
+     * The file holds GPS positions and notes, so it never outlives its save: it is written into a staging folder of
+     * its own that the payload owns, discard removes it, a failed write leaves nothing, and removeStale catches a
+     * save the process lost.
+     */
+    private static void lifecycle() throws IOException {
+        Fixture f = new Fixture();
+        try {
+            String id = combinedRide(f, 1762400000000L, 30, "America/Boise", true);
+            RideStore.Summary s = f.rides.get(id);
+            PhoneRideStore.Track track = f.phone.load(id);
+            RideExportFiles.Payload p = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            File own = p.file.getParentFile();
+            check(p.text == null && p.file.isFile() && RideExportFiles.isStaging(own) && own.getParentFile().equals(f.cache)
+                    && p.owned.equals(own) && Objects.requireNonNull(own.list()).length == 1, "Everything is written into a staging folder of its own");
+            check(p.file.getName().equals(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id)), "Under its saved name");
+            check(!new File(f.cache, "ride-" + id + "-everything.json").exists(), "No fixed per-ride file in the cache");
+            byte[] bytes = p.bytes();
+            p.discard();
+            check(!own.exists() && stagings(f.cache).isEmpty(), "discard removes the file and its folder");
+            p.discard();
+            check(RideExportFiles.payload(RideExportFiles.Format.ANALYSIS_JSON, id, f.rides, s, f.phone, track, f.cache).owned == null
+                    && RideExportFiles.payload(RideExportFiles.Format.SENSOR_CSV, id, f.rides, s, f.phone, track, f.cache).owned == null,
+                    "Other formats own no folder (their buttons save as they always did)");
+
+            // Two Everything saves at once each get their own folder; discarding one leaves the other.
+            RideExportFiles.Payload a = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            RideExportFiles.Payload b = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            check(!a.owned.equals(b.owned), "Two saves, two folders");
+            a.discard();
+            check(!a.owned.exists() && b.file.isFile() && Arrays.equals(Files.readAllBytes(b.file.toPath()), bytes), "Discarding one save leaves the other's file whole");
+            b.discard();
+
+            // Several files: the copy in the shared staging folder stays; Everything's own folder goes.
+            File staging = RideExportFiles.newStaging(f.cache, System.currentTimeMillis());
+            RideExportFiles.Payload c = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            File staged;
+            try { staged = RideExportFiles.stage(staging, RideExportFiles.Format.EVERYTHING_JSON, id, c); } finally { c.discard(); }
+            check(!c.owned.exists() && Arrays.equals(Files.readAllBytes(staged.toPath()), bytes) && stagings(f.cache).equals(Collections.singletonList(staging)),
+                    "Several files: the staged copy stays, Everything's own folder is gone");
+            RideExportFiles.remove(staging);
+
+            // A failed write leaves nothing behind.
+            File journal = f.rides.journal(id);
+            check(journal.setReadable(false), "Make the journal unreadable");
+            try {
+                if (!journal.canRead()) {
+                    boolean threw = false;
+                    try { RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0"); }
+                    catch (IOException expected) { threw = true; }
+                    check(threw && stagings(f.cache).isEmpty(), "A failed write removes its folder");
+                }
+            } finally { journal.setReadable(true); }
+
+            // A save the process lost (killed before discard) is swept by the next export once it is a day old.
+            RideExportFiles.Payload lost = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            RideExportFiles.Payload recent = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            long now = System.currentTimeMillis();
+            check(lost.owned.setLastModified(now - RideExportFiles.STALE_MS - 60000), "Age the lost save");
+            RideExportFiles.Payload next = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
+            check(!lost.owned.exists() && recent.file.isFile() && next.file.isFile(), "The next export sweeps a day-old lost save and keeps recent ones");
+            recent.discard(); next.discard();
+            check(stagings(f.cache).isEmpty(), "Nothing left in the cache");
+        } finally { f.delete(); }
+    }
+
     // ---- Shape and round trip -------------------------------------------------------------------------------------
 
     private static final List<String> TOP = Arrays.asList("format", "formatVersion", "rideId", "app", "timeZone", "scooter", "phone", "clock", "privacy");
@@ -115,7 +192,8 @@ public final class RideExportEverythingTest {
         try {
             String id = combinedRide(f, 1792026000000L, 40, "America/Boise", true);
             File file = export(f, id, "1.13.0");
-            check(file.getName().equals("ride-" + id + "-everything.json") && file.getParentFile().equals(f.cache), "Written into the cache: " + file);
+            check(file.getName().equals(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id)) && RideExportFiles.isStaging(file.getParentFile())
+                    && file.getParentFile().getParentFile().equals(f.cache), "Written into its own staging folder in the cache: " + file);
             check(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id).equals("ride-" + id.substring(0, 8) + "-everything.json")
                     && RideExportFiles.Format.EVERYTHING_JSON.mime.equals("application/json"), "Saved name and type");
             String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);

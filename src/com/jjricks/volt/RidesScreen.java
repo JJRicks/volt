@@ -1713,8 +1713,10 @@ public final class RidesScreen implements AppScreen {
                 File staging = null; boolean missing = false;
                 try {
                     staging = RideExportFiles.newStaging(cache, System.currentTimeMillis());
-                    for (RideExportFiles.Format format : formats)
-                        RideExportFiles.stage(staging, format, id, RideExportFiles.payload(format, id, rides, summary, store, track, cache, version));
+                    for (RideExportFiles.Format format : formats) {
+                        RideExportFiles.Payload payload = RideExportFiles.payload(format, id, rides, summary, store, track, cache, version);
+                        try { RideExportFiles.stage(staging, format, id, payload); } finally { payload.discard(); }
+                    }
                 } catch (IOException | RuntimeException failure) {
                     missing = failure instanceof RideExportFiles.Missing;
                     RideExportFiles.remove(staging); staging = null;
@@ -1743,16 +1745,20 @@ public final class RidesScreen implements AppScreen {
                 catch (RuntimeException failure) { failed = new IOException(failure); }
                 final RideExportFiles.Payload ready = made; final IOException failure = failed;
                 host.activity().runOnUiThread(() -> {
-                    if (host.activity().isDestroyed()) return;
+                    if (host.activity().isDestroyed()) { if (ready != null) ready.discard(); return; }
                     saveSingle(format, id, () -> { if (failure != null) throw failure; return ready; });
                 });
             });
         } catch (java.util.concurrent.RejectedExecutionException screenClosed) { }
     }
-    /** Hands one export to Android's Save dialog: text through saveText, a file through saveFile, as each button always did. */
+    /**
+     * Hands one export to Android's Save dialog: text through saveText, a file through saveFile, as each button always
+     * did. A file the payload owns (Everything) is discarded once the host has copied it, or could not.
+     */
     private void saveOne(RideExportFiles.Format format, String id, RideExportFiles.Payload payload) {
         String name = RideExportFiles.name(format, id);
         if (payload.text != null) host.saveText(name, format.mime, payload.text);
+        else if (payload.owned != null) host.saveFile(name, format.mime, payload.file, payload::discard);
         else host.saveFile(name, format.mime, payload.file);
     }
     /**
