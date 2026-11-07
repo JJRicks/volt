@@ -1,0 +1,4 @@
+{"back":"Charging · %1$s%%","key":"charge_live_title_full","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"0ece157e869c546c01c5f43bf7e89e6b2cec2c1a","target":"In carica · %1$s%%"}
+{"back":"Last reading: %1$s%%","key":"charge_live_title_last_seen","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"07cf423c0ba7146c9313c32555d6061b4e801db1","target":"Ultima lettura: %1$s%%"}
+{"back":"Scheduled charging","key":"charge_live_text_scheduled","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"695a1f5078ebc9b87ca2ff1c9858d49b8ce13821","target":"Ricarica programmata"}
+{"back":"Disconnect","key":"charge_live_action_disconnect","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"de7dcea40755fb26d3681afc559283f26d6ca078","target":"Disconnetti"}

@@ -5,8 +5,8 @@
     <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luci</string>
     <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Impost.</string>
     <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Impost.</string>
-    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistiche in tempo reale</string>
-    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistiche in tempo reale</string>
+    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Statistiche in tempo reale</string>
+    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Telemetria</string>
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Corse</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Corse</string>
     <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Impost. guida</string>
@@ -30,7 +30,7 @@
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Sperim.</string>
     <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Sperimentale</string>
     <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dati e cronologia</string>
-    <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dati e cronologia</string>
+    <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0" volt:attempt="2">Dati/cronologia</string>
     <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e permessi</string>
     <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e permessi</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Ricarica entro</string>

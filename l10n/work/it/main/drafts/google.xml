@@ -233,9 +233,9 @@
     <string name="main_schedule_measure_first" volt:src="d6553813488969b1daeb4c57e601e62b3af319e5">Misura prima</string>
     <string name="main_schedule_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Programma ora</string>
     <string name="main_schedule_setting_schedule" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Impostazione della programmazione in corso…</string>
-    <string name="main_schedule_measuring_title" volt:src="a8d9366cc9def7f060e7b73607076a9924fe1dea">Misurazione di questa ricarica</string>
-    <string name="main_schedule_keep_measuring" volt:src="960104c18e3f0a2695a7a9924fdad92edf62aec2">Continua la misurazione</string>
-    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6">Interrompi la misurazione</string>
+    <string name="main_schedule_measuring_title" volt:src="a8d9366cc9def7f060e7b73607076a9924fe1dea" volt:attempt="2">Misurazione in corso di questa ricarica</string>
+    <string name="main_schedule_keep_measuring" volt:src="960104c18e3f0a2695a7a9924fdad92edf62aec2" volt:attempt="2">Continua la misurazione in corso</string>
+    <string name="main_schedule_stop_measuring" volt:src="328a2e232adb78bb28c48abdf8baa9b87936b9c6" volt:attempt="2">Interrompi la misurazione in corso</string>
     <string name="main_schedule_turn_off_schedule" volt:src="f0c1ab81d1afb51fcfbd4b43e292fc060e215985">Disattiva la programmazione</string>
     <string name="main_schedule_schedule_off" volt:src="f32114cec219414324ae03fc8c2a3357f7150ba4">Programmazione disattivata. La ricarica si avvia adesso se il caricabatterie è collegato.</string>
     <string name="main_schedule_connect_the_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Connetti prima il monopattino</string>
@@ -263,10 +263,10 @@
     <string name="main_schedule_measure_body" volt:src="4aaf91df09b9a18bf845e5b3a2bf1e6b812e3d6e">Volt non ha rilevato l\'inizio di questa ricarica, quindi pianificherebbe per un caricabatterie a freddo, che di solito termina in anticipo. Monitorare il caricabatterie per ca. 10 minuti le consente di pianificare più vicino al tuo orario, sempre con il margine di 20 minuti. Volt rimane connessa e mostra una notifica finché la programmazione non è impostata.</string>
     <string name="main_schedule_measure_body_foreground" volt:src="5673f418330efbba68fc248fcfe4c05a417ddbe4">Volt non ha rilevato l\'inizio di questa ricarica, quindi pianificherebbe per un caricabatterie a freddo, che di solito termina in anticipo. Monitorare il caricabatterie per ca. 10 minuti le consente di pianificare più vicino al tuo orario, sempre con il margine di 20 minuti. Volt rimane connessa, anche in background, e mostra una notifica finché la programmazione non è impostata.</string>
     <string name="main_schedule_measuring_toast" volt:src="a99b6de3f2b3b4caf511025f8b63a33ca8139c74">Misurazione in corso · «Ricarica entro» verrà impostata entro %1$s min</string>
-    <string name="main_schedule_measuring_body" volt:src="2809250f5f424494b1c5d50c5b630054fa3a16cb">«Ricarica entro» verrà impostata automaticamente entro %1$s min. «Pianifica ora» pianifica in base a quanto Volt sa finora. «Interrompi misurazione» lascia «Ricarica entro» disattivata.</string>
+    <string name="main_schedule_measuring_body" volt:src="2809250f5f424494b1c5d50c5b630054fa3a16cb" volt:attempt="2">«Ricarica entro» viene impostata automaticamente entro %1$s min. «Programma ora» pianifica in base a ciò che Volt sa finora. «Interrompi la misurazione in corso» lascia disattivata «Ricarica entro».</string>
     <string name="main_schedule_test_body" volt:src="13292e94bc01b1908f6a12d50a853f8d691f0913">La ricarica dovrebbe riprendere all\'orario %1$s. «Annulla test» disattiva la programmazione e ripristina il tuo «Inizio ricarica».</string>
     <string name="main_schedule_measuring_value" volt:src="d2d17b4ff028a481fef1793f35d6ee88bee67b1c">Misurazione in corso · %1$s min</string>
-    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18">Ferma il monopattino per modificare</string>
+    <string name="main_row_stop_to_change" volt:src="607993afff67f0b356249be3e046f3eb301efe18" volt:attempt="2">Interrompi la marcia per modificare</string>
     <string name="main_row_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Non programmata</string>
     <string name="main_row_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (appresa)</string>
     <string name="main_row_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Monopattino</string>
@@ -401,10 +401,10 @@
     <string name="main_import_too_big" volt:src="2b433aa41ee81ed77194f333fe5c0244b3b8ff3f">I file di configurazione del proprietario devono essere inferiori a 1 MiB.</string>
     <string name="main_import_replace_body" volt:src="945ba4cb3da60388775a84840764f9e06fb787e7">Verrà sostituita la dashboard per %1$s e tutti e 3 gli slot.</string>
     <string name="main_name_imported" volt:src="6eff3139294476aca4c67af9a2602e8a128ea0ac">Monopattino importato</string>
-    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe">«Ricarica entro» è disattivata; non è stato possibile confermare l\'orologio del monopattino</string>
-    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73">La ricarica programmata è disattivata; non è stato possibile confermare l\'orologio del monopattino</string>
-    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25">«Ricarica entro» è disattivata; il ripristino di «Inizio ricarica» non è stato confermato</string>
-    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef">La ricarica programmata è disattivata; il ripristino di «Inizio ricarica» non è stato confermato</string>
+    <string name="main_schedule_off_clock_done_by" volt:src="7b54770240a91cbe465897064f2335b5ae8325fe" volt:attempt="2">«Ricarica entro» è disattivata; l\'orologio del monopattino non è stato confermato</string>
+    <string name="main_schedule_off_clock_scheduled" volt:src="25bb2ac361a2e21dc6d227260d1ce7d8066ffe73" volt:attempt="2">La ricarica programmata è disattivata; l\'orologio del monopattino non è stato confermato</string>
+    <string name="main_schedule_off_start_done_by" volt:src="e77c9a62a1cac36e400ac46f9343a16b9a443d25" volt:attempt="2">«Ricarica entro» è disattivata; il ripristino di «Inizio ricarica» non confermato</string>
+    <string name="main_schedule_off_start_scheduled" volt:src="d10dcb4fd519569328b93ed57210d59353ece5ef" volt:attempt="2">La ricarica programmata è disattivata; il ripristino di «Inizio ricarica» non confermato</string>
     <string name="main_schedule_off_restore_done_by" volt:src="c12d42e46a43a00107ac1ee995db019120af9eea">«Ricarica entro» è disattivata; non è stato possibile ripristinare «Inizio ricarica»: %1$s</string>
     <string name="main_schedule_off_restore_scheduled" volt:src="c97d87ddd7151568bc429e3511dbb60260b81813">La ricarica programmata è disattivata; non è stato possibile ripristinare «Inizio ricarica»: %1$s</string>
     <string name="main_range_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Ho capito</string>

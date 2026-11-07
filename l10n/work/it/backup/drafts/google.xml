@@ -60,7 +60,7 @@
     <string name="backup_open" volt:src="f09532e0a665a896a47df3792a42214ab8057ff2">Apri il backup</string>
     <string name="backup_choose_another" volt:src="76850a8a4a899932c82c308ad26aa02ba88daa78">Scegli un altro file</string>
     <string name="backup_checking_backup" volt:src="708ee633a97c4e8ead1fa469ce6b58df959d5936">Controllo del backup in corso…</string>
-    <string name="backup_wrong_password" volt:src="2de28db853d23f5c28db7092aceb43821abe2315">Password errata o file non valido.</string>
+    <string name="backup_wrong_password" volt:src="2de28db853d23f5c28db7092aceb43821abe2315" volt:attempt="2">Password errata o file danneggiato.</string>
     <string name="backup_file_owner" volt:src="f1694f38a36e5e9fde3d5989183441ba4f966f17">File di configurazione del proprietario · solo accesso al monopattino</string>
     <string name="backup_file_layout" volt:src="5f473f29b3f78de9e0830ae7a31c30f44b663932">File di layout</string>
     <string name="backup_file_rides" volt:src="23588102943ef321f25e17c44389979ba4090f5f">Backup delle corse</string>

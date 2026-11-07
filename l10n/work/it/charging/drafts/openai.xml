@@ -30,7 +30,7 @@
         <item quantity="many">Da %1$d di ricariche precedenti</item>
         <item quantity="other">Da %1$d ricariche precedenti</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Caricabatterie non corrispondente · stima basata sul ritmo attuale</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Discrepanza caricabatterie · stima in base alla velocità di ricarica</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Stima basata sul ritmo attuale</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Il monopattino selezionato è cambiato con la misurazione in corso</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">L\'orologio del telefono è cambiato con la misurazione in corso</string>
@@ -76,10 +76,10 @@
     <string name="charging_schedule_limit_changed" volt:src="a51efe59592d08bd0aec88843bd4cc04680feb96">Il limite di carica è cambiato; controlla la ricarica programmata e riprova</string>
     <string name="charging_schedule_start_changed_estimate" volt:src="27db30fb4a095e46706d219c2044a55c9fbb7a22">L\'inizio ricarica è cambiato, ma serve una nuova stima della ricarica</string>
     <string name="charging_schedule_start_passed" volt:src="35da343e6ca1933a8d187632b5b5673a990a003c">In carica ora — l\'orario di inizio calcolato è già passato</string>
-    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5">L\'orario di inizio è passato, ma l\'annullamento della ricarica programmata non è stato confermato</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5" volt:attempt="2">Orario di inizio trascorso, ma annullamento della ricarica programmata non confermato</string>
     <string name="charging_schedule_limit_saved_no_estimate" volt:src="2cc8005ea08f3fc5617ad39055e67924ba7c253a">Il limite di carica è cambiato; l\'inizio ricarica è salvato senza una stima dell\'orario di fine</string>
     <string name="charging_schedule_battery_saved_no_estimate" volt:src="40f4b80d5c3e565325127cddf97c07970a1d0936">Il livello della batteria è cambiato; l\'inizio ricarica è salvato senza una stima dell\'orario di fine</string>
-    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d">L\'inizio ricarica è cambiato, ma l\'attivazione della ricarica programmata non è stata confermata</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d" volt:attempt="2">Inizio ricarica modificato, ma attivazione della ricarica programmata non confermata</string>
     <string name="charging_schedule_connection_changed" volt:src="25fe61147b8404efb684ce3a9bfda49efc2c7207">La connessione è cambiata; controlla la ricarica programmata sul monopattino prima di riprovare</string>
     <string name="charging_schedule_stopped_before_finish" volt:src="7bc9b4b59362f543f1dda93235a136bf1848b91b">Volt si è fermata prima di terminare; controlla che la ricarica programmata sia disattivata</string>
 </resources>

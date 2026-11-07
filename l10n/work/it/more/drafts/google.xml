@@ -203,8 +203,8 @@
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt non può rileggere questi comandi, quindi non li offre.</string>
     <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">il modello %1$s</string>
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">il tuo modello</string>
-    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">L\'app ufficiale non offre questi comandi per %1$s. Provane uno da fermo; Volt ne eseguirà la rilettura.</string>
-    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">L\'app ufficiale offre questi comandi per %1$s, ma Volt non li ha provati su di esso. Provane uno da fermo; Volt ne eseguirà la rilettura.</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63" volt:attempt="2">L\'app ufficiale non offre questi comandi per %1$s. Prova un comando da fermo; Volt ne esegue la rilettura.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8" volt:attempt="2">L\'app ufficiale offre questi comandi per %1$s, ma Volt non li ha provati qui. Prova un comando da fermo; Volt ne esegue la rilettura.</string>
     <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Nulla da provare per %1$s: l\'app ufficiale offre già i comandi che Volt potrebbe provare. Si trovano in Impostazioni monopattino.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt non invia comandi per il monopattino a questo prodotto.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Nulla da provare sull\'UT5 MAX.</string>
@@ -227,7 +227,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Connetti il monopattino per poterli provare.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">In attesa dello stato aggiornato del monopattino.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Ferma il monopattino per poterli provare.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Ferma il monopattino e interrompi la marcia per provare questi comandi.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">In attesa che il monopattino indichi che è fermo.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Risolvi l\'avvertenza del monopattino per poterli provare.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Sblocca il monopattino per poterli provare.</string>
@@ -278,7 +278,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Scegli un limite</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Scegli un valore</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt invia una sola modifica mentre il monopattino è fermo e sbloccato, ne esegue la rilettura, poi chiede cosa hai notato. Il valore rimane finché non lo riporti indietro. Se la connessione si interrompe, Volt non esegue mai altre scritture da sola: il tentativo attende il tuo controllo.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Controllo che sia invariato…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che non sia cambiato…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Reimpostazione a %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Lettura del valore attuale…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Invio di %1$s e rilettura…</string>
@@ -359,7 +359,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatico</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Originale</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">«Automatico» riconosce i caricabatterie di UT5 MAX dalla potenza in tempo reale. In caso di incertezza, Volt usa la velocità attuale; scegli un caricabatterie per ignorarla.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Auto» riconosce i caricabatterie di UT5 MAX dalla potenza in tempo reale. Se non è certo, Volt usa la velocità attuale; scegli un caricabatterie per ignorarla.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curve di ricarica salvate</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Registra questa ricarica</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi la registrazione della ricarica</string>
@@ -397,15 +397,15 @@
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Le curve di ricarica salvate non vengono applicate finché il caricabatterie non è noto</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">%1$s registrazioni qualificate della ricarica con caricabatterie originale</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">%1$s registrazioni qualificate della ricarica con caricabatterie rapido</string>
-    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">
-        <item quantity="one">%1$s registrazione qualificata della ricarica con caricabatterie originale</item>
-        <item quantity="many">%1$s di registrazioni qualificate della ricarica con caricabatterie originale</item>
-        <item quantity="other">%1$s registrazioni qualificate della ricarica con caricabatterie originale</item>
+    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee" volt:attempt="2">
+        <item quantity="one">%1$s registrazione della ricarica idonea con caricabatterie originale</item>
+        <item quantity="many">%1$s di registrazioni della ricarica idonee con caricabatterie originale</item>
+        <item quantity="other">%1$s registrazioni della ricarica idonee con caricabatterie originale</item>
     </plurals>
-    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e">
-        <item quantity="one">%1$s registrazione qualificata della ricarica con caricabatterie rapido</item>
-        <item quantity="many">%1$s di registrazioni qualificate della ricarica con caricabatterie rapido</item>
-        <item quantity="other">%1$s registrazioni qualificate della ricarica con caricabatterie rapido</item>
+    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e" volt:attempt="2">
+        <item quantity="one">%1$s registrazione della ricarica idonea con caricabatterie rapido</item>
+        <item quantity="many">%1$s di registrazioni della ricarica idonee con caricabatterie rapido</item>
+        <item quantity="other">%1$s registrazioni della ricarica idonee con caricabatterie rapido</item>
     </plurals>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Una ricarica completata può affinare l\'intervallo finale. Gli altri intervalli richiedono due registrazioni corrispondenti. Le stime dipendono dalla copertura e dalla potenza in tempo reale; per UT5 MAX le stime con caricabatterie originale e rapido funzionano anche senza registrazioni.</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Visualizza le informative complete</string>

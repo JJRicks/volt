@@ -5,8 +5,8 @@
     <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luci</string>
     <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Impost.</string>
     <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Impost.</string>
-    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistiche in tempo reale</string>
-    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistiche in tempo reale</string>
+    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Statistiche in tempo reale</string>
+    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Statistiche in tempo reale</string>
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Corse</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Corse</string>
     <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Impost. guida</string>

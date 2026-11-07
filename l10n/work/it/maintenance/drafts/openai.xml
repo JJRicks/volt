@@ -4,10 +4,10 @@
     <string name="maintenance_title" volt:src="8d6f8673c2c45710c2150dde5b1f9ef58b220c5d">Manutenzione</string>
     <string name="maintenance_row" volt:src="f388fd4b8b1fc8a8b205da3c5865f89adb1cb507">Promemoria</string>
     <string name="maintenance_search" volt:src="0d1a5cdb3a82fd3e86c3c2cd58312fc89f0a4529">manutenzione assistenza promemoria controllo pneumatici gomme pressione freni bulloni piegatura pulizia</string>
-    <plurals name="maintenance_row_count" volt:src="b9f3dae724fa44d9b5aa079b728013caf5e458ff">
-        <item quantity="one">%1$d promemoria</item>
-        <item quantity="many">%1$d di promemoria</item>
-        <item quantity="other">%1$d promemoria</item>
+    <plurals name="maintenance_row_count" volt:src="b9f3dae724fa44d9b5aa079b728013caf5e458ff" volt:attempt="2">
+        <item quantity="one">Promemoria: %1$d</item>
+        <item quantity="many">Promemoria: %1$d</item>
+        <item quantity="other">Promemoria: %1$d</item>
     </plurals>
     <plurals name="maintenance_row_due" volt:src="c74afe1f860be56a9885fd23d36973372e45e13e">
         <item quantity="one">%1$d da fare</item>
@@ -18,7 +18,7 @@
     <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Promemoria di manutenzione</string>
     <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Mostra i controlli che hai impostato quando è il momento di farli</string>
     <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">Attiva questa opzione per aggiungere i tuoi promemoria, ad esempio per controllare la pressione degli pneumatici ogni 2 settimane o i freni ogni 300 mi. Quando è il momento, Volt mostra il controllo qui e nella scheda Monopattino.</string>
-    <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1">Questi sono promemoria che imposti tu. Controlla il monopattino ogni volta che qualcosa non ti sembra a posto, indipendentemente da ciò che dice un promemoria.</string>
+    <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1" volt:attempt="2">Questi sono promemoria che imposti tu. Controlla il tuo monopattino ogni volta che qualcosa ti sembra strano, a prescindere da ciò che dice un promemoria.</string>
     <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">Da fare ora</string>
     <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">In arrivo</string>
     <string name="maintenance_none" volt:src="0365bf97e53bf152034de616e65570283ccd3cff">Nessun promemoria per ora.</string>

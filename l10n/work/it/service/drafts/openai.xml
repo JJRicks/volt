@@ -11,7 +11,7 @@
     <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Attendi che la copia della corsa sia stata salvata</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Termina prima l\'esportazione della ricarica in corso</string>
     <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Attendi che Volt finisca di impostare la ricarica programmata</string>
-    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Attendi che «Ricarica entro» termini la misurazione</string>
+    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435" volt:attempt="2">Attendi che termini la misurazione in corso per «Ricarica entro»</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Attendi che la pulizia della cronologia termini</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Termina prima la configurazione del proprietario e ripristina il registro attività di NAVEE</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Termina prima l\'esportazione in corso</string>
@@ -165,7 +165,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt non ha potuto confermare che la ricarica programmata sia disattivata. Disattiva la ricarica programmata per permettere alla ricarica di continuare."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Avvisi batteria</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Avvisi di livello di carica, batteria piena e batteria scarica che attivi in Monopattino › Batteria</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Avvisi della batteria per livello di carica, carica completa e batteria scarica, che attivi in «Monopattino › Batteria»</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Interrompi</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Interrompi la registrazione della ricarica prima di iniziare una corsa</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Esci prima dalla simulazione</string>
@@ -186,7 +186,7 @@
     <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Nessun movimento per 10 minuti. Corsa terminata. Ultimo movimento: %1$s.</string>
     <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Nessun movimento per 10 minuti. Corsa terminata. Ultimo movimento: %2$s.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Connessione e registrazione del monopattino</string>
-    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Misurazione della carica in corso per «Ricarica entro»</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Misurazione in corso della carica per «Ricarica entro»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Test della ricarica programmata in corso</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Registrazione della ricarica · riconnessione…</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Registrazione della ricarica in corso</string>

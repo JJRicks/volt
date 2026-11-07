@@ -203,8 +203,8 @@
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt non può rileggere questi valori, quindi non offre questi comandi.</string>
     <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">il modello %1$s</string>
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">il tuo modello</string>
-    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">L\'app ufficiale non offre questi comandi per %1$s. Provane uno a monopattino fermo; Volt ne rilegge il valore.</string>
-    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">L\'app ufficiale offre questi comandi per %1$s, ma Volt non li ha provati su questo modello. Provane uno a monopattino fermo; Volt ne rilegge il valore.</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63" volt:attempt="2">L\'app ufficiale non offre questi comandi per %1$s. Prova un comando da fermo; Volt ne rilegge l\'impostazione.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8" volt:attempt="2">L\'app ufficiale offre questi comandi per %1$s, ma Volt non li ha provati su quel modello. Prova un comando da fermo; Volt ne rilegge l\'impostazione.</string>
     <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Niente da provare per %1$s: l\'app ufficiale offre già i comandi che Volt potrebbe provare. Si trovano in «Impostazioni monopattino».</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt non invia comandi per monopattini a questo prodotto.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Niente da provare su UT5 MAX.</string>
@@ -227,7 +227,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Connetti il monopattino per provare questi comandi.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">In attesa di uno stato aggiornato del monopattino.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Ferma il monopattino per provare questi comandi.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Ferma il monopattino per provare questi comandi.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">In attesa che il monopattino indichi di essere fermo.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Risolvi l\'avvertenza del monopattino per provare questi comandi.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Sblocca il monopattino per provare questi comandi.</string>
@@ -359,7 +359,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatico</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Originale</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">«Automatico» riconosce i caricabatterie UT5 MAX dalla potenza in tempo reale. In caso di incertezza, Volt usa la velocità di ricarica attuale; scegli un caricabatterie per sostituire la scelta automatica.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Auto» riconosce i caricabatterie UT5 MAX dalla potenza rilevata in tempo reale. Se il riconoscimento non è certo, Volt usa la velocità di ricarica attuale; scegli un caricabatterie per sostituire la scelta automatica.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curve di ricarica salvate</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Registra questa ricarica</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi la registrazione della ricarica</string>

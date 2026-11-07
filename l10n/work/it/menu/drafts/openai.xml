@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
     <string name="menu_edit" volt:src="2aea7f021b41e67566c952e90b87bb6b63d8bad0">Modifica il menu</string>
     <string name="menu_finish" volt:src="bcc9d65c4a3abc0cf2d209606f4917c80efbf64e">Termina la modifica del menu</string>
-    <string name="menu_add_back" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600">Aggiungi di nuovo</string>
+    <string name="menu_add_back" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600" volt:attempt="2">Riaggiungi</string>
     <string name="menu_add_back_short" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Aggiungi</string>
     <plurals name="menu_add_back_description" volt:src="400ad69c8a2f2e26c4a3cd5e85f4ffc996f570fd">
         <item quantity="one">Aggiungi di nuovo, %1$d elemento nascosto</item>

@@ -12,3 +12,5 @@
 {"calls":1,"chunk":0,"draft":"google","keys":40,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":40,"stage":"draft","when":"2026-11-07T05:16:31Z"}
 {"chunk":1,"draft":"google","keys":27,"model":"gemini-3.8-flash","provider":"google","stage":"api-call","step":"draft","usage":{"candidatesTokenCount":535,"promptTokenCount":18309,"thoughtsTokenCount":3078,"totalTokenCount":21922},"when":"2026-11-07T05:16:55Z"}
 {"calls":1,"chunk":1,"draft":"google","keys":27,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":27,"stage":"draft","when":"2026-11-07T05:16:55Z"}
+{"chunk":0,"keys":2,"model":"gpt-6.1-sol","provider":"openai","stage":"api-call","step":"backtranslate","usage":{"input_tokens":166,"input_tokens_details.cache_write_tokens":0,"input_tokens_details.cached_tokens":0,"output_tokens":35,"output_tokens_details.reasoning_tokens":0,"total_tokens":201},"when":"2026-11-07T05:47:44Z"}
+{"calls":1,"keys":2,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":2,"stage":"backtranslate","when":"2026-11-07T05:47:44Z"}

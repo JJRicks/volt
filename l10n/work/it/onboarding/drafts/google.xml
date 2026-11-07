@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Connetti il telefono con un cavo dati USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Seleziona il telefono in Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Approva il debug USB su questo telefono</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lascia deselezionato **Consenti sempre da questo computer**</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Lascia **Consenti sempre da questo computer** non selezionato</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Il sito web si è connesso</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Il telefono non compare nell\'elenco</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Connessione in Chrome</string>
@@ -139,7 +139,7 @@
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Accesso a NAVEE eseguito, monopattino vicino\n•  Altre app per monopattini chiuse\n•  Interrotto prima? Completa prima la pulizia nello stesso browser"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">La tua configurazione del proprietario</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importa il file del proprietario</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Scegli navee-owner-setup.json. Verrà ripristinato solo l\'accesso al monopattino, non le corse o altri dati dell\'app.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Scegli navee-owner-setup.json. Questo ripristina solo l\'accesso come proprietario al monopattino, non le corse o altri dati dell\'app.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Caricamento del profilo del proprietario…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Nessun file ancora selezionato</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Non è un file del proprietario.</string>

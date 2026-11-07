@@ -37,7 +37,7 @@
     <string name="ui_reorder_move_up" volt:src="a2bcff45a636ff3c848025f5f174f794559b0c2d">Sposta in alto</string>
     <string name="ui_reorder_move_down" volt:src="9c5e03a6e3d8702646d6007439d4fef41f53a1ec">Sposta in basso</string>
     <string name="ui_reorder_moved" volt:src="026112d1ba878469be474b341e07b6f34e59cf5c">Posizione di %1$s: %2$s di %3$s</string>
-    <string name="ui_live_stats_title" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistiche in tempo reale</string>
+    <string name="ui_live_stats_title" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Statistiche in tempo reale</string>
     <string name="ui_live_stats_connected" volt:src="df97b9a2493761c96f06724818610d0d0cd4bf5b">Statistiche in tempo reale, connesso</string>
     <string name="ui_live_stats_disconnected" volt:src="396c65d163c73e483190d3d27deeda31569fc255">Statistiche in tempo reale, non connesso</string>
     <string name="ui_stats_window_description" volt:src="9071108354cdd42f773487c913746bf8503a4727">Intervallo del grafico: %1$s. Scegli l\'intervallo</string>

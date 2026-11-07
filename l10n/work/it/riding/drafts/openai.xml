@@ -44,13 +44,13 @@
     <string name="riding_label_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteria</string>
     <string name="riding_label_trip" volt:src="e6690f1fdb91549124869903ea8609d008969ca7">Parziale</string>
     <string name="riding_label_ride_distance" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Corsa</string>
-    <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b">Durata tragitto</string>
+    <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b" volt:attempt="2">Tempo</string>
     <string name="riding_label_ride_time_short" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Tempo</string>
-    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Registrazione</string>
+    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28" volt:attempt="2">Registrazione</string>
     <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">Rec.</string>
     <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Vel. media</string>
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Media</string>
-    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Vel. di punta</string>
+    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3" volt:attempt="2">Vel. di punta</string>
     <string name="riding_label_max_speed_short" volt:src="7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d">Punta</string>
     <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df">Efficienza</string>
     <string name="riding_unit_wh_per" volt:src="0e85b741bc4a3623a94385147993516b603c8e43">Wh/%1$s</string>
@@ -60,7 +60,7 @@
     <string name="riding_label_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Corrente</string>
     <string name="riding_label_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Temp. batteria</string>
     <string name="riding_label_battery_temperature_short" volt:src="976db2ddc8fd8c21babba00194d5409f2d9e132f">Temp.</string>
-    <string name="riding_label_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Modalità di guida</string>
+    <string name="riding_label_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d" volt:attempt="2">Modalità</string>
     <string name="riding_label_drive_mode_short" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Modalità</string>
     <string name="riding_label_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Orologio</string>
     <string name="riding_label_odometer" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">Odometro</string>

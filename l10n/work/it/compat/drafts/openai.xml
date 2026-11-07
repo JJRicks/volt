@@ -51,8 +51,8 @@
     <string name="compat_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Salta</string>
     <string name="compat_kept_set_back" volt:src="3448d6b18de35aaa38b3d8fbb3eb1733c184fa3f">Valore mantenuto · «Riporta indietro» è in «Comandi sperimentali»</string>
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Valore mantenuto</string>
-    <string name="compat_restoration_confirmed" volt:src="1874a211c29b676c888be42c10d8c87d8db07a80">Ritorno al valore precedente confermato</string>
-    <string name="compat_restoration_outstanding" volt:src="93f7b8511706d9a420555e736b3a3a181daaf91b">Ritorno al valore precedente non confermato · controlla sotto</string>
+    <string name="compat_restoration_confirmed" volt:src="1874a211c29b676c888be42c10d8c87d8db07a80" volt:attempt="2">Valore riportato indietro: confermato</string>
+    <string name="compat_restoration_outstanding" volt:src="93f7b8511706d9a420555e736b3a3a181daaf91b" volt:attempt="2">Non confermato che il valore sia stato riportato indietro · controlla sotto</string>
     <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Tentativo non terminato · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Test non terminato · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Prima del tentativo</string>
@@ -202,7 +202,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Lettura supportata</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Rifiutato, codice %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Ricevuto dal monopattino, non confermato</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Rilettura invariata, valore %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Rilettura non cambiata, valore %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Rilettura diversa, valore %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Impostazione confermata</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Effetto osservato</string>

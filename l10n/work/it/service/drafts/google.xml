@@ -11,7 +11,7 @@
     <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Attendi il salvataggio della copia della corsa</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Prima termina l\'esportazione della ricarica in corso</string>
     <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Attendi che Volt termini l\'impostazione della ricarica programmata</string>
-    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Attendi il termine della misurazione di «Ricarica entro»</string>
+    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435" volt:attempt="2">Attendi che «Ricarica entro» termini la misurazione in corso</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Attendi il completamento della pulizia della cronologia</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Prima completa la configurazione del proprietario e ripristina il registro attività di NAVEE</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Prima termina l\'esportazione in corso</string>
@@ -112,8 +112,8 @@
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">«Ricarica entro» è disattivata.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. «Ricarica entro» è disattivata.</string>
-    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Autorizzazione Bluetooth rimossa durante la misurazione</string>
-    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt si è chiusa durante la misurazione. «Ricarica entro» è disattivata.</string>
+    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696" volt:attempt="2">L\'autorizzazione Bluetooth è stata rimossa durante la misurazione in corso</string>
+    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228" volt:attempt="2">Volt si è chiusa durante la misurazione in corso. «Ricarica entro» è disattivata.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">«Ricarica entro» è impostata. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">«Ricarica entro» non è stata impostata. %1$s</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">«Ricarica entro» è impostata</string>
@@ -159,13 +159,13 @@
     <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">La ricarica era ancora sospesa 5 minuti dopo l\'orario di avvio. L\'orologio del monopattino potrebbe essere indietro di più di 5 minuti oppure la programmazione non si è sbloccata. Se il caricabatterie era scollegato, ripeti il test.%1$s</string>
     <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt ha impostato l\'orologio del monopattino subito prima di questo test, quindi il monopattino potrebbe non mantenere l\'orario fornito. Fino a quando il problema non sarà risolto, una presa smart è un timer più sicuro. Segnala un problema con la diagnostica per consentirci di verificare."</string>
     <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">La batteria ha raggiunto il limite di carica durante il test, quindi non è stato possibile determinarlo. Ripeti il test a un livello ben al di sotto del limite.</string>
-    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Il test è stato interrotto. Controlla che la ricarica sia ripresa. In caso contrario, disattiva la ricarica programmata.</string>
+    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33" volt:attempt="2">Il test è stato interrotto. Verifica che la ricarica sia ripresa. Se non è ripresa, disattiva la ricarica programmata.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Non è stato possibile avviare il test.</string>
     <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Non è stato possibile avviare il test: %1$s.</string>
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt non ha potuto confermare la disattivazione della programmazione. Disattiva la ricarica programmata affinché la ricarica prosegua."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Avvisi batteria</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Avvisi per livello di carica, batteria carica e scarica che attivi in Monopattino › Batteria</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Avvisi della batteria per livello di carica, carica completa e batteria scarica che attivi in Monopattino › Batteria</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Interrompi</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Interrompi la registrazione della ricarica prima di iniziare una corsa</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Esci prima dalla simulazione</string>
@@ -186,7 +186,7 @@
     <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Nessun movimento per 10 minuti. Orario di fine: %1$s, ultimo movimento.</string>
     <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Nessun movimento per 10 minuti. Orario di fine: %2$s, ultimo movimento.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Connessione e registrazione monopattino</string>
-    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Misurazione della ricarica per «Ricarica entro»</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Misurazione in corso della ricarica per «Ricarica entro»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Test della ricarica programmata in corso</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Registrazione della ricarica · riconnessione in corso</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Registrazione della ricarica in corso</string>

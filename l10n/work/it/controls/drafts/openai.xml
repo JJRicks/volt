@@ -85,7 +85,7 @@
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Valore sconosciuto · non si può modificare in sicurezza</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Nessuna opzione indicata dal monopattino</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Attendi la modifica in corso</string>
-    <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Prima ferma il monopattino</string>
+    <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244" volt:attempt="2">Prima ferma il monopattino</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Nessun dato sul movimento per ora</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Risolvi prima l\'avvertenza del monopattino</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Sblocca prima il monopattino</string>
@@ -123,7 +123,7 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Vuoi disattivare il controllo della trazione? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Vuoi disattivare la modalità batteria scarica? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Vuoi passare al motore singolo? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Vuoi disattivare il recupero di energia? Il monopattino non frenerà più con il motore e i freni lavoreranno di più. %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Vuoi che il recupero di energia sia disattivato? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Velocità di avvio inferiore a 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Oltre 32 km/h: controlla le norme valide dove guidi. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Il controllo della trazione verrà disattivato. Guida con cautela su fondi bagnati o sconnessi finché non sai come si comporta il monopattino.</string>
