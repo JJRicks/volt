@@ -9,9 +9,10 @@ import java.util.*;
  * content, which formats a ride offers, the remembered choice, and the staging folder a several-file export
  * writes before Android's folder picker answers. Pure (no Android types), so the host tests run it.
  *
- * Every file is byte for byte what the separate Export CSV, Export JSON and Export phone data buttons wrote:
- * RideStore.exportCsv's copy of the sensor journal, Summary.toJson, Track.toCsv, toGpx, the phone's raw
- * journal and motion files as they are, and RideAutoExport.combinedJson. Files, names and stored values are
+ * Every file but Everything (JSON) is byte for byte what the separate Export CSV, Export JSON and Export phone data
+ * buttons wrote: RideStore.exportCsv's copy of the sensor journal, Summary.toJson, Track.toCsv, toGpx, the phone's
+ * raw journal and motion files as they are, and RideAutoExport.combinedJson. Everything (JSON) is
+ * RideExportEverything's one file with all of those recordings (docs/ride-export-everything.md). Files, names and stored values are
  * English and locale-independent; nothing here reads the catalog (RideExportFilesTest proves it under a
  * throwing text source). Automatic ride copies (RideAutoExport) keep their own path and settings.
  */
@@ -29,8 +30,16 @@ final class RideExportFiles {
     /** A staging folder older than this was left by a pick that never answered (the process died). */
     static final long STALE_MS = 24L * 60 * 60 * 1000;
 
-    /** One export, in the order the sheet lists them: the scooter's two files first, then the phone's five. */
+    /**
+     * Until the sheet has Everything (JSON)'s label, it stays off the sheet and out of the default and the remembered
+     * choice; every other format behaves as before. The catalog change that labels it sets this to true.
+     */
+    static final boolean EVERYTHING_ON_SHEET = false;
+
+    /** One export, in the order the sheet lists them: Everything first, then the scooter's two files, then the phone's five. */
     enum Format {
+        /** All of the ride's recordings in one JSON file (RideExportEverything). Offered whenever the ride is. */
+        EVERYTHING_JSON("everything_json", "-everything.json", "application/json", false),
         /** Ride details, Export CSV: the scooter sensor journal as it is. */
         SENSOR_CSV("sensor_csv", "-sensors.csv", "text/csv", false),
         /** Ride details, Export JSON: the ride's analysis. */
@@ -52,6 +61,8 @@ final class RideExportFiles {
         /** True for the five that come from the phone's recording. */
         final boolean phone;
         Format(String id, String suffix, String mime, boolean phone) { this.id = id; this.suffix = suffix; this.mime = mime; this.phone = phone; }
+        /** The sheet's group: 0 for Everything on its own, 1 for the scooter's files, 2 for the phone's. */
+        int section() { return this == EVERYTHING_JSON ? 0 : phone ? 2 : 1; }
         /** The stored id read back, or null for anything unknown. */
         static Format of(String id) {
             for (Format f : values()) if (f.id.equals(id)) return f;
@@ -101,6 +112,8 @@ final class RideExportFiles {
 
     /** Whether format can be exported for this ride, and why not. phone is null for a ride Volt has no phone files for. */
     static Unavailable why(Format format, Phone phone) {
+        // Everything holds the phone files when there are any, so it waits while this ride's are still being written.
+        if (format == Format.EVERYTHING_JSON) return phone != null && phone.recorded() && phone.saving ? Unavailable.SAVING : Unavailable.NONE;
         if (!format.phone) return Unavailable.NONE;
         if (phone == null || !phone.recorded()) return Unavailable.NO_PHONE;
         if (phone.saving) return Unavailable.SAVING;
@@ -117,23 +130,46 @@ final class RideExportFiles {
     /** The formats the sheet lists for this ride (offered or disabled with a reason), in order; hidden ones are left out. */
     static List<Format> listed(Phone phone) {
         List<Format> out = new ArrayList<>();
-        for (Format f : Format.values()) if (why(f, phone) != Unavailable.NO_PHONE) out.add(f);
+        for (Format f : Format.values()) if (why(f, phone) != Unavailable.NO_PHONE && (f != Format.EVERYTHING_JSON || EVERYTHING_ON_SHEET)) out.add(f);
         return out;
     }
 
-    /** Before anything is remembered: the two files ride details always offered, Export CSV and Export JSON. */
-    static final Set<Format> DEFAULT = Collections.unmodifiableSet(EnumSet.of(Format.SENSOR_CSV, Format.ANALYSIS_JSON));
+    /** Before anything is remembered: DEFAULT_EVERYTHING once the sheet lists Everything, else DEFAULT_FILES. */
+    static final Set<Format> DEFAULT_EVERYTHING = Collections.unmodifiableSet(EnumSet.of(Format.EVERYTHING_JSON));
+    /** The two files ride details always offered, Export CSV and Export JSON. */
+    static final Set<Format> DEFAULT_FILES = Collections.unmodifiableSet(EnumSet.of(Format.SENSOR_CSV, Format.ANALYSIS_JSON));
+    static final Set<Format> DEFAULT = defaults(EVERYTHING_ON_SHEET);
+    static Set<Format> defaults(boolean everything) { return everything ? DEFAULT_EVERYTHING : DEFAULT_FILES; }
+    /**
+     * Stored with a choice that leaves Everything unchecked, by a Volt whose sheet lists it. A choice with neither this
+     * nor everything_json was stored before Everything existed, so Everything is added to it once; the next export
+     * stores one or the other. Never a format id, so an older Volt reading it back drops it.
+     */
+    static final String EVERYTHING_OFF = "everything_json_off";
 
-    /** The remembered choice; absent is DEFAULT, unknown ids are dropped. An empty stored value stays empty. */
-    static Set<Format> parse(String stored) {
-        if (stored == null) return EnumSet.copyOf(DEFAULT);
+    /** The remembered choice; absent is DEFAULT, unknown ids are dropped. See parse(stored, everything). */
+    static Set<Format> parse(String stored) { return parse(stored, EVERYTHING_ON_SHEET); }
+    /**
+     * The remembered choice, read by a sheet that does (everything) or does not list Everything. Absent is the
+     * default. Without everything, an empty stored value stays empty and Everything is never in it. With everything,
+     * a choice from before Everything existed (no everything_json and no EVERYTHING_OFF) gains it, keeping its other
+     * boxes; an explicit choice is read as it is.
+     */
+    static Set<Format> parse(String stored, boolean everything) {
+        if (stored == null) return EnumSet.copyOf(defaults(everything));
         Set<Format> out = EnumSet.noneOf(Format.class);
-        for (String id : stored.split(",")) { Format f = Format.of(id); if (f != null) out.add(f); }
+        boolean off = false;
+        for (String id : stored.split(",")) { Format f = Format.of(id); if (f != null) out.add(f); off |= EVERYTHING_OFF.equals(id); }
+        if (!everything) out.remove(Format.EVERYTHING_JSON);
+        else if (!off) out.add(Format.EVERYTHING_JSON);
         return out;
     }
-    static String format(Set<Format> chosen) {
+    static String format(Set<Format> chosen) { return format(chosen, EVERYTHING_ON_SHEET); }
+    /** Format ids in sheet order; a sheet that lists Everything adds EVERYTHING_OFF when it was left unchecked. */
+    static String format(Set<Format> chosen, boolean everything) {
         StringBuilder out = new StringBuilder();
-        for (Format f : Format.values()) if (chosen.contains(f)) { if (out.length() > 0) out.append(','); out.append(f.id); }
+        for (Format f : Format.values()) if (chosen.contains(f) && (everything || f != Format.EVERYTHING_JSON)) { if (out.length() > 0) out.append(','); out.append(f.id); }
+        if (everything && !chosen.contains(Format.EVERYTHING_JSON)) { if (out.length() > 0) out.append(','); out.append(EVERYTHING_OFF); }
         return out.toString();
     }
     /** The boxes checked when the sheet opens: the remembered formats this ride offers. */
@@ -187,10 +223,22 @@ final class RideExportFiles {
      * One format's content. summary is the ride's analysis (null for a phone recording without a scooter journal);
      * track is the loaded phone recording, needed by the route, GPX and combined files. The sensor CSV is RideStore's
      * copy of the journal into cache (as Export CSV made it, ride-&lt;id&gt;.csv), then saved from there.
+     * Everything is written as a stream into cache (ride-&lt;id&gt;-everything.json), with appVersion as its app
+     * version, then saved from there; it can take a moment on a long ride, so callers make it off the main thread.
      */
     static Payload payload(Format format, String rideId, RideStore rides, RideStore.Summary summary,
                            PhoneRideStore phone, PhoneRideStore.Track track, File cacheDir) throws IOException {
+        return payload(format, rideId, rides, summary, phone, track, cacheDir, null);
+    }
+    static Payload payload(Format format, String rideId, RideStore rides, RideStore.Summary summary,
+                           PhoneRideStore phone, PhoneRideStore.Track track, File cacheDir, String appVersion) throws IOException {
         switch (format) {
+            case EVERYTHING_JSON: {
+                File output = new File(cacheDir, "ride-" + rideId + format.suffix);
+                RideExportEverything.write(output, rideId, appVersion, rides.journal(rideId), summary,
+                        phone == null ? null : phone.rawCsv(rideId), phone == null ? null : phone.motionCsv(rideId), track);
+                return new Payload(null, output);
+            }
             case SENSOR_CSV: {
                 File output = new File(cacheDir, "ride-" + rideId + ".csv"); rides.exportCsv(rideId, output);
                 return new Payload(null, output);

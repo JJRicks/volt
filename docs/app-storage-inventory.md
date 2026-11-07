@@ -125,7 +125,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 
 | Path | Class | Profile | Holds / notes |
 |---|---|---|---|
-| `files/rides/<uuid>.csv` | Durable | START record's profile field | Raw scooter ride journal: samples, names, notes, clocks, gaps, current-direction events. RideStore. |
+| `files/rides/<uuid>.csv` | Durable | START record's profile field | Raw scooter ride journal: samples, names, notes, clocks, the time zone at START (newer rides), gaps, current-direction events. RideStore. |
 | `files/rides/<uuid>.csv.repair` | Pending | — | Temporary tail repair. Skipped by backups. |
 | `files/rides/<uuid>.csv.mapping` | Pending | — | Temporary profile reassignment; normally only in restore staging. |
 | `files/phone-rides/<uuid>-phone.csv` | Durable | ride's | Phone GPS/pressure/telemetry sidecar. PhoneRideStore. |
@@ -145,6 +145,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `cache/map-tiles/<sha256>/…` | Cache | — | Downloaded basemap tiles, `.meta`, `.part`, `network.meta`. MapTiles. |
 | `cache/charge-exports/charges-*.json` | Cache | one scooter | Developer charge export; removed after 24 h. |
 | `cache/ride-<uuid>.csv` | Cache | — | Ride sensor CSV export. |
+| `cache/ride-<uuid>-everything.json` | Cache | — | Ride Everything (JSON) export, made before it is saved ([format](ride-export-everything.md)). Replaced by the next export of the same ride. |
 | `cache/volt-encrypted-*.voltbackup`, `cache/volt-rides-*.voltrides` | Cache | — | Prepared backup waiting for a destination (`.voltrides` only from older versions); orphans removed at startup (BackupExportCache). |
 | `/data/local/tmp/volt-owner-capture.lock/` | outside app storage | — | Shell-owned Shizuku capture lock. Not app data; never touched by backups. |
 
