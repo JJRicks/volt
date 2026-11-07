@@ -80,7 +80,7 @@
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 hexadecimala tecken krävs</string>
     <string name="owner_setup_no_identity" volt:src="b147e42ee8379471878498ae4d3a9f30b197e989">Ingen ägarnyckel i filen</string>
     <string name="owner_setup_unsupported_role" volt:src="caf895d1a13d5c149e906c58aadd3ec988ed1a12">Rollen stöds inte</string>
-    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207">Den här filen innehåller motstridiga ägarnycklar eller roller. Hämta en NAVEE-kontoanslutning eller importera en privat säkerhetskopia av konfigurationen.</string>
+    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207" volt:attempt="2">Den här filen innehåller motstridiga ägarnycklar eller roller (ägare eller inbjuden förare). Hämta en anslutning till ett NAVEE-konto eller importera en privat säkerhetskopia av konfigurationen.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Det gick inte att importera. Välj fil igen.</string>
     <string name="owner_setup_enter_identity" volt:src="61ea1a66e824f413d1f78a1dd63978f6767b84a6">Ange en ägarnyckel med 12 tecken.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Elsparkcykel</string>

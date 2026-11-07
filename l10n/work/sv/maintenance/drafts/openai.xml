@@ -15,7 +15,7 @@
     <string name="maintenance_tab_due" volt:src="6f3c512051b6d2f7fad34779ceb250f66eeea77b">%1$s, dags för underhåll</string>
     <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Underhållspåminnelser</string>
     <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Visa kontroller du ställt in när det är dags</string>
-    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">Slå på detta om du vill lägga till egna påminnelser, till exempel om att kontrollera däcktrycket varannan vecka eller bromsarna var 300:e mi. Volt visar en kontroll här och på fliken Elsparkcykel när det är dags.</string>
+    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59" volt:attempt="2">Slå på det här om du vill lägga till egna påminnelser, till exempel om att kontrollera däcktrycket med 2 veckors mellanrum eller bromsarna med 300 mi mellanrum. Volt visar en kontroll här och på fliken Elsparkcykel när det är dags.</string>
     <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1">Det här är påminnelser som du själv ställer in. Kontrollera din elsparkcykel när något känns fel, oavsett vad en påminnelse säger.</string>
     <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">Dags nu</string>
     <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">Kommande</string>

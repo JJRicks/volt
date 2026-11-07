@@ -68,7 +68,7 @@
     <string name="backup_file_full_from" volt:src="d032e126fc06e0647477e077c8ef000b7345ebe9">Fullständig säkerhetskopia från %1$s</string>
     <string name="backup_file_selected" volt:src="7116f9c4fdc74e6f2777716770403ea1642c1ff2">Säkerhetskopia med vald data</string>
     <string name="backup_file_selected_from" volt:src="11fb85d0567cba743ca7411ea81ed5c24f078b5f">Säkerhetskopia med vald data från %1$s</string>
-    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Den här filen innehåller varken turer, laddningar, historik, översikter eller appinställningar. Den återställer bara åtkomst till elsparkcykeln. Din befintliga data blir kvar på den här telefonen.</string>
+    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653" volt:attempt="2">Den här filen har inga turer, laddningar, historik, översikter eller appinställningar. Den återställer bara åtkomst till elsparkcykeln. Din befintliga data stannar kvar på den här telefonen.</string>
     <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Bara kategorierna nedan finns i den här filen. Övrig appdata blir kvar på den här telefonen.</string>
     <string name="backup_replace_all" volt:src="5397909cf23d8ef5468811e7091c69fbf3b9d6a2">Ersätt allt på den här telefonen</string>
     <string name="backup_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Nästa</string>

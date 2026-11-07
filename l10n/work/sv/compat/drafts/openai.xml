@@ -38,12 +38,12 @@
         <item quantity="one">%1$d ej slutfört test på en annan elsparkcykel. Välj den för att granska testet.</item>
         <item quantity="other">%1$d ej slutförda tester på andra elsparkcyklar. Välj en elsparkcykel för att granska testet.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testhistoriken är inte tillgänglig. Ett tidigare test kanske inte har ställts tillbaka. Kontrollera elsparkcykelns inställningar.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a" volt:attempt="2">Testuppgifterna är inte tillgängliga. Ändringen från ett tidigare test kanske inte ställdes tillbaka. Kontrollera elsparkcykelns inställningar.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Försök · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser av det aktuella värdet…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Ändrar till %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Kontrollerar att värdet är oförändrat…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att värdet inte har ändrats…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
@@ -51,7 +51,7 @@
     <string name="compat_kept_set_back" volt:src="3448d6b18de35aaa38b3d8fbb3eb1733c184fa3f">Behållet · ”Ställ tillbaka” finns under Experimentella reglage</string>
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Behållet</string>
     <string name="compat_restoration_confirmed" volt:src="1874a211c29b676c888be42c10d8c87d8db07a80">Tillbakaställt och bekräftat</string>
-    <string name="compat_restoration_outstanding" volt:src="93f7b8511706d9a420555e736b3a3a181daaf91b">Tillbakaställning inte bekräftad · granska nedan</string>
+    <string name="compat_restoration_outstanding" volt:src="93f7b8511706d9a420555e736b3a3a181daaf91b" volt:attempt="2">Det har inte bekräftats om värdet ställdes tillbaka · granska nedan</string>
     <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Ej slutfört försök · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Ej slutfört test · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Före försöket</string>
@@ -198,7 +198,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Avläsning stöds</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Avvisat, kod %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kvitterat, obekräftat</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Återläsning oförändrad, värde %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Återläsning: värdet har inte ändrats, %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Återläsning avvikande, värde %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Inställningen bekräftades</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Effekt observerad</string>
@@ -206,7 +206,7 @@
     <string name="compat_outcome_interrupted" volt:src="4d9f8a7d9542ee7781967ffd2dcedeaef5ebd87e">Avbrutet/inget svar</string>
     <string name="compat_outcome_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Inte skickat</string>
     <string name="compat_note_not_saved" volt:src="ddf7520a51a6663ee26cf5a8e4860994741ed9f2">Det gick inte att spara testposten. Ingenting ändrades.</string>
-    <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Avbrutet. Ingenting ändrades.</string>
+    <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80" volt:attempt="2">Avbrutet. Ingen ändring gjordes.</string>
     <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef">Det gick inte att spara testposten, så Volt ställde inte tillbaka värdet.</string>
     <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde">Ändrad utanför testet (nu %1$s)</string>
     <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2">Elsparkcykeln avvisade tillbakaställningen (kod %1$d).</string>
@@ -222,16 +222,16 @@
     <string name="compat_note_changed_waiting" volt:src="fb9c270cbd6a11c2d4d091107f9cab5c699c6b1e">En inställning ändrades medan testet väntade. Granska den innan du ställer tillbaka den.</string>
     <string name="compat_note_not_reported" volt:src="cb03426a5c1e6360a676a7612a9a5f0e459af812">Ingen uppgift om den här inställningen från den här elsparkcykeln.</string>
     <string name="compat_note_value_unknown" volt:src="4236ae8d3fed48d67e438714cb64b48cdb8574b0">Det aktuella värdet är okänt, så Volt kommer inte att testa det.</string>
-    <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Elsparkcykeln visar nu %1$s. Ingenting ändrades.</string>
+    <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626" volt:attempt="2">Elsparkcykeln visar nu %1$s. Ingen ändring gjordes.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Inställningen är redan inställd på %1$s.</string>
     <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">%1$s erbjuds inte just nu.</string>
-    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Det aktuella värdet kan inte ställas tillbaka, så Volt kommer inte att testa det.</string>
+    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2" volt:attempt="2">Det aktuella värdet går inte att ställa tillbaka, så Volt kommer inte att testa det.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">En relaterad inställning ändrades under testet.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Elsparkcykeln accepterade värdet men visar fortfarande %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Elsparkcykeln visar nu %1$s.</string>
     <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Den visar fortfarande %1$s.</string>
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Den visar testvärdet, %1$s.</string>
-    <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Stoppades före någon ändring. Ingenting ändrades.</string>
+    <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d" volt:attempt="2">Stoppades före någon ändring. Ingen ändring gjordes.</string>
     <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Tillbakaställt och bekräftat, men posten kunde inte sparas.</string>
     <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Behölls, men posten kunde inte sparas. Försöket kommer att visas som ej slutfört.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Anslut till den här elsparkcykeln och granska.</string>

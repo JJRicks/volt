@@ -183,14 +183,14 @@
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Inget att prova</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Kommandounderlag</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Rensa provresultat</string>
-    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Vill du rensa provresultaten?</string>
+    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184" volt:attempt="2">Vill du rensa provresultat?</string>
     <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt glömmer vad dina försök på den här elsparkcykeln visade, så resultaten försvinner från nästa rapport och från Ställ tillbaka. Inställningarna förblir oförändrade. Ej slutförda försök finns kvar tills du granskar dem.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Inga slutförda försök att rensa</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">Resultatet för %1$d försök rensades</item>
         <item quantity="other">Resultaten för %1$d försök rensades</item>
     </plurals>
-    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Provresultaten finns kvar på den här telefonen tills de ingår i en kompatibilitetsrapport som du skickar, eller tills du rensar dem."</string>
+    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c" volt:attempt="2">" Provresultat finns kvar på den här telefonen tills de ingår i en kompatibilitetsrapport som du skickar eller tills du rensar dem."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Reglagen som den officiella appen erbjuder för din modell finns kvar i Elsparkcykelinställningar. Hastighetsgränser, laddning, låset, PIN-koden, närhetsupplåsning och klockan läggs aldrig till här. Volt ändrar aldrig firmware.</string>
     <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Reglagen som den officiella appen erbjuder för din modell finns kvar i Elsparkcykelinställningar. Volt ändrar aldrig firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt ändrar aldrig firmware.</string>
@@ -225,7 +225,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Anslut för att prova reglagen.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Väntar på aktuell status från elsparkcykeln.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Stanna elsparkcykeln för att prova reglagen.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Stanna elsparkcykeln när du vill prova reglagen.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Väntar på att elsparkcykeln anger att den är parkerad.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Åtgärda elsparkcykelns varning för att prova reglagen.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Lås upp elsparkcykeln för att prova reglagen.</string>
@@ -276,7 +276,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Välj en gräns</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Välj ett värde</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt skickar en ändring medan elsparkcykeln är parkerad och upplåst, läser tillbaka värdet och frågar sedan vad du såg. Värdet kvarstår tills du ställer tillbaka det. Om anslutningen bryts skriver Volt aldrig igen på egen hand: försöket väntar på att du granskar det.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Kontrollerar att värdet är oförändrat…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att värdet inte har ändrats…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser det aktuella värdet…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Skickar %1$s och läser tillbaka värdet…</string>
@@ -355,7 +355,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Snabb</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Auto känner igen UT5 MAX-laddare utifrån den aktuella effekten. Om Volt är osäker används den aktuella laddningstakten. Välj en laddare om du vill åsidosätta detta.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto känner igen UT5 MAX-laddare utifrån aktuell effekt. Om Volt inte är säker används den aktuella laddningstakten. Välj en laddare för att åsidosätta detta.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Sparade laddningskurvor</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Spela in den här laddningen</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stoppa laddningsinspelningen</string>

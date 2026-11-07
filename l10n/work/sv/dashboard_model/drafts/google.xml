@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
     <string name="dashboard_model_qa_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Ljus</string>
     <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Ljus</string>
-    <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Inställningar</string>
+    <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e" volt:attempt="2">Inställn.</string>
     <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Inställningar</string>
     <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistik</string>
     <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Livestatistik</string>
@@ -22,7 +22,7 @@
     <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN och närhet</string>
     <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN och närhet</string>
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Namn på elspark</string>
-    <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Namn på elspark</string>
+    <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac" volt:attempt="2">Elsparknamn</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Appinställningar</string>
     <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Appinställn.</string>
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mina elsparkar</string>

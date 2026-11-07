@@ -50,14 +50,14 @@
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Medel</string>
     <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Toppfart</string>
     <string name="riding_label_max_speed_short" volt:src="7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d">Toppfart</string>
-    <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df">Förbrukning</string>
+    <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df" volt:attempt="2">Effektivitet</string>
     <string name="riding_unit_wh_per" volt:src="0e85b741bc4a3623a94385147993516b603c8e43">Wh/%1$s</string>
     <string name="riding_label_ride_energy" volt:src="149ce24de19a9453427ca9f521c1acdd5f1b5822">Turenergi</string>
     <string name="riding_label_ride_energy_short" volt:src="e0bc0d6a65ce9bad9a30e5e2ef95286e81a0211f">Energi</string>
     <string name="riding_label_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Spänning</string>
     <string name="riding_label_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Ström</string>
     <string name="riding_label_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Batteritemperatur</string>
-    <string name="riding_label_battery_temperature_short" volt:src="976db2ddc8fd8c21babba00194d5409f2d9e132f">Batteritemp.</string>
+    <string name="riding_label_battery_temperature_short" volt:src="976db2ddc8fd8c21babba00194d5409f2d9e132f" volt:attempt="2">Batteritemp.</string>
     <string name="riding_label_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Körläge</string>
     <string name="riding_label_drive_mode_short" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Läge</string>
     <string name="riding_label_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Klocka</string>

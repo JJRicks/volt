@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
     <string name="menu_edit" volt:src="2aea7f021b41e67566c952e90b87bb6b63d8bad0">Redigera menyn</string>
     <string name="menu_finish" volt:src="bcc9d65c4a3abc0cf2d209606f4917c80efbf64e">Avsluta redigering av menyn</string>
-    <string name="menu_add_back" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600">Lägg tillbaka</string>
+    <string name="menu_add_back" volt:src="3f03fa0315f969fc4700f7a55e6298efcc3dd600" volt:attempt="2">Lägg till</string>
     <string name="menu_add_back_short" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Lägg till</string>
     <plurals name="menu_add_back_description" volt:src="400ad69c8a2f2e26c4a3cd5e85f4ffc996f570fd">
         <item quantity="one">Lägg tillbaka, %1$d objekt dolt</item>

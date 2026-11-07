@@ -38,12 +38,12 @@
         <item quantity="one">%1$d ej slutfört test på en annan elsparkcykel. Välj det för att granska.</item>
         <item quantity="other">%1$d ej slutförda tester på andra elsparkcyklar. Välj ett för att granska.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testposter är inte tillgängliga. Ett tidigare test kanske inte har ställts tillbaka; kontrollera elsparkcykelns inställningar.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a" volt:attempt="2">Testposter inte tillgängliga. Ett tidigare test är kanske inte tillbakaställt; kontrollera elsparkcykelns inställningar.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Försök · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser det aktuella värdet…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Ändrar till %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Kontrollerar att det är oförändrat…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att det inte har ändrats…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
@@ -198,7 +198,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Läsning stöds</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Avvisad, kod %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kvitterad, obekräftad</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Återläsning oförändrad, värde %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Återläsning inte ändrad, värde %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Återläsning annorlunda, värde %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Inställning bekräftad</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Effekt observerad</string>
@@ -225,7 +225,7 @@
     <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Elsparkcykeln visar nu %1$s. Inget ändrades.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Den är redan inställd på %1$s.</string>
     <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">%1$s erbjuds inte nu.</string>
-    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Det aktuella värdet kan inte ställas tillbaka, så Volt testar det inte.</string>
+    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2" volt:attempt="2">Det går inte att ställa tillbaka det aktuella värdet, så Volt testar det inte.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">En relaterad inställning ändrades under testet.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Elsparkcykeln accepterade det men visar fortfarande %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Elsparkcykeln visar nu %1$s.</string>

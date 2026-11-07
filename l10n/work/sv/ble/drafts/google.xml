@@ -16,7 +16,7 @@
     <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Behörigheten Enheter i närheten krävs</string>
     <string name="ble_bluetooth_off" volt:src="4debe331fb38bcc98e9858d56866deca5ce1f911">Bluetooth av</string>
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Ingen elsparkcykel hittades</string>
-    <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Ägarnyckeln avvisades</string>
+    <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8" volt:attempt="2">Ägarrollen avvisades</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">Begränsade reglage på den här modellen</string>
     <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Välj en hel timme inom 48 timmar</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">Det gick inte att ansluta</string>
@@ -53,7 +53,7 @@
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Anslut till elsparkcykeln först</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Vänta på en ny anslutning till elsparkcykeln.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Åtgärda elsparkcykelns varning %1$d innan du låser.</string>
-    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Stanna elsparkcykeln först</string>
+    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244" volt:attempt="2">Stoppa elsparkcykeln först</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Inte tillgängligt just nu</string>
     <string name="ble_outside_domain" volt:src="83ccb0307f7518bc4a90026bca28b92ed5084d52">Den officiella appen erbjuder inte det här värdet</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s har redan ställts in.</string>
