@@ -1,11 +1,11 @@
-# Italian (it). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# Italian (it). Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/it/); ships as beta. See l10n/README.md for each field.
 # percent_style has no space, as CLDR's Italian format and Android's Italian strings write it (85%). Other units take a no-break space (U+00A0): 25 km/h. decimal_style is an example of the separators.
 field	value
 tag	it
 folder	values-it
 endonym	Italiano
 wave	1
-status	draft
+status	beta
 formality	tu
 plurals	one,many,other
 quote_style	«…» “…”
