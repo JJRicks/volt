@@ -1225,6 +1225,107 @@ class TermInAnotherSenseTest(unittest.TestCase):
         self.assertTrue(self._glossary_errors("Try failed. Try again or try another control.",
                                               "Échec. Réessayez ou testez une autre commande.", "experimental"))
 
+
+class StopSensesRealGlossaryTest(unittest.TestCase):
+    """Stop has two senses (Codex's review of #320): silencing an alarm or ending a recording (the stop
+    row) and stopping the scooter (the stop-scooter, bring-to-a-stop and stop-to-change rows). Checked
+    against the real l10n/glossary files: a scooter-stop form must not pass for the alarm, and an alarm
+    verb must not pass for the scooter."""
+
+    TAGS = ("es", "pt-PT", "pt-BR", "sv", "de", "fr", "it")
+    # The texts each language ships (res/values-*/), by English.
+    SCOOTER = {
+        "Bring the scooter to a stop first": {  # ble_stop_scooter_first, controls_reason_moving
+            "es": "Detén el patinete primero", "pt-PT": "Tens de parar a trotinete primeiro",
+            "pt-BR": "Pare o patinete primeiro", "sv": "Stanna elsparkcykeln först",
+            "de": "Halte den Scooter zuerst an", "fr": "Immobilisez d’abord la trottinette",
+            "it": "Prima ferma il monopattino"},
+        "Stop to change": {  # main_row_stop_to_change
+            "es": "Detén el patinete para cambiarlo", "pt-PT": "Tens de parar a trotinete para alterar",
+            "pt-BR": "Pare o patinete para alterar", "sv": "Stanna för att ändra",
+            "de": "Halte den Scooter an, um Änderungen vorzunehmen.",
+            "fr": "Immobilisez la trottinette pour modifier", "it": "Ferma il monopattino per modificare"},
+        "Stop the scooter to try these.": {  # more_lab_held_moving
+            "es": "Detén el patinete para probar estos controles.",
+            "pt-PT": "Tens de parar a trotinete para experimentar estes controlos.",
+            "pt-BR": "Pare o patinete para experimentar estes controles.",
+            "sv": "Stanna elsparkcykeln för att prova reglagen.",
+            "de": "Halte den Scooter an, um diese auszuprobieren.",
+            "fr": "Immobilisez la trottinette pour essayer ces commandes.",
+            "it": "Ferma il monopattino per provare questi comandi."},
+    }
+    ALARM = {  # main_alert_stop_alarm, "Stop alarm"
+        "es": "Detener alarma", "pt-PT": "Parar alarme", "pt-BR": "Parar alarme", "sv": "Stoppa larmet",
+        "de": "Alarm stoppen", "fr": "Arrêter l’alarme", "it": "Interrompi l'allarme"}
+    RECORDING = {  # main_row_recording_label, "Recording label · stop to change"
+        "es": "Etiqueta de grabación · detén la grabación para cambiarla",
+        "pt-PT": "Etiqueta da gravação · tens de parar para alterar",
+        "pt-BR": "Rótulo da gravação · pare para alterar",
+        "sv": "Inspelningsetikett · stoppa för att ändra",
+        "de": "Aufzeichnungsbezeichnung · zum Ändern Aufzeichnung beenden",
+        "fr": "Libellé de l’enregistrement · arrêtez l’enregistrement pour le modifier",
+        "it": "Etichetta della registrazione · interrompi per modificare"}
+
+    @staticmethod
+    def _hits(tag, english):
+        return pack.glossary_hits(translib.load_glossary(translib.Paths(REPO_ROOT), tag), english)
+
+    @classmethod
+    def _findings(cls, tag, english, text, safety):
+        """Glossary findings of check_key on a key whose hits come from the real glossary, as pack.py
+        builds them."""
+        entry = {"key": "k", "kind": "string", "english": english, "safety": safety, "dnt": [],
+                 "formatted": True, "glossary": cls._hits(tag, english)}
+        language = {"tag": tag, "plurals": ["one", "other"], "script": "Latn", "font": "system"}
+        return [(f["severity"], f["message"]) for f in check.check_key(entry, language, "string", {"other": text})
+                if f["check"] == "glossary"]
+
+    def _assert_error(self, tag, english, text, safety):
+        self.assertIn(check.ERROR, [s for s, _ in self._findings(tag, english, text, safety)], (tag, text))
+
+    def test_the_shipped_scooter_texts_pass(self):
+        for english, texts in self.SCOOTER.items():
+            for tag in self.TAGS:
+                self.assertEqual(self._findings(tag, english, texts[tag], "ride"), [], (tag, english))
+
+    def test_the_shipped_alarm_and_recording_texts_pass(self):
+        for tag in self.TAGS:
+            self.assertEqual(self._findings(tag, "Stop alarm", self.ALARM[tag], "alarm"), [], tag)
+            self.assertEqual(self._findings(tag, "Recording label · stop to change", self.RECORDING[tag], None),
+                             [], tag)
+
+    def test_scooter_stop_forms_fail_for_the_alarm(self):
+        # es, pt-PT and pt-BR use one verb for both senses (detener, parar), so only the languages
+        # with a separate scooter verb can tell these apart.
+        for tag, text in (("fr", "Immobilisez l’alarme"), ("sv", "Stanna larmet"),
+                          ("de", "Halte den Scooter an: Alarm"), ("it", "Ferma il monopattino: allarme")):
+            self._assert_error(tag, "Stop alarm", text, "alarm")
+
+    def test_alarm_verbs_fail_for_the_scooter(self):
+        for tag, text in (("sv", "Stoppa elsparkcykeln först"), ("de", "Stopp den Scooter zuerst"),
+                          ("it", "Interrompi prima la marcia"), ("fr", "Arrêtez d’abord l’alarme")):
+            self._assert_error(tag, "Bring the scooter to a stop first", text, "ride")
+        self._assert_error("sv", "Stop to change", "Stoppa för att ändra", "ride")
+        self._assert_error("de", "Stop the scooter to try these.", "Stopp den Scooter, um diese auszuprobieren.",
+                           "ride")
+
+    def test_which_stop_a_text_uses(self):
+        def ids(english):
+            return [h["id"] for h in self._hits("de", english) if h["id"].startswith(("stop", "bring"))]
+        self.assertEqual(ids("Stop alarm"), ["stop"])
+        self.assertEqual(ids("Bring the scooter to a stop first"), ["bring-to-a-stop"])
+        self.assertEqual(ids("Stop the scooter to try these."), ["stop-scooter"])
+        self.assertEqual(ids("Stop to change"), ["stop-to-change"])
+        self.assertEqual(ids(", stop to change"), ["stop-to-change"])
+        # The recording stops here, not the scooter: the Stop term applies (translib.OTHER_SENSE).
+        self.assertEqual(ids("Recording label · stop to change"), ["stop"])
+        # A pack entry that still lists both terms is read the same way (check._terms_in).
+        both = {"kind": "string", "glossary": [{"term": "Stop", "target": ["Stopp"], "safety": "alarm"},
+                                               {"term": "Stop to change", "target": ["anhalten"], "safety": "ride"}]}
+        self.assertEqual([h["term"] for h in check._terms_in(both, "Recording label · stop to change")], ["Stop"])
+        self.assertEqual([h["term"] for h in check._terms_in(both, "Stop to change")], ["Stop to change"])
+
+
 class TurkishCaseTest(unittest.TestCase):
     """Turkish lower case: "KAPALI" is "kapalı" and "AÇIK" is "açık" (I to ı, İ to i), so changing
     only the case of a draft does not get an inverted state past the on/off check."""

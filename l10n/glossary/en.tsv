@@ -145,6 +145,9 @@ low-battery-alert	Low battery alert	An alert when the battery falls to a level.	
 notify-me	Notify me	Choose a notification for an alert.	verb phrase	no	alarm	MainActivity.java:1872-1990
 alarm-sound	Alarm sound	Choose a sounding alarm for an alert.	noun phrase	no	alarm	MainActivity.java:1872-1990
 stop	Stop	Silence a sounding alarm.	verb	no	alarm	MainActivity.java:1872-1990
+stop-scooter	Stop the scooter	Bring the scooter itself to a standstill before a control can change: the riding sense of Stop, not silencing an alarm or ending a recording.	verb phrase	no	ride	strings_more.xml more_lab_held_moving; split from stop on 2026-11-07 (Codex review of #320)
+bring-to-a-stop	Bring the scooter to a stop	The same as Stop the scooter (stop-scooter), in the wording of the moving-scooter reasons.	verb phrase	no	ride	strings_ble.xml ble_stop_scooter_first, strings_controls.xml controls_reason_moving; split from stop on 2026-11-07 (Codex review of #320)
+stop-to-change	Stop to change	Stop the scooter (stop-scooter) to change a row that can't change while riding. In a text that names a recording (Recording label · stop to change) it means stop the recording, and the Stop term applies instead.	verb phrase	no	ride	strings_main.xml main_row_stop_to_change, main_row_stop_part; split from stop on 2026-11-07 (Codex review of #320)
 stop-watching	Stop watching	End an alert's watch.	verb phrase	no	alarm	MainActivity.java:1872-1990
 charge-recording	Charge recording	A recorded charging session.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288
 time-to-full	Time to full	The estimated time until the battery is full.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288

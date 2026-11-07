@@ -34,7 +34,7 @@ Checks, per key (a plural is checked per quantity):
                 next to words that make it unlock or remove the lock is not found (warn; error for a
                 safety term in a safety key). A term found only inside a longer term ("Lock" in "Lock
                 duration") is not required on its own, and a setting value ("Off", an Energy recovery
-                level) only where it has that sense (translib.glossary_hits)
+                level) or "Stop to change" only where it has that sense (translib.glossary_hits)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
@@ -663,7 +663,7 @@ NOT_THE_TERM = {"try": re.compile(r"(?<![a-z])(?:try|tries|tried|trying)\s+again
 
 def _terms_in(entry, reference):
     """The entry's glossary hits this English needs translated, in order."""
-    hits = entry.get("glossary") or []
+    hits = [h for h in entry.get("glossary") or [] if not translib.used_in_another_sense(h["term"], reference)]
     names = [h["term"] for h in hits]
     for hit in hits:
         other_sense = NOT_THE_TERM.get(hit["term"].lower())
