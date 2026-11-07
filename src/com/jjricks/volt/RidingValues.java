@@ -209,6 +209,11 @@ final class RidingValues {
     private Long recordingStartMs;
     /** Monotonic time the scooter's trip started, estimated from trip_minutes. */
     private Long tripStartMs;
+    /** The trip_minutes reading that last anchored it, and when it was measured. */
+    private double tripMinutesSeen;
+    private long tripSeenMs;
+    /** A previous riding session's trip clock, used by this session's first trip report if it still fits. */
+    private TripClock resumeTrip;
     private final Map<String, RangeSource> ranges = new HashMap<>();
 
     RidingValues() { this(new PowerScale()); }
@@ -371,14 +376,41 @@ final class RidingValues {
         scaleChanged |= scale.observe(watts, direction == Direction.REGEN ? Direction.REGEN : Direction.DRAW);
     }
 
-    /** Ride time follows the scooter's trip: anchored from trip_minutes, and refined when the minute ticks over. */
+    /**
+     * Ride time follows the scooter's trip: anchored from trip_minutes, then counted on the phone's clock.
+     * The scooter's whole-minute counter can stand still while its reports keep coming (a stop, a slow
+     * scooter clock), so a count ahead of it is kept: pulling it back pinned ride time at the next whole
+     * minute (owner, Nov 7: frozen at 2:00 or 3:00). A count behind the scooter's moves forward to it. A
+     * lower count, or a higher one than the time since the last report allows, is a new trip.
+     */
     private void tripMinutes(double minutes, long updatedMs, Track t) {
         if (minutes < 0) return;
-        long whole = (long) Math.floor(minutes), earliest = updatedMs - (whole + 1) * 60_000L, latest = updatedMs - whole * 60_000L;
-        long tolerance = (long) Math.max(2000, t.intervalMs);
-        if (tripStartMs == null || tripStartMs < earliest - tolerance || tripStartMs > latest + tolerance) tripStartMs = latest;
-        else tripStartMs = Math.max(earliest, Math.min(latest, tripStartMs));
+        if (tripStartMs == null && resumeTrip != null) {
+            tripStartMs = resumeTrip.startMs; tripMinutesSeen = resumeTrip.minutes; tripSeenMs = resumeTrip.seenMs;
+        }
+        resumeTrip = null;
+        long whole = (long) Math.floor(minutes), latest = updatedMs - whole * 60_000L;
+        long tolerance = (long) Math.max(2000, t.intervalMs), gap = updatedMs - tripSeenMs;
+        boolean sameTrip = tripStartMs != null && minutes >= tripMinutesSeen && gap >= 0 && gap <= TRIP_RESUME_MS
+                && (whole - (long) Math.floor(tripMinutesSeen)) * 60_000L <= gap + 60_000L + tolerance;
+        tripStartMs = sameTrip ? Math.min(tripStartMs, latest) : latest;
+        tripMinutesSeen = minutes;
+        tripSeenMs = updatedMs;
     }
+
+    /** Longest silence after which a trip report still continues the same count (rather than re-anchoring). */
+    static final long TRIP_RESUME_MS = 5 * 60_000L;
+
+    /** Ride time's anchor, carried from one riding session to the next so reopening doesn't snap it back. */
+    static final class TripClock {
+        final long startMs, seenMs;
+        final double minutes;
+        TripClock(long startMs, double minutes, long seenMs) { this.startMs = startMs; this.minutes = minutes; this.seenMs = seenMs; }
+    }
+    /** This session's ride-time anchor, or null before a trip report. */
+    TripClock tripClock() { return tripStartMs == null ? null : new TripClock(tripStartMs, tripMinutesSeen, tripSeenMs); }
+    /** Offers a previous session's anchor; the first trip report keeps it only if it is the same trip. */
+    void resumeTrip(TripClock clock) { if (tripStartMs == null) resumeTrip = clock; }
 
     private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double[] v, long gapMs) {
         boolean gap = !times.isEmpty() && t - times.peekLast()[0] > gapMs;

@@ -28,9 +28,11 @@ public final class RidingValuesTest {
         meterMatchesRecording();
         unknownUntilSign();
         timers();
+        rideTimeNeverFreezes();
+        rideTimeAcrossReopen();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time never freezes or snaps back, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -644,6 +646,72 @@ public final class RidingValuesTest {
         values.setRecordingStart(null);
         trip = values.trip(1.2, 200_000);
         check(!trip.fromRecording && near(trip.km, 3.7, 1e-9) && values.recordingTimeMs(200_000) == null, "otherwise the scooter's trip");
+    }
+
+    /**
+     * Owner, Nov 7: ride time froze at 2:00 or 3:00. The scooter's whole-minute trip counter can stand still
+     * (a stop early in a trip) while its reports keep coming every second; ride time kept counting past it
+     * and then pinned at the next whole minute. It must keep counting and never run backwards.
+     */
+    private static void rideTimeNeverFreezes() {
+        RidingValues values = new RidingValues();
+        long t = 1_000_000;
+        values.sample("trip_minutes", 2, 0x92, t);
+        long previous = values.rideTimeMs(t);
+        check(previous == 2 * 60_000L, "anchored at the scooter's whole minutes: " + previous);
+        for (int s = 1; s <= 300; s++) {
+            long now = t + s * 1000L;
+            values.sample("trip_minutes", 2, 0x92, now);
+            long shown = values.rideTimeMs(now);
+            check(shown - previous == 1000, "ride time keeps counting while the scooter's minute stands still, at "
+                    + s + " s: " + previous + " -> " + shown);
+            previous = shown;
+        }
+        // The scooter's minute moves on again: ride time doesn't jump back to it.
+        long now = t + 301_000;
+        values.sample("trip_minutes", 3, 0x92, now);
+        check(values.rideTimeMs(now) - previous == 1000, "and doesn't snap back when the minute ticks over: " + values.rideTimeMs(now));
+        // A scooter minute ahead of ours still pulls ride time forward.
+        now += 1000;
+        values.sample("trip_minutes", 9, 0x92, now);
+        check(values.rideTimeMs(now) == 9 * 60_000L, "a scooter count ahead of ours moves it forward: " + values.rideTimeMs(now));
+        // Power cycled: the trip starts over.
+        now += 1000;
+        values.sample("trip_minutes", 0, 0x92, now);
+        check(values.rideTimeMs(now) == 0, "a lower count is a new trip: " + values.rideTimeMs(now));
+        // A long silence and then a higher count: a different trip, not hours of this one.
+        values.sample("trip_minutes", 1, 0x92, now + 1000);
+        now += 2 * 3_600_000L;
+        values.sample("trip_minutes", 4, 0x92, now);
+        check(values.rideTimeMs(now) == 4 * 60_000L, "after a long gap the scooter's count re-anchors: " + values.rideTimeMs(now));
+    }
+
+    /** Leaving riding mode and coming back keeps the count instead of snapping back to the scooter's whole minute. */
+    private static void rideTimeAcrossReopen() {
+        RidingValues first = new RidingValues();
+        long t = 5_000_000;
+        for (int s = 0; s <= 150; s++) first.sample("trip_minutes", 2, 0x92, t + s * 1000L);
+        long before = first.rideTimeMs(t + 150_000);
+        RidingValues.TripClock clock = first.tripClock();
+        check(clock != null, "a trip clock to carry over");
+        RidingValues reopened = new RidingValues();
+        reopened.resumeTrip(clock);
+        long now = t + 160_000;
+        check(reopened.rideTimeMs(now) == null, "nothing shows before this session's first trip report");
+        reopened.sample("trip_minutes", 2, 0x92, now);
+        check(reopened.rideTimeMs(now) == before + 10_000, "reopened, ride time carries on: " + before
+                + " then " + reopened.rideTimeMs(now));
+        RidingValues newTrip = new RidingValues();
+        newTrip.resumeTrip(clock);
+        newTrip.sample("trip_minutes", 0, 0x92, now);
+        check(newTrip.rideTimeMs(now) == 0, "a new trip since then starts over");
+        RidingValues later = new RidingValues();
+        later.resumeTrip(clock);
+        now = t + 3_600_000L;
+        later.sample("trip_minutes", 7, 0x92, now);
+        check(later.rideTimeMs(now) == 7 * 60_000L, "a carried clock that's long out of date is dropped");
+        check(new RidingValues().tripClock() == null, "no clock before a trip report");
+        new RidingValues().resumeTrip(null);
     }
 
     private static void battery() {
