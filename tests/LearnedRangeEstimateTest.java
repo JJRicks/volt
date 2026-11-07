@@ -137,6 +137,17 @@ public final class LearnedRangeEstimateTest {
         double previous = -1; boolean monotone = true;
         for (double soc = 0; soc <= 100; soc += .25) { double km = r.remainingKm(soc); monotone &= km >= previous; previous = km; }
         check(monotone, "More battery never forecasts less range");
+        // Live range accessors (docs/validation/live-range.md): the same table, in Wh.
+        near(r.remainingKm(70d) * 40, r.energyLeftWh(70), "Energy left is remaining km times Wh/km");
+        near(r.remainingKm(64.5) * 40, r.energyLeftWh(64.5), "Energy left interpolates between readings");
+        check(r.energyLeftWh(-1) == null && r.energyLeftWh(Double.NaN) == null, "Invalid reading has no energy left");
+        check(Integer.valueOf(61).equals(r.lowestSeenPercent()), "Lowest seen reading is the bottom of band 61-70: " + r.lowestSeenPercent());
+        LiveRangeEstimator live = new LiveRangeEstimator(); live.reset(LiveRangeEstimator.Prior.of(r));
+        live.accept(0, 0d, 0d, 70d, 1000d, false);
+        near(r.remainingKm(70d), live.snapshot(0).rawKm, "Live range starts from the learned forecast");
+        check(live.snapshot(0).energyModel && !live.snapshot(0).belowSeen, "Energy prior");
+        live.accept(2000, 0d, 0d, 60d, 1000d, false);
+        check(live.snapshot(2000).belowSeen, "60 is below the lowest band seen");
         check(r.remainingKm(null) == null && r.remainingKm(Double.NaN) == null && r.remainingKm(101d) == null, "Invalid SOC stays unavailable");
         // Without a confirmed current direction there is no energy evidence: the older model stays.
         List<LearnedRangeEstimate.Evidence> unsigned = new ArrayList<>();
@@ -145,6 +156,11 @@ public final class LearnedRangeEstimateTest {
         LearnedRangeEstimate.Result legacy = LearnedRangeEstimate.calculate("A", unsigned, NOW);
         check(legacy.model == LearnedRangeEstimate.Model.DISTANCE, "No power keeps distance per gauge point");
         near(12.5, legacy.fullRangeKm, "Older model unchanged: 7.5 km over 60 points");
+        check(legacy.energyLeftWh(50) == null && legacy.lowestSeenPercent() == null, "Distance model has no energy table");
+        LiveRangeEstimator distance = new LiveRangeEstimator(); distance.reset(LiveRangeEstimator.Prior.of(legacy));
+        distance.accept(0, 20d, 300d, 50d, 1000d, false);
+        check(!distance.snapshot(0).energyModel, "Distance prior: no live energy model");
+        near(legacy.remainingKm(50d), distance.snapshot(0).rawKm, "Distance prior: the learned figure as a fallback");
         // Negative-is-draw scooters give the same evidence; regeneration counts against draw.
         LearnedRangeEstimate.Evidence negative = energy("A", 20, 60, 2.5, -600, "negative", NOW).evidence();
         check(negative.rideWh != null && Math.abs(negative.rideWh - 100) < 1e-6 && negative.gaugePoints() == 19, "Negative-is-draw convention");

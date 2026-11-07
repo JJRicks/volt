@@ -1,0 +1,6 @@
+# Riding mode's recording pill (owner, Nov 6): the status pill turns red while a ride records. tests/run.sh
+# compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/RecordingPill.java
+src/com/jjricks/volt/RidingFocus.java
+src/com/jjricks/volt/RidingValues.java
+tests/l10n/RecordingPillTest.java

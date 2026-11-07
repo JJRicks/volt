@@ -319,7 +319,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==18,"Registry version records traction control wherever the official app shows it and the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
+        check(ModelRegistry.VERSION==19,"Registry version records the lower kick-start try outside the low-start region, traction control wherever the official app shows it and the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");
