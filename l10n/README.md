@@ -1011,6 +1011,14 @@ python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 -
     --only locale-en-XA-344 --only locale-ar-XB-344
 ```
 
+Each shipped language also gets `locale-<tag>-scooter-<size>` steps (`-e walk scooter`), report only
+like the rest: the screens the page walk never reaches without a scooter or a ride. They seed a
+synthetic profile with maintenance reminders (the Scooter tab's Reminders row and the Maintenance
+page, with DUE, SOON and SNOOZED badges), show every Home shortcut and Setting tile on the developer
+simulator, and drive riding mode's status pill through connected, recording, recording while
+reconnecting or not connected (both halves of its alternation), the plain Not connected and
+Reconnecting pills, and Ride saved after a rider's and an automatic stop.
+
 Every other step runs in English: the sweep aborts unless the emulator's system language is en-US,
 and clears any per-app language after each fresh install.
 

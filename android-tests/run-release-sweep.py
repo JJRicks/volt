@@ -30,7 +30,10 @@ without a census, and a step with no census at all, are reported, since G7 then 
 build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
 (LocaleValidation under en-XA and ar-XB); without --pseudo-app they are skipped. Each language with status
 beta or stable in l10n/lang/*.tsv (English, the source, aside) also gets locale-<tag>-<size> steps at every
-size on the normal --app APK (LocaleValidation under that language, with its rtl field). All locale-* steps
+size on the normal --app APK (LocaleValidation under that language, with its rtl field), and
+locale-<tag>-scooter-<size> steps (-e walk scooter: Home's shortcuts and Setting tiles on the simulator, the
+Maintenance row and page with seeded reminders, riding mode's recording, reconnecting, not connected and
+Ride saved pills, all of which the page walk never reaches without a scooter or a ride). All locale-* steps
 report only: their findings never fail the sweep. They never join the census, so run them as their own
 sweep (own --out, no --census) rather than in a G7 run.
 
@@ -181,6 +184,10 @@ for tag, rtl in shipped_languages():
         (size, theme, text), w = case, size_name(case)
         STEPS.append(inst(f'locale-{tag}-{w}', T + 'LocaleValidation', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(), '-e', 'theme', theme,
                           '-e', 'text_scale', text, '-e', 'variant', f'{tag}-{w}', size=size, report_only=True))
+        # The states the page walk can't reach without a scooter or a ride: Home's shortcuts and Setting tiles on the
+        # simulator, the Maintenance row and page with seeded reminders, and riding mode's recording pill.
+        STEPS.append(inst(f'locale-{tag}-scooter-{w}', T + 'LocaleValidation', '-e', 'walk', 'scooter', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(),
+                          '-e', 'theme', theme, '-e', 'text_scale', text, '-e', 'variant', f'{tag}-scooter-{w}', size=size, report_only=True))
 
 
 def registered():
