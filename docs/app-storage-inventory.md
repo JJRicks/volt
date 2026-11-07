@@ -49,9 +49,10 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `developer_options` | Boolean | global | Durable | Seven-tap unlock. |
 | `range_learned_intro_seen` | Boolean | global | Durable | Learned-range introduction shown. |
 | `ride_auto_stop` | Boolean | global | Durable | Conservatively end forgotten rides (added by the ride auto-stop work; registered ahead of it). |
-| `ride_auto_export_route_csv`, `ride_auto_export_json` | Boolean | global | Durable | Copy each finished ride's Route CSV, and its ride JSON, to the folder below. Default off. RideAutoExport. A restored choice with no folder on this phone waits until one is chosen. |
-| `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when both copies are turned off. |
-| `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when both copies are turned off. |
+| `ride_auto_export_json` | Boolean | global | Durable | Auto-save rides: save each finished ride's Everything in one JSON to the folder below. Default off. RideAutoExport. A restored choice with no folder on this phone waits until one is chosen. |
+| `ride_auto_export_route_csv` | Boolean | global | Durable | Retired Route CSV switch from builds before 1.12.0, still read: on means auto-save is on. Written off whenever the switch is set. |
+| `ride_auto_export_folder` | String (URI) | global | Device | The folder chosen for those copies, through Android's folder picker, with a persisted read and write grant. Android does not carry the grant to another phone, so it is never backed up. Removed, and the grant given up, when auto-save is turned off. |
+| `ride_auto_export_pending` | String | global (ride UUIDs) | Pending | Finished rides still waiting for a copy, oldest first, comma-separated. Cleared when auto-save is turned off. |
 | `ride_auto_export_problem` | String | global | Pending | Why rides are waiting: `folder` (no folder, or it or its grant is gone) or `save` (a write failed). Absent when nothing failed. |
 | `update_auto_check` | Boolean | global | Durable | More › Updates: the opt-in automatic update check, at most once a day. Default off. UpdateCheckJob. Runs only with `update_check_consented` also set; a restored choice is scheduled the next time Volt's process starts. |
 | `update_auto_last` | Long | global | Device | Wall-clock time of the last finished automatic check; the next one waits a day from it (UpdateSchedule). |

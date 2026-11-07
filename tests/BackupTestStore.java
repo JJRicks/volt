@@ -129,7 +129,8 @@ final class BackupTestStore implements BackupArchive.Storage {
         app.put("theme", "light"); app.put("units", "km"); app.put("text_scale", 1.25f); app.put("poll_interval_ms", 1000); app.put("haptics_enabled", false);
         app.put("map_basemap_enabled", true); app.put("map_basemap_explained", true); app.put("stats_favourites", new LinkedHashSet<>(Arrays.asList("speed_kmh", "battery_percent")));
         app.put("stats_group_ride", true); app.put("ride_auto_stop", true); app.put("last_ride_label", "Commute 🛴");
-        // Automatic ride copies: both choices travel; this phone's folder grant, waiting rides and last problem never do.
+        // Automatic ride copies, as an older Volt with only the Route CSV copy on backed them up: both switches travel; this
+        // phone's folder grant, waiting rides and last problem never do.
         app.put("ride_auto_export_route_csv", true); app.put("ride_auto_export_json", false);
         app.put("ride_auto_export_folder", "content://com.android.externalstorage.documents/tree/primary%3ADownload%2FVoltRides");
         app.put("ride_auto_export_pending", "1a2b3c4d-0000-4000-8000-000000000001"); app.put("ride_auto_export_problem", "folder");

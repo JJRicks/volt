@@ -1,26 +1,34 @@
 package com.jjricks.volt;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.*;
 import java.util.*;
 
 /**
- * Opt-in automatic copies of each finished ride into one folder the rider chose: the Route CSV, the ride
- * JSON, or both. This class is the pure part (no Android types): preference keys, file names, the
- * persisted waiting list, what each ride's files hold and one export pass over a {@link Folder}.
+ * Opt-in automatic copies of each finished ride into one folder the rider chose: the ride's Everything (JSON) file,
+ * ride-&lt;id&gt;-everything.json, made by the same code as the Export ride data sheet (RideExportFiles.payload, which
+ * calls RideExportEverything). This class is the pure part (no Android types): preference keys, the file name, the
+ * persisted waiting list and one export pass over a {@link Folder}.
  * RideAutoExportRunner runs a pass off the main thread once a ride's phone journal has finished saving;
  * RideAutoExportFolder is the Storage Access Framework folder. Volt never uploads anything: what happens to
  * the folder afterwards is up to the rider's own apps.
  *
- * Everything here is English and locale-independent: the files are byte for byte the manual Rides
- * exports, and the stored values are ids. Nothing here reads the catalog (RideAutoExportTest proves it
+ * Everything here is English and locale-independent: the file is byte for byte the sheet's Everything export,
+ * and the stored values are ids. Nothing here reads the catalog (RideAutoExportTest proves it
  * under a throwing text source).
  */
 final class RideAutoExport {
-    /** On/off for the Route CSV copy. Backed up with App preferences. Default off. */
-    static final String ROUTE_CSV = "ride_auto_export_route_csv";
-    /** On/off for the ride JSON copy. Backed up with App preferences. Default off. */
-    static final String JSON = "ride_auto_export_json";
+    /**
+     * The one switch, saving each ride's Everything file. Backed up with App preferences. Default off. It keeps the key
+     * of the ride JSON switch it replaced, so a Volt from before the change restores it as that switch: on there means
+     * its own JSON copy (Scooter and phone JSON, or Analysis JSON), the nearest it has.
+     */
+    static final String ON = "ride_auto_export_json";
+    /**
+     * The retired Route CSV switch. Still read, so a rider who had it on, on this phone or in an older backup, has auto-save
+     * on (either switch on means on). Written false whenever the switch is set, so a newer backup restored here or in an
+     * older Volt never brings it back. Backed up with App preferences.
+     */
+    static final String LEGACY_ROUTE_CSV = "ride_auto_export_route_csv";
     /** The chosen tree URI, granted to this installation with takePersistableUriPermission. Never backed up. */
     static final String FOLDER = "ride_auto_export_folder";
     /** Ride ids still to export, oldest first, comma-separated. Never backed up. */
@@ -52,7 +60,7 @@ final class RideAutoExport {
 
     /** What the settings row says, decided from stored values only. */
     enum RowState {
-        /** This type is off. */
+        /** Auto-save is off. */
         OFF,
         /** On, but this phone has no folder (a restored setting): rides wait until one is chosen. */
         CHOOSE_FOLDER,
@@ -76,7 +84,7 @@ final class RideAutoExport {
      * one stored failure kind. before is the stored failure when the pass started; notified is what notifiedAfter kept
      * from earlier passes in this service run. A failure first stored while Volt was open was never posted, so the
      * same failure on a later hidden ride still is. With nothing stored before the pass, notified is stale (both
-     * switches off clear the stored failure without a pass), and a hidden failure always posts.
+     * turning auto-save off clears the stored failure without a pass), and a hidden failure always posts.
      */
     static boolean notifies(Problem before, Problem after, Problem notified, boolean visible) {
         if (after == Problem.NONE || visible) return false;
@@ -94,23 +102,13 @@ final class RideAutoExport {
         return after != before ? Problem.NONE : notified;
     }
 
-    /** The manual exports' name prefix: ride-&lt;first 8 characters of the id&gt;. */
-    private static String prefix(String rideId) { return "ride-" + rideId.substring(0, Math.min(8, rideId.length())); }
-    /** Rides, Export phone data, Route CSV. */
-    static String routeCsvName(String rideId) { return prefix(rideId) + "-route.csv"; }
-    /** Rides, Export phone data, All (JSON). */
-    static String combinedJsonName(String rideId) { return prefix(rideId) + "-combined.json"; }
-    /** Ride details, Export JSON: a ride with no phone recording. */
-    static String analysisJsonName(String rideId) { return prefix(rideId) + "-analysis.json"; }
+    /** The sheet's Everything (JSON) name: ride-&lt;first 8 characters of the id&gt;-everything.json. */
+    static String everythingName(String rideId) { return RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, rideId); }
     /** Hidden while it is written; renamed to the final name only once complete. Never ends in .csv or .json. */
     static String temporaryName(String name) { return "." + name + ".partial"; }
 
-    /** The All (JSON) export's text. RidesScreen's manual export calls this too, so both stay byte for byte equal. */
-    static String combinedJson(RideStore.Summary scooter, PhoneRideStore.Track phone) {
-        return "{\"scooter\":" + (scooter == null ? "null" : scooter.toJson()) + ",\"phone\":" + phone.toJson() + "}";
-    }
-
-    static boolean anyOn(boolean routeCsv, boolean json) { return routeCsv || json; }
+    /** Whether auto-save is on: the switch, or the retired Route CSV switch from before it (see LEGACY_ROUTE_CSV). */
+    static boolean on(boolean stored, boolean legacyRouteCsv) { return stored || legacyRouteCsv; }
 
     static List<String> parse(String stored) {
         List<String> ids = new ArrayList<>();
@@ -150,56 +148,52 @@ final class RideAutoExport {
         return path.isEmpty() || path.length() > 120 ? null : path;
     }
 
-    /** One file to write: its final name and its text. */
+    /** One ride's file, written in the cache: its final name, and the staging folder that holds it (removed by discard). */
     static final class Output {
-        final String name, text;
-        Output(String name, String text) { this.name = name; this.text = text; }
+        final String name; final File file;
+        private final File owned;
+        Output(String name, File file, File owned) { this.name = name; this.file = file; this.owned = owned; }
+        /** Removes the staging folder with its file. Safe to call more than once. */
+        void discard() { RideExportFiles.remove(owned); }
     }
 
     /** The phone's saved ride data. */
     interface Source {
-        /** The ride's Route CSV, exactly as Rides exports it, or null when it has no GPS fixes (or is deleted). */
-        String routeCsv(String rideId) throws IOException;
-        /**
-         * The ride's JSON: All (JSON) when it has a phone recording, else the ride details' Export JSON;
-         * null when the ride is deleted.
-         */
-        Output json(String rideId) throws IOException;
+        /** The ride's Everything file, written now, or null when the ride is deleted. The caller discards it. */
+        Output everything(String rideId) throws IOException;
     }
 
-    /** The files Rides exports by hand, read from the stores the recording wrote. Only reads. */
-    static Source stores(RideStore rides, PhoneRideStore phone) {
-        return new Source() {
-            @Override public String routeCsv(String rideId) throws IOException {
-                PhoneRideStore.Track track = phoneTrack(phone, rideId);
-                return track == null || track.fullPoints().isEmpty() ? null : track.toCsv();
-            }
-            @Override public Output json(String rideId) throws IOException {
-                RideStore.Summary summary = rides == null ? null : rides.get(rideId);
-                PhoneRideStore.Track track = phoneTrack(phone, rideId);
-                if (track != null) return new Output(combinedJsonName(rideId), combinedJson(summary, track));
-                return summary == null ? null : new Output(analysisJsonName(rideId), summary.toJson());
-            }
+    /**
+     * The sheet's Everything export, read from the stores the recording wrote: RideExportFiles.payload with the ride's
+     * analysis and its phone recording as the sheet loads them, into a staging folder in cacheDir. Only reads the stores.
+     * A ride the sheet would call unavailable (no analysis: deleted) has nothing to write.
+     */
+    static Source stores(RideStore rides, PhoneRideStore phone, File cacheDir, String appVersion) {
+        return rideId -> {
+            RideStore.Summary summary = rides == null ? null : rides.get(rideId);
+            if (summary == null) return null;
+            RideExportFiles.Payload payload = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, rideId, rides, summary,
+                    phone, phoneTrack(phone, rideId), cacheDir, appVersion);
+            return new Output(everythingName(rideId), payload.file, payload.owned);
         };
     }
     /**
-     * The ride's phone recording as ride details shows it, or null when it has none: no phone files, or
-     * files with neither a location nor a motion sample (ride details then shows no Export phone data).
+     * The ride's phone recording as the sheet loads it for Everything: null when there are no phone files, or when they
+     * cannot be read (Everything still copies the files as they are).
      */
-    static PhoneRideStore.Track phoneTrack(PhoneRideStore phone, String rideId) throws IOException {
+    static PhoneRideStore.Track phoneTrack(PhoneRideStore phone, String rideId) {
         if (phone == null || (!phone.rawCsv(rideId).isFile() && !phone.motionCsv(rideId).isFile())) return null;
-        PhoneRideStore.Track track = phone.loadSnapshot(rideId);
-        return track.locationCount == 0 && track.motionSampleCount == 0 ? null : track;
+        try { return phone.loadSnapshot(rideId); } catch (IOException | RuntimeException unreadable) { return null; }
     }
 
     /** One folder, addressed by file name. */
     interface Folder {
-        /** The named file's bytes, or null when there is none. */
-        byte[] read(String name) throws IOException;
+        /** The named file's content, or null when there is none. The caller closes it. */
+        InputStream open(String name) throws IOException;
         /** Removes the named file if it exists. */
         void delete(String name) throws IOException;
-        /** Writes a new, complete file, and returns the name the folder actually gave it. */
-        String create(String name, byte[] data) throws IOException;
+        /** Writes a new, complete file with data's bytes, and returns the name the folder actually gave it. */
+        String create(String name, File data) throws IOException;
         /** Renames from to to; to does not exist. Fails rather than choosing another name. */
         void rename(String from, String to) throws IOException;
     }
@@ -216,16 +210,16 @@ final class RideAutoExport {
      * app never sees a partial file under the final name. A file of the same name with the same bytes is
      * left alone; a different one is replaced. Never creates a "name (1)" copy.
      */
-    static Outcome save(Folder folder, String name, String text) throws IOException {
-        byte[] data = text.getBytes(StandardCharsets.UTF_8);
+    static Outcome save(Folder folder, String name, File data) throws IOException {
         String temporary = temporaryName(name);
-        byte[] existing = folder.read(name);
+        Boolean same;
+        try (InputStream existing = folder.open(name)) { same = existing == null ? null : same(existing, data); }
         // A temporary file left by an interrupted pass would make the folder pick another name.
         folder.delete(temporary);
-        if (existing != null && Arrays.equals(existing, data)) return Outcome.UNCHANGED;
+        if (Boolean.TRUE.equals(same)) return Outcome.UNCHANGED;
         String written = folder.create(temporary, data);
         try {
-            if (existing != null) folder.delete(name);
+            if (same != null) folder.delete(name);
             folder.rename(written, name);
         } catch (IOException | RuntimeException failure) {
             try { folder.delete(written); } catch (IOException | RuntimeException ignored) { }
@@ -233,10 +227,21 @@ final class RideAutoExport {
         }
         return Outcome.SAVED;
     }
+    /** Whether the stream holds exactly the file's bytes, compared as both are read (an Everything file can be large). */
+    static boolean same(InputStream existing, File data) throws IOException {
+        try (InputStream mine = new BufferedInputStream(new FileInputStream(data), 65536)) {
+            InputStream theirs = new BufferedInputStream(existing, 65536);
+            for (;;) {
+                int a = mine.read(), b = theirs.read();
+                if (a != b) return false;
+                if (a < 0) return true;
+            }
+        }
+    }
 
     /** What one pass did. */
     static final class Result {
-        /** Rides that need nothing more: every type that is on was written, already there, or has nothing to write. */
+        /** Rides that need nothing more: the file was written, was already there, or the ride has nothing to write. */
         final List<String> finished = new ArrayList<>();
         /** Names of the files written (not those left alone). */
         final List<String> saved = new ArrayList<>();
@@ -244,26 +249,29 @@ final class RideAutoExport {
     }
 
     /**
-     * Exports the waiting rides in order, each type that is on. A ride leaves the list only once all of its
-     * files are written. A ride with nothing to write (no GPS fixes for the Route CSV only, or deleted) is
-     * finished quietly and needs no folder. A folder that cannot be reached stops the pass and keeps every
+     * Exports the waiting rides in order. A ride leaves the list only once its file is written (or was already
+     * there). A deleted ride has nothing to write: it is finished quietly and needs no folder. No folder, or one
+     * that cannot be reached, stops the pass at the first ride with a file and keeps every
      * remaining ride waiting; any other failure keeps that ride waiting and moves on. The ride recordings
-     * themselves are only read.
+     * themselves are only read, and each file made in the cache is removed once written.
      */
-    static Result run(List<String> pending, boolean routeCsv, boolean json, Source source, Folder folder) {
+    static Result run(List<String> pending, Source source, Folder folder) {
         Result result = new Result();
         for (String id : pending) {
+            Output file = null;
             try {
-                List<Output> files = new ArrayList<>();
-                if (routeCsv) { String csv = source.routeCsv(id); if (csv != null) files.add(new Output(routeCsvName(id), csv)); }
-                if (json) { Output file = source.json(id); if (file != null) files.add(file); }
-                if (!files.isEmpty() && folder == null) throw new Unavailable("No folder chosen");
-                for (Output file : files) if (save(folder, file.name, file.text) == Outcome.SAVED) result.saved.add(file.name);
+                file = source.everything(id);
+                if (file != null) {
+                    if (folder == null) throw new Unavailable("No folder chosen");
+                    if (save(folder, file.name, file.file) == Outcome.SAVED) result.saved.add(file.name);
+                }
                 result.finished.add(id);
             } catch (Unavailable gone) {
                 result.problem = Problem.FOLDER; break;
             } catch (IOException | RuntimeException failure) {
                 result.problem = Problem.SAVE;
+            } finally {
+                if (file != null) file.discard();
             }
         }
         return result;

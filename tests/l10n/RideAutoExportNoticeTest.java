@@ -46,7 +46,7 @@ public final class RideAutoExportNoticeTest {
 
     /**
      * How many notices a sequence of passes posts. Each step is h (hidden) or v (visible) plus the pass's failure:
-     * F folder, S save, - success. "off" clears the stored failure without a pass, as turning both switches off does.
+     * F folder, S save, - success. "off" clears the stored failure without a pass, as turning auto-save off does.
      */
     private static int posts(String steps) {
         RideAutoExport.Problem stored = RideAutoExport.Problem.NONE, notified = RideAutoExport.Problem.NONE;

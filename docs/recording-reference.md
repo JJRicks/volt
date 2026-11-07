@@ -189,48 +189,55 @@ gaps efficiently. Raw journals remain available for export.
 
 ### Auto-save rides
 
-**More → Data & history → Ride auto-save** has two switches, **Auto-save Route CSV**
-and **Auto-save ride JSON** (both off by default; `ride_auto_export_route_csv` and `ride_auto_export_json`) copy each
-ride you end into one folder, and a **Folder** row:
+**More → Data & history → Ride auto-save** has one switch, **Auto-save rides** (off by
+default; `ride_auto_export_json`), that saves each ride you end into one folder, and a
+**Folder** row. Each ride gets one file:
 
-| Switch | File | Contents |
-|---|---|---|
-| Route CSV | `ride-<first 8 of id>-route.csv` | Byte for byte Rides → Export ride data → Route CSV. Not written for a ride with no GPS fixes |
-| Ride JSON | `ride-<first 8 of id>-combined.json` | Byte for byte Export ride data → Scooter and phone JSON (formerly Export phone data → All (JSON)): `{"scooter":<analysis JSON>,"phone":<route JSON>}`, with every route point's time, position, accuracy, speed, altitude, grade, power, battery and scooter speed, plus distance, ascent, descent and dropped-fix counts. It holds no raw phone or motion samples, only their count |
-| Ride JSON, ride with no phone recording | `ride-<first 8 of id>-analysis.json` | Byte for byte Export ride data → Analysis JSON |
+| File | Contents |
+|---|---|
+| `ride-<first 8 of id>-everything.json` | Byte for byte Export ride data → Everything in one JSON ([format](ride-export-everything.md)), made by the same code: the ride's analysis, frames, readings and events, and when the ride has them its phone journal, motion samples and route, plus the clock anchors. A ride with no phone recording gets `"phone":null` |
 
-- **Folder.** Turning the first switch on opens Android's folder picker. Volt keeps
-  a read and write grant for that folder only and asks for no storage permission.
-  The **Folder** row shows where files go (`Saving to Download/VoltRides`, or
-  **Saving to your chosen folder** when the provider names no path); tap it to
-  choose another folder without changing either switch. A new folder is used for
-  rides saved from then on; files already saved are not moved. Turning both
-  switches off gives the grant back and forgets any rides still waiting; the
-  **Folder** row then stays in place, greyed out, with **No folder chosen yet**.
+- **Folder.** Turning the switch on opens Android's folder picker; a cancelled pick
+  leaves it off. Volt keeps a read and write grant for that folder only and asks for
+  no storage permission. The **Folder** row shows where files go (`Saving to
+  Download/VoltRides`, or **Saving to your chosen folder** when the provider names no
+  path); tap it to choose another folder without changing the switch. A new folder is
+  used for rides saved from then on; files already saved are not moved. Turning the
+  switch off gives the grant back and forgets any rides still waiting; the **Folder**
+  row then stays in place, greyed out, with **No folder chosen yet**.
 - **Which rides.** Every ride Volt saves when it ends: Stop in Volt or in the
   notification, the automatic end for parked rides, and a ride revived after Volt
   restarted and stopped later. Older rides aren't copied. Copies start once the
   phone journal has finished saving.
-- **Names and replacing.** Names come from the ride id only, never its label. Each
-  file is written as a hidden `.<name>.partial` and then renamed. An identical file
-  already there is left alone, a different one is replaced, and Volt never creates
-  a `name (1)` copy.
+- **Names and replacing.** Names come from the ride id only, never its label. The
+  file is first written in Volt's cache, then copied as a hidden `.<name>.partial`
+  and renamed. An identical file already there is left alone, a different one is
+  replaced (the file records Volt's version, so a ride saved again by a newer Volt is
+  replaced), and Volt never creates a `name (1)` copy.
 - **Failures.** A copy only reads the ride, so a failure never changes it. A ride
-  leaves the waiting list once every switched-on file is written. Volt tries again
-  after the next ride, when it starts and when a folder is chosen again; the
-  switches never turn themselves off. The **Folder** row shows **Couldn't save the last ride.
-  Choose the folder again.** (folder deleted or access lost) or **… Volt will try
-  again.** (a write failed). While Volt is in the background, one notification is
-  posted per kind of failure, until the kind changes (also while Volt is open) or a
-  copy succeeds. A failure that first happens while Volt is open shows only on the
-  row, so the same failure on a later ride in the background still posts one. A
-  success is silent.
+  leaves the waiting list once its file is written. Volt tries again after the next
+  ride, when it starts and when a folder is chosen again; the switch never turns
+  itself off. The **Folder** row shows **Couldn't save the last ride. Choose the
+  folder again.** (folder deleted or access lost) or **… Volt will try again.** (a
+  write failed). While Volt is in the background, one notification is posted per kind
+  of failure, until the kind changes (also while Volt is open) or a copy succeeds. A
+  failure that first happens while Volt is open shows only on the row, so the same
+  failure on a later ride in the background still posts one. A success is silent.
 - **Running.** A copy keeps Volt's service running until it ends, separately from
   the ten-second idle timeout, and backup and restore wait for it. None starts
   during a backup or restore.
-- **Backup.** The two switches travel with App preferences; the folder, the
-  waiting list and the last failure stay on the phone. On a restored phone the
-  **Folder** row shows **Choose a folder to start saving**, and rides wait until a folder is chosen.
+- **Backup.** The switch travels with App preferences; the folder, the waiting list
+  and the last failure stay on the phone. On a restored phone the **Folder** row
+  shows **Choose a folder to start saving**, and rides wait until a folder is chosen.
+- **Earlier builds.** Test builds before 1.12.0 had two switches, Auto-save Route CSV
+  (`ride_auto_export_route_csv`) and Auto-save ride JSON (`ride_auto_export_json`).
+  Either one on, in the settings or in a restored backup, means auto-save is on, with
+  the same folder; rides still waiting are saved as Everything files. Setting the
+  switch writes `ride_auto_export_route_csv` as off, so a new backup carries it off.
+  Restored into one of those builds, a new backup turns on its ride JSON switch when
+  auto-save was on (that build then saves its own ride JSON files) and leaves both off
+  otherwise. Files the old switches saved (`-route.csv`, `-combined.json`,
+  `-analysis.json`) are never touched.
 
 ## Background connections and foldable phones
 
