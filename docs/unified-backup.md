@@ -281,7 +281,7 @@ Recorded answers to the open questions of the first draft:
 
 Registered ahead of sibling work: the Boolean `ride_auto_stop` (App preferences). Profile validation tolerates additive fields in `profiles.items` (for example `pid_advertised`, `pid_advertised_wall`, `name_default` and `fw_*`), type-checks only the known ones, and splices profile items as their exact text so those fields survive a merge. The registry test fails on unassigned keys found in the source and ignores registered keys this source never writes.
 
-The automatic ride copy choices `ride_auto_export_route_csv` and `ride_auto_export_json` travel with App preferences. The chosen folder, its waiting rides and the last problem stay on the phone: Android does not carry a folder grant, so a restored choice waits until a folder is chosen there.
+The Auto-save rides switch `ride_auto_export_json` travels with App preferences, with the retired `ride_auto_export_route_csv` (either one on restores auto-save on; a new backup always carries the retired one off, moving an on value to `ride_auto_export_json` in the backup's copy, so an older Volt restores only its ride JSON switch). The chosen folder, its waiting rides and the last problem stay on the phone: Android does not carry a folder grant, so a restored choice waits until a folder is chosen there.
 
 The Export ride data sheet's remembered formats, `ride_export_choice`, travel with App preferences. Its last folder, `ride_export_folder_hint`, is only the picker's starting place and stays on the phone.
 
