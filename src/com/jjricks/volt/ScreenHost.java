@@ -13,6 +13,12 @@ public interface ScreenHost {
     void requestRideLocation(Runnable ready);
     void saveText(String name,String mime,String content);
     void saveFile(String name,String mime,File content);
+    /**
+     * Like saveFile, then runs copied once content has been copied for the Save dialog, or the save was refused or
+     * failed, so the caller can delete it. Never before the copy ends. This default copies nothing itself, so it runs
+     * copied as soon as saveFile returns; a host whose saveFile copies later overrides it.
+     */
+    default void saveFile(String name,String mime,File content,Runnable copied) { try { saveFile(name, mime, content); } finally { if (copied != null) copied.run(); } }
     /** Saves a compatibility report file; its tries count as reported only once the file is written. */
     default void saveReport(CompatibilityReport report) { saveText("volt-compat-report.json", "application/json", report.json()); }
     /** Back up & restore. A null direction first asks Back up or Restore; preselect is a category ID or null. */

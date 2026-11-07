@@ -8,6 +8,10 @@ to put all of it on one timeline. It is a superset of the other ride exports, no
 - File name: `ride-<first 8 of id>-everything.json`, type `application/json`.
 - Written by `RideExportFiles.payload` through `RideExportEverything.write`; tested by
   `tests/l10n/RideExportEverythingTest.java`.
+- The file holds GPS positions and notes, so Volt keeps no copy: it is written into a staging folder of its own in the
+  app cache (`cache/ride-export-<ms>/`) and removed as soon as it has been copied for the Save dialog or the
+  several-files folder, or the save failed. A folder a killed save left behind is removed by the next ride export
+  once it is a day old.
 - Nothing is resampled or rounded. Each value stays on the clock it was recorded with, and numbers are written exactly
   as the recording files hold them. The test rebuilds the scooter journal, the phone journal and the motion file from
   the JSON, byte for byte (less the identifiers below).
