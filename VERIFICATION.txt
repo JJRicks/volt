@@ -1,72 +1,106 @@
-VOLT 1.12.0 — OPENS INSTANTLY, RIDING MODE, LIVE CHARGING, MAINTENANCE (versionCode 55)
-November 6, 2026
+VOLT 1.12.0 — OPENS INSTANTLY, RIDING MODE, LIVE CHARGING, SEVEN LANGUAGES (versionCode 55)
+November 7, 2026
 
 - Every pull request merged since 1.11.1 passed CI (core-tests and web-setup)
   on its final head, and main's Core and setup tests pass. Each one's
   pure-Java suites cover its change: the ride cache and saved ride summaries,
-  the Rides list off the UI thread, riding mode's layouts, values, live range
-  and brightness, the live charging hold, card and background cadence,
-  maintenance distance, policy and notifications, the Scooter tab editor,
-  the update check, ride export and auto-save, ride auto-end, the wide-layout
-  rule and the narrow-label ladder.
-- Spanish: its strings come from the translation council (#217 and later
-  batches). ship_check --release shows zero English fallback for Spanish:
-  0 of 3773 keys, with aapt compiling 3990 texts.
-- Portuguese (Portugal): its strings come from the same council (#288, then
-  #289 to #297). ship_check --release shows zero English fallback for
-  Portuguese (Portugal): 0 of 3773 keys, with aapt compiling 3990 texts.
+  the Rides list off the UI thread, riding mode's layouts, values, live range,
+  brightness, ride time and recording pill, the live charging hold, card and
+  background cadence, maintenance distance, policy and notifications, the
+  Scooter tab editor, the update check, ride export and auto-save, ride
+  auto-end, the wide-layout rule and the narrow-label ladder.
+- Seven beta languages: Spanish, Portuguese (Portugal), Portuguese (Brazil),
+  Swedish, German, French and Italian. Their strings come from the
+  translation council (Spanish from #217, Portuguese (Portugal) from #288,
+  Portuguese (Brazil) from #301, Swedish #315, German #316, Italian #317,
+  French #318), with the final top-up for all seven in #320. #321 separated
+  the glossary's "stop the scooter" and "stop the alarm" senses, with a
+  regression test, so the automated checks hold each to its own wording.
+  ship_check --release shows zero English fallback in every one: 0 of 3783
+  keys each.
 - Launch and Rides timing (#234, #240) were measured on disposable emulators
-  only, with synthetic rides and Bluetooth off: about 0.3 s to the first
+  only, with synthetic rides and Bluetooth off: about 0.2 s to the first
   frame with 41 one-hour rides, from about 4 s. The service start command
   stands in for connection start; it is not a connection time.
-- Release candidate checks on the final tree: commit 6a95d65d, which is main
-  after #288 to #297 (Portuguese (Portugal)), plus this release's changelog
-  and README lines. Its tree is identical to main after #297 merged into this
-  branch. This verification update changes no app code.
-  - ship_check --release --aapt required: PASS, Spanish and Portuguese
-    (Portugal) each 0 of 3773 keys falling back, aapt compiling 3990 texts
-    for each exactly.
-  - Pinned Shizuku dependencies verified; tests/run.sh passes (155 suites,
-    about 1.99 million checks); owner-capture guard (11), capture-owner (22)
+- Release candidate checks on the final tree: commit 00e9014e, which is main
+  after #320 (before #321 merged; the same tree as main after both), plus
+  this release's changelog, README and features lines. Main has since gained
+  only #322, homepage copy that isn't part of the app. This verification
+  update changes no app code; besides this file it fixes one emulator
+  validation (RideAutoStopValidation, below).
+  - ship_check --release --aapt required: PASS. All seven languages have 0 of
+    3783 keys falling back; aapt compiles 4004 texts exactly for es, pt-PT,
+    pt-BR, fr and it, and 3894 for sv and de.
+  - Pinned Shizuku dependencies verified; tests/run.sh passes (158 suites,
+    about 2.05 million checks); owner-capture guard (11), capture-owner (22)
     and hardware-sweep (14) tests pass.
   - VOLT_RELEASE=1 bash build.sh with a local contributor key on that commit:
     versionName 1.12.0 (no -dev), versionCode 55. This is the build the sweep
     below ran.
-- run-release-sweep.py on that build (Medium Phone API 36.1 emulator,
-  synthetic data, Bluetooth off): all 69 gating steps passed in one run,
-  including responsive, responsive-modes, charge-capture and motion-polish,
-  with no reruns. Of its 12 report-only steps, the six Spanish and Portuguese
-  (Portugal) reports ran (below). The six pseudo-locale reports (en-XA and
-  ar-XB at three sizes) were skipped: the sweep was given no pseudo-locale
-  build. The sweep's own "81/81" summary counts report-only steps as passed
-  even when they are skipped.
-  - Earlier candidates needed reruns: three validations were outdated by
-    reviewed changes (#211, #250) until #283 updated them, and motion-polish
-    hung once in am instrument while the Mac was loaded.
-  - rides-timing passed (best of two cold starts, slowest case): first frame
-    171 ms and service start command 172 ms (budgets 1.5 s), Rides first row
-    39 ms and longest main-thread message 33 ms cold, 32 ms warm (budget 1 s).
-    The slowest single cold run held the main thread for 91 ms, under the
-    250 ms everyday target. The service start command stands in for
-    connection start; it is not a connection time.
-  - locale-es and locale-pt-PT reports (report only, not gating): 0 fit,
-    direction, glued, unfilled or unextracted problems at 344 dp, 725 dp and
-    725 dp with large font (23 screens each, per language). #286 fixed the two
-    More-list labels that broke mid-word at 725 dp.
-- No owner-present hardware sweep yet (run-hardware-sweep.py --parked, parked
-  since 1.11.0). The owner runs it before publishing.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off), spread over eight emulators at once:
+  - 68 of the 69 gating steps passed on the first run. ride-auto-stop failed
+    with NoSuchMethodException: its walking power-off check still looked up
+    the auto-save switch's old four-argument setter, which #313 replaced when
+    auto-save became one switch. RideAutoStopValidation now calls the new
+    setter (test-only change). With that fix, ride-auto-stop passed on the
+    same build: four layouts, 99 checks each. It backdates synthetic rides by
+    up to 330 s, so on a freshly booted emulator it needs that much uptime
+    first.
+  - rides-timing passed (best of two cold starts per case, slowest case):
+    first frame 159 ms and service start command 141 ms (budgets 1.5 s),
+    Rides first row 53 ms and longest main-thread message 42 ms cold, 37 ms
+    warm (budget 1 s). The slowest single cold launch held the main thread
+    for 118 ms, under the 250 ms everyday target.
+  - Locale reports (report only, not gating), 42 steps: seven languages at
+    344 dp, 725 dp and 725 dp with large font, app and scooter screens. All
+    42 match the #320 validation sweep: Spanish, Portuguese (Portugal) and
+    Portuguese (Brazil) have 0 fit problems, and Swedish, German, French and
+    Italian match their own ship sweeps. Italian's 344 dp scooter report now
+    completes all 20 screens.
+  - The six pseudo-locale reports (en-XA and ar-XB at three sizes) were
+    skipped: the sweep was given no pseudo-locale build.
+- Ride auto-save (RideAutoExportValidation, run separately with
+  run-ride-auto-export.py, since it drives the system folder pickers): passed
+  in full on the candidate (585 checks), run on one emulator after the sweep
+  had finished. Two earlier runs, alongside the eight-emulator sweep, failed
+  at the same step (the failure line and notice check, "Volt in front again"
+  after its cmd uimode screenshots), as that step did on main before #313
+  (noted in #313). With only that step left out, a third run passed (489
+  checks).
+- Owner-present hardware sweep (run-hardware-sweep.py --parked) on the
+  owner's Pixel 10 Pro Fold and UT5 MAX, with the release-key build of this
+  candidate installed (contents identical to the swept build). The scooter
+  was charging.
+  - snapshot, navigation, clock sync, settings, the charging start time and
+    test scheduled charging passed. 23 settings were changed, read back and
+    restored; nothing was left changed. Five controls are excluded by the
+    test plan and never written: speed limit, maximum speed, dual drive,
+    drive speed limit and timed charging.
+  - The background check failed while charging ("Second pause did not get a
+    fresh full grace"): the live charging hold keeps Volt connected in the
+    background while the scooter charges, so it skips the 10-second
+    background stop by design. With the charger unplugged, the background
+    check passed. The check should allow for the charging hold; that is a
+    follow-up.
+- The owner's first look at the live charging card on a real charge, after
+  the hardware sweep: with the scooter unplugged, the card kept showing
+  "Charging" and "estimating time left" instead of Connected until Volt was
+  opened. The release notes list it as a known limit; the fix is planned for
+  1.12.1, with a more balanced card layout.
 - Real-phone checks only the owner can do, not yet done:
-  - the live charging card in the background through a real charge;
+  - the live charging card in the background through a full real charge;
   - a maintenance reminder notification after a reboot, and under battery
     saver;
   - the 24-hour update check;
   - riding mode brightness in sunlight;
   - the connection notice staying Connected with Volt out of sight;
   - riding mode night vision: brightness and the fade in real darkness and in
-    sunlight.
+    sunlight;
+  - ride time and the 10-minute auto-end on a real ride.
 - Physical scope: riding mode, live charging, maintenance reminders, the
-  Scooter tab editor and the launch timing are tested on emulators and in
-  JVM suites, not yet on a real phone with a scooter.
+  Scooter tab editor, ride auto-save and the launch timing are tested on
+  emulators and in JVM suites, not yet on a real phone with a scooter.
 
 --- Previous verification ---
 
