@@ -30,9 +30,10 @@ public final class RidingValuesTest {
         timers();
         rideTimeNeverFreezes();
         rideTimeAcrossReopen();
+        tripRestartEvidence();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time never freezes or snaps back, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time never freezes or snaps back, trip restarts vs reconnects, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -712,6 +713,61 @@ public final class RidingValuesTest {
         check(later.rideTimeMs(now) == 7 * 60_000L, "a carried clock that's long out of date is dropped");
         check(new RidingValues().tripClock() == null, "no clock before a trip report");
         new RidingValues().resumeTrip(null);
+    }
+
+    /** One ride report's trip fields at one time; minutesFirst sets the order they land in. */
+    private static void report(RidingValues v, double minutes, double km, double max, long t, boolean minutesFirst) {
+        if (minutesFirst) v.sample("trip_minutes", minutes, 0x92, t);
+        v.sample("trip_km", km, 0x92, t);
+        v.sample("maximum_speed_kmh", max, 0x92, t);
+        if (!minutesFirst) v.sample("trip_minutes", minutes, 0x92, t);
+    }
+
+    /**
+     * Codex #319: a power cycle can show the same minute as before (0 while the old trip's counter stood
+     * still), so the minute alone can't tell a restart from a reconnect. The trip's distance and top speed
+     * start over at 0 on a power cycle; a dropped link that comes back keeps them.
+     */
+    private static void tripRestartEvidence() {
+        for (boolean minutesFirst : new boolean[]{true, false}) {
+            String order = minutesFirst ? " (minutes first)" : " (distance first)";
+            // Live: three minutes at a standing-still 0, 0.4 km and 12 km/h top speed so far.
+            RidingValues live = new RidingValues();
+            long t = 2_000_000;
+            for (int s = 0; s <= 180; s++) report(live, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            long now = t + 195_000;
+            report(live, 0, 0, 0, now, minutesFirst);
+            check(live.rideTimeMs(now) == 0, "a same-minute power cycle with the trip reset starts over" + order + ": " + live.rideTimeMs(now));
+            report(live, 0, 0, 0, now + 1000, minutesFirst);
+            check(live.rideTimeMs(now + 1000) == 1000, "and counts the new trip from there" + order);
+
+            RidingValues link = new RidingValues();
+            for (int s = 0; s <= 180; s++) report(link, 0, 0.4, 12, t + s * 1000L, minutesFirst);
+            report(link, 0, 0.4, 12, now, minutesFirst);
+            check(link.rideTimeMs(now) == 195_000, "a dropped link that comes back without a reset carries on" + order + ": " + link.rideTimeMs(now));
+
+            // Reopened riding mode with the saved anchor.
+            RidingValues.TripClock clock = link.tripClock();
+            RidingValues restarted = new RidingValues();
+            restarted.resumeTrip(clock);
+            long later = now + 15_000;
+            report(restarted, 0, 0, 0, later, minutesFirst);
+            check(restarted.rideTimeMs(later) == 0, "reopened after a same-minute power cycle starts over" + order + ": " + restarted.rideTimeMs(later));
+            RidingValues reconnected = new RidingValues();
+            reconnected.resumeTrip(clock);
+            report(reconnected, 0, 0.5, 12, later, minutesFirst);
+            check(reconnected.rideTimeMs(later) == 210_000, "reopened after a reconnect without a reset carries on" + order + ": " + reconnected.rideTimeMs(later));
+        }
+        // Whole-unit (v0) reports: a small rounding wobble is not a reset.
+        RidingValues v0 = new RidingValues();
+        report(v0, 1, 3.7, 27.9, 0, true);
+        report(v0, 1, 3, 27, 1000, true);
+        check(v0.rideTimeMs(1000) == 61_000, "a rounding drop under a whole unit keeps the trip: " + v0.rideTimeMs(1000));
+        // Documented ambiguity: a power cycle before the old trip moved (0 km, 0 km/h on both sides) carries on.
+        RidingValues still = new RidingValues();
+        for (int s = 0; s <= 60; s++) report(still, 0, 0, 0, s * 1000L, true);
+        report(still, 0, 0, 0, 75_000, true);
+        check(still.rideTimeMs(75_000) == 75_000, "a restart that looks identical can't be told apart (documented)");
     }
 
     private static void battery() {

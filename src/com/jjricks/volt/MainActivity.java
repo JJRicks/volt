@@ -232,7 +232,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){selectedPage=saved.getString("page","home");for(String page:pages)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else selectedPage="home";
-        if(saved!=null&&saved.containsKey("riding_trip_start")){ridingTrip=new RidingValues.TripClock(saved.getLong("riding_trip_start"),saved.getDouble("riding_trip_minutes"),saved.getLong("riding_trip_seen"));ridingTripProfile=saved.getString("riding_trip_profile");}
+        if(saved!=null&&saved.containsKey("riding_trip_start")){ridingTrip=new RidingValues.TripClock(saved.getLong("riding_trip_start"),saved.getDouble("riding_trip_minutes"),saved.getLong("riding_trip_seen"),saved.getDouble("riding_trip_km",Double.NaN),saved.getDouble("riding_trip_max",Double.NaN));ridingTripProfile=saved.getString("riding_trip_profile");}
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
         // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
@@ -306,7 +306,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         captureScroll();saved.putString("page",selectedPage);saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);
         saved.putBoolean("riding",riding!=null||ridingRestore);
         keepRidingTrip();
-        if(ridingTrip!=null){saved.putLong("riding_trip_start",ridingTrip.startMs);saved.putDouble("riding_trip_minutes",ridingTrip.minutes);saved.putLong("riding_trip_seen",ridingTrip.seenMs);saved.putString("riding_trip_profile",ridingTripProfile);}
+        if(ridingTrip!=null){saved.putLong("riding_trip_start",ridingTrip.startMs);saved.putDouble("riding_trip_minutes",ridingTrip.minutes);saved.putLong("riding_trip_seen",ridingTrip.seenMs);saved.putDouble("riding_trip_km",ridingTrip.kmMark);saved.putDouble("riding_trip_max",ridingTrip.maxSpeedMark);saved.putString("riding_trip_profile",ridingTripProfile);}
         for(String page:pages)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
         super.onSaveInstanceState(saved);
     }
