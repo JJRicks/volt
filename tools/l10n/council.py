@@ -248,7 +248,35 @@ def user_prompt(pack, entries, findings_by_key=None, with_src=False):
             head += (" Your earlier draft of the strings with failed_checks failed those automated checks; fix "
                      "them. The others were missing from your earlier reply.")
     body = [model_view(e, findings_by_key.get(e["key"]), with_src) for e in entries]
-    return head + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1)
+    return head + width_hint_block(pack, entries) + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1)
+
+
+def hint_text(value):
+    texts = [value] if isinstance(value, str) else list(value.values())
+    return " / ".join("\u00ab%s\u00bb" % t for t in texts)
+
+
+def width_hint_block(pack, entries):
+    """The pack's width hints (pack.py --width-hints) for these entries, as a short block between the prompt's
+    head and its strings, or "" when the pack has none for them (the prompt is then exactly as without the
+    option). It is built from the pack alone, so every drafter of a chunk, API or Claude, gets the same one;
+    judge prompts never show it."""
+    hints = (pack.get("width_hints") or {}).get("keys") or {}
+    lines = []
+    for entry in entries:
+        shown = hints.get(entry["key"])
+        if not shown:
+            continue
+        where = "%gdp at %gsp%s" % (entry["budget_dp"], entry["budget_sp"],
+                                    ", %d lines" % entry["budget_lines"] if (entry.get("budget_lines") or 1) > 1
+                                    else "")
+        lines.append("- %s (budget %s): %s" % (entry["key"], where, "; ".join(
+            "%s %s, %.1fdp of %gdp" % (h["tag"], hint_text(h["text"]), h["width_dp"], h["budget_dp"])
+            for h in shown)))
+    if not lines:
+        return ""
+    return ("\n\nWidth hints: how shipped languages fit some tight keys below. A hint is about fitting the width "
+            "only; translate from the English, not from these texts.\n" + "\n".join(lines))
 
 
 def chunks(pack, entries, size=CHUNK):

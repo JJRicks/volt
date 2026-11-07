@@ -1211,7 +1211,12 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    budget, glossary hits with the approved terms, two neighbours on each side, and any current
    translation with whether its English changed (`status`: `new`, `stale` or `current`). Only new
    and stale keys are drafted, plus every rung of their ladders. A ladder rung without its own
-   `volt:safety` takes its full key's.
+   `volt:safety` takes its full key's. Opt-in `--width-hints es,pt-PT` (off by default) adds, for a
+   key under a width budget that a shipped language fits tightly (95% of the budget or more) or by
+   abbreviation, that text and its width, at most two languages per key. Every drafter's prompt
+   shows the same short block above the strings, saying it is a hint about the width only and to
+   translate from the English; judges never see it. Without the option packs and prompts are
+   unchanged.
 2. **Drafts**, independently. `council.py draft openai|google` asks each provider's model-list
    endpoint which models exist and picks one per `tools/l10n/council_models.json` (first matching
    pattern, newest version; `--model` or `--prefer` overrides). The owner chose modest current
