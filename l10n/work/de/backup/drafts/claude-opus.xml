@@ -46,7 +46,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Speichern fehlgeschlagen. Versuche es erneut an einem anderen Ort.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Backup gespeichert.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Wiederherstellung</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Wähle ein Volt-Backup aus, um deine gespeicherten App-Daten wiederherzustellen. Ältere Besitzer-Einrichtungsdateien sowie Fahrten- und Layout-Dateien funktionieren auch; vor der Wiederherstellung siehst du genau, was sie enthalten.</string>
+    <string name="backup_restore_intro" volt:src="3edbbca81c00f0869ecd161d0877696640456cf8">Wähle ein Volt-Backup, um deine gespeicherten App-Daten wiederherzustellen. Auch ältere Dateien mit Besitzer-Einrichtung, Fahrten oder Layouts funktionieren; vor dem Wiederherstellen siehst du genau, was sie enthalten.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Berechtigungen und die Bluetooth-Kopplung sind nicht enthalten.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Datei auswählen</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Es konnte keine Dateiauswahl geöffnet werden.</string>
@@ -78,7 +78,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Für welchen Scooter ist diese Besitzer-Einrichtung?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Ziel für das Layout:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Ziel für Daten von „%1$s“:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Mehr als ein Scooter kann diese Besitzer-Einrichtungsdatei verwenden. Wähle einen vorhandenen Scooter aus oder füge einen weiteren hinzu.</string>
+    <string name="backup_owner_choice" volt:src="deece19b3157d087723c77b3e5938e54cf6160d0">Mehr als ein Scooter kann diese Besitzer-Einrichtungsdatei verwenden. Wähle einen vorhandenen Scooter oder füge einen anderen hinzu.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Scooter auswählen…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Weiteren Scooter hinzufügen</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Aus Backup hinzufügen</string>

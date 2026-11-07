@@ -53,8 +53,24 @@
     <string name="dashboard_hero_time_tag_status" volt:src="f5f890cf656f55df359eda425e26bd0923b1b81f">%1$s, %2$s, %3$s. %4$s</string>
     <string name="dashboard_hero_charge_not_reported" volt:src="bae5d367b7ef5a1b6b72b1e9a82d78879e77350a">Akkustand nicht gemeldet</string>
     <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17">Akkustand nicht gemeldet, Ladegrenze %1$s Prozent</string>
+    <plurals name="dashboard_hero_charge_not_reported_limit_count" volt:src="cb57005bafbe5bb10b268474adef63679540e6fa">
+        <item quantity="one">Akkustand nicht gemeldet, Ladegrenze %1$s Prozent</item>
+        <item quantity="other">Akkustand nicht gemeldet, Ladegrenze %1$s Prozent</item>
+    </plurals>
     <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Akkustand %1$s Prozent</string>
+    <plurals name="dashboard_hero_charge_count" volt:src="319b885d610d02f236c33dd0323b3793964384e9">
+        <item quantity="one">Akkustand %1$s Prozent</item>
+        <item quantity="other">Akkustand %1$s Prozent</item>
+    </plurals>
     <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Akkustand %1$s Prozent, Ladegrenze %2$s Prozent</string>
+    <plurals name="dashboard_hero_charge_limit_count" volt:src="965d354c503e61f51022060a9575ea9f103239ad">
+        <item quantity="one">Akkustand %1$s Prozent, %2$s</item>
+        <item quantity="other">Akkustand %1$s Prozent, %2$s</item>
+    </plurals>
+    <plurals name="dashboard_hero_limit_percent" volt:src="b35f2fbd0d743cdcdf2b14e258d75ce194bf7b7c">
+        <item quantity="one">Ladegrenze %1$s Prozent</item>
+        <item quantity="other">Ladegrenze %1$s Prozent</item>
+    </plurals>
     <string name="dashboard_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Akkutemperatur</string>
     <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Am Akku gemessene Leistung</string>
     <string name="dashboard_charging_time_tag" volt:src="03b47181996e70bcd965c93fb77f2b1d1af5e6ac">%1$s (%2$s)</string>
@@ -81,6 +97,7 @@
     <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Leere Notiz. Notiz bearbeiten</string>
     <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Notiz</string>
     <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Fahrt aufzeichnen</string>
+    <string name="dashboard_record_short" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Start</string>
     <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Fahrten ansehen</string>
     <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s, nicht gemeldet</string>
     <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Akku</string>
@@ -90,9 +107,25 @@
     <string name="dashboard_overview_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Akkustand nicht gemeldet, %1$s</string>
     <string name="dashboard_overview_not_reported_line_seen" volt:src="484687dbd44e137c9ede6b4a74efe5b4d634dd39">Akkustand nicht gemeldet, %1$s, zuletzt: %2$s</string>
     <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Akkustand %1$s Prozent</string>
+    <plurals name="dashboard_overview_percent_count" volt:src="a5b67f07cb4b601141fd43a88173a2163e1d6ecc">
+        <item quantity="one">Akku %1$s Prozent</item>
+        <item quantity="other">Akku %1$s Prozent</item>
+    </plurals>
     <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43">Akkustand %1$s Prozent, zuletzt: %2$s</string>
+    <plurals name="dashboard_overview_percent_seen_count" volt:src="921ea8b31ced1b8168d059ad99324c0f48a6d1a9">
+        <item quantity="one">Akku %1$s Prozent, zuletzt: %2$s</item>
+        <item quantity="other">Akku %1$s Prozent, zuletzt: %2$s</item>
+    </plurals>
     <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Akkustand %1$s Prozent, %2$s</string>
+    <plurals name="dashboard_overview_percent_line_count" volt:src="a4b9a03915ba7f95f0b0483cb5da2a4351b2dd01">
+        <item quantity="one">Akku %1$s Prozent, %2$s</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s</item>
+    </plurals>
     <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Akkustand %1$s Prozent, %2$s, zuletzt: %3$s</string>
+    <plurals name="dashboard_overview_percent_line_seen_count" volt:src="3bb9865165094454082c01757c8f55fb72607339">
+        <item quantity="one">Akku %1$s Prozent, %2$s, zuletzt: %3$s</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s, zuletzt: %3$s</item>
+    </plurals>
     <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Akkustand nicht gemeldet, wird geladen</string>
     <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Akkustand nicht gemeldet, wird geladen, zuletzt empfangener Messwert</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Akkustand nicht gemeldet</string>
@@ -102,13 +135,45 @@
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Akkustand nicht gemeldet, %1$s</string>
     <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Akkustand nicht gemeldet, %1$s, zuletzt empfangener Messwert</string>
     <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Akkustand %1$s Prozent, wird geladen</string>
+    <plurals name="dashboard_cell_percent_charging_count" volt:src="e9b0247d4a6f7d643142a26b0a17c1df58d3a6ec">
+        <item quantity="one">Akku %1$s Prozent, Akku lädt</item>
+        <item quantity="other">Akku %1$s Prozent, Akku lädt</item>
+    </plurals>
     <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Akkustand %1$s Prozent, wird geladen, zuletzt empfangener Messwert</string>
+    <plurals name="dashboard_cell_percent_charging_stale_count" volt:src="db4e49a6a1f56e9d4357b6ab22a172065a7535c9">
+        <item quantity="one">Akku %1$s Prozent, Akku lädt, zuletzt erfasster Messwert</item>
+        <item quantity="other">Akku %1$s Prozent, Akku lädt, zuletzt erfasster Messwert</item>
+    </plurals>
     <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Akkustand %1$s Prozent</string>
+    <plurals name="dashboard_cell_percent_count" volt:src="a5b67f07cb4b601141fd43a88173a2163e1d6ecc">
+        <item quantity="one">Akku %1$s Prozent</item>
+        <item quantity="other">Akku %1$s Prozent</item>
+    </plurals>
     <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Akkustand %1$s Prozent, zuletzt empfangener Messwert</string>
+    <plurals name="dashboard_cell_percent_stale_count" volt:src="9d9bbac9828c1852f684b3204ed983af6bceb270">
+        <item quantity="one">Akku %1$s Prozent, zuletzt erfasster Messwert</item>
+        <item quantity="other">Akku %1$s Prozent, zuletzt erfasster Messwert</item>
+    </plurals>
     <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Akkustand %1$s Prozent, %2$s, wird geladen</string>
+    <plurals name="dashboard_cell_percent_line_charging_count" volt:src="71bc140490d611df1d17220ee1b21f4603577c84">
+        <item quantity="one">Akku %1$s Prozent, %2$s, Akku lädt</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s, Akku lädt</item>
+    </plurals>
     <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Akkustand %1$s Prozent, %2$s, wird geladen, zuletzt empfangener Messwert</string>
+    <plurals name="dashboard_cell_percent_line_charging_stale_count" volt:src="3dbe744013296a93ddd6e427789ccafe01acfefe">
+        <item quantity="one">Akku %1$s Prozent, %2$s, Akku lädt, zuletzt erfasster Messwert</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s, Akku lädt, zuletzt erfasster Messwert</item>
+    </plurals>
     <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Akkustand %1$s Prozent, %2$s</string>
+    <plurals name="dashboard_cell_percent_line_count" volt:src="a4b9a03915ba7f95f0b0483cb5da2a4351b2dd01">
+        <item quantity="one">Akku %1$s Prozent, %2$s</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s</item>
+    </plurals>
     <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Akkustand %1$s Prozent, %2$s, zuletzt empfangener Messwert</string>
+    <plurals name="dashboard_cell_percent_line_stale_count" volt:src="814d29991724e3e3e6708c9b6c8d594c2844cb70">
+        <item quantity="one">Akku %1$s Prozent, %2$s, zuletzt erfasster Messwert</item>
+        <item quantity="other">Akku %1$s Prozent, %2$s, zuletzt erfasster Messwert</item>
+    </plurals>
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, zuletzt: %3$s</string>
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -121,6 +186,8 @@
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Messung läuft…</string>
     <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Letzte Fahrt wird gespeichert…</string>
     <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Wird verbunden…</string>
+    <string name="dashboard_recorder_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Startet…</string>
+    <string name="dashboard_recorder_not_started" volt:src="9348982500c367049e2cccc851d9393bb77ef5e1">Die Aufzeichnung wurde nicht gestartet. Versuche es erneut.</string>
     <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Fahrt aufzeichnen. Letzte Fahrt wird gespeichert</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Aufzeichnung starten</string>
     <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Fahrt aufzeichnen. Wird verbunden</string>
@@ -145,7 +212,7 @@
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Ladeprüfung</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Abdeckung</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Akkutemperatur</string>
-    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Abgelehnt</string>
+    <string name="dashboard_rejected" volt:src="e2b7b64962da0251df9bf717786cefe253fc8cdf">Ausgeschlossene Fahrten</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Näherungswert: kann zu hoch sein; nicht der Akkuzustand.</string>
     <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie, die deine Fahrten entnommen haben, hochgerechnet auf eine volle Akkuanzeige. Kein Test des Akkuzustands oder der Kapazität.</string>
@@ -205,10 +272,11 @@
     <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Verknüpfung auswählen</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Auswahl der Verknüpfung schließen</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Speichern</string>
+    <string name="dashboard_save_checked" volt:src="07ed5aac0e459c8e497b5b10fa5863ebc480dbef">✓ Speichern</string>
     <string name="dashboard_window_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
     <string name="dashboard_window_hours" volt:src="3708457c3189d22c84d3b9ea33b4e3a05a66e6fc">%1$s h</string>
     <string name="dashboard_window_one_day" volt:src="4aafdce4b09bfe4c0bbb15c1316858e3f3068be1">1 Tag</string>
-    <plurals name="dashboard_window_days" volt:src="3a71b0b1ac46710055e637ab8be8330dabeceace">
+    <plurals name="dashboard_window_days" volt:src="8e0740162d51d699a03819781780072ee12a147f">
         <item quantity="one">%1$d Tag</item>
         <item quantity="other">%1$d Tage</item>
     </plurals>
@@ -260,10 +328,73 @@
     <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Slot %1$s ersetzen?</string>
     <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">In Slot %1$s speichern?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Ersetzen</string>
-    <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Das Layout konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="dashboard_save_layout_failed" volt:src="c04e0afcdf87066ac8309a668a28898d304fab08">Das Layout konnte nicht gespeichert werden. Versuche es erneut.</string>
     <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">In Slot %1$s gespeichert</string>
     <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">„%1$s“ wiederherstellen?</string>
     <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Dein Layout und die Spalteneinstellung werden auf allen Scootern ersetzt.</string>
-    <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Konnte nicht wiederhergestellt werden. Es wurde nichts geändert.</string>
+    <string name="dashboard_restore_failed" volt:src="cf72c66ffddd541edae4afd00dc888ccd914412b">Wiederherstellen fehlgeschlagen. Nichts wurde geändert.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">„%1$s“ wiederhergestellt</string>
+    <string name="dashboard_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Verbunden</string>
+    <string name="dashboard_status_connected_mode" volt:src="67ce2814b0e0b0c18a94426aa3efd96eec4fc80b">Verbunden · %1$s</string>
+    <string name="dashboard_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Nicht verbunden</string>
+    <string name="dashboard_status_disconnected_short" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Getrennt</string>
+    <string name="dashboard_status_disconnected_seen" volt:src="685da721f9ff2b145d69f738ac21657b3567558f">Nicht verbunden · Zuletzt: %1$s</string>
+    <string name="dashboard_status_disconnected_seen_short" volt:src="bea91ec53d150284c959e9ef76a1cada6427610d">Getrennt · %1$s</string>
+    <string name="dashboard_status_spoken_connected" volt:src="56c461696100940740107f4b2d6fa0289ea989e6">Verbunden. Verbindungsdetails</string>
+    <string name="dashboard_status_spoken_connected_mode" volt:src="8365501f95a72a9d7455b9f4c5f9d96f88cb3c14">Verbunden, Fahrmodus %1$s. Verbindungsdetails</string>
+    <string name="dashboard_status_spoken_connecting" volt:src="773e46b6e066dce56c5e9185607ec18f94fea8db">Verbindung wird hergestellt. Verbindungsdetails</string>
+    <string name="dashboard_status_spoken_disconnected" volt:src="d9c881d1fc3f830173a5c611c2644b7d768a47a3">Nicht verbunden. Verbindungsdetails</string>
+    <string name="dashboard_status_spoken_disconnected_seen" volt:src="e06022cc0b4286933ac4958b3748778f79f3be5d">Nicht verbunden, zuletzt: %1$s. Verbindungsdetails</string>
+    <plurals name="dashboard_estimate_window_days" volt:src="8e0740162d51d699a03819781780072ee12a147f">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <string name="dashboard_estimate_window_live" volt:src="61caa4c138030ffdb6fe5f81b12e858ba006be55">%1$s · live</string>
+    <plurals name="dashboard_column_count" volt:src="1217a593cb760d85b8cd185b1c1eeda34a6e5d2d">
+        <item quantity="one">%1$d Spalte</item>
+        <item quantity="other">%1$d Spalten</item>
+    </plurals>
+    <string name="dashboard_column_count_needs_wider" volt:src="22e3fece08d124e4a0138936e6630c8cec6a7534">%1$s, benötigt einen breiteren Bildschirm</string>
+    <string name="dashboard_slot_unreadable" volt:src="f3f97070b2aba4259d73247dfc892005560381d0">Nicht lesbar</string>
+    <string name="dashboard_slot_empty" volt:src="6e441d9bee753c14fe2b0f0e6d518c5c00df8d7a">Leer</string>
+    <plurals name="dashboard_slot_summary" volt:src="0c059df444b6e3b0c75d5052bdeb618a3fb150f6">
+        <item quantity="one">1 Widget · %2$s</item>
+        <item quantity="other">%1$d Widgets · %2$s</item>
+    </plurals>
+    <string name="dashboard_rating_value" volt:src="3c2981f5d77ab0344148832e8c628558d359de00">%1$s %2$s%3$s</string>
+    <string name="dashboard_rating_model" volt:src="0526428b25c0008515751367609d781ad1735c57">" · Modell"</string>
+    <plurals name="dashboard_capacity_rides" volt:src="c709a5f7bd33ef76640a405695341aea3932dd45">
+        <item quantity="one">%1$s Fahrt</item>
+        <item quantity="other">%1$s Fahrten</item>
+    </plurals>
+    <plurals name="dashboard_capacity_points_used" volt:src="6ec3ccfc7e37d4fd3d323467922a76e2027d85cc">
+        <item quantity="one">%1$s Prozentpunkt verbraucht</item>
+        <item quantity="other">%1$s Prozentpunkte verbraucht</item>
+    </plurals>
+    <string name="dashboard_capacity_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <plurals name="dashboard_selected_of_most" volt:src="db51ba68bb8e8b925b346d35f697ccdbb24f04d1">
+        <item quantity="one">%1$s von %2$s ausgewählt</item>
+        <item quantity="other">%1$s von %2$s ausgewählt</item>
+    </plurals>
+    <string name="dashboard_rejected_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="dashboard_close_widget_options" volt:src="04dcbb743b9a84592a27a803171a1a835d5112c1">Widget-Optionen schließen</string>
+    <string name="dashboard_scooter_range" volt:src="1361cc0b30b68186a4439469f85f1a5f6a427085">Scooter-Reichweite</string>
+    <string name="dashboard_scooter_range_compact" volt:src="1361cc0b30b68186a4439469f85f1a5f6a427085">Scooter-Reichw.</string>
+    <plurals name="dashboard_window_name_minutes" volt:src="f3017641d0dca07b69d95ea55dbde888bd9d2cc9">
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minuten</item>
+    </plurals>
+    <plurals name="dashboard_window_name_hours" volt:src="59b286df76309b40d6b630eb9b74fff0b4820347">
+        <item quantity="one">%1$d Stunde</item>
+        <item quantity="other">%1$d Stunden</item>
+    </plurals>
+    <plurals name="dashboard_window_name_days" volt:src="8e0740162d51d699a03819781780072ee12a147f">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <string name="dashboard_recording_spoken" volt:src="42a3ec19ca039c0d3cfe5c704acd877eed62a18d">Aufzeichnung läuft, %1$s. Beenden und speichern</string>
+    <string name="dashboard_recording_spoken_parts" volt:src="543107fa182d2cbeb83b1d2257513ceef111b403">Aufzeichnung läuft, %1$s, %2$s. Beenden und speichern</string>
+    <string name="dashboard_recording_spoken_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
+    <string name="dashboard_scale_maximum_in" volt:src="bb914ca34e8c256845c5c3853eda58d2e07d23ce">Skalenmaximum in %1$s</string>
+    <string name="dashboard_scale_minimum_in" volt:src="1b901ce0b176e22d3dcb439b4453a257d4c556df">Skalenminimum in %1$s</string>
 </resources>

@@ -66,7 +66,7 @@
     <string name="readings_trip_minutes" volt:src="03d7ed55e48de381fac031a7eaa1e9653293d6f4">Aktuelle Trip-Zeit des Scooters</string>
     <string name="readings_trip_minutes_short" volt:src="d8c2def1bdb327e9582a98aee6ec34674f491d5c">Trip-Zeit</string>
     <string name="readings_trip_minutes_compact" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Zeit</string>
-    <string name="readings_maximum_speed_kmh" volt:src="33b4bdf2459659c914e2e99032ad48e8a1088c10">Spitzengeschwindigkeit des aktuellen Trips</string>
+    <string name="readings_maximum_speed_kmh" volt:src="9063a6639c99ecf08f46fe20d63dc86c3128d6ec">Spitzengeschwindigkeit im aktuellen Trip</string>
     <string name="readings_maximum_speed_kmh_short" volt:src="b32c219506a82df18171f269b241a95055523dd0">Trip-Spitze</string>
     <string name="readings_maximum_speed_kmh_compact" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Spitze</string>
     <string name="readings_average_speed_kmh" volt:src="475f4a3043351f56010ea35afe879a4bfce68294">Durchschnittsgeschwindigkeit des aktuellen Trips</string>
@@ -81,7 +81,7 @@
     <string name="readings_stored_trips_short" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Gespeicherte Trips</string>
     <string name="readings_binding_status" volt:src="6c90b7671b5ce0e94a76cfe5f126e48cbbac052c">Status der Kontobindung (roh)</string>
     <string name="readings_binding_status_short" volt:src="3a4e51df835923335c24e719576b49007a758d02">Kontobindung (roh)</string>
-    <string name="readings_driving_mode" volt:src="ce23ac80c0f84789320240bed6278ccba250f18e">Fahrmodus (roh)</string>
+    <string name="readings_driving_mode" volt:src="1dd4e2a9f198409cdb1959192ecce97a392d9d05">Fahrmodus (roh)</string>
     <string name="readings_driving_mode_short" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Fahrmodus</string>
     <string name="readings_driving_mode_compact" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Modus</string>
     <string name="readings_lock_status" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Elektronische Sperre</string>
@@ -95,20 +95,20 @@
     <string name="readings_energy_recovery_short" volt:src="e4b3e9931bddb0c40e7c1c2e8eaa4c972362f13e">Rückgewinnung (roh)</string>
     <string name="readings_range_algorithm" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Reichweitenalgorithmus (roh)</string>
     <string name="readings_range_algorithm_short" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Reichweitenalgorithmus (roh)</string>
-    <string name="readings_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Display-Einheiten</string>
+    <string name="readings_display_units" volt:src="2ff1c881310d89d6b6570ba47432ef99c788d66b">Einheiten am Scooter-Display</string>
     <string name="readings_display_units_short" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Display-Einheiten</string>
-    <string name="readings_auto_sensor" volt:src="397f36851ccf78fed42e79f1c6b2d4226013dd70">Automatischer Lichtsensor (roh)</string>
-    <string name="readings_auto_sensor_short" volt:src="5b88021d0c34cefd301bacfc35c045388f3ab6e4">Automatisches Licht (roh)</string>
-    <string name="readings_tyre_reminder" volt:src="6efcf5e102d378459a0be196be0801f0eae1fdc7">Reifenerinnerung (roh)</string>
-    <string name="readings_tyre_reminder_short" volt:src="6efcf5e102d378459a0be196be0801f0eae1fdc7">Reifenerinnerung (roh)</string>
+    <string name="readings_auto_sensor" volt:src="e4ef234d8605ca718d922bcb4b4669cd352c5538">Automatisches Licht (roh)</string>
+    <string name="readings_auto_sensor_short" volt:src="5b88021d0c34cefd301bacfc35c045388f3ab6e4">Lichtautomatik (roh)</string>
+    <string name="readings_tyre_reminder" volt:src="0f46feae537cf9c64825cdf7684840a85cf57bf1">Reifenerinnerung (roh)</string>
+    <string name="readings_tyre_reminder_short" volt:src="0f46feae537cf9c64825cdf7684840a85cf57bf1">Reifenerinnerung (roh)</string>
     <string name="readings_ambient_light" volt:src="3a74e29b17173c128fb34168be290c66009ebcd0">Lichtleiste: Status / Muster (roh)</string>
     <string name="readings_ambient_light_short" volt:src="39797ac03d0e80759f5eff830ece7b8e7052a72c">Muster Lichtleiste (roh)</string>
     <string name="readings_traction_control" volt:src="b0bbb439869a4eed7c74ba5e08af3a0a83b48ba7">Traktionskontrolle (roh)</string>
     <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Traktion (roh)</string>
     <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Blinkerton (roh)</string>
     <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Blinkerton (roh)</string>
-    <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Einstellung für Näherungsschlüssel (roh)</string>
-    <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Näherungsschlüssel (roh)</string>
+    <string name="readings_proximity_key" volt:src="aaf350e3ca812e2be452a0ecbac4c085d513c240">Einstellung für Näherungsentsperrung (roh)</string>
+    <string name="readings_proximity_key_short" volt:src="f8b65416459bde7fd7359c429739aff4355b7d43">Näherungsentsperrung (roh)</string>
     <string name="readings_night_mode" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nachtmodus (roh)</string>
     <string name="readings_night_mode_short" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nachtmodus (roh)</string>
     <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Modus des Reichweitenalgorithmus (roh)</string>
@@ -119,8 +119,8 @@
     <string name="readings_drive_light_short" volt:src="ab80a96d36b2fca142b32430ba1b239a97d1631f">Muster Sternlicht (roh)</string>
     <string name="readings_sport_light" volt:src="743b08f0040fe6f50530cc057d3f0c2faeb70225">Sternlicht: Farben normal / Boost (gepackt, roh)</string>
     <string name="readings_sport_light_short" volt:src="e10c6914bf6d4c7590d66600821fc1b15e4b9fb8">Farben Sternlicht (gepackt)</string>
-    <string name="readings_start_speed" volt:src="934a539e2064d1442ae040ad25d913e990c1d60d">Einstellung für Startgeschwindigkeit (roh)</string>
-    <string name="readings_start_speed_short" volt:src="3f7f61cb61dc8055f67c4819c19f274b0fae6f44">Startgeschwindigkeit (roh)</string>
+    <string name="readings_start_speed" volt:src="9dc79f33c12a6866d2d885cbfee89bdb9979f7b9">Einstellung für Startgeschwindigkeit (roh)</string>
+    <string name="readings_start_speed_short" volt:src="8abde1ec2dd54538fbb36ccf59f31818a4f761e2">Startgeschwindigkeit (roh)</string>
     <string name="readings_speed_limit" volt:src="8ebc1f64bfaf8ddda6354dd279d560ff15f1ae92">Einstellung für Tempolimit (roh)</string>
     <string name="readings_speed_limit_short" volt:src="d3c6f1de71dca005c7fcb10ee8fa86a8f12e5c78">Tempolimit (roh)</string>
     <string name="readings_volume" volt:src="d1bd05601c5a18a8bd2b8f0f137b94302625945b">Einstellung für Audio (modellabhängig, roh)</string>
@@ -142,26 +142,26 @@
     <string name="readings_charge_limit_percent" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Ladegrenze</string>
     <string name="readings_charge_limit_percent_short" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Ladegrenze</string>
     <string name="readings_charge_limit_percent_compact" volt:src="38096fca13f5aed745ec8d7991e54190b85db2f7">Grenze</string>
-    <string name="readings_low_power" volt:src="7881449e2dc06e04e389d58646792a2df437aefa">Energiesparmodus (roh)</string>
-    <string name="readings_low_power_short" volt:src="5f8f53a512f59f9b5a32f0de909a429efb755f22">Energiesparmodus (roh)</string>
-    <string name="readings_timed_charging" volt:src="3224cf77825996fa02b0e825cb646c85b3735594">Einstellung für geplantes Laden (roh)</string>
-    <string name="readings_timed_charging_short" volt:src="624be85ffd671fc2e4711d223277765b99edbbb0">Geplantes Laden (roh)</string>
+    <string name="readings_low_power" volt:src="7881449e2dc06e04e389d58646792a2df437aefa">Akkusparmodus (roh)</string>
+    <string name="readings_low_power_short" volt:src="7881449e2dc06e04e389d58646792a2df437aefa">Akkusparmodus (roh)</string>
+    <string name="readings_timed_charging" volt:src="0172d263de85a6cd4ae5cb6b6e1a15fe8e7ca24d">Einstellung für geplantes Laden (roh)</string>
+    <string name="readings_timed_charging_short" volt:src="b172e217b0dbefd207fe8c45aca218bf6d17a997">Geplantes Laden (roh)</string>
     <string name="readings_auto_lock_time" volt:src="e51795b4cca6806e194b5fd04e42452e7d9dc79c">Einstellung für Sperrdauer (roh)</string>
     <string name="readings_auto_lock_time_short" volt:src="75991588a8e054b4dea4bb029c14de82c57280f4">Sperrdauer (roh)</string>
     <string name="readings_speed_limit_eligibility" volt:src="0837e1828a5133506f19fbd8005781156aad3678">Flag: Eignung für Tempolimit (roh)</string>
     <string name="readings_speed_limit_eligibility_short" volt:src="9b8d35f1cc589b86f56893d4c451af5826970450">Eignung für Tempolimit (roh)</string>
     <string name="readings_weather" volt:src="8fb4725abf7700363b9432cf7e49e1b523027692">Einstellung für Wetter (roh)</string>
     <string name="readings_weather_short" volt:src="e02e117eef631d0cfb727c38bf388bee8bcc4392">Wetter (roh)</string>
-    <string name="readings_slope_assist" volt:src="1bd7ac69fc33fb7acf518ec0594ae99b5a723b09">Einstellung für Hangassistent (roh)</string>
-    <string name="readings_slope_assist_short" volt:src="3dda87e7d2f324173b08643d637927da0c80d6d3">Hangassistent (roh)</string>
+    <string name="readings_slope_assist" volt:src="ae576cd08a1286b7d1bf89fe2023bb94719f0227">Assistenzeinstellungen (roh)</string>
+    <string name="readings_slope_assist_short" volt:src="ae576cd08a1286b7d1bf89fe2023bb94719f0227">Assistenzeinstellungen (roh)</string>
     <string name="readings_long_range_mode" volt:src="0d07d515063510cb637bf967926c502cec829af9">Einstellung für Langstreckenmodus (roh)</string>
     <string name="readings_long_range_mode_short" volt:src="40189fb5c01dddf3c278f523edfb7a811afa6ec2">Langstreckenmodus (roh)</string>
-    <string name="readings_overspeed_control" volt:src="6cea63cae1d62672d0a980aa1a36dda0b669ba85">Einstellung für Aktive Tempobremse (roh)</string>
+    <string name="readings_overspeed_control" volt:src="e0a7b4404e68e1b4c9fe39f2d0cc0d30189e4f2e">Einstellung für aktive Tempobremse (roh)</string>
     <string name="readings_overspeed_control_short" volt:src="e9b69c7d0fb01ead4885b3e71326cc556d35018c">Aktive Tempobremse (roh)</string>
     <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Einstellung für Warnung bei Tempoüberschreitung (roh)</string>
     <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Warnung bei Tempoüberschreitung (roh)</string>
-    <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Einstellung für Tempolimit in Drive (roh)</string>
-    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Tempolimit in Drive (roh)</string>
+    <string name="readings_drive_speed_limit" volt:src="9c1bf0cb421a374f21b66bd4cccb587844a88709">Einstellung für Tempolimit des Fahrmodus Drive (roh)</string>
+    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Drive-Tempolimit (roh)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware der Anzeigeeinheit</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware der Anzeigeeinheit</string>
     <string name="readings_meter_version_compact" volt:src="3af54421c2b7f705dd57e0bcd6b26cb01806f0c9">Anzeige-FW</string>
@@ -237,12 +237,12 @@
         <item quantity="one">%1$d Trip</item>
         <item quantity="other">%1$d Trips</item>
     </plurals>
-    <plurals name="readings_value_unknown_format_records" volt:src="341c7e870c27893795e1f6bb9fbd54304c193996">
+    <plurals name="readings_value_unknown_format_records" volt:src="71012e3874691b2013abf1f2cd205e6a673ee67f">
         <item quantity="one">Unbekanntes Format %1$s · %2$d Datensatz</item>
         <item quantity="other">Unbekanntes Format %1$s · %2$d Datensätze</item>
     </plurals>
     <string name="readings_value_unknown_format" volt:src="4fbf82bfa837313b3c11b92fd4a9d20b36f05c51">Datensätze in unbekanntem Format %1$s</string>
-    <plurals name="readings_value_charges" volt:src="e616e0b3b5111b202cec26323d8a9f6a75be123b">
+    <plurals name="readings_value_charges" volt:src="894cedce542c2657597534e83f3b4609383953c1">
         <item quantity="one">%1$d Ladevorgang</item>
         <item quantity="other">%1$d Ladevorgänge</item>
     </plurals>
