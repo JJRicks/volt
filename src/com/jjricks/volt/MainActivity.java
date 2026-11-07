@@ -231,8 +231,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
         if(saved!=null){selectedPage=saved.getString("page","home");for(String page:pages)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
-        if(saved!=null&&saved.containsKey("riding_trip_start")){ridingTrip=new RidingValues.TripClock(saved.getLong("riding_trip_start"),saved.getDouble("riding_trip_minutes"),saved.getLong("riding_trip_seen"));ridingTripProfile=saved.getString("riding_trip_profile");}
         else selectedPage="home";
+        if(saved!=null&&saved.containsKey("riding_trip_start")){ridingTrip=new RidingValues.TripClock(saved.getLong("riding_trip_start"),saved.getDouble("riding_trip_minutes"),saved.getLong("riding_trip_seen"));ridingTripProfile=saved.getString("riding_trip_profile");}
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
         // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
