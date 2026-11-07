@@ -44,6 +44,10 @@ An energy stretch between two readings is classed by both ends:
 
 So ride energy = confirmed + `inferredDrawWh()` + `unconfirmedEnergyWh()`, and no confirmed stretch is lost.
 
+## The bar follows the reading's sign
+
+The power bar (and a ring showing power) shows the same signed watts as the number and the ride graphs: voltage x current from one report, negative for regen. The UT5 MAX sends the current's size in 0x72 and its sign in 0x79 just after, so a 0x72 reading first arrives with the previous sign and 0x79 then re-signs it in place. The bar follows that correction, not only new readings (before Nov 6 it kept the stale sign until the next 0x72, so a brake could show a red draw bar beside a green regen number). A change of sign restarts the bar from the zero line (`GaugeSmoother.follow`), so the bar is on the right side from the first frame and only the size glides. Tests: `RidingValuesTest.meterMatchesRecording` and `unknownUntilSign`, and `GaugeSmootherTest.follow`.
+
 Not yet used by recordings (`RideStore`) or the live range estimator; either could adopt it later.
 
 Tests: `tests/RidingValuesTest.java` (`inferredDraw`, `inferredThreshold`, `inferredWindow`, `inferredFromFrames`, `inferredThenStrongerRegen`).
