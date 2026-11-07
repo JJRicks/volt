@@ -12,20 +12,18 @@ import android.provider.DocumentsContract;
  * Android's folder picker for automatic ride copies (RideAutoExport), in a small activity of its own, as
  * BackupActivity hosts its file pickers: MainActivity stays out of it. It has no views (a translucent
  * theme) and finishes as soon as the picker answers. A cancelled pick changes nothing. A picked folder is
- * kept with a persisted read and write grant, turns on the type that asked for it ({@link #TYPE}) and retries
+ * kept with a persisted read and write grant, turns auto-save on when the switch asked for it ({@link #TURN_ON}) and retries
  * the rides that are waiting. What went wrong is a {@link Refusal}, never text.
  */
 public final class RideAutoExportPickerActivity extends Activity {
-    /** Optional extra: RideAutoExport.ROUTE_CSV or RideAutoExport.JSON, turned on once a folder is kept. */
-    static final String TYPE = "type";
+    /** Optional extra: true when the switch opened the picker, so auto-save turns on once a folder is kept. */
+    static final String TURN_ON = "turn_on";
     private static final int PICK_FOLDER = 501;
     /** Why no folder was kept. */
     enum Refusal { NO_PICKER, NOT_KEPT }
 
-    static Intent intent(android.content.Context context, String typeKey) {
-        Intent intent = new Intent(context, RideAutoExportPickerActivity.class);
-        if (typeKey != null) intent.putExtra(TYPE, typeKey);
-        return intent;
+    static Intent intent(android.content.Context context, boolean turnOn) {
+        return new Intent(context, RideAutoExportPickerActivity.class).putExtra(TURN_ON, turnOn);
     }
 
     @Override protected void onCreate(Bundle state) {
@@ -49,7 +47,7 @@ public final class RideAutoExportPickerActivity extends Activity {
         if (request != PICK_FOLDER) return;
         if (result == RESULT_OK && data != null && data.getData() != null && !DataMaintenance.active()) {
             try {
-                RideAutoExportFolder.keep(this, settings(), data.getData(), getIntent().getStringExtra(TYPE));
+                RideAutoExportFolder.keep(this, settings(), data.getData(), getIntent().getBooleanExtra(TURN_ON, false));
                 ScooterService service = ScooterService.currentForMaintenance();
                 if (service != null) service.rideAutoExportFolderChosen();
             } catch (RuntimeException refused) {
