@@ -1616,12 +1616,13 @@ public final class RidesScreen implements AppScreen {
         Set<RideExportFiles.Format> remembered = RideExportFiles.parse(preferences.getString(RideExportFiles.CHOICE, null));
         Set<RideExportFiles.Format> initial = RideExportFiles.initial(remembered, phone);
         Map<RideExportFiles.Format, CheckBox> boxes = new EnumMap<>(RideExportFiles.Format.class);
-        LinearLayout group = null; boolean phoneGroup = false;
+        LinearLayout group = null; int section = -1;
         for (RideExportFiles.Format format : RideExportFiles.listed(phone)) {
-            if (group == null || format.phone != phoneGroup) {
+            if (group == null || format.section() != section) {
                 if (group != null) content.addView(group);
-                content.addView(ui.sectionLabel(format.phone ? T.ridesExportSectionPhone() : T.ridesExportSectionScooter()));
-                group = ui.groupCard(); phoneGroup = format.phone;
+                // Everything has a card of its own at the top, with no heading; the scooter's and the phone's files follow under theirs.
+                if (format.section() > 0) content.addView(ui.sectionLabel(format.phone ? T.ridesExportSectionPhone() : T.ridesExportSectionScooter()));
+                group = ui.groupCard(); section = format.section();
             }
             RideExportFiles.Unavailable why = RideExportFiles.why(format, phone);
             boolean offered = why == RideExportFiles.Unavailable.NONE;
@@ -1671,6 +1672,7 @@ public final class RidesScreen implements AppScreen {
     }
     private static String exportLabel(RideExportFiles.Format format) {
         switch (format) {
+            case EVERYTHING_JSON: return T.ridesExportEverythingJson();
             case SENSOR_CSV: return T.ridesExportSensorCsv();
             case ANALYSIS_JSON: return T.ridesExportAnalysisJson();
             case ROUTE_CSV: return T.ridesExportRouteCsv();

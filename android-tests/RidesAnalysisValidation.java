@@ -631,6 +631,28 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(export::performClick);
             long shown=SystemClock.uptimeMillis()+5000;while(text(root(),"Sensor CSV")==null&&SystemClock.uptimeMillis()<shown)settle();
             check(text(root(),"Sensor CSV")!=null&&text(root(),"Route CSV")==null&&text(root(),"Motion raw CSV")==null&&text(root(),"Scooter and phone JSON")==null,"Empty phone data has no phone export rows");
+            // Everything in one JSON: first, in its own card, checked by default (nothing remembered yet), on one line, with its file name.
+            TextView everything=text(root(),"Everything in one JSON");
+            check(everything instanceof android.widget.CheckBox&&everything.isEnabled()&&((android.widget.CheckBox)everything).isChecked(),"Everything is listed and checked by default");
+            check(!((android.widget.CheckBox)text(root(),"Sensor CSV")).isChecked(),"Sensor CSV is no longer checked by default");
+            // Measure once the sheet has laid out and finished sliding in.
+            long everythingLaidOut=SystemClock.uptimeMillis()+5000;
+            while(!(everything.isLaidOut()&&everything.getHeight()>0&&text(root(),"Sensor CSV").getHeight()>0)&&SystemClock.uptimeMillis()<everythingLaidOut)settle();
+            SystemClock.sleep(600);settle();
+            int[] everythingAt=new int[2];
+            int[] sensorAt=new int[2];
+            everything.getLocationOnScreen(everythingAt);
+            text(root(),"Sensor CSV").getLocationOnScreen(sensorAt);
+            check(everythingAt[1]<sensorAt[1],"Everything is listed first");
+            // The label wraps only at a space (never mid-word) and is never cut short; it is one line at normal text sizes.
+            android.text.Layout everythingLayout=everything.getLayout();
+            check(everythingLayout!=null,"Everything's label is laid out");
+            boolean everythingWholeWords=true;
+            for(int everythingLine=0;everythingLine<everythingLayout.getLineCount();everythingLine++){if(everythingLayout.getEllipsisCount(everythingLine)!=0||everythingLine<everythingLayout.getLineCount()-1&&everything.getText().charAt(everythingLayout.getLineEnd(everythingLine)-1)!=' ')everythingWholeWords=false;}
+            check(everythingWholeWords,"Everything's label is never cut short or broken mid-word");
+            check(everything.getTextSize()>26*everything.getResources().getDisplayMetrics().density||everythingLayout.getLineCount()==1,"Everything's label fits on one line at normal text sizes");
+            check(text(root(),"ride-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
+            screenshot("export-sheet-"+attempt);
             main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }
     }

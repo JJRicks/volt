@@ -283,6 +283,9 @@
     <string name="rides_export_section_scooter" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Scooter recording</string>
     <!-- Export ride data sheet: the heading over the five files from the phone's own sensors. -->
     <string name="rides_export_section_phone" volt:screen="Rides, export ride data sheet" volt:purpose="section label">Phone recording</string>
+    <!-- Checkbox, first on the sheet in a card of its own and checked by default: one JSON file with every recording of
+         the ride (the scooter journal and analysis, the phone journal, motion samples and route). The file name shows under it. -->
+    <string name="rides_export_everything_json" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="JSON" volt:max="240dp@15sp">Everything in one JSON</string>
     <!-- Checkbox: every scooter reading of the ride, as the CSV journal Volt recorded. The file name shows under it. -->
     <string name="rides_export_sensor_csv" volt:screen="Rides, export ride data sheet" volt:purpose="checkbox" volt:dnt="CSV" volt:max="240dp@15sp">Sensor CSV</string>
     <!-- Checkbox: the ride's analysis (energy, coverage, distance) as JSON. -->

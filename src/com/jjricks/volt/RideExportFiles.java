@@ -31,10 +31,10 @@ final class RideExportFiles {
     static final long STALE_MS = 24L * 60 * 60 * 1000;
 
     /**
-     * Until the sheet has Everything (JSON)'s label, it stays off the sheet and out of the default and the remembered
-     * choice; every other format behaves as before. The catalog change that labels it sets this to true.
+     * The sheet lists Everything first and checks it by default. While false (before the sheet had its label), it stayed
+     * off the sheet and out of the default and the remembered choice, and every other format behaved as before.
      */
-    static final boolean EVERYTHING_ON_SHEET = false;
+    static final boolean EVERYTHING_ON_SHEET = true;
 
     /** One export, in the order the sheet lists them: Everything first, then the scooter's two files, then the phone's five. */
     enum Format {
