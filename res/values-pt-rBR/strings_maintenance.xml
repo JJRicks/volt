@@ -14,6 +14,12 @@
         <item quantity="many">%1$d lembretes</item>
         <item quantity="other">%1$d lembretes</item>
     </plurals>
+    <!-- src:c74afe1f860be56a9885fd23d36973372e45e13e -->
+    <plurals name="maintenance_row_due">
+        <item quantity="one">%1$d pendente</item>
+        <item quantity="many">%1$d pendentes</item>
+        <item quantity="other">%1$d pendentes</item>
+    </plurals>
     <!-- src:6f3c512051b6d2f7fad34779ceb250f66eeea77b -->
     <string name="maintenance_tab_due">%1$s, manutenção pendente</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
@@ -71,7 +77,7 @@
     <!-- src:13d916781834a30aebd921740d4e2b81b4d8d244 -->
     <string name="maintenance_badge_due">PENDENTE</string>
     <!-- src:6e7162855bb9a0204e99ab62bf621cae55709fb0 -->
-    <string name="maintenance_badge_soon">BREVE</string>
+    <string name="maintenance_badge_soon">EM BREVE</string>
     <!-- src:374219df3278d97cb2a40e6bed02f0314fbc320b -->
     <string name="maintenance_badge_snoozed">ADIADO</string>
     <!-- src:88bda2cceb10a8497f0a0dd9e70203ca6e3f6c20 -->
