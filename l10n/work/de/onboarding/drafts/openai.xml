@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Verbinde dein Telefon über ein USB-Datenkabel mit dem Computer</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Wähle dein Telefon in Chrome aus</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Lass USB-Debugging auf diesem Telefon zu</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lass **Von diesem Computer immer zulassen** deaktiviert</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Setze kein Häkchen bei **Von diesem Computer immer zulassen**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Die Website ist verbunden</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Telefon wird nicht angezeigt</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Verbindung in Chrome</string>
@@ -139,7 +139,7 @@
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  In der NAVEE-App angemeldet, Scooter in der Nähe\n•  Andere Scooter-Apps geschlossen\n•  Vorzeitig beendet? Schließe zuerst die Bereinigung im selben Browser ab"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Deine Besitzer-Einrichtung</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Besitzerdatei importieren</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Wähle navee-owner-setup.json aus. Damit wird nur der Zugriff auf den Scooter wiederhergestellt, nicht die Fahrten oder andere App-Daten.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Wähle die Datei navee-owner-setup.json des Besitzers. Damit wird nur der Zugriff auf den Scooter wiederhergestellt, nicht die Fahrten oder andere App-Daten.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Besitzerprofil wird geladen…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Noch keine Datei ausgewählt</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Keine Besitzerdatei.</string>
@@ -155,12 +155,12 @@
     <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Privat gespeichert. Entziehe Volt jetzt den Zugriff in Shizuku.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Kopie in Downloads löschen</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Kopie in Downloads gelöscht</string>
-    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Löschen fehlgeschlagen · entferne die Kopie in „Dateien“</string>
+    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778" volt:attempt="2">Konnte nicht gelöscht werden · entferne sie in Files</string>
     <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Speichern und fortfahren</string>
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Shizuku öffnen</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Andere Datei auswählen</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Shizuku ist nicht installiert</string>
-    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Beende zuerst die Aufzeichnung</string>
+    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb" volt:attempt="2">Beende die Aufzeichnung zuerst</string>
     <string name="onboarding_identity_title" volt:src="56062797f9d331b9ceb3280ae89b5de65d366fcf">Besitzerschlüssel eingeben</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">Kein Passwort.</string>
     <string name="onboarding_identity_hint" volt:src="35dda17c04b627a1ee00aceee1a23956c878a9f1">Besitzerschlüssel, 12 Zeichen, oder ein privates Backup</string>

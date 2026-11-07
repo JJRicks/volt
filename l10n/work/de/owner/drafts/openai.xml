@@ -72,15 +72,15 @@
     <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt konnte das Protokoll der NAVEE-App nicht lesen</string>
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Beendet</string>
     <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Auslesen fehlgeschlagen</string>
-    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Stelle den vorherigen Zustand der NAVEE-Protokollierung erneut wieder her.</string>
+    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc" volt:attempt="2">NAVEE-Protokollierung erneut wiederherstellen</string>
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">NAVEE-Protokollierung wird wiederhergestellt…</string>
-    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Verbindung zu Shizuku verloren. Stelle den vorherigen Zustand der NAVEE-Protokollierung wieder her.</string>
+    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274" volt:attempt="2">Shizuku nicht mehr verfügbar. NAVEE-Protokollierung wiederherstellen.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Kein Browser gefunden</string>
     <string name="owner_setup_empty_or_large" volt:src="19d5fe0538740551de57168c33d54fd920c6ce08">Die Besitzer-Einrichtungsdatei ist leer oder zu groß.</string>
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 Hexadezimalzeichen erforderlich</string>
     <string name="owner_setup_no_identity" volt:src="b147e42ee8379471878498ae4d3a9f30b197e989">Kein Besitzerschlüssel in der Datei</string>
     <string name="owner_setup_unsupported_role" volt:src="caf895d1a13d5c149e906c58aadd3ec988ed1a12">Nicht unterstützte Rolle</string>
-    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207">Diese Datei enthält widersprüchliche Besitzerschlüssel oder Rollen. Lies den Besitzerschlüssel einer NAVEE-Kontoverbindung aus oder importiere ein privates Backup der Einrichtung.</string>
+    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207" volt:attempt="2">Diese Datei enthält widersprüchliche Besitzerschlüssel oder Rollen. Lies eine NAVEE-Kontoverbindung aus oder importiere ein privates Backup der Besitzer-Einrichtung.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Import fehlgeschlagen. Wähle die Datei erneut aus.</string>
     <string name="owner_setup_enter_identity" volt:src="61ea1a66e824f413d1f78a1dd63978f6767b84a6">Gib einen Besitzerschlüssel mit 12 Zeichen ein.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Scooter</string>

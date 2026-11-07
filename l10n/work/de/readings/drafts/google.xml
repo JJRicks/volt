@@ -160,7 +160,7 @@
     <string name="readings_overspeed_control_short" volt:src="e9b69c7d0fb01ead4885b3e71326cc556d35018c">Aktive Tempobremse (roh)</string>
     <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Einstellung für Tempowarnung (roh)</string>
     <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Tempowarnung (roh)</string>
-    <string name="readings_drive_speed_limit" volt:src="9c1bf0cb421a374f21b66bd4cccb587844a88709">Einstellung für Fahrmodus-Tempolimit (roh)</string>
+    <string name="readings_drive_speed_limit" volt:src="9c1bf0cb421a374f21b66bd4cccb587844a88709" volt:attempt="2">Einstellung für Tempolimit des Fahrmodus Drive (roh)</string>
     <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Drive-Tempolimit (roh)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Meter-Firmware</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Meter-Firmware</string>

@@ -182,27 +182,27 @@
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Beim Verifizieren helfen</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Nichts zum Ausprobieren</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Befehlsnachweise</string>
-    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Ergebnisse des Ausprobierens löschen</string>
-    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Ergebnisse des Ausprobierens löschen?</string>
+    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e" volt:attempt="2">Ergebnisse beim Ausprobieren löschen</string>
+    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184" volt:attempt="2">Ergebnisse beim Ausprobieren löschen?</string>
     <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt vergisst, was deine Versuche an diesem Scooter gezeigt haben. Sie erscheinen dann nicht mehr in deinem nächsten Bericht und unter „Zurückstellen“. Die Einstellungen bleiben unverändert. Nicht abgeschlossene Versuche bleiben erhalten, bis du sie überprüfst.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Keine abgeschlossenen Versuche zum Löschen</string>
-    <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
-        <item quantity="one">%1$d Versuch gelöscht</item>
-        <item quantity="other">%1$d Versuche gelöscht</item>
+    <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a" volt:attempt="2">
+        <item quantity="one">Ergebnisse beim Ausprobieren von %1$d Funktion gelöscht</item>
+        <item quantity="other">Ergebnisse beim Ausprobieren von %1$d Funktionen gelöscht</item>
     </plurals>
-    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Die Ergebnisse des Ausprobierens bleiben auf diesem Telefon, bis sie in einem von dir gesendeten Kompatibilitätsbericht enthalten sind oder du sie löschst."</string>
+    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c" volt:attempt="2">" Ergebnisse beim Ausprobieren bleiben auf diesem Telefon, bis sie in einem Kompatibilitätsbericht enthalten sind, den du sendest, oder bis du sie löschst."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Funktionen, die die offizielle NAVEE-App für dein Modell anbietet, bleiben in den „Scooter-Einstellungen“. Tempolimits, Laden, Sperre, PIN, Näherungsentsperrung und Uhr werden hier nie hinzugefügt. Volt ändert nie die Firmware.</string>
     <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Funktionen, die die offizielle NAVEE-App für dein Modell anbietet, bleiben in den „Scooter-Einstellungen“. Volt ändert nie die Firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt ändert nie die Firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Verbindung wird hergestellt…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">An diesem Scooter ausprobieren</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Die offizielle NAVEE-App bietet diese Funktionen für dein Modell an, aber Volt hat sie darauf nicht getestet. Dein Versuch und deine Antwort erscheinen in deinem nächsten Kompatibilitätsbericht.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b" volt:attempt="2">Die offizielle App (NAVEE-App) bietet diese Funktionen für dein Modell an, aber Volt hat sie darauf noch nicht getestet. Das Ergebnis beim Ausprobieren und deine Antwort werden in deinen nächsten Kompatibilitätsbericht aufgenommen.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Von diesem Scooter nicht gemeldet</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kann diese Werte nicht erneut abfragen und bietet die Funktionen daher nicht an.</string>
     <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">%1$s</string>
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">dein Modell</string>
-    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">Die offizielle NAVEE-App bietet diese Funktionen für %1$s nicht an. Probiere eine bei geparktem Scooter aus; Volt fragt die Einstellung danach erneut ab.</string>
-    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">Die offizielle NAVEE-App bietet diese Funktionen für %1$s an, aber Volt hat sie dort nicht getestet. Probiere eine bei geparktem Scooter aus; Volt fragt die Einstellung danach erneut ab.</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63" volt:attempt="2">Die offizielle App (NAVEE-App) bietet diese Funktionen für folgendes Modell nicht an: %1$s. Wenn der Scooter geparkt ist, probiere aus, was eine der Funktionen bewirkt. Volt fragt die Einstellung danach erneut ab.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8" volt:attempt="2">Die offizielle App (NAVEE-App) bietet diese Funktionen für folgendes Modell an: %1$s. Volt hat sie darauf aber noch nicht getestet. Wenn der Scooter geparkt ist, probiere aus, was eine der Funktionen bewirkt. Volt fragt die Einstellung danach erneut ab.</string>
     <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Für %1$s gibt es nichts zum Ausprobieren: Die offizielle NAVEE-App bietet die Funktionen, die Volt ausprobieren könnte, bereits an. Du findest sie unter „Scooter-Einstellungen“.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt sendet keine Scooter-Befehle an dieses Produkt.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Beim UT5 MAX gibt es nichts zum Ausprobieren.</string>
@@ -223,16 +223,16 @@
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">%1$s ausprobieren</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Verbinde dich, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d" volt:attempt="2">Verbinde dich, um diese Funktionen auszuprobieren.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Warten auf einen aktuellen Status des Scooters.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Halte den Scooter an, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Halte den Scooter an, um diese Funktionen auszuprobieren.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Warten darauf, dass der Scooter meldet, dass er geparkt ist.</string>
-    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Behebe die Ursache der Warnung des Scooters, um diese Funktionen auszuprobieren.</string>
-    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Entsperre den Scooter, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d" volt:attempt="2">Behebe die Warnung des Scooters, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5" volt:attempt="2">Entsperre den Scooter, um diese Funktionen auszuprobieren.</string>
     <string name="more_lab_held_owner" volt:src="c8b4107bef41bd413e5f8cff598c8cccd2706ce9">Nur der Besitzer des Scooters kann diese Funktionen ausprobieren.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Warte, bis die Kompatibilitätsprüfung abgeschlossen ist.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Schließe das laufende Ausprobieren zuerst ab.</string>
-    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Beende die Aufzeichnung, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7" volt:attempt="2">Um diese Funktionen auszuprobieren, beende die Aufzeichnung.</string>
     <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Warten auf deine Antwort</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Deine Antwort</string>
     <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hast du die Änderung gesehen?</string>
@@ -291,7 +291,7 @@
         <item quantity="other">Die offizielle App bietet dies bei %1$d anderen Modellen an, aber nicht bei deinem. Es könnte hier wirkungslos sein oder anders funktionieren.</item>
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Die offizielle App bietet dies bei deinem Modell nicht an. Es könnte hier wirkungslos sein oder anders funktionieren.</string>
-    <string name="more_lab_why_region_start" volt:src="27a5751edf081e457d330947d7cc554116e22499">Die offizielle App bietet in der Region deines Scooters 3–5 km/h an. Niedrigere Geschwindigkeiten könnten hier wirkungslos sein oder anders funktionieren.</string>
+    <string name="more_lab_why_region_start" volt:src="27a5751edf081e457d330947d7cc554116e22499" volt:attempt="2">Die offizielle App (NAVEE-App) bietet in der Region deines Scooters 3–5 km/h an. Niedrigere Geschwindigkeiten bewirken hier möglicherweise nichts oder funktionieren anders.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN und Authentifizierungsbytes ausgeblendet</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Noch keine Änderungen</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Lokale Uhrzeitsynchronisierung\n%1$s</string>
@@ -336,7 +336,7 @@
     <string name="more_updates_auto_sub" volt:src="9e7bd7b4503612b1df7c3892e06a0f9154c2af7e">Einmal täglich im Hintergrund</string>
     <string name="more_updates_channel" volt:src="ec54538250ba679453cc3c22679f27b537ea9d7a">App-Updates</string>
     <string name="more_updates_channel_description" volt:src="6a76ea70ecfeffa5a6265578ddf032482dd4ab57">Eine stille Benachrichtigung, wenn die tägliche Prüfung eine neuere Volt-Version auf GitHub findet</string>
-    <string name="more_updates_notice" volt:src="32676591b9dcbdf5fb2518fab3eec79b528aa1aa">Tippe hier, um die Neuerungen zu sehen</string>
+    <string name="more_updates_notice" volt:src="32676591b9dcbdf5fb2518fab3eec79b528aa1aa" volt:attempt="2">Tippe für Neuigkeiten.</string>
     <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">Die Entwickleroptionen sind bereits aktiviert.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Entwickleroptionen aktiviert.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
@@ -355,15 +355,15 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Originalladegerät</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Schnellladegerät</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Auto erkennt UT5 MAX Ladegeräte anhand der aktuellen Leistung. Bei Unsicherheit verwendet Volt die aktuelle Laderate. Wähle ein Ladegerät, um dies zu übersteuern.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto erkennt UT5 MAX Ladegeräte anhand der aktuellen Leistung. Wenn die Erkennung nicht sicher ist, verwendet Volt die aktuelle Laderate. Wähle ein Ladegerät, um dies zu ändern.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Gespeicherte Ladekurven</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Diesen Ladevorgang aufzeichnen</string>
-    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Ladeaufzeichnung beenden</string>
+    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15" volt:attempt="2">Aufzeichnung beenden (Ladeaufzeichnung)</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Ladeaufzeichnungen</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Gespeicherte Schätzungen &amp; Endzeiten</string>
     <string name="more_dev_export" volt:src="b0060df221c4dc4a3e20f885ced9326da40f3c81">Ladeaufzeichnungen exportieren</string>
     <string name="more_dev_export_sub" volt:src="840c1220c0041af8286a225e143bc057cdfe612b">JSON · dieser Scooter</string>
-    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Beende vor dem Export die Ladeaufzeichnung oder warte auf den laufenden Export</string>
+    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b" volt:attempt="2">Bevor du exportierst, beende die Aufzeichnung des Ladevorgangs (Ladeaufzeichnung) oder warte auf den laufenden Export.</string>
     <string name="more_dev_clear_charges" volt:src="7f66e11839703ee0dfa9d363eeced693a403947f">Ladeaufzeichnungen dieses Scooters löschen</string>
     <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Ladeaufzeichnungen löschen?</string>
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Ladeaufzeichnungen und gelernte Kurven werden gelöscht. Fahrten bleiben erhalten.</string>
@@ -376,7 +376,7 @@
     <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Alle Widgets in Slot 3 gespeichert.</string>
     <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">Slot 3 konnte nicht gespeichert werden.</string>
     <string name="more_dev_hide" volt:src="92902df2d159f4552d6023b4e30919987c1e2226">Entwickleroptionen ausblenden</string>
-    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Beende die Ladeaufzeichnung, bevor du die Entwickleroptionen ausblendest.</string>
+    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df" volt:attempt="2">Bevor du die Entwickleroptionen ausblendest, beende die Aufzeichnung des Ladevorgangs (Ladeaufzeichnung).</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Schließe den Test zuerst ab oder brich ihn ab.</string>
     <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Verbinde dich zuerst mit deinem Scooter.</string>
     <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Auf dem Telefon gespeichert · endet bei 100 % · die letzten 20 bleiben erhalten</string>
@@ -386,11 +386,11 @@
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Angeschlossenes Ladegerät</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Aufzeichnung starten</string>
     <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Scooter gewechselt · erneut öffnen</string>
-    <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44">Wird erst angewendet, wenn das Ladegerät bekannt ist</string>
+    <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44" volt:attempt="2">Nicht angewendet, bis das Ladegerät bekannt ist</string>
     <string name="more_dev_stock_charges" volt:src="3a1cfbf877af68f1759ff9cd471d6698f2a062cd">Ladevorgänge mit Originalladegerät</string>
     <string name="more_dev_fast_charges" volt:src="07b69a3f4666f8a8fc6f4f4de713e3316e3f660b">Ladevorgänge mit Schnellladegerät</string>
     <string name="more_dev_curves_loading" volt:src="576937d4d10377578822798a5c60432647b98bac">Gespeicherte Ladekurven werden geladen</string>
-    <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Gespeicherte Ladekurven werden erst angewendet, wenn das Ladegerät bekannt ist</string>
+    <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0" volt:attempt="2">Gespeicherte Ladekurven werden nicht angewendet, bis das Ladegerät bekannt ist</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">%1$s geeignete Ladeaufzeichnungen mit Originalladegerät</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">%1$s geeignete Ladeaufzeichnungen mit Schnellladegerät</string>
     <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">

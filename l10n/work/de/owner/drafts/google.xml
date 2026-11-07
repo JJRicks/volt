@@ -80,7 +80,7 @@
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 Hex-Zeichen erforderlich</string>
     <string name="owner_setup_no_identity" volt:src="b147e42ee8379471878498ae4d3a9f30b197e989">Kein Besitzerschlüssel in der Datei</string>
     <string name="owner_setup_unsupported_role" volt:src="caf895d1a13d5c149e906c58aadd3ec988ed1a12">Nicht unterstützte Rolle</string>
-    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207">Diese Datei enthält widersprüchliche Besitzerschlüssel oder Rollen. Lies eine einzelne NAVEE-Kontoverbindung aus oder importiere ein privates Einrichtungs-Backup.</string>
+    <string name="owner_setup_conflicting" volt:src="ab13095a265f88d367c050393c8c6b534e03b207" volt:attempt="2">Diese Datei enthält widersprüchliche Besitzerschlüssel oder Rollen (Besitzer oder Mitnutzer). Du kannst eine einzelne NAVEE-Kontoverbindung auslesen oder ein privates Einrichtungs-Backup importieren.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Import fehlgeschlagen. Wähle die Datei erneut aus.</string>
     <string name="owner_setup_enter_identity" volt:src="61ea1a66e824f413d1f78a1dd63978f6767b84a6">Gib einen 12-stelligen Besitzerschlüssel ein.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Scooter</string>
