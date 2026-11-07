@@ -46,6 +46,7 @@ public final class RideNoMotionStopTest {
             noMotionAtAll();
             switchOff();
             disconnectHandsOver();
+            shortBlipKeepsCount();
             clockBackwards();
             silentLinkOrOtherScooter();
             storeShownEnd();
@@ -185,7 +186,7 @@ public final class RideNoMotionStopTest {
         check(RideStore.STOP_AUTO_NO_MOTION.equals(s.stoppedWith), "and ends 10 min after the switch came back on");
     }
 
-    /** A disconnect mid-countdown: the link rules take over exactly as before; a reconnect counts afresh. */
+    /** A disconnect mid-countdown: the link rules take over exactly as before; a reconnect after a long gap counts afresh. */
     private static void disconnectHandsOver() {
         // Speed-0 pushes, then the drop: the parked rule's grace, as before.
         RideAutoStopPolicy p = policy();
@@ -211,8 +212,8 @@ public final class RideNoMotionStopTest {
         ride(r, T0, T0 + 60_000, 200);
         for (t = last + 1000; t <= last + 8 * MIN; t += 1000) push(r, t, 0, 0);
         r.disconnected(t + 2000, true);
-        long back = t + 20_000; r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
-        check(!r.armed() && r.noMotionSince() == back, "the reconnect cancels the quiet countdown and starts rule 3 again from the reconnect");
+        long back = t - 1000 + RideAutoStopPolicy.RECONNECT_CARRY_MS + 1; r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
+        check(!r.armed() && r.noMotionSince() == back, "a reconnect more than a minute after the last frame cancels the quiet countdown and starts rule 3 again from the reconnect");
         boolean early = false;
         for (long u = back + 1000; u < back + NO_MOTION; u += 1000) { r.connected(u, PROFILE, SERIAL, 2, u, 0, -1, -1); early |= r.dueNoMotion(u); }
         check(!early, "the 8 min before the drop never count");
@@ -224,6 +225,97 @@ public final class RideNoMotionStopTest {
         u.disconnected(T0 + 70_000, false);
         check(!u.armed() && !u.noMotionArmed(), "an unrecoverable loss cancels everything, rule 3 too");
     }
+
+    /**
+     * The owner's ride of 2026-11-06: parked with the link up (battery frames only), then a native
+     * disconnect about 6 s after the last frame and an authenticated reconnect about 10 s after it. The
+     * blip must not restart the 10 minutes, and repeated blips must not keep the ride open forever.
+     */
+    private static void shortBlipKeepsCount() {
+        long carry = RideAutoStopPolicy.RECONNECT_CARRY_MS;
+        RideAutoStopPolicy p = policy();
+        ride(p, T0, T0 + 60_000, 200);
+        long last = T0 + 60_000;
+        for (long t = last + 1000; t <= last + 3 * MIN; t += 1000) battery(p, t, last, 200, 1);
+        long frame = last + 3 * MIN;
+        p.disconnected(frame + 6000, true);
+        check(p.quiet() == RideAutoStopPolicy.Quiet.LONG && !p.noMotionArmed(), "the drop hands over to the quiet rule");
+        // Reconnect: the serial is not read yet on the first observation, then it is.
+        p.connected(frame + 9000, PROFILE, "", 2, frame + 9000, 0, -1, -1);
+        check(!p.armed() && !p.noMotionArmed(), "the reconnect cancels the quiet countdown; no serial yet, no count");
+        p.connected(frame + 10_000, PROFILE, SERIAL, 2, frame + 10_000, 0, -1, -1);
+        check(p.noMotionSince() == last, "a reconnect within a minute keeps counting from the motion before the drop");
+        check(!dueDuring2(p, frame + 10_000, last + NO_MOTION - 1000), "still recording until 10 min after the last motion");
+        p.connected(last + NO_MOTION, PROFILE, SERIAL, 2, last + NO_MOTION, 0, -1, -1);
+        check(p.dueNoMotion(last + NO_MOTION), "ends 10 min after the last motion, not 10 min after the blip");
+
+        // A blip every 4 minutes would have restarted the count forever; now it ends on time.
+        RideAutoStopPolicy b = policy();
+        ride(b, T0, T0 + 60_000, 200);
+        int transport = 1; long t = last; boolean fired = false;
+        while (t < last + NO_MOTION + MIN && !fired) {
+            t += 1000;
+            if ((t - last) % (4 * MIN) == 0) { b.disconnected(t + 6000, true); t += 10_000; transport++; }
+            b.connected(t, PROFILE, SERIAL, transport, t, 0, -1, -1);
+            fired = b.dueNoMotion(t);
+        }
+        check(fired && t >= last + NO_MOTION && t <= last + NO_MOTION + 1000, "repeated short blips do not keep a parked ride open");
+
+        // Exactly at the bound carries; a millisecond later counts afresh.
+        RideAutoStopPolicy e = policy();
+        ride(e, T0, T0 + 60_000, 200);
+        e.disconnected(last + 6000, true);
+        e.connected(last + carry, PROFILE, SERIAL, 2, last + carry, 0, -1, -1);
+        check(e.noMotionSince() == last, "a reconnect exactly a minute after the last frame still carries");
+        RideAutoStopPolicy f = policy();
+        ride(f, T0, T0 + 60_000, 200);
+        f.disconnected(last + 6000, true);
+        f.connected(last + carry + 1, PROFILE, SERIAL, 2, last + carry + 1, 0, -1, -1);
+        check(f.noMotionSince() == last + carry + 1, "a longer gap counts afresh from the reconnect");
+
+        // Distance gained during the gap still counts as motion, against the baseline from before the drop.
+        RideAutoStopPolicy d = policy();
+        push(d, T0, 0, 0); d.distance(T0, 100.0, 5.0);
+        long since = d.noMotionSince();
+        battery(d, T0 + 5 * MIN, T0, 0, 0); d.distance(T0 + 5 * MIN, 100.0, 5.0);
+        d.disconnected(T0 + 5 * MIN + 6000, true);
+        long back = T0 + 5 * MIN + 20_000;
+        d.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1);
+        check(d.noMotionSince() == since, "carried before the first distance reading");
+        d.distance(back, 100.1, 5.1);
+        check(d.noMotionSince() == back, "the odometer gained across the gap is motion");
+        // A fresh speed push after the reconnect is motion as before.
+        RideAutoStopPolicy m = policy();
+        ride(m, T0, T0 + 60_000, 200);
+        m.disconnected(last + 6000, true);
+        push2(m, last + 10_000, 150, 1);
+        check(m.noMotionSince() == last + 10_000, "riding again after the blip counts as motion");
+
+        // Another scooter, a reset or an unrecoverable loss in between drops the held count.
+        RideAutoStopPolicy o = policy();
+        ride(o, T0, T0 + 60_000, 200);
+        o.disconnected(last + 6000, true);
+        o.connected(last + 8000, PROFILE, "OTHERSERIAL0000", 2, last + 8000, 0, -1, -1);
+        o.connected(last + 10_000, PROFILE, SERIAL, 3, last + 10_000, 0, -1, -1);
+        check(o.noMotionSince() == last + 10_000, "another scooter in between drops the held count");
+        RideAutoStopPolicy r = policy();
+        ride(r, T0, T0 + 60_000, 200);
+        r.disconnected(last + 6000, true); r.reset();
+        r.connected(last + 10_000, PROFILE, SERIAL, 2, last + 10_000, 0, -1, -1);
+        check(r.noMotionSince() == last + 10_000, "a reset in between drops the held count");
+        RideAutoStopPolicy u = policy();
+        ride(u, T0, T0 + 60_000, 200);
+        u.disconnected(last + 6000, false);
+        u.connected(last + 10_000, PROFILE, SERIAL, 2, last + 10_000, 0, -1, -1);
+        check(u.noMotionSince() == last + 10_000, "an unrecoverable loss drops the held count");
+    }
+    /** As dueDuring, on transport 2 with no motion push on it. */
+    private static boolean dueDuring2(RideAutoStopPolicy p, long from, long to) {
+        for (long t = from + 1000; t <= to; t += 1000) { p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); if (p.dueNoMotion(t)) return true; }
+        return false;
+    }
+    /** One fresh motion push on transport 2. */
+    private static void push2(RideAutoStopPolicy p, long at, int speed, int driving) { p.connected(at, PROFILE, SERIAL, 2, at, at, speed, driving); }
 
     private static void clockBackwards() {
         RideAutoStopPolicy p = policy();

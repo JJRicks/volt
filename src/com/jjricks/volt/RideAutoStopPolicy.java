@@ -46,8 +46,12 @@ import java.util.Objects;
  *    - The countdown runs from the latest motion, or from the first authenticated observation of this
  *      ride's scooter on the current connection (in practice the ride's start) before any motion.
  *    - It needs a frame within {@link #LOSS_WINDOW_MS}: a silent link is the loss watchdog's to report.
- *    - A disconnection stops it and hands over to rules 1 and 2 unchanged; a reconnect starts it again
- *      from the reconnect, since the policy cannot know whether the scooter moved meanwhile.
+ *    - A disconnection stops it and hands over to rules 1 and 2 unchanged.
+ *    - A reconnect within {@link #RECONNECT_CARRY_MS} of the last frame heard keeps counting from the
+ *      motion before the drop, with the same odometer and trip baselines, so a few-second Bluetooth blip
+ *      at the destination does not restart the 10 minutes (the owner's ride of 2026-11-06 had one).
+ *      Distance gained during the gap still counts as motion at the first fresh reading. After a longer
+ *      gap the countdown starts again from the reconnect, since the scooter may have moved meanwhile.
  *    - No phone GPS guard, as for the Bluetooth-off rule (owner answer Q30 B).
  *
  * Any other loss (permission revoked, owner rejected), {@link #reset()} and a clock that moves
@@ -63,6 +67,8 @@ public final class RideAutoStopPolicy {
     public static final int WALKING_RAW = 64;
     /** Rule 3: a connected ride with no motion for this long ends (the owner: long enough for traffic lights). */
     public static final long NO_MOTION_MS = 600_000;
+    /** Rule 3: a reconnect this soon after the last frame heard keeps the countdown from before the drop. */
+    public static final long RECONNECT_CARRY_MS = 60_000;
 
     /** How the authenticated connection went away. */
     public enum Loss {
@@ -110,6 +116,9 @@ public final class RideAutoStopPolicy {
     /** Rule 3: the time the no-motion countdown counts from (0 when it doesn't run), the last speed push it judged, distance baselines. */
     private long stillFrom, stillPush;
     private double stillOdometer = Double.NaN, stillTrip = Double.NaN;
+    /** Rule 3 across a drop: the countdown's start and baselines at the loss, and that loss's last frame (0 when none). */
+    private long heldFrom, heldFrame;
+    private double heldOdometer = Double.NaN, heldTrip = Double.NaN;
 
     public RideAutoStopPolicy(String rideId, String profile, String serial) {
         if (rideId == null || rideId.isEmpty() || profile == null || profile.isEmpty() || serial == null || serial.isEmpty())
@@ -142,7 +151,7 @@ public final class RideAutoStopPolicy {
     /** Explicit stop, user disconnect, profile change, setting off or uncertain state: forget all evidence. */
     public void reset() {
         bound = moved = fresh = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
-        clearRun(); clearSpeed(); clearQuiet(); clearStill();
+        clearRun(); clearSpeed(); clearQuiet(); clearStill(); clearHeld();
     }
 
     /**
@@ -165,9 +174,17 @@ public final class RideAutoStopPolicy {
         lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
+            // A serial not read yet right after a reconnect may still be this scooter: keep rule 3's held count.
+            if (transportSerial != null && !transportSerial.isEmpty()) clearHeld();
             bound = false; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); return;
         }
-        if (!bound || transport != connection) { bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now; }
+        if (!bound || transport != connection) {
+            bound = true; connection = transport; lastMotion = lastFrame = 0; clearRun(); clearSpeed(); clearStill(); stillFrom = now;
+            if (heldFrom > 0 && heldFrame > 0 && now >= heldFrame && now - heldFrame <= RECONNECT_CARRY_MS) {
+                stillFrom = heldFrom; stillOdometer = heldOdometer; stillTrip = heldTrip;
+            }
+            clearHeld();
+        }
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
         if (stillFrom > 0) { still(now, motionMono, speedRaw, driving); distance(now, odometerKm, tripKm); }
         if (motionMono <= 0) { clearRun(); clearSpeed(); return; }
@@ -208,6 +225,7 @@ public final class RideAutoStopPolicy {
             boolean slow = speedRaw >= 0 && speedRaw <= WALKING_RAW && lastFrame > 0
                     && lastFrame >= speedMono && lastFrame - speedMono <= MOTION_FRESH_MS
                     && now - lastFrame <= LOSS_WINDOW_MS;
+            if (stillFrom > 0) { heldFrom = stillFrom; heldFrame = frame; heldOdometer = stillOdometer; heldTrip = stillTrip; }
             clearRun(); clearSpeed(); clearStill(); lastMotion = lastFrame = 0;
             lostFrame = frame;
             if (parked) lossMono = now;
@@ -255,6 +273,7 @@ public final class RideAutoStopPolicy {
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
     private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; }
+    private void clearHeld() { heldFrom = heldFrame = 0; heldOdometer = heldTrip = Double.NaN; }
     /** Rule 3's speed evidence from one connected observation. */
     private void still(long now, long pushMono, int speedRaw, int driving) {
         if (pushMono > 0 && pushMono != stillPush && pushMono <= now && now - pushMono <= MOTION_FRESH_MS) {

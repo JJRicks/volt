@@ -99,7 +99,8 @@ Rule 3 therefore counts **missing** motion, not only speed-0 pushes:
 | Motion | a fresh push (≤ 6 s old when seen) with speed above 0, or driving status 1; or the odometer or trip going up | The owner's walk-mode test pushed 0.2–3 km/h with driving status 0 throughout, so any speed above 0 counts (no noise floor, and not the 6.4 km/h walking line), and driving status 0 is not evidence of a stop. A held speed that is not pushed again never counts |
 | Countdown | `NO_MOTION_MS` = 10 min from the last motion; before any motion, from the first observation of this ride's scooter on the connection (in practice the ride's start) | Long enough for traffic lights |
 | Link | this ride's scooter authenticated and connected, with a frame in the last 15 s | A silent link is the loss watchdog's to report |
-| Disconnect | stops the countdown and hands over to the parked and quiet rules unchanged; a reconnect counts afresh from the reconnect | The policy cannot know whether the scooter moved while it was away |
+| Disconnect | stops the countdown and hands over to the parked and quiet rules unchanged | The link rules own a lost link |
+| Reconnect | within `RECONNECT_CARRY_MS` = 1 min of the last frame heard: keeps counting from the motion before the drop, with the same odometer and trip baselines; later: counts afresh from the reconnect | The owner's ride of 2026-11-06 had a 4 s Bluetooth blip (native disconnect about 6 s after the last frame, authenticated again about 10 s after it) just after he parked, which restarted the 10 minutes; blips every few minutes indoors would have kept a parked ride open for good. Distance gained in the gap still counts at the first fresh reading, and a fresh speed push counts as before. After a longer gap the scooter may have moved |
 | GPS | no phone GPS guard | As for the Bluetooth-off rule (Q30 B) |
 
 The same switch (End rides automatically) turns it off: the service resets the
@@ -215,7 +216,11 @@ minutes, the owner's walk-mode pushes (0.2–3 km/h, driving status 0) for 15
 minutes, odometer-only and trip-only motion (a trip reset is not motion), a
 held speed, no motion at all, the switch off and back on, a disconnect
 mid-countdown (the parked grace or the quiet countdown takes over; a reconnect
-counts afresh), an unrecoverable loss, the clock going backwards, a silent
+more than a minute later counts afresh), a short blip (the count carries over,
+including a reconnect whose serial is read a moment later, and blips every 4
+minutes no longer keep a parked ride open; distance gained or a push with speed
+in the gap is motion; another scooter, a reset or an unrecoverable loss drop
+the held count), an unrecoverable loss, the clock going backwards, a silent
 link, another scooter or an unread serial. Then the store (token, shown end at
 the last motion and after a reload, walk-mode and odometer-only shown ends, JSON
 name), the notice and pill text, and, from source, the tick order, the switch
