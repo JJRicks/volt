@@ -1,10 +1,10 @@
-# German. Claude-only proposal (2026-11-05), awaiting the council; status stays draft. See l10n/README.md for each field.
+# German (de). Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/de/); ships as beta. See l10n/README.md for each field.
 field	value
 tag	de
 folder	values-de
 endonym	Deutsch
 wave	1
-status	draft
+status	beta
 formality	du
 plurals	one,other
 quote_style	„…“ ‚…‘
