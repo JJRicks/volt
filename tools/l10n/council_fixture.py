@@ -123,6 +123,7 @@ class FakeTransport(object):
         self.replies = replies or {}      # model id -> function(prompt text) -> dict reply
         self.errors = errors or {}        # url fragment -> (status, body bytes)
         self.requests = []
+        self.openai_versions = []         # the version each next OpenAI response reports (default 2026-10-01)
 
     def send(self, method, url, headers, body):
         payload = json.loads(body.decode("utf-8")) if body else None
@@ -142,7 +143,8 @@ class FakeTransport(object):
                 return OPENAI_JSON_INPUT_ERROR
             model = payload["model"]
             reply = self.replies[model](payload["input"])
-            return 200, json.dumps({"model": model + "-2026-10-01", "status": "completed", "output": [
+            version = self.openai_versions.pop(0) if self.openai_versions else "2026-10-01"
+            return 200, json.dumps({"model": model + "-" + version, "status": "completed", "output": [
                 {"type": "message", "content": [{"type": "output_text", "text": json.dumps(reply)}]}],
                 "usage": OPENAI_USAGE}).encode("utf-8")
         if ":generateContent" in url:
