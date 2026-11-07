@@ -48,6 +48,7 @@ public final class RideNoMotionStopTest {
             disconnectHandsOver();
             shortBlipKeepsCount();
             carriedDeadlineWaitsForReadings();
+            carriedDeadlineNeedsComparableReading();
             clockBackwards();
             silentLinkOrOtherScooter();
             storeShownEnd();
@@ -366,6 +367,57 @@ public final class RideNoMotionStopTest {
         long fresh = back + 3000;
         n.connected(fresh, PROFILE, SERIAL, 2, fresh, 0, -1, -1); n.distance(fresh, 100.0, 5.0);
         check(n.dueNoMotion(fresh) && n.noMotionSince() == 0, "an unchanged fresh reading after the drop ends the ride at once");
+    }
+    /**
+     * Codex's #303 round 3: only a fresh reading of a metric that had a value before the gap, and has not gone
+     * down since, can show the scooter did not move; a metric with no baseline or a reset trip decides nothing.
+     */
+    private static void carriedDeadlineNeedsComparableReading() {
+        long wait = RideAutoStopPolicy.CARRY_EVIDENCE_MS;
+        double NaN = Double.NaN;
+        // Codex's repro: odometer 100 km known, trip unknown; back at 604 s with no odometer and a first trip of 0 km.
+        RideAutoStopPolicy p = policy();
+        p.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); p.distance(1000, 100.0, NaN);
+        p.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); p.distance(600_000, 100.0, NaN);
+        p.disconnected(600_000, true);
+        long back = 604_000;
+        p.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); p.distance(back, NaN, 0.0);
+        check(!p.dueNoMotion(back), "a trip with no value before the gap does not show the scooter stood still");
+        long t = back + 1000;
+        p.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); p.distance(t, NaN, 0.0);
+        check(!p.dueNoMotion(t), "nor does the same trip a second later (its baseline is from after the gap)");
+        // Then the odometer arrives, unchanged: comparable with its pre-gap value, so the carried count ends it.
+        long odo = back + 4000;
+        p.connected(odo, PROFILE, SERIAL, 2, odo, 0, -1, -1); p.distance(odo, 100.0, 0.0);
+        check(p.dueNoMotion(odo), "a later odometer reading equal to its pre-gap value releases the hold");
+        // The same, but the odometer comes back higher: motion, the ride goes on.
+        RideAutoStopPolicy q = policy();
+        q.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); q.distance(1000, 100.0, NaN);
+        q.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); q.distance(600_000, 100.0, NaN);
+        q.disconnected(600_000, true);
+        q.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); q.distance(back, NaN, 0.0);
+        q.connected(odo, PROFILE, SERIAL, 2, odo, 0, -1, -1); q.distance(odo, 100.4, 0.1);
+        check(!q.dueNoMotion(odo) && q.noMotionSince() == odo, "an odometer gained over the gap is motion");
+
+        // A trip reset across the gap (5 km before, 0 km after; odometer unavailable) decides nothing.
+        RideAutoStopPolicy r = policy();
+        r.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); r.distance(1000, NaN, 5.0);
+        r.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); r.distance(600_000, NaN, 5.0);
+        r.disconnected(600_000, true);
+        r.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); r.distance(back, NaN, 0.0);
+        check(!r.dueNoMotion(back) && r.noMotionSince() == 1000, "a reset trip is neither motion nor proof of standing still");
+        boolean early = false;
+        for (t = back + 1000; t < back + wait; t += 1000) { r.connected(t, PROFILE, SERIAL, 2, t, 0, -1, -1); r.distance(t, NaN, 0.0); early |= r.dueNoMotion(t); }
+        check(!early, "a reset trip keeps the hold for the whole wait, even as it repeats 0 km");
+        r.connected(back + wait, PROFILE, SERIAL, 2, back + wait, 0, -1, -1); r.distance(back + wait, NaN, 0.0);
+        check(r.dueNoMotion(back + wait), "then the 30 s bound ends it");
+        // A reset trip with a comparable odometer: the odometer decides.
+        RideAutoStopPolicy s2 = policy();
+        s2.connected(1000, PROFILE, SERIAL, 1, 1000, 0, -1, -1); s2.distance(1000, 100.0, 5.0);
+        s2.connected(600_000, PROFILE, SERIAL, 1, 600_000, 0, -1, -1); s2.distance(600_000, 100.0, 5.0);
+        s2.disconnected(600_000, true);
+        s2.connected(back, PROFILE, SERIAL, 2, back, 0, -1, -1); s2.distance(back, 100.0, 0.0);
+        check(s2.dueNoMotion(back), "an unchanged odometer beside a reset trip shows the scooter stood still");
     }
     /** As dueDuring, on transport 2 with no motion push on it. */
     private static boolean dueDuring2(RideAutoStopPolicy p, long from, long to) {

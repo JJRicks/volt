@@ -131,6 +131,8 @@ public final class RideAutoStopPolicy {
     private double heldOdometer = Double.NaN, heldTrip = Double.NaN;
     /** Rule 3 after a carried reconnect: no ending before this time (0 when not waiting) unless a distance reading after {@link #carryAfter} arrives. */
     private long carryHold, carryAfter;
+    /** The pre-gap odometer and trip a fresh reading must be compared with to release the hold; NaN when unknown or reset. */
+    private double carryOdometer = Double.NaN, carryTrip = Double.NaN;
 
     public RideAutoStopPolicy(String rideId, String profile, String serial) {
         if (rideId == null || rideId.isEmpty() || profile == null || profile.isEmpty() || serial == null || serial.isEmpty())
@@ -195,6 +197,7 @@ public final class RideAutoStopPolicy {
             if (heldFrom > 0 && heldFrame > 0 && now >= heldFrame && now - heldFrame <= RECONNECT_CARRY_MS) {
                 stillFrom = heldFrom; stillOdometer = heldOdometer; stillTrip = heldTrip;
                 carryHold = now + CARRY_EVIDENCE_MS; carryAfter = heldFrame + READING_AGE_MS;
+                carryOdometer = heldOdometer; carryTrip = heldTrip;
             }
             clearHeld();
         }
@@ -287,7 +290,7 @@ public final class RideAutoStopPolicy {
 
     private void clearRun() { runCount = 0; runStart = runLast = 0; }
     private void clearSpeed() { speedRaw = -1; speedMono = 0; }
-    private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; carryHold = carryAfter = 0; }
+    private void clearStill() { stillFrom = stillPush = 0; stillOdometer = stillTrip = Double.NaN; carryHold = carryAfter = 0; carryOdometer = carryTrip = Double.NaN; }
     private void clearHeld() { heldFrom = heldFrame = 0; heldOdometer = heldTrip = Double.NaN; }
     /** Rule 3's speed evidence from one connected observation. */
     private void still(long now, long pushMono, int speedRaw, int driving) {
@@ -307,10 +310,20 @@ public final class RideAutoStopPolicy {
         if (rose(stillOdometer, odometerKm) || rose(stillTrip, tripKm)) stillFrom = Math.max(stillFrom, now);
         if (odometerKm >= 0) stillOdometer = odometerKm;
         if (tripKm >= 0) stillTrip = tripKm;
-        // A reading at most READING_AGE_MS old, seen after carryAfter, was taken after the drop: judged now.
-        if (carryHold > 0 && now > carryAfter && (odometerKm >= 0 || tripKm >= 0)) carryHold = 0;
+        // A reading at most READING_AGE_MS old, seen after carryAfter, was taken after the drop. It releases
+        // the hold only when the same metric had a value before the gap and has not gone down since (a trip
+        // reset, or an odometer that reads lower, leaves that metric unable to say anything about the gap).
+        if (carryHold > 0 && now > carryAfter) {
+            if (comparable(carryOdometer, odometerKm) || comparable(carryTrip, tripKm)) carryHold = 0;
+            else {
+                if (odometerKm >= 0 && carryOdometer >= 0) carryOdometer = Double.NaN;
+                if (tripKm >= 0 && carryTrip >= 0) carryTrip = Double.NaN;
+            }
+        }
     }
     /** A distance reading went up by at least its 0.1 km step; a drop (trip reset) only moves the baseline. */
+    /** A fresh reading of a metric known before the gap, at or above that value: it shows whether the scooter moved. */
+    private static boolean comparable(double before, double after) { return before >= 0 && after >= 0 && after >= before - 1e-6; }
     private static boolean rose(double before, double after) { return before >= 0 && after >= 0 && after > before + 1e-6; }
     private void clearQuiet() { quiet = Quiet.NONE; quietFrom = quietMs = 0; }
     private void startQuiet(long from, long ms, Quiet why) { quiet = why; quietFrom = from; quietMs = ms; }
