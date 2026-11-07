@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -61,6 +62,10 @@ final class RidingScreen implements AppScreen {
     private final LinearLayout frame;
     private final View dot;
     private final LinearLayout statusPill;
+    /** What the status pill shows now: the connection, or a ride recording (owner, Nov 6); null before the first refresh. */
+    private RecordingPill.Look pillLook;
+    /** The recording dot's gentle pulse, running only while the pill says RECORDING and animations are on. */
+    private ValueAnimator pulse;
     /** A phone-width window: the warning chip shows its short rung so the status pill keeps room. */
     private final boolean narrow;
     private final TextView status, warning, speedLast, wattsCaption;
@@ -510,6 +515,7 @@ final class RidingScreen implements AppScreen {
         sheetState.close();
         dismissSheet();
         if (disc != null) disc.stop();
+        stopPulse();
         display.detach();
         night.detach();
     }
@@ -545,9 +551,10 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * The top spot. Record is Focus's default (owner): the shared recording control it needs plugs in
-     * here. Until then Record and Status both show the status pill: drive mode and connection, never
-     * the lock, and a tap does nothing, so riding mode never starts or stops a recording itself.
+     * The top spot. Record and Status both show the status pill: drive mode and connection, never the
+     * lock. While a ride records it becomes the red recording pill with the recording's own timer (owner,
+     * Nov 6). A tap does nothing either way: recording starts and stops only on Home's Record ride card and
+     * the Rides page, so riding mode never starts or stops a recording itself.
      */
     private View topControl(String content, View statusPill) {
         return statusPill;
@@ -568,16 +575,22 @@ final class RidingScreen implements AppScreen {
         String units = units();
         BleController ble = service == null ? null : service.ble;
         Double recordingKm = null;
+        RideStore.Summary ride = service != null && service.isRecording() ? service.rides.activeSummary() : null;
+        long wallNow = System.currentTimeMillis();
+        // Reboot-safe: a recovered recording's start belongs to the previous boot's monotonic clock (Codex #304).
+        Long recordingMs = ride == null ? null : RecordingPill.elapsedMs(ride.elapsedMs, ride.startWallMs, wallNow);
         if (ble != null) {
-            RideStore.Summary ride = service.isRecording() ? service.rides.activeSummary() : null;
-            session.values.setRecordingStart(ride == null ? null : ride.startMonotonicMs);
+            session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             recordingKm = ride == null ? null : ride.distanceKm;
             Double charging = ble.telemetry.number("charging_state");
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
         }
         if (session.takeBandDrop()) Haptics.tick(view);
-        showStatus(ble, now);
+        // The recording's own time, apart from ride time: a rider may record only part of a ride (owner).
+        long stoppedAt = service == null || service.rides == null ? -1 : service.rides.lastStopWallMs();
+        showStatus(ble, now, recordingMs, stoppedAt < 0 ? null : wallNow - stoppedAt,
+                stoppedAt >= 0 && service.rides.lastStopAutomatic());
         for (Cell cell : cells) cell.show(now, units, recordingKm);
         for (Chip chip : chips) chip.show(now, units, recordingKm);
         noteFastest(now);
@@ -598,7 +611,7 @@ final class RidingScreen implements AppScreen {
         for (View v : chrome) v.setAlpha(alpha);
     }
 
-    private void showStatus(BleController ble, long now) {
+    private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean reconnecting = ble != null && !ready && (ble.connected() || ble.recoverableConnectionLoss()
@@ -629,6 +642,22 @@ final class RidingScreen implements AppScreen {
                 statusPill.setContentDescription(T.ridingStatusNotConnectedSeenCompact());
             }
         }
+        // While a ride records, the red recording pill replaces the connection text set above (owner, Nov 6).
+        RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic);
+        showLook(look);
+        if (look == RecordingPill.Look.SAVED) {
+            // The brief "Ride saved" confirmation keeps the connection's dot colour, and TalkBack hears both.
+            CharSequence connection = statusPill.getContentDescription();
+            status.setTextColor(ui.text);
+            ui.statusRungs(status, RecordingPill.savedRungs(savedAutomatic));
+            statusPill.setContentDescription(RecordingPill.savedSpoken(savedAutomatic, connection == null ? null : connection.toString()));
+        } else if (look != RecordingPill.Look.STATUS) {
+            dot.setBackground(recordingDot(look));
+            status.setTextColor(ui.onAccent);
+            ui.statusRungs(status, RecordingPill.rungs(recordingMs, link, roomForBoth(recordingMs, link), now, Ui.motionEnabled()));
+            long seen = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
+            statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, seen >= 0 ? clock(now - seen) : null));
+        }
         RidingValues.Reading code = session.values.reading("warning_code", now);
         long warningCode = code == null ? 0 : Math.round(code.value);
         if (warningCode > 0) {
@@ -641,6 +670,57 @@ final class RidingScreen implements AppScreen {
             warning.setContentDescription(T.ridingWarningSpoken(number));
             warning.setAlpha(code.stale ? .6f : 1);
         } else warning.setVisibility(View.GONE);
+    }
+
+    /**
+     * The pill's background for its look: the card-coloured connection pill, the solid red recording pill,
+     * or, with a link problem, the red pill with an amber edge. Only a change of look touches it, and starts
+     * or stops the dot's pulse.
+     */
+    private void showLook(RecordingPill.Look look) {
+        if (look == pillLook) return;
+        pillLook = look;
+        stopPulse();
+        if (look == RecordingPill.Look.STATUS || look == RecordingPill.Look.SAVED) {
+            statusPill.setBackground(ui.shape(cardColor(), TOUCH_DP / 2, 0));
+            return;
+        }
+        GradientDrawable fill = ui.shape(ui.accent, TOUCH_DP / 2, 0);
+        if (look == RecordingPill.Look.RECORDING_PROBLEM) fill.setStroke(ui.dp(3), ui.orange);
+        statusPill.setBackground(fill);
+        if (RecordingPill.pulses(look, Ui.motionEnabled())) {
+            pulse = ValueAnimator.ofFloat(1f, .35f);
+            pulse.setDuration(900);
+            pulse.setRepeatMode(ValueAnimator.REVERSE);
+            pulse.setRepeatCount(ValueAnimator.INFINITE);
+            pulse.addUpdateListener(a -> dot.setAlpha((Float) a.getAnimatedValue()));
+            pulse.start();
+        }
+    }
+
+    /** Whether the recording pill's short line with a link problem ("12:48 · Not connected") fits, at the line's smallest size. */
+    private boolean roomForBoth(long recordingMs, RidingFocus.Link link) {
+        if (link == RidingFocus.Link.CONNECTED || status.getWidth() <= 0) return true;
+        String line = RecordingPill.both(clock(recordingMs), link)[1];
+        android.text.TextPaint paint = new android.text.TextPaint(status.getPaint());
+        if (status.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM) paint.setTextSize(status.getAutoSizeMinTextSize());
+        return paint.measureText(line) <= status.getWidth() - status.getCompoundPaddingLeft() - status.getCompoundPaddingRight();
+    }
+
+    /** The recording dot: solid white, or a hollow white ring while the link has a problem. */
+    private GradientDrawable recordingDot(RecordingPill.Look look) {
+        GradientDrawable mark = oval(ui.onAccent);
+        if (look == RecordingPill.Look.RECORDING_PROBLEM) {
+            mark.setColor(android.graphics.Color.TRANSPARENT);
+            mark.setStroke(ui.dp(2), ui.onAccent);
+        }
+        return mark;
+    }
+
+    private void stopPulse() {
+        if (pulse != null) pulse.cancel();
+        pulse = null;
+        dot.setAlpha(1f);
     }
 
     /** The drive mode word as the scooter shows it ("ECO", "SPORT"), or null when unknown or raw. */
