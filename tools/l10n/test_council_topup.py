@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import unittest
+import unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import council  # noqa: E402
@@ -196,6 +197,90 @@ class ApiTopUpTest(TopUpBase):
         draft = self.read()
         self.assertEqual(draft.model, "gpt-6.1-sol")
         self.assertEqual(sorted(draft.entries), sorted(cf.SPANISH))
+
+
+OCT, NOV, DEC = "gpt-6.1-terra-2026-10-01", "gpt-6.1-terra-2026-11-01", "gpt-6.1-terra-2026-12-01"
+
+
+class ReportedModelTest(TopUpBase):
+    """Each entry keeps the model its own call reported, so a top-up or redraft by a newer version of
+    the same model id never makes an earlier drafter look independent."""
+
+    def drafters(self):
+        return council.all_drafter_models(translib.list_drafts(self.paths, "es", "common"))
+
+    def small_chunks(self, size=3):
+        whole = council.chunks
+        return unittest.mock.patch.object(council, "chunks", lambda p, e, size_=size: whole(p, e, size_))
+
+    def test_unchanged_versions_write_no_entry_attribute(self):
+        self.draft()
+        text = self.repo.read(DRAFT)
+        self.assertEqual(text.count("volt:model-reported"), 1)  # the root's only, as before
+        self.assertIn('volt:model-reported="%s"' % OCT, text.splitlines()[2])
+        draft = self.read()
+        translib.write_draft(self.repo.path(DRAFT), "openai", draft.model, [
+            (k, e.kind, e.items, e.attempt, e.src) for k, e in draft.entries.items()], draft.model_reported,
+            draft.prompt, translib.entry_reported_map(draft))
+        self.assertEqual(self.repo.read(DRAFT), text)  # byte for byte
+        self.settle_strings()
+        self.topped_reply()
+        self.draft()  # the same version again: still no entry attribute
+        self.assertEqual(self.repo.read(DRAFT).count("volt:model-reported"), 1)
+
+    def test_top_up_by_a_newer_version_keeps_the_older_drafter(self):
+        self.draft()
+        self.settle_strings()
+        self.fake.openai_versions[:] = ["2026-11-01"] * 5
+        self.topped_reply()
+        self.draft()
+        asked = self.requested()
+        draft = self.read()
+        self.assertEqual(draft.model_reported, NOV)
+        kept = [k for k in cf.SPANISH if k not in asked]
+        self.assertTrue(kept)
+        for key in cf.SPANISH:
+            self.assertEqual(translib.entry_reported(draft, key), NOV if key in asked else OCT, key)
+        self.assertIn('<string name="common_dont" volt:src="%s" volt:model-reported="%s">' % (
+            self.sha()["common_dont"], OCT), self.repo.read(DRAFT))
+        drafters = self.drafters()
+        self.assertTrue({OCT, NOV} <= drafters, drafters)
+        self.assertFalse(council.independent_backtranslator("gpt-6.1-sol", OCT, drafters))
+        # A later top-up by yet another version still remembers the kept entries' drafter.
+        self.change_english(">Cancel<", ">Dismiss<")
+        self.fake.openai_versions[:] = ["2026-12-01"] * 5
+        self.draft()
+        draft = self.read()
+        self.assertEqual(translib.entry_reported(draft, "common_cancel"), DEC)
+        self.assertEqual(translib.entry_reported(draft, "common_dont"), OCT)
+        # NOV's texts were all asked for again (the plurals are still new), so only OCT's and DEC's remain.
+        self.assertTrue({OCT, DEC} <= self.drafters())
+
+    def test_chunks_that_report_different_versions_each_record_theirs(self):
+        self.fake.openai_versions[:] = ["2026-10-01", "2026-11-01", "2026-11-01", "2026-11-01"]
+        with self.small_chunks():
+            self.draft()
+        chunked = [cf.requested_keys(p["input"]) for m, u, _, p in self.fake.requests if m == "POST"]
+        self.assertGreater(len(chunked), 1)
+        draft = self.read()
+        self.assertEqual(draft.model_reported, NOV)  # the last call's, as before
+        for index, keys in enumerate(chunked):
+            for key in keys:
+                self.assertEqual(translib.entry_reported(draft, key), OCT if index == 0 else NOV, key)
+        self.assertTrue({OCT, NOV} <= self.drafters())
+
+    def test_redraft_by_a_newer_version_keeps_the_older_drafter(self):
+        texts = dict(cf.SPANISH, common_move_widget="Mover %1$s")
+        self.fake.replies["gpt-6.1-terra"] = cf.drafting_reply(texts)
+        self.draft()
+        self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
+        self.fake.replies["gpt-6.1-terra"] = cf.drafting_reply(cf.SPANISH)
+        self.fake.openai_versions[:] = ["2026-11-01"] * 3
+        self.assertEqual(self.main("redraft", "openai", "--tag", "es", "--area", "common"), 0)
+        draft = self.read()
+        self.assertEqual(translib.entry_reported(draft, "common_move_widget"), NOV)
+        self.assertEqual(translib.entry_reported(draft, "common_dont"), OCT)
+        self.assertTrue({OCT, NOV} <= self.drafters())
 
 
 class ClaudeImportTopUpTest(TopUpBase):

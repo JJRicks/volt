@@ -542,8 +542,27 @@ def xml_attr(value):
 # ---------------------------------------------------------------------------
 
 # src: the source hash (source_sha1) of the English the entry translated, from volt:src; None if absent.
-DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems src")
+# model_reported: the model the provider reported for this entry's call (volt:model-reported on the
+# element), when it differs from the draft's; None means the draft's model_reported.
+DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems src model_reported",
+                                    defaults=(None,))
 Draft = collections.namedtuple("Draft", "name provider model model_reported prompt entries path")
+
+
+def entry_reported(draft, key):
+    """The model the provider reported for the call that drafted draft.entries[key]."""
+    return draft.entries[key].model_reported or draft.model_reported
+
+
+def entry_reported_map(draft):
+    """{key: reported model} of every entry of draft (None: {}), for write_draft's entry_reported."""
+    return dict((k, entry_reported(draft, k)) for k in draft.entries) if draft is not None else {}
+
+
+def drafter_models(draft):
+    """Every model id the draft names: the model asked, the reported one, and each entry's own."""
+    return set([draft.model, draft.model_reported]) | set(
+        e.model_reported for e in draft.entries.values() if e.model_reported)
 
 
 def draft_provider(name):
@@ -553,8 +572,12 @@ def draft_provider(name):
     raise L10nError("draft %r must be named claude-<config>, openai[-<x>] or google[-<x>]" % name)
 
 
-def write_draft(path, name, model, entries, model_reported=None, prompt=None):
+def write_draft(path, name, model, entries, model_reported=None, prompt=None, entry_reported=None):
     """entries: [(key, kind, {quantity: text}, attempt, src)] in pack order.
+
+    entry_reported {key: model} names the model the provider reported for each entry's call; an entry
+    whose model differs from the draft's reported one (model_reported, else model) records it as
+    volt:model-reported, so a later top-up or redraft by a newer version never hides who drafted it.
 
     src is the source hash of the English the entry translated (volt:src); a draft entry without
     one, or with another than the current English's, is stale and never decides anything.
@@ -571,9 +594,12 @@ def write_draft(path, name, model, entries, model_reported=None, prompt=None):
     lines = ['<?xml version="1.0" encoding="utf-8"?>',
              "<!-- Draft %s: written by tools/l10n/council.py; staging only, never compiled. -->" % name,
              "<resources %s>" % " ".join(attrs)]
+    file_reported = model_reported or model
     for key, kind, items, attempt, src in entries:
         extra = ' volt:src="%s"' % xml_attr(src) if src else ""
         extra += ' volt:attempt="%d"' % attempt if attempt and attempt > 1 else ""
+        own = (entry_reported or {}).get(key)
+        extra += ' volt:model-reported="%s"' % xml_attr(own) if own and own != file_reported else ""
         if kind == "string":
             lines.append('    <string name="%s"%s>%s</string>' % (key, extra, xml_text(encode_resource_text(items["other"]))))
         else:
@@ -612,13 +638,15 @@ def read_draft(path):
         problems = []
         if kind not in ("string", "plurals"):
             raise L10nError("%s:%d: <%s> is not allowed in a draft" % (path, node.line, kind))
-        attempt, src = 1, None
+        attempt, src, own = 1, None, None
         for attr, value in node.attrs.items():
             local = gen_catalog._local(attr)
             if local == "attempt" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
                 attempt = int(value) if value.isdigit() else 1
             elif local == "src" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
                 src = value.strip() or None
+            elif local == "model-reported" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
+                own = value.strip() or None
             elif local != "name":
                 problems.append("attribute %s is not allowed in a draft" % local)
         items, raw = collections.OrderedDict(), collections.OrderedDict()
@@ -642,8 +670,12 @@ def read_draft(path):
         if key in entries:
             raise L10nError("%s:%d: %s appears twice" % (path, node.line, key))
         entries[key] = DraftEntry(key, "plural" if kind == "plurals" else "string", items, raw, attempt, problems,
-                                  src)
-    return Draft(name, provider, model, attrs.get("model-reported") or model, attrs.get("prompt"), entries, path)
+                                  src, own)
+    reported = attrs.get("model-reported") or model
+    for key, entry in entries.items():
+        if entry.model_reported == reported:
+            entries[key] = entry._replace(model_reported=None)
+    return Draft(name, provider, model, reported, attrs.get("prompt"), entries, path)
 
 
 def list_drafts(paths, tag, area):

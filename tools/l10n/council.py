@@ -339,15 +339,19 @@ def existing_draft_entries(path):
     return collections.OrderedDict((k, (k, e.kind, e.items, e.attempt, e.src)) for k, e in draft.entries.items())
 
 
-def save_draft(paths, pack, name, model, model_reported, new_entries, prompt, attempt=None):
-    """Update drafts/<name>.xml in pack order (a redraft). attempt marks the replaced keys."""
+def save_draft(paths, pack, name, model, model_reported, new_entries, prompt, attempt=None, new_reported=None):
+    """Update drafts/<name>.xml in pack order (a redraft). attempt marks the replaced keys; new_reported
+    {key: model} is the model each new entry's call reported (default model_reported). The entries
+    kept keep the model they were drafted by."""
     path = os.path.join(paths.drafts(pack["tag"], pack["area"]), name + ".xml")
     merged = existing_draft_entries(path)
+    reported_by = translib.entry_reported_map(translib.read_draft(path) if os.path.exists(path) else None)
     for key, kind, items, _, src in new_entries:
         merged[key] = (key, kind, items, attempt or 1, src)
+        reported_by[key] = (new_reported or {}).get(key) or model_reported or model
     order = [e["key"] for e in pack["entries"]]
     ordered = [merged[k] for k in order if k in merged]
-    translib.write_draft(path, name, model, ordered, model_reported, prompt)
+    translib.write_draft(path, name, model, ordered, model_reported, prompt, reported_by)
     return path
 
 
@@ -457,19 +461,22 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style=None, n
     retried = retried_missing(paths, tag, area).get(name, {}) if top_up else {}
     system = instructions(pack, style)
     collected, reported, problems = [], None, []
+    # Each entry keeps the model its own call reported: a kept one, the draft's; a new one, its chunk's.
+    reported_by = translib.entry_reported_map(previous) if top_up else {}
     for index, chunk in enumerate(chunks(pack, entries)):
         text, reported, _ = generate_logged(paths, tag, area, "draft", provider, model, system,
                                             user_prompt(pack, chunk), draft=name, chunk=index, keys=len(chunk))
         strings = reply_strings(providers.parse_json_reply(text))
         got, chunk_problems = replies_to_entries(pack, strings, [e["key"] for e in chunk])
         collected.extend(got)
+        reported_by.update((k, reported or model) for k, _, _, _, _ in got)
         problems.extend(chunk_problems)
         log_run(paths, tag, area, collections.OrderedDict(
             [("stage", "draft"), ("draft", name), ("provider", provider), ("model", model),
              ("model_reported", reported), ("chunk", index), ("keys", len(chunk)), ("received", len(got)),
              ("calls", 1)] + ([("top_up", True)] if top_up else [])))
     merged = merged_draft_entries(pack, kept, collected, requested, retried)
-    translib.write_draft(path, name, model, merged, reported, style)
+    translib.write_draft(path, name, model, merged, reported, style, reported_by)
     out.write("%s: %d of %d keys drafted by %s%s%s\n" % (
         paths.rel(path), len(collected), len(entries), model,
         " (reported %s)" % reported if reported != model else "",
@@ -527,7 +534,7 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         return None
     wanted = set(failed) | set(lacking)
     entries = [e for e in pack["entries"] if e["key"] in wanted]
-    collected, reported, calls = [], draft.model_reported, 0
+    collected, reported, calls, new_reported = [], draft.model_reported, 0, {}
     for index, chunk in enumerate(chunks(pack, entries)):
         text, reported, _ = generate_logged(paths, tag, area, "redraft", provider, draft.model,
                                             instructions(pack, draft.prompt or "standard"),
@@ -537,9 +544,11 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
         got, problems = replies_to_entries(pack, reply_strings(providers.parse_json_reply(text)),
                                            [e["key"] for e in chunk])
         collected.extend(got)
+        new_reported.update((k, reported or draft.model) for k, _, _, _, _ in got)
         for problem in problems:
             out.write("  %s\n" % problem)
-    save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS)
+    save_draft(paths, pack, name, draft.model, reported, collected, draft.prompt, attempt=MAX_ATTEMPTS,
+               new_reported=new_reported)
     received = set(k for k, _, _, _, _ in collected)
     missing = collections.OrderedDict((e["key"], e["source_sha1"]) for e in entries if e["key"] not in received)
     log_run(paths, tag, area, collections.OrderedDict([
@@ -646,8 +655,10 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
                 paths, path, previous, model, style, pack, requested,
                 "reply as %s in the %s style, answer every key the draft holds, or delete the draft to start it "
                 "over" % (previous.model, previous.prompt or "standard") if previous is not None else "")
+            reported_by = dict((k, v) for k, v in translib.entry_reported_map(previous).items() if k in kept)
+            reported_by.update((k, model) for k, _, _, _, _ in got)
             translib.write_draft(path, draft_name, model, merged_draft_entries(pack, kept, got, requested),
-                                 model, style)
+                                 model, style, reported_by)
         for problem in problems:
             out.write("  %s\n" % problem)
     errors = 0
@@ -994,7 +1005,10 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
     if merged:
         reported = previous.model_reported if previous is not None else model
         prompt = previous.prompt if previous is not None and others else fields["style"]
-        translib.write_draft(path, draft_name, model, [merged[k] for k in english if k in merged], reported, prompt)
+        reported_by = translib.entry_reported_map(previous)
+        reported_by.update((k, model) for k in collected)
+        translib.write_draft(path, draft_name, model, [merged[k] for k in english if k in merged], reported, prompt,
+                             reported_by)
     for problem in problems:
         out.write("  %s\n" % problem)
     out.write("%s (%s): %d keys from %d of %d chunks, %d keys in the draft%s; %s\n" % (
@@ -1229,7 +1243,7 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
     if not os.path.exists(draft_file(paths, tag, area, draft_name)):
         raise translib.L10nError("%s does not exist" % paths.rel(draft_file(paths, tag, area, draft_name)))
     draft = translib.read_draft(draft_file(paths, tag, area, draft_name))
-    if model in (draft.model, draft.model_reported):
+    if model in translib.drafter_models(draft):
         out.write("  note: %s also drafted this text; this record shows that\n" % model)
     sources, _ = translib.load_source(paths)
     english = dict((s.key, s) for s in sources.get(area, []) if s.translatable)
@@ -1521,7 +1535,8 @@ def analyze(paths, pack, drafts=None, use_java=True, short_texts=None):
                         ("src", d.src), ("why", why)]))
                     continue
                 findings = results[draft.name].get(key, [])
-                candidates.append(Candidate(draft.name, draft.provider, draft.model, draft.model_reported, d.attempt,
+                candidates.append(Candidate(draft.name, draft.provider, draft.model,
+                                            translib.entry_reported(draft, key), d.attempt,
                                             d.items, findings, checklib.is_ok(findings)))
         passing = [c for c in candidates if c.ok]
         agreed = None
@@ -1577,7 +1592,9 @@ def representative(candidates):
 
 
 def all_drafter_models(drafts):
-    return set(d.model for d in drafts) | set(d.model_reported for d in drafts)
+    """Every model that drafted in the area: each draft's model asked and reported, and the model each
+    entry's own call reported (a top-up or redraft by a newer version keeps the older one per entry)."""
+    return set().union(*[translib.drafter_models(d) for d in drafts]) if drafts else set()
 
 
 def independent_backtranslator(model, model_reported, drafters):

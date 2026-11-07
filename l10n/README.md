@@ -1242,13 +1242,18 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    drafted keys replace their entries and every other key stays, with its `volt:attempt`. A key the
    reply leaves out keeps its old entry only while that entry translates the current English, so
    `redraft` sends a stale one as lacking; a key that has had its redraft keeps `volt:attempt="2"`,
-   so a top-up does not buy it another. A top-up uses the draft's model and style unless `--model`,
-   `--prefer` or `--style` says otherwise (one model and one style per draft): a run by another
-   model or style replaces the draft only if it drafts every key the draft holds, and otherwise
-   refuses before sending anything. `--all` drafts every key and starts the draft over, the way a
-   first draft does, and so does any run that drafts every key the draft holds. `import-claude --from` merges a reply the same way: a reply by the draft's
-   model in its style replaces the keys it answers, and one by another model or style must answer
-   every key the draft holds (or delete the draft file to start over).
+   so a top-up does not buy it another. Each entry also keeps the model id the provider reported
+   for its own call: one that differs from the draft's `volt:model-reported` (a later top-up,
+   redraft or chunk answered by another dated version of the same model) carries its own
+   `volt:model-reported`, and the back-translator must differ from every one of them, so an earlier
+   version that drafted a kept text never counts as independent. A top-up uses the draft's model
+   and style unless `--model`, `--prefer` or `--style` says otherwise (one model and one style per
+   draft): a run by another model or style replaces the draft only if it drafts every key the draft
+   holds, and otherwise refuses before sending anything. `--all` drafts every key and starts the
+   draft over, the way a first draft does, and so does any run that drafts every key the draft
+   holds. `import-claude --from` merges a reply the same way: a reply by the draft's model in its
+   style replaces the keys it answers, and one by another model or style must answer every key the
+   draft holds (or delete the draft file to start over).
    **Every draft entry records the English it translated** (`volt:src`, the source hash below):
    API drafts are stamped from the pack they were made from, and each string in a Claude prompt
    carries a `src` that the agent copies unchanged into its reply (`"src": {"<key>": "<src>"}`)
