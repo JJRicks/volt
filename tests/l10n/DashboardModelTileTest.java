@@ -105,6 +105,8 @@ public final class DashboardModelTileTest {
         check(grid.contains("label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);"), "simple line breaks");
         // Up to two lines of whole words (the budget's *2), never smaller; a Setting tile label is one line.
         check(grid.contains("StatusRungs.wholeLines(full, label, room, 2)"), "a Quick access name takes up to two lines");
+        check(grid.contains("StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null"),
+                "a Quick access name that does not fit shows its short rung in the same room (volt:overflow=\"short\")");
         check(grid.contains("label.setTextColor(ui.muted); label.setMaxLines(1);"), "a Setting tile label is one line");
         String budget = (72 - 4 - 4) + "dp@12sp*2";
         String strings = read(STRINGS);
@@ -117,6 +119,8 @@ public final class DashboardModelTileTest {
             if (attrs.contains("volt:ladder=\"full\"")) {
                 full++;
                 check(attrs.contains("volt:max=\"" + budget + "\""), key + " has no Quick access budget " + budget);
+                // Where the name does not fit, the button shows the short rung in the same room (check.py's overflow rule).
+                check(attrs.contains("volt:overflow=\"short\""), key + " has no volt:overflow=\"short\"");
             } else if (attrs.contains("volt:ladder=\"short\"")) {
                 shorts++;
                 check(attrs.contains("volt:max=\"90dp@12.5sp\""), key + " lost its Setting tile budget");
