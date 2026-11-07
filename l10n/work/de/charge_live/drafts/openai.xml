@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="charge_live_title_limit" volt:src="ccc0e84919fbf1deee4bdd7d1627de4ec60660e2">Akku lädt bis %1$s %% · %2$s %%</string>
+    <string name="charge_live_title_full" volt:src="0ece157e869c546c01c5f43bf7e89e6b2cec2c1a">Akku lädt · %1$s %%</string>
+    <string name="charge_live_title_waiting" volt:src="00e37e71aea4c0f86ab9e95c4c07291f45536713">Ladestart: %1$s · %2$s %%</string>
+    <string name="charge_live_title_waiting_time" volt:src="9e0d3206d5c767badf6d2c49d83cea925a9a1666">Ladestart: %1$s</string>
+    <string name="charge_live_title_last_seen" volt:src="07cf423c0ba7146c9313c32555d6061b4e801db1">Zuletzt: %1$s %%</string>
+    <string name="charge_live_text_eta" volt:src="6f6df833d3fb8846db45eae307e93dca8b27b5f0">Fertig: %1$s</string>
+    <string name="charge_live_text_eta_watts" volt:src="384dcf86a50b09de18e885e7a7b9261021ebe5f6">Fertig: %1$s · %2$s</string>
+    <string name="charge_live_text_estimating" volt:src="15467b6f4c5664605c7208ae9b71e444e565c19b">Restzeit wird geschätzt</string>
+    <string name="charge_live_text_estimating_watts" volt:src="90eec41c4a783741526ae9faa937957d9a3637f7">Restzeit wird geschätzt · %1$s</string>
+    <string name="charge_live_text_done_by" volt:src="517cfe7d286a4a817adb7c4abeba5bc3072e0de1">Fertig geladen bis: %1$s</string>
+    <string name="charge_live_text_scheduled" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Geplantes Laden</string>
+    <string name="charge_live_text_reconnecting" volt:src="3e8dd4c05276052e8c91f8d650107b89631d9571">Außer Reichweite · verbindet sich erneut</string>
+    <string name="charge_live_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Verbindung trennen</string>
+    <string name="charge_live_row" volt:src="56aad6082b5010485b236955f2edb96f34d2341a">Laden live</string>
+    <string name="charge_live_intro" volt:src="541d1bf2aa3d595d08446374a0300e2f6d8eb70a">Zeigt den Ladevorgang auf dem Sperrbildschirm und in deinen Benachrichtigungen, nachdem du Volt verlassen hast.</string>
+    <string name="charge_live_switch_detail" volt:src="0fa849b0dc201f845757419f68f6d515794bc0f4">Volt bleibt während des Ladens bis zu 12 Stunden verbunden</string>
+    <string name="charge_live_lock_title" volt:src="924d6825f1a4c29f142ea8af9ca36f3057d04eb0">Auf dem Sperrbildschirm</string>
+    <string name="charge_live_lock_details" volt:src="e7b71191552a189d40e6bf5feb5cd434c2327456">Details</string>
+    <string name="charge_live_lock_level" volt:src="d09af4b261e36cf5e9197a95be2530aa4e2bb753">Akkustand</string>
+    <string name="charge_live_lock_hidden" volt:src="dab03497d1be8687d1fbd8bd76742b79f156a9bb">Ausgeblendet</string>
+    <string name="charge_live_when" volt:src="2b2ade7cb931bfbb4a23d8345b2cc09b38295330">Solange die Karte angezeigt wird, können sich andere Apps – auch die offizielle NAVEE-App – nicht verbinden. Tippe auf der Karte auf „Verbindung trennen“, damit sie sich verbinden können.</string>
+    <string name="charge_live_perm" volt:src="95dbfa498b011dc3178b86c20d483a42c35f4298">Benachrichtigungen für Volt sind ausgeschaltet, daher kann die Karte zum Laden live nicht angezeigt werden.</string>
+    <string name="charge_live_update_row" volt:src="20f929ec172fce5fc47dfc6ff905c14d5864d292">Live-Update-Status</string>
+    <string name="charge_live_update_promoted" volt:src="3138a23fcbc50fabdb5f07dff872d86d89f4907c">Als Live-Update angezeigt</string>
+    <string name="charge_live_update_not_allowed" volt:src="691c707cd463e9921c6d0250e7962c0f1f0a63fd">In den Android-Einstellungen nicht erlaubt</string>
+    <string name="charge_live_update_old_android" volt:src="3b81c9809e7a5230aad2cb79701a8ff1ac3b3f56">Android 15 oder älter</string>
+    <string name="charge_live_update_unavailable" volt:src="213524bdc867fffa8019390d1ce8e831e269f2ca">Auf dieser Android-Version nicht verfügbar</string>
+    <string name="charge_live_update_not_promotable" volt:src="e83e68893e6545a5ca5702f815aedd0434fbd66e">Nicht für Live-Updates geeignet</string>
+    <string name="charge_live_update_not_promoted" volt:src="a8bf5f1bdac887b479390e4a23f4e9acb8a6e800">Von Android nicht als Live-Update angezeigt</string>
+    <string name="charge_live_update_ready" volt:src="c608ff95cb1d316d52ceeafbd468068514d75f06">Erlaubt · wird mit der nächsten Live-Karte angezeigt</string>
+</resources>
