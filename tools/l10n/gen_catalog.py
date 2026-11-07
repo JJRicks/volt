@@ -47,9 +47,14 @@ ENGLISH_QUANTITIES = ("one", "other")
 PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True
 LADDERS = ("full", "short", "compact")
 SAFETY = ("lock", "ride", "alarm", "charge", "experimental", "owner-key", "pin", "privacy", "disclaimer")
-VOLT_ATTRIBUTES = ("screen", "purpose", "max", "ladder", "safety", "dnt", "english-fix")
+# volt:overflow="short" on a full rung: the one view its volt:max budgets shows the group's _short rung,
+# measured the same way (same size, lines and room), where the full does not fit; check.py then judges
+# the full's overflow by whether that short rung fits the full's budget.
+OVERFLOWS = ("short",)
+VOLT_ATTRIBUTES = ("screen", "purpose", "max", "ladder", "overflow", "safety", "dnt", "english-fix")
 KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
-MAX_PATTERN = re.compile(r"^\d+(?:\.\d+)?dp@\d+(?:\.\d+)?sp$")
+# <dp>dp@<sp>sp, then *<lines> when the view wraps whole words onto up to that many lines (2 to 9).
+MAX_PATTERN = re.compile(r"^\d+(?:\.\d+)?dp@\d+(?:\.\d+)?sp(?:\*[2-9])?$")
 ESCAPES = {"n": "\n", "t": "\t", "'": "'", '"': '"', "\\": "\\", "@": "@", "?": "?", "#": "#"}
 ASCII_SPACE = " \t\n\r\f\v"
 JAVA_TYPES = {"s": "CharSequence", "d": "long", "f": "double"}
@@ -286,9 +291,16 @@ def _read_meta(node, where, problems, allowed_plain):
             if value not in SAFETY:
                 problems.append("%s: volt:safety %r is not one of %s" % (where, value, ", ".join(SAFETY)))
     if "max" in meta and not MAX_PATTERN.match(meta["max"]):
-        problems.append("%s: volt:max must look like 96dp@14sp" % where)
+        problems.append("%s: volt:max must look like 96dp@14sp or 64dp@12sp*2" % where)
     if "english-fix" in meta and meta["english-fix"] != "pending":
         problems.append("%s: volt:english-fix may only be \"pending\"" % where)
+    if "overflow" in meta:
+        if meta["overflow"] not in OVERFLOWS:
+            problems.append("%s: volt:overflow may only be %s" % (where, ", ".join('"%s"' % o for o in OVERFLOWS)))
+        if meta.get("ladder") != "full":
+            problems.append("%s: volt:overflow belongs only on a volt:ladder=\"full\" rung" % where)
+        if "max" not in meta:
+            problems.append("%s: volt:overflow needs the volt:max budget it relaxes" % where)
     return meta, plain
 
 
@@ -439,6 +451,14 @@ def load_catalog(values_dir, display_root=None):
                 for index, conversion in args.items():
                     if base_args.get(index) != conversion:
                         problems.append("%s: rung placeholder %%%d$%s is not in %s" % (where, index, conversion, base.name))
+        if entry.meta.get("overflow") == "short":
+            short = by_name.get(entry.name + "_short")
+            if short is None or short.meta.get("ladder") != "short":
+                problems.append("%s: volt:overflow=\"short\" needs a volt:ladder=\"short\" rung %s_short beside it" % (
+                    where, entry.name))
+            elif short.kind != entry.kind or short.translatable != entry.translatable:
+                problems.append("%s: volt:overflow=\"short\" needs %s_short to be the same kind and as translatable" % (
+                    where, entry.name))
         accessor = camel(entry.name)
         if keyword.iskeyword(accessor) or accessor in ("true", "false", "null") or accessor in RESERVED:
             problems.append("%s: key camel-cases to %r, which Java or T already uses" % (where, accessor))

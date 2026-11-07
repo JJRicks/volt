@@ -34,14 +34,16 @@ import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterService;
 
 /**
- * Pseudo-locale layout checks (plan section 6.2), skeleton: B0b walks the five main pages and the More
- * sections, B17 the setup pages; later batches add the sheets, BackupActivity and ShizukuSetupActivity.
- * Report only during the migration: the result is PASS whenever the walk completes, and the findings are counted
- * in the result bundle and listed in locale-validation/<variant>-report.txt. Needs the pseudo APK
- * (VOLT_PSEUDO_LOCALES=1 build.sh) and API 33 or later; with the release APK it says the pseudo resources
- * did not resolve.
+ * Pseudo-locale and shipped-language layout checks (plan sections 6.2 and 7.2 step 6), skeleton: B0b walks
+ * the five main pages and the More sections, B17 the setup pages; later batches add the sheets, BackupActivity
+ * and ShizukuSetupActivity. Report only: the result is PASS whenever the walk completes, and the findings are
+ * counted in the result bundle and listed in locale-validation/<variant>-report.txt. Needs API 33 or later.
+ * en-XA and ar-XB need the pseudo APK (VOLT_PSEUDO_LOCALES=1 build.sh); with the release APK it says the
+ * pseudo resources did not resolve. Any other tag is a shipped language (status beta or stable in
+ * l10n/lang/<tag>.tsv) on the normal app APK; the walk fails unless the app's l10n_tag string reads that tag.
  *
- *   -e locale en-XA|ar-XB  (default en-XA)   -e theme dark|light   -e text_scale 1|1.4   -e variant <name>
+ *   -e locale en-XA|ar-XB|<tag>  (default en-XA)   -e rtl true|false  (a shipped language; default false)
+ *   -e theme dark|light   -e text_scale 1|1.4   -e variant <name>
  *
  * The language is set from inside the app process with LocaleManager.setApplicationLocales, as the
  * Language row will, and cleared again at the end. Views are found by tag or field only, never by text.
@@ -49,6 +51,7 @@ import com.jjricks.volt.ScooterService;
  *          more than one [..] group in one view means pieces were glued; a visible %1$s means a template
  *          got no arguments; plus TextFit's fit checks.
  *   ar-XB: every window root must lay out right to left; plus TextFit's fit checks.
+ *   <tag>: TextFit's fit checks; with -e rtl true (rtl in l10n/lang/<tag>.tsv) also ar-XB's direction check.
  */
 public final class LocaleValidation extends Instrumentation {
     private static final String[] PAGES = {"home", "stats", "controls", "rides", "more"};
@@ -59,10 +62,12 @@ public final class LocaleValidation extends Instrumentation {
     private static final Pattern PSEUDO_GROUP = Pattern.compile("\\[[^\\[\\]]*\\]");
     private static final Pattern PLAIN_WORD = Pattern.compile("[A-Za-z]{2,}");
     private static final Pattern UNFILLED = Pattern.compile("%\\d+\\$[sdf]");
+    private static final Pattern LANGUAGE_TAG = Pattern.compile("[a-z]{2,3}(-[A-Za-z0-9]{2,8})*");
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted, localeSet;
     private String locale;
+    private boolean pseudo, rtl;
     private final ArrayList<String> screenshots = new ArrayList<>();
     private final List<String> unextracted = new ArrayList<>(), glued = new ArrayList<>(), unfilled = new ArrayList<>(),
             fit = new ArrayList<>(), direction = new ArrayList<>();
@@ -74,7 +79,9 @@ public final class LocaleValidation extends Instrumentation {
         Bundle result = new Bundle();
         locale = arguments.getString("locale", "en-XA");
         try {
-            require(locale.equals("en-XA") || locale.equals("ar-XB"), "locale must be en-XA or ar-XB");
+            pseudo = locale.equals("en-XA") || locale.equals("ar-XB");
+            require(pseudo || LANGUAGE_TAG.matcher(locale).matches() && !locale.equals("en"), "locale must be en-XA, ar-XB or a shipped language tag");
+            rtl = locale.equals("ar-XB") || !pseudo && Boolean.parseBoolean(arguments.getString("rtl", "false"));
             if (Build.VERSION.SDK_INT < 33) {
                 result.putString("result", "PASS"); result.putString("skipped", "LocaleManager needs API 33");
                 return;
@@ -88,10 +95,19 @@ public final class LocaleValidation extends Instrumentation {
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.getWindow().getDecorView().isAttachedToWindow() && activity.getWindow().getDecorView().getWidth() > 0, "App did not launch");
             settle();
-            String expected = locale.equals("en-XA") ? "XA" : "XB";
-            require(expected.equals(activity.getResources().getConfiguration().getLocales().get(0).getCountry()), "the activity did not get " + locale);
-            int label = getTargetContext().getResources().getIdentifier("app_name", "string", getTargetContext().getPackageName());
-            require(label != 0 && !"Volt".equals(activity.getString(label)), "the pseudo-locale resources did not resolve; install the pseudo APK (VOLT_PSEUDO_LOCALES=1 build.sh)");
+            Locale applied = activity.getResources().getConfiguration().getLocales().get(0);
+            if (pseudo) {
+                String expected = locale.equals("en-XA") ? "XA" : "XB";
+                require(expected.equals(applied.getCountry()), "the activity did not get " + locale);
+                int label = getTargetContext().getResources().getIdentifier("app_name", "string", getTargetContext().getPackageName());
+                require(label != 0 && !"Volt".equals(activity.getString(label)), "the pseudo-locale resources did not resolve; install the pseudo APK (VOLT_PSEUDO_LOCALES=1 build.sh)");
+            } else {
+                require(Locale.forLanguageTag(locale).getLanguage().equals(applied.getLanguage()), "the activity did not get " + locale + " (it has " + applied.toLanguageTag() + ")");
+                int tag = getTargetContext().getResources().getIdentifier("l10n_tag", "string", getTargetContext().getPackageName());
+                String resolved = tag == 0 ? null : activity.getString(tag);
+                require(locale.equals(resolved), "the " + locale + " resources did not resolve: l10n_tag reads " + resolved
+                        + "; is " + locale + " shipped (res/values-<qual>/, beta or stable) in this APK?");
+            }
             for (String page : PAGES) {
                 select(page); check("page-" + page);
             }
@@ -107,7 +123,7 @@ public final class LocaleValidation extends Instrumentation {
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString());
         } finally {
-            result.putString("locale", locale); result.putInt("screens", screens);
+            result.putString("locale", locale); result.putBoolean("pseudo", pseudo); result.putInt("screens", screens);
             result.putInt("unextracted", unextracted.size()); result.putInt("glued", glued.size()); result.putInt("unfilled", unfilled.size());
             result.putInt("fit_problems", fit.size()); result.putInt("direction_problems", direction.size());
             result.putStringArrayList("screenshots", screenshots); result.putBoolean("physical_device_tested", false); result.putBoolean("report_only", true);
@@ -146,7 +162,7 @@ public final class LocaleValidation extends Instrumentation {
         screenshot(label);
         main(() -> {
             View root = activity.getWindow().getDecorView();
-            if (locale.equals("ar-XB") && root.getLayoutDirection() != View.LAYOUT_DIRECTION_RTL) direction.add(label + ": the window lays out left to right");
+            if (rtl && root.getLayoutDirection() != View.LAYOUT_DIRECTION_RTL) direction.add(label + ": the window lays out left to right");
             for (TextView text : texts(root)) {
                 TextFit.collectNarrowTextProblems(text, label + " " + where(text), fit);
                 if (!locale.equals("en-XA") || !text.isShown()) continue;

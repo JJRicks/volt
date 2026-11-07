@@ -16,6 +16,11 @@ public final class RideAutoStopStoreTest {
             learnedRangeUsesMotionNotTail();
             speedOnlyTailCannotRepairMissingMovement();
             failedSaveKeepsRecording();
+            quietTokenRoundTrips();
+            shownEndIsTheLastReading();
+            shownEndCountsEveryRecordedReading();
+            importedStopParametersAreRangeChecked();
+            learnedRangeAcceptsQuietTail();
             System.out.println("RideAutoStopStoreTest: " + checks + " assertions passed");
         } finally { for (File file : directories) remove(file); }
     }
@@ -130,11 +135,14 @@ public final class RideAutoStopStoreTest {
             // Silent link: the tick still commits frames, but every reading is older than 3 s by now.
             for (int i = 1; i <= 12; i++) { mono = last + i * 1000L; store.sample(start + mono, mono, values(0, 72, 104, last)); }
             store.markGap(start + mono + 1000, mono + 1000, "Bluetooth disconnected");
-            int tail = mode.equals("long_tail") ? 120 : 10;
+            int tail = mode.equals("long_tail") ? 120 : mode.equals("quiet_too_long") ? 330
+                    : mode.startsWith("quiet") || mode.equals("manual_quiet_tail") || mode.equals("parked_quiet_tail") ? 290 : 10;
             for (int i = 1; i <= tail; i++) store.heartbeat(start + mono + 1000 + i * 1000L, mono + 1000 + i * 1000L);
             mono += 1000 + tail * 1000L;
         }
-        store.stop(start + mono, mono, mode.equals("manual_tail") || mode.equals("normal") ? "" : RideStore.STOP_AUTO_PARKED);
+        String reason = mode.equals("manual_tail") || mode.equals("manual_quiet_tail") || mode.equals("normal") ? ""
+                : mode.startsWith("quiet") ? RideStore.quietStopReason(8, false) : RideStore.STOP_AUTO_PARKED;
+        store.stop(start + mono, mono, reason);
         return new Ride(store, id);
     }
     private static Map<String, RideStore.Sample> values(double speed, double soc, double odo, long updated) {
@@ -153,4 +161,186 @@ public final class RideAutoStopStoreTest {
     private static File directory() throws IOException { File dir = Files.createTempDirectory("volt-autostop-").toFile(); directories.add(dir); return dir; }
     private static void check(boolean condition, String message) { checks++; if (!condition) throw new AssertionError(message); }
     private static void remove(File file) { File[] children = file.listFiles(); if (children != null) for (File child : children) remove(child); file.delete(); }
+
+    private static String tail(File journal) throws IOException {
+        String[] lines = new String(Files.readAllBytes(journal.toPath()), StandardCharsets.UTF_8).trim().split("\n");
+        return lines[lines.length - 1];
+    }
+
+    /** The went-quiet STOP token, its parameters, and how odd values degrade. */
+    private static void quietTokenRoundTrips() throws Exception {
+        File dir = directory(); RideStore store = new RideStore(dir);
+        String quiet = store.start("A", "Quiet", NOW, 1000);
+        store.sample(NOW + 1000, 2000, values(5, 80, 100, 2000));
+        store.markGap(NOW + 14000, 15000, "Bluetooth disconnected");
+        store.heartbeat(NOW + 30000, 31000);
+        store.stop(NOW + 62000, 63000, RideStore.quietStopReason(8, false));
+        check(tail(new File(dir, quiet + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=2000;code=8"), "The journal stores the token, the last reading and the code");
+        String off = store.start("A", "Bluetooth off", NOW + 100000, 101000);
+        store.sample(NOW + 101000, 102000, values(20, 80, 100, 102000));
+        store.stop(NOW + 401000, 402000, RideStore.quietStopReason(-1, true));
+        check(tail(new File(dir, off + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=102000;code=-1;phone_bt=off"), "Phone Bluetooth off is recorded");
+        String bare = store.start("A", "Bare", NOW + 500000, 501000);
+        store.stop(NOW + 560000, 561000, RideStore.STOP_AUTO_QUIET);
+        check(tail(new File(dir, bare + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=-1;code=-1"), "No reading and no code are written as -1");
+        String odd = store.start("A", "Odd", NOW + 600000, 601000);
+        store.stop(NOW + 660000, 661000, RideStore.STOP_AUTO_QUIET + ";code=abc;phone_bt=maybe;last=5;" + new String(new char[200]).replace('\0', 'x'));
+        check(tail(new File(dir, odd + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=-1;code=-1"), "Malformed or unknown parameters are dropped; the caller cannot set the last reading");
+        String huge = store.start("A", "Huge", NOW + 700000, 701000);
+        store.stop(NOW + 760000, 761000, RideStore.STOP_AUTO_QUIET + ";code=99999999999");
+        check(tail(new File(dir, huge + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=-1;code=-1"), "An out-of-range code is unknown");
+        String lookalike = store.start("A", "Lookalike", NOW + 800000, 801000);
+        store.stop(NOW + 860000, 861000, RideStore.STOP_AUTO_QUIET + "_LATER");
+        check(tail(new File(dir, lookalike + ".csv")).endsWith(",,"), "A different token that only shares the prefix is not written");
+
+        RideStore reopened = new RideStore(dir);
+        RideStore.Summary q = reopened.get(quiet), b = reopened.get(off), n = reopened.get(bare), l = reopened.get(lookalike);
+        check(RideStore.STOP_AUTO_QUIET.equals(q.stopReason) && q.automaticStop && !q.active, "Quiet stop reads back as the bare token");
+        check(q.stopLastReadingMonotonicMs == 2000 && q.stopDisconnectCode == 8 && !q.stopPhoneBluetoothOff, "Its parameters read back");
+        check(b.stopPhoneBluetoothOff && b.stopDisconnectCode == -1 && b.automaticStop, "Phone Bluetooth off reads back");
+        check(n.automaticStop && n.stopLastReadingMonotonicMs == -1 && n.stopDisconnectCode == -1, "Bare token reads back as an automatic stop");
+        check(!l.automaticStop && "".equals(l.stopReason), "The lookalike was stored as a rider's stop");
+        check(q.toJson().contains("\"stopReason\":\"automatic_quiet_disconnect\""), "Analysis JSON names the quiet stop");
+        check(q.toJson().contains("\"shownEndWallMs\":" + (NOW + 1000) + ",\"shownElapsedMs\":1000"), "Analysis JSON carries the shown end");
+        check(q.elapsedMs == 62000 && q.endWallMs == NOW + 62000, "The raw stop time stays the real stop time");
+
+        // Journals written by hand (a future or damaged build): every odd value degrades to a plain automatic stop.
+        String header = journalHeader(new File(dir, quiet + ".csv"));
+        String[] details = {"AUTO_QUIET_DISCONNECT;last=;code=", "AUTO_QUIET_DISCONNECT;last=x;code=1.5;phone_bt=OFF",
+                "AUTO_QUIET_DISCONNECT;;=;last", "AUTO_QUIET_DISCONNECT;code=" + new String(new char[120]).replace('\0', '9'),
+                "AUTO_QUIET_DISCONNECT;future=1"};
+        for (int i = 0; i < details.length; i++) {
+            String id = "00000000-0000-4000-8000-00000000010" + i;
+            Files.write(new File(dir, id + ".csv").toPath(), (header
+                    + "1,START,2027-01-15T08:00:00.000Z,1800000000000,1000,,A,,Hand,,,,,UNCONFIRMED,\n"
+                    + "1,STOP,2027-01-15T08:00:05.000Z,1800000005000,6000,,,,,,,,,," + details[i] + "\n").getBytes(StandardCharsets.UTF_8));
+            RideStore.Summary h = new RideStore(dir).get(id);
+            check(h != null && h.automaticStop && RideStore.STOP_AUTO_QUIET.equals(h.stopReason) && h.stopLastReadingMonotonicMs == -1
+                    && h.stopDisconnectCode == -1 && !h.stopPhoneBluetoothOff, "Odd details degrade to a plain automatic stop: " + i);
+        }
+        // Backup and .voltrides staging validate and inspect each journal the same way.
+        for (String id : new String[]{quiet, off, bare}) {
+            File journal = new File(dir, id + ".csv");
+            RideArchive.validateText(journal, true, false);
+            check(RideStore.inspectJournal(journal).automaticStop, "Staging accepts the quiet journal");
+        }
+    }
+
+    /** Rider-facing end: the last real reading for an automatic stop, the raw end otherwise. */
+    private static void shownEndIsTheLastReading() throws Exception {
+        for (String reason : new String[]{RideStore.quietStopReason(8, false), RideStore.STOP_AUTO_PARKED, ""}) {
+            File dir = directory(); RideStore store = new RideStore(dir);
+            String id = store.start("A", "Shown end", NOW, 0);
+            for (int sec = 1; sec <= 30; sec++) store.sample(NOW + sec * 1000L, sec * 1000L, values(sec < 25 ? 5 : 0, 80, 100, sec * 1000L));
+            // Silent link: the tick still commits frames, but every reading is older than 3 s by then.
+            for (int sec = 31; sec <= 42; sec++) store.sample(NOW + sec * 1000L, sec * 1000L, values(0, 80, 100, 30000));
+            store.markGap(NOW + 43000, 43000, "Bluetooth disconnected");
+            for (int sec = 44; sec <= 90; sec++) store.heartbeat(NOW + sec * 1000L, sec * 1000L);
+            store.stop(NOW + 90000, 90000, reason);
+            RideStore.Summary live = store.get(id), s = new RideStore(dir).get(id);
+            for (RideStore.Summary r : new RideStore.Summary[]{live, s}) {
+                check(r.endWallMs == NOW + 90000 && r.elapsedMs == 90000 && r.gapCount == 1, "Raw end and gap count unchanged, reason=" + reason);
+                if (reason.isEmpty()) check(r.shownEndWallMs == r.endWallMs && r.shownElapsedMs == r.elapsedMs && r.shownGapCount == r.gapCount,
+                        "A rider's stop shows its real end");
+                else check(r.shownEndWallMs == NOW + 33000 && r.shownElapsedMs == 33000 && r.shownGapCount == 0,
+                        "An automatic stop shows its last real reading (last fresh value + 3 s) and drops the trailing gap, reason=" + reason);
+            }
+        }
+        RideStore store = new RideStore(directory());
+        String id = store.start("A", "No readings", NOW, 0);
+        store.markGap(NOW + 1000, 1000, "Bluetooth disconnected");
+        store.stop(NOW + 61000, 61000, RideStore.quietStopReason(-1, false));
+        RideStore.Summary none = store.get(id);
+        check(none.shownEndWallMs == none.endWallMs && none.shownElapsedMs == none.elapsedMs && none.shownGapCount == none.gapCount,
+                "A ride with no reading keeps its raw end");
+        store = new RideStore(directory()); store.start("A", "Active", NOW, 0);
+        store.sample(NOW + 1000, 1000, values(5, 80, 100, 1000)); store.heartbeat(NOW + 9000, 9000);
+        RideStore.Summary active = store.activeSummary();
+        check(active.stopReason == null && active.shownElapsedMs == active.elapsedMs, "A recording ride shows its live end");
+    }
+
+    /** Any fresh recorded scooter value moves the shown end, not only the energy and range inputs. */
+    private static void shownEndCountsEveryRecordedReading() throws Exception {
+        for (String only : new String[]{"temperature_c", "charging_state"}) {
+            File dir = directory(); RideStore store = new RideStore(dir);
+            String id = store.start("A", "Partial", NOW, 0);
+            Map<String, RideStore.Sample> first = new LinkedHashMap<>();
+            first.put("battery_percent", new RideStore.Sample(80, 1000));
+            store.sample(NOW + 1000, 1000, first);
+            for (int sec = 2; sec <= 30; sec++) {
+                Map<String, RideStore.Sample> m = new LinkedHashMap<>();
+                m.put("battery_percent", new RideStore.Sample(80, 1000));
+                m.put(only, new RideStore.Sample(only.equals("temperature_c") ? 21 : 0, sec * 1000L));
+                store.sample(NOW + sec * 1000L, sec * 1000L, m);
+            }
+            store.markGap(NOW + 43000, 43000, "Bluetooth disconnected");
+            for (int sec = 44; sec <= 90; sec++) store.heartbeat(NOW + sec * 1000L, sec * 1000L);
+            store.stop(NOW + 90000, 90000, RideStore.quietStopReason(8, false));
+            check(tail(new File(dir, id + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=30000;code=8"), "STOP names the last fresh reading of any field: " + only);
+            for (RideStore.Summary r : new RideStore.Summary[]{store.get(id), new RideStore(dir).get(id)}) {
+                check(r.shownElapsedMs == 30000 && r.shownEndWallMs == NOW + 30000 && r.shownGapCount == 0,
+                        "A partial-telemetry ride ends at its last fresh reading: " + only + " shown=" + r.shownElapsedMs);
+                check(r.stopLastReadingMonotonicMs == 30000 && r.elapsedMs == 90000, "Parameters and raw end read back: " + only);
+            }
+        }
+        // Temperature only, then fresh-looking rows with only stale or invalid values.
+        File dir = directory(); RideStore store = new RideStore(dir);
+        String id = store.start("A", "Temperature only", NOW, 0);
+        for (int sec = 1; sec <= 20; sec++) {
+            Map<String, RideStore.Sample> m = new LinkedHashMap<>();
+            m.put("temperature_c", new RideStore.Sample(sec <= 10 ? 22 : 500, sec * 1000L));
+            if (sec > 10) m.put("voltage_v", new RideStore.Sample(48, 1000));
+            store.sample(NOW + sec * 1000L, sec * 1000L, m);
+        }
+        store.markGap(NOW + 25000, 25000, "Bluetooth disconnected");
+        store.stop(NOW + 80000, 80000, RideStore.quietStopReason(-1, false));
+        check(tail(new File(dir, id + ".csv")).endsWith(",AUTO_QUIET_DISCONNECT;last=10000;code=-1"), "A temperature-only ride names its last valid reading");
+        for (RideStore.Summary r : new RideStore.Summary[]{store.get(id), new RideStore(dir).get(id)})
+            check(r.shownElapsedMs == 10000 && r.shownGapCount == 0 && r.stopLastReadingMonotonicMs == 10000,
+                    "Out-of-range and stale values never move the shown end, shown=" + r.shownElapsedMs);
+    }
+
+    /** Hand-written STOP parameters outside the writer's range read as unknown, never clamped. */
+    private static void importedStopParametersAreRangeChecked() throws Exception {
+        File dir = directory(); RideStore store = new RideStore(dir);
+        String seed = store.start("A", "Seed", NOW, 1000); store.stop(NOW + 1000, 2000);
+        String header = journalHeader(new File(dir, seed + ".csv"));
+        String[] details = {"AUTO_QUIET_DISCONNECT;last=5;code=2147483648", "AUTO_QUIET_DISCONNECT;last=5;code=-2147483649",
+                "AUTO_QUIET_DISCONNECT;last=-2;code=8", "AUTO_QUIET_DISCONNECT;last=-9223372036854775808;code=8"};
+        long[] last = {5, 5, -1, -1}; int[] code = {-1, -1, 8, 8};
+        for (int i = 0; i < details.length; i++) {
+            String id = "00000000-0000-4000-8000-00000000020" + i;
+            File journal = new File(dir, id + ".csv");
+            Files.write(journal.toPath(), (header
+                    + "1,START,2027-01-15T08:00:00.000Z,1800000000000,1000,,A,,Hand,,,,,UNCONFIRMED,\n"
+                    + "1,STOP,2027-01-15T08:00:05.000Z,1800000005000,6000,,,,,,,,,," + details[i] + "\n").getBytes(StandardCharsets.UTF_8));
+            RideArchive.validateText(journal, true, false);
+            for (RideStore.Summary h : new RideStore.Summary[]{new RideStore(dir).get(id), RideStore.inspectJournal(journal)})
+                check(h.automaticStop && h.stopLastReadingMonotonicMs == last[i] && h.stopDisconnectCode == code[i] && !h.stopPhoneBluetoothOff,
+                        "Out-of-range parameters read as unknown: " + details[i] + " -> last=" + h.stopLastReadingMonotonicMs + " code=" + h.stopDisconnectCode);
+        }
+        // The boundaries themselves still round-trip.
+        String id = "00000000-0000-4000-8000-000000000210";
+        Files.write(new File(dir, id + ".csv").toPath(), (header
+                + "1,START,2027-01-15T08:00:00.000Z,1800000000000,1000,,A,,Hand,,,,,UNCONFIRMED,\n"
+                + "1,STOP,2027-01-15T08:00:05.000Z,1800000005000,6000,,,,,,,,,,AUTO_QUIET_DISCONNECT;last=-1;code=-2147483648\n").getBytes(StandardCharsets.UTF_8));
+        RideStore.Summary b = new RideStore(dir).get(id);
+        check(b.stopLastReadingMonotonicMs == -1 && b.stopDisconnectCode == Integer.MIN_VALUE, "In-range extremes still read back");
+        id = "00000000-0000-4000-8000-000000000211";
+        Files.write(new File(dir, id + ".csv").toPath(), (header
+                + "1,START,2027-01-15T08:00:00.000Z,1800000000000,1000,,A,,Hand,,,,,UNCONFIRMED,\n"
+                + "1,STOP,2027-01-15T08:00:05.000Z,1800000005000,6000,,,,,,,,,,AUTO_QUIET_DISCONNECT;last=0;code=2147483647\n").getBytes(StandardCharsets.UTF_8));
+        b = new RideStore(dir).get(id);
+        check(b.stopLastReadingMonotonicMs == 0 && b.stopDisconnectCode == Integer.MAX_VALUE, "In-range maximum code still reads back");
+    }
+
+    /** Quiet-stopped rides train at their last complete reading; the same tail by hand does not. */
+    private static void learnedRangeAcceptsQuietTail() throws Exception {
+        LearnedRangeEstimate.Evidence q = ride("quiet").evidence(), n = ride("normal").evidence();
+        check(q.rejection == null, "A five-minute quiet tail still trains: " + q.rejection);
+        check(Math.abs(q.summary.distanceKm - n.summary.distanceKm) < 1e-9, "The tail adds no distance");
+        check(ride("manual_quiet_tail").evidence().rejection != null, "The same tail stopped by hand is still rejected");
+        check(ride("parked_quiet_tail").evidence().rejection != null, "A five-minute tail under the parked token is still rejected");
+        check(ride("quiet_too_long").evidence().rejection != null, "A tail longer than the quiet wait is not trimmed");
+    }
 }

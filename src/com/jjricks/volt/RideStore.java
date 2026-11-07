@@ -39,6 +39,17 @@ public final class RideStore {
     /** STOP details token for a ride Volt ended after a parked Bluetooth loss. An empty value means
      *  the rider stopped it; Volt 1.3.1 and earlier ignore the column, so old builds still load it. */
     public static final String STOP_AUTO_PARKED = "AUTO_PARKED_DISCONNECT";
+    /** STOP details token for a ride Volt ended after the scooter went quiet (switched off or out of
+     *  range) or the phone's Bluetooth stayed off. The journal stores it with parameters:
+     *  {@code AUTO_QUIET_DISCONNECT;last=<monotonic ms of the last real reading, -1 none>;code=<native
+     *  disconnect code, -1 unknown>} and {@code ;phone_bt=off} when the phone's Bluetooth was off.
+     *  Older builds read it as a rider's stop and ignore the parameters. */
+    public static final String STOP_AUTO_QUIET = "AUTO_QUIET_DISCONNECT";
+    /** STOP details token for a ride Volt ended because the connected scooter showed no motion for
+     *  {@link RideAutoStopPolicy#NO_MOTION_MS} (rule 3). It takes no parameters: the shown end, the last
+     *  motion, comes from the journal's own samples. Older builds read it as a rider's stop. */
+    public static final String STOP_AUTO_NO_MOTION = "automatic_no_motion";
+    private static final int MAX_STOP_DETAILS = 80;
     private static final int MAX_METRICS = 160;
     private static final String HEADER = "schema_version,event,recorded_utc,wall_ms,monotonic_ms,frame,key,numeric,text,unit,source_command,sensor_updated_monotonic_ms,sensor_age_ms,current_direction,details\n";
 
@@ -118,6 +129,23 @@ public final class RideStore {
         /** Null while recording; "" for a rider's stop (and every older journal); otherwise a STOP token. */
         public final String stopReason;
         public final boolean automaticStop;
+        /**
+         * Volt ended it for no motion while connected ({@link RideStore#STOP_AUTO_NO_MOTION}). Kept apart
+         * from {@link #automaticStop}, which means an end after a Bluetooth loss (the parked and quiet
+         * rules); a screen showing any automatic end checks both. The analysis JSON names it by its token.
+         */
+        public final boolean noMotionStop;
+        /**
+         * What a rider sees as the end. For an automatic stop it is the last real reading (any fresh
+         * scooter value), so the silent link, gap and wait after it never count; otherwise, and when
+         * the ride has no reading, it equals {@link #endWallMs}, {@link #elapsedMs} and
+         * {@link #gapCount}. Integrity checks and exports keep using the raw values.
+         */
+        public final long shownEndWallMs, shownElapsedMs, shownGapCount;
+        /** Parameters of an {@link RideStore#STOP_AUTO_QUIET} stop: -1 when absent or unreadable. */
+        public final long stopLastReadingMonotonicMs;
+        public final int stopDisconnectCode;
+        public final boolean stopPhoneBluetoothOff;
         private Summary(Accumulator a) {
             id = a.id; scooterId = a.scooterId; label = a.label; notes = a.notes;
             currentDirection = a.direction.name(); startWallMs = a.startWall; startMonotonicMs = a.startMono;
@@ -128,7 +156,22 @@ public final class RideStore {
             stationaryMs = a.stationaryMs; sampleCount = a.samples;
             gapCount = a.gaps; clockDiscontinuities = a.clockDiscontinuities; directionChanges = a.directionChanges;
             active = !a.stopped; recovered = a.recovered; odometerReset = a.odometerReset;
-            stopReason = a.stopped ? a.stopReason : null; automaticStop = STOP_AUTO_PARKED.equals(stopReason);
+            String details = a.stopped ? a.stopReason : null;
+            boolean quiet = isQuietStop(details);
+            Map<String, String> params = quiet ? stopParameters(details) : Collections.<String, String>emptyMap();
+            stopReason = quiet ? STOP_AUTO_QUIET : details;
+            noMotionStop = STOP_AUTO_NO_MOTION.equals(stopReason);
+            automaticStop = quiet || STOP_AUTO_PARKED.equals(stopReason);
+            long last = parseLong(params.get("last"), -1);
+            stopLastReadingMonotonicMs = last < -1 ? -1 : last;
+            stopDisconnectCode = disconnectCode(params);
+            stopPhoneBluetoothOff = "off".equals(params.get("phone_bt"));
+            boolean trim = (automaticStop || noMotionStop) && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
+            // A no-motion stop ends at its last motion, so the ten idle minutes never count; with no motion at all, as other automatic stops.
+            boolean still = noMotionStop && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
+            shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
+            shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
+            shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;
             confirmedDirectionCoverageMs = a.confirmedMs;
             unconfirmedDirectionCoverageMs = a.unconfirmedMs;
             movingElectricalCoverageMs = a.movingElectricalMs;
@@ -216,7 +259,9 @@ public final class RideStore {
             m.put("throughputWhPerKm", throughputWhPerKm); m.put("throughputWhPerMile", throughputWhPerMile);
             m.put("netWhPerKm", netWhPerKm); m.put("netWhPerMile", netWhPerMile);
             m.put("efficiencyStatus", efficiencyStatus);
-            m.put("stopReason", stopReason == null ? null : automaticStop ? "automatic_parked_disconnect" : stopReason.isEmpty() ? "rider" : stopReason);
+            m.put("stopReason", stopReason == null ? null : STOP_AUTO_QUIET.equals(stopReason) ? "automatic_quiet_disconnect"
+                    : automaticStop ? "automatic_parked_disconnect" : stopReason.isEmpty() ? "rider" : stopReason);
+            m.put("shownEndWallMs", shownEndWallMs); m.put("shownElapsedMs", shownElapsedMs);
             return Collections.unmodifiableMap(m);
         }
         public String toJson() { return json(fields()); }
@@ -225,7 +270,8 @@ public final class RideStore {
     private final File directory;
     private Accumulator active;
     private CurrentDirection defaultDirection = CurrentDirection.UNCONFIRMED;
-    private final LinkedHashMap<String, CachedSummary> summaryCache = new LinkedHashMap<String, CachedSummary>();
+    /** Unfinished or recovered journals only; a finished journal's summary lives in analysisCache. */
+    private final LinkedHashMap<String, CachedSummary> summaryCache = new LinkedHashMap<String, CachedSummary>(16, .75f, true);
     /** Consistent immutable summary/trend pair for off-thread display analysis. */
     public static final class AnalysisSnapshot {
         public final Summary summary;
@@ -234,36 +280,110 @@ public final class RideStore {
             summary = new Summary(accumulator);
             points = trendPoints(accumulator, MAX_TREND_POINTS);
         }
+        /** A saved summary with its saved preview (RideSummaryStore). */
+        private AnalysisSnapshot(Summary summary, List<Point> points) { this.summary = summary; this.points = points; }
     }
-    private final LinkedHashMap<String, CachedAnalysis> analysisCache = new LinkedHashMap<>();
+    /**
+     * One cache for every finished journal, keyed by its length and modified time: get(), list(), trend() and
+     * analysisSnapshots() all read it, and the constructor fills it from the read it already does at service start.
+     * Summaries are small and kept for every ride. Only the 600-point previews are capped: past PREVIEW_CAP, the least
+     * recently used entries drop their preview and keep their summary, so a long history never rereads every ride.
+     */
+    private final LinkedHashMap<String, CachedAnalysis> analysisCache = new LinkedHashMap<>(16, .75f, true);
+    static final int PREVIEW_CAP = 128;
+    private int cachedPreviews;
     private static final class CachedAnalysis {
         final long length, modified;
-        final AnalysisSnapshot snapshot;
+        final Summary summary;
+        /** Null once the preview is trimmed; the summary stays. */
+        volatile AnalysisSnapshot snapshot;
         CachedAnalysis(long length, long modified, AnalysisSnapshot snapshot) {
-            this.length = length; this.modified = modified; this.snapshot = snapshot;
+            this.length = length; this.modified = modified; this.snapshot = snapshot; this.summary = snapshot.summary;
+        }
+        /** A summary read from the saved index; its preview stays on disk until a chart asks for it. */
+        CachedAnalysis(long length, long modified, Summary summary) {
+            this.length = length; this.modified = modified; this.snapshot = null; this.summary = summary;
+        }
+        boolean matches(long length, long modified) { return this.length == length && this.modified == modified; }
+    }
+    /** Stores a finished journal's analysis and trims the least recently used previews past PREVIEW_CAP. */
+    private synchronized void putAnalysis(String id, CachedAnalysis entry) {
+        CachedAnalysis old = analysisCache.put(id, entry);
+        if (old != null && old.snapshot != null) cachedPreviews--;
+        if (entry.snapshot != null) cachedPreviews++;
+        if (cachedPreviews <= PREVIEW_CAP) return;
+        for (CachedAnalysis eldest : analysisCache.values()) {
+            if (cachedPreviews <= PREVIEW_CAP) break;
+            if (eldest != entry && eldest.snapshot != null) { eldest.snapshot = null; cachedPreviews--; }
         }
     }
+    private synchronized void forget(String id) {
+        CachedAnalysis old = analysisCache.remove(id);
+        if (old != null && old.snapshot != null) cachedPreviews--;
+        summaryCache.remove(id);
+    }
+    private synchronized void retainCached(java.util.Set<String> existing) {
+        summaryCache.keySet().retainAll(existing);
+        analysisCache.keySet().retainAll(existing);
+        cachedPreviews = 0;
+        for (CachedAnalysis entry : analysisCache.values()) if (entry.snapshot != null) cachedPreviews++;
+    }
+    /** Package-private for tests: how many journal replays this process has done. */
+    static final java.util.concurrent.atomic.AtomicLong replays = new java.util.concurrent.atomic.AtomicLong();
+    /** Test-only: runs at the start of each replay (for example, to hold one open). Always null in the app. */
+    static volatile Runnable replayHook;
 
     private static final class CachedSummary {
         final long length, modified;
         final Summary summary;
-        CachedSummary(File file, Summary summary) {
-            this.length = file.length(); this.modified = file.lastModified(); this.summary = summary;
+        CachedSummary(long length, long modified, Summary summary) {
+            this.length = length; this.modified = modified; this.summary = summary;
         }
-        boolean matches(File file) { return length == file.length() && modified == file.lastModified(); }
+        boolean matches(long length, long modified) { return this.length == length && this.modified == modified; }
     }
 
-    public RideStore(File directory) throws IOException {
+    /**
+     * Saved summaries (RideSummaryStore), or null: the in-memory cache alone, as before. Only finished journals are
+     * saved, and an entry is used only while the journal's length and modified time still match.
+     */
+    private final RideSummaryStore index;
+
+    public RideStore(File directory) throws IOException { this(directory, false); }
+    public RideStore(File directory, boolean deferFinished) throws IOException { this(directory, deferFinished, null); }
+    /**
+     * deferFinished: replay only the journals that may be unfinished, so the service can start (and connect) without
+     * reading every saved ride first. A journal whose tail is a STOP row followed by whole RENAME rows is finished and
+     * is left for later; list() on a worker then reads it into the cache. Any other tail is replayed now, as before.
+     *
+     * indexDirectory: where finished rides' summaries are saved (no-backup storage; null for none). With deferFinished,
+     * the index's own thread then seeds the cache from each deferred journal's saved entry that still matches (a few
+     * hundred bytes, never the journal), so the first Rides open after a restart replays only new or changed rides.
+     * The seed never runs on the caller's thread: the service start does exactly the work it did before.
+     */
+    public RideStore(File directory, boolean deferFinished, File indexDirectory) throws IOException {
         if (directory == null) throw new IllegalArgumentException("Ride directory required");
         this.directory = directory;
+        this.index = indexDirectory == null ? null : new RideSummaryStore(indexDirectory, MAX_TREND_POINTS);
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Cannot create ride directory");
         // A process restart never bridges a lost interval with stale measurements.
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list ride directory");
+        java.util.HashSet<String> journals = new java.util.HashSet<>();
+        final ArrayList<File> deferred = new ArrayList<>();
         for (File file : files) if (isJournal(file)) {
+            journals.add(journalId(file));
+            if (deferFinished && endsFinished(file)) { deferred.add(file); continue; }
+            long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
-            if (candidate != null && !candidate.stopped
-                    && (active == null || candidate.startWall > active.startWall)) active = candidate;
+            if (candidate == null) continue;
+            // Keep this read: Rides opens from it instead of replaying every journal again.
+            if (candidate.stopped) {
+                if (file.length() == length && file.lastModified() == modified) cacheFinished(candidate.id, length, modified, candidate);
+            } else if (active == null || candidate.startWall > active.startWall) active = candidate;
+        }
+        if (index != null) {
+            if (!deferred.isEmpty()) index.submit(() -> { for (File file : deferred) seedSaved(file); });
+            index.prune(journals);
         }
         if (active != null) {
             repairTail(file(active.id));
@@ -272,18 +392,101 @@ public final class RideStore {
         }
     }
 
+    /** Seeds the cache from a deferred (finished-looking) journal's saved summary when it matches. */
+    private void seedSaved(File file) {
+        String id = journalId(file);
+        long length = file.length(), modified = file.lastModified();
+        synchronized (this) {
+            CachedAnalysis cached = analysisCache.get(id);
+            if (cached != null && cached.matches(length, modified)) return;
+        }
+        readSaved(id, length, modified);
+    }
+    /**
+     * A cache entry (summary only) from the index for this journal state, or null: no index, no matching entry, or a
+     * damaged one. Callers check the journal ends finished first, so an unfinished journal is never served from disk.
+     */
+    private CachedAnalysis readSaved(String id, long length, long modified) {
+        if (index == null) return null;
+        byte[] state = index.readState(id, length, modified);
+        if (state == null) return null;
+        Accumulator saved;
+        try { saved = decodeState(state, id); } catch (IOException | RuntimeException damaged) { return null; }
+        if (saved == null) return null;
+        CachedAnalysis entry = new CachedAnalysis(length, modified, new Summary(saved));
+        putAnalysis(id, entry);
+        index.markSaved(id, length, modified);
+        return entry;
+    }
+    /** readSaved() for a journal a worker is about to replay, once its tail shows it finished. */
+    private CachedAnalysis savedEntry(String id, File source, long length, long modified) {
+        return index == null || !endsFinished(source) ? null : readSaved(id, length, modified);
+    }
+    /**
+     * Caches a finished journal's analysis, read while its length and modified time stayed as given, and saves it to
+     * the index unless that exact entry is already there. Encoding and the write run on the index's own thread.
+     */
+    private CachedAnalysis cacheFinished(String id, long length, long modified, Accumulator parsed) {
+        CachedAnalysis entry = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
+        putAnalysis(id, entry);
+        if (index != null) {
+            final List<Point> preview = entry.snapshot.points;
+            index.write(id, length, modified, new RideSummaryStore.Encoder() {
+                public byte[] state() throws IOException { return encodeState(parsed); }
+                public byte[] preview() throws IOException { return encodePoints(preview); }
+            });
+        }
+        return entry;
+    }
+    /**
+     * A cached summary's preview from the index when memory has only the summary (seeded at start, or trimmed past
+     * PREVIEW_CAP); null when the index has none for this journal state.
+     */
+    private AnalysisSnapshot savedPreview(String id, CachedAnalysis cached) {
+        if (index == null || cached == null) return null;
+        byte[] saved = index.readPreview(id, cached.length, cached.modified);
+        List<Point> points = null;
+        if (saved != null) {
+            try { points = decodePoints(RideSummaryStore.inflate(saved)); } catch (IOException | RuntimeException damaged) { points = null; }
+        }
+        // An unusable preview: the replay that follows saves the whole entry again.
+        if (points == null) { index.forgetSaved(id, cached.length, cached.modified); return null; }
+        AnalysisSnapshot snapshot = new AnalysisSnapshot(cached.summary, points);
+        synchronized (this) {
+            if (analysisCache.get(id) == cached) putAnalysis(id, new CachedAnalysis(cached.length, cached.modified, snapshot));
+        }
+        return snapshot;
+    }
+    /** Test-only: waits for queued index writes. */
+    void flushIndex() throws InterruptedException { if (index != null) index.flush(); }
+    private static String journalId(File file) { return file.getName().substring(0, file.getName().length() - 4); }
+
     public synchronized String start(String scooterId, String label, long wallMillis,
             long monotonicMillis) throws IOException {
+        return start(scooterId, label, wallMillis, monotonicMillis, null);
+    }
+    /**
+     * As above; timeZone is the phone's time zone id when the ride began. A valid id is kept in START's details as
+     * time_zone=&lt;id&gt; (the Everything export reads it back for local clock times); null or anything else
+     * leaves details empty, as rides recorded before it were.
+     */
+    public synchronized String start(String scooterId, String label, long wallMillis,
+            long monotonicMillis, String timeZone) throws IOException {
         if (active != null) throw new IllegalStateException("A ride is already recording");
         if (wallMillis < 0 || monotonicMillis < 0) throw new IllegalArgumentException("Invalid clock");
         String id = UUID.randomUUID().toString();
         Accumulator candidate = new Accumulator(id, trim(scooterId, 160), trim(label, 200), wallMillis, monotonicMillis);
         candidate.direction = defaultDirection;
         String start = row("START", wallMillis, monotonicMillis, "", candidate.scooterId, "", candidate.label,
-                "", "", "", "", candidate.direction.name(), "");
+                "", "", "", "", candidate.direction.name(), timeZoneDetail(timeZone));
         writeNew(file(id), HEADER + start);
         active = candidate;
         return id;
+    }
+
+    /** START's details for a time zone id: empty unless it looks like a zone id (letters, digits and _+-/ only). */
+    static String timeZoneDetail(String timeZone) {
+        return timeZone != null && timeZone.matches("[A-Za-z0-9_+/-]{1,64}") ? RideExportEverything.TIME_ZONE_DETAIL + timeZone : "";
     }
 
     /** The map is a current snapshot, including unavailable/stale fields if desired. */
@@ -332,10 +535,51 @@ public final class RideStore {
     /** Stops at the given (current) time; the reason never moves the end or adds samples. */
     public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason) throws IOException {
         if (active == null) return null;
-        String details = STOP_AUTO_PARKED.equals(reason) ? STOP_AUTO_PARKED : "";
+        String details = STOP_AUTO_PARKED.equals(reason) || STOP_AUTO_NO_MOTION.equals(reason) ? reason
+                : isQuietStop(reason) ? quietDetails(reason, active.readingElapsed >= 0 ? active.readingMono : -1) : "";
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
-        Summary result = new Summary(active); active = null; return result;
+        Summary result = new Summary(active); active = null;
+        lastStopWallMs = wallMillis;
+        lastStopAutomatic = result.automaticStop || result.noMotionStop;
+        // Save the finished ride now, so a restart before Rides opens still finds it. The save replays the journal
+        // once on the index's low-priority thread, so the entry is exactly what any later replay gives.
+        if (index != null) { final String id = result.id; index.submit(() -> { try { get(id); } catch (IOException | RuntimeException ignored) { } }); }
+        return result;
+    }
+
+    /** The stop reason for a went-quiet end; {@link #stop} adds the last reading itself. */
+    public static String quietStopReason(int disconnectCode, boolean phoneBluetoothOff) {
+        return STOP_AUTO_QUIET + ";code=" + disconnectCode + (phoneBluetoothOff ? ";phone_bt=off" : "");
+    }
+    static boolean isQuietStop(String details) {
+        return details != null && (details.equals(STOP_AUTO_QUIET) || details.startsWith(STOP_AUTO_QUIET + ";"));
+    }
+    /** Known parameters only, in a fixed order; anything malformed or too long degrades to the bare token. */
+    private static String quietDetails(String reason, long lastReadingMono) {
+        Map<String, String> params = stopParameters(reason);
+        String details = STOP_AUTO_QUIET + ";last=" + lastReadingMono + ";code=" + disconnectCode(params)
+                + ("off".equals(params.get("phone_bt")) ? ";phone_bt=off" : "");
+        return details.length() <= MAX_STOP_DETAILS ? details : STOP_AUTO_QUIET;
+    }
+    /** The native disconnect code, or -1 when absent, malformed or outside an int: the writer and reader agree. */
+    private static int disconnectCode(Map<String, String> params) {
+        long code = parseLong(params.get("code"), -1);
+        return code < Integer.MIN_VALUE || code > Integer.MAX_VALUE ? -1 : (int) code;
+    }
+    private static Map<String, String> stopParameters(String details) {
+        LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
+        if (details == null) return params;
+        String[] parts = details.split(";", -1);
+        for (int i = 1; i < parts.length; i++) {
+            int eq = parts[i].indexOf('=');
+            if (eq > 0 && !params.containsKey(parts[i].substring(0, eq))) params.put(parts[i].substring(0, eq), parts[i].substring(eq + 1));
+        }
+        return params;
+    }
+    private static long parseLong(String value, long fallback) {
+        if (value == null || !value.matches("-?[0-9]{1,19}")) return fallback;
+        try { return Long.parseLong(value); } catch (NumberFormatException ignored) { return fallback; }
     }
 
     /** Direction changes affect future intervals only; do not reinterpret earlier data. */
@@ -364,36 +608,91 @@ public final class RideStore {
         repairTail(file(id));
         append(file(id), row("RENAME", ride.lastWall, ride.lastMono, "", "", "", "", "", "", "", "", "", clean));
         ride.label = clean;
-        summaryCache.remove(id); analysisCache.remove(id);
+        forget(id);
     }
 
     public synchronized String activeId() { return active == null ? null : active.id; }
+    /** When this process last stopped and saved a ride (the stop's wall time, not the ride's trimmed end), or -1. */
+    private long lastStopWallMs = -1;
+    private boolean lastStopAutomatic;
+    public synchronized long lastStopWallMs() { return lastStopWallMs; }
+    /** Whether that stop was automatic (parked, went quiet or no motion) rather than the rider's. */
+    public synchronized boolean lastStopAutomatic() { return lastStopAutomatic; }
     public synchronized Summary activeSummary() { return active == null ? null : new Summary(active); }
-    public synchronized Summary get(String id) throws IOException {
-        if (active != null && active.id.equals(id)) return new Summary(active);
+    /**
+     * The active ride is answered from memory. A finished journal comes from the shared cache while its length and
+     * modified time match. A miss replays outside the recorder monitor, so sampling continues meanwhile.
+     */
+    public Summary get(String id) throws IOException {
         File source = file(id);
-        if (!source.isFile()) { summaryCache.remove(id); return null; }
-        CachedSummary cached = summaryCache.get(id);
-        if (cached != null && cached.matches(source)) return cached.summary;
-        Accumulator a = read(source);
-        Summary summary = a == null ? null : new Summary(a);
-        if (summary != null) {
-            summaryCache.put(id, new CachedSummary(source, summary));
-            if (summaryCache.size() > 256) summaryCache.remove(summaryCache.keySet().iterator().next());
+        synchronized (this) {
+            if (active != null && active.id.equals(id)) return new Summary(active);
         }
+        long length = source.length(), modified = source.lastModified();
+        if (!source.isFile()) { forget(id); return null; }
+        synchronized (this) {
+            CachedAnalysis analysis = analysisCache.get(id);
+            if (analysis != null && analysis.matches(length, modified)) return analysis.summary;
+            CachedSummary cached = summaryCache.get(id);
+            if (cached != null && cached.matches(length, modified)) return cached.summary;
+        }
+        CachedAnalysis saved = savedEntry(id, source, length, modified);
+        if (saved != null) return saved.summary;
+        Accumulator parsed;
+        try { parsed = read(source); }
+        catch (IOException e) { if (!source.exists()) { forget(id); return null; } throw e; }
+        if (parsed == null) return null;
+        // Only an unchanged journal is cached; one that changed during the replay just misses next time.
+        if (source.length() != length || source.lastModified() != modified) return new Summary(parsed);
+        if (parsed.stopped) return cacheFinished(id, length, modified, parsed).summary;
+        Summary summary = new Summary(parsed);
+        synchronized (this) { summaryCache.put(id, new CachedSummary(length, modified, summary)); }
         return summary;
     }
-    public synchronized List<Summary> list() throws IOException {
+    /** Not synchronized as a whole: each get() takes the monitor only to read or fill the cache. */
+    public List<Summary> list() throws IOException {
         ArrayList<Summary> result = new ArrayList<Summary>();
         File[] files = directory.listFiles();
         if (files == null) throw new IOException("Cannot list rides");
+        java.util.HashSet<String> existing = new java.util.HashSet<>();
         for (File f : files) if (isJournal(f)) {
             String id = f.getName().substring(0, f.getName().length() - 4);
+            existing.add(id);
             Summary summary = get(id); if (summary != null) result.add(summary);
         }
-        Collections.sort(result, new Comparator<Summary>() { public int compare(Summary a, Summary b) {
-            return a.startWallMs < b.startWallMs ? 1 : a.startWallMs == b.startWallMs ? a.id.compareTo(b.id) : -1;
-        }});
+        retainCached(existing);
+        Collections.sort(result, NEWEST_FIRST);
+        return Collections.unmodifiableList(result);
+    }
+    private static final Comparator<Summary> NEWEST_FIRST = new Comparator<Summary>() { public int compare(Summary a, Summary b) {
+        return a.startWallMs < b.startWallMs ? 1 : a.startWallMs == b.startWallMs ? a.id.compareTo(b.id) : -1;
+    }};
+    /**
+     * list() from memory alone, for the UI thread: null when any journal would need a replay (a cold cache, a
+     * changed file, or a journal that can't be read) or the folder can't be listed. No I/O beyond listing the folder and each file's length and
+     * modified time; it never fills or trims the cache, so a miss leaves the work to list() on a worker.
+     */
+    public List<Summary> listCached() {
+        File[] files = directory.listFiles();
+        // list() reports a folder that can't be listed.
+        if (files == null) return null;
+        ArrayList<Summary> result = new ArrayList<Summary>();
+        for (File f : files) if (isJournal(f)) {
+            String id = f.getName().substring(0, f.getName().length() - 4);
+            synchronized (this) { if (active != null && active.id.equals(id)) { result.add(new Summary(active)); continue; } }
+            long length = f.length(), modified = f.lastModified();
+            if (!f.isFile()) continue;
+            Summary hit = null;
+            synchronized (this) {
+                CachedAnalysis analysis = analysisCache.get(id);
+                if (analysis != null && analysis.matches(length, modified)) hit = analysis.summary;
+                CachedSummary cached = hit == null ? summaryCache.get(id) : null;
+                if (cached != null && cached.matches(length, modified)) hit = cached.summary;
+            }
+            if (hit == null) return null;
+            result.add(hit);
+        }
+        Collections.sort(result, NEWEST_FIRST);
         return Collections.unmodifiableList(result);
     }
     /**
@@ -422,22 +721,24 @@ public final class RideStore {
                 cached = analysisCache.get(id);
             }
             long length = source.length(), modified = source.lastModified();
-            if (cached == null || cached.length != length || cached.modified != modified) {
+            boolean matches = cached != null && cached.matches(length, modified);
+            if (!matches && (cached = savedEntry(id, source, length, modified)) != null) matches = true;
+            AnalysisSnapshot snapshot = matches ? cached.snapshot : null;
+            if (snapshot == null && matches) snapshot = savedPreview(id, cached);
+            if (snapshot == null) {
                 Accumulator parsed;
                 try { parsed = read(source); }
                 catch (IOException e) { if (!source.exists()) continue; throw e; }
                 // A new active journal or an incomplete tail is not a completed snapshot.
                 if (parsed == null || !parsed.stopped) continue;
-                cached = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
-                synchronized (this) {
-                    analysisCache.put(id, cached);
-                    while (analysisCache.size() > 256) analysisCache.remove(analysisCache.keySet().iterator().next());
-                }
+                if (source.length() == length && source.lastModified() == modified)
+                    snapshot = cacheFinished(id, length, modified, parsed).snapshot;
+                else snapshot = new AnalysisSnapshot(parsed);
             }
-            if (cached.snapshot.summary.scooterId.equals(scooterId)
-                    && cached.snapshot.summary.endWallMs >= sinceWallMs) result.add(cached.snapshot);
+            if (snapshot.summary.scooterId.equals(scooterId)
+                    && snapshot.summary.endWallMs >= sinceWallMs) result.add(snapshot);
         }
-        synchronized (this) { analysisCache.keySet().retainAll(existing); }
+        retainCached(existing);
         return Collections.unmodifiableList(result);
     }
 
@@ -482,8 +783,12 @@ public final class RideStore {
     public synchronized boolean delete(String id) throws IOException {
         if (active != null && active.id.equals(id)) throw new IllegalStateException("Stop recording before deleting");
         File f = file(id); if (!f.exists()) return false;
-        if (!f.delete()) throw new IOException("Could not delete ride"); summaryCache.remove(id); analysisCache.remove(id); return true;
+        if (!f.delete()) throw new IOException("Could not delete ride"); forget(id);
+        if (index != null) index.remove(id);
+        return true;
     }
+    /** The ride's journal file, for exports that stream it (RideExportEverything); it may not exist. */
+    File journal(String id) { return file(id); }
     public synchronized void exportCsv(String id, File destination) throws IOException {
         File source = file(id);
         if (!source.isFile()) throw new IOException("Ride does not exist");
@@ -509,18 +814,30 @@ public final class RideStore {
         }
         long length = source.length(), modified = source.lastModified();
         boolean preview = maxPoints >= MAX_TREND_POINTS;
-        if (preview && cached != null && cached.length == length && cached.modified == modified) return cached.snapshot.points;
+        boolean matches = preview && cached != null && cached.matches(length, modified);
+        if (preview && !matches && (cached = savedEntry(id, source, length, modified)) != null) matches = true;
+        AnalysisSnapshot hit = matches ? cached.snapshot : null;
+        if (hit == null && matches) hit = savedPreview(id, cached);
+        if (hit != null) return hit.points;
         Accumulator parsed = read(source);
         // Only an unchanged, completed journal is cached; a rename during the replay just misses next time.
         if (parsed != null && parsed.stopped && source.length() == length && source.lastModified() == modified) {
-            CachedAnalysis replayed = new CachedAnalysis(length, modified, new AnalysisSnapshot(parsed));
-            synchronized (this) {
-                analysisCache.put(id, replayed);
-                while (analysisCache.size() > 256) analysisCache.remove(analysisCache.keySet().iterator().next());
-            }
-            if (preview) return replayed.snapshot.points;
+            AnalysisSnapshot replayed = cacheFinished(id, length, modified, parsed).snapshot;
+            if (preview) return replayed.points;
         }
         return trendPoints(parsed, maxPoints);
+    }
+    /** trend(id, MAX_TREND_POINTS) from memory alone, for the UI thread: null when it would need a replay. */
+    public List<Point> trendCached(String id) {
+        File source = file(id);
+        CachedAnalysis cached;
+        synchronized (this) {
+            if (active != null && active.id.equals(id)) return trendPoints(active, MAX_TREND_POINTS);
+            cached = analysisCache.get(id);
+        }
+        if (cached == null || !cached.matches(source.length(), source.lastModified())) return null;
+        AnalysisSnapshot hit = cached.snapshot;
+        return hit == null ? null : hit.points;
     }
     /** Replay a finished journal without the preview cap or holding the recorder monitor. */
     public List<Point> fullTrend(String id) throws IOException {
@@ -559,6 +876,11 @@ public final class RideStore {
         long movingElectricalMs, stationaryElectricalMs, unknownMotionElectricalMs;
         boolean stopped, recovered, odometerReset;
         String stopReason = "";
+        /** The last committed sample with any fresh scooter reading; elapsed -1 until one arrives. */
+        long readingWall, readingMono, readingElapsed = -1, readingGaps;
+        /** The last committed sample with motion (a fresh speed above 0, driving status 1, odometer or trip going up); elapsed -1 until one. */
+        long motionWall, motionElapsed = -1, motionGaps, motionPush = -1;
+        Double previousTrip;
         CurrentDirection direction = CurrentDirection.UNCONFIRMED;
         Double startSoc, endSoc, startVoltage, minVoltage, maxVoltage, minTemperature, maxTemperature;
         Double startOdo, endOdo, maxSpeed, peakPower, maxCurrent;
@@ -602,6 +924,7 @@ public final class RideStore {
             Double odo = number(m, "odometer_km", mono);
             if (odo != null && odo < 0) odo = null;
             Double temperature = number(m, "temperature_c", mono);
+            boolean moved = motion(this, m, mono, odo);
             if (temperature != null && (temperature < -60 || temperature > 150)) temperature = null;
             if (soc != null) { if (startSoc == null) startSoc = soc; endSoc = soc; }
             if (voltage != null) { if (startVoltage == null) startVoltage = voltage;
@@ -635,7 +958,14 @@ public final class RideStore {
             }
             if (dt > MAX_INTEGRATION_INTERVAL_MS && samples > 0) gaps++;
             previousPower = power; previousSpeed = speed; samples++;
-            Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, number(m, "charging_state", mono), speedMs);
+            Double chargingState = number(m, "charging_state", mono);
+            // Any fresh, valid scooter value this ride records moves the shown end, not only the energy inputs.
+            if (voltage != null || current != null || speed != null || soc != null || odo != null
+                    || temperature != null || chargingState != null) {
+                readingWall = wall; readingMono = mono; readingElapsed = elapsed; readingGaps = gaps;
+            }
+            if (moved) { motionWall = wall; motionElapsed = elapsed; motionGaps = gaps; }
+            Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, chargingState, speedMs);
             lastPoint = point;
             if (rangeInspector != null) rangeInspector.accept(point);
             if (keepAllPoints) points.add(point);
@@ -647,6 +977,144 @@ public final class RideStore {
                 points.add(point);
             }
         }
+    }
+
+    /**
+     * Rule 3's motion, judged from the journal so a reload agrees: a new speed or driving-status push
+     * (speed above 0 or status 1), or the odometer or trip above its previous fresh value. Call before
+     * endOdo moves.
+     */
+    private static boolean motion(Accumulator a, Map<String, Sample> m, long mono, Double odo) {
+        boolean moved = false;
+        Double speed = number(m, SPEED_KEY, mono), driving = number(m, DRIVING_KEY, mono);
+        Sample push = m.get(speed != null ? SPEED_KEY : DRIVING_KEY);
+        if (push != null && (speed != null || driving != null) && push.updatedMonoMs != a.motionPush) {
+            a.motionPush = push.updatedMonoMs;
+            moved = speed != null && speed > 0 && speed <= 200 || driving != null && driving == 1;
+        }
+        if (odo != null && a.endOdo != null && odo > a.endOdo + 0.000001) moved = true;
+        Double trip = number(m, TRIP_KEY, mono);
+        if (trip != null && trip >= 0) { if (a.previousTrip != null && trip > a.previousTrip + 0.000001) moved = true; a.previousTrip = trip; }
+        return moved;
+    }
+    private static final String SPEED_KEY = "speed_kmh", DRIVING_KEY = "driving_status";
+    /** Journal keys rule 3 also reads live (ScooterService), so both sides judge the same readings. */
+    static final String ODOMETER_KEY = "odometer_km", TRIP_KEY = "trip_km";
+
+    /*
+     * The saved form of a finished journal's analysis (RideSummaryStore). The summary is kept as the replay's final
+     * accumulator state, so new Summary(state) derives every field exactly as a replay does; the preview is the
+     * replay's own 600 points. Fields are written in a fixed order: add new state to both methods together and bump
+     * RideSummaryStore.ANALYSIS_VERSION. RideSummaryStoreTest checks every Summary and Point field against a replay.
+     */
+    private static byte[] encodeState(Accumulator a) throws IOException {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream(640);
+        java.io.DataOutputStream out = new java.io.DataOutputStream(bytes);
+        out.writeUTF(a.id); out.writeUTF(a.scooterId); out.writeUTF(a.label); out.writeUTF(a.notes);
+        out.writeUTF(a.stopReason == null ? "" : a.stopReason); out.writeUTF(a.direction.name());
+        out.writeBoolean(a.stopped); out.writeBoolean(a.recovered); out.writeBoolean(a.odometerReset);
+        for (long value : new long[] {a.startWall, a.startMono, a.lastWall, a.lastMono, a.elapsed, a.electricalMs, a.speedMs,
+                a.movingMs, a.stationaryMs, a.samples, a.gaps, a.clockDiscontinuities, a.directionChanges, a.confirmedMs,
+                a.unconfirmedMs, a.pointStride, a.movingElectricalMs, a.stationaryElectricalMs, a.unknownMotionElectricalMs,
+                a.readingWall, a.readingMono, a.readingElapsed, a.readingGaps}) out.writeLong(value);
+        for (Double value : new Double[] {a.startSoc, a.endSoc, a.startVoltage, a.minVoltage, a.maxVoltage, a.minTemperature,
+                a.maxTemperature, a.startOdo, a.endOdo, a.maxSpeed, a.peakPower, a.maxCurrent}) writeOptional(out, value);
+        for (double value : new double[] {a.throughputWh, a.drawWh, a.regeneratedWh, a.speedDistance, a.movingDistance,
+                a.movingThroughputWh, a.stationaryThroughputWh, a.unknownMotionThroughputWh}) out.writeDouble(value);
+        // Rule 3's last motion (the no-motion stop's shown end); a finished journal needs no other motion state.
+        for (long value : new long[] {a.motionWall, a.motionElapsed, a.motionGaps}) out.writeLong(value);
+        out.flush(); return bytes.toByteArray();
+    }
+    /** The finished state saved by encodeState, or null when it is for another ride or not finished. */
+    private static Accumulator decodeState(byte[] data, String expectedId) throws IOException {
+        java.io.DataInputStream in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(data));
+        String id = in.readUTF(), scooterId = in.readUTF(), label = in.readUTF(), notes = in.readUTF(), stopReason = in.readUTF();
+        CurrentDirection direction = CurrentDirection.valueOf(in.readUTF());
+        boolean stopped = in.readBoolean(), recovered = in.readBoolean(), odometerReset = in.readBoolean();
+        long[] l = new long[23];
+        for (int i = 0; i < l.length; i++) l[i] = in.readLong();
+        Double[] d = new Double[12];
+        for (int i = 0; i < d.length; i++) d[i] = readOptional(in);
+        double[] e = new double[8];
+        for (int i = 0; i < e.length; i++) e[i] = in.readDouble();
+        long[] still = new long[3];
+        for (int i = 0; i < still.length; i++) still[i] = in.readLong();
+        if (in.read() != -1) throw new IOException("trailing");
+        if (!id.equals(expectedId) || !stopped) return null;
+        Accumulator a = new Accumulator(id, scooterId, label, l[0], l[1]);
+        a.notes = notes; a.stopReason = stopReason; a.direction = direction;
+        a.stopped = true; a.recovered = recovered; a.odometerReset = odometerReset;
+        a.lastWall = l[2]; a.lastMono = l[3]; a.elapsed = l[4]; a.electricalMs = l[5]; a.speedMs = l[6]; a.movingMs = l[7];
+        a.stationaryMs = l[8]; a.samples = l[9]; a.gaps = l[10]; a.clockDiscontinuities = l[11]; a.directionChanges = l[12];
+        a.confirmedMs = l[13]; a.unconfirmedMs = l[14]; a.pointStride = l[15]; a.movingElectricalMs = l[16];
+        a.stationaryElectricalMs = l[17]; a.unknownMotionElectricalMs = l[18]; a.readingWall = l[19]; a.readingMono = l[20];
+        a.readingElapsed = l[21]; a.readingGaps = l[22];
+        a.startSoc = d[0]; a.endSoc = d[1]; a.startVoltage = d[2]; a.minVoltage = d[3]; a.maxVoltage = d[4];
+        a.minTemperature = d[5]; a.maxTemperature = d[6]; a.startOdo = d[7]; a.endOdo = d[8]; a.maxSpeed = d[9];
+        a.peakPower = d[10]; a.maxCurrent = d[11];
+        a.throughputWh = e[0]; a.drawWh = e[1]; a.regeneratedWh = e[2]; a.speedDistance = e[3]; a.movingDistance = e[4];
+        a.movingThroughputWh = e[5]; a.stationaryThroughputWh = e[6]; a.unknownMotionThroughputWh = e[7];
+        a.motionWall = still[0]; a.motionElapsed = still[1]; a.motionGaps = still[2];
+        return a;
+    }
+    /**
+     * Column by column, so deflate finds the repeats: each clock is a difference from the previous point, and each
+     * reading is its bits XORed with the previous point's reading of the same kind (exact, unlike rounding).
+     */
+    private static byte[] encodePoints(List<Point> points) throws IOException {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream(64 + points.size() * 64);
+        java.io.DataOutputStream out = new java.io.DataOutputStream(bytes);
+        int n = points.size();
+        out.writeInt(n);
+        long previous = 0;
+        for (Point p : points) { out.writeLong(p.wallMs - previous); previous = p.wallMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.monotonicMs - previous); previous = p.monotonicMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.elapsedMs - previous); previous = p.elapsedMs; }
+        previous = 0;
+        for (Point p : points) { out.writeLong(p.speedCoverageMs - previous); previous = p.speedCoverageMs; }
+        int segment = 0;
+        for (Point p : points) { out.writeInt(p.segment - segment); segment = p.segment; }
+        for (int k = 0; k < 6; k++) {
+            long bits = 0;
+            for (Point p : points) {
+                Double value = reading(p, k);
+                out.writeBoolean(value != null);
+                if (value != null) { long now = Double.doubleToRawLongBits(value); out.writeLong(now ^ bits); bits = now; }
+            }
+        }
+        out.flush(); return bytes.toByteArray();
+    }
+    private static Double reading(Point p, int k) {
+        return k == 0 ? p.voltageV : k == 1 ? p.powerW : k == 2 ? p.speedKmh : k == 3 ? p.batteryPercent : k == 4 ? p.odometerKm : p.chargingState;
+    }
+    private static List<Point> decodePoints(byte[] data) throws IOException {
+        java.io.DataInputStream in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(data));
+        int n = in.readInt();
+        if (n < 0 || n > MAX_TREND_POINTS) throw new IOException("size");
+        long[][] clocks = new long[4][n];
+        for (long[] column : clocks) { long value = 0; for (int i = 0; i < n; i++) column[i] = value += in.readLong(); }
+        int[] segments = new int[n];
+        int segment = 0;
+        for (int i = 0; i < n; i++) segments[i] = segment += in.readInt();
+        Double[][] readings = new Double[6][n];
+        for (Double[] column : readings) {
+            long bits = 0;
+            for (int i = 0; i < n; i++) if (in.readBoolean()) { bits ^= in.readLong(); column[i] = Double.longBitsToDouble(bits); }
+        }
+        if (in.read() != -1) throw new IOException("trailing");
+        ArrayList<Point> points = new ArrayList<>(n);
+        for (int i = 0; i < n; i++)
+            points.add(new Point(clocks[0][i], clocks[1][i], clocks[2][i], segments[i], readings[0][i], readings[1][i],
+                    readings[2][i], readings[3][i], readings[4][i], readings[5][i], clocks[3][i]));
+        return Collections.unmodifiableList(points);
+    }
+    private static void writeOptional(java.io.DataOutputStream out, Double value) throws IOException {
+        out.writeBoolean(value != null); if (value != null) out.writeDouble(value);
+    }
+    private static Double readOptional(java.io.DataInputStream in) throws IOException {
+        return in.readBoolean() ? Double.valueOf(in.readDouble()) : null;
     }
 
     // Exact trapezoidal signed energy, split at zero when direction reverses.
@@ -670,6 +1138,8 @@ public final class RideStore {
     private static Accumulator read(File file, boolean keepAll) throws IOException { return read(file, keepAll, null); }
     private static Accumulator read(File file, boolean keepAll, LearnedRangeEstimate.Inspector inspector) throws IOException {
         if (!file.isFile()) return null;
+        replays.incrementAndGet();
+        Runnable hook = replayHook; if (hook != null) hook.run();
         String id = file.getName().substring(0, file.getName().length() - 4);
         Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
         Accumulator a = null;
@@ -710,7 +1180,7 @@ public final class RideStore {
                         } else if ("GAP".equals(event)) { a.gap(wall, mono); pending = null; }
                         else if ("HEARTBEAT".equals(event)) { a.heartbeat(wall, mono); pending = null; }
                         else if ("RECOVER".equals(event)) { a.recover(); pending = null; }
-                        else if ("STOP".equals(event)) { a.stop(wall, mono); a.stopReason = trim(r.get(14), 80); pending = null; }
+                        else if ("STOP".equals(event)) { a.stop(wall, mono); a.stopReason = trim(r.get(14), MAX_STOP_DETAILS); pending = null; }
                         else if ("NOTE".equals(event)) a.notes = r.get(14);
                         else if ("DIRECTION".equals(event)) { CurrentDirection changed = direction(r.get(13)); if (changed != a.direction && a.samples > 0) a.directionChanges++; a.direction = changed; a.breakAnchor(); }
                     }
@@ -718,6 +1188,36 @@ public final class RideStore {
             }
         } finally { reader.close(); }
         return a;
+    }
+    /**
+     * True only when the journal ends with a STOP row followed by nothing but whole RENAME rows, the only rows Volt
+     * appends after STOP. A full replay of such a journal finds it finished (or unreadable without a START), never
+     * unfinished. Quotes, carriage returns, a partial last row or any other event return false, so the caller replays.
+     */
+    static boolean endsFinished(File file) {
+        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(file, "r")) {
+            long length = in.length();
+            int window = (int) Math.min(length, 16384);
+            if (window == 0) return false;
+            byte[] tail = new byte[window];
+            in.seek(length - window); in.readFully(tail);
+            String text = new String(tail, "UTF-8");
+            if (!text.endsWith("\n")) return false;
+            String[] lines = text.substring(0, text.length() - 1).split("\n", -1);
+            // The window's first line may start mid-row; it is never trusted.
+            int first = window < length ? 1 : 0;
+            for (int i = lines.length - 1; i >= first; i--) {
+                String line = lines[i];
+                if (line.indexOf('"') >= 0 || line.indexOf('\r') >= 0) return false;
+                String[] f = line.split(",", -1);
+                if (f.length != 15 || !"1".equals(f[0])) return false;
+                if ("RENAME".equals(f[1])) continue;
+                if (!"STOP".equals(f[1])) return false;
+                Long.parseLong(f[3]); Long.parseLong(f[4]);
+                return true;
+            }
+            return false;
+        } catch (IOException | RuntimeException unreadable) { return false; }
     }
     /** Read a staged journal without recovery or any writes to its containing folder. */
     static Summary inspectJournal(File source) throws IOException {
@@ -841,7 +1341,7 @@ public final class RideStore {
         return out.append('\n').toString();
     }
     /** Streaming RFC4180 reader. A partial final row or quoted field is discarded. */
-    private static List<String> csvRecord(Reader reader) throws IOException {
+    static List<String> csvRecord(Reader reader) throws IOException {
         ArrayList<String> result = new ArrayList<String>();
         StringBuilder field = new StringBuilder();
         boolean quoted = false, afterQuote = false, began = false;

@@ -32,16 +32,24 @@
     <string name="main_simulation_banner" volt:screen="Activity shell" volt:purpose="banner action">Simulation · Exit</string>
     <string name="main_simulation_description" volt:screen="Activity shell" volt:purpose="screen reader">Simulation, sample data. Tap to exit simulation.</string>
 
+    <!--
+      The Home lock bar (MainActivity.makeCompactLock), offline: a state line at 16 sp and, under a
+      one-word state, a detail line at 13 sp, beside Connect. When they do not fit, Connect becomes a
+      48 dp Bluetooth icon, leaving about 220 dp on a 320 dp phone. The state wraps onto two lines of
+      whole words when it is alone (main_lock_state_unknown, 220dp@16sp*2); under a detail line each
+      line is one line (220dp@16sp, 220dp@13sp).
+    -->
     <!-- ===== Lock row and lock switch ===== -->
     <string name="main_lock_title" volt:screen="Home lock row" volt:purpose="heading" volt:safety="lock">Lock</string>
     <string name="main_lock_updating" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Updating…</string>
-    <string name="main_lock_locked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:safety="lock">Locked</string>
+    <string name="main_lock_locked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:max="220dp@16sp" volt:safety="lock">Locked</string>
     <!-- The lock bar's state word when Locked does not fit the slide switch; narrower still, the switch shows the lock icon. -->
     <string name="main_lock_locked_short" volt:screen="Narrow lock bar" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Locked</string>
-    <string name="main_lock_unlocked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:safety="lock">Unlocked</string>
+    <string name="main_lock_unlocked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:max="220dp@16sp" volt:safety="lock">Unlocked</string>
     <!-- The lock bar's state word when Unlocked does not fit the slide switch; narrower still, the switch shows the unlock icon. -->
     <string name="main_lock_unlocked_short" volt:screen="Narrow lock bar" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Unlocked</string>
-    <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unknown</string>
+    <!-- The Home lock bar's state while no lock state is known, beside the Connect button: it wraps between words onto two lines and is never cut. -->
+    <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:max="220dp@16sp*2" volt:safety="lock">Lock state unknown</string>
     <string name="main_lock_state_unverified" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unverified</string>
     <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Connecting</string>
     <string name="main_lock_last_known_full_locked" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: locked. Reconnect to verify.</string>
@@ -52,12 +60,12 @@
     <string name="main_lock_connecting_to" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Connecting to %1$s. %2$s</string>
     <!-- Fills main_lock_connecting_to when no scooter is set up. -->
     <string name="main_lock_your_scooter" volt:screen="Home lock row" volt:purpose="name in a sentence">your scooter</string>
-    <string name="main_lock_last_known_word_locked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: locked</string>
-    <string name="main_lock_last_known_word_unlocked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: unlocked</string>
+    <string name="main_lock_last_known_word_locked" volt:screen="Home lock row" volt:purpose="status" volt:max="220dp@13sp" volt:safety="lock">Last known: locked</string>
+    <string name="main_lock_last_known_word_unlocked" volt:screen="Home lock row" volt:purpose="status" volt:max="220dp@13sp" volt:safety="lock">Last known: unlocked</string>
     <!-- Never shown, as main_lock_last_known_full. %1$s is the word, in English. -->
     <string name="main_lock_last_known_word" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: %1$s</string>
     <!-- Under the last known lock state word. -->
-    <string name="main_lock_last_known" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known</string>
+    <string name="main_lock_last_known" volt:screen="Home lock row" volt:purpose="status" volt:max="220dp@13sp" volt:safety="lock">Last known</string>
     <!-- %1$s is the state word, %2$s the scooter name. -->
     <string name="main_status_connected_named" volt:screen="Connection line" volt:purpose="status">%1$s · %2$s</string>
     <!-- %1$s is the state word, %2$s a relative time. -->
@@ -369,23 +377,23 @@
     <string name="main_join_note" volt:screen="Scooter tab rows" volt:purpose="caption">%1$s · %2$s</string>
 
     <!-- ===== Top speed card ===== -->
-    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Maximum speed · Sport</string>
-    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported</string>
-    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported, last seen setting</string>
-    <string name="main_speed_confirming" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
-    <string name="main_speed_confirming_visible" volt:screen="Top speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
+    <string name="main_speed_title" volt:screen="Scooter tab, Maximum speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Maximum speed · Sport</string>
+    <string name="main_speed_not_reported" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported</string>
+    <string name="main_speed_not_reported_seen" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported, last seen setting</string>
+    <string name="main_speed_confirming" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
+    <string name="main_speed_confirming_visible" volt:screen="Scooter tab, Maximum speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s</string>
+    <string name="main_speed_value" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s, last seen setting</string>
+    <string name="main_speed_value_seen" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s, last seen setting</string>
     <!-- %1$s is whole km/h. If the unit word changes with the number in your language, write the symbol km/h instead of the word. -->
-    <string name="main_speed_spoken_km" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometers per hour</string>
+    <string name="main_speed_spoken_km" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometers per hour</string>
     <!-- %1$s is whole mph, %2$s the exact km/h value the scooter is sent. If the unit words change with the number in your language, write the symbols mph and km/h instead of the words. -->
-    <string name="main_speed_spoken_mi" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometers per hour</string>
+    <string name="main_speed_spoken_mi" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometers per hour</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_set" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Set maximum speed to %1$s</string>
+    <string name="main_speed_set" volt:screen="Scooter tab, Maximum speed" volt:purpose="screen reader" volt:safety="ride">Set maximum speed to %1$s</string>
     <!-- %1$s is the exact km/h. Keep the unit symbols. -->
-    <string name="main_speed_unit_dual" volt:screen="Top speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
+    <string name="main_speed_unit_dual" volt:screen="Scooter tab, Maximum speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
 
     <!-- ===== Report sheets ===== -->
     <string name="main_report_invite_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="MAC|PIN">No serial, MAC, owner key, PIN, names or routes are included.</string>

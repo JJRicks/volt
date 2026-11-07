@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riding mode's night vision (ride-display plan, PR 3): everything riding mode draws turns to shades of
+  red over the dark palette, and Volt auto or Fixed brightness dims to a night range. It's Off, On, or
+  Scheduled, from sunset to sunrise or between custom times. Sunset is worked out on the phone: from
+  the last place a ride was recorded (rounded to about 10 km, only once the rider agrees) or from the
+  time zone. Nothing is sent anywhere. The moon button at the top of riding mode turns it on or off;
+  with a schedule, the tap lasts until the next switch.
+
+  The settings live in More → App preferences → Riding mode. Segment labels share a 344 dp wide phone's
+  card three ways (about 96 dp each at 14 sp) or two ways (about 148 dp).
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Caption above the three night-vision choices. -->
+    <string name="riding_night_vision" volt:screen="App preferences" volt:purpose="label">Night vision</string>
+    <!-- Night-vision choice: never (the default). -->
+    <string name="riding_night_off" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">Off</string>
+    <!-- Night-vision choice: always while riding mode is open. -->
+    <string name="riding_night_on" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">On</string>
+    <!-- Night-vision choice: on a schedule (sunset to sunrise, or custom times). -->
+    <string name="riding_night_scheduled" volt:screen="App preferences" volt:purpose="option" volt:max="96dp@14sp">Scheduled</string>
+    <!-- Caption above the two schedule choices, shown while Scheduled is chosen. -->
+    <string name="riding_night_schedule" volt:screen="App preferences" volt:purpose="label">Schedule</string>
+    <!-- Schedule choice: on at sunset, off at sunrise (the default). -->
+    <string name="riding_night_sun" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Sunset to sunrise</string>
+    <!-- Schedule choice: on and off at times the rider sets. -->
+    <string name="riding_night_custom" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Custom times</string>
+    <!-- Row: where sunset is worked out from; its value is Ride area or Time zone, and a tap asks again. -->
+    <string name="riding_night_from" volt:screen="App preferences" volt:purpose="row">Sunset from</string>
+    <!-- Value of the Sunset from row: the last place a ride was recorded, rounded. -->
+    <string name="riding_night_from_ride" volt:screen="App preferences" volt:purpose="value" volt:max="120dp@15sp">Ride area</string>
+    <!-- Value of the Sunset from row: the time zone's main city. -->
+    <string name="riding_night_from_zone" volt:screen="App preferences" volt:purpose="value" volt:max="120dp@15sp">Time zone</string>
+    <!-- Caption under Sunset from: the source in use. -->
+    <string name="riding_night_source_ride" volt:screen="App preferences" volt:purpose="caption">From the last place you recorded a ride, rounded to about 10 km</string>
+    <string name="riding_night_source_ride_none" volt:screen="App preferences" volt:purpose="caption">Estimated from your time zone until you record a ride with location</string>
+    <string name="riding_night_source_zone" volt:screen="App preferences" volt:purpose="caption">Estimated from your time zone</string>
+    <string name="riding_night_source_none" volt:screen="App preferences" volt:purpose="caption">Volt can\'t estimate sunset in this time zone, so it uses your custom times</string>
+    <!-- Rows for the custom times; the value is the time, as the phone's clock shows it. -->
+    <string name="riding_night_starts" volt:screen="App preferences" volt:purpose="row">Starts</string>
+    <string name="riding_night_ends" volt:screen="App preferences" volt:purpose="row">Ends</string>
+    <!-- The schedule's next switch: %1$s is a time, "8:42 PM" or "20:42". -->
+    <string name="riding_night_next_on" volt:screen="App preferences" volt:purpose="status">Night vision turns on at %1$s</string>
+    <string name="riding_night_next_off" volt:screen="App preferences" volt:purpose="status">Night vision turns off at %1$s</string>
+    <!-- Far north or south, some days the sun doesn't set (or rise); night vision then stays as it is. -->
+    <string name="riding_night_no_sunset" volt:screen="App preferences" volt:purpose="status">No sunset today</string>
+    <string name="riding_night_no_sunrise" volt:screen="App preferences" volt:purpose="status">No sunrise today</string>
+    <!-- Note under the night-vision settings. -->
+    <string name="riding_night_note" volt:screen="App preferences" volt:purpose="caption">The moon at the top of riding mode turns night vision on or off. With a schedule, a tap lasts until the next switch. Night vision also dims Volt auto and Fixed brightness.</string>
+    <!-- Sheet asking before the last ride's area is used for sunset (owner: brief informed consent). -->
+    <string name="riding_night_consent_title" volt:screen="Night vision sunset sheet" volt:purpose="title">Use your ride area for sunset?</string>
+    <string name="riding_night_consent_body" volt:screen="Night vision sunset sheet" volt:purpose="explanation">Volt can work out sunset and sunrise on this phone from the last place you recorded a ride, rounded to about 10 km. Nothing is sent anywhere, and it isn\'t kept or backed up. Without it, Volt estimates from your time zone, which can be 10 to 30 minutes off.</string>
+    <string name="riding_night_consent_allow" volt:screen="Night vision sunset sheet" volt:purpose="button">Use ride area</string>
+    <string name="riding_night_consent_zone" volt:screen="Night vision sunset sheet" volt:purpose="button">Use time zone</string>
+    <!-- Spoken for riding mode's moon button, with its state. -->
+    <string name="riding_night_button_on" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Night vision, on</string>
+    <string name="riding_night_button_off" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Night vision, off</string>
+</resources>

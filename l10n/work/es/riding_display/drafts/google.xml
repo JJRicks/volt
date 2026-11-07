@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <string name="riding_display_section" volt:src="32cf68959bddde0b11ee7a193610e365ed98103e">Modo de conducción</string>
+    <string name="riding_display_brightness" volt:src="4a144eb214f6801aab0703f8fea92991fcb80a34">Brillo de la pantalla</string>
+    <string name="riding_display_phone" volt:src="05e3306da9e11991e3b2838cb9c0499478a5b358">Teléfono</string>
+    <string name="riding_display_auto" volt:src="758e754e8e495959ed5e6c7ed937cbd0a422c575">Volt auto</string>
+    <string name="riding_display_fixed" volt:src="7482fcb06d1ca8c86d7e8f14c8443f48fcc87206">Fijo</string>
+    <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Rotación de la pantalla</string>
+    <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba">Bloquear al abrir</string>
+    <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Seguir al teléfono</string>
+    <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Ocultar la barra de estado</string>
+    <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Reloj y batería ocultos al conducir</string>
+    <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">En «Volt auto», los botones − y + en la parte inferior del modo de conducción le enseñan a Volt tu nivel para la luz en la que estás. El brillo de tu teléfono vuelve al salir del modo de conducción.</string>
+    <string name="riding_display_note_no_sensor" volt:src="e661d391825a20ea95dda645ba91d2825f7bd131">«Fijo» establece el nivel con los botones − y + en la parte inferior del modo de conducción. Este teléfono no tiene sensor de luz, por lo que no se ofrece «Volt auto». El brillo de tu teléfono vuelve al salir del modo de conducción.</string>
+    <string name="riding_display_reset" volt:src="9ec6ee0367a2f8d73116282ededa7af8b42b318b">Restablecer el brillo de Volt auto</string>
+    <string name="riding_display_reset_sub" volt:src="2f6c5565922a129afcb17a37d77f8575506aca1c">Se olvidarán los niveles que le enseñaste</string>
+    <string name="riding_display_reset_done" volt:src="9cebd1c917db9f53594998c893e614cb46058cd9">Se restableció el brillo de Volt auto</string>
+    <string name="riding_brightness_dimmer" volt:src="5b638ac88778c7aa604f8955e835c1e1a6cf3fd1">Reducir brillo</string>
+    <string name="riding_brightness_brighter" volt:src="f545fe26af9b3e1921b23052e0c714704de9dd52">Aumentar brillo</string>
+</resources>

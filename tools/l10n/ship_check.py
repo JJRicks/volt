@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """CI's check of the languages Volt ships (plan 7.2 step 8): what `status` beta or stable promises.
 
-  ship_check.py [--root <repo>] [--aapt auto|off|required]
+  ship_check.py [--root <repo>] [--aapt auto|off|required] [--release]
 
 Every language with status beta or stable must have:
   - res/<folder>/ text that passes merge.py's validation (keys, placeholders, plural forms, current
     src hashes, ladders, l10n_tag) and equals, byte for byte, what merge.py writes from its decisions;
-  - the owner's beta bar (council.py beta): the committed decisions, counted by what merge.py writes
-    from them, with every lock and alarm key safety-agreed;
+  - every translated lock and alarm key safety-agreed or safety-judged;
   - a line in res/xml/locales_config.xml, and android:localeConfig in the manifest.
 In the other direction, every res/values-* folder with text must belong to such a language, and
-locales_config.xml lists nothing else. This mirrors CatalogCheckTest's localesConfig(), which needs a
+locales_config.xml lists nothing else.
+
+The English fallback share (keys merge.py leaves to English, counted as council.py beta counts them)
+is only a reference line on pull requests. With --release it must be zero for every shipped language:
+the owner ships no release until every shipped language is fully translated (2026-11-06). The beta bar
+(council.py beta, at most 2%) still governs promoting a language to beta; this tool no longer applies it.
+
+This mirrors CatalogCheckTest's localesConfig(), which needs a
 compiled catalog, so that it also runs on fixture roots.
 
 A language at any other status is not read at all: drafts need no keys and cannot fail this. Nothing
@@ -138,8 +144,34 @@ def wiring_problems(paths, languages):
     return problems
 
 
-def language_problems(paths, lang, aapt="auto"):
-    """(problems, lines) for one shipped language, from merge.py's rules and council.py's bar."""
+RELEASE_KEYS_SHOWN = 20  # how many fallback key names --release prints per language
+
+
+def fallback_report(paths, tag):
+    """(total, fallback, unconfirmed): translatable keys, [(key, why)] merge.py leaves to English and lock or
+    alarm keys translated without safety agreement, counted exactly as council.beta_report counts them."""
+    categories = translib.plural_categories(translib.load_language(paths, tag))
+    sources, _ = translib.load_source(paths)
+    total, fallback, unconfirmed = 0, [], []
+    for area, rows in sources.items():
+        decided = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
+        safety = translib.effective_safety(rows)
+        for s in rows:
+            if not s.translatable:
+                continue
+            total += 1
+            d = decided.get(s.key)
+            why = translib.why_english(s, d, categories)
+            hit = [x for x in safety[s.key] if x in translib.SAFETY_BLOCKING]
+            if why:
+                fallback.append((s.key, why + ("; %s" % ", ".join(hit) if hit else "")))
+            elif hit and d.get("outcome") not in council.SAFETY_TRANSLATED:
+                unconfirmed.append("%s (%s)" % (s.key, ", ".join(hit)))
+    return total, fallback, unconfirmed
+
+
+def language_problems(paths, lang, aapt="auto", release=False):
+    """(problems, lines) for one shipped language, from merge.py's rules and its English fallback."""
     problems = []
     if has_text(paths.res(lang.folder)):
         found, notes = merge.validate_folder(paths, lang.tag, aapt, shipped=True)
@@ -147,13 +179,26 @@ def language_problems(paths, lang, aapt="auto"):
     else:
         problems.append("res/%s has no text, but %s has status %s" % (lang.folder, lang.tag, lang.status))
         notes = []
-    passes, lines = council.beta_report(paths, lang.tag)
-    if not passes:
-        problems.append("%s is under the beta bar: %s" % (lang.tag, "; ".join(l for l in lines if l[:2] != "  ")))
-    return problems, ["%s: %s" % (lang.status, lines[0])] + ["note: %s: %s" % (lang.tag, note) for note in notes]
+    total, fallback, unconfirmed = fallback_report(paths, lang.tag)
+    if unconfirmed:
+        problems.append("%s: lock or alarm keys translated but not safety-agreed or safety-judged: %s" % (
+            lang.tag, ", ".join(unconfirmed)))
+    share = "%s (%s): %d of %d keys fall back to English (%.2f%%)" % (
+        lang.tag, lang.folder, len(fallback), total, 100.0 * len(fallback) / total if total else 0.0)
+    if release:
+        line = share + " — release mode: a release needs 0"
+        if fallback:
+            shown = ", ".join("%s (%s)" % kw for kw in fallback[:RELEASE_KEYS_SHOWN])
+            more = len(fallback) - RELEASE_KEYS_SHOWN
+            problems.append("%s is not fully translated, so no release ships: %d key(s) fall back to English: %s%s; "
+                            "translate them first (a top-up)" % (
+                                lang.tag, len(fallback), shown, " and %d more" % more if more > 0 else ""))
+    else:
+        line = share + " — reference only; a release needs 0"
+    return problems, ["%s: %s" % (lang.status, line)] + ["note: %s: %s" % (lang.tag, note) for note in notes]
 
 
-def check(paths, aapt="auto"):
+def check(paths, aapt="auto", release=False):
     """(problems, lines to print). Problems repeat across languages when a rule is shared, so they are deduplicated."""
     languages = gen_catalog.load_languages(paths.lang_dir())
     malformed = mapping_problems(languages)
@@ -164,7 +209,7 @@ def check(paths, aapt="auto"):
     problems = folder_problems(paths, languages) + wiring_problems(paths, languages)
     lines = []
     for lang in shipped:
-        found, said = language_problems(paths, lang, aapt)
+        found, said = language_problems(paths, lang, aapt, release)
         problems += found
         lines += said
     if not shipped:
@@ -179,9 +224,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--root")
     parser.add_argument("--aapt", choices=("auto", "off", "required"), default="auto")
+    parser.add_argument("--release", action="store_true",
+                        help="release mode: every shipped language must have no key falling back to English")
     args = parser.parse_args(argv)
     try:
-        problems, lines = check(translib.Paths(args.root), args.aapt)
+        problems, lines = check(translib.Paths(args.root), args.aapt, args.release)
     except (translib.L10nError, gen_catalog.CatalogError) as error:
         print("ship_check: %s" % error, file=sys.stderr)
         return 2

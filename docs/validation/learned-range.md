@@ -24,7 +24,7 @@ Until either model has enough evidence, or if the current battery level is missi
 This is a preliminary forecast for similar riding, not a measurement of physical capacity or battery health. Hills, speed, payload, wind, cold and unobserved battery levels can change actual range. It does not predict a guaranteed distance to shutdown.
 
 **Not done, deliberately:**
-- **Blending in the current ride's own rate.** On the recorded rides, energy per km follows the route far more than the rider. Rides that start at 100% (just after charging, apparently downhill) used 14–19 Wh/km; slow, climbing rides used 40–46. Extrapolating a downhill ride would overstate range.
+- **Blending in the current ride's own rate.** On the recorded rides, energy per km follows the route far more than the rider. Rides that start at 100% (just after charging, apparently downhill) used 14–19 Wh/km; slow, climbing rides used 40–46. Extrapolating a downhill ride would overstate range. Riding mode's separate "range at this pace" follows the current ride on purpose, and holds through stops and coasting instead: see [live-range.md](live-range.md). This forecast is unchanged.
 - **Weighting recent rides or temperature.** The recordings span ten days at 12–31 °C, so neither can be validated yet.
 
 ## Evidence admission
