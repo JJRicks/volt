@@ -631,6 +631,15 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(export::performClick);
             long shown=SystemClock.uptimeMillis()+5000;while(text(root(),"Sensor CSV")==null&&SystemClock.uptimeMillis()<shown)settle();
             check(text(root(),"Sensor CSV")!=null&&text(root(),"Route CSV")==null&&text(root(),"Motion raw CSV")==null&&text(root(),"Scooter and phone JSON")==null,"Empty phone data has no phone export rows");
+            // Everything in one JSON: first, in its own card, checked by default (nothing remembered yet), on one line, with its file name.
+            TextView everything=text(root(),"Everything in one JSON");
+            check(everything instanceof android.widget.CheckBox&&everything.isEnabled()&&((android.widget.CheckBox)everything).isChecked(),"Everything is listed and checked by default");
+            check(!((android.widget.CheckBox)text(root(),"Sensor CSV")).isChecked(),"Sensor CSV is no longer checked by default");
+            int[] top=new int[2],below=new int[2];everything.getLocationOnScreen(top);text(root(),"Sensor CSV").getLocationOnScreen(below);
+            check(top[1]<below[1],"Everything is listed first");
+            check(everything.getLayout()!=null&&everything.getLayout().getLineCount()==1&&everything.getLayout().getEllipsisCount(0)==0,"Everything's label fits on one line");
+            check(text(root(),"ride-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
+            screenshot("export-sheet-"+attempt);
             main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }
     }

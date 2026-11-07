@@ -164,6 +164,7 @@ insufficient evidence, not zero.
 
 | Export ride data checkbox | File | Type |
 |---|---|---|
+| Everything in one JSON | `ride-<first 8 of id>-everything.json` | `application/json`: every recording below in one file ([format](ride-export-everything.md)) |
 | Sensor CSV | `ride-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
 | Analysis JSON | `ride-<first 8 of id>-analysis.json` | `application/json` |
 | Route CSV | `ride-<first 8 of id>-route.csv` | `text/csv` |
@@ -172,12 +173,12 @@ insufficient evidence, not zero.
 | Motion raw CSV | `ride-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
 | Scooter and phone JSON | `ride-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
 
-Each file is byte for byte what the separate Export CSV, Export JSON and Export phone
+Each file but Everything is byte for byte what the separate Export CSV, Export JSON and Export phone
 data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
 choice is `ride_export_choice`.
 
 [Everything (JSON)](ride-export-everything.md) (`RideExportEverything`) is one file with
-all of these recordings on their own clocks; it is not on the sheet yet.
+all of these recordings on their own clocks. It is listed first and is the default.
 
 Phone and motion journals are separate from the scooter journal. Combined JSON
 can include precise route coordinates; GPX contains time and position. Inline
