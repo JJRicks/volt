@@ -525,7 +525,7 @@
     <!-- src:d2d17b4ff028a481fef1793f35d6ee88bee67b1c -->
     <string name="main_schedule_measuring_value">Misurazione in corso · %1$s min</string>
     <!-- src:607993afff67f0b356249be3e046f3eb301efe18 -->
-    <string name="main_row_stop_to_change">Interrompi la marcia per modificare</string>
+    <string name="main_row_stop_to_change">Ferma il monopattino per modificare</string>
     <!-- src:762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0 -->
     <string name="main_row_not_scheduled">Nessuna programmazione</string>
     <!-- src:cfbf195febe31a997f31b2d239cbe5a20868290e -->

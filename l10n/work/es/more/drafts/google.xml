@@ -101,10 +101,8 @@
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Con el patinete conectado</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Desactivado · se conservan las últimas lecturas</string>
     <string name="more_auto_save_heading" volt:src="3306dbdeccfc25335130c26851c550b072b30c74">Guardado automático de viajes</string>
-    <string name="more_auto_save_route_csv" volt:src="2d843aa9d08b999648f569b7c7c6c8f6474c8085">Guardar automáticamente la ruta en CSV</string>
-    <string name="more_auto_save_route_csv_sub" volt:src="af4791ddad6e51aba3baed3b9ae0a8a5490d4f53">La ruta GPS del teléfono, para viajes con ubicaciones</string>
-    <string name="more_auto_save_json" volt:src="83eb41da14f19b3d8736b66249aa3fad84ea8143">Guardar automáticamente el JSON del viaje</string>
-    <string name="more_auto_save_json_sub" volt:src="0180df032c9283264b2b6accabda326729907b9f">Resumen del viaje, más la grabación del teléfono si la hay</string>
+    <string name="more_auto_save_json" volt:src="0bb6976a9b15466395c5fd52e70b89c3c868eeb1">Guardar viajes automáticamente</string>
+    <string name="more_auto_save_json_sub" volt:src="138d63b8c4aeef7d0317a12f15279642ed1628dc">Un archivo por viaje: Todo en un JSON</string>
     <string name="more_auto_save_folder" volt:src="8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec">Carpeta</string>
     <string name="more_auto_save_no_folder" volt:src="bcbd72a20ff44510ee37859d1aa734922a772667">Aún no se eligió ninguna carpeta</string>
     <string name="more_auto_save_saving_to" volt:src="5ea59c4e03e3f7f022df7b407063f92eddb30038">Guardando en %1$s</string>
