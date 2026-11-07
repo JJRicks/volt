@@ -304,6 +304,46 @@ class SecretHandlingTest(Base):
             self.assertNotIn("print(os.environ", source, name)
 
 
+class WidthHintDraftersTest(Base):
+    """pack.py --width-hints: every drafter, API or Claude, gets the same hint block; judges get none."""
+
+    def test_every_drafter_gets_the_same_block(self):
+        import test_pack
+        self.repo.write("res/values-pt/strings_common.xml", test_pack.shipped([
+            ("common_lock_waiting_short", "Aguard.", "Waiting")]))
+        measurer = fontmetrics.Measurer(self.paths.font(), use_java=False)
+        pack.write_pack(self.paths, pack.build_pack(self.paths, "es", "common", measurer, width_hint_tags=["pt-PT"]))
+        fake = self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH),
+                                 "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0, self.err.getvalue())
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0, self.err.getvalue())
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--name", "one"), 0)
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--name", "parts", "--chunk-keys",
+                                   "4"), 0)
+        sent = [p["input"] if "input" in p else p["contents"][0]["parts"][0]["text"]
+                for method, url, _, p in fake.requests if method == "POST"]
+        prompts = self.paths.work("es", "common", "prompts")
+        written = [self.repo.read(os.path.join("l10n/work/es/common/prompts", f)) for f in sorted(os.listdir(prompts))
+                   if f.startswith("claude-")]
+        block = re.compile(r"\n\nWidth hints: [^\n]*\n(?:- [^\n]*\n?)+")
+        found = [block.findall(text) for text in sent + written]
+        self.assertEqual(len(sent), 2)
+        shown = [b for blocks in found for b in blocks]
+        # Once per drafter: both API calls, the single Claude prompt and the one chunk holding the key.
+        self.assertEqual(len(shown), 4, found)
+        self.assertEqual(len(set(shown)), 1)
+        self.assertIn("- common_lock_waiting_short (budget 75dp at 14sp): pt-PT \u00abAguard.\u00bb", shown[0])
+        # Judges compare drafts blind: no judge request or prompt carries a hint.
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "judge"), 0,
+                         self.err.getvalue())
+        judged = [self.repo.read(os.path.join("l10n/work/es/common/prompts", f)) for f in os.listdir(prompts)
+                  if not f.startswith("claude-")]
+        self.assertTrue(judged)
+        for text in judged + [self.repo.read("l10n/work/es/common/judge-requests.jsonl")]:
+            self.assertNotIn("Width hints", text)
+            self.assertNotIn("Aguard.", text)
+
+
 class DraftingTest(Base):
     def test_api_drafts_record_exact_models(self):
         fake = self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH), "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})

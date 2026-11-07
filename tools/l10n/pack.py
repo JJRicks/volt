@@ -15,7 +15,18 @@ neighbouring strings, and any current translation (with whether it is stale). Pl
 Only UI strings go into a pack: the entries of res/values/strings_<area>.xml, without
 translatable="false" keys and without l10n_tag. Reports, diagnostics and user data never live in
 those files (plan R4 and section 8), and the pack reads nothing else. PACK_ENTRY_FIELDS is the whole
-of what a model ever sees about a string.
+of what a model ever sees about a string, apart from the opt-in width hints below.
+
+  pack.py --tag pt-BR --area dashboard_model --width-hints es,pt-PT
+
+--width-hints (off by default) adds "width_hints" to the pack: for a key with a width budget whose
+shipped text in a hint language fits it, and fits tightly (at least TIGHT_SHARE of the budget) or by
+abbreviation (more "word." abbreviations than the English has), that text and its width, measured as
+above at the key's budget. A shipped text over its budget (a full rung the screen swaps for its _short
+rung, say) is no hint about fitting and is left out. Only shipped texts of the current English count, only Saira languages (a system-font width is
+not measured), at most WIDTH_HINT_LANGUAGES per key, in the order given. council.py shows them in a
+short block under every drafter's strings, the same block for each, so the drafts stay comparable;
+judges never see them. Without the option the pack is exactly as before.
 """
 
 import argparse
@@ -23,6 +34,7 @@ import collections
 import hashlib
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,6 +53,11 @@ LANGUAGE_FIELDS = ("tag", "folder", "endonym", "formality", "plurals", "quote_st
 # Placeholder stand-ins for measuring a template: the same for English and every language, so a
 # budget compares like with like.
 SAMPLE = {"s": "8888", "d": "888", "f": "88.8"}
+# Width hints (--width-hints): a shipped text this share of its budget or more is tight, and a key shows
+# at most this many hint languages.
+TIGHT_SHARE = 0.95
+WIDTH_HINT_LANGUAGES = 2
+ABBREVIATION = re.compile(r"[^\W\d_]\.(?=\s|$|\))")
 
 
 def sample_text(text, formatted=True):
@@ -89,8 +106,54 @@ def glossary_hits(terms, text):
         for term in translib.glossary_hits(terms, text)]
 
 
-def build_pack(paths, tag, area, measurer=None, sources=None):
-    """The pack for one language and area, as an ordered dict ready for JSON."""
+def abbreviations(items):
+    return max(len(ABBREVIATION.findall(text)) for text in items.values()) if items else 0
+
+
+def width_hints(paths, tag, area, entries, measurer, hint_tags):
+    """{key: [hint]} for the pack's keys under a width budget that a hint language's shipped text fits, tightly
+    or by abbreviation (see the module docstring). A hint is {tag, text, width_dp, budget_dp}."""
+    budgeted = [e for e in entries if e.get("budget_dp")]
+    found = collections.OrderedDict()
+    for hint_tag in hint_tags:
+        if hint_tag == tag:
+            continue
+        lang = translib.load_language(paths, hint_tag)
+        if lang.font != "saira":
+            continue
+        shipped = read_current(paths, lang, area)
+        requests, owners = [], []
+        for entry in budgeted:
+            have = shipped.get(entry["key"])
+            if not have or have[0] != entry["kind"] or have[2] != entry["source_sha1"]:
+                continue  # missing, another kind, or a translation of older English
+            for text in have[1].values():
+                requests.append((entry["budget_sp"], sample_text(text, entry["formatted"]), entry["budget_lines"]))
+                owners.append(entry["key"])
+        widths = fontmetrics.measure_lines(measurer, requests)
+        width_of = collections.OrderedDict()
+        for key, width in zip(owners, widths):
+            width_of[key] = max(width_of.get(key, 0.0), width)
+        by_key = dict((e["key"], e) for e in budgeted)
+        for key, width in width_of.items():
+            entry, (kind, items, _) = by_key[key], shipped[key]
+            english = translib.items_of(entry["kind"], entry["english"])
+            budget = entry["budget_dp"]
+            if width > budget + 0.01:
+                continue  # over its budget: no hint about fitting it
+            if width < TIGHT_SHARE * budget and abbreviations(items) <= abbreviations(english):
+                continue
+            hints = found.setdefault(key, [])
+            if len(hints) < WIDTH_HINT_LANGUAGES:
+                hints.append(collections.OrderedDict([
+                    ("tag", hint_tag), ("text", translib.text_value(kind, items)), ("width_dp", round(width, 1)),
+                    ("budget_dp", entry["budget_dp"])]))
+    return collections.OrderedDict((e["key"], found[e["key"]]) for e in entries if e["key"] in found)
+
+
+def build_pack(paths, tag, area, measurer=None, sources=None, width_hint_tags=None):
+    """The pack for one language and area, as an ordered dict ready for JSON. width_hint_tags (a list of
+    language tags, default none) adds "width_hints" (see the module docstring)."""
     translib.check_tag_area(tag, area)
     lang = translib.load_language(paths, tag)
     if sources is None:
@@ -160,6 +223,10 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
         ("format", FORMAT), ("tag", tag), ("area", area), ("folder", lang.folder),
         ("source_file", "res/values/strings_%s.xml" % area), ("language", language),
         ("style_guide", style), ("width_method", measurer.method), ("entries", entries)])
+    if width_hint_tags:
+        pack["width_hints"] = collections.OrderedDict([
+            ("languages", list(width_hint_tags)),
+            ("keys", width_hints(paths, tag, area, entries, measurer, width_hint_tags))])
     body = json.dumps(pack, ensure_ascii=False, sort_keys=True)
     pack["pack_sha1"] = hashlib.sha1(body.encode("utf-8")).hexdigest()
     return pack
@@ -182,6 +249,13 @@ def write_pack(paths, pack):
     return path
 
 
+def hint_tags(value):
+    tags = [t.strip() for t in value.split(",") if t.strip()]
+    if not tags:
+        raise argparse.ArgumentTypeError("name at least one language tag")
+    return list(collections.OrderedDict.fromkeys(tags))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", help="repository root (default: this checkout)")
@@ -191,6 +265,9 @@ def main(argv=None):
     group.add_argument("--all", action="store_true", help="every res/values/strings_<area>.xml")
     parser.add_argument("--stdout", action="store_true", help="print the pack instead of writing it")
     parser.add_argument("--no-java", action="store_true", help="measure with the hmtx approximation only")
+    parser.add_argument("--width-hints", metavar="TAGS", type=hint_tags,
+                        help="comma-separated shipped languages (es,pt-PT) whose tight or abbreviated texts are shown "
+                             "to every drafter as width hints (off by default)")
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)
     try:
@@ -199,16 +276,17 @@ def main(argv=None):
         areas = list(sources) if args.all else [args.area]
         measurer = fontmetrics.Measurer(paths.font(), use_java=not args.no_java)
         for area in areas:
-            pack = build_pack(paths, args.tag, area, measurer, sources)
+            pack = build_pack(paths, args.tag, area, measurer, sources, args.width_hints)
             if args.stdout:
                 sys.stdout.write(json.dumps(pack, ensure_ascii=False, indent=1) + "\n")
             else:
                 path = write_pack(paths, pack)
                 counts = collections.Counter(e["status"] for e in pack["entries"])
-                print("%s: %d strings (%s), widths by %s" % (
+                print("%s: %d strings (%s), widths by %s%s" % (
                     paths.rel(path), len(pack["entries"]),
                     ", ".join("%d %s" % (counts[k], k) for k in ("new", "stale", "current") if counts[k]) or "none",
-                    pack["width_method"]))
+                    pack["width_method"], ", width hints for %d keys" % len(pack["width_hints"]["keys"])
+                    if "width_hints" in pack else ""))
         if not areas:
             print("no res/values/strings_<area>.xml files yet; nothing to pack")
         if measurer.java_problem:
