@@ -120,17 +120,17 @@
     <string name="backup_engine_backup_repeats_app_preference" volt:src="ce43394d429a5b542e3e01b2d4936d91ce3934d8">Säkerhetskopian innehåller samma appinställning flera gånger.</string>
     <string name="backup_engine_backup_contains_unsupported_out" volt:src="c7d71bc8b5a8c7039f1e01633bcd1b8cb9646599">Säkerhetskopian innehåller en fil som inte stöds eller som ligger utanför sin kategori.</string>
     <string name="backup_engine_not_dashboard_layout_file" volt:src="91840a66839c774c6358c2f10f3a5600f0923c33">Inte en fil med översiktslayout.</string>
-    <string name="backup_engine_pairing_file_too_large" volt:src="ed4280e8a0615a882cb5ab46ab5e59827d7a34a1">Parkopplingsfilen är för stor.</string>
-    <string name="backup_engine_pairing_file_contains_unsupported" volt:src="0e1f5a7538678ae8c8b4b794449e00d92d1acddf">Parkopplingsfilen innehåller fält som inte stöds.</string>
-    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:src="94c7606ad543340c262a6bab35ac3af3d1a8f9bb">Parkopplingsfilen har en ogiltig ägarnyckel.</string>
-    <string name="backup_engine_pairing_file_invalid_owner_role" volt:src="1f5f05b36f10c9e635d21083d0e53c887436b84c">Parkopplingsfilen har en ogiltig ägarroll.</string>
-    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">Parkopplingsfilen har en ogiltig Bluetooth-adress.</string>
+    <string name="backup_engine_pairing_file_too_large" volt:src="75359300144962fda39680722c6f8de3e2efb7e5">Ägarkonfigurationsfilen är för stor.</string>
+    <string name="backup_engine_pairing_file_contains_unsupported" volt:src="bf0b1b0cd28ddab82c1fba152e608d4e024fd70d">Ägarkonfigurationsfilen innehåller fält som inte stöds.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:src="74488967b968352052cd0b64ca93598ff6b7d175">Ägarkonfigurationsfilen har en ogiltig ägarnyckel.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_role" volt:src="04288e6954ceddc9f9899aa4bb453a85789be82b">Ägarkonfigurationsfilen har en ogiltig roll.</string>
+    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="370b2b7ca244b40351e176e616f7256b20e5a043">Ägarkonfigurationsfilen har en ogiltig Bluetooth-adress.</string>
     <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">Säkerhetskopian har en inställningsgrupp som inte stöds.</string>
     <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Säkerhetskopian innehåller samma laddningsinspelning flera gånger.</string>
     <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Välj vad som ska återställas.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">”Ersätt allt” kräver en fullständig säkerhetskopia med alla kategorier.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Välj vart data för varje elsparkcykel ska.</string>
-    <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Välj en elsparkcykel som använder den här ägarnyckeln, eller lägg till en annan elsparkcykel.</string>
+    <string name="backup_engine_choose_scooter_using_setup" volt:src="9c98d5835c2e279cd216567138e61662ddd0df4d">Välj en elsparkcykel som använder den här ägarnyckeln, eller lägg till en annan elsparkcykel.</string>
     <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">Det går inte att läsa sparade inspelningar.</string>
     <string name="backup_engine_backup_contains_unreadable_ride" volt:src="37ad350868e18ca90d1b47d819161ba91b69bfb2">Säkerhetskopian innehåller en tur som inte går att läsa.</string>
     <string name="backup_engine_choose_backup_again" volt:src="023b32a1da855d4621616465419cfd3be9e72041">Välj säkerhetskopian igen.</string>
@@ -155,9 +155,9 @@
     <string name="backup_engine_backup_too_many_scooter" volt:src="ce5ccd08a862448bb4422c28927889a241955efd">Säkerhetskopian har för många profiler för elsparkcyklar.</string>
     <string name="backup_engine_backup_invalid_scooter_profile_identifiers" volt:src="f06c6beb813788e98467d4134c12c3b40699b5c4">Profilerna för elsparkcyklar i säkerhetskopian har ogiltiga id:n.</string>
     <string name="backup_engine_backup_invalid_scooter_profile_fields" volt:src="dc79a80fa0f8066de2c6aab72c38b37f3830aac9">Profilerna för elsparkcyklar i säkerhetskopian har ogiltiga fält.</string>
-    <string name="backup_engine_backup_invalid_scooter_owner" volt:src="a5df0c1afd5aaeb4192aaf7e89aa38345242e72d">Säkerhetskopian har en ogiltig ägarroll för en elsparkcykel.</string>
+    <string name="backup_engine_backup_invalid_scooter_owner" volt:src="4d0fa1588c64f820895ed4a40d3bf0ec3d655e0e">Säkerhetskopian har en elsparkcykel med en ogiltig roll.</string>
     <string name="backup_engine_backup_invalid_scooter_connection" volt:src="5dee12f94f7b1a0b54185c7b760097ddd3324da1">Säkerhetskopian har ett ogiltigt anslutningsdatum för en elsparkcykel.</string>
-    <string name="backup_engine_backup_invalid_scooter_setup" volt:src="1efe4d4475bbd78ff690b9539a72ad8a70771394">Säkerhetskopian har en ogiltig ägarnyckel för en elsparkcykel.</string>
+    <string name="backup_engine_backup_invalid_scooter_setup" volt:src="dac609a43e6d0cddfccdc64b5ce9782e8a5c4a2b">Säkerhetskopian har en ogiltig ägarnyckel för en elsparkcykel.</string>
     <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">Säkerhetskopian har en inkompatibel typ av appinställning.</string>
     <string name="backup_engine_backup_invalid_display_text" volt:src="194fd5048e934d2fa854e7e693f332706da65c69">Säkerhetskopian har en ogiltig textskala för skärmen.</string>
     <string name="backup_engine_review_backup_first" volt:src="1dde6c2a50a1278db6941d64547da7196557199d">Granska säkerhetskopian först.</string>

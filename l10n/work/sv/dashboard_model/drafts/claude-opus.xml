@@ -40,7 +40,7 @@
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menyer</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Sidor</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimentella reglage</string>
-    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Top speed</string>
+    <string name="dashboard_model_tile_top_speed" volt:src="d1cb36b44b04e38c459d67d7da24a13492e5c327">Maxhastighet</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Laddschema</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Uppdaterar…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (inlärd)</string>
@@ -82,7 +82,7 @@
     <string name="dashboard_model_example_electrical" volt:src="f66ec4436c5bfbb62fc0c6be45b855c504823083">Elektriska mätvärden</string>
     <string name="dashboard_model_example_battery_power" volt:src="4cf2ca4c83ab84b80bb85a0b328be5c34e0b4f9b">Batterieffekt</string>
     <string name="dashboard_model_example_charge_history" volt:src="49e4226b880f838ef8bcfcd1dfa7d282a5c3adb3">Laddningshistorik</string>
-    <string name="dashboard_model_example_note" volt:src="0348b8f6a81497ac28d044e5fef53009c1222dde">Kontrollera däcktrycket</string>
+    <string name="dashboard_model_example_note" volt:src="f1a8571f4f92a0cf93deef3d5eb747c2da685078">Kontrollera däcktrycket</string>
     <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Plats %1$s</string>
     <string name="dashboard_model_slot_example" volt:src="0740b63c52f763156abb78cc674a59a536f7eb7e">Alla widgetar</string>
 </resources>
