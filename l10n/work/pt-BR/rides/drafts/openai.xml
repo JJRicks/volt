@@ -197,6 +197,7 @@
     <string name="rides_export_data_short" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Exportar</string>
     <string name="rides_export_section_scooter" volt:src="3d295d070d3e6a261f48f10d6fed643567fd224d">Gravação do patinete</string>
     <string name="rides_export_section_phone" volt:src="3ce3ab3d858a3fe0e14b1cf0ba2b3157e7561aa8">Gravação do telefone</string>
+    <string name="rides_export_everything_json" volt:src="4e6e7e93e1cd473a54539cf513ab94f06d104824">Tudo em um JSON</string>
     <string name="rides_export_sensor_csv" volt:src="066a64584be317e2fe220b5f0e7cf2e9c6b66a0c">Sensor CSV</string>
     <string name="rides_export_analysis_json" volt:src="4720a921addf5df717b5a485480f93bc6f6a379f">Análise JSON</string>
     <string name="rides_export_combined_json" volt:src="cabbadd1f3d041c7be57fa7cc8c165457ef9e8f0">JSON do patinete e do telefone</string>

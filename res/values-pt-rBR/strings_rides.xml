@@ -386,6 +386,8 @@
     <string name="rides_export_section_scooter">Gravação do patinete</string>
     <!-- src:3ce3ab3d858a3fe0e14b1cf0ba2b3157e7561aa8 -->
     <string name="rides_export_section_phone">Gravação do telefone</string>
+    <!-- src:4e6e7e93e1cd473a54539cf513ab94f06d104824 -->
+    <string name="rides_export_everything_json">Tudo em um único JSON</string>
     <!-- src:066a64584be317e2fe220b5f0e7cf2e9c6b66a0c -->
     <string name="rides_export_sensor_csv">CSV dos sensores</string>
     <!-- src:4720a921addf5df717b5a485480f93bc6f6a379f -->
