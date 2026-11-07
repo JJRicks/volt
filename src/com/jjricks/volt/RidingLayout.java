@@ -49,12 +49,9 @@ final class RidingLayout {
     static final String RANGE_AT_PACE = "range_at_pace", RANGE_SCOOTER = "range_scooter", RANGE_VOLT = "range_volt";
     // Ring, trace and top-bar contents.
     static final String RING_SPEED = "ring_speed", TRACE_SPEED_POWER = "trace_speed_power", TRACE_POWER = "trace_power",
-            TRACE_SPEED = "trace_speed", STATUS = "status";
-    /**
-     * A retired top-bar choice (owner, Nov 6): the status pill now becomes the recording pill, so Record and
-     * Status showed the same thing. Saved layouts that chose it still load and show the status pill.
-     */
-    static final String RECORD = "record";
+            TRACE_SPEED = "trace_speed", RECORD = "record", STATUS = "status";
+    // RECORD is a retired top-bar choice (owner, Nov 6): the status pill now becomes the recording pill, so
+    // Record and Status showed the same thing. migrated() reads it as STATUS wherever it appears.
     // Switches.
     static final String POWER_BAR = "power_bar", CHIPS = "chips";
     /** Speed and range to tenths: on by default, with a switch in the layout editor (owner, Q23 B). */
@@ -105,6 +102,7 @@ final class RidingLayout {
         final String id, fallback;
         final Kind kind;
         private Spot(String id, Kind kind, String fallback) {
+            fallback = migrated(fallback);
             if (!accepts(kind, fallback)) throw new IllegalArgumentException(id);
             this.id = id; this.kind = kind; this.fallback = fallback;
         }
@@ -133,7 +131,7 @@ final class RidingLayout {
         // trip and ride time. Its top bar is the status pill, which turns into the recording pill while a
         // ride records (owner, Nov 6; the Record control it once named was retired).
         FRAME_DEFS.put(FOCUS, new Frame(FOCUS, new Spot[]{
-                spot("top", Kind.TOP, STATUS),
+                spot("top", Kind.TOP, RECORD),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
                 spot("tile_1", Kind.TILE, BATTERY),
