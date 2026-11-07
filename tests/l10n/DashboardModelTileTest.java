@@ -17,7 +17,8 @@ import java.util.regex.Pattern;
  *  - A Setting tile is announced by the full name (entry.label()), or by the two Scooter-page names it
  *    keeps (Charge schedule), while its visible label stays the short rung (Max. speed for Maximum speed).
  *  - Every full shortcut name, which a Quick access button shows, carries that button's width budget,
- *    derived from the cell's own layout numbers, and the file's header says a single word must fit one line.
+ *    derived from the cell's own layout numbers and its two lines of whole words (64dp@12sp*2), and the file's
+ *    header says a single word must fit one line. A Setting tile's one-line label keeps 90dp@12.5sp.
  */
 public final class DashboardModelTileTest {
     private static final String GRID = "src/com/jjricks/volt/QuickAccessGrid.java";
@@ -102,7 +103,12 @@ public final class DashboardModelTileTest {
         check(grid.contains("setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));"), "Quick access padding is 4 dp");
         check(grid.contains("label = ui.text(entry.label(), 12, false);"), "Quick access label is the full name at 12 sp");
         check(grid.contains("label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);"), "simple line breaks");
-        String budget = (72 - 4 - 4) + "dp@12sp";
+        // Up to two lines of whole words (the budget's *2), never smaller; a Setting tile label is one line.
+        check(grid.contains("StatusRungs.wholeLines(full, label, room, 2)"), "a Quick access name takes up to two lines");
+        check(grid.contains("StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null"),
+                "a Quick access name that does not fit shows its short rung in the same room (volt:overflow=\"short\")");
+        check(grid.contains("label.setTextColor(ui.muted); label.setMaxLines(1);"), "a Setting tile label is one line");
+        String budget = (72 - 4 - 4) + "dp@12sp*2";
         String strings = read(STRINGS);
         check(strings.contains("A single word must fit one line"), "the header says a single word must fit one line");
         check(strings.contains("volt:max=\"" + budget + "\" on every full name"), "the header names the budget");
@@ -113,6 +119,8 @@ public final class DashboardModelTileTest {
             if (attrs.contains("volt:ladder=\"full\"")) {
                 full++;
                 check(attrs.contains("volt:max=\"" + budget + "\""), key + " has no Quick access budget " + budget);
+                // Where the name does not fit, the button shows the short rung in the same room (check.py's overflow rule).
+                check(attrs.contains("volt:overflow=\"short\""), key + " has no volt:overflow=\"short\"");
             } else if (attrs.contains("volt:ladder=\"short\"")) {
                 shorts++;
                 check(attrs.contains("volt:max=\"90dp@12.5sp\""), key + " lost its Setting tile budget");

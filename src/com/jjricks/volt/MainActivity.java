@@ -594,10 +594,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         offlineTitle=design.text(T.mainLockStateUnknown(),16,true);offlineTitle.setTypeface(design.semibold());
         offlineDetail=design.text("",13,false);offlineDetail.setTextColor(design.muted);offlineDetail.setVisibility(View.GONE);
         for(TextView line:new TextView[]{offlineTitle,offlineDetail}){
-            // One line each keeps the pair inside a 48 dp row; Saira's tall metrics need no extra spacing.
+            // Saira's tall metrics need no extra spacing. The detail stays one line under a one-word state.
             line.setLineSpacing(0,1);line.setMaxLines(1);line.setEllipsize(android.text.TextUtils.TruncateAt.END);
             words.addView(line,new LinearLayout.LayoutParams(-1,-2));
         }
+        // The state alone (Lock state unknown) is never cut: it wraps between whole words onto a second line,
+        // at the same size, which the 54 dp lock bar cell still holds (volt:max="220dp@16sp*2"). The ellipsis stays a last resort.
+        offlineTitle.setMaxLines(2);offlineTitle.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        offlineTitle.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         LinearLayout offline=new CompactLockStatus(square,words,offlineTitle);lockOffline=offline;
         offline.setOnClickListener(v->showConnectionDetails());
         connectionAction=design.button(T.mainActionConnect(),this::connect);
@@ -615,9 +619,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         return registerDashboardLock(content);
     }
     /**
-     * Lock bar row. When the status and the worded action do not both fit, the action becomes a
-     * 48 dp icon button (its text and description stay for accessibility); after that the title
-     * ellipsizes. The status drops its own icon square first, so that one goes before the words.
+     * Lock bar row. When the status (its state or its detail line) and the worded action do not both
+     * fit, the action becomes a 48 dp icon button (its text and description stay for accessibility);
+     * after that the state wraps onto a second line. The status drops its own icon square first, so
+     * that one goes before the words.
      */
     private final class CompactLockRow extends LinearLayout {
         private final View status;private final TextView title,action;
@@ -660,7 +665,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 // Natural worded width from the text itself: toggling and re-measuring would request layout every pass.
                 float worded=Math.max(design.dp(48),action.getPaint().measureText(action.getText().toString())+design.dp(32));
-                float need=status.getVisibility()!=GONE?title.getPaint().measureText(title.getText().toString()):design.dp(96);
+                TextView detail=(TextView)((ViewGroup)title.getParent()).getChildAt(1);
+                float need=status.getVisibility()!=GONE?Math.max(title.getPaint().measureText(title.getText().toString()),
+                        detail.getVisibility()!=GONE?detail.getPaint().measureText(detail.getText().toString()):0):design.dp(96);
                 icon=width-worded-design.dp(10)<need;
             }
             if(icon!=iconOnly){

@@ -2896,7 +2896,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             forceMeasure(((ViewGroup)view).getChildAt(i));
         view.forceLayout();
     }
-    /** Single lines that ellipsize by design (TextFit): the Lock bar's detail, and its title beside an icon-only Connect. */
+    /** Lines that ellipsize by design (TextFit): the Lock bar's detail, and its two-line title beside an icon-only Connect. */
     private boolean ellipsizedByDesign(TextView text) { return TextFit.ellipsizedByDesign(activity, text); }
     private static boolean iconOnlyAction(TextView text) { return TextFit.iconOnlyAction(text); }
     private void assertText(TextView text, View ancestor, String context) { TextFit.assertText(text, ancestor, context); }

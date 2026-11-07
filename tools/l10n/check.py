@@ -38,7 +38,10 @@ Checks, per key (a plural is checked per quantity):
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
-  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
+  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py); a
+                budget with *N lines fits when a greedy whole-word wrap takes at most N lines. A full
+                rung marked volt:overflow="short" that does not fit only warns when its group's _short
+                rung, which the screen shows there instead, fits the full's budget (check_targets)
   polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
                 added where the English has none (on -> "no activada"); per-language lexicons in
                 lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-"); and
@@ -381,6 +384,16 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
         # numbers
         lost, added = compare_numbers(strip_placeholders(reference) if formatted else reference,
                                       strip_placeholders(text) if formatted else text)
+        if lost["1"] and kind == "plural" and formatted and quantity not in single_number_categories(language["tag"]):
+            count = set(placeholder_specs(english_other))
+            # Only a 1 that stands where the English other form has its count is the spelled-out count: a 1
+            # both forms share ("after 1 minute") is a fixed value and must still appear.
+            spelled = compare_numbers(strip_placeholders(reference), strip_placeholders(english_other))[0]
+            if spelled["1"] and count - set(placeholder_specs(reference)) and count <= set(placeholder_specs(text)):
+                # The English spells this form's count as 1 ("1 widget"). Here the form covers more than one
+                # number, so it must keep the count placeholder (above), and that placeholder stands for the 1.
+                lost.subtract({"1": 1})
+                lost = +lost
         if lost:
             out.append(finding("numbers", ERROR, "numbers %s from the English are missing" % _list(lost.elements()), q))
         if added:
@@ -756,10 +769,33 @@ def _glossary(language, entry, reference, text, safety, q):
 # A set of targets: ladders and widths
 # ---------------------------------------------------------------------------
 
-def check_targets(pack, targets, font=None, measurer=None, ladders=True):
+def overflow_rung(entries, key):
+    """The _short key the screen shows where key's full rung does not fit (volt:overflow="short"), or None.
+
+    entries is {key: pack entry}. gen_catalog.py refuses volt:overflow anywhere but on a full rung with
+    a volt:max and a _short sibling, so this is None only for an unmarked key (or a hand-made pack)."""
+    entry = entries.get(key)
+    if not entry or entry.get("overflow") != "short":
+        return None
+    short = key + "_short"
+    return short if short in (entry.get("ladder_group") or []) and short in entries else None
+
+
+def check_targets(pack, targets, font=None, measurer=None, ladders=True, short_checked_later=False):
     """{key: findings} for {key: (kind, {quantity: text}, raw_problems)} against a pack.
 
     Adds the ladder check (every rung of a group drafted together) and the width check.
+
+    A full rung marked volt:overflow="short" (pack "overflow") whose text exceeds its budget is
+    judged by the screen's ladder: the view shows the group's _short rung where the full does not
+    fit, measured the same way (QuickAccessGrid.measureContent). So the short rung's text from the
+    same targets is measured at the full's budget (its sp, its lines, whole words), quantity by
+    quantity like the full. If it fits, the full's width finding is only a warning naming the short
+    rung shown instead; if not, the finding is what it is for an unmarked key (an error where the
+    English fits), saying the short does not fit either. With no short rung in targets the finding
+    stays an error as well, unless short_checked_later: council.py's per-key checks of a judge's merged
+    text pass it, and council.decide then checks the decided full and short together. An unmarked key,
+    or a marked one that fits, is checked exactly as before.
     """
     entries = dict((e["key"], e) for e in pack["entries"])
     language = pack["language"]
@@ -788,21 +824,58 @@ def check_targets(pack, targets, font=None, measurer=None, ladders=True):
             results[key].append(finding("width", INFO, "%s uses the system font; fit is checked on a device" %
                                         language["tag"]))
             continue
+        lines = entry.get("budget_lines") or 1
+        short = overflow_rung(entries, key)
+        short_items = None
+        if short and short in targets and targets[short][0] == entries[short]["kind"]:
+            short_items = targets[short][1]
         for quantity, text in items.items():
-            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry))))
-            owners.append((key, quantity if kind == "plural" else None))
+            q = quantity if kind == "plural" else None
+            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry)), lines))
+            owners.append((key, q, None))
+            if short_items is not None and quantity in short_items:
+                # The short rung at the full's budget: the size, lines and room the full rung had.
+                requests.append((entry["budget_sp"], packlib.sample_text(short_items[quantity],
+                                                                         _formatted(entries[short])), lines))
+                owners.append((key, q, short_items[quantity]))
     if requests and measurer is not None:
-        widths = measurer.measure(requests)
-        for (key, quantity), width in zip(owners, widths):
+        # With budget_lines above 1 a width is the narrowest that holds the text in that many lines of
+        # whole words (fontmetrics.measure_lines), and english_width_dp is the English measured the same way.
+        widths = fontmetrics.measure_lines(measurer, requests)
+        measured = collections.OrderedDict()
+        for (key, quantity, short_text), width in zip(owners, widths):
+            slot = measured.setdefault((key, quantity), [None, None])
+            if short_text is None:
+                slot[0] = width
+            else:
+                slot[1] = (short_text, width)
+        for (key, quantity), (width, short) in measured.items():
             entry = entries[key]
             budget = entry["budget_dp"]
+            lines = entry.get("budget_lines") or 1
             if width > budget + 0.01:
                 english_fits = entry["english_width_dp"] <= budget + 0.01
-                out = finding("width", ERROR if english_fits else WARN,
-                              "%.1fdp at %gsp exceeds the %gdp budget (English %.1fdp; %s)" % (
-                                  width, entry["budget_sp"], budget, entry["english_width_dp"], measurer.method),
-                              quantity)
-                results[key].append(out)
+                severity = ERROR if english_fits else WARN
+                shown = "no width" if width >= fontmetrics.NO_FIT else "%.1fdp" % width
+                where = "" if lines == 1 else " in %d lines of whole words" % lines
+                message = "%s at %gsp exceeds the %gdp budget%s (English %.1fdp; %s)" % (
+                    shown, entry["budget_sp"], budget, where, entry["english_width_dp"], measurer.method)
+                if overflow_rung(entries, key):
+                    if short is not None and short[1] <= budget + 0.01:
+                        severity = WARN
+                        message += "; the screen shows the short rung \u00ab%s\u00bb where the full does not fit, " \
+                                   "and it fits (%.1fdp)" % (short[0], short[1])
+                    elif short is not None:
+                        short_shown = "no width" if short[1] >= fontmetrics.NO_FIT else "%.1fdp" % short[1]
+                        message += "; the short rung \u00ab%s\u00bb, shown where the full does not fit, does not " \
+                                   "fit either (%s)" % (short[0], short_shown)
+                    elif short_checked_later:
+                        severity = WARN
+                        message += "; the screen shows the short rung where the full does not fit, and the " \
+                                   "decided short rung is checked with it (council.decide)"
+                    else:
+                        message += "; no short rung was drafted with it to show where the full does not fit"
+                results[key].append(finding("width", severity, message, quantity))
     return results
 
 

@@ -52,13 +52,34 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 
 - **Keys** are `<area>_<screen>_<meaning>` in lower snake case. Shared words go in
   `strings_common.xml`. Each key becomes `T.camelCase(...)`, for example `T.dashMoveWidget(title)`.
-- **Metadata** (`volt:*`, all optional): `screen`, `purpose`, `max` (`<dp>dp@<sp>sp`), `ladder`
-  (`full`, `short`, `compact`), `safety` (lock, ride, alarm, charge, experimental, owner-key, pin,
+- **Metadata** (`volt:*`, all optional): `screen`, `purpose`, `max` (`<dp>dp@<sp>sp`, or
+  `<dp>dp@<sp>sp*<lines>`; see Width budgets below), `ladder`
+  (`full`, `short`, `compact`), `overflow` (`short` only; see Ladder rungs below), `safety` (lock, ride, alarm, charge, experimental, owner-key, pin,
   privacy, disclaimer; comma-separated), `dnt` (do-not-translate tokens separated by `|`; each
   must appear in the text), `english-fix="pending"` (a known English bug kept byte for byte).
   An XML comment right before the string becomes its note. Any other `volt:` attribute is an error.
+- **Width budgets.** `volt:max="96dp@14sp"` says the text must fit 96 dp on one line at 14 sp, in
+  Saira (`tools/l10n/fontmetrics.py`). A view that wraps between whole words, never at a smaller
+  size, takes a line count: `volt:max="64dp@12sp*2"` (2 to 9 lines) means each line must fit 64 dp,
+  so `check.py` measures a greedy whole-word wrap (split at plain spaces; a no-break space joins its
+  words) and fails a text that needs more lines or has a single word wider than 64 dp. Mark a line
+  count only where the code provably wraps that way (for example `StatusRungs.wholeLines(..., 2)`
+  or `setMaxLines(2)` with the simple break strategy and no hyphenation); a view with
+  `setMaxLines(1)` keeps a one-line budget. Packs carry it as `budget_lines`, and with more than
+  one line `english_width_dp` is the narrowest width that holds the English in that many lines.
+  As for one line, a text over a budget the English fits is an error, and only a warning where the
+  English itself does not fit.
 - **Ladder rungs** are sibling keys: `<key>_short` with `volt:ladder="short"` and `<key>_compact`
   with `volt:ladder="compact"`. A rung may use only placeholders its full key has.
+- **Overflow to the short rung.** `volt:overflow="short"` on a `volt:ladder="full"` key with a
+  `volt:max` says the view that budget describes shows the group's `_short` rung, measured the same
+  way, where the full text does not fit (Quick access: `QuickAccessGrid.measureContent`). Mark it
+  only where every width-limited screen of the full key does that; `gen_catalog.py` refuses it
+  without a `_short` sibling of the same kind. `check.py` then measures the drafted short rung at the
+  full key's budget (its sp, its lines, whole words): if it fits, a full text over the budget is
+  only a warning naming the short rung shown instead; if not, it stays an error, saying the short
+  does not fit either. `council.py decide` checks the decided full and short together the same way.
+  The attribute is metadata, so it changes no `source_sha1`.
 - **Placeholders** are positional only: `%1$s` (a `CharSequence`), `%1$d` (a `long`), `%1$.1f`
   (a `double`), and `%%` for a percent sign. Number them from `%1$` with no gaps. A `%n$s` takes no
   width, precision or flag (`%1$-8s`, `%1$.2s`): `Fmt.compose` finds each argument by private-use
@@ -1175,8 +1196,9 @@ python3 tools/l10n/council.py prompt --tag $T --area $A --name opus-context --re
 python3 tools/l10n/council.py check --tag $T --area $A
 ( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate openai --tag $T --area $A )
 python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then a separate Opus judge session
-#      writes judge.jsonl; for a safety key whose drafts disagree, back-translate the judge's text
-#      (backtranslate openai again) and run judge-requests again for the judge's confirm
+#      writes judge.jsonl; for a safety key whose drafts disagree, or a refused unanimous one the
+#      judge merged (safety-refused), back-translate the judge's text (backtranslate openai again)
+#      and run judge-requests again for the judge's confirm
 python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
@@ -1274,7 +1296,17 @@ python3 tools/l10n/council.py usage --tag $T                         # the token
    which must include at least two passing drafts from different providers (with fewer, English
    stays); the judge request and the decision name the excused provider and why in `excused`, and
    the decision's reason says so. A provider whose draft still fails after its redraft is also listed
-   in `excused`; its failing draft never blocked a judged key. Either way the back-translation
+   in `excused`; its failing draft never blocked a judged key. **When the judge refuses a text every
+   drafter agreed on** (2026-11-06; before, nothing could bring such a key back while its English
+   stayed the same, since its drafts pass and agree), the next `judge-requests` lists the key once
+   more as `safety-refused`, with the refused text, its back-translation and the refusal's reason in
+   `refusal`. The judge may `merge` a new text there or answer `fallback` again (English stays and
+   the key is not listed again). A merged text must pass the checks (a failing one is listed again,
+   with `refusal.merge_problem` and `merge_findings`) and is then a judged text exactly as above:
+   back-translated by a model that drafted nothing, listed as `safety-judged-confirmation`, and
+   `safety-judged` only after a confirm of that text and that back-translation on a later line; a
+   `fallback` of the merged text keeps English for good. A merge that answers no refusal never
+   counts for a unanimous key. Either way the back-translation
    is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
    backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
    each such prompt gets a request id, the hash of exactly what it showed, recorded in
@@ -1752,7 +1784,12 @@ change a check inside a language or batch pull request.
   draft needs a new ruling. A safety key reaches `judge-requests` for a confirm only after a current
   back-translation exists. For a safety key whose drafts disagree, the latest `pick` or `merge`
   line is the judged text and the latest line must be the `confirm` (a later `fallback` keeps
-  English). A ruling whose `source_sha1` is not the current English is ignored.
+  English). For a unanimous safety key, read in file order: a `fallback` of the agreed text is a
+  refusal (listed as `safety-refused`); the next line answers it, a `merge` (then the latest merge
+  is the judged text, which needs its back-translation and a later `confirm` naming it, and a later
+  `fallback` keeps English for good) or a second `fallback` (English stays). A `confirm` before any
+  merge is the latest ruling as before, and a `merge` that answers no refusal counts for nothing.
+  A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
   and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,
   so rewriting the requests while a judge works cannot rebind an earlier ruling.

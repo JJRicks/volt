@@ -16,35 +16,39 @@ November 6, 2026
   only, with synthetic rides and Bluetooth off: about 0.3 s to the first
   frame with 41 one-hour rides, from about 4 s. The service start command
   stands in for connection start; it is not a connection time.
-- Release candidate checks on the final tree (main after #283 plus this
-  release's docs; the app tree is unchanged from the swept build):
+- Release candidate checks on the final tree: commit 23070dfe, which is main
+  after #285 (the Maximum speed rename), #286 (the More list on wide screens)
+  and #287 (the Drive mark), plus this release's changelog. This verification
+  update changes no app code.
   - ship_check --release --aapt required: PASS, Spanish 0 of 3773 keys
     falling back, aapt compiling 3990 Spanish texts exactly.
   - Pinned Shizuku dependencies verified; tests/run.sh passes (155 suites,
     about 1.98 million checks); owner-capture guard (11), capture-owner (22)
     and hardware-sweep (14) tests pass.
-  - VOLT_RELEASE=1 bash build.sh with a local contributor key: versionName
-    1.12.0 (no -dev), versionCode 55. The swept build (commit 561e7f1) and the
-    rebuild on the final tree (commit 6161773, after #283 changed only
-    android-tests/) have identical contents apart from META-INF.
-- run-release-sweep.py on that swept build (Medium Phone API 36.1 emulator,
-  synthetic data, Bluetooth off): 74 of 78 steps passed on the first run.
-  - responsive, responsive-modes and charge-capture failed in both the first
-    run and a rerun. Each was a validation outdated by a reviewed change: the
-    short status rung without the words "last seen" (#211), and charge
-    recordings showing the live charging card (#250). #283 updated both
-    validations; with it, all three pass on the final tree.
-  - motion-polish hung once in am instrument for 600 s (its 344x882 light glow
-    case) while the Mac was loaded. It passed in the rerun and again on the
-    final tree.
+  - VOLT_RELEASE=1 bash build.sh with a local contributor key on that commit:
+    versionName 1.12.0 (no -dev), versionCode 55. This is the build the sweep
+    below ran.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulator,
+  synthetic data, Bluetooth off): all 69 gating steps passed in one run,
+  including responsive, responsive-modes, charge-capture and motion-polish.
+  Of its 9 report-only steps, the three Spanish reports ran (below). The six
+  pseudo-locale reports (en-XA and ar-XB at three sizes) were skipped: the
+  sweep was given no pseudo-locale build. The sweep's own "78/78" summary
+  counts report-only steps as passed even when they are skipped.
+  - An earlier candidate (main after #283) needed reruns: three validations
+    were outdated by reviewed changes (#211, #250) until #283 updated them, and
+    motion-polish hung once in am instrument while the Mac was loaded.
   - rides-timing passed (best of two cold starts, slowest case): first frame
-    181 ms and service start command 157 ms (budgets 1.5 s), Rides first row
-    61 ms and longest main-thread message 50 ms cold, 40 ms warm (budget 1 s).
-    The service start command stands in for connection start; it is not a
+    229 ms and service start command 204 ms (budgets 1.5 s), Rides first row
+    43 ms and longest main-thread message 34 ms cold, 21 ms warm (budget 1 s).
+    One single cold run (41 one-hour rides at 344 dp) stalled the main thread
+    for 367 ms, above the 250 ms everyday target; its repeat took 15 ms. The
+    service start command stands in for connection start; it is not a
     connection time.
-  - locale-es reports (report only, not gating): no unfilled placeholders,
-    glued pieces or direction problems. At 725 dp two More-list labels break
-    mid-word in Spanish («Controles experimentales», «Buscar automáticamente»).
+  - locale-es reports (report only, not gating): 0 fit, direction, glued,
+    unfilled or unextracted problems at 344 dp, 725 dp and 725 dp with large
+    font (23 screens each). #286 fixed the two More-list labels that broke
+    mid-word at 725 dp.
 - No owner-present hardware sweep yet (run-hardware-sweep.py --parked, parked
   since 1.11.0). The owner runs it before publishing.
 - Real-phone checks only the owner can do, not yet done:
