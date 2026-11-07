@@ -1017,7 +1017,11 @@ synthetic profile with maintenance reminders (the Scooter tab's Reminders row an
 page, with DUE, SOON and SNOOZED badges), show every Home shortcut and Setting tile on the developer
 simulator, and drive riding mode's status pill through connected, recording, recording while
 reconnecting or not connected (both halves of its alternation), the plain Not connected and
-Reconnecting pills, and Ride saved after a rider's and an automatic stop.
+Reconnecting pills, and Ride saved after a rider's and an automatic stop. Each riding screen is asserted
+to show its state, and Android's one-time "Viewing full screen" notice is marked confirmed first and must
+not cover one. Setting tile text that ends in an ellipsis is counted as `truncated_tiles` (TextFit skips
+ellipsized lines). en-XA runs the same walk (`locale-en-XA-scooter-<size>`) for unextracted text;
+`-e locale en` gives the English baseline by hand.
 
 Every other step runs in English: the sweep aborts unless the emulator's system language is en-US,
 and clears any per-app language after each fresh install.
