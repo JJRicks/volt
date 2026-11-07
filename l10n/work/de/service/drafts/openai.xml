@@ -11,9 +11,9 @@
     <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Warte, bis die Kopie der Fahrt vollständig gespeichert ist.</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Schließe zuerst den aktuellen Ladeexport ab.</string>
     <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Warte, bis Volt den Ladezeitplan vollständig eingestellt hat.</string>
-    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Warte, bis die Messung für „Fertig geladen bis“ abgeschlossen ist.</string>
+    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435" volt:attempt="2">Warte während der Messung, bis „Fertig geladen bis“ die Messung abgeschlossen hat.</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Warte, bis die Bereinigung des Verlaufs abgeschlossen ist.</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Schließe zuerst die Besitzer-Einrichtung ab und stelle den vorherigen Zustand der NAVEE-Protokollierung wieder her.</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Schließe zuerst die Besitzer-Einrichtung und die Wiederherstellung des vorherigen Zustands der NAVEE-Protokollierung ab.</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Schließe zuerst den aktuellen Export ab.</string>
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Schließe zuerst den Import der Besitzer-Einrichtung ab.</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">App-Daten konnten nicht vorbereitet werden. Öffne Volt erneut.</string>
@@ -148,7 +148,7 @@
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">Das Laden wurde %1$s nach dem Startzeitpunkt fortgesetzt. Die Uhr des Scooters geht daher möglicherweise %2$s nach.%3$s</string>
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">Der Scooter hat nicht pausiert. Seine Uhr geht möglicherweise vor oder er hat den Ladezeitplan ignoriert.%1$s</string>
     <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Das Laden war 5 Minuten nach dem Startzeitpunkt noch pausiert. Die Uhr des Scooters geht möglicherweise mehr als 5 Minuten nach oder der Ladezeitplan hat das Laden nicht freigegeben. Falls das Ladegerät ausgesteckt war, führe den Test erneut durch.%1$s</string>
-    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt hat die Uhr des Scooters direkt vor diesem Test eingestellt. Möglicherweise behält der Scooter die eingestellte Uhrzeit nicht bei. Bis das Problem gelöst ist, ist eine smarte Steckdose als Zeitschaltuhr sicherer. Melde ein Problem mit Diagnosedaten, damit wir es untersuchen können."</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4" volt:attempt="2">" Volt hat die Uhr des Scooters direkt vor diesem Test eingestellt. Daher behält der Scooter die eingestellte Uhrzeit möglicherweise nicht bei. Bis das Problem gelöst ist, ist eine smarte Steckdose als Zeitschaltuhr sicherer. Nutze „Problem melden“ mit Diagnosedaten, damit wir das untersuchen können."</string>
     <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">Der Akku hat während des Tests seine Ladegrenze erreicht. Deshalb ließ sich das Ergebnis nicht ermitteln. Teste erneut, wenn der Akkustand weiter unter der Ladegrenze liegt.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Der Test wurde unterbrochen. Prüfe, ob das Laden fortgesetzt wurde. Falls nicht, schalte „Geplantes Laden“ aus.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Der Test konnte nicht gestartet werden.</string>
@@ -156,7 +156,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt konnte nicht bestätigen, ob der Ladezeitplan ausgeschaltet wurde. Schalte „Geplantes Laden“ aus, damit das Laden fortgesetzt wird."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Akkuwarnungen</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Warnungen zum Akkustand sowie bei vollem und niedrigem Akkustand, die du unter „Scooter › Akku“ einschaltest</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Akkuwarnungen für den Akkustand sowie bei vollem und niedrigem Akkustand, die du unter „Scooter › Akku“ einschaltest</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Stopp</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Beende die Ladeaufzeichnung, bevor du eine Fahrt startest.</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Beende zuerst die Simulation.</string>

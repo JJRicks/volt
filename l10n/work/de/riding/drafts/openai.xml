@@ -44,7 +44,7 @@
     <string name="riding_label_ride_distance" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Fahrt</string>
     <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b">Fahrtzeit</string>
     <string name="riding_label_ride_time_short" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Zeit</string>
-    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Aufzeichnung</string>
+    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28" volt:attempt="2">Aufnahme</string>
     <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">REC</string>
     <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Ø Tempo</string>
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Ø</string>
@@ -85,7 +85,7 @@
     <string name="riding_layout_title" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Layout</string>
     <string name="riding_layout_choose" volt:src="591ae6acf4038658c6088285dfd6803e19f36e9b">Layout auswählen</string>
     <string name="riding_ring_max" volt:src="b12784bd1a78199af50601c39355d949c5494ee0">Spitze %1$s</string>
-    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Rückgewinnung</string>
+    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5" volt:attempt="2">Rückgewinnung</string>
     <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">vor 1 min</string>
     <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">jetzt</string>
     <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Geschwindigkeit und Leistung in der letzten Minute</string>
@@ -97,7 +97,7 @@
     <string name="riding_spot_ring" volt:src="8dc62ec06ab73d2bf935e00cb1e246fd75321bff">Ring</string>
     <string name="riding_spot_highlight" volt:src="dadd4586dc9086ec04c915582a60d722f72259e4">Hervorhebung</string>
     <string name="riding_spot_tile" volt:src="3a01677b23614cdba6a2121406e3e01d611ad55e">Kachel %1$s</string>
-    <string name="riding_spot_strip" volt:src="24d12ec8e4871cd46974f1e3f48e7dd9acdb35a0">Kleiner Messwert %1$s</string>
+    <string name="riding_spot_strip" volt:src="24d12ec8e4871cd46974f1e3f48e7dd9acdb35a0" volt:attempt="2">Messwert klein %1$s</string>
     <string name="riding_spot_chip" volt:src="06a6ff8d269946cb4eca66e31164f25e59c250cc">Chip %1$s</string>
     <string name="riding_spot_chart" volt:src="170156934b1acb193aeb3aa975b42874105bcc5b">Diagramm</string>
     <string name="riding_content_ring_speed" volt:src="33e7df283558365bbdcdfa89303ee387b99d8520">Tempo + Spitze</string>

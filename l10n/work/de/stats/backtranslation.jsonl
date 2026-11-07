@@ -1,0 +1,3 @@
+{"back":"End of charging not recorded","key":"stats_charge_finish_not_observed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"9041b739b1b5ece945f8e0e229a84f9af2093968","target":"Ladeende nicht erfasst"}
+{"back":"100 % recorded","key":"stats_charge_full_observed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"88b2405e1fbc60f57f292500f7355c2cf504cadc","target":"100 % erfasst"}
+{"back":"100 %% recorded · %1$s","key":"stats_charge_observed_full","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e9755d913dfb71036b40c6136a47b1516f6b6dc8","target":"100 %% erfasst · %1$s"}
