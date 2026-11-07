@@ -1803,8 +1803,9 @@ change a check inside a language or batch pull request.
   merge is the latest ruling as before, and a `merge` that answers no refusal counts for nothing.
   For a `short-for-full` short rung, the lines after the latest `pick` or `confirm` of a text too
   wide for the full rung answer it: a fitting `merge` (a later merge replaces it; a safety one then
-  needs its back-translation and a later `confirm`), or a `fallback` (English stays; after a merge,
-  it refuses the merged text). For `all-failed`, the latest line is the ruling, as for any
+  needs its back-translation and a later `confirm`), or a `fallback` (English stays and the key is
+  not listed, though a later fitting merge still answers it, as for a refused unanimous text; after
+  a merge, a fallback refuses the merged text for good). For `all-failed`, the latest line is the ruling, as for any
   non-safety key.
   A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),

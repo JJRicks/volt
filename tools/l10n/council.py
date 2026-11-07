@@ -1737,7 +1737,9 @@ def short_for_full(paths, pack, states, use_java=True, cache=None):
       - a merge that passes the checks, fits its own budget and fits the full's (check_short_merge()) is
         the short rung's text (merged); a later merge replaces it, and one that does not fit lists the key
         again with the failure (open);
-      - a fallback while open declines: the short rung (and so its ladder group) stays English;
+      - a fallback while open declines: the short rung (and so its ladder group) stays English and is
+        not listed, but a later merge still answers it (as unanimous_refusals() replays a refusal: a
+        fallback, then a merge, its back-translation and a confirm);
       - after a merge, a fallback refuses the merged text for good, and a confirm is the latest confirm.
 
     A non-safety merged text is decided as judged. A safety one is a judged safety text (see
@@ -1775,7 +1777,7 @@ def short_for_full(paths, pack, states, use_java=True, cache=None):
         phase, merge, items, after, failed, problem, findings = "open", None, None, None, None, None, []
         for r in rulings[start:]:
             verdict = r["verdict"]
-            if phase in ("declined", "refused"):
+            if phase == "refused":
                 break
             if verdict == "merge":
                 got, why, found = check_short_merge(paths, pack, sstate.entry, entries[full], r, use_java, cache)
@@ -2557,6 +2559,8 @@ def decide(paths, tag, area, final=False, use_java=True):
         elif verdict == "merge":
             items = translib.items_of(entry["kind"], ruling.get("text"))
             if items is None:
+                if key in failing:  # all-failed: listed again with the failure, for a new merge or a fallback
+                    pending.append((key, "a new merge or fallback ruling (all drafts failed)"))
                 rows[key] = row(entry, state, "fallback-english", "judge's merged text has the wrong shape",
                                 judge=ruling)
             else:

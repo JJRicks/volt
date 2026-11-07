@@ -5,6 +5,7 @@ full rungs have volt:max 64dp@12sp*2 (two lines of whole words) and the short ru
 """
 
 import collections
+import io
 import json
 import os
 import sys
@@ -185,6 +186,24 @@ class AllFailedTest(StuckBase):
         self.judge({"key": "qa_star_short", "verdict": "pick", "pick": "google", "text": "Luzes de estrela"})
         self.assertIn("pick", self.requests()["qa_star_short"]["stuck"]["merge_problem"])
 
+    def test_a_wrong_shaped_merge_waits(self):
+        self.write_drafts()
+        self.judge({"key": "qa_star_short", "verdict": "merge", "text": None})
+        request = self.requests()["qa_star_short"]
+        self.assertEqual(request["stuck"]["merge_problem"], "the judge's merged text has the wrong shape")
+        rows, pending = self.decide()
+        self.assertEqual(rows["qa_star_short"]["outcome"], "fallback-english")
+        self.assertIn("ruling", pending["qa_star_short"])
+        # Every other key settled: a non-final write still waits instead of writing English.
+        self.judge({"key": "qa_dash_short", "verdict": "fallback"},
+                   {"key": "qa_pin_short", "verdict": "fallback"})
+        _, pending = self.decide()
+        self.assertEqual(list(pending), ["qa_star_short"])
+        out = io.StringIO()
+        self.assertIsNone(council.write_decisions(self.paths, TAG, AREA, use_java=False, out=out))
+        self.assertIn("qa_star_short", out.getvalue())
+        self.assertFalse(os.path.exists(self.paths.decisions(TAG, AREA)))
+
     def test_a_fallback_ends_it(self):
         self.write_drafts()
         self.judge({"key": "qa_star_short", "verdict": "fallback"})
@@ -314,6 +333,32 @@ class ShortForFullTest(StuckBase):
         self.assertEqual([f["severity"] for f in rows["qa_pin"]["checks"]], ["warn"])
         self.assertIn("«Pin prox.»", rows["qa_pin"]["checks"][0]["message"])
         self.assertNotIn("qa_pin_short", self.back_targets())
+
+    def test_an_earlier_refusal_then_merge_is_replayed(self):
+        # unanimous_refusals()' recovery, on a short rung: the judge refused the agreed text, then
+        # merged a text that fits both budgets; it still needs its back-translation and a confirm.
+        self.write_drafts()
+        self.back("qa_pin", "Pin e proximidade", "Pin and proximity")
+        self.back("qa_pin_short", "proximid", "proximity")
+        self.judge(confirm_row("qa_pin", "Pin e proximidade", "Pin and proximity"),
+                   {"key": "qa_pin_short", "verdict": "fallback"})
+        self.assertNotIn("qa_pin_short", self.requests())  # declined, for now
+        self.judge({"key": "qa_pin_short", "verdict": "merge", "text": "Pin prox."})
+        self.assertNotIn("qa_pin_short", self.requests())
+        rows, pending = self.decide()
+        self.assertEqual(pending["qa_pin_short"], "a back-translation of the judged safety text")
+        self.assertEqual(self.back_targets(), {"qa_pin_short": "Pin prox."})
+        self.back("qa_pin_short", "Pin prox.", "Pin prox.")
+        self.assertEqual(self.requests()["qa_pin_short"]["reason"], "safety-judged-confirmation")
+        rows, pending = self.decide()
+        self.assertIn("confirmation", pending["qa_pin_short"])
+        self.assertEqual(rows["qa_pin_short"]["outcome"], "fallback-english")
+        self.judge(confirm_row("qa_pin_short", "Pin prox.", "Pin prox."))
+        rows, pending = self.decide()
+        self.assertNotIn("qa_pin_short", pending)
+        self.assertEqual((rows["qa_pin_short"]["outcome"], rows["qa_pin_short"]["text"]),
+                         ("safety-judged", "Pin prox."))
+        self.assertEqual(rows["qa_pin"]["outcome"], "safety-agreed")
 
     def test_safety_merged_text_refused_keeps_english(self):
         self.write_drafts()
