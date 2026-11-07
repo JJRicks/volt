@@ -8,7 +8,7 @@ or external services you choose to use.
 
 Bluetooth controls, diagnostics, and recording do not use a Volt account or
 server. The app has no analytics SDK, advertising SDK, automatic crash uploader,
-or automatic ride upload. It saves the following in Android's private app
+or automatic ride upload (Auto-save rides writes to a folder you choose; it uploads nothing). It saves the following in Android's private app
 storage:
 
 | Data | Purpose |
@@ -61,15 +61,17 @@ encrypted by Volt. They rely on Android's app sandbox and device protection.
 | Nearby devices (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`) on Android 12+ | Scan for and connect to the scooter over Bluetooth LE. Scanning is declared `neverForLocation`; Volt does not derive location from Bluetooth scans. |
 | Legacy Bluetooth (`BLUETOOTH`, `BLUETOOTH_ADMIN`) and precise Location (`ACCESS_FINE_LOCATION`) on Android 8–11 | These Android versions require precise Location permission for Volt's Bluetooth scan/connect path, even when ride GPS is off. Grant it to connect; granting it alone does not start location recording. |
 | Location (`ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`) for optional ride GPS | Record a route only during a ride with phone GPS enabled. Approximate access is accepted, but precise access gives a more useful route. Denying ride GPS still allows scooter-only recording; Android 8–11 separately needs precise Location for Bluetooth as above. |
-| Notifications (`POST_NOTIFICATIONS` on Android 13+) | Show connection and recording status, including the recording Stop action, and the battery alerts you turn on. Allow notifications to keep these controls visible; without them battery alerts work only while Volt is open. |
+| Notifications (`POST_NOTIFICATIONS` on Android 13+) | Show connection and recording status, including the recording Stop action, the battery alerts you turn on and maintenance reminders that notify. Allow notifications to keep these controls visible; without them battery alerts work only while Volt is open. |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `FOREGROUND_SERVICE_LOCATION`) | Keep an active Bluetooth connection or recording running outside the app. The location service type is used when permitted ride GPS is active. Volt does not request `ACCESS_BACKGROUND_LOCATION`; start a ride while the app is visible. |
 | Vibration (`VIBRATE`) | Optional button, switch and connection haptics, respecting app and system settings. |
 | Wake lock (`WAKE_LOCK`) | A renewed, time-bounded CPU wake lock supports active ride/charge recording, a charge alert waiting for its level (at most 12 hours) and pending phone-data writes with the screen off. It does not keep the display on. |
-| Internet (`INTERNET`) | Fetch map tiles when Basemap is enabled, and ask GitHub for the latest release when you tap **Check for updates**. Bluetooth control and recording do not need this access. External links open in your browser. |
+| Run after restart (`RECEIVE_BOOT_COMPLETED`) | Lets Android keep Volt's daily maintenance check planned after the phone restarts. The check exists only while maintenance reminders are on and a reminder that notifies can become due by time; it reads the reminders on the phone, may post one notification and ends. It does not start Bluetooth or keep Volt running. |
+| Internet (`INTERNET`) | Fetch map tiles when Basemap is enabled, and ask GitHub for the latest release when you tap **Check for updates** or turn on **Automatically check for updates**. Bluetooth control and recording do not need this access. External links open in your browser. |
+| Network state (`ACCESS_NETWORK_STATE`) | Android requires it for a background job that waits for a network. Volt uses it only for the optional daily update check, which starts off. Volt does not read your networks with it. |
 | Shizuku API (`moe.shizuku.manager.permission.API_V23`) | Optional on-phone owner setup through Shizuku. Shizuku authorization grants broad Android debugging access; capture requires a separate consent step. Everyday Bluetooth use does not need it. |
 
 Android only prompts for runtime permissions where applicable. Foreground-service,
-internet, vibration and wake-lock permissions are declared normal permissions,
+internet, network-state, vibration, wake-lock and run-after-restart permissions are declared normal permissions,
 not separate approval dialogs. Manage runtime permissions in Android's app settings;
 manage Shizuku access in Shizuku. Device power restrictions and force stop can
 still interrupt background work.
@@ -95,7 +97,7 @@ tiles or an internet connection.
 **Reports you choose to email.** Volt itself sends nothing. When it offers to share a compatibility report (after connecting a model it has none for) or a scooter's connection details (after two failed first connections), it opens your email app with the text in the message body, addressed to `volt-reports@jjricks.com`. You can read, edit or discard the message before sending. Reports contain the scooter's numeric Model ID, its read-only check or connection steps and error codes, Volt's version and, for connection details, your Android version and phone model. They also carry anything you add: the model you pick or type, and the names you give its drive modes. They never contain a serial, MAC address, owner key, PIN, scooter or owner names, routes or wall-clock times. **More → Report an issue** works the same way: it opens a draft to that address holding only a prompt, Volt's version, your Android version and phone model, and the selected scooter's model name. Your email provider handles the message like any other.
 
 **Diagnostics in report emails.** Before **Report an issue** or the checker's **Email to Volt** opens your email app, a short sheet offers **Include diagnostics**, ticked by default. It attaches one file, `volt-diagnostics.json`: Volt's version, your Android version and phone model, the finished compatibility check's report if there is one, the connection events, the control log, the selected scooter's charging schedule record (its times, battery levels and outcome, and the last Scheduled charging test's time, result and measured offset), and the current readings without the scooter and battery serials or raw payloads. It never contains your owner key, PIN, serial, scooter address, location or routes, or scooter or profile names; Volt also withholds the file entirely if any saved scooter's serial, address, owner key or chosen name would appear in it. **Preview** shows the exact file. The diagnostics stay on your phone until you send such an email: sending them is opt-out per email. Untick **Include diagnostics** and the email goes without the file, as before; Volt remembers that choice for the next email. Each email's file is written once to Volt's private cache and never changed, and only the email app you send to is allowed to read it, for that email. Each time Volt prepares a new file, it first deletes earlier ones that are over a day old or beyond the ten most recent, so until your next report with diagnostics the last ones stay in that private cache (Android may also clear it).
-**Check for updates runs only when you tap it** in **More → About & permissions**. Volt never checks in the background. The first time, it explains that GitHub receives your IP address and Volt's app/version User-Agent; choose **Check** or **Cancel**. Cancel sends nothing, and an approval is remembered (and included in backups with App preferences). Volt then requests one small JSON description of the latest Volt release from `api.github.com`. It shows whether that release is newer and offers **Open release page** in your browser. Volt never downloads or installs an update itself.
+**Update checks are in More → Updates.** **Check for updates** runs only when you tap it. **Automatically check for updates** is off unless you turn it on; then Volt asks once a day, in the background, through Android's job scheduler on any network. No push service or Firebase is used. The first time either one is used, Volt explains that GitHub receives your IP address and Volt's app/version User-Agent; choose **Check** or **Cancel**. Cancel sends nothing, and an approval is remembered (and included in backups with App preferences, as is the automatic check switch; when it last ran and which version it announced stay on the phone). Volt then requests one small JSON description of the latest Volt release from `api.github.com`. It shows whether that release is newer and offers **Open release page** in your browser. Volt never downloads or installs an update itself. The automatic check shows a newer release as a quiet notification, once per version.
 
 Opening setup, help, attribution, or other external links uses your browser.
 The destination and its host may receive normal web request data such as your
@@ -139,7 +141,22 @@ if you do not want them retained there.
 | Compatibility report | Model ID, region and SKU derived from the serial, firmware versions, read outcomes and lengths, status-field presence and setting values, and control decisions; excludes the serial, scooter address, owner identity, PINs, names, times of day, routes and raw payloads. A fresh random report ID is used each time; it is not stored. Guided tests and Experimental controls tries add the setting, its before and tried values, step outcomes with times relative to the try, your yes/no answer, whether it was set back or kept, and for tries the result and the model layer |
 
 Exports only go to a destination you choose through the file picker or helper.
-A destination may itself sync to a cloud service. The backup password is
+A destination may itself sync to a cloud service.
+
+**Auto-save rides** (More → Data & history, off by default) is the one export
+that runs without a prompt: after each ride you end, Volt writes that ride's
+Route CSV and/or ride JSON into one folder you chose through Android's folder
+picker. The Route CSV holds every GPS point's time, precise latitude and
+longitude, accuracy, speed, altitude, grade, power, battery and scooter speed.
+The ride JSON holds the same route points and route totals, plus the ride's
+analysis (its name and notes, start and end times, odometer and distance,
+energy, speed, battery, voltage, temperatures, coverage and Volt's own id for
+the scooter profile);
+for a ride with no phone recording it holds the analysis only. Neither holds raw
+phone or motion samples, owner credentials, scooter addresses or serials. Volt
+keeps access to that folder only, and gives it back when both switches are off.
+If the folder syncs to a cloud service, so do these files. Volt still uploads
+nothing itself. The backup password is
 not saved or recoverable. Use a strong password and keep it separately; see
 [the backup format](docs/app-data-backup.md) for technical details and exclusions.
 Older unencrypted `.voltrides` ride backups can still be restored; Volt no longer creates them.

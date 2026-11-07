@@ -57,6 +57,7 @@ All are optional. `volt:english-fix` also exists, for a known English bug in mov
 | `volt:screen`, `volt:purpose` | Where the text appears and what it is, for translators |
 | `volt:max` | Width budget, `<dp>dp@<sp>sp` |
 | `volt:ladder` | `full`, `short` or `compact`; see [Narrow labels](#narrow-labels) |
+| `volt:overflow` | `short`, on a full rung whose screen shows the `_short` rung where the full doesn't fit; see [Narrow labels](#narrow-labels) |
 | `volt:safety` | `lock`, `ride`, `alarm`, `charge`, `experimental`, `owner-key`, `pin`, `privacy`, `disclaimer`, comma-separated |
 | `volt:dnt` | Do-not-translate tokens separated by `\|`; each must appear in the text |
 | `translatable="false"`, `formatted="false"` | Plain Android attributes |
@@ -86,7 +87,7 @@ Placeholders are positional and numbered from 1 with no gaps:
 </plurals>
 ```
 
-The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. Pass the count as a local, a parameter or a field, not a method call: the batch check refuses `T.sRides(rides.size(), …)`, because it can't tell that the call returns the same number twice. Set the count on a local in an ordinary pull request first. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
+The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. Pass the count as a local, a parameter or a field, not a method call: the batch check refuses `T.sRides(rides.size(), …)`, because it can't tell that the call returns the same number twice. Set the count on a local in an ordinary pull request first. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. A grouped count that was `%,d` (`1,234 saved`) becomes `%1$s` in the catalog, with the quantity first and the number through `Fmt.groupedInteger`: `T.moreHistorySamplesSaved(rows[i], Fmt.groupedInteger(Locale.US, rows[i]))`. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
 
 ### Spelling
 
@@ -171,7 +172,7 @@ T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
 
 | Need | Use |
 |---|---|
-| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`. `Locale.US` applies only in English; other languages use their own |
+| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`, `Fmt.groupedInteger(Locale.US, n)` for a grouped whole number (`%,d`). `Locale.US` applies only in English; other languages use their own |
 | Number with unit, range, percent | `T.fmtQuantity`, `T.fmtRange`, `T.fmtPercent` |
 | Clock or date on screen | `DisplayTime.clock`, `DisplayTime.dateTime`, `Fmt.datePattern` |
 | Speed | `DisplayUnits.speed` |
@@ -189,7 +190,7 @@ Use the full label, then a short one, then a compact one. Never break a word or 
 <string name="more_lab_status_waiting_short" volt:ladder="short">Your answer</string>
 ```
 
-A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, or `LadderPill`, which is private to `MoreScreen`). No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
+A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, or `LadderPill`, which is private to `MoreScreen`). Where the only width-limited view of a full rung falls back to its short rung in the same room, as Quick access does, mark the full rung `volt:overflow="short"`. The translation checker then accepts a full text over its `volt:max`, with a warning, when the short rung fits that same budget. No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
 
 Right-to-left languages are on hold. The manifest has `supportsRtl="true"`, but no check requires right-to-left layout yet.
 
@@ -297,6 +298,7 @@ python3 -m unittest discover -s tools/l10n
 python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
 python3 tests/hardware-sweep-test.py
+python3 tests/rides-timing-gate-test.py
 python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
 python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 ```

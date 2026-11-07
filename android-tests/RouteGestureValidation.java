@@ -55,7 +55,7 @@ public final class RouteGestureValidation extends Instrumentation {
 
     private PhoneRideStore.Track track(PhoneRideStore store, String id, double[][] coordinates) throws Exception {
         long wall = 1_800_000_000_000L;
-        store.start(id, wall, 1000, "mounted");
+        store.start(id, wall, 1000);
         StringBuilder csv = new StringBuilder();
         for (int i = 0; i < coordinates.length; i++)
             csv.append(PhoneRideStore.row("GPS", wall + i * 1000, 1000 + i * 1000,

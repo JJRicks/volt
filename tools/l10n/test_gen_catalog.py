@@ -208,6 +208,19 @@ class CatalogTest(unittest.TestCase):
             ('<plurals name="a"><item quantity="one">%1$.1s</item><item quantity="other">%1$s</item></plurals>',
              "width, precision or flags"),
             ('<string name="a_short" volt:ladder="short">x</string>', "rung must be named"),
+            ('<string name="a" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="compact">x</string>'
+             '<string name="a_short" volt:ladder="short">y</string>', "volt:overflow may only be"),
+            ('<string name="a" volt:max="64dp@12sp*2" volt:overflow="short">x</string>'
+             '<string name="a_short" volt:ladder="short">y</string>', "only on a volt:ladder=\"full\" rung"),
+            ('<string name="a" volt:ladder="full" volt:max="64dp@12sp*2">x</string>'
+             '<string name="a_short" volt:ladder="short" volt:max="64dp@12sp*2" volt:overflow="short">y</string>',
+             "only on a volt:ladder=\"full\" rung"),
+            ('<string name="a" volt:ladder="full" volt:overflow="short">x</string>'
+             '<string name="a_short" volt:ladder="short">y</string>', "needs the volt:max budget"),
+            ('<string name="a" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">x</string>',
+             "needs a volt:ladder=\"short\" rung a_short"),
+            ('<string name="a" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">x</string>'
+             '<string name="a_compact" volt:ladder="compact">y</string>', "needs a volt:ladder=\"short\" rung a_short"),
             ('<string name="a">%1$s</string><string name="a_short" volt:ladder="short">%1$d</string>', "rung placeholder"),
             ('<string name="l10n_tag">fr</string>', "l10n_tag"),
             ('<string name="a" translatable="no">x</string>', "true or false"),
@@ -217,6 +230,13 @@ class CatalogTest(unittest.TestCase):
         for body, message in cases:
             problems = self.problems(body)
             self.assertTrue(any(message in p for p in problems), "%s -> %r" % (body, problems))
+
+    def test_overflow_short_on_a_full_rung_with_its_short(self):
+        body = ('<string name="a" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">x</string>'
+                '<string name="a_short" volt:ladder="short" volt:max="90dp@12.5sp">y</string>')
+        self.assertEqual(self.problems(body), [])
+        entries, _ = self.load()
+        self.assertEqual(dict((e.name, e.meta.get("overflow")) for e in entries), {"a": "short", "a_short": None})
 
     def test_problems_name_the_file_and_line(self):
         problems = self.problems('<string name="a">two  spaces</string>')

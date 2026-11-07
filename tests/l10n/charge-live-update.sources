@@ -1,0 +1,6 @@
+# Live charging (charging-live plan, PR 2): Android 16 Live Update promotion. tests/run.sh compiles every path
+# listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# ChargeLiveUpdateTest covers the ProgressStyle bar, the chip text, when Volt asks for promotion and the
+# developer row's status (ChargeLiveUpdate); ChargeLiveState comes from charge-live.sources.
+src/com/jjricks/volt/ChargeLiveUpdate.java
+tests/l10n/ChargeLiveUpdateTest.java

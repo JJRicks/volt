@@ -1,0 +1,5 @@
+# Ride details' Export ride data sheet: its button ladder and text, and the nine export keys it retired.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the
+# repository root.
+src/com/jjricks/volt/TileRung.java
+tests/l10n/ExportMenuTextTest.java

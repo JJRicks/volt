@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="standard">
+    <string name="riding_ride_button" volt:src="ed5679b80c14f8a09325dab7e50ce912ff758426">CONDUCIR</string>
+    <string name="riding_ride_description" volt:src="6aadaaf1babb40324e14c26426098f9a5d2c0a12">Abrir la vista de conducción</string>
+    <string name="riding_screen_description" volt:src="32cf68959bddde0b11ee7a193610e365ed98103e">Vista de conducción</string>
+    <string name="riding_back" volt:src="48bb68250fa0bc39a723c0fbde0ad659e0e5c3ac">Salir de la vista de conducción</string>
+    <string name="riding_status_connected_mode" volt:src="a816b4a5952b183a3b7a57488079ff7a4970050c">%1$s · Conectado</string>
+    <string name="riding_status_connected_mode_short" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Conectado</string>
+    <string name="riding_status_reconnecting" volt:src="fda8d6994ee05b9c6e4ac9fc2b1dfa844694a769">Reconectando…</string>
+    <string name="riding_status_not_connected_seen" volt:src="66ad8087bc6e353d966f613727ab8c2c990010d3">Sin conexión · última lectura: %1$s</string>
+    <string name="riding_status_not_connected_seen_short" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Última lectura: %1$s</string>
+    <string name="riding_status_not_connected_seen_compact" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Sin conexión</string>
+    <string name="riding_status_recording" volt:src="92a272b9824526f5c9fa0a71fdef7fc3244edc04">REC %1$s</string>
+    <string name="riding_status_recording_reconnecting" volt:src="306dc71fe5e8917139a044e445848148e32c71a5">REC %1$s · Reconectando…</string>
+    <string name="riding_status_recording_reconnecting_short" volt:src="a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0">%1$s · Reconectando…</string>
+    <string name="riding_status_recording_not_connected" volt:src="7cd145f757ae7a410c862537586232a2535d1996">REC %1$s · No conectado</string>
+    <string name="riding_status_recording_not_connected_short" volt:src="c894ef6f85a4af280fdf302c4e3731f2ca80af4a">%1$s · No conectado</string>
+    <string name="riding_status_ride_saved" volt:src="166b70664fe37ad9af57fecda1f9f9f2c61367db">Viaje guardado</string>
+    <string name="riding_status_ride_saved_short" volt:src="c4dbb000e520ac67b53954b2491af6d11503fa5d">Guardado</string>
+    <string name="riding_status_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Guardado automáticamente</string>
+    <string name="riding_status_ride_saved_auto_short" volt:src="166b70664fe37ad9af57fecda1f9f9f2c61367db">Viaje guardado</string>
+    <plurals name="riding_status_recording_spoken_seconds" volt:src="cd1fa9ce620a2f671eefe37b0289c88bb87dd43b">
+        <item quantity="one">Grabando desde hace %1$d segundo</item>
+        <item quantity="many">Grabando desde hace %1$d segundos</item>
+        <item quantity="other">Grabando desde hace %1$d segundos</item>
+    </plurals>
+    <plurals name="riding_status_recording_spoken_minutes" volt:src="067aed83a78c97c43b0496e58010ee02f3170a91">
+        <item quantity="one">Grabando desde hace %1$d minuto</item>
+        <item quantity="many">Grabando desde hace %1$d minutos</item>
+        <item quantity="other">Grabando desde hace %1$d minutos</item>
+    </plurals>
+    <string name="riding_warning_code" volt:src="d59d2df814aa1b90683f7d9bb9d3752e8b38f37d">Código del patinete %1$s</string>
+    <string name="riding_warning_code_short" volt:src="e1dcca3c7ed74e7c9d5f0a5eafd9e91033c6a842">Código %1$s</string>
+    <string name="riding_warning_spoken" volt:src="ffebbfe9d09ee9e2270b4fb7238870e8d289bc58">El patinete indica el código de advertencia %1$s</string>
+    <string name="riding_label_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidad</string>
+    <string name="riding_label_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Potencia</string>
+    <string name="riding_label_range_at_pace" volt:src="6e039383467037015e3dc1f217d7c2017e137c0f">Autonomía a este ritmo</string>
+    <string name="riding_label_range_at_pace_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Autonomía</string>
+    <string name="riding_label_range_volt" volt:src="b73471a3f47fe91eb26d6fa7a7a93ad535a4143d">Autonomía de Volt</string>
+    <string name="riding_label_range_volt_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Autonomía</string>
+    <string name="riding_label_range_scooter" volt:src="cea3aec6fecc5e14ce36228e448299123f499f57">Autonomía del patinete</string>
+    <string name="riding_label_range_scooter_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Autonomía</string>
+    <string name="riding_label_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batería</string>
+    <string name="riding_label_trip" volt:src="e6690f1fdb91549124869903ea8609d008969ca7">Trayecto</string>
+    <string name="riding_label_ride_distance" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Viaje</string>
+    <string name="riding_label_ride_time" volt:src="36573ba3002f55a5864346eb30126baf49fd994b">Tiempo de viaje</string>
+    <string name="riding_label_ride_time_short" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Tiempo</string>
+    <string name="riding_label_recording_time" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Grabación</string>
+    <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">Grabación</string>
+    <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Velocidad media</string>
+    <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Vel. media</string>
+    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Velocidad punta</string>
+    <string name="riding_label_max_speed_short" volt:src="7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d">Vel. punta</string>
+    <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df">Eficiencia</string>
+    <string name="riding_unit_wh_per" volt:src="0e85b741bc4a3623a94385147993516b603c8e43">Wh/%1$s</string>
+    <string name="riding_label_ride_energy" volt:src="149ce24de19a9453427ca9f521c1acdd5f1b5822">Energía del viaje</string>
+    <string name="riding_label_ride_energy_short" volt:src="e0bc0d6a65ce9bad9a30e5e2ef95286e81a0211f">Energía</string>
+    <string name="riding_label_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Voltaje</string>
+    <string name="riding_label_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Corriente</string>
+    <string name="riding_label_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Temperatura de la batería</string>
+    <string name="riding_label_battery_temperature_short" volt:src="976db2ddc8fd8c21babba00194d5409f2d9e132f">Temp.</string>
+    <string name="riding_label_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Modo de conducción</string>
+    <string name="riding_label_drive_mode_short" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Modo</string>
+    <string name="riding_label_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Reloj</string>
+    <string name="riding_label_odometer" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">Odómetro</string>
+    <string name="riding_label_odometer_short" volt:src="31adf29d5b21915924c4aa05d92e9631f043c10e">Odóm.</string>
+    <string name="riding_speed_last" volt:src="2f0265913cb02528d0a25d25b2eb57febffbadac">última: %1$s</string>
+    <string name="riding_power_draw_peak" volt:src="0579aa52f3ff283354e835d1d3b21d9baa7ce6c8">potencia · pico %1$s</string>
+    <string name="riding_power_draw_peak_short" volt:src="9f2b97d4e294e50a65441b6ff2864e994de11722">potencia</string>
+    <string name="riding_power_regen_peak" volt:src="ad7057570ac7d2c753a7471716fb495f535a1a42">recuperación · pico %1$s</string>
+    <string name="riding_power_regen_peak_short" volt:src="7e97f181b708bcfd62ce670fedb5ddb7661ad0c9">recuperación</string>
+    <string name="riding_power_unknown" volt:src="c13e60fcafc770e5f0bfb248b641fb1a79d47dcb">potencia (sentido desconocido)</string>
+    <string name="riding_range_almost_empty" volt:src="a50663413676e692337c993d66211f81688943ab">Casi vacía</string>
+    <string name="riding_no_value" volt:src="bf65e9c7aed7c6d91eb0d468152e57a38b3d74bc">—</string>
+    <string name="riding_approx" volt:src="1d1469599c276193c9df47a6283f20524a513325">≈ %1$s</string>
+    <string name="riding_clock_minutes" volt:src="465cbc77894f105960a18ecb195db8380047ac80">%1$s:%2$s</string>
+    <string name="riding_clock_hours" volt:src="1525335a9c774f0b7f5dd262a34831bde00e5f44">%1$s:%2$s:%3$s</string>
+    <string name="riding_reading_spoken" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="riding_reading_spoken_none" volt:src="89ab7b4d551fbf514e81bc48dc5e851d6461fb1e">%1$s, sin lectura</string>
+    <string name="riding_frame_focus" volt:src="4df3e105d63004414db5f7152cb07e5315795e6b">Enfoque</string>
+    <string name="riding_frame_focus_summary" volt:src="76eb2749402c97f7db65441b36b744b01dd35bde">Números muy grandes en filas apiladas</string>
+    <string name="riding_frame_halo" volt:src="711c35030554ac2099f12c334372bbfdf3227f36">Halo</string>
+    <string name="riding_frame_halo_summary" volt:src="ca1ef4a351c280faa36040986784b63664f05629">Velocidad dentro de un anillo de velocímetro</string>
+    <string name="riding_frame_trace" volt:src="bce7a56b28098ddf58f095b12478b77da581a2ac">Trazo</string>
+    <string name="riding_frame_trace_summary" volt:src="a37e08ac9b5696c8083bc9340b35ef5fef31d5e7">Gráfico en vivo del último minuto</string>
+    <string name="riding_layout_title" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Diseño</string>
+    <string name="riding_layout_choose" volt:src="591ae6acf4038658c6088285dfd6803e19f36e9b">Elegir un diseño</string>
+    <string name="riding_ring_max" volt:src="b12784bd1a78199af50601c39355d949c5494ee0">vel. punta %1$s</string>
+    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Recuperación</string>
+    <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">hace 1 min</string>
+    <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">ahora</string>
+    <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Velocidad y potencia en el último minuto</string>
+    <string name="riding_editor_spots" volt:src="4d5c0c039a2c6e0d4d5a12798d4230fde242e986">Qué muestra cada espacio</string>
+    <string name="riding_editor_options" volt:src="460b030078bb1e2362fec1cb7522c49c96ebcece">Opciones</string>
+    <string name="riding_editor_reset" volt:src="cca6e4207949affc9e47a3205af9977d2e80d6c8">Restablecer %1$s a lo predeterminado</string>
+    <string name="riding_editor_spot_spoken" volt:src="6cd7d8d1bbe5d67b4240fe082d58af153994fa57">%1$s, muestra %2$s</string>
+    <string name="riding_spot_big" volt:src="bf402e65550adf34491bcc9bb224f4ee10d3d3e2">Número grande</string>
+    <string name="riding_spot_ring" volt:src="8dc62ec06ab73d2bf935e00cb1e246fd75321bff">Anillo</string>
+    <string name="riding_spot_highlight" volt:src="dadd4586dc9086ec04c915582a60d722f72259e4">Destacado</string>
+    <string name="riding_spot_tile" volt:src="3a01677b23614cdba6a2121406e3e01d611ad55e">Recuadro %1$s</string>
+    <string name="riding_spot_strip" volt:src="24d12ec8e4871cd46974f1e3f48e7dd9acdb35a0">Lectura pequeña %1$s</string>
+    <string name="riding_spot_chip" volt:src="06a6ff8d269946cb4eca66e31164f25e59c250cc">Etiqueta %1$s</string>
+    <string name="riding_spot_chart" volt:src="170156934b1acb193aeb3aa975b42874105bcc5b">Gráfico</string>
+    <string name="riding_content_ring_speed" volt:src="33e7df283558365bbdcdfa89303ee387b99d8520">Velocidad + punta</string>
+    <string name="riding_content_trace_speed_power" volt:src="4333eff0fafd0919230240bdeddc6ac75a5332ed">Velocidad y potencia</string>
+    <string name="riding_content_trace_power" volt:src="3350903d199aa055bb011acd8bdc4ceb0ed72feb">Solo potencia</string>
+    <string name="riding_content_trace_speed" volt:src="c9b66119fd75a26eceeeb811eb804979ab757f7e">Solo velocidad</string>
+    <string name="riding_switch_power_bar" volt:src="4976986f5fbce567e5d066aa06b37310c19beb34">Barra de potencia</string>
+    <string name="riding_switch_power_bar_summary" volt:src="4f73cf59b202e8e361b1dd77c9d9c532e6526120">Borde izquierdo: rojo para potencia, verde para recuperación</string>
+    <string name="riding_switch_chips" volt:src="dc76ef8c4a36ee27c140f60d78c55d768847dec6">Etiquetas</string>
+    <string name="riding_switch_chips_summary" volt:src="ec139f840f325b9badc2fe29ab303867141994d9">Modo de conducción, temperatura de batería y el reloj</string>
+    <string name="riding_switch_tenths" volt:src="5f4f09d1581687439fa5954fa724481005ceb383">Décimas</string>
+    <string name="riding_switch_tenths_summary" volt:src="b9666aa051015e35a5a61be40bba91bde1892d67">Velocidad y autonomía con un decimal</string>
+</resources>

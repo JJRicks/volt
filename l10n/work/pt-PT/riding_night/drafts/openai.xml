@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
+    <string name="riding_night_vision" volt:src="2e78264e53a83638333b35875351a59f303ee56d">Visão noturna</string>
+    <string name="riding_night_off" volt:src="1a3a5312083d6e01b851e509937825a5aa74ef7b">Desativada</string>
+    <string name="riding_night_on" volt:src="a84504c0e510dfc286d6a3b204ca352b95648266">Ativada</string>
+    <string name="riding_night_scheduled" volt:src="0b00212512b31d019955a276cf227413a439cabe">Programada</string>
+    <string name="riding_night_schedule" volt:src="35c56281be5e205cc961e9b8f1752f8913f46546">Horário</string>
+    <string name="riding_night_sun" volt:src="ae1a07b1ae57551eb5c577acbe7c4b9dc01b9181" volt:attempt="2">Do pôr ao nascer do sol</string>
+    <string name="riding_night_custom" volt:src="6bb709db62a2f0d83c7059c95c8c0ccf120b5fb7">Horários próprios</string>
+    <string name="riding_night_from" volt:src="ddf7f13cfb721ccc9faef70e3d12e1880d289d73">Fonte para o pôr do sol</string>
+    <string name="riding_night_from_ride" volt:src="4f232b8046102bac40763c06c05bdbf36e7713f5">Zona da viagem</string>
+    <string name="riding_night_from_zone" volt:src="a1556a2acb7b72b1dc3219bc211a267dc7ce75d7">Fuso horário</string>
+    <string name="riding_night_source_ride" volt:src="133268d1eb750f46a37f790bcd4d6b6825b2e036">A partir do último local onde registaste uma viagem, arredondado a cerca de 10 km</string>
+    <string name="riding_night_source_ride_none" volt:src="408bdbe2cbb7e57bb122225325e131f6687df36d">Estimado a partir do teu fuso horário até registares uma viagem com localização</string>
+    <string name="riding_night_source_zone" volt:src="d5ce4d15a1db7d2db5267fd9748f0f08cbf4fdc8">Estimado a partir do teu fuso horário</string>
+    <string name="riding_night_source_none" volt:src="1889a46b325201d40c91212c4339a167b8d826bb">A Volt não consegue estimar o pôr do sol neste fuso horário, pelo que usa os teus horários próprios</string>
+    <string name="riding_night_starts" volt:src="75fb0634bfb44ec6b7cf705dd5288afcf0a48a9e">Início</string>
+    <string name="riding_night_ends" volt:src="084cd20bdceadcff2983dc13fe36242ca36f54ea">Fim</string>
+    <string name="riding_night_next_on" volt:src="eb576c5c29196cbb63360a651b874e1674b3efa6">A visão noturna será ativada. Hora: %1$s</string>
+    <string name="riding_night_next_off" volt:src="18f06c47aa58079119846a13120fc7a9f0d0870e">A visão noturna será desativada. Hora: %1$s</string>
+    <string name="riding_night_no_sunset" volt:src="f36179a705de06d2276e71421adf948ce0ff6e47">Hoje não há pôr do sol</string>
+    <string name="riding_night_no_sunrise" volt:src="5bd2798c8f5a049dba331ebef5af7ef8e5498300">Hoje não há nascer do sol</string>
+    <string name="riding_night_note" volt:src="7cf956c1680223aec8eabca1f6b5ed61bbd53b4b">A lua no topo do modo de condução ativa ou desativa a visão noturna. Com um horário definido, o efeito de um toque dura até à próxima mudança programada. A visão noturna também reduz o brilho nos modos Automático da Volt e de brilho fixo.</string>
+    <string name="riding_night_consent_title" volt:src="27454400510ec30db65950b7972bcd83fdf93b4e">Usar a zona da tua viagem para o pôr do sol?</string>
+    <string name="riding_night_consent_body" volt:src="cff63c86f7cedaff93d519a1846e46a01a737750">A Volt pode calcular o pôr e o nascer do sol neste telemóvel a partir do último local onde registaste uma viagem, arredondado a cerca de 10 km. Nada é enviado para qualquer lado e essa localização não é guardada nem incluída em cópias de segurança. Sem ela, a Volt faz uma estimativa a partir do teu fuso horário, que pode ter um desvio de 10 a 30 minutos.</string>
+    <string name="riding_night_consent_allow" volt:src="ffec42c872762c2ca8d20e43e916156af6266416">Usar zona da viagem</string>
+    <string name="riding_night_consent_zone" volt:src="5476e70cdbf691e5109a752a733b700ce3a7ebbf">Usar fuso horário</string>
+    <string name="riding_night_button_on" volt:src="cdc824a868a9588d7f7e19ebc290b0d07f126be4">Visão noturna, ativada</string>
+    <string name="riding_night_button_off" volt:src="af3eb9d3f5ac09f55b54f697ef9195e9596ed858">Visão noturna, desativada</string>
+</resources>

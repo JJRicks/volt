@@ -361,6 +361,11 @@ def format_text(raw):
     return re.sub(r"%[%n]", lambda m: "%" if m.group(0) == "%%" else "\n", raw)
 
 
+# The specifiers that print a whole number, so they can pick a plural's item: %d through Fmt.integer and
+# %,d through Fmt.groupedInteger (FMT_SPECS). Head passes the base value as the quantity either way.
+QUANTITY_SPECS = ("%d", "%,d")
+
+
 def _check_split(split, where):
     """The base pieces a format row's split reassembles to (strings joined, holes kept), checking each
     item. Raises LedgerError."""
@@ -380,15 +385,15 @@ def _check_split(split, where):
         if "spec" in item:
             if set(item) - {"quantity"} != {"spec", "arg", "value", "as"} or item.get("quantity", True) is not True:
                 raise LedgerError("%s: a spec item is {\"spec\": \"%%.1f\", \"arg\": n, \"value\": <base argument>, "
-                                  "\"as\": <the Fmt call head passes>}, with \"quantity\": true on the %%d that picks "
-                                  "a plural's item" % where)
+                                  "\"as\": <the Fmt call head passes>}, with \"quantity\": true on the %%d or %%,d that "
+                                  "picks a plural's item" % where)
             m = FORMAT_SPEC.fullmatch(item["spec"]) if isinstance(item["spec"], str) else None
             if m is None or m.group(5) in ("%", "n"):
                 raise LedgerError("%s: %r is not a format specifier that takes an argument (%%%% and %%n are text)" % (
                     where, item["spec"]))
-            if "quantity" in item and item["spec"] != "%d":
-                raise LedgerError("%s: a plural's quantity is a whole number: only a plain %%d takes \"quantity\", not "
-                                  "%s" % (where, item["spec"]))
+            if "quantity" in item and item["spec"] not in QUANTITY_SPECS:
+                raise LedgerError("%s: a plural's quantity is a whole number: only a plain %%d or a grouped %%,d takes "
+                                  "\"quantity\", not %s" % (where, item["spec"]))
             if "quantity" in item and isinstance(item.get("value"), str) and not repeatable_quantity(item["value"]):
                 raise LedgerError("%s: the quantity %s is read twice at head (to pick the item, then to print it), and "
                                   "each read could differ; set it on a local in an ordinary pull request merged first" % (where, item["value"]))
@@ -1218,6 +1223,7 @@ def fmt_wrapper(hole):
 FMT_SPECS = (
     (re.compile(r"%\.([0-6])f"), "decimal", ("locale", "value", "1")),
     (re.compile(r"%,\.([0-6])f"), "grouped", ("locale", "value", "1")),
+    (re.compile(r"%,d"), "groupedInteger", ("locale", "value")),
     (re.compile(r"%d"), "integer", ("value",)),
 )
 # %d prints the locale's digits; Fmt.integer always prints Latin digits, which these locales do too.
