@@ -30,10 +30,18 @@
     <string name="dashboard_model_qa_line_lights">Luzes de linha</string>
     <!-- src:7ead6a1dc590502574f25db8aac9be53a48decb6 -->
     <string name="dashboard_model_qa_line_lights_short">Luzes de linha</string>
+    <!-- src:76add0d6c63acdfb438b01ba6d86361967b765cc -->
+    <string name="dashboard_model_qa_star_lights">Luzes de estrela</string>
+    <!-- src:76add0d6c63acdfb438b01ba6d86361967b765cc -->
+    <string name="dashboard_model_qa_star_lights_short">Luz de estrela</string>
     <!-- src:68215b4d7c2a68e6ee50e513ef519782322bcc3d -->
     <string name="dashboard_model_qa_dashboard_sound">Visor e som</string>
     <!-- src:68215b4d7c2a68e6ee50e513ef519782322bcc3d -->
     <string name="dashboard_model_qa_dashboard_sound_short">Visor e som</string>
+    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
+    <string name="dashboard_model_qa_pin_proximity">PIN e proximidade</string>
+    <!-- src:e609bc77142913722bef73d1892af098967f960d -->
+    <string name="dashboard_model_qa_pin_proximity_short">PIN e prox.</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
     <string name="dashboard_model_qa_scooter_name">Nome do patinete</string>
     <!-- src:327357b0c57818f2182c9e95ae57ac879cbc99ac -->
