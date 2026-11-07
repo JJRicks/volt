@@ -47,7 +47,7 @@ final class RidingValues {
     static final double INFERRED_DRAW_REGEN_FACTOR = 1.5;
 
     static final String SPEED_KEY = "speed_kmh", POWER_KEY = "power_w", SIGN_KEY = "current_sign_state",
-            TRIP_MINUTES_KEY = "trip_minutes", BATTERY_KEY = "battery_percent", SCOOTER_RANGE_KEY = "remaining_range_km";
+            TRIP_MINUTES_KEY = "trip_minutes", TRIP_KM_KEY = "trip_km", MAX_SPEED_KEY = "maximum_speed_kmh", BATTERY_KEY = "battery_percent", SCOOTER_RANGE_KEY = "remaining_range_km";
     /** Readings from the ride push. */
     private static final Set<String> RIDE_KEYS = new HashSet<>(Arrays.asList(SPEED_KEY, "trip_km", TRIP_MINUTES_KEY,
             "maximum_speed_kmh", "average_speed_kmh", "odometer_km"));
@@ -209,6 +209,18 @@ final class RidingValues {
     private Long recordingStartMs;
     /** Monotonic time the scooter's trip started, estimated from trip_minutes. */
     private Long tripStartMs;
+    /** The trip_minutes reading that last anchored it, and when it was measured. */
+    private double tripMinutesSeen;
+    private long tripSeenMs;
+    /** A previous riding session's trip clock, used by this session's first trip report if it still fits. */
+    private TripClock resumeTrip;
+    /**
+     * The trip's distance and top speed so far (NaN before a reading). Both only grow within a trip and start
+     * over at 0 when the scooter powers on, so a drop is a new trip even when the minute looks the same.
+     */
+    private double tripKmMark = Double.NaN, tripMaxMark = Double.NaN;
+    /** A drop arrived before this report's trip_minutes: the next one starts a new trip. */
+    private boolean tripRestarted;
     private final Map<String, RangeSource> ranges = new HashMap<>();
 
     RidingValues() { this(new PowerScale()); }
@@ -281,6 +293,8 @@ final class RidingValues {
             powerSample(value, updatedMs, previous, t);
         } else if (key.equals(TRIP_MINUTES_KEY)) {
             tripMinutes(value, updatedMs, t);
+        } else if (key.equals(TRIP_KM_KEY) || key.equals(MAX_SPEED_KEY)) {
+            tripEvidence(key.equals(TRIP_KM_KEY), value, updatedMs);
         }
     }
     private static double clampInterval(double ms) { return Math.max(MIN_INTERVAL_MS, Math.min(MAX_INTERVAL_MS, ms)); }
@@ -371,13 +385,78 @@ final class RidingValues {
         scaleChanged |= scale.observe(watts, direction == Direction.REGEN ? Direction.REGEN : Direction.DRAW);
     }
 
-    /** Ride time follows the scooter's trip: anchored from trip_minutes, and refined when the minute ticks over. */
+    /**
+     * Ride time follows the scooter's trip: anchored from trip_minutes, then counted on the phone's clock.
+     * The scooter's whole-minute counter can stand still while its reports keep coming (a stop, a slow
+     * scooter clock), so a count ahead of it is kept: pulling it back pinned ride time at the next whole
+     * minute (owner, Nov 7: frozen at 2:00 or 3:00). A count behind the scooter's moves forward to it. A
+     * lower count, a higher one than the time since the last report allows, or a drop in the trip's
+     * distance or top speed (tripEvidence) is a new trip. A dropped and restored link alone is not.
+     *
+     * Still ambiguous: a power cycle within TRIP_RESUME_MS of the last report that shows the same minute,
+     * before the old trip had moved (under 1 km and under 1 km/h top speed), carries on the old count. The
+     * extra time is the old trip's age, which is small unless the scooter sat on without moving while its
+     * minute stood still: TRIP_RESUME_MS counts from the last report, not from the old trip's start.
+     */
     private void tripMinutes(double minutes, long updatedMs, Track t) {
         if (minutes < 0) return;
-        long whole = (long) Math.floor(minutes), earliest = updatedMs - (whole + 1) * 60_000L, latest = updatedMs - whole * 60_000L;
-        long tolerance = (long) Math.max(2000, t.intervalMs);
-        if (tripStartMs == null || tripStartMs < earliest - tolerance || tripStartMs > latest + tolerance) tripStartMs = latest;
-        else tripStartMs = Math.max(earliest, Math.min(latest, tripStartMs));
+        if (tripStartMs == null && resumeTrip != null) {
+            tripStartMs = resumeTrip.startMs; tripMinutesSeen = resumeTrip.minutes; tripSeenMs = resumeTrip.seenMs;
+        }
+        resumeTrip = null;
+        long whole = (long) Math.floor(minutes), latest = updatedMs - whole * 60_000L;
+        long tolerance = (long) Math.max(2000, t.intervalMs), gap = updatedMs - tripSeenMs;
+        boolean sameTrip = tripStartMs != null && !tripRestarted && minutes >= tripMinutesSeen && gap >= 0 && gap <= TRIP_RESUME_MS
+                && (whole - (long) Math.floor(tripMinutesSeen)) * 60_000L <= gap + 60_000L + tolerance;
+        tripRestarted = false;
+        // A new trip's marks start over (this report's distance and top speed land again with the next one).
+        if (!sameTrip && tripStartMs != null) tripKmMark = tripMaxMark = Double.NaN;
+        tripStartMs = sameTrip ? Math.min(tripStartMs, latest) : latest;
+        tripMinutesSeen = minutes;
+        tripSeenMs = updatedMs;
+    }
+
+    /**
+     * The trip's distance or top speed. Falling by a whole unit or more means the scooter started a new trip:
+     * drop any carried clock and re-anchor on this report's minute, or on the next one if it hasn't arrived
+     * yet. A smaller drop, even to 0, is not evidence: a whole-unit (0x91) report rounds down what a tenths
+     * (0x92) report showed, so 0.4 km can come back as 0 within the same trip (Codex #319).
+     */
+    private void tripEvidence(boolean km, double value, long updatedMs) {
+        double mark = km ? tripKmMark : tripMaxMark;
+        if (!Double.isNaN(mark) && mark - value >= 1) {
+            resumeTrip = null;
+            if (tripStartMs != null && tripSeenMs == updatedMs) tripStartMs = updatedMs - (long) Math.floor(tripMinutesSeen) * 60_000L;
+            else tripRestarted = true;
+            tripKmMark = tripMaxMark = Double.NaN;
+        }
+        if (km) tripKmMark = Double.isNaN(tripKmMark) ? value : Math.max(tripKmMark, value);
+        else tripMaxMark = Double.isNaN(tripMaxMark) ? value : Math.max(tripMaxMark, value);
+    }
+
+    /** Longest silence after which a trip report still continues the same count (rather than re-anchoring). */
+    static final long TRIP_RESUME_MS = 5 * 60_000L;
+
+    /** Ride time's anchor, carried from one riding session to the next so reopening doesn't snap it back. */
+    static final class TripClock {
+        final long startMs, seenMs;
+        /** kmMark and maxSpeedMark are the trip's distance and top speed so far, NaN when unknown. */
+        final double minutes, kmMark, maxSpeedMark;
+        TripClock(long startMs, double minutes, long seenMs, double kmMark, double maxSpeedMark) {
+            this.startMs = startMs; this.minutes = minutes; this.seenMs = seenMs; this.kmMark = kmMark; this.maxSpeedMark = maxSpeedMark;
+        }
+    }
+    /** This session's ride-time anchor, or null before a trip report. */
+    TripClock tripClock() { return tripStartMs == null ? null : new TripClock(tripStartMs, tripMinutesSeen, tripSeenMs, tripKmMark, tripMaxMark); }
+    /**
+     * Offers a previous session's anchor, before this session's first reading. The first trip report keeps
+     * it only if it is the same trip, and a drop in distance or top speed from its marks drops it.
+     */
+    void resumeTrip(TripClock clock) {
+        if (tripStartMs != null || clock == null) return;
+        resumeTrip = clock;
+        if (Double.isNaN(tripKmMark)) tripKmMark = clock.kmMark;
+        if (Double.isNaN(tripMaxMark)) tripMaxMark = clock.maxSpeedMark;
     }
 
     private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double[] v, long gapMs) {
