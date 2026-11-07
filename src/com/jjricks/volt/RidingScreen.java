@@ -613,39 +613,39 @@ final class RidingScreen implements AppScreen {
                 || state == BleController.State.CONNECTING || state == BleController.State.AUTHENTICATING
                 || state == BleController.State.SCANNING || state == BleController.State.WAITING);
         RidingFocus.Link link = RidingFocus.link(ready, reconnecting);
+        int color = link == RidingFocus.Link.CONNECTED ? ui.ok : ui.orange;
+        dot.setBackground(oval(color));
+        status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
+        if (link == RidingFocus.Link.CONNECTED) {
+            String mode = mode(ble);
+            // The green dot alone is the last rung: the pill's icon (the narrow-label ladder).
+            if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort(), "");
+            else ui.statusRungs(status, T.ridingStatusConnectedModeShort(), "");
+            statusPill.setContentDescription(mode != null ? T.ridingStatusConnectedMode(mode) : T.ridingStatusConnectedModeShort());
+        } else if (link == RidingFocus.Link.RECONNECTING) {
+            ui.statusRungs(status, T.ridingStatusReconnecting());
+            statusPill.setContentDescription(T.ridingStatusReconnecting());
+        } else {
+            long last = session.lastReadingMs(now);
+            if (last >= 0) {
+                String ago = clock(now - last);
+                ui.statusRungs(status, T.ridingStatusNotConnectedSeen(ago), T.ridingStatusNotConnectedSeenShort(ago),
+                        T.ridingStatusNotConnectedSeenCompact());
+                statusPill.setContentDescription(T.ridingStatusNotConnectedSeen(ago));
+            } else {
+                ui.statusRungs(status, T.ridingStatusNotConnectedSeenCompact());
+                statusPill.setContentDescription(T.ridingStatusNotConnectedSeenCompact());
+            }
+        }
+        // While a ride records, the red recording pill replaces the connection text set above (owner, Nov 6).
         RecordingPill.Look look = RecordingPill.look(recordingMs, link);
         showLook(look);
         if (look != RecordingPill.Look.STATUS) {
-            // The red recording pill: white text, the recording's time, and any link problem in words.
+            dot.setBackground(recordingDot(look));
             status.setTextColor(ui.onAccent);
             ui.statusRungs(status, RecordingPill.rungs(recordingMs, link));
-            long last = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
-            statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, last >= 0 ? clock(now - last) : null));
-        } else {
-            int color = link == RidingFocus.Link.CONNECTED ? ui.ok : ui.orange;
-            dot.setBackground(oval(color));
-            status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
-            if (link == RidingFocus.Link.CONNECTED) {
-                String mode = mode(ble);
-                // The green dot alone is the last rung: the pill's icon (the narrow-label ladder).
-                if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort(), "");
-                else ui.statusRungs(status, T.ridingStatusConnectedModeShort(), "");
-                statusPill.setContentDescription(mode != null ? T.ridingStatusConnectedMode(mode) : T.ridingStatusConnectedModeShort());
-            } else if (link == RidingFocus.Link.RECONNECTING) {
-                ui.statusRungs(status, T.ridingStatusReconnecting());
-                statusPill.setContentDescription(T.ridingStatusReconnecting());
-            } else {
-                long last = session.lastReadingMs(now);
-                if (last >= 0) {
-                    String ago = clock(now - last);
-                    ui.statusRungs(status, T.ridingStatusNotConnectedSeen(ago), T.ridingStatusNotConnectedSeenShort(ago),
-                            T.ridingStatusNotConnectedSeenCompact());
-                    statusPill.setContentDescription(T.ridingStatusNotConnectedSeen(ago));
-                } else {
-                    ui.statusRungs(status, T.ridingStatusNotConnectedSeenCompact());
-                    statusPill.setContentDescription(T.ridingStatusNotConnectedSeenCompact());
-                }
-            }
+            long seen = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
+            statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, seen >= 0 ? clock(now - seen) : null));
         }
         RidingValues.Reading code = session.values.reading("warning_code", now);
         long warningCode = code == null ? 0 : Math.round(code.value);
@@ -662,9 +662,9 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * The pill's colours for its look: the card-coloured connection pill, the solid red recording pill with
-     * a white dot, or, with a link problem, the red pill with an amber edge and a hollow dot. Only a change
-     * of look touches the views.
+     * The pill's background for its look: the card-coloured connection pill, the solid red recording pill,
+     * or, with a link problem, the red pill with an amber edge. Only a change of look touches it, and starts
+     * or stops the dot's pulse.
      */
     private void showLook(RecordingPill.Look look) {
         if (look == pillLook) return;
@@ -675,14 +675,8 @@ final class RidingScreen implements AppScreen {
             return;
         }
         GradientDrawable fill = ui.shape(ui.accent, TOUCH_DP / 2, 0);
-        GradientDrawable mark = oval(ui.onAccent);
-        if (look == RecordingPill.Look.RECORDING_PROBLEM) {
-            fill.setStroke(ui.dp(3), ui.orange);
-            mark.setColor(android.graphics.Color.TRANSPARENT);
-            mark.setStroke(ui.dp(2), ui.onAccent);
-        }
+        if (look == RecordingPill.Look.RECORDING_PROBLEM) fill.setStroke(ui.dp(3), ui.orange);
         statusPill.setBackground(fill);
-        dot.setBackground(mark);
         if (RecordingPill.pulses(look, Ui.motionEnabled())) {
             pulse = ValueAnimator.ofFloat(1f, .35f);
             pulse.setDuration(900);
@@ -691,6 +685,16 @@ final class RidingScreen implements AppScreen {
             pulse.addUpdateListener(a -> dot.setAlpha((Float) a.getAnimatedValue()));
             pulse.start();
         }
+    }
+
+    /** The recording dot: solid white, or a hollow white ring while the link has a problem. */
+    private GradientDrawable recordingDot(RecordingPill.Look look) {
+        GradientDrawable mark = oval(ui.onAccent);
+        if (look == RecordingPill.Look.RECORDING_PROBLEM) {
+            mark.setColor(android.graphics.Color.TRANSPARENT);
+            mark.setStroke(ui.dp(2), ui.onAccent);
+        }
+        return mark;
     }
 
     private void stopPulse() {
