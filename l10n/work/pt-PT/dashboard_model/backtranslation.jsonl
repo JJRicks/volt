@@ -1,5 +1,5 @@
 {"back":"PIN and proximity","key":"dashboard_model_qa_pin_proximity","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e609bc77142913722bef73d1892af098967f960d","target":"PIN e proximidade"}
-{"back":"PIN","key":"dashboard_model_qa_pin_proximity_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e609bc77142913722bef73d1892af098967f960d","target":"PIN"}
+{"back":"PIN and prox.","key":"dashboard_model_qa_pin_proximity_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e609bc77142913722bef73d1892af098967f960d","target":"PIN e prox."}
 {"back":"Experimental controls","key":"dashboard_model_qa_experimental","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fe834ab52a00109da8d8f3077a7229f92735c9a2","target":"Controlos experimentais"}
 {"back":"Charge ready by","key":"dashboard_model_qa_charge_done_by","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"8b94ea18cd9613195d80e65a6eb505dca980c89c","target":"Carga pronta até"}
 {"back":"Charge by","key":"dashboard_model_qa_charge_done_by_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"8b94ea18cd9613195d80e65a6eb505dca980c89c","target":"Carga até"}
