@@ -21,11 +21,13 @@ public final class RecordingPillTest {
             spoken();
             pulse();
             separateTimers();
+            saved();
+            rebootSafeTime();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
-        System.out.println("RecordingPillTest: " + checks + " checks passed (look, rungs, alternating, spoken, pulse, separate timers)");
+        System.out.println("RecordingPillTest: " + checks + " checks passed (look, rungs, alternating, spoken, pulse, separate timers, ride saved, time across a reboot)");
     }
 
     private static void look() {
@@ -81,6 +83,55 @@ public final class RecordingPillTest {
         check(!RecordingPill.pulses(RecordingPill.Look.RECORDING, false), "no pulse with the system's animations off");
         check(!RecordingPill.pulses(RecordingPill.Look.RECORDING_PROBLEM, true), "a link problem holds the dot still");
         check(!RecordingPill.pulses(RecordingPill.Look.STATUS, true), "no pulse without a recording");
+    }
+
+    private static void saved() {
+        RidingFocus.Link on = RidingFocus.Link.CONNECTED, off = RidingFocus.Link.NOT_CONNECTED;
+        check(RecordingPill.look(null, on, null, false) == RecordingPill.Look.STATUS, "no stop yet: the connection pill");
+        check(RecordingPill.look(null, on, 0L, false) == RecordingPill.Look.SAVED, "just stopped: Ride saved");
+        check(RecordingPill.look(null, off, 3_999L, false) == RecordingPill.Look.SAVED, "saved shows for 4 s, connected or not");
+        check(RecordingPill.look(null, on, 4_000L, false) == RecordingPill.Look.STATUS, "then the connection pill returns");
+        check(RecordingPill.look(null, off, 9_999L, true) == RecordingPill.Look.SAVED, "an automatic stop shows for 10 s");
+        check(RecordingPill.look(null, off, 10_000L, true) == RecordingPill.Look.STATUS, "then the connection pill returns");
+        check(RecordingPill.look(null, on, -500L, false) == RecordingPill.Look.STATUS, "a clock moved back never shows it");
+        check(RecordingPill.look(5_000L, on, 0L, false) == RecordingPill.Look.RECORDING, "a new recording wins over the last save");
+        check(!RecordingPill.pulses(RecordingPill.Look.SAVED, true), "the saved pill holds still");
+        check(Arrays.equals(RecordingPill.savedRungs(false), new String[]{"Ride saved", "Saved"}), "the rider's stop");
+        check(Arrays.equals(RecordingPill.savedRungs(true), new String[]{"Ride saved automatically", "Ride saved", "Saved"}), "an automatic stop");
+        check(RecordingPill.savedSpoken(false, "SPORT · Connected").equals("Ride saved, SPORT · Connected"), "spoken with the connection");
+        check(RecordingPill.savedSpoken(true, "Not connected · last seen 5:02").equals("Ride saved automatically, Not connected · last seen 5:02"), "automatic, not connected");
+        check(RecordingPill.savedSpoken(true, null).equals("Ride saved automatically"), "nothing to add");
+    }
+
+    /** Codex #304: a recording recovered after a reboot has a start on the previous boot's monotonic clock. */
+    private static void rebootSafeTime() {
+        check(RecordingPill.elapsedMs(60_000, 1_000_000, 1_600_000) == 600_000, "wall time since the start");
+        check(RecordingPill.elapsedMs(60_000, 1_000_000, 1_010_000) == 60_000, "a clock moved back keeps the recorded time");
+        check(RecordingPill.elapsedMs(0, 1_000_000, 900_000) == 0, "never negative");
+        try {
+            java.io.File dir = java.nio.file.Files.createTempDirectory("recording-pill").toFile();
+            long wall = 1_767_225_600_000L, oldBoot = 5_000_000L;
+            RideStore before = new RideStore(dir);
+            before.start("p1", "Pill test", wall, oldBoot);
+            before.heartbeat(wall + 60_000, oldBoot + 60_000);
+            // The phone reboots: a new store recovers the unfinished recording while the monotonic clock restarts near zero.
+            RideStore after = new RideStore(dir);
+            RideStore.Summary s = after.activeSummary();
+            check(s != null && s.active && s.recovered && s.startMonotonicMs == oldBoot, "the recording is recovered with the old boot's start");
+            long newBootNow = 2_000, wallNow = wall + 600_000;
+            check(Math.max(0, newBootNow - s.startMonotonicMs) == 0, "the old monotonic difference would show 0:00");
+            long shown = RecordingPill.elapsedMs(s.elapsedMs, s.startWallMs, wallNow);
+            check(shown == 600_000, "the pill shows 10:00 after the reboot: " + shown);
+            check(RecordingPill.rungs(shown, RidingFocus.Link.CONNECTED, true, 0, true)[0].equals("REC 10:00"), "REC 10:00");
+            check(after.lastStopWallMs() == -1, "no stop yet");
+            after.stop(wallNow, newBootNow);
+            check(after.lastStopWallMs() == wallNow && !after.lastStopAutomatic(), "the rider's stop is remembered by its wall time");
+            after.start("p1", "Second", wallNow + 1_000, newBootNow + 1_000);
+            after.stop(wallNow + 900_000, newBootNow + 900_000, RideStore.STOP_AUTO_PARKED);
+            check(after.lastStopWallMs() == wallNow + 900_000 && after.lastStopAutomatic(), "an automatic stop is remembered as automatic");
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static void separateTimers() {

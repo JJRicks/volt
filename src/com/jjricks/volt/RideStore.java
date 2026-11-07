@@ -526,6 +526,8 @@ public final class RideStore {
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
         Summary result = new Summary(active); active = null;
+        lastStopWallMs = wallMillis;
+        lastStopAutomatic = result.automaticStop || result.noMotionStop;
         // Save the finished ride now, so a restart before Rides opens still finds it. The save replays the journal
         // once on the index's low-priority thread, so the entry is exactly what any later replay gives.
         if (index != null) { final String id = result.id; index.submit(() -> { try { get(id); } catch (IOException | RuntimeException ignored) { } }); }
@@ -596,6 +598,12 @@ public final class RideStore {
     }
 
     public synchronized String activeId() { return active == null ? null : active.id; }
+    /** When this process last stopped and saved a ride (the stop's wall time, not the ride's trimmed end), or -1. */
+    private long lastStopWallMs = -1;
+    private boolean lastStopAutomatic;
+    public synchronized long lastStopWallMs() { return lastStopWallMs; }
+    /** Whether that stop was automatic (parked, went quiet or no motion) rather than the rider's. */
+    public synchronized boolean lastStopAutomatic() { return lastStopAutomatic; }
     public synchronized Summary activeSummary() { return active == null ? null : new Summary(active); }
     /**
      * The active ride is answered from memory. A finished journal comes from the shared cache while its length and

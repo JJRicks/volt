@@ -21,7 +21,7 @@ public final class RidingLayoutTest {
         check(RidingLayout.FOCUS.equals(layout.frame()) && RidingLayout.FOCUS.equals(RidingLayout.DEFAULT_FRAME), "Focus is the default frame (owner, Q10)");
         check(Arrays.asList(RidingLayout.FRAMES).equals(Arrays.asList("focus", "halo", "trace")), "three frames, Focus first");
         // Focus with the owner's tweaks.
-        check(RidingLayout.RECORD.equals(layout.content("focus", "top")), "Focus's top bar holds the Record control, not a status pill");
+        check(RidingLayout.STATUS.equals(layout.content("focus", "top")), "Focus's top bar is the status pill (Record retired, owner Nov 6)");
         check(RidingLayout.SPEED.equals(layout.content("focus", "big")), "Focus's big number is speed");
         check(RidingLayout.RANGE_AT_PACE.equals(layout.content("focus", "highlight")), "Focus highlights Range at this pace");
         List<String> tiles = new ArrayList<>();
@@ -57,7 +57,8 @@ public final class RidingLayoutTest {
         check(!RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.DRIVE_MODE), "drive mode can't go in the ring");
         check(RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.BATTERY) && RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.POWER), "the ring takes battery and power");
         check(RidingLayout.choices(RidingLayout.Kind.CHIP).equals(Arrays.asList("battery_temperature", "drive_mode", "clock")), "chips: battery temperature, drive mode and clock, no lock: " + RidingLayout.choices(RidingLayout.Kind.CHIP));
-        check(RidingLayout.choices(RidingLayout.Kind.TOP).equals(Arrays.asList("record", "status")), "the top bar holds Record or the status pill");
+        check(RidingLayout.choices(RidingLayout.Kind.TOP).equals(Arrays.asList("status")), "the top bar holds only the status pill (Record retired)");
+        check(RidingLayout.item(RidingLayout.RECORD) == null && !RidingLayout.accepts(RidingLayout.Kind.TOP, RidingLayout.RECORD), "Record is no longer a choice");
         check(RidingLayout.choices(RidingLayout.Kind.TRACE).size() == 3, "three traces");
         check(!RidingLayout.accepts(RidingLayout.Kind.TILE, RidingLayout.RECORD) && !RidingLayout.accepts(RidingLayout.Kind.TILE, RidingLayout.TRACE_POWER), "controls and charts aren't readings");
         check(RidingLayout.item(null) == null && !RidingLayout.accepts(RidingLayout.Kind.TILE, null), "null content is unknown");
@@ -99,6 +100,12 @@ public final class RidingLayoutTest {
             RidingLayout layout = RidingLayout.parse(bad);
             check("focus".equals(layout.frame()) && layout.isDefault("focus") && layout.isDefault("halo"), "unreadable text gives the defaults: " + bad);
         }
+        // The retired Record choice (owner, Nov 6): a saved layout that picked it loads and shows the status pill; its other choices stay.
+        RidingLayout legacy = RidingLayout.parse("{\"v\":1,\"frame\":\"halo\",\"frames\":{\"halo\":{\"spots\":{\"top\":\"record\",\"tile_1\":\"voltage\"}},\"focus\":{\"spots\":{\"top\":\"record\"}}}}");
+        check("halo".equals(legacy.frame()) && RidingLayout.STATUS.equals(legacy.content("halo", "top")) && RidingLayout.STATUS.equals(legacy.content("focus", "top")), "a saved Record loads as the status pill");
+        check(RidingLayout.VOLTAGE.equals(legacy.content("halo", "tile_1")) && legacy.isDefault("focus"), "the rest of a migrated layout is kept");
+        check(!legacy.toJson().contains("record"), "a migrated layout saves without Record: " + legacy.toJson());
+        check(RidingLayout.STATUS.equals(RidingLayout.migrated(RidingLayout.RECORD)) && RidingLayout.SPEED.equals(RidingLayout.migrated(RidingLayout.SPEED)), "only Record is renamed");
         RidingLayout unknownFrame = RidingLayout.parse("{\"v\":1,\"frame\":\"cockpit\",\"frames\":{\"cockpit\":{\"spots\":{\"big\":\"speed\"}}}}");
         check("focus".equals(unknownFrame.frame()) && unknownFrame.toJson().equals(new RidingLayout().toJson()), "an unknown frame falls back to Focus and is dropped");
         RidingLayout mixed = RidingLayout.parse("{\"v\":1,\"frame\":\"halo\",\"frames\":{\"halo\":{\"spots\":{\"big\":\"lock_state\",\"ring\":\"drive_mode\",\"tile_1\":\"voltage\",\"nowhere\":\"speed\",\"tile_2\":5},"

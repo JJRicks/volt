@@ -31,7 +31,7 @@ final class RidingLayout {
         TRACE,
         /** A small chip beside the gauges. */
         CHIP,
-        /** The top bar's control (Record) or status pill. */
+        /** The top bar's status pill (it turns into the recording pill while a ride records). */
         TOP
     }
 
@@ -49,7 +49,12 @@ final class RidingLayout {
     static final String RANGE_AT_PACE = "range_at_pace", RANGE_SCOOTER = "range_scooter", RANGE_VOLT = "range_volt";
     // Ring, trace and top-bar contents.
     static final String RING_SPEED = "ring_speed", TRACE_SPEED_POWER = "trace_speed_power", TRACE_POWER = "trace_power",
-            TRACE_SPEED = "trace_speed", RECORD = "record", STATUS = "status";
+            TRACE_SPEED = "trace_speed", STATUS = "status";
+    /**
+     * A retired top-bar choice (owner, Nov 6): the status pill now becomes the recording pill, so Record and
+     * Status showed the same thing. Saved layouts that chose it still load and show the status pill.
+     */
+    static final String RECORD = "record";
     // Switches.
     static final String POWER_BAR = "power_bar", CHIPS = "chips";
     /** Speed and range to tenths: on by default, with a switch in the layout editor (owner, Q23 B). */
@@ -81,7 +86,6 @@ final class RidingLayout {
         }
         all.add(new Content(RING_SPEED, EnumSet.of(Kind.RING)));
         for (String id : new String[]{TRACE_SPEED_POWER, TRACE_POWER, TRACE_SPEED}) all.add(new Content(id, EnumSet.of(Kind.TRACE)));
-        all.add(new Content(RECORD, EnumSet.of(Kind.TOP)));
         all.add(new Content(STATUS, EnumSet.of(Kind.TOP)));
         for (Content content : all) BY_ID.put(content.id, content);
         CATALOG = Collections.unmodifiableList(all);
@@ -125,10 +129,11 @@ final class RidingLayout {
 
     private static final Map<String, Frame> FRAME_DEFS = new LinkedHashMap<>();
     static {
-        // Focus (concept-b-focus) with the owner's tweaks: a Record control replaces the status pill,
-        // and battery temperature joins the bottom row beside trip and ride time.
+        // Focus (concept-b-focus) with the owner's tweaks: battery temperature joins the bottom row beside
+        // trip and ride time. Its top bar is the status pill, which turns into the recording pill while a
+        // ride records (owner, Nov 6; the Record control it once named was retired).
         FRAME_DEFS.put(FOCUS, new Frame(FOCUS, new Spot[]{
-                spot("top", Kind.TOP, RECORD),
+                spot("top", Kind.TOP, STATUS),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
                 spot("tile_1", Kind.TILE, BATTERY),
@@ -269,6 +274,9 @@ final class RidingLayout {
         return out.append("}}").toString();
     }
 
+    /** A saved content id as this version names it: the retired Record choice is the status pill. */
+    static String migrated(String contentId) { return RECORD.equals(contentId) ? STATUS : contentId; }
+
     /** Reads saved JSON. Null, malformed or foreign text gives the shipped defaults; it never throws. */
     static RidingLayout parse(String json) {
         RidingLayout layout = new RidingLayout();
@@ -289,7 +297,7 @@ final class RidingLayout {
             Map<?, ?> body = (Map<?, ?>) f.getValue();
             if (body.get("spots") instanceof Map)
                 for (Map.Entry<?, ?> s : ((Map<?, ?>) body.get("spots")).entrySet())
-                    if (s.getValue() instanceof String) layout.setContent(frameId, String.valueOf(s.getKey()), (String) s.getValue());
+                    if (s.getValue() instanceof String) layout.setContent(frameId, String.valueOf(s.getKey()), migrated((String) s.getValue()));
             if (body.get("switches") instanceof Map)
                 for (Map.Entry<?, ?> s : ((Map<?, ?>) body.get("switches")).entrySet())
                     if (s.getValue() instanceof Boolean) layout.setOn(frameId, String.valueOf(s.getKey()), (Boolean) s.getValue());

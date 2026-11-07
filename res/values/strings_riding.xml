@@ -43,6 +43,15 @@
          riding_status_recording_not_connected_short, then riding_status_not_connected_seen_compact alone. -->
     <string name="riding_status_recording_not_connected" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="210dp@17sp">REC %1$s · Not connected</string>
     <string name="riding_status_recording_not_connected_short" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">%1$s · Not connected</string>
+    <!-- After a recording stops, the status pill briefly confirms the ride was saved, then shows the
+         connection again. Narrower rung: riding_status_ride_saved_short. -->
+    <string name="riding_status_ride_saved" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">Ride saved</string>
+    <string name="riding_status_ride_saved_short" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Saved</string>
+    <!-- The same confirmation when Volt ended and saved the ride on its own (the scooter parked, went out
+         of reach, or stopped moving). Narrower rungs: riding_status_ride_saved_auto_short, then
+         riding_status_ride_saved_short. -->
+    <string name="riding_status_ride_saved_auto" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="210dp@17sp">Ride saved automatically</string>
+    <string name="riding_status_ride_saved_auto_short" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Ride saved</string>
     <!-- Spoken for the recording pill in its first minute. %1$d is whole seconds. -->
     <plurals name="riding_status_recording_spoken_seconds" volt:screen="Riding mode status pill, recording" volt:purpose="accessibility description">
         <item quantity="one">Recording for %1$d second</item>

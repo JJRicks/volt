@@ -10,13 +10,52 @@ package com.jjricks.volt;
 final class RecordingPill {
     private RecordingPill() {}
 
-    /** What the pill shows: the plain connection pill, the red recording pill, or the red pill with a link problem. */
-    enum Look { STATUS, RECORDING, RECORDING_PROBLEM }
+    /**
+     * What the pill shows: the plain connection pill, the red recording pill, the red pill with a link
+     * problem, or the brief "Ride saved" confirmation after a recording stops.
+     */
+    enum Look { STATUS, RECORDING, RECORDING_PROBLEM, SAVED }
+
+    /** How long "Ride saved" shows after the rider's stop (the ride-display plan's 3 s, plus a second to read it). */
+    static final long SAVED_MS = 4000;
+    /** Longer after an automatic stop: nobody tapped anything, so the rider may glance at the phone later. */
+    static final long SAVED_AUTO_MS = 10_000;
 
     /** recordingMs is the active ride recording's elapsed time, or null when none is recording. */
     static Look look(Long recordingMs, RidingFocus.Link link) {
         if (recordingMs == null) return Look.STATUS;
         return link == RidingFocus.Link.CONNECTED ? Look.RECORDING : Look.RECORDING_PROBLEM;
+    }
+
+    /**
+     * As above, and with no recording, SAVED while the last stop is recent. savedAgoMs is the time since
+     * the last stop saved a ride (wall clock), or null when none did; a negative age (the clock moved back)
+     * never shows it.
+     */
+    static Look look(Long recordingMs, RidingFocus.Link link, Long savedAgoMs, boolean automatic) {
+        if (recordingMs != null) return look(recordingMs, link);
+        return savedAgoMs != null && savedAgoMs >= 0 && savedAgoMs < (automatic ? SAVED_AUTO_MS : SAVED_MS) ? Look.SAVED : Look.STATUS;
+    }
+
+    /** The saved confirmation's rungs, full first. */
+    static String[] savedRungs(boolean automatic) {
+        return automatic ? new String[]{T.ridingStatusRideSavedAuto(), T.ridingStatusRideSavedAutoShort(), T.ridingStatusRideSavedShort()}
+                : new String[]{T.ridingStatusRideSaved(), T.ridingStatusRideSavedShort()};
+    }
+
+    /** Spoken for the saved confirmation, then the connection as the status pill would say it (null: nothing to add). */
+    static String savedSpoken(boolean automatic, String connection) {
+        String saved = automatic ? T.ridingStatusRideSavedAuto() : T.ridingStatusRideSaved();
+        return connection == null || connection.isEmpty() ? saved : T.ridingReadingSpoken(saved, connection);
+    }
+
+    /**
+     * The recording's elapsed time, safe across a reboot: the larger of the recorded elapsed time and the
+     * wall-clock time since the ride's start, as the Rides page shows it. A recovered recording's start
+     * belongs to the previous boot's monotonic clock, so this never subtracts monotonic times.
+     */
+    static long elapsedMs(long recordedElapsedMs, long startWallMs, long wallNowMs) {
+        return Math.max(0, Math.max(recordedElapsedMs, wallNowMs - startWallMs));
     }
 
     /** How long each half of an alternating pill shows: the recording's time, then the link problem. */
@@ -74,6 +113,7 @@ final class RecordingPill {
 
     /** The dot pulses gently only while recording with a good link, and never with the system's animations off. */
     static boolean pulses(Look look, boolean motionEnabled) {
+        // Only RECORDING pulses; SAVED and the others hold still.
         return look == Look.RECORDING && motionEnabled;
     }
 }

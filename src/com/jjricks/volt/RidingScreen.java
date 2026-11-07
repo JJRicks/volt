@@ -576,8 +576,11 @@ final class RidingScreen implements AppScreen {
         BleController ble = service == null ? null : service.ble;
         Double recordingKm = null;
         RideStore.Summary ride = service != null && service.isRecording() ? service.rides.activeSummary() : null;
+        long wallNow = System.currentTimeMillis();
+        // Reboot-safe: a recovered recording's start belongs to the previous boot's monotonic clock (Codex #304).
+        Long recordingMs = ride == null ? null : RecordingPill.elapsedMs(ride.elapsedMs, ride.startWallMs, wallNow);
         if (ble != null) {
-            session.values.setRecordingStart(ride == null ? null : ride.startMonotonicMs);
+            session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             recordingKm = ride == null ? null : ride.distanceKm;
             Double charging = ble.telemetry.number("charging_state");
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
@@ -585,7 +588,9 @@ final class RidingScreen implements AppScreen {
         }
         if (session.takeBandDrop()) Haptics.tick(view);
         // The recording's own time, apart from ride time: a rider may record only part of a ride (owner).
-        showStatus(ble, now, ride == null ? null : Math.max(0, now - ride.startMonotonicMs));
+        long stoppedAt = service == null || service.rides == null ? -1 : service.rides.lastStopWallMs();
+        showStatus(ble, now, recordingMs, stoppedAt < 0 ? null : wallNow - stoppedAt,
+                stoppedAt >= 0 && service.rides.lastStopAutomatic());
         for (Cell cell : cells) cell.show(now, units, recordingKm);
         for (Chip chip : chips) chip.show(now, units, recordingKm);
         noteFastest(now);
@@ -606,7 +611,7 @@ final class RidingScreen implements AppScreen {
         for (View v : chrome) v.setAlpha(alpha);
     }
 
-    private void showStatus(BleController ble, long now, Long recordingMs) {
+    private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean reconnecting = ble != null && !ready && (ble.connected() || ble.recoverableConnectionLoss()
@@ -638,9 +643,15 @@ final class RidingScreen implements AppScreen {
             }
         }
         // While a ride records, the red recording pill replaces the connection text set above (owner, Nov 6).
-        RecordingPill.Look look = RecordingPill.look(recordingMs, link);
+        RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic);
         showLook(look);
-        if (look != RecordingPill.Look.STATUS) {
+        if (look == RecordingPill.Look.SAVED) {
+            // The brief "Ride saved" confirmation keeps the connection's dot colour, and TalkBack hears both.
+            CharSequence connection = statusPill.getContentDescription();
+            status.setTextColor(ui.text);
+            ui.statusRungs(status, RecordingPill.savedRungs(savedAutomatic));
+            statusPill.setContentDescription(RecordingPill.savedSpoken(savedAutomatic, connection == null ? null : connection.toString()));
+        } else if (look != RecordingPill.Look.STATUS) {
             dot.setBackground(recordingDot(look));
             status.setTextColor(ui.onAccent);
             ui.statusRungs(status, RecordingPill.rungs(recordingMs, link, roomForBoth(recordingMs, link), now, Ui.motionEnabled()));
@@ -670,7 +681,7 @@ final class RidingScreen implements AppScreen {
         if (look == pillLook) return;
         pillLook = look;
         stopPulse();
-        if (look == RecordingPill.Look.STATUS) {
+        if (look == RecordingPill.Look.STATUS || look == RecordingPill.Look.SAVED) {
             statusPill.setBackground(ui.shape(cardColor(), TOUCH_DP / 2, 0));
             return;
         }
