@@ -676,7 +676,7 @@ final class RidingScreen implements AppScreen {
         if (p.watts == null) {
             watts.set("", T.ridingNoValue(), "", "", ui.dim, ui.dim);
             wattsCaption.setText(T.ridingPowerDrawPeakShort());
-            bar.set(null, p.direction, scale, p.peakDrawW, 0, now);
+            bar.set(null, p.direction, scale, p.peakDrawW, 0, false, now);
             return;
         }
         boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
@@ -690,10 +690,10 @@ final class RidingScreen implements AppScreen {
                 : regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
         String brief = regen ? T.ridingPowerRegenPeakShort() : T.ridingPowerDrawPeakShort();
         fit(wattsCaption, caption == null ? brief : caption, brief);
-        if (sample != null && sample.updatedMs != powerSampleMs) {
-            powerSampleMs = sample.updatedMs;
-            bar.set(p.watts, p.direction, scale, p.peakDrawW, sample.intervalMs, now);
-        } else bar.set(p.watts, p.direction, scale, p.peakDrawW, -1, now);
+        // A same-time sign correction (after 0x79) moves the bar too, not only the number.
+        boolean fresh = sample != null && sample.updatedMs != powerSampleMs;
+        if (sample != null) powerSampleMs = sample.updatedMs;
+        bar.set(p.watts, p.direction, scale, p.peakDrawW, sample == null ? 1000 : sample.intervalMs, fresh, now);
     }
 
     /** A caption's ladder: the full text while it fits, else the brief one; never a broken word. */
@@ -1232,7 +1232,9 @@ final class RidingScreen implements AppScreen {
      * red, regen down in green only when the scooter confirmed the direction (0x79), and a reading
      * with an unknown direction grows up from zero in grey. A stale reading leaves an outline at zero.
      * A white tick marks this ride's highest draw. Each new reading glides in (GaugeSmoother), tuned
-     * to the reading's interval, and the bar never runs ahead of the latest real reading.
+     * to the reading's interval, and the bar never runs ahead of the latest real reading. A sign
+     * correction moves the bar as well, and a change of sign starts from the zero line, so the bar
+     * never shows draw while the number shows regen.
      */
     private final class PowerBar extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -1250,15 +1252,15 @@ final class RidingScreen implements AppScreen {
             zeroY = y;
             invalidate();
         }
-        /** intervalMs is the reading's interval for a new reading, or -1 when nothing new arrived. */
-        void set(Double watts, RidingValues.Direction direction, RidingValues.PowerScale scale, double peakDraw, long intervalMs, long now) {
+        /** intervalMs is the reading's interval; fresh is true for a new reading, false for the latest one again (or corrected). */
+        void set(Double watts, RidingValues.Direction direction, RidingValues.PowerScale scale, double peakDraw, long intervalMs, boolean fresh, long now) {
             present = watts != null;
             this.direction = direction;
             drawScale = scale.drawW;
             regenScale = scale.regenW;
             peak = peakDraw;
             if (watts == null) smoother.snap(0, now);
-            else if (intervalMs >= 0 || !smoother.started()) smoother.setTarget(watts, Math.max(1, intervalMs), now);
+            else smoother.follow(watts, Math.max(1, intervalMs), fresh, now);
             invalidate();
         }
         @Override protected void onDraw(Canvas canvas) {
@@ -1482,6 +1484,7 @@ final class RidingScreen implements AppScreen {
             Double value = null;
             double top = 1;
             long interval = -1;
+            boolean regenPower = false;
             RidingValues.Reading sample = null;
             int tint = ui.accent;
             String text = null;
@@ -1497,6 +1500,7 @@ final class RidingScreen implements AppScreen {
                 if (p.watts != null) {
                     value = Math.abs(p.watts);
                     boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
+                    regenPower = regen;
                     tint = regen ? ui.ok : p.direction == RidingValues.Direction.UNKNOWN ? ui.muted : ui.accent;
                     top = regen ? v.scale().regenW : v.scale().drawW;
                 }
@@ -1524,7 +1528,12 @@ final class RidingScreen implements AppScreen {
             present = value != null;
             float share = RidingFrames.share(value, top);
             if (!present) smoother.snap(0, now);
-            else if (sample != null && sample.updatedMs != sampleMs) {
+            else if (sample != null && RidingLayout.POWER.equals(content)) {
+                // Power follows sign corrections; regen is followed as a negative share, so a change of sign restarts from empty.
+                boolean fresh = sample.updatedMs != sampleMs;
+                sampleMs = sample.updatedMs;
+                smoother.follow(regenPower ? -share : share, Math.max(1, sample.intervalMs), fresh, now);
+            } else if (sample != null && sample.updatedMs != sampleMs) {
                 sampleMs = sample.updatedMs;
                 smoother.setTarget(share, Math.max(1, sample.intervalMs), now);
             } else if (!smoother.started()) smoother.snap(share, now);
@@ -1551,7 +1560,8 @@ final class RidingScreen implements AppScreen {
                 canvas.drawLine(cx + (float) Math.cos(a) * r1, cy + (float) Math.sin(a) * r1, cx + (float) Math.cos(a) * r2, cy + (float) Math.sin(a) * r2, paint);
             }
             long now = SystemClock.elapsedRealtime();
-            double share = present && smoother.started() ? Math.max(0, Math.min(1, smoother.value(now))) : 0;
+            // Regen power is followed as a negative share (Ring.show); the arc is its size.
+            double share = present && smoother.started() ? Math.min(1, Math.abs(smoother.value(now))) : 0;
             paint.setStrokeWidth(stroke);
             if (present && share > .002) {
                 if (color == ui.accent) paint.setShader(new LinearGradient(0, box.bottom, 0, box.top, ui.accentDeep, ui.accent, Shader.TileMode.CLAMP));
