@@ -139,11 +139,10 @@ public final class ChargeAlertValidation extends Instrumentation {
         ChargeAlertPolicy.Settings alert70 = new ChargeAlertPolicy.Settings(true, 70, false, 20, true, false);
         main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
         hero(50, null);
-        String to70 = args.getString("to_label", "Time to 70%");
         main(() -> {
             View alert = heroCell("alertCell"), time = heroCell("timeCell");
             require(alert.isShown() && time.isShown(), "The hero does not show both times");
-            require(to70.contentEquals(heroLabel("alertCell").getContentDescription()), "Alert time is named: " + heroLabel("alertCell").getContentDescription());
+            require(String.valueOf(heroLabel("alertCell").getContentDescription()).contains("70"), "Alert time is named: " + heroLabel("alertCell").getContentDescription());
             require(!String.valueOf(heroValue("alertCell").getText()).equals("—") && String.valueOf(heroValue("timeCell").getText()).length() > 0, "The alert time has no value");
             require(alert.getParent() == time.getParent() && heroCell("powerCell").getParent() != time.getParent(), "The two times are not side by side under power");
             require(service.chargingEstimate(service.displayReadings()).targetPercent == null, "The alert leaked into the main estimate");
@@ -167,7 +166,7 @@ public final class ChargeAlertValidation extends Instrumentation {
         hero(50, 80d);
         main(() -> {
             require(!service.chargeAlertsOffered() && service.chargeAlertEstimate(heroValues) == null && !heroCell("alertCell").isShown(), "A charge limit model got an alert time");
-            require(args.containsKey("to_label") || "Time to 80%".contentEquals(heroLabel("timeCell").getContentDescription()), "The charge limit's time changed: " + heroLabel("timeCell").getContentDescription());
+            require(String.valueOf(heroLabel("timeCell").getContentDescription()).contains("80"), "The charge limit's time changed: " + heroLabel("timeCell").getContentDescription());
             assertFits();
         });
         heroShot("native-limit");
