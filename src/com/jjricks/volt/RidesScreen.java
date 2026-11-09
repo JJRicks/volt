@@ -1633,7 +1633,7 @@ public final class RidesScreen implements AppScreen {
             }
             RideExportFiles.Unavailable why = RideExportFiles.why(format, phone);
             boolean offered = why == RideExportFiles.Unavailable.NONE;
-            boxes.put(format, exportRow(group, exportLabel(format), offered ? RideExportFiles.fileName(format, stem) : exportReason(why), offered, initial.contains(format)));
+            boxes.put(format, exportRow(group, exportLabel(format), offered ? RideExportFiles.shownName(format, stem) : exportReason(why), offered, initial.contains(format)));
         }
         if (group != null) content.addView(group);
         TextView hint = ui.caption(T.ridesExportHintNone()); hint.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(4)); content.addView(hint);

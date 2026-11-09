@@ -85,6 +85,13 @@ public final class RideExportFilesTest {
             check(utc("abc", unusable).equals("ride-abc"), "Short id, no usable start: " + unusable);
         }
         check(RideExportFiles.stem(id, (RideStore.Summary) null).equals("ride-c5ba30b9") && RideExportFiles.start(null) == 0, "No analysis, the older name");
+        String dated = utc(id, NOV_9_1432_UTC);
+        for (RideExportFiles.Format format : RideExportFiles.Format.values()) {
+            check(RideExportFiles.shownName(format, dated).replace("\u200B", "").equals(RideExportFiles.fileName(format, dated)), format + ": the sheet shows the saved name's characters");
+            check(!RideExportFiles.fileName(format, dated).contains("\u200B"), format + ": no invisible character in the saved name");
+        }
+        check(RideExportFiles.shownName(RideExportFiles.Format.EVERYTHING_JSON, dated).equals("ride-2026-11-09_\u200B14-32-c5ba30b9-\u200Beverything.json"), "Breaks after the date and before the ending");
+        check(RideExportFiles.shownName(RideExportFiles.Format.GPX, "ride-c5ba30b9").equals("ride-c5ba30b9.gpx"), "A short name has nothing to add");
         Locale before = Locale.getDefault(); TimeZone zone = TimeZone.getDefault();
         try {
             TimeZone.setDefault(TimeZone.getTimeZone("UTC"));

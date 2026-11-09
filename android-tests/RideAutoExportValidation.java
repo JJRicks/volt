@@ -822,7 +822,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         String all = shellText("ls -a " + FOLDER_PATH);
         for (String name : all.split("\n")) {
             name = name.trim(); if (name.isEmpty() || name.equals(".") || name.equals("..")) continue;
-            check(name.matches("ride-[0-9a-f]{8}-everything\\.json"), "Only finished Everything files in the folder, found: " + name);
+            check(name.matches("ride-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-[0-9a-f]{8}-everything\\.json"), "Only finished Everything files in the folder, found: " + name);
         }
         return true;
     }

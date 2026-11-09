@@ -94,6 +94,14 @@ final class RideExportFiles {
     }
     /** The file's name: the ride's stem plus the format's ending. */
     static String fileName(Format format, String stem) { return stem + format.suffix; }
+    /**
+     * The name as the sheet shows it: the same characters, with invisible break points after the date and before the
+     * ending, so a narrow row wraps there and not inside "json". For display only; never a saved name.
+     */
+    static String shownName(Format format, String stem) {
+        String ending = format.suffix.startsWith("-") ? "-\u200B" + format.suffix.substring(1) : format.suffix;
+        return stem.replace("_", "_\u200B") + ending;
+    }
 
     /** Why a format is not offered for this ride. */
     enum Unavailable {
