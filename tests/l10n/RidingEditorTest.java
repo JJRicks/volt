@@ -228,7 +228,7 @@ public final class RidingEditorTest {
                 motion = read("src/com/jjricks/volt/RidingDiscMotion.java");
         check(screen.contains("disc.show(tuneShown(now));"), "the disc follows the tune gate");
         check(screen.contains("if (disc != null && disc.takesTaps()) edit();"), "a tap while the disc hides opens nothing");
-        check(screen.contains("new RidingLayoutSheet(") && screen.contains("sheetState.accept(liveKmh("), "the tune disc opens the editor; changes follow the sheet rules");
+        check(screen.contains("new RidingLayoutSheet(") && screen.contains("return sheetState.accept(kmh);"), "the tune disc opens the editor; changes follow the sheet rules");
         check(!sheet.contains("commonDone") && sheet.contains("changed.save(editor.working())"), "no Done button: every change saves");
         check(screen.contains("layout.on(RidingLayout.TENTHS) && (speed.tenths"), "speed tenths follow the switch");
         check(screen.contains("units, layout.on(RidingLayout.TENTHS));"), "range tenths follow the switch");

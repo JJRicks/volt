@@ -136,6 +136,13 @@ public final class RidingFramesTest {
         check(RidingFrames.tuneShown(true, true, 0.0), "connected and stopped: it shows");
         check(!RidingFrames.tuneShown(true, true, 5.0) && !RidingFrames.tuneShown(true, false, 0.0), "connected and moving: it hides");
         check(!RidingFrames.pickerShown(false, 0.0), "Lock and Record keep the stopped-only gate while disconnected");
+        // Connected with an 8-second-old settings reply and a fresh 12 km/h speed: still "moving", never "disconnected".
+        check(!RidingFrames.tuneShown(true, false, 12.0), "fresh speed on a connected scooter with stale settings: the button hides");
+        RidingValues fresh = new RidingValues();
+        fresh.sample(RidingValues.SPEED_KEY, 12, 0x91, 1_000);
+        check(RidingFrames.menuKmh(true, fresh.speed(1_100)) == 12.0, "a fresh speed reaches the close rule");
+        check(RidingFrames.menuKmh(false, fresh.speed(1_100)) == null, "no scooter connected: no speed");
+        check(RidingFrames.menuKmh(true, fresh.speed(1_000 + RidingValues.SPEED_GONE_MS + 1)) == null, "a stale speed is not reused");
         // The menu's close rule: only 4 mph (6.437 km/h) or more, in any display unit.
         check(RidingFrames.MENU_CLOSE_KMH == 6.437, "4 mph");
         RidingFrames.PickerSheet sheet = new RidingFrames.PickerSheet();
@@ -184,10 +191,11 @@ public final class RidingFramesTest {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state or control in riding mode");
         check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "Lock and Record follow the stopped state");
-        check(screen.contains("RidingFrames.tuneShown(ble != null && ble.ready(), ble != null && ble.stationary()"), "the tune button follows its own gate");
+        check(screen.contains("RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary()"), "the tune button follows its own gate");
         check(screen.contains("if (sheetState.update(liveKmh(now))) dismissSheet();"), "live speed alone closes the menu");
-        check(screen.contains("ble != null && ble.ready() && !speed.stale ? speed.kmh : null"), "only a live reading from a connected scooter counts");
-        check(screen.contains("sheetState.close();") && screen.contains("sheetState.accept(liveKmh("), "the screen owns the menu on close and on a change");
+        check(screen.contains("RidingFrames.menuKmh(ble != null && ble.connected(), session.values.speed(now))"), "only a live reading from a connected scooter counts, and stale settings don't matter");
+        check(screen.contains("session.values.update(ble.telemetry.metrics());") && screen.contains("if (!menuChangeAllowed()) return;"), "a menu change looks at the newest speed, not the last screen refresh");
+        check(screen.contains("sheetState.close();") && screen.contains("return sheetState.accept(kmh);"), "the screen owns the menu on close and on a change");
         check(!screen.contains(".send(") && !screen.contains("write("), "riding mode sends nothing");
     }
 }

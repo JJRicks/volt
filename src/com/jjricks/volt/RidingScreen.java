@@ -577,17 +577,33 @@ final class RidingScreen implements AppScreen {
         night.detach();
     }
 
-    /** The tune button: hidden while moving, shown with no scooter connected (owner, Nov 9). */
+    /**
+     * The tune button: hidden while moving, shown with no scooter connected (owner, Nov 9). A connected
+     * scooter whose settings reply has gone stale (ready() false) still counts as connected.
+     */
     private boolean tuneShown(long now) {
         BleController ble = service == null ? null : service.ble;
-        return RidingFrames.tuneShown(ble != null && ble.ready(), ble != null && ble.stationary(), session.values.speed(now).kmh);
+        return RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary(), session.values.speed(now).kmh);
     }
 
     /** The speed the menu's close rule looks at: only a live reading from a connected scooter, or null. */
     private Double liveKmh(long now) {
         BleController ble = service == null ? null : service.ble;
-        RidingValues.Speed speed = session.values.speed(now);
-        return ble != null && ble.ready() && !speed.stale ? speed.kmh : null;
+        return RidingFrames.menuKmh(ble != null && ble.connected(), session.values.speed(now));
+    }
+
+    /**
+     * The one check before any change in the tune menu saves, a late permission answer included: reads the
+     * newest speed rather than the last screen refresh's, and at 4 mph or more closes the menu instead.
+     */
+    private boolean menuChangeAllowed() {
+        if (closed) return false;
+        BleController ble = service == null ? null : service.ble;
+        // Readings already seen add nothing, so the next refresh is unaffected.
+        if (ble != null) session.values.update(ble.telemetry.metrics());
+        Double kmh = liveKmh(SystemClock.elapsedRealtime());
+        if (sheetState.update(kmh)) { dismissSheet(); return false; }
+        return sheetState.accept(kmh);
     }
 
     /**
@@ -602,7 +618,7 @@ final class RidingScreen implements AppScreen {
         LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
         body.setTag("riding_layout_editor");
         new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
-        MoreScreen.RidingSettingsMenu settings = new MoreScreen.RidingSettingsMenu(host, ui, preferences, () -> applyAfterMenu = true);
+        MoreScreen.RidingSettingsMenu settings = new MoreScreen.RidingSettingsMenu(host, ui, preferences, () -> applyAfterMenu = true, this::menuChangeAllowed);
         settings.fill(body);
         AlertDialog shown = host.showSheet(body);
         if (shown == null) { sheetState.dismissed(); settings.close(); return; }
@@ -616,7 +632,7 @@ final class RidingScreen implements AppScreen {
 
     /** A change in the editor, saved at once for this scooter; a stale change, or one at riding speed, saves nothing. */
     private void saveLayout(RidingLayout edited) {
-        if (closed || !sheetState.accept(liveKmh(SystemClock.elapsedRealtime()))) return;
+        if (!menuChangeAllowed()) return;
         if (edited.toJson().equals(config.layout().toJson())) return;
         config.save(edited);
         applyAfterMenu = true;

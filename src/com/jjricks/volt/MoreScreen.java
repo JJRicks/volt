@@ -52,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /** Local preferences, owner setup, security and explained experimental controls. */
@@ -705,11 +706,15 @@ public final class MoreScreen implements AppScreen {
         r.view.setFocusable(false);
         return r;
     }
+    /** The custom On/Off state TalkBack reads; a Switch doesn't replace one by itself when it changes. */
+    private static void describeSwitch(Switch toggle, Boolean state) {
+        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(state == null ? T.commonNotReported() : state ? T.commonOn() : T.commonOff());
+    }
     private void refreshSwitch(Row row, Boolean state, boolean enabled) {
         Switch toggle = row.toggle;
         toggle.setChecked(Boolean.TRUE.equals(state));
         toggle.setEnabled(enabled && state != null);
-        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(state == null ? T.commonNotReported() : state ? T.commonOn() : T.commonOff());
+        describeSwitch(toggle, state);
         boolean live = enabled && state != null;
         row.title.setTextColor(live ? ui.text : ui.muted);
         if (row.icon != null) { row.icon.setEnabled(live); row.icon.invalidate(); }
@@ -2848,16 +2853,19 @@ public final class MoreScreen implements AppScreen {
         private final SharedPreferences preferences;
         private final Context context;
         private final Runnable changed;
+        private final BooleanSupplier mayChange;
         private final List<Dialog> dialogs = new ArrayList<>();
         private boolean closed;
         private LinearLayout content;
         private Runnable refreshNight = () -> { };
 
-        RidingSettingsMenu(ScreenHost host, Ui ui, SharedPreferences preferences, Runnable changed) {
+        /** @param mayChange asked before each change saves: false at riding speed, or once the menu has gone. */
+        RidingSettingsMenu(ScreenHost host, Ui ui, SharedPreferences preferences, Runnable changed, BooleanSupplier mayChange) {
             this.host = host;
             this.ui = ui;
             this.preferences = preferences;
             this.changed = changed;
+            this.mayChange = mayChange;
             context = host.activity();
         }
 
@@ -2885,6 +2893,7 @@ public final class MoreScreen implements AppScreen {
             RidingBrightness.Store store = RidingDisplay.settings(preferences);
             Runnable[] showReset = new Runnable[1];
             Row reset = row(box, T.ridingDisplayReset(), T.ridingDisplayResetSub(), () -> {
+                if (!may()) return;
                 RidingBrightness.forget(store);
                 host.toast(T.ridingDisplayResetDone());
                 changed.run();
@@ -2896,6 +2905,9 @@ public final class MoreScreen implements AppScreen {
             note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
             content.addView(box);
         }
+
+        /** Whether a change may save right now; the single check every save below goes through. */
+        private boolean may() { return !closed && mayChange.getAsBoolean(); }
 
         /** The menu closed: the dialogs it opened go with it, and a late answer changes nothing. */
         void close() {
@@ -2918,15 +2930,24 @@ public final class MoreScreen implements AppScreen {
 
         /** One switch; applies: riding mode needs rebuilding with it. beforeOn runs ahead of a turn-on and is given the save to run, as in More. */
         private View toggle(String title, String detail, String key, String tag, boolean applies, Consumer<Runnable> beforeOn) {
-            View row = ui.toggleRow(title, Ui.NO_ICON, detail, preferences.getBoolean(key, false), true, enabled -> {
+            View[] row = new View[1];
+            row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, preferences.getBoolean(key, false), true, enabled -> {
                 Runnable save = () -> {
-                    preferences.edit().putBoolean(key, enabled).apply();
-                    if (applies && !closed) changed.run();
+                    if (may()) {
+                        preferences.edit().putBoolean(key, enabled).apply();
+                        if (applies) changed.run();
+                    }
+                    // Whatever happened, the switch and TalkBack say what's now stored; the row outlives the save here.
+                    ViewGroup parent = (ViewGroup) row[0];
+                    Switch toggle = (Switch) parent.getChildAt(parent.getChildCount() - 1);
+                    boolean stored = preferences.getBoolean(key, false);
+                    toggle.setChecked(stored);
+                    describeSwitch(toggle, stored);
                 };
                 if (enabled && beforeOn != null) beforeOn.accept(save); else save.run();
             });
-            row.setTag(tag);
-            return row;
+            row[0].setTag(tag);
+            return row[0];
         }
 
         /**
@@ -2996,6 +3017,7 @@ public final class MoreScreen implements AppScreen {
             LinearLayout body = host.sheetContent(T.ridingNightConsentTitle(), T.ridingNightConsentBody(), () -> { if (self[0] != null) self[0].dismiss(); });
             body.setTag("riding_night_consent");
             TextView allow = ui.button(T.ridingNightConsentAllow(), () -> {
+                if (!may()) return;
                 preferences.edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_ALLOW).apply();
                 changed.run();
                 if (self[0] != null) self[0].dismiss();
@@ -3006,6 +3028,7 @@ public final class MoreScreen implements AppScreen {
             space.topMargin = ui.dp(16);
             body.addView(allow, space);
             TextView zone = ui.secondaryButton(T.ridingNightConsentZone(), () -> {
+                if (!may()) return;
                 preferences.edit().putString(NightSchedule.AREA_KEY, NightSchedule.AREA_DECLINE).apply();
                 changed.run();
                 if (self[0] != null) self[0].dismiss();
@@ -3026,7 +3049,7 @@ public final class MoreScreen implements AppScreen {
             if (closed) return;
             int minutes = NightSchedule.minutes(preferences.getInt(key, fallback), fallback);
             android.app.TimePickerDialog picker = new android.app.TimePickerDialog(context, (view, hour, minute) -> {
-                if (closed) return;
+                if (!may()) return;
                 preferences.edit().putInt(key, hour * 60 + minute).apply();
                 changed.run();
                 refreshNight.run();
@@ -3066,7 +3089,7 @@ public final class MoreScreen implements AppScreen {
             caption.setPadding(ui.dp(2), ui.dp(12), ui.dp(2), ui.dp(6));
             content.addView(caption);
             SegmentedSelector selector = new SegmentedSelector(ui, title, labels, choice -> {
-                if (closed || values[choice].equals(preferences.getString(key, fallback))) return;
+                if (values[choice].equals(preferences.getString(key, fallback)) || !may()) return;
                 preferences.edit().putString(key, values[choice]).apply();
                 changed.run();
                 if (after != null) after.run();

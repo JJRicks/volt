@@ -12,6 +12,7 @@ import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.jjricks.volt.MainActivity;
@@ -20,11 +21,15 @@ import com.jjricks.volt.ScooterProfiles;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Riding mode's tune menu (owner, Nov 9), against the sample scooter on a disposable emulator: the
@@ -121,8 +126,10 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         settle();
         require(prefs("app_settings").getBoolean("riding_auto_open", false), "Open automatically is the same preference");
         require(menuOpen() && screen() == screenBefore, "A switch doesn't close the menu or rebuild the screen");
+        require("On".equals(switchState(findTag(root(), "preference_riding_auto_open"))), "TalkBack hears On after turning it on");
         click(findTag(root(), "preference_riding_auto_open"));
         settle();
+        require("Off".equals(switchState(findTag(root(), "preference_riding_auto_open"))), "TalkBack hears Off after turning it off");
 
         // The speed close rule.
         speed(5);
@@ -140,6 +147,17 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         tuneHidden("riding at speed");
         speed(0);
         tuneShows("stopped again");
+
+        // A motion update then a tap, before any screen refresh: nothing saves and the menu closes, for every kind of change.
+        String layoutBefore = storedFrame();
+        tapAtSpeed(() -> findTag(root(), "halo"));
+        require(storedFrame().equals(layoutBefore), "A layout tap at speed saves nothing");
+        tapAtSpeed(() -> findText(root(), "Fixed"));
+        require(!prefs("app_settings").contains("riding_brightness"), "A moved setting at speed saves nothing");
+        tapAtSpeed(() -> findTag(root(), "preference_riding_hide_status_bar"));
+        require(!prefs("app_settings").getBoolean("riding_hide_status_bar", false), "A switch at speed saves nothing");
+        note("a tap straight after a 12 km/h update saved nothing and closed the menu, before any screen refresh");
+        delayedAnswer();
 
         // A moved setting saves at once, leaves the menu open, and riding mode picks it up when the menu closes.
         openMenu();
@@ -231,18 +249,76 @@ public final class RidingConfigMenuValidation extends Instrumentation {
     }
 
     private void speed(double kmh) {
+        main(() -> { motion(kmh); activity.redraw(); });
+    }
+
+    /** A new speed in the telemetry, on the main thread, with no screen refresh after it. */
+    private void motion(double kmh) {
+        try {
+            Object ble = activity.service().ble;
+            Object sim = field(ble, "simulation");
+            Method sample = sim.getClass().getDeclaredMethod("sample", String.class, String.class, double.class);
+            sample.setAccessible(true);
+            sample.invoke(sim, "speed_kmh", kmh + " km/h", kmh);
+            activity.service().ble.tickSimulation();
+        } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+    }
+
+    /** Opens the menu stopped, then 12 km/h arrives and the tap lands in one main-thread turn: no refresh can come between. */
+    private void tapAtSpeed(Supplier<View> target) {
+        openMenu();
+        main(() -> {
+            View view = target.get();
+            require(view != null, "Missing view to tap at speed");
+            motion(12);
+            view.performClick();
+            require(!menuOpen(), "The tap at speed closed the menu");
+        });
+        settle();
+        speed(0);
+        tuneShows("after the tap at speed");
+    }
+
+    /** A delayed auto-record answer goes through the same check and leaves the switch and TalkBack on what's stored. */
+    private void delayedAnswer() throws Exception {
+        String key = "riding_config_validation_switch";
+        SharedPreferences stored = (SharedPreferences) field(screen(), "preferences");
+        AtomicBoolean may = new AtomicBoolean(true);
+        AtomicReference<Runnable> answer = new AtomicReference<>();
+        Class<?> type = Class.forName("com.jjricks.volt.MoreScreen$RidingSettingsMenu");
+        Constructor<?> make = type.getDeclaredConstructor(Class.forName("com.jjricks.volt.ScreenHost"), Class.forName("com.jjricks.volt.Ui"), SharedPreferences.class, Runnable.class, BooleanSupplier.class);
+        make.setAccessible(true);
+        Method toggle = type.getDeclaredMethod("toggle", String.class, String.class, String.class, String.class, boolean.class, Consumer.class);
+        toggle.setAccessible(true);
+        Consumer<Runnable> prompt = answer::set;
         main(() -> {
             try {
-                Object ble = activity.service().ble;
-                Object sim = field(ble, "simulation");
-                Method sample = sim.getClass().getDeclaredMethod("sample", String.class, String.class, double.class);
-                sample.setAccessible(true);
-                sample.invoke(sim, "speed_kmh", kmh + " km/h", kmh);
-                activity.service().ble.tickSimulation();
-                activity.redraw();
+                Object menu = make.newInstance(field(screen(), "host"), field(screen(), "ui"), stored, (Runnable) () -> { }, (BooleanSupplier) may::get);
+                View row = (View) toggle.invoke(menu, "Synthetic", "", key, "synthetic_switch", false, prompt);
+                row.performClick();
+                require(answer.get() != null && !stored.getBoolean(key, false), "Turning on waits for the prompt's answer");
+                require("Off".equals(switchState(row)), "TalkBack keeps Off while the answer is pending");
+                may.set(false);
+                answer.get().run();
+                require(!stored.getBoolean(key, false) && "Off".equals(switchState(row)) && !switchOf(row).isChecked(), "A late answer at speed saves nothing and shows Off");
+                answer.set(null);
+                may.set(true);
+                row.performClick();
+                answer.get().run();
+                require(stored.getBoolean(key, false) && "On".equals(switchState(row)) && switchOf(row).isChecked(), "The answer below 4 mph saves and shows On");
+                row.performClick();
+                require(!stored.getBoolean(key, false) && "Off".equals(switchState(row)), "Turning off saves and shows Off");
             } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
         });
+        main(() -> stored.edit().remove(key).commit());
+        note("a delayed permission answer is checked when it lands; TalkBack state followed the stored value both ways");
     }
+
+    private static Switch switchOf(View row) {
+        ViewGroup group = (ViewGroup) row;
+        return (Switch) group.getChildAt(group.getChildCount() - 1);
+    }
+    private static String switchState(View row) { return String.valueOf(switchOf(row).getStateDescription()); }
 
     private Object screen() { return field(activity, "screen"); }
     private Object disc() { return field(screen(), "disc"); }
