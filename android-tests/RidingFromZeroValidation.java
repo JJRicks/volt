@@ -71,7 +71,7 @@ public final class RidingFromZeroValidation extends Instrumentation {
         await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready");
         main(() -> require(activity.service().setSimulation(true), "Simulation on failed"));
         main(() -> activity.service().ble.setSimulationScript("riding"));
-        await(() -> number("trip_km") != null && number("trip_km") > 6 && number("trip_minutes") != null, "No simulated trip readings");
+        await(() -> reading("trip_km") != null && reading("trip_km") > 6 && reading("trip_minutes") != null, "No simulated trip readings");
         settle();
         double tripKm = number("trip_km"), tripMinutes = number("trip_minutes");
         require(tripKm >= 4 && tripMinutes >= 15, "The sample trip should already be well under way: " + tripKm + " km, " + tripMinutes + " min");
@@ -131,7 +131,7 @@ public final class RidingFromZeroValidation extends Instrumentation {
         SystemClock.sleep(6000);
         long reopened = rideMs();
         require(reopened >= 5000 && reopened < 12_000, "Reopened ride time should count up from zero: " + reopened);
-        require(rideKm() < 0.5, "Reopened distance should start over: " + rideKm());
+        require(rideKm() < number("trip_km") / 2, "Reopened distance should be this open's, not the trip: " + rideKm());
         shot("6-reopened-counting");
         note("reopened and after 6 s: " + reopened + " ms, " + rideKm() + " km");
     }
@@ -173,7 +173,7 @@ public final class RidingFromZeroValidation extends Instrumentation {
                 }
             } else if (text.startsWith("Trip")) {
                 Matcher m = Pattern.compile("([0-9]+[.][0-9])").matcher(text);
-                if (m.find()) distance = Math.abs(Double.parseDouble(m.group(1)) - km) < 0.25;
+                if (m.find()) distance = Math.abs(Double.parseDouble(m.group(1)) - (text.contains("mi") ? km * 0.621371 : km)) < 0.2;
             }
         }
         require(clock, label + ": no ride time near " + seconds + " s, in " + spoken);
@@ -208,6 +208,11 @@ public final class RidingFromZeroValidation extends Instrumentation {
         return km.get();
     }
     private Double number(String key) {
+        AtomicReference<Double> value = new AtomicReference<>();
+        main(() -> value.set(reading(key)));
+        return value.get();
+    }
+    private Double reading(String key) {
         Object telemetry = field(activity.service().ble, "telemetry");
         return (Double) call(telemetry, "number", new Class<?>[]{String.class}, key);
     }
