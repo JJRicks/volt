@@ -2,8 +2,6 @@
 
 **Status: Claude-only proposal, 2026-11-05.** One model drafted this. The three-vendor debate has not seen it, and no native speaker has checked it. Everything below, safety wording included, can change. "Approved" here means "the wording this proposal asks every drafter to use". One `values-nl` serves the Netherlands and Flanders, so avoid words only one of them uses.
 
-**Wait for D3.** Do not draft Dutch for a key whose English D3 rewords until D3's English has landed (plan 7.2, step 0). Section 7 names the keys that matter most.
-
 ## 1. Register and form of address
 
 - Address the rider as **je** (owner's decision, 2026-11-02): je, jij only for stress, jou, jouw only for stress. Possessive is normally **je**: *je step*. Never u, uw or a mix. NAVEE's own Dutch product page also uses je.
@@ -99,7 +97,7 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: **Slot** 22.9 (*Vergrendelen* is 78.1 and *Vergrendel* 63.6, so neither fits), **Opties** 37.4 (*Instellingen* is 68.0), Accu 27.5, Ritten 35.5.
 - `dashboard_model_qa_*`, 64dp at 12sp, one line: Licht 26.8, Opties 35.9 (*Instellingen* is 65.3), Livedata 47.6, Ritten 34.1, Rijden 35.4, Accu-inst. 54.5, Lijnlicht 43.5, Sterlicht 46.6, App-opties 60.9, Stepnaam 56.8, Mijn steps 57.3, Data 26.1, Display 41.5, Info 22.2, PIN & nabij 62.0, Klaar vóór 56.9, Exp. funct. 58.8. `dashboard_model_qa_charge_done_time` has no fitting rung: *Klaar vóór: tijd* is 80.7 at 12sp and bare *Klaar vóór* duplicates its sibling, so the width check warns and the judge decides (candidate: *Eindtijd* 42.5).
 - The same keys' `_short`, 90dp at 12.5sp: Instellingen 68.0, Verlichting, Rijinstellingen 82.7, Livegegevens 79.4, Accu-inst. (*Accu-instellingen* is 99.7), Lijnverlichting 81.6, Sterverlichting 84.9, App-opties 63.5 (*App-voorkeuren* is 93.2), Data & historie 86.2, Display/geluid 83.7 (*Display & geluid* is 94.2), Info & rechten 82.3, PIN & nabijheid 89.7, Klaar vóór 59.3, Klaar vóór: tijd 84.0, Experimenteel 84.1.
-- `dashboard_model_tile_charge_schedule`, 90dp: Laadschema 72.7. `dashboard_model_tile_top_speed`, 90dp: Max. snelheid, after D3.
+- `dashboard_model_tile_charge_schedule`, 90dp: Laadschema 72.7. `dashboard_model_tile_top_speed`, 90dp: Max. snelheid.
 - `owner_shizuku_install`, 48dp at 14sp: Install. 43.3. `owner_shizuku_open`, same budget: **Open** (*Openen* is 50.5). `stats_health_chip`, 40dp at 9sp: *geschat* 32.7. `stats_raw_chip`, 40dp at 10sp: *RUW* 23.7. `stats_charge_fit`, 72dp at 14sp: *Passend* 55.3. `more_lab_badge`: LAB 20.0.
 
 **Compounds.** Dutch writes compounds as one word. Lines break only at spaces and real hyphens. Don't split a compound with a space: *eigenaars sleutel* and *laad limiet* are spelling errors.
@@ -171,7 +169,7 @@ Other rules:
 
 The glossary is authoritative; this explains what it can't. Official NAVEE wording comes first where one exists (section 9).
 
-**Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning in D3, and the `top-speed` and `maximum-speed` rows already carry D3's words. So these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until D3 lands. Flag them in your notes; a judge answers fallback. Keys that already agree with D3 can go ahead: `rides_tile_max_speed` ("Max speed") is measured, so it's **Topsnelheid**.
+**The English terminology fix (D3) has merged (#208, 2026-11-05):** the English now says Maximum speed for the setting and Top speed for the measured value, matching the `maximum-speed` and `top-speed` rows, so the earlier hold on `dashboard_model_tile_top_speed`, `controls_experimental_speed_limit`, the `readings_maximum_speed_kmh` ladder and `main_speed_*` no longer applies. Draft them like any other key. `rides_tile_max_speed` ("Top speed") is measured, so it's **Topsnelheid**.
 
 - **Three speeds:** the setting is **Maximumsnelheid**, narrow **Max. snelheid**. A limit below it is **snelheidslimiet**. What was measured on a trip or ride is **Topsnelheid**. Never swap them, even though NAVEE's site says *topsnelheid* for the setting.
 
@@ -187,7 +185,7 @@ The glossary is authoritative; this explains what it can't. Official NAVEE wordi
 | brake lever, throttle, power button | **remhendel**, **gashendel**, **aan-uitknop** | NAVEE: *remhendel*. |
 | turn signal, tail light, headlight | **richtingaanwijzer**, **achterlicht**, **koplamp** | NAVEE: all three, plus *knipperlichten*. Narrow **Knipperlicht**. Sound: **Knippergeluid**. |
 | drive mode | **rijmodus**, plural **rijmodi**; compact **Modus** | NAVEE: *Rijmodi*. Names are not translated and keep the case of the English string (*Sport*, *ECO*, *Drive*), even though NAVEE's site says *voetgangersmodus*. |
-| Eco, Turbo, Boost | stay in English | *Eco* and *Turbo* are do-not-translate after D3. **Eco-schatting** is a range option, translated. |
+| Eco, Turbo, Boost | stay in English | *Eco* and *Turbo* are do-not-translate. **Eco-schatting** is a range option, translated. |
 | Energy recovery levels | **Uit, Zwak, Gemiddeld, Sterk** | NAVEE's own levels, translated: they are not drive mode names. Elsewhere low, medium, high are *laag, gemiddeld, hoog*. |
 | High-speed charging | **Snelladen**; charger **snellader**; charges **snellaadsessies**; reference **snellaadreferentie** | Recordings: *laadopnamen met snellader*. Never *Sterk* or *Hoog* here. |
 | range | **actieradius**, narrow **Bereik** | NAVEE: *actieradius*. |
@@ -259,8 +257,8 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 9. **Naming things on screen.** When a sentence names a button, tab or screen, use exactly that label's translation and this guide's rule for marking it. Don't paraphrase a label.
 10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
 11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
-12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
-13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+12. **Retired English terms.** D3 retired owner identity, setup key, scooter key and speed cap. Where one still appears in the English (`Owner identity rejected`, `Scooters & setup keys`), don't render it literally: the first three are all the owner key.
+13. **"Dashboard" in the English.** The English fix has merged, so a visible "Dashboard" now means Volt's Home layout. Volt's Home is one thing and the scooter's display another: if a string or its note means the physical screen, use the glossary's scooter-display word.
 
 ### Fixed words
 
