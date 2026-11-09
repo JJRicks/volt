@@ -37,6 +37,7 @@ jobs:
           python3 tests/capture-owner-test.py
           python3 tests/hardware-sweep-test.py
           python3 tests/rides-timing-gate-test.py
+          python3 tests/release-sweep-summary-test.py
           python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
       - name: Localization proof gates (l10n/README.md)
         env:
