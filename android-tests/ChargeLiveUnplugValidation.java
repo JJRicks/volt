@@ -180,7 +180,7 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
             try{observed=LiveChargingHoldProbe.observe(service);}catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
             String problem=LiveChargingHoldCheck.problem(observed);
             require(problem==null,"The sweep check failed: "+problem);
-            require(observed.armed&&!observed.effective&&!observed.notificationsAllowed,"Expected armed, no effective hold, notifications blocked");
+            require(observed.armed&&!observed.effective&&!observed.notificationsAllowed,"Expected armed, no effective hold, notifications blocked; observed: "+LiveChargingHoldCheck.evidence(observed));
             require(observed.graceDeadlineMs>observed.nowMs,"Expected the ordinary 10 s grace");
             log("blocked evidence: "+LiveChargingHoldCheck.evidence(observed));
             settings().edit().putBoolean("background_connection",true).commit();service.visible(true);
