@@ -224,12 +224,13 @@ public final class GuidedTestValidation extends Instrumentation {
         main(()->require(!root().findViewWithTag("scooter-review-test").isShown(),"Resolved recovery banner remains visible"));
         checks.add("A version 1 journal's unfinished guided test loads; other-profile and forgotten-profile tests have Scooter Review access; recovery exposes no checker or new tests, and orphan dismissal sends no command");
     }
+    private boolean isShownTag(String tag){View view=root().findViewWithTag(tag);return view!=null&&view.isShown();}
     private void openRecoveryFromBanner(){
         main(()->{View review=root().findViewWithTag("scooter-review-test");require(review!=null&&review.isShown(),"Recovery entry is hidden");review.performClick();});settle();
     }
     private void requireRecoveryOnly(){
         main(()->{String shown=texts(root());require(!shown.contains("Run check")&&!shown.contains("Run again")&&!shown.toLowerCase(Locale.ROOT).contains("try a setting")
-                &&root().findViewWithTag("developer-compatibility-check")==null,"Recovery exposed developer checker tools");});
+                &&!isShownTag("developer-compatibility-check"),"Recovery exposed developer checker tools");});
     }
 
     // ---- guided: Help verify and experimental tries over the synthetic link --------------------
@@ -915,7 +916,7 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> { View review = root().findViewWithTag("scooter-review-test"); require(review != null && review.isShown(), "no Review pill"); require("Review unfinished try".contentEquals(review.getContentDescription()), "Review pill label " + review.getContentDescription()); review.performClick(); }); settle();
         awaitText("Unfinished try · Prompt sound");
         main(() -> require(!texts(root()).contains("Run check") && !texts(root()).contains("Run again")
-                && !texts(root()).toLowerCase(Locale.ROOT).contains("try a setting") && root().findViewWithTag("developer-compatibility-check") == null,
+                && !texts(root()).toLowerCase(Locale.ROOT).contains("try a setting") && !isShownTag("developer-compatibility-check"),
                 "Recovery opened the developer checker"));
         main(() -> require(texts(root()).contains("Connect to this scooter to review.") && texts(root()).contains("Setting confirmed · Interrupted/no response"), "offline review " + texts(root()).replace('\n', '|')));
         revealText("Unfinished try · Prompt sound"); screenshot("interrupt-3-relaunch-review-offline");
