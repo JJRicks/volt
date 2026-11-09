@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -80,7 +81,7 @@ final class RidingScreen implements AppScreen {
     private final View stoppedLock;
     private final FrameLayout recordDisc;
     private final LinearLayout stoppedControls;
-    private boolean stoppedShown;
+    private RidingStoppedMotion stoppedMotion;
     /** Home's record and stop marks on the disc. */
     private final RecordGlyph recordGlyph;
     /** Whether the record disc is live now; null before the first refresh. */
@@ -234,11 +235,11 @@ final class RidingScreen implements AppScreen {
         stoppedLock = host.ridingLock(() -> stopped(SystemClock.elapsedRealtime()));
         recordDisc = new FrameLayout(context);
         recordDisc.setFocusable(true);
-        recordDisc.setOnClickListener(v -> recordTap());
+        recordDisc.setOnClickListener(v -> { if (stoppedMotion.takesTaps()) recordTap(); });
         recordGlyph = new RecordGlyph();
         recordDisc.addView(recordGlyph, new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
         stoppedControls = new StoppedControls();
-        stoppedControls.setVisibility(View.GONE);
+        stoppedMotion = new RidingStoppedMotion(stoppedControls, power, stoppedLock, recordDisc);
 
         LinearLayout body = row();
         if (layout.on(RidingLayout.POWER_BAR)) body.addView(bar, new LinearLayout.LayoutParams(ui.dp(side ? 40 : 44), -1));
@@ -467,6 +468,8 @@ final class RidingScreen implements AppScreen {
     /** The row of stopped controls; on a tablet the lock's slide stays a sensible length. */
     private final class StoppedControls extends LinearLayout {
         StoppedControls() { super(host.activity()); }
+        /** A touch that lands as they hide goes nowhere (one already down was cancelled when the hide began); Lock's queue never hears of it. */
+        @Override public boolean onInterceptTouchEvent(MotionEvent event) { return !stoppedMotion.takesTaps() || super.onInterceptTouchEvent(event); }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP);
             if (MeasureSpec.getSize(widthSpec) > cap) widthSpec = MeasureSpec.makeMeasureSpec(cap, MeasureSpec.getMode(widthSpec));
@@ -570,6 +573,7 @@ final class RidingScreen implements AppScreen {
         sheetState.close();
         dismissSheet();
         if (disc != null) disc.stop();
+        stoppedMotion.stop();
         stopPulse();
         display.detach();
         night.detach();
@@ -667,18 +671,17 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Lock and Record, the moment the gate changes: hidden at once with nothing to animate, so a moving
-     * rider never finds them taking taps. They dim with the chrome on a long ride, and drift with the
-     * frame they sit in.
+     * Lock and Record follow the gate with the tune disc's motion (RidingStoppedMotion), and stop taking
+     * taps the moment they start to hide, so a moving rider never finds them live. They dim with the
+     * chrome on a long ride, and drift with the frame they sit in.
      */
     private void showStopped(boolean shown, float alpha) {
-        if (shown != stoppedShown) {
-            stoppedShown = shown;
-            stoppedControls.setVisibility(shown ? View.VISIBLE : View.GONE);
-            power.setVisibility(shown ? View.INVISIBLE : View.VISIBLE);
+        stoppedMotion.dim(alpha);
+        if (stoppedMotion.show(shown) && !shown) {
+            recordDisc.setEnabled(false);
+            recordDisc.setClickable(false);
         }
         if (!shown) return;
-        stoppedControls.setAlpha(alpha);
         boolean recording = service != null && service.isRecording(), ready = service != null && service.ble.ready();
         boolean saving = service != null && service.phoneSaving(), enabled = RidingFrames.recordEnabled(recording, ready, saving);
         recordDisc.setEnabled(enabled);
