@@ -9,7 +9,8 @@ import java.util.Locale;
  * In every language a Quick access button's padlock follows the last known state. A reading that is not live gets no
  * "Last known" words: the tile's dimming marks it. Other on/off features keep On/Off, and the English labels stay
  * Off/On for logs and reports. QuickAccessGrid and Ui are Android views, so their wiring is checked by reading the
- * source; DisplayUnits runs for real. Fixtures are synthesized.
+ * source; DisplayUnits runs for real. On a Setting tile, a word too wide for the room drops for the same padlock.
+ * Fixtures are synthesized.
  */
 public final class LockStateTextTest {
     private static int checks;
@@ -34,6 +35,7 @@ public final class LockStateTextTest {
             onlyTurkishAndPolish();
             shownLanguageGate();
             quickAccessIcons();
+            narrowWordDrops();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
@@ -119,6 +121,22 @@ public final class LockStateTextTest {
         equal("home", DisplayUnits.quickAccessIcon(null, 0, "home"), "a shortcut with no feature keeps its icon");
     }
 
+    /**
+     * A lock word that can't show whole gives way to the padlock on a Setting tile, instead of an ellipsis that reads the
+     * same for both Turkish states (Kil…). The widths are the emulator's at a 344 dp screen's five-column widget.
+     */
+    private static void narrowWordDrops() {
+        int room = 83; // 27.67 dp at xxhdpi: a two-column Setting tile at 344 dp.
+        for (float word : new float[]{90f, 163f, 229f}) // Kilitli, Kilidi açık, Odblokowana at 12 sp.
+            check(DisplayUnits.lockWordDrops(true, word, room), "a word " + word + " px wide drops in " + room + " px");
+        check(!DisplayUnits.lockWordDrops(true, 83f, room), "a word that exactly fits stays");
+        check(!DisplayUnits.lockWordDrops(true, 82.5f, room), "a word that fits stays");
+        check(DisplayUnits.lockWordDrops(true, 83.5f, room), "a word that does not quite fit drops");
+        check(DisplayUnits.lockWordDrops(true, 1f, 0), "no room at all drops the word");
+        check(!DisplayUnits.lockWordDrops(false, 263f, room), "Updating and the no-value text keep their own line");
+        check(!DisplayUnits.lockWordDrops(false, 90f, room), "On, Off and any other feature's value never drop");
+    }
+
     /** QuickAccessGrid is an Android view, so its chain is read: the lock's line has to come before the variant's label. */
     private static void tileChain() {
         String grid = L10nFiles.read(new File("src/com/jjricks/volt/QuickAccessGrid.java"));
@@ -128,7 +146,12 @@ public final class LockStateTextTest {
         check(pending >= 0 && lock > pending && variant > lock, "pending and no-value come first, then the lock's state, then the variant's label");
         check(grid.contains("String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);"), "the word does not depend on whether the reading is live");
         check(!L10nFiles.read(new File("src/com/jjricks/volt/DisplayUnits.java")).contains("mainLockLastKnownWord"), "these tiles have no Last known text");
-        check(grid.contains("cell.value.setTextColor(highlight ? ui.onAccent : muted ? ui.muted : ui.text);") && grid.contains("boolean muted = (feature != null || chargeControl) && !featureLive;"), "a stale Setting tile dims");
+        check(grid.contains("int tone = highlight ? ui.onAccent : muted ? ui.muted : ui.text;") && grid.contains("cell.value.setTextColor(tone);") && grid.contains("boolean muted = (feature != null || chargeControl) && !featureLive;"), "a stale Setting tile dims");
+        check(grid.contains("if (cell.lockState) ui.setIcon(cell.padlock, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon), tone);"), "a Setting tile's padlock follows the last known state, in the word's tone");
+        check(grid.contains("if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {\n                value.setVisibility(GONE); padlock.setVisibility(VISIBLE);"), "a tile's lock word that can't stay whole gives way to the padlock");
+        check(grid.contains("value.setVisibility(VISIBLE); padlock.setVisibility(GONE);"), "each fit starts over with the word");
+        check(grid.contains("if (wasLockState || cell.lockState) cell.requestLayout();"), "a tile's word is measured again when it changes, even at the same height");
+        check(grid.contains("value.setMaxLines(1); value.setEllipsize(android.text.TextUtils.TruncateAt.END);"), "other tile values keep the ellipsis (control)");
         check(grid.contains("if (cell.lockState) cell.requestLayout();"), "a new lock word is measured again, even at the same height");
         check(grid.indexOf("cell.value.setText(state);\n") < grid.indexOf("ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));"), "a Quick access button's padlock follows the reading");
         check(grid.contains("cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);"), "a stale button stays muted");

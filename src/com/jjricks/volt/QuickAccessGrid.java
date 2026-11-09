@@ -86,6 +86,7 @@ final class QuickAccessGrid extends ViewGroup {
                     : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
+            boolean wasLockState = cell.lockState;
             cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
@@ -126,13 +127,17 @@ final class QuickAccessGrid extends ViewGroup {
                 if (!shownValue.contentEquals(cell.value.getText())) {
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
+                    // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
+                    if (wasLockState || cell.lockState) cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
                 boolean highlight = index == 0 && (live || doneTime) && !editing && !unmapped && (!chargeControl || chargeBlocked == null);
                 boolean muted = (feature != null || chargeControl) && !featureLive;
                 cell.label.setTextColor(highlight ? Ui.withAlpha(ui.onAccent, 220) : ui.muted);
-                cell.value.setTextColor(highlight ? ui.onAccent : muted ? ui.muted : ui.text);
+                int tone = highlight ? ui.onAccent : muted ? ui.muted : ui.text;
+                cell.value.setTextColor(tone);
+                if (cell.lockState) ui.setIcon(cell.padlock, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon), tone);
                 if (toggle) {
                     boolean available = !editing && featureLive && value != null && (chargeControl
                             ? charge != null && !charge.busy : ble.featureValue(feature.key) != null
@@ -210,6 +215,8 @@ final class QuickAccessGrid extends ViewGroup {
     private final class Cell extends LinearLayout {
         final QuickAccessActions.Entry entry;
         final View icon;
+        /** Setting tiles only: stands in for a lock word too wide to stay whole. */
+        View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
         Cell(QuickAccessActions.Entry entry) {
@@ -238,6 +245,9 @@ final class QuickAccessGrid extends ViewGroup {
                 value.setMaxLines(1); value.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 value.setLineSpacing(0, 1);
                 words.addView(value, new LinearLayout.LayoutParams(-1, -2));
+                padlock = ui.icon(entry.icon, 20, ui.text);
+                padlock.setVisibility(GONE);
+                words.addView(padlock, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
                 addView(words, new LinearLayout.LayoutParams(0, -2, 1));
                 icon = new TileAction(toggle);
                 int side = ui.dp(toggle ? 28 : 16);
@@ -305,6 +315,7 @@ final class QuickAccessGrid extends ViewGroup {
                 return;
             }
             float factor = Math.max(1, ui.textScale * getResources().getConfiguration().fontScale);
+            value.setVisibility(VISIBLE); padlock.setVisibility(GONE);
             icon.setVisibility(width >= ui.dp(110 * factor) ? VISIBLE : GONE);
             label.setVisibility(tileLabels && !"".equals(label.getTag()) ? VISIBLE : GONE);
             int vertical = ui.dp(tileCompact ? 3 : 8);
@@ -327,6 +338,10 @@ final class QuickAccessGrid extends ViewGroup {
                     || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
                 size -= .5f;
                 value.setTextSize(size);
+            }
+            // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
+            if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
+                value.setVisibility(GONE); padlock.setVisibility(VISIBLE);
             }
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));

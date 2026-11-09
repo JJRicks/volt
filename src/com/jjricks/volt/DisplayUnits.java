@@ -101,6 +101,15 @@ public final class DisplayUnits {
         return feature != null && feature.key.equals("lock") && value != null && value == 0 ? "unlock" : icon;
     }
 
+    /**
+     * Whether a Setting tile's Turkish or Polish lock word drops for the padlock: it never ellipsizes, because cut words
+     * can read the same in both states. {@code width} is the word at the size it may not go below, {@code room} the
+     * tile's text width, both in pixels; anything that is not a lock word (Updating, no value) keeps its own text.
+     */
+    public static boolean lockWordDrops(boolean lockWord, float width, int room) {
+        return lockWord && width > room;
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);
