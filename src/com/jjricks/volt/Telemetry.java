@@ -133,6 +133,8 @@ public final class Telemetry {
     private Integer currentSignState;
     private Integer temperatureSignState;
 
+    private RidingSpeed speedFollower;
+
     public Telemetry() {
         define(GROUP_BATTERY, "battery_percent", "Battery charge (%)");
         define(GROUP_BATTERY, "voltage_v", "Battery voltage");
@@ -253,6 +255,10 @@ public final class Telemetry {
             default: break;
         }
     }
+
+    /** Riding mode's Max and Avg, fed each speed reading as it arrives; null when no riding mode is open. */
+    synchronized void followSpeed(RidingSpeed speed) { speedFollower = speed; }
+    synchronized RidingSpeed followedSpeed() { return speedFollower; }
 
     public synchronized List<Metric> metrics() {
         return Collections.unmodifiableList(new ArrayList<Metric>(readings.values()));
@@ -624,6 +630,7 @@ public final class Telemetry {
         Metric previous = readings.get(key);
         if (previous == null || previous.updatedMs > time) return;
         readings.put(key, new Metric(previous.group, key, previous.label, value, numeric, cmd, time));
+        if (speedFollower != null && numeric != null && key.equals(RidingValues.SPEED_KEY)) speedFollower.accept(numeric, time);
     }
 
     private static boolean has(byte[] data, int offset, int length) {

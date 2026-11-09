@@ -39,6 +39,8 @@ public final class RidingValuesTest {
         speedFromOpen();
         speedResume();
         autoEnd();
+        speedBoundaries();
+        speedFollowsTelemetry();
         battery();
         ranges();
         System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
@@ -696,25 +698,26 @@ public final class RidingValuesTest {
         // Riding: 20 km/h for 10 s, then 40 km/h for 10 s, then a long stop at zero.
         long now = t + 2000;
         for (int i = 0; i < 10; i++) speed(session, 20, now += 1000);
-        check(session.maxKmh() == 20 && near(session.averageKmh(), 20, 1e-9), "first stretch: " + session.maxKmh() + ", " + session.averageKmh());
+        check(session.maxKmh() == 20 && near(session.averageKmh(), 190450d / 10000, 1e-9), "first stretch, the pull-away interval at its mean: " + session.maxKmh() + ", " + session.averageKmh());
         for (int i = 0; i < 10; i++) speed(session, 40, now += 1000);
         check(session.maxKmh() == 40, "Max is the top speed: " + session.maxKmh());
-        check(near(session.averageKmh(), 30, 1e-9), "Avg is weighted by time: " + session.averageKmh());
+        check(near(session.averageKmh(), 580450d / 20000, 1e-9), "Avg is weighted by time: " + session.averageKmh());
         for (int i = 0; i < 60; i++) speed(session, 0, now += 1000);
-        check(session.maxKmh() == 40 && near(session.averageKmh(), 30, 1e-9), "stopped: both hold, and stopped time doesn't dilute Avg: " + session.averageKmh());
+        double heldAvg = 600450d / 21000;
+        check(session.maxKmh() == 40 && near(session.averageKmh(), heldAvg, 1e-9), "stopped: both hold, the slowing interval counts, and stopped time doesn't dilute Avg: " + session.averageKmh());
 
         // A dropout isn't moving time, and the reading after it adds no time.
         now += 60_000;
         feed(session, now);
-        check(session.maxKmh() == 40 && near(session.averageKmh(), 30, 1e-9), "with speed gone they still hold");
+        check(session.maxKmh() == 40 && near(session.averageKmh(), heldAvg, 1e-9), "with speed gone they still hold");
         speed(session, 60, now + 1000);
-        check(session.maxKmh() == 60 && near(session.averageKmh(), 30, 1e-9), "time across a gap isn't counted; the top speed still is: " + session.averageKmh());
+        check(session.maxKmh() == 60 && near(session.averageKmh(), heldAvg, 1e-9), "time across a gap isn't counted; the top speed still is: " + session.averageKmh());
         // Time-weighted, not sample-weighted: 10 km/h for 1 s and 30 km/h for 2 s across uneven readings.
         RidingSession uneven = open(t);
         speed(uneven, 10, t);
         speed(uneven, 10, t + 1000);
         speed(uneven, 30, t + 3000);
-        check(near(uneven.averageKmh(), (10 * 1000 + 30 * 2000) / 3000d, 1e-9), "uneven gaps are weighted by time: " + uneven.averageKmh());
+        check(near(uneven.averageKmh(), (10 * 1000 + 20 * 2000) / 3000d, 1e-9), "uneven gaps are weighted by time: " + uneven.averageKmh());
 
         // The screen refreshes faster than the scooter reports: only new readings count.
         RidingSession steady = open(t);
@@ -751,13 +754,97 @@ public final class RidingValuesTest {
         speed(after, 0, t + 4000);
         check(after.maxKmh() == 40 && near(after.averageKmh(), before.averageKmh(), 1e-9), "and a stop still holds them");
         speed(after, 20, t + 5000);
-        check(near(after.averageKmh(), (20 * 1000 + 40 * 1000 + 20 * 1000) / 3000d, 1e-9), "and riding on keeps the same average: " + after.averageKmh());
+        check(near(after.averageKmh(), 70000d / 4000, 1e-9), "and riding on keeps the same average: " + after.averageKmh());
         // Other shapes.
         RidingSession old = new RidingSession(PROFILE, null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance()));
         check(old.maxKmh() == null && old.rideTimeMs(t + 4000) == 4000, "a save from before these existed keeps time and starts Max and Avg over");
         RidingSession odd = new RidingSession(PROFILE, null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance(), new double[3], 3));
         check(odd.maxKmh() == null && odd.rideTimeMs(t + 4000) == 4000, "as does a speed array of another shape");
         check(new RidingSession("p2", null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance(), written, 3)).maxKmh() == null, "another scooter doesn't inherit them");
+    }
+
+    /** The moving interval at a stop, the opening boundary, and no misleading zero. */
+    private static void speedBoundaries() {
+        long t = 12_000_000;
+        RidingSession moving = open(t);
+        speed(moving, 20, t);
+        check(moving.maxKmh() == 20 && moving.averageKmh() == null, "moving at open with no time yet: Max, and no misleading zero Avg");
+        speed(moving, 0, t + 1000);
+        check(moving.maxKmh() == 20 && near(moving.averageKmh(), 10, 1e-9), "the second before a stop counts: " + moving.averageKmh());
+        for (int i = 2; i < 30; i++) speed(moving, 0, t + i * 1000);
+        check(moving.maxKmh() == 20 && near(moving.averageKmh(), 10, 1e-9), "and it holds through the stop");
+
+        // The same riding after opening gives the same average, whether the baseline was at the open or a second before it.
+        RidingSession atOpen = open(t), beforeOpen = open(t);
+        atOpen.values.sample(RidingValues.SPEED_KEY, 40, 0x92, t);
+        feed(atOpen, t);
+        beforeOpen.values.sample(RidingValues.SPEED_KEY, 40, 0x92, t - 1000);
+        feed(beforeOpen, t);
+        for (RidingSession s : new RidingSession[]{atOpen, beforeOpen}) { speed(s, 40, t + 1000); speed(s, 20, t + 2000); }
+        check(near(atOpen.averageKmh(), 35, 1e-9) && near(beforeOpen.averageKmh(), 35, 1e-9), "time before the open never counts: " + atOpen.averageKmh() + ", " + beforeOpen.averageKmh());
+        // A baseline changing across the open only counts from the open: 10 km/h then, ending at 20.
+        RidingSession ramp = open(t);
+        ramp.values.sample(RidingValues.SPEED_KEY, 0, 0x92, t - 1000);
+        feed(ramp, t);
+        speed(ramp, 20, t + 1000);
+        check(near(ramp.averageKmh(), 15, 1e-9), "a baseline's speed is read at the open: " + ramp.averageKmh());
+
+        // Across a recreation an interval that straddles the save still counts once.
+        RidingSession before = open(t);
+        speed(before, 20, t);
+        speed(before, 30, t + 1000);
+        RidingSession after = new RidingSession(PROFILE, null, t + 1500, before.resume());
+        speed(after, 30, t + 2000);
+        check(near(after.averageKmh(), (25000d + 30000) / 2000, 1e-9), "recreated, the next interval joins the last reading: " + after.averageKmh());
+        // Gaps add nothing: 20 for 1 s, a 60 s dropout, then 40 for 1 s.
+        RidingSession gap = open(t);
+        speed(gap, 20, t);
+        speed(gap, 20, t + 1000);
+        speed(gap, 40, t + 61_000);
+        speed(gap, 40, t + 62_000);
+        check(near(gap.averageKmh(), 30, 1e-9) && gap.maxKmh() == 40, "the dropout's time isn't moving time: " + gap.averageKmh());
+        // A session whose only moving reading has no time beside it still reads no value, even restored.
+        RidingSession firstOnly = open(t);
+        speed(firstOnly, 18, t);
+        check(new RidingSession(PROFILE, null, t + 500, firstOnly.resume()).averageKmh() == null, "no moving time carries over as no value");
+    }
+
+    /** Telemetry feeds Max and Avg as readings arrive, so a paused screen and coalesced refreshes lose nothing. */
+    private static void speedFollowsTelemetry() {
+        long t = 13_000_000;
+        Telemetry telemetry = new Telemetry();
+        RidingSession session = open(t);
+        telemetry.followSpeed(session.speed());
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "0", 0d, t + 1000);
+        session.feed(telemetry.metrics(), t + 1000, false, "km", true);
+        check(session.maxKmh() == 0 && session.averageKmh() == 0, "parked to begin with");
+        // The screen is paused: nothing but the telemetry path sees these.
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "25", 25d, t + 2000);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "25", 25d, t + 3000);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "30", 30d, t + 3500);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "0", 0d, t + 4000);
+        check(session.maxKmh() == 30, "the peak between refreshes counts: " + session.maxKmh());
+        double expected = (12.5 * 1000 + 25 * 1000 + 27.5 * 500 + 15 * 500) / 3000;
+        check(near(session.averageKmh(), expected, 1e-9), "the background excursion counts: " + session.averageKmh());
+        session.feed(telemetry.metrics(), t + 4000, false, "km", true);
+        check(session.maxKmh() == 30 && near(session.averageKmh(), expected, 1e-9), "and the refresh that returns counts it once");
+
+        // A recreation from a Bundle saved before the excursion: the service kept counting, so that count wins.
+        RidingSession.Resume stale = open(t).resume();
+        RidingSession recreated = new RidingSession(PROFILE, null, t + 5000, stale, 0, telemetry.followedSpeed());
+        check(recreated.maxKmh() == 30 && near(recreated.averageKmh(), expected, 1e-9), "recreated, it keeps what the service counted");
+        check(recreated.speed() == session.speed(), "the same collector carries on");
+        // Process death: only the Bundle is left, and a collector from another open never joins this one.
+        RidingSession.Resume saved = session.resume();
+        RidingSession restored = new RidingSession(PROFILE, null, t + 6000, saved, 0, new RidingSpeed(t + 1));
+        check(restored.maxKmh() == 30 && near(restored.averageKmh(), expected, 1e-9) && restored.speed() != session.speed(), "after a process death the save carries Max and Avg");
+        // A reconnect clears readings but not the count, and the gap rule keeps the dropout out.
+        telemetry.clear();
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "0", 0d, t + 60_000);
+        check(session.maxKmh() == 30 && near(session.averageKmh(), expected, 1e-9), "cleared telemetry holds them");
+        telemetry.followSpeed(null);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "50", 50d, t + 61_000);
+        check(session.maxKmh() == 30, "closed: nothing feeds it any more");
     }
 
     /** Riding mode remembers how many recordings had auto-ended when it opened, a count that needs no clock across process death. */

@@ -85,6 +85,8 @@ public final class RidingAutoCloseValidation extends Instrumentation {
 
         speedCountsFromOpen();
         closeRidingMode();
+        speedCountsInBackground();
+        closeRidingMode();
         manualStopLeavesItOpen();
         autoEndOnScreen();
         autoEndWithActivityGone();
@@ -141,6 +143,27 @@ public final class RidingAutoCloseValidation extends Instrumentation {
         requireStrip("Average", heldAvg, "recreated");
         shot("5-recreated");
         note("recreated: max " + round(sessionMax()) + ", avg " + round(sessionAvg()));
+    }
+
+    /** With the activity gone the service keeps counting: a peak seen only while Volt is off screen shows on return. */
+    private void speedCountsInBackground() throws Exception {
+        openRiding();
+        await(() -> sessionMax() != null, "No session speed after opening");
+        settle();
+        goneToBackground();
+        // Past what the sample scooter ever reports, so only the telemetry path can have seen it.
+        for (double kmh : new double[]{33, 34, 33}) {
+            final double reading = kmh;
+            main(() -> call(field(service.ble, "telemetry"), "putSimulationSample", new Class<?>[]{String.class, String.class, Double.class, long.class}, "speed_kmh", reading + " km/h", reading, SystemClock.elapsedRealtime()));
+            SystemClock.sleep(400);
+        }
+        foreground();
+        await(() -> field(activity, "riding") != null, "Riding mode did not come back");
+        settle();
+        require(sessionMax() >= 34, "A background peak should count: " + sessionMax());
+        requireStrip("Max", sessionMax(), "after background");
+        shot("5b-background-peak");
+        note("background peak: max " + round(sessionMax()) + ", avg " + round(sessionAvg()));
     }
 
     /** Back closes for the next steps and sets the hold; a later step needs that hold clear again. */

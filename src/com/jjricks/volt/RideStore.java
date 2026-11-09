@@ -623,6 +623,9 @@ public final class RideStore {
         forget(id);
     }
 
+    /** True when this ride's journal exists and ends with its STOP. */
+    synchronized boolean finished(String id) { File f = file(id); return f.isFile() && endsFinished(f); }
+
     public synchronized String activeId() { return active == null ? null : active.id; }
     /** When this process last stopped and saved a ride (the stop's wall time, not the ride's trimmed end), or -1. */
     private long lastStopWallMs = -1;
