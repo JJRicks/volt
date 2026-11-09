@@ -99,6 +99,26 @@ public final class ChargeLiveUpdate {
     }
 
     /**
+     * Whether the card takes the dial and the shorter title (Codex review of #336). Asking isn't being promoted, so a
+     * card keeps the plain look, the level in its title, until it is read back promoted; a card Android keeps declining
+     * therefore never changes. Once promoted and then read back unpromoted it stays plain for the rest of the hold, so
+     * the look can't alternate: at most two reposts per hold come from here. Not thread-safe; the service calls it on
+     * its handler.
+     */
+    public static final class Look {
+        private boolean promoted, declined;
+        public boolean dial() { return promoted && !declined; }
+        /** The posted card read back; returns true when the card should be rebuilt. */
+        public boolean observed(boolean nowPromoted) {
+            if (declined || nowPromoted == promoted) return false;
+            promoted = nowPromoted;
+            declined = !nowPromoted;
+            return true;
+        }
+        public void reset() { promoted = declined = false; }
+    }
+
+    /**
      * The last live card's verdict, kept for the developer row. Opening Volt ends the hold, and so the card, before the
      * row can be opened, so the service records what Android did while the card is posted (a moment after each post,
      * and again just before the hold ends) and stores it on this device. built() is called for every connection notice

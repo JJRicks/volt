@@ -2332,11 +2332,12 @@ def judge_requests(paths, tag, area, use_java=True):
     judged = judged_safety_texts(paths, pack, states, use_java, refusals, shorts)
     failing = all_failed(paths, pack, states, drafts, shorts, use_java)
     entries = dict((e["key"], e) for e in pack["entries"])
+    owner = translib.load_owner_decisions(paths, tag)
     rows = []
     for key, state in states.items():
         entry = state.entry
         safety = entry.get("safety") or []
-        if not state.candidates:
+        if not state.candidates or key in owner:  # the owner's text is not up for a ruling
             continue
         back, text, refusal, stuck = None, None, None, None
         verdicts = ["confirm", "fallback"] if safety else ["pick", "merge", "fallback"]
@@ -2536,6 +2537,11 @@ def decide(paths, tag, area, final=False, use_java=True):
     Keys still waiting for a judge ruling or a
     back-translation are pending; with final=True they fall back instead.
 
+    A key in l10n/owner-decisions/<tag>.jsonl is owner-decided: the owner's text and reason, whatever
+    the drafts and rulings say, with the drafts kept as alternatives and no model named as its judge.
+    Anything that would lose that text stops the run (L10nError) and writes nothing: the English changed
+    since the owner decided, the text fails the checks, or a ladder or overflow rule would drop it.
+
     Only draft entries of the current English count (volt:src, see analyze()); stale ones are listed
     in stale_drafts and named in a fallback's reason. A pick counts only while the picked draft has
     the text the ruling copied; otherwise the key waits for a new ruling.
@@ -2552,6 +2558,7 @@ def decide(paths, tag, area, final=False, use_java=True):
     previous = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
     font = fontmetrics.Font(paths.font())
     measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
+    owner = owner_decisions(paths, tag, area, pack)
     rows, pending = collections.OrderedDict(), []
 
     def row(entry, state, outcome, reason, items=None, judge=None, back=None, checks=None):
@@ -2582,9 +2589,20 @@ def decide(paths, tag, area, final=False, use_java=True):
     for key, state in states.items():
         entry = state.entry
         ruling = rulings.get(key)
+        if key in owner:
+            items = translib.items_of(entry["kind"], owner[key]["text"])
+            findings = checklib.check_targets(pack, {key: (entry["kind"], items, [])}, font, measurer,
+                                              ladders=False, short_checked_later=True)[key]
+            findings = [f for f in findings if f["severity"] != checklib.INFO]
+            if not checklib.is_ok(findings):
+                raise translib.L10nError("the owner's text for %s fails the checks, so nothing was written: %s" % (
+                    key, "; ".join(f["message"] for f in findings)))
+            rows[key] = row(entry, state, translib.OWNER_DECIDED, owner[key]["reason"], items, checks=findings)
+            continue
         if not state.candidates:
             old = previous.get(key)
-            if old and old.get("source_sha1") == entry["source_sha1"]:
+            # Past the owner branch above, this key has no owner line, so an old owner-decided row must not return.
+            if old and old.get("source_sha1") == entry["source_sha1"] and old.get("outcome") != translib.OWNER_DECIDED:
                 rows[key] = old
             else:
                 rows[key] = row(entry, state, "fallback-english", "no current drafts" if state.stale else "no drafts")
@@ -2736,10 +2754,30 @@ def decide(paths, tag, area, final=False, use_java=True):
                     rows[k]["text"] = None
     if pending and not final:
         return list(rows.values()), pending, problems
+    lost = [k for k in owner if rows[k]["outcome"] != translib.OWNER_DECIDED]
+    if lost:
+        raise translib.L10nError("this run would discard the owner's decision, so nothing was written: %s" % "; ".join(
+            "%s (%s)" % (k, rows[k]["reason"]) for k in lost))
     for key, what in pending:
         rows[key] = collections.OrderedDict(rows[key])
         rows[key]["reason"] = "%s (final run: still waiting for %s)" % (rows[key]["reason"], what)
     return list(rows.values()), [] if final else pending, problems
+
+
+def owner_decisions(paths, tag, area, pack):
+    """{key: owner decision} of this area; L10nError when one cannot be kept (translib.owner_pin_problems)."""
+    pins = dict((k, p) for k, p in translib.load_owner_decisions(paths, tag).items() if p["area"] == area)
+    problems = translib.owner_pin_problems(paths, tag, translib.load_source(paths)[0], area)
+    entries = dict((e["key"], e) for e in pack["entries"])
+    for key, pin in translib.load_owner_decisions(paths, tag).items():
+        if key in entries and pin["area"] != area:
+            problems.append("%s: listed under area %s, but it is in area %s" % (key, pin["area"], area))
+    for key, pin in pins.items():
+        if entries.get(key, {}).get("source_sha1") != pin["source_sha1"]:
+            problems.append("%s: not in the pack at the owner's English; run pack.py first" % key)
+    if problems:
+        raise translib.L10nError("owner decisions cannot be kept, so nothing was written:\n  " + "\n  ".join(problems))
+    return pins
 
 
 def overflow_pair_fallbacks(pack, rows, font, measurer):
