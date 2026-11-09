@@ -67,6 +67,7 @@ public final class ChargeAlertValidation extends Instrumentation {
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && root().getWidth() > 0, "App did not launch"); service = activity.service();
             if (notificationsOff) verifyNotificationsOff();
+            else if ("hero".equals(args.getString("mode", ""))) verifyHero();
             else {
                 verifyOfflineGating();
                 verifySimulatorGating();
@@ -76,6 +77,7 @@ public final class ChargeAlertValidation extends Instrumentation {
                 verifyAlarmOutOfSight(true);
                 verifyAlarmOutOfSight(false);
                 verifyInSight();
+                verifyHero();
             }
             assertNoRadio();
             for (String key : settings().getAll().keySet()) require(!key.equals("charge_alert_state_" + ut5), "The UT5 MAX tracked a charge session: " + key);
@@ -122,6 +124,90 @@ public final class ChargeAlertValidation extends Instrumentation {
         main(() -> { service.ble.setSimulationModel(""); require(service.setSimulation(false), "Simulation did not stop"); });
         checks.add("On the simulator, rows follow the model while charging: hidden for the UT5 MAX and a charge-limit model, shown for an unknown one; sample readings never watch");
     }
+
+    /**
+     * Charging hero, on synthetic readings with the service's own updates unhooked: two times with an alert ahead of the
+     * battery, only the time to full otherwise, and nothing for a model with a charge limit even with an alert saved for it.
+     */
+    private void verifyHero() throws Exception {
+        choose(gt3);
+        main(() -> {
+            invoke(activity, "select", new Class<?>[]{String.class}, "home");
+            ((android.os.Handler) field(activity, "handler")).removeCallbacks((Runnable) field(activity, "pulse"));
+            service.unlisten((Runnable) field(activity, "serviceChanged"));
+        }); settle();
+        ChargeAlertPolicy.Settings alert70 = new ChargeAlertPolicy.Settings(true, 70, false, 20, true, false);
+        main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
+        hero(50, null);
+        main(() -> {
+            View alert = heroCell("alertCell"), time = heroCell("timeCell");
+            require(alert.isShown() && time.isShown(), "The hero does not show both times");
+            require(String.valueOf(heroLabel("alertCell").getContentDescription()).contains("70"), "Alert time is named: " + heroLabel("alertCell").getContentDescription());
+            require(!String.valueOf(heroValue("alertCell").getText()).equals("—") && String.valueOf(heroValue("timeCell").getText()).length() > 0, "The alert time has no value");
+            require(alert.getParent() == time.getParent() && heroCell("powerCell").getParent() != time.getParent(), "The two times are not side by side under power");
+            require(service.chargingEstimate(service.displayReadings()).targetPercent == null, "The alert leaked into the main estimate");
+            assertFits();
+        });
+        heroShot("two-times");
+        hero(70, null);
+        main(() -> require(!heroCell("alertCell").isShown() && heroCell("timeCell").isShown(), "An alert just reached still shows its time"));
+        heroShot("alert-reached");
+        hero(85, null);
+        main(() -> require(!heroCell("alertCell").isShown(), "An alert already passed still shows its time"));
+        main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+        hero(50, null);
+        main(() -> require(!heroCell("alertCell").isShown() && heroCell("timeCell").isShown() && heroCell("powerCell").getParent() == heroCell("timeCell").getParent(),
+                "With the alert off the hero is not back to power beside time to full"));
+        heroShot("alert-off");
+        main(() -> require(service.setChargeAlerts(alert70), "Could not restore the alert"));
+        // A native-limit model: an alert saved for it (which the app never offers) still changes nothing.
+        choose(ut5);
+        main(() -> { require(settings().edit().putString("charge_alerts_" + ut5, alert70.encode()).commit(), "Could not seed the saved alert"); reset(); });
+        hero(50, 80d);
+        main(() -> {
+            require(!service.chargeAlertsOffered() && service.chargeAlertEstimate(heroValues) == null && !heroCell("alertCell").isShown(), "A charge limit model got an alert time");
+            require(String.valueOf(heroLabel("timeCell").getContentDescription()).contains("80"), "The charge limit's time changed: " + heroLabel("timeCell").getContentDescription());
+            assertFits();
+        });
+        heroShot("native-limit");
+        main(() -> { settings().edit().remove("charge_alerts_" + ut5).commit(); reset(); });
+        checks.add("Charging hero: two times with an alert ahead of the battery; only time to full once reached or off; a charge limit model is unchanged");
+    }
+    private Map<String, TelemetryHistory.Reading> heroValues;
+    private void hero(double percent, Double limit) throws Exception {
+        long wall = System.currentTimeMillis();
+        Map<String, TelemetryHistory.Reading> values = new LinkedHashMap<>();
+        for (Object[] r : new Object[][]{{"charging_state", 1d}, {"voltage_v", 52d}, {"current_a", -2d}, {"battery_percent", percent}, {"rated_capacity_ah", 14.5d}})
+            values.put((String) r[0], new TelemetryHistory.Reading((String) r[0], (String) r[0], "Synthetic fixture", String.valueOf(r[1]), "", (Double) r[1], wall, true));
+        if (limit != null) values.put("charge_limit_percent", new TelemetryHistory.Reading("charge_limit_percent", "charge_limit_percent", "Synthetic fixture", limit + " %", "%", limit, wall, true));
+        heroValues = values;
+        main(() -> invoke(field(field(activity, "screen"), "chargingHero"), "refresh", new Class<?>[]{Map.class}, values));
+        settle(); SystemClock.sleep(420); settle();
+    }
+    private View heroCell(String name) {
+        Object hero = field(field(activity, "screen"), "chargingHero");
+        if (!"powerCell".equals(name)) return (View) field(hero, name);
+        return ((View) ((TextView) field(hero, "power")).getParent());
+    }
+    private TextView heroLabel(String name) { return (TextView) field(heroCell(name), "label"); }
+    private TextView heroValue(String name) { return (TextView) field(heroCell(name), "value"); }
+    /** Every shown label and value in the hero's tiles is whole: no clipping, no broken word, no shrink below the readable floor. */
+    private void assertFits() {
+        ArrayList<String> problems = new ArrayList<>();
+        ArrayDeque<View> stack = new ArrayDeque<>();
+        stack.push((View) field(field(field(activity, "screen"), "chargingHero"), "tiles"));
+        float density = getTargetContext().getResources().getDisplayMetrics().scaledDensity;
+        while (!stack.isEmpty()) {
+            View v = stack.pop();
+            if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) stack.push(((ViewGroup) v).getChildAt(i));
+            if (!(v instanceof TextView) || !v.isShown()) continue;
+            TextView text = (TextView) v;
+            TextFit.collectNarrowTextProblems(text, "hero tile", problems);
+            if (text.length() > 0 && text.getTextSize() / density < 12 - .01f) problems.add("tiny text: " + text.getText() + " " + text.getTextSize() / density);
+        }
+        require(problems.isEmpty(), "Hero tiles: " + problems);
+    }
+    private void heroShot(String label) throws Exception { shot("hero-" + args.getString("shot", "") + label); }
 
     private void verifySheet() throws Exception {
         choose(gt3); controls();
