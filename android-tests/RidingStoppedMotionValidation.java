@@ -58,8 +58,6 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             require(hw.contains("ranchu") || hw.contains("goldfish"), "emulator only");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "riding-stopped-motion");
             require(evidence.mkdirs() || evidence.isDirectory(), "evidence directory");
-            scale = ValueAnimator.getDurationScale();
-            note("animator scale " + scale + ", animators enabled " + ValueAnimator.areAnimatorsEnabled());
             run();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -87,6 +85,9 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> activity.service() != null && activity.getWindow().getDecorView().getWidth() > 0, "launch");
         settle();
+        // Only known once a window exists: before that it reads the default.
+        scale = ValueAnimator.getDurationScale();
+        note("animator scale " + scale + ", animators enabled " + ValueAnimator.areAnimatorsEnabled());
         main(() -> require(activity.service().setSimulation(true), "simulation"));
         settle();
         await(() -> activity.service().ble.ready(), "simulation ready");
