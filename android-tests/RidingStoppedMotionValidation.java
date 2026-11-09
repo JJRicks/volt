@@ -131,7 +131,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         long window = (long) (CHANGE_MS * scale) + 500;
         Choreographer.FrameCallback[] tick = new Choreographer.FrameCallback[1];
         main(() -> {
-            tick[0] = t -> { samples.add(sample()); if (run[0]) Choreographer.getInstance().postFrameCallback(tick[0]); };
+            tick[0] = t -> { if (!run[0]) return; samples.add(sample()); Choreographer.getInstance().postFrameCallback(tick[0]); };
             change.run();
             Choreographer.getInstance().postFrameCallback(tick[0]);
         });
