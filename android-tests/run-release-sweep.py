@@ -81,7 +81,8 @@ EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real l
 # Modes not run on their own because a step's mode already runs every check they make.
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
-            'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect'}
+            'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect',
+            'AutoStartValidation cadence and location': 'auto-start (the full pass)'}
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 STATUS_LABEL = {'passed': 'PASS', 'failed': 'FAIL', 'reported': 'REPORT', 'did-not-finish': 'REPORT (did not finish)', 'skipped': 'SKIPPED'}
 
@@ -168,6 +169,11 @@ STEPS += [
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
+    # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The harness's other -e only
+    # scenarios follow one permission across runs of one install, which a step's fresh install can't do (order in its class comment).
+    inst('auto-start', PKG + '.AutoStartValidation', grant=NEARBY, hidden_api=True),
+    *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
+      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding')],
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
