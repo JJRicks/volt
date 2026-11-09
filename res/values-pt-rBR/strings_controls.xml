@@ -4,62 +4,110 @@
 <resources>
     <!-- src:8f8525e4a0f6699513581880c6a0fe05239feb75 -->
     <string name="controls_feature_lock">Bloqueio eletrônico</string>
+    <!-- src:8f8525e4a0f6699513581880c6a0fe05239feb75 -->
+    <string name="controls_feature_lock_short">Bloqueio</string>
     <!-- src:55d5ad4d42f35a8380452ba88c11f2c8cb818411 -->
     <string name="controls_feature_cruise_control">Controle de cruzeiro</string>
+    <!-- src:55d5ad4d42f35a8380452ba88c11f2c8cb818411 -->
+    <string name="controls_feature_cruise_control_short">Cruzeiro</string>
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
     <string name="controls_feature_energy_recovery">Recuperação de energia</string>
+    <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
+    <string name="controls_feature_energy_recovery_short">Recuperação de energia</string>
     <!-- src:e85a5d0f3a6fd80c598896dc4d227e68c6fc0cb3 -->
     <string name="controls_feature_acceleration">Perfil de aceleração</string>
+    <!-- src:698e6ba4cfef83cc36e197154706cb78257f84b6 -->
+    <string name="controls_feature_acceleration_short">Aceleração</string>
     <!-- src:632a9e5e7f963924206336e0422b05c2dcf14b04 -->
     <string name="controls_feature_headlight">Luz traseira</string>
     <!-- src:cb07d62156abcb45a74caa94986b7c241ebf6e48 -->
     <string name="controls_feature_auto_sensor">Luzes automáticas</string>
+    <!-- src:561cb731f9fccd806b92aa14b5f46c16c79feca6 -->
+    <string name="controls_feature_auto_sensor_short">Luz automática</string>
     <!-- src:e59328d84c8efacbfaf74c80c1ab64c2e07c5c79 -->
     <string name="controls_feature_traction_control">Controle de tração</string>
+    <!-- src:e59328d84c8efacbfaf74c80c1ab64c2e07c5c79 -->
+    <string name="controls_feature_traction_control_short">Controle de tração</string>
     <!-- src:19860ddd145bce9bd14f3e4eb17684670f0d812e -->
     <string name="controls_feature_turn_sound">Som da seta</string>
+    <!-- src:cb472220793ecbbd5ab3c9e044deb8a692a60bb6 -->
+    <string name="controls_feature_turn_sound_short">Som da seta</string>
     <!-- src:2ff1c881310d89d6b6570ba47432ef99c788d66b -->
     <string name="controls_feature_display_units">Unidades do visor do patinete</string>
+    <!-- src:85c74554346630bde3e49f368ba26aaa36a8f84f -->
+    <string name="controls_feature_display_units_short">Unidades</string>
     <!-- src:5e8878e318a80c02005de3c926acef4dbfb7c600 -->
     <string name="controls_feature_range_algorithm">Estimativa de autonomia</string>
+    <!-- src:5e8878e318a80c02005de3c926acef4dbfb7c600 -->
+    <string name="controls_feature_range_algorithm_short">Autonomia</string>
     <!-- src:9405735ed4961b5517452a22e672488228e9a705 -->
     <string name="controls_feature_start_speed">Velocidade inicial</string>
+    <!-- src:9405735ed4961b5517452a22e672488228e9a705 -->
+    <string name="controls_feature_start_speed_short">Velocidade inicial</string>
     <!-- src:4790622900ea5816a4b27925c7cad468f98740a6 -->
     <string name="controls_feature_speed_limit">Limite de velocidade personalizado</string>
+    <!-- src:d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0 -->
+    <string name="controls_feature_speed_limit_short">Limite vel.</string>
     <!-- src:f8ade37947e2a8d48c0c0f611caf211f310f9289 -->
     <string name="controls_feature_maximum_speed">Velocidade máxima</string>
     <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
     <string name="controls_feature_dual_drive">Tração com dois motores</string>
+    <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
+    <string name="controls_feature_dual_drive_short">Tração com dois motores</string>
     <!-- src:3fe5f3c90e71a367347eea8875268efd19912d90 -->
     <string name="controls_feature_drive_speed_limit">Limite de velocidade do modo de condução Drive</string>
+    <!-- src:9a3dc2d0fcc48f27c237a0829af4cfbb9bc5809c -->
+    <string name="controls_feature_drive_speed_limit_short">Limite Drive</string>
     <!-- src:7a09777ec3485391cc54adc948dc7f767d7c55e8 -->
     <string name="controls_feature_charge_limit">Limite de carga</string>
     <!-- src:695a1f5078ebc9b87ca2ff1c9858d49b8ce13821 -->
     <string name="controls_feature_timed_charging">Carregamento programado</string>
     <!-- src:b1e5891f6e9165e0906dc5cb61caaaaa8a51395e -->
     <string name="controls_feature_charge_start">Horário de início do carregamento</string>
+    <!-- src:03f1f88780620a29167bab73b48cd85097cfa5c8 -->
+    <string name="controls_feature_charge_start_short">Início da carga</string>
     <!-- src:e757f783669177e094c98bf1dc206399c9be61d5 -->
     <string name="controls_feature_lock_expiry">Duração do bloqueio</string>
+    <!-- src:e757f783669177e094c98bf1dc206399c9be61d5 -->
+    <string name="controls_feature_lock_expiry_short">Dur. bloqueio</string>
     <!-- src:b8528f58a68d9d264698b24b3a94b85d9f6e5e4c -->
     <string name="controls_feature_low_power">Modo de bateria fraca</string>
+    <!-- src:07e24c88c64442b90521041d222838dd2cbcef7c -->
+    <string name="controls_feature_low_power_short">Modo bateria</string>
     <!-- src:f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad -->
     <string name="controls_feature_long_range_mode">Modo de longa autonomia</string>
+    <!-- src:f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad -->
+    <string name="controls_feature_long_range_mode_short">Modo de longa autonomia</string>
     <!-- src:e186f5cd41697fa57ffb78747d01c02a538b81ec -->
     <string name="controls_feature_hill_start_assist">Assistência ao caminhar</string>
+    <!-- src:e186f5cd41697fa57ffb78747d01c02a538b81ec -->
+    <string name="controls_feature_hill_start_assist_short">Caminhada</string>
     <!-- src:e143dc46cc0f3d598a9d06a21319aa4063756882 -->
     <string name="controls_feature_parking_assist">Assistência de potência</string>
+    <!-- src:e143dc46cc0f3d598a9d06a21319aa4063756882 -->
+    <string name="controls_feature_parking_assist_short">Assist. pot.</string>
     <!-- src:7b16f05bbf54a8bc36445c39606bc5f99db97698 -->
     <string name="controls_feature_hill_descent_control">Controle de descida</string>
+    <!-- src:ae8dde31911b96f4a313f7393f917525dcceb45b -->
+    <string name="controls_feature_hill_descent_control_short">Descida</string>
     <!-- src:62129dd7be5c7491da7c0e3dd74368ed8b8bb65d -->
     <string name="controls_feature_overspeed_control">Controle ativo de excesso de velocidade</string>
+    <!-- src:197de7eac4102495e8654ef24e068d5aec723bf5 -->
+    <string name="controls_feature_overspeed_control_short">Excesso de vel.</string>
     <!-- src:1aa3e25dd0ca7640deef3de5698158c98f2a73a2 -->
     <string name="controls_feature_prompt_tone">Som de aviso</string>
     <!-- src:7ead6a1dc590502574f25db8aac9be53a48decb6 -->
     <string name="controls_feature_line_lights">Luzes de linha</string>
+    <!-- src:a16f7fc391f9f5174273a0fe140aefd33f93f637 -->
+    <string name="controls_feature_line_lights_short">Linha</string>
     <!-- src:76add0d6c63acdfb438b01ba6d86361967b765cc -->
     <string name="controls_feature_star_lights">Luzes de estrela</string>
+    <!-- src:b92a60f9da083e12e33a8e4e25af06b776111e92 -->
+    <string name="controls_feature_star_lights_short">Estrela</string>
     <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
     <string name="controls_feature_proximity_key">Desbloqueio por proximidade</string>
+    <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
+    <string name="controls_feature_proximity_key_short">Desbloqueio por proximidade</string>
     <!-- src:9ebceaa07ef3bbec8add681acdb6a2a6a780f643 -->
     <string name="controls_feature_pin">PIN do guidão</string>
     <!-- src:b5d7c85febfcabf7d1d5c6761e480e10236fbd3b -->
@@ -70,10 +118,16 @@
     <string name="controls_feature_daytime_light">Luz de rodagem diurna</string>
     <!-- src:3239188baa808e18ac1dd53a33e49b824ddbdb78 -->
     <string name="controls_feature_light_pattern">%1$s: padrão</string>
+    <!-- src:3239188baa808e18ac1dd53a33e49b824ddbdb78 -->
+    <string name="controls_feature_light_pattern_short">%1$s: padrão</string>
     <!-- src:b8c5d740f7f6d2100d197f849fac96450d6e85ed -->
     <string name="controls_feature_light_color">%1$s: cor</string>
+    <!-- src:b8c5d740f7f6d2100d197f849fac96450d6e85ed -->
+    <string name="controls_feature_light_color_short">%1$s: cor</string>
     <!-- src:a722d2d4550f5971df1209fd7fac79cd07005231 -->
     <string name="controls_feature_light_boost_color">%1$s: cor do Boost</string>
+    <!-- src:59f46c0455e32a9a50a11b83a3639ad6380cfd57 -->
+    <string name="controls_feature_light_boost_color_short">%1$s: Boost</string>
     <!-- src:fcf339c861a400488abaf5e72b2ff55f0871d5dd -->
     <string name="controls_feature_acceleration_about">Eco/Turbo em outros modelos.</string>
     <!-- src:ed71743e10ca86edf4e2741d3f8aadf8a62292ab -->

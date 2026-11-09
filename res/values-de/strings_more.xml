@@ -136,6 +136,10 @@
     <string name="more_prefs_auto_stop">Fahrten automatisch beenden</string>
     <!-- src:6e56a0cc615fb4a83f1668457fad39ee488252da -->
     <string name="more_prefs_auto_stop_sub">Wenn der Scooter ausgeschaltet wird, 5 min lang außer Reichweite bleibt oder sich 10 min lang nicht bewegt</string>
+    <!-- src:e7146e4229442900123e435f2d3c7687d298fe63 -->
+    <string name="more_prefs_auto_record">Fahrten automatisch aufzeichnen</string>
+    <!-- src:8e1782e212b5017013c7c921e873e5f3031aad2c -->
+    <string name="more_prefs_auto_record_sub">Startet, sobald sich der verbundene Scooter bewegt. Solltest du eine Aufzeichnung beenden, wartet Volt, bis sich der Scooter neu verbindet.</string>
     <!-- src:de937287934ead27c1cf8140ec073b47e06707fd -->
     <string name="more_prefs_battery">Hintergrundaufzeichnung</string>
     <!-- src:47890c2c2c12e6af1e4a730e464b6788e7c17cd8 -->

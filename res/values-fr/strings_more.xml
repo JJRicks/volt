@@ -136,6 +136,10 @@
     <string name="more_prefs_auto_stop">Terminer les trajets automatiquement</string>
     <!-- src:6e56a0cc615fb4a83f1668457fad39ee488252da -->
     <string name="more_prefs_auto_stop_sub">Quand la trottinette s’éteint, reste hors de portée pendant 5 min ou ne bouge pas pendant 10 min</string>
+    <!-- src:e7146e4229442900123e435f2d3c7687d298fe63 -->
+    <string name="more_prefs_auto_record">Enregistrer les trajets automatiquement</string>
+    <!-- src:8e1782e212b5017013c7c921e873e5f3031aad2c -->
+    <string name="more_prefs_auto_record_sub">Démarre lorsque la trottinette connectée se déplace. Si vous arrêtez un enregistrement, l’application attend que la trottinette se reconnecte</string>
     <!-- src:de937287934ead27c1cf8140ec073b47e06707fd -->
     <string name="more_prefs_battery">Enregistrement en arrière-plan</string>
     <!-- src:47890c2c2c12e6af1e4a730e464b6788e7c17cd8 -->
