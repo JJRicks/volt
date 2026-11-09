@@ -210,6 +210,9 @@ public final class RidingConfigMenuValidation extends Instrumentation {
                 "preference_riding_night", "preference_riding_hide_status_bar"})
             require(findTag(moreView, tag) == null, "More no longer shows " + tag);
         require(!hasText(moreView, "Screen brightness") && !hasText(moreView, "Night vision"), "More no longer shows moved settings");
+        View autoOpen = findTag(moreView, "preference_riding_auto_open");
+        main(() -> { ScrollView scroll = scroller(autoOpen); int[] a = new int[2], b = new int[2]; autoOpen.getLocationInWindow(a); scroll.getLocationInWindow(b); scroll.scrollBy(0, a[1] - b[1] - scroll.getHeight() / 2); });
+        settle();
         shot(label + "-10-more");
         note("More shows the two automatic switches and no moved setting");
     }
@@ -250,9 +253,14 @@ public final class RidingConfigMenuValidation extends Instrumentation {
     private boolean menuFocused() { AlertDialog d = sheet(); return d != null && d.getWindow().getDecorView().hasWindowFocus(); }
     private AlertDialog sheet() { return (AlertDialog) field(screen(), "sheet"); }
     private View root() { return sheet().getWindow().getDecorView(); }
-    private ScrollView menuScroll() { return (ScrollView) findTyped(root(), ScrollView.class); }
+    /** The sheet's own scroller: AlertDialog's template has an empty one of its own that comes first. */
+    private ScrollView menuScroll() { return scroller(findTag(root(), "riding_layout_editor")); }
+    private static ScrollView scroller(View v) {
+        for (Object p = v.getParent(); p != null; p = ((android.view.ViewParent) p).getParent()) if (p instanceof ScrollView) return (ScrollView) p;
+        throw new AssertionError("No scroller");
+    }
     private void scrollMenu() { main(() -> { View v = findTag(root(), "preference-selector-riding_brightness"); menuScroll().scrollTo(0, Math.max(0, v.getTop() - 40)); }); settle(); }
-    private void scrollMenuEnd() { main(() -> menuScroll().fullScroll(View.FOCUS_DOWN)); settle(); }
+    private void scrollMenuEnd() { main(() -> menuScroll().scrollTo(0, 100000)); settle(); }
     private void scrollMenuTop() { main(() -> menuScroll().scrollTo(0, 0)); settle(); }
 
     private void close() {
@@ -318,11 +326,6 @@ public final class RidingConfigMenuValidation extends Instrumentation {
     private static View findDescription(View v, String text) {
         if (v.getContentDescription() != null && text.contentEquals(v.getContentDescription())) return v;
         if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) { View found = findDescription(((ViewGroup) v).getChildAt(i), text); if (found != null) return found; }
-        return null;
-    }
-    private static View findTyped(View v, Class<? extends View> type) {
-        if (type.isInstance(v)) return v;
-        if (v instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) { View found = findTyped(((ViewGroup) v).getChildAt(i), type); if (found != null) return found; }
         return null;
     }
     private static Object field(Object target, String name) {
