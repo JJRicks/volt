@@ -18,3 +18,4 @@
 {"back":"Time: Ready by","key":"dashboard_model_qa_charge_done_time_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"5e8ef4566f297b6db0e662bca61dc57c4f3c167b","target":"Hora: Pronta até"}
 {"back":"Measuring…","key":"dashboard_model_tile_measuring","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a7bc4f8672d17e6bda47b74ab5c9707777e3b738","target":"Medindo…"}
 {"back":"Connect the scooter first","key":"dashboard_model_tile_connect_scooter","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fbc9bb6baff246c2834f064cbd71cbe77243f7c0","target":"Conecte o patinete primeiro"}
+{"back":"Scheduling","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Programação"}

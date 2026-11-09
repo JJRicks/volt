@@ -23,7 +23,7 @@
     <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Sparkstartshastighet</string>
     <string name="controls_feature_start_speed_short" volt:src="9405735ed4961b5517452a22e672488228e9a705">Sparkstart</string>
     <string name="controls_feature_speed_limit" volt:src="4790622900ea5816a4b27925c7cad468f98740a6">Egen hastighetsgräns</string>
-    <string name="controls_feature_speed_limit_short" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Hastighetsgräns</string>
+    <string name="controls_feature_speed_limit_short" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0" volt:attempt="2">Hastighetsgräns</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Maxhastighet</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Tvåmotorsdrift</string>
     <string name="controls_feature_dual_drive_short" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Tvåmotorsdrift</string>
@@ -44,9 +44,9 @@
     <string name="controls_feature_parking_assist" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Kraftassistans</string>
     <string name="controls_feature_parking_assist_short" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Kraftassistans</string>
     <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698">Nedförsassistans</string>
-    <string name="controls_feature_hill_descent_control_short" volt:src="ae8dde31911b96f4a313f7393f917525dcceb45b">Nedförsassistans</string>
+    <string name="controls_feature_hill_descent_control_short" volt:src="ae8dde31911b96f4a313f7393f917525dcceb45b" volt:attempt="2">Nedförsassistans</string>
     <string name="controls_feature_overspeed_control" volt:src="62129dd7be5c7491da7c0e3dd74368ed8b8bb65d">Aktivt överhastighetsskydd</string>
-    <string name="controls_feature_overspeed_control_short" volt:src="197de7eac4102495e8654ef24e068d5aec723bf5">Överhastighetsskydd</string>
+    <string name="controls_feature_overspeed_control_short" volt:src="197de7eac4102495e8654ef24e068d5aec723bf5" volt:attempt="2">Överhastighetsskydd</string>
     <string name="controls_feature_prompt_tone" volt:src="1aa3e25dd0ca7640deef3de5698158c98f2a73a2">Signalljud</string>
     <string name="controls_feature_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Linjeljus</string>
     <string name="controls_feature_line_lights_short" volt:src="a16f7fc391f9f5174273a0fe140aefd33f93f637">Linje</string>

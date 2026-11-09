@@ -110,7 +110,7 @@
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt wurde während der Messung geschlossen. „Fertig geladen bis“ ist aus.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">„Fertig geladen bis“ ist eingestellt. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">„Fertig geladen bis“ wurde nicht eingestellt. %1$s</string>
-    <string name="service_done_start_sent" volt:src="be03d1d959bcab58892410b7a62f52b0ede8e456">Ladestart: %1$s an den Scooter gesendet. Du kannst die Verbindung sicher trennen.</string>
+    <string name="service_done_start_sent" volt:src="be03d1d959bcab58892410b7a62f52b0ede8e456" volt:attempt="2">Ladestart: %1$s an den Scooter gesendet. Trennen ist sicher.</string>
     <string name="service_done_safe_to_disconnect" volt:src="c4cb42903ef51f1db0f2cdda1172ed0f4e631d20">%1$s Du kannst die Verbindung sicher trennen.</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">„Fertig geladen bis“ ist eingestellt</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">„Fertig geladen bis“ wurde nicht eingestellt</string>
