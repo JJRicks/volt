@@ -332,15 +332,16 @@ public final class ParkedValidation extends Instrumentation {
     /**
      * A charging scooter arms the live charging hold when Volt is left, and the hold skips the 10 s grace by design
      * (the 1.12.0 sweep failed here while charging). active() is only its internal state: the service also needs
-     * notifications, so LiveChargingHoldCheck judges the effective hold from what it observed. Live charging then goes off so
+     * notifications, so LiveChargingHoldCheck judges the effective hold from what it observed, and fails a hold that did not
+     * arm although its conditions, read immediately before leaving, were met. Live charging then goes off so
      * the grace itself can be timed whether or not the scooter is plugged in; the switch is in SMOKE_PREFS, so cleanup restores it.
      * Returns the evidence line.
      */
     private String allowForLiveChargingHold()throws Exception{
         AtomicReference<String> evidence=new AtomicReference<>();
-        runMain(()->{assertNoUserRecording();service.settings.edit().putBoolean("background_connection",false).commit();service.visible(true);service.visible(false);
+        runMain(()->{assertNoUserRecording();service.settings.edit().putBoolean("background_connection",false).commit();service.visible(true);
             LiveChargingHoldCheck.Observed observed;
-            try{observed=LiveChargingHoldProbe.observe(service);}catch(ReflectiveOperationException error){throw new IllegalStateException("Cannot read the live charging hold",error);}
+            try{LiveChargingHoldCheck.Conditions before=LiveChargingHoldProbe.conditions(service);service.visible(false);observed=LiveChargingHoldProbe.observe(service,before);}catch(ReflectiveOperationException error){throw new IllegalStateException("Cannot read the live charging hold",error);}
             String problem=LiveChargingHoldCheck.problem(observed);
             require(problem==null,problem);
             evidence.set(LiveChargingHoldCheck.evidence(observed));

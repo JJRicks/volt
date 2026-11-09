@@ -55,6 +55,7 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
             log("link ready, charging");
             if("notifications-off".equals(mode)){notificationsBlockedHasNoEffectiveHold();}
             else{
+                sweepCheckJudgesArming();
                 cutOutBetweenPollsKeepsTheCard();
                 replugInsideWindowKeepsTheCard();
                 unplugClears("just after a poll",0);
@@ -179,14 +180,50 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         require(!onMain(()->service.chargeLiveAllowed()),"Notifications must be off for this mode");
         log("notifications off: chargeLiveAllowed false, leaving Volt");
         main(()->{
-            settings().edit().putBoolean("background_connection",false).commit();service.visible(true);service.visible(false);
-            LiveChargingHoldCheck.Observed observed;
-            try{observed=LiveChargingHoldProbe.observe(service);}catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
+            settings().edit().putBoolean("background_connection",false).commit();
+            LiveChargingHoldCheck.Observed observed=leaveAndObserve();
             String problem=LiveChargingHoldCheck.problem(observed);
             require(problem==null,"The sweep check failed: "+problem);
+            require(observed.before.armable(),"Expected the arming conditions to be met; observed: "+LiveChargingHoldCheck.evidence(observed));
             require(observed.armed&&!observed.effective&&!observed.notificationsAllowed,"Expected armed, no effective hold, notifications blocked; observed: "+LiveChargingHoldCheck.evidence(observed));
             require(observed.graceDeadlineMs>observed.nowMs,"Expected the ordinary 10 s grace");
             log("blocked evidence: "+LiveChargingHoldCheck.evidence(observed));
+            settings().edit().putBoolean("background_connection",true).commit();service.visible(true);
+        });
+    }
+
+    /** As the sweep does it, on the main thread: Volt in front, the arming conditions read, then leaving. */
+    private LiveChargingHoldCheck.Observed leaveAndObserve(){
+        service.visible(true);
+        try{LiveChargingHoldCheck.Conditions before=LiveChargingHoldProbe.conditions(service);service.visible(false);return LiveChargingHoldProbe.observe(service,before);}
+        catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
+    }
+    /**
+     * The sweep's check against the real service with notifications allowed: conditions met and armed passes; the same
+     * leave with the hold then forced off (standing in for a hold that failed to arm) fails; Live charging off, so the
+     * conditions were not met, stays unarmed and passes.
+     */
+    private void sweepCheckJudgesArming(){
+        ensureFront();
+        readChargingInFront();
+        main(()->{
+            settings().edit().putBoolean("background_connection",false).commit();
+            LiveChargingHoldCheck.Observed armed=leaveAndObserve();
+            require(armed.before.armable()&&armed.armed&&armed.effective,"Expected an armed, effective hold; observed: "+LiveChargingHoldCheck.evidence(armed));
+            String problem=LiveChargingHoldCheck.problem(armed);
+            require(problem==null,"The sweep check failed an armed hold: "+problem);
+            log("armed evidence: "+LiveChargingHoldCheck.evidence(armed));
+            ((ChargeLiveHold)field(service,"chargeLive")).shown();
+            LiveChargingHoldCheck.Observed missing;
+            try{missing=LiveChargingHoldProbe.observe(service,armed.before);}catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
+            String reported=LiveChargingHoldCheck.problem(missing);
+            require(!missing.armed&&reported!=null&&reported.contains("did not arm"),"The sweep check missed a hold that failed to arm: "+reported);
+            log("eligible but unarmed: "+reported);
+            service.setChargeLiveEnabled(false);
+            LiveChargingHoldCheck.Observed off=leaveAndObserve();
+            require(!off.before.armable()&&!off.armed&&LiveChargingHoldCheck.problem(off)==null,"Live charging off must stay unarmed and pass; observed: "+LiveChargingHoldCheck.evidence(off));
+            log("not armable: "+LiveChargingHoldCheck.evidence(off));
+            service.setChargeLiveEnabled(true);
             settings().edit().putBoolean("background_connection",true).commit();service.visible(true);
         });
     }
