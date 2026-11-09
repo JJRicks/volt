@@ -357,7 +357,8 @@ public final class ChargeScheduleController {
         boolean enabled=view.manualEnabled;
         program(c,wallMs,offset,()->{
             state(c).manualStart=wallMs;state(c).calculatedWire=0;
-            if(enabled){armManual(c,wallMs,offset);startConfirmed(confirmed,wallMs);}
+            // This path writes no ON, and enabled can be a remembered plan: only a live reading of the switch backs the message.
+            if(enabled){armManual(c,wallMs,offset);if(Integer.valueOf(1).equals(context().enabled))startConfirmed(confirmed,wallMs);}
             else{State s=state(c);s.start=wallMs;s.wire=wallMs/1000+offset;s.retired=false;save(c,s);}
         },false,null,null,completion);
     }
@@ -365,14 +366,16 @@ public final class ChargeScheduleController {
      * Only a start still ahead when the scooter's last confirmation arrives: past it, nothing shows the scooter accepted
      * the change before that instant, so the plan stays tracked but no one is told it is safe to leave.
      */
-    private void startConfirmed(LongConsumer confirmed,long start){if(confirmed!=null&&start>context().now)confirmed.accept(start);}
+    private void startConfirmed(LongConsumer confirmed,long start){Context now=context();if(confirmed!=null&&start>now.now&&!readsOff(now,state(now)))confirmed.accept(start);}
+    /** The switch reading OFF beside the plan's own saved time. A zero with no time, or none readable, may only be a reboot, so it proves nothing. */
+    private static boolean readsOff(Context c,State s){return Integer.valueOf(0).equals(c.enabled)&&c.wireStart!=null&&c.wireStart>0&&c.wireStart==s.wire;}
     /**
      * Whether scope's plan is still the one with this start, for a notice that says so. Away from that scooter
-     * nothing can be known, so an earlier claim stands.
+     * nothing can be known, so an earlier claim stands; a reliable OFF (readsOff) ends it even while the plan stays tracked.
      */
     public boolean startStillPlanned(String scope,long start){
         Context c=context();if(!c.ready||!c.scope.equals(scope))return true;
-        reconcile(c);State s=state(c);return s.mode!=0&&s.start==start;
+        reconcile(c);State s=state(c);return s.mode!=0&&s.start==start&&!readsOff(c,s);
     }
     private void armManual(Context c,long start,int offset){State s=state(c);s.mode=1;s.start=start;s.wire=start/1000+offset;s.armed=context().now;
         s.deadline=start+24*60*60_000L;s.target=finite(c.target)&&c.target>0&&c.target<=100?c.target:100;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);}

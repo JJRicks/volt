@@ -71,7 +71,7 @@ public final class ChargeScheduleControllerTest {
         // Measuring arms through the listener-free call, which has nothing to hear it.
         Rig measured=new Rig();heard.clear();measured.controller.setDoneEnabled(true,measured.results::add);measured.reply(true);measured.reply(true);measured.reply(true);
         check(heard.isEmpty()&&measured.controller.view().doneByEnabled,"no listener, no message");
-        startPassedInFlight();manualConfirmation();reassuranceRetires();
+        startPassedInFlight();manualConfirmation();reassuranceNeedsLiveOn();reassuranceRetires();
     }
     /** A start that passes while the ON confirmation is in flight proves nothing about the scooter having taken it in time. */
     private static void startPassedInFlight(){
@@ -110,6 +110,40 @@ public final class ChargeScheduleControllerTest {
         check(heard.isEmpty()&&late.controller.view().manualEnabled,"a manual start that passed during the ON confirmation is not heard");
         Rig test=new Rig();test.c.wireStart=first/1000-6*3600;check(test.controller.startTest(x->{})==null,"test starts");test.reply(true);test.c.wireStart=test.sentTime/1000+test.sentOffset;test.reply(true);test.c.enabled=1;test.reply(true);
         check(heard.isEmpty()&&test.controller.testing(),"Test scheduled charging has no listener to hear");
+    }
+    /** A rig with confirmed manual Scheduled charging on, so the remembered plan says on whatever the scooter reads next. */
+    private static Rig manualOn(List<Long> heard,long first){Rig r=new Rig();r.c.wireStart=first/1000-6*3600;r.controller.setManualEnabled(true,r.results::add,heard::add);confirmWrites(r);check(heard.size()==1&&r.controller.view().manualEnabled,"manual armed");heard.clear();return r;}
+    /** A time edit writes no ON, so only a live reading of the switch can back the message; a reliable OFF retires one already out. */
+    private static void reassuranceNeedsLiveOn(){
+        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z"),second=time("2026-10-20T10:00:00Z"),secondWire=second/1000-6*3600;
+        Rig before=manualOn(heard,first);before.c.enabled=0;check(before.controller.view().manualEnabled,"the remembered plan still says on over a zero");
+        before.controller.setManualStart(second,before.results::add,heard::add);before.reply(true);before.c.wireStart=secondWire;before.reply(true);
+        check(heard.isEmpty()&&before.results.get(1)==null,"OFF before the edit: saved, but no reassurance");
+        check(!before.controller.startStillPlanned("owner-A",second),"OFF before the edit: nothing claims the new start");
+        Rig during=manualOn(heard,first);during.controller.setManualStart(second,during.results::add,heard::add);during.reply(true);during.c.wireStart=secondWire;during.c.enabled=0;during.reply(true);
+        check(heard.isEmpty()&&!during.controller.startStillPlanned("owner-A",second),"OFF while the time was confirming: no reassurance");
+        Rig on=manualOn(heard,first);on.controller.setManualStart(second,on.results::add,heard::add);on.reply(true);on.c.wireStart=secondWire;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==second&&on.controller.startStillPlanned("owner-A",second),"confirmed ON: the new start is heard and holds");heard.clear();
+        Rig unknown=manualOn(heard,first);unknown.controller.setManualStart(second,unknown.results::add,heard::add);unknown.reply(true);unknown.c.wireStart=secondWire;unknown.c.enabled=null;unknown.reply(true);
+        check(heard.isEmpty(),"no reading of the switch: silence");
+        Rig odd=manualOn(heard,first);odd.controller.setManualStart(second,odd.results::add,heard::add);odd.reply(true);odd.c.wireStart=secondWire;odd.c.enabled=2;odd.reply(true);
+        check(heard.isEmpty(),"an out-of-range switch reading: silence");
+        Rig unchanged=manualOn(heard,first);int writes=unchanged.writes.size();unchanged.c.enabled=0;unchanged.controller.setManualStart(second,unchanged.results::add,heard::add);unchanged.reply(true);unchanged.c.wireStart=secondWire;unchanged.reply(true);
+        check(unchanged.writes.subList(writes,unchanged.writes.size()).equals(java.util.Arrays.asList("clock","time")),"Volt never turns the schedule on for the rider");
+        // A claim already out: retired by a reliable OFF, kept through what a reboot can look like.
+        Rig posted=manualOn(heard,first);long start=first;posted.c.enabled=0;
+        check(!posted.controller.startStillPlanned("owner-A",start),"a reliable OFF beside the saved time retires a posted claim");
+        check(posted.controller.startStillPlanned("owner-B",start+1),"another scooter's OFF says nothing about this claim");
+        Rig zero=manualOn(heard,first);zero.c.enabled=0;zero.c.wireStart=0L;check(zero.controller.startStillPlanned("owner-A",first),"reboot zeros are ambiguous: the claim stands");
+        Rig absent=manualOn(heard,first);absent.c.enabled=0;absent.c.wireStart=null;check(absent.controller.startStillPlanned("owner-A",first),"a zero with no time reading is ambiguous: the claim stands");
+        Rig blank=manualOn(heard,first);blank.c.enabled=null;check(blank.controller.startStillPlanned("owner-A",first),"no reading of the switch: the claim stands");
+        heard.clear();Rig done=new Rig();done.controller.setDoneEnabled(true,done.results::add,heard::add);confirmWrites(done);start=heard.get(0);heard.clear();done.c.enabled=0;
+        check(!done.controller.startStillPlanned("owner-A",start),"a reliable OFF retires a Charge done by claim too");
+        // Charge done by rewrites ON with each edit, so that confirmation is the evidence.
+        Rig edited=new Rig();edited.controller.setDoneEnabled(true,edited.results::add,heard::add);confirmWrites(edited);heard.clear();edited.c.enabled=null;edited.controller.setDoneTime(9,0,edited.results::add,heard::add);edited.reply(true);edited.c.wireStart=edited.sentTime/1000+edited.sentOffset;edited.reply(true);edited.reply(true);
+        check(heard.size()==1,"a confirmed ON write is its own evidence");heard.clear();
+        Rig contradicted=new Rig();contradicted.controller.setDoneEnabled(true,contradicted.results::add,heard::add);contradicted.reply(true);contradicted.c.wireStart=contradicted.sentTime/1000+contradicted.sentOffset;contradicted.reply(true);contradicted.c.enabled=0;contradicted.reply(true);
+        check(heard.isEmpty()&&contradicted.results.get(0)==null,"a reliable OFF read right after the ON is not reassured over");
     }
     /** Whether a "safe to disconnect" notice still speaks for its plan, over every path that ends or replaces that plan. */
     private static void reassuranceRetires(){
