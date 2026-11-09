@@ -1427,7 +1427,7 @@ final class RidingScreen implements AppScreen {
 
     /**
      * A row of chips that tightens before it gives anything up (RidingChipFit): the drive mode's letter spacing goes, then
-     * the icons, and only then the last chip. The whole row uses one rung. A chip never shows cut.
+     * the icons, then some padding, and only then the last chip. The whole row uses one rung. A chip never shows cut.
      */
     private final class ChipRow extends LinearLayout {
         ChipRow() {
@@ -1465,6 +1465,7 @@ final class RidingScreen implements AppScreen {
      */
     private final class Chip extends LinearLayout {
         private static final float MODE_SPACING = .06f;
+        private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 8;
         final String content;
         private final TextView text;
         /** Measures the text at each rung's letter spacing; off screen, so trying a rung never disturbs the layout. */
@@ -1482,7 +1483,7 @@ final class RidingScreen implements AppScreen {
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
             setFocusable(true);
             setMinimumHeight(ui.dp(40));
-            setPadding(ui.dp(14), ui.dp(4), ui.dp(16), ui.dp(4));
+            setPaddingRelative(ui.dp(START_PADDING_DP), ui.dp(4), ui.dp(END_PADDING_DP), ui.dp(4));
             setBackground(ui.shape(mode ? ui.accent : cardColor(), 20, 0));
             String key = content.equals(RidingLayout.BATTERY_TEMPERATURE) ? "temperature" : content.equals(RidingLayout.CLOCK) ? "clock" : null;
             icon = key == null ? null : ui.icon(key, 18, ui.muted);
@@ -1510,13 +1511,16 @@ final class RidingScreen implements AppScreen {
             probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
             int iconWidth = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(18) + ui.dp(6) : 0;
-            return getPaddingStart() + iconWidth + probe.getMeasuredWidth() + getPaddingEnd();
+            int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
+            return padding + iconWidth + probe.getMeasuredWidth();
         }
         /** Shows this chip at a RidingChipFit rung. Setting the same rung again changes nothing, so measuring settles. */
         void useRung(int rung) {
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             int visible = rung < RidingChipFit.NO_ICONS ? VISIBLE : GONE;
             if (icon != null && icon.getVisibility() != visible) icon.setVisibility(visible);
+            boolean tight = rung == RidingChipFit.TIGHT;
+            setPaddingRelative(ui.dp(tight ? TIGHT_PADDING_DP : START_PADDING_DP), ui.dp(4), ui.dp(tight ? TIGHT_PADDING_DP : END_PADDING_DP), ui.dp(4));
         }
         void show(long now, String units, Double recordingKm) {
             Shown s = shown(content, now, units, recordingKm);

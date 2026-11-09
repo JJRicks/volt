@@ -3,12 +3,12 @@ package com.jjricks.volt;
 /**
  * How many riding-mode chips a row can show, and how tight they must get to do it. A narrow row
  * gives up its decoration before it gives up a reading: first the drive mode's letter spacing,
- * then the chips' icons, and only then the last chip. The rung applies to the whole row so the
- * chips stay alike. Text is never shrunk or broken: a chip shows whole or not at all.
+ * then the chips' icons, then some of their padding, and only then the last chip. The rung applies
+ * to the whole row so the chips stay alike. Text is never shrunk or broken: a chip shows whole or not at all.
  */
 final class RidingChipFit {
-    /** Rungs, widest first: as designed; no letter spacing; no letter spacing and no icons. */
-    static final int FULL = 0, NO_SPACING = 1, NO_ICONS = 2, RUNGS = 3;
+    /** Rungs, widest first; each keeps the one before: as designed; no letter spacing; no icons; tight padding. */
+    static final int FULL = 0, NO_SPACING = 1, NO_ICONS = 2, TIGHT = 3, RUNGS = 4;
 
     /** How many chips show, from the first; a later chip is lower priority. */
     final int count;
