@@ -40,8 +40,9 @@
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menu’s</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Pagina’s</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimentele functies</string>
-    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Topsnelheid</string>
+    <string name="dashboard_model_tile_top_speed" volt:src="d1cb36b44b04e38c459d67d7da24a13492e5c327">Max. snelheid</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Laadschema</string>
+    <string name="dashboard_model_tile_charge_schedule_short" volt:src="699259da8d38c2a1d8a69c8ac841763d53ab11da">Laadschema</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Bezig met bijwerken…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (geleerd)</string>
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Step</string>
@@ -82,7 +83,7 @@
     <string name="dashboard_model_example_electrical" volt:src="f66ec4436c5bfbb62fc0c6be45b855c504823083">Elektrische metingen</string>
     <string name="dashboard_model_example_battery_power" volt:src="4cf2ca4c83ab84b80bb85a0b328be5c34e0b4f9b">Accuvermogen</string>
     <string name="dashboard_model_example_charge_history" volt:src="49e4226b880f838ef8bcfcd1dfa7d282a5c3adb3">Laadgeschiedenis</string>
-    <string name="dashboard_model_example_note" volt:src="0348b8f6a81497ac28d044e5fef53009c1222dde">Controleer de bandenspanning</string>
+    <string name="dashboard_model_example_note" volt:src="f1a8571f4f92a0cf93deef3d5eb747c2da685078">Bandenspanning controleren</string>
     <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Indeling %1$s</string>
     <string name="dashboard_model_slot_example" volt:src="0740b63c52f763156abb78cc674a59a536f7eb7e">Alle widgets</string>
 </resources>
