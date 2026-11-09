@@ -812,9 +812,10 @@ public final class ScooterService extends Service {
             if(!chargeMeasure.active())return;
             ChargeScheduleController.View plan=chargeSchedule();boolean armed=result==null&&plan.doneByEnabled;
             chargeMeasure.finish();
-            // On screen, the short start-sent line; the background notice keeps the plan's detail and adds that Volt is no longer needed.
-            String start=armed?DisplayTime.clock(this,settings,plan.startWallMs):"",finish=armed?DisplayTime.clock(this,settings,plan.doneByWallMs):"";
-            chargeDoneNotice(armed,armed?(visible?T.serviceDoneStartSent(start):T.serviceDoneSafeToDisconnect(measured?T.serviceMeasureMeasured(start,finish):T.serviceMeasurePlanned(start,finish)))
+            // On screen, the short start-sent toast; the background notice below keeps its plan detail and gains the safe-to-disconnect line.
+            if(armed&&visible){doneByStartSent(plan.startWallMs);endChargeMeasureWork();return;}
+            chargeDoneNotice(armed,armed?(measured?T.serviceMeasureMeasured(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs))
+                    :T.serviceMeasurePlanned(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs)))
                     :result==null?T.serviceMeasureOff():T.serviceMeasureResult(ChargeScheduleText.shown(result)));
             endChargeMeasureWork();
         });
@@ -823,7 +824,15 @@ public final class ScooterService extends Service {
     private void doneByStartSent(long startWallMs){
         if(destroyed||chargeMeasure.active())return;
         String text=T.serviceDoneStartSent(DisplayTime.clock(this,settings,startWallMs));
-        if(visible)android.widget.Toast.makeText(this,text,android.widget.Toast.LENGTH_LONG).show();else chargeDoneNotice(true,text);
+        if(visible){android.widget.Toast.makeText(this,text,android.widget.Toast.LENGTH_LONG).show();return;}
+        // Off screen, the same one notice a measured arm posts, with the short line. Kept beside chargeDoneNotice: that one's text statements are frozen in a catalog change.
+        try{
+            notification();// Ensures the channel exists even if the foreground notice never posted.
+            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(T.serviceDoneTitleSet()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
+                    .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
+        }catch(RuntimeException unavailable){}
     }
     /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
     private void endChargeMeasure(CharSequence reason){
@@ -920,6 +929,8 @@ public final class ScooterService extends Service {
     }
     /** Separate from the foreground notice, which Android removes once measuring ends. */
     private void chargeDoneNotice(boolean set,String text){
+        // A posted notice is a measured arm's: its text already says when charging resumes; the scooter no longer needs Volt.
+        if(set&&!visible)text=T.serviceDoneSafeToDisconnect(text);
         if(visible){android.widget.Toast.makeText(this,set?T.serviceDoneToastSet(text):T.serviceDoneToastNotSet(text),android.widget.Toast.LENGTH_LONG).show();return;}
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
