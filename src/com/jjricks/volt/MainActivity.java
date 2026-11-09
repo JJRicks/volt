@@ -522,7 +522,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             decor.setSystemUiVisibility(decor.getSystemUiVisibility()|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
     }
-    /** Opens riding mode. It only reads: it never records (owner Q12 A), sends a command or touches the lock. */
+    /** Opens riding mode. Stopped, it can lock and record through the same paths as Home (owner, Nov 8); opening it does neither. */
     @Override public void openRiding(){
         if(scooterService==null||riding!=null||onboarding!=null)return;
         captureScroll();openRidingSession();transitionRebuild(0);
@@ -1016,6 +1016,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scroll!=null&&scrollPage.equals("more"))scroll.scrollTo(0,0);
         if(screen instanceof MoreScreen)((MoreScreen)screen).resetScroll();
         return hadSection;
+    }
+    /** The lock bar's switch alone for riding mode (RidingScreen), registered like any Home lock so updates and the queue reach it. */
+    @Override public View ridingLock(){
+        compactLock=true;lockTitle=design.text(T.mainLockTitle(),15,true);
+        lockControl=new LockControl();lockControl.compact=true;lockReady=lockControl;
+        return registerDashboardLock(lockControl);
     }
     private void openMoreSection(String section){
         // A deliberate shortcut wins over the older submenu's expired return state.

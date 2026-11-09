@@ -28,6 +28,7 @@ public final class RidingFramesTest {
             trace();
             frames();
             picker();
+            stoppedControls();
             english();
             source();
         } finally {
@@ -175,9 +176,23 @@ public final class RidingFramesTest {
         check(T.ridingPowerRegenPeak("640 W").equals("regen · peak 640 W") && !T.ridingPowerRegenPeak("640 W").contains("braking"), "no braking in the regen line (owner)");
     }
 
+    private static void stoppedControls() {
+        check(RidingFrames.pickerShown(true, 0.0) && RidingFrames.pickerShown(true, null) && RidingFrames.pickerShown(true, .9), "stopped shows them (the picker's own gate)");
+        check(!RidingFrames.pickerShown(true, 1.0) && !RidingFrames.pickerShown(false, 0.0) && !RidingFrames.pickerShown(false, null), "moving, or no fresh stationary report, hides them");
+        check(RidingFrames.recordEnabled(false, true, false) && RidingFrames.recordEnabled(true, false, false), "connected, or recording, takes a tap");
+        check(!RidingFrames.recordEnabled(false, true, true) && !RidingFrames.recordEnabled(true, true, true) && !RidingFrames.recordEnabled(false, false, false), "still saving, or not connected, doesn't");
+        check(RidingFrames.recordAction(true, false, true) == RecorderTap.START, "stopped and idle starts");
+        check(RidingFrames.recordAction(true, true, true) == RecorderTap.STOP, "stopped and recording stops");
+        check(RidingFrames.recordAction(true, false, false) == RecorderTap.NONE, "not connected does nothing here");
+        check(RidingFrames.recordAction(false, true, true) == RecorderTap.NONE && RidingFrames.recordAction(false, false, true) == RecorderTap.NONE, "a tap that lands once moving does nothing");
+    }
+
     private static void source() throws IOException {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
-        check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state or control in riding mode");
+        check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state in riding mode's readings; the lock is Home's, reached through host.ridingLock()");
+        check(screen.contains("stoppedLock = host.ridingLock();") && screen.contains("showStopped(stoppedNow,"), "Lock and Record follow the stopped gate");
+        check(screen.contains("RidingFrames.recordAction(stopped(SystemClock.elapsedRealtime())") && screen.contains("RideRecordingApp.of(host)"), "Record is Home's control, re-checked at the tap");
+        check(!screen.contains("ble.set("), "the lock's tap goes through MainActivity's queue, never straight to the scooter");
         check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "the picker follows the stopped state");
         check(screen.contains("if (sheetState.update(stoppedNow)) dismissSheet();"), "a resumed ride closes the sheet");
         check(screen.contains("sheetState.close();") && screen.contains("sheetState.accept(stopped("), "the screen owns the sheet on close and on a choice");

@@ -40,6 +40,8 @@ public interface ScreenHost {
     default void emailReport(CompatibilityReport report) { }
     /** Asks which listed NAVEE model this scooter is and keeps the answer on its profile. */
     default void chooseScooterModel(String profileId) { }
-    /** Opens riding mode (Home's RIDE button). It only reads; it never records or sends a command. */
+    /** Opens riding mode (Home's RIDE button). */
     default void openRiding() { }
+    /** Home's lock switch for riding mode's stopped controls (owner, Nov 8), through the same tap queue; null when the host has none. */
+    default android.view.View ridingLock() { return null; }
 }
