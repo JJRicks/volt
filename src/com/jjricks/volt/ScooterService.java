@@ -1186,6 +1186,8 @@ public final class ScooterService extends Service {
                 break;
             case 2:builder.setContentTitle(c1ShortTitle(live));
                 break;
+            case 3:builder.setLargeIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ut5max));
+                break;
             default:break;
         }
     }
