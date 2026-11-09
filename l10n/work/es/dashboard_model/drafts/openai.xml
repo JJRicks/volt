@@ -42,6 +42,7 @@
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Controles experimentales</string>
     <string name="dashboard_model_tile_top_speed" volt:src="d1cb36b44b04e38c459d67d7da24a13492e5c327">Vel. máxima</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Carga programada</string>
+    <string name="dashboard_model_tile_charge_schedule_short" volt:src="699259da8d38c2a1d8a69c8ac841763d53ab11da">Horario de carga</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Actualizando…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (aprendido)</string>
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Patinete</string>

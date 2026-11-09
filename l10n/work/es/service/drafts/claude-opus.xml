@@ -116,6 +116,8 @@
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt se cerró durante la medición. «Fin de carga» está desactivado.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">«Fin de carga» está programado. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">«Fin de carga» no se programó. %1$s</string>
+    <string name="service_done_start_sent" volt:src="be03d1d959bcab58892410b7a62f52b0ede8e456">Inicio de carga a las %1$s enviado al patinete. Ya puedes desconectar.</string>
+    <string name="service_done_safe_to_disconnect" volt:src="c4cb42903ef51f1db0f2cdda1172ed0f4e631d20">%1$s Ya puedes desconectar.</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">«Fin de carga» está programado</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">«Fin de carga» no se programó</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Vuelve a abrir Volt</string>

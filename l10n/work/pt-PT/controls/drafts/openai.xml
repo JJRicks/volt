@@ -2,41 +2,68 @@
 <!-- Draft openai: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
     <string name="controls_feature_lock" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Bloqueio eletrónico</string>
-    <string name="controls_feature_cruise_control" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Controlo de cruzeiro</string>
+    <string name="controls_feature_lock_short" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Bloqueio</string>
+    <string name="controls_feature_cruise_control" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Cruise Control</string>
+    <string name="controls_feature_cruise_control_short" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Cruise Control</string>
     <string name="controls_feature_energy_recovery" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Recuperação de energia</string>
+    <string name="controls_feature_energy_recovery_short" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Recuperação de energia</string>
     <string name="controls_feature_acceleration" volt:src="e85a5d0f3a6fd80c598896dc4d227e68c6fc0cb3">Perfil de aceleração</string>
+    <string name="controls_feature_acceleration_short" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Aceleração</string>
     <string name="controls_feature_headlight" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Luz traseira</string>
     <string name="controls_feature_auto_sensor" volt:src="cb07d62156abcb45a74caa94986b7c241ebf6e48">Luzes automáticas</string>
+    <string name="controls_feature_auto_sensor_short" volt:src="561cb731f9fccd806b92aa14b5f46c16c79feca6">Luzes automáticas</string>
     <string name="controls_feature_traction_control" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Controlo de tração</string>
+    <string name="controls_feature_traction_control_short" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Controlo de tração</string>
     <string name="controls_feature_turn_sound" volt:src="19860ddd145bce9bd14f3e4eb17684670f0d812e">Som dos piscas</string>
+    <string name="controls_feature_turn_sound_short" volt:src="cb472220793ecbbd5ab3c9e044deb8a692a60bb6">Som dos piscas</string>
     <string name="controls_feature_display_units" volt:src="2ff1c881310d89d6b6570ba47432ef99c788d66b">Unidades do ecrã da trotinete</string>
+    <string name="controls_feature_display_units_short" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Unidades do ecrã</string>
     <string name="controls_feature_range_algorithm" volt:src="5e8878e318a80c02005de3c926acef4dbfb7c600">Estimativa de autonomia</string>
+    <string name="controls_feature_range_algorithm_short" volt:src="5e8878e318a80c02005de3c926acef4dbfb7c600">Autonomia est.</string>
     <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Velocidade de arranque com impulso</string>
+    <string name="controls_feature_start_speed_short" volt:src="9405735ed4961b5517452a22e672488228e9a705">Velocidade de arranque com impulso</string>
     <string name="controls_feature_speed_limit" volt:src="4790622900ea5816a4b27925c7cad468f98740a6">Limite de velocidade personalizado</string>
+    <string name="controls_feature_speed_limit_short" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Limite de velocidade</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Velocidade máxima</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Tração com dois motores</string>
+    <string name="controls_feature_dual_drive_short" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Dois motores</string>
     <string name="controls_feature_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90">Limite de velocidade do modo Drive</string>
+    <string name="controls_feature_drive_speed_limit_short" volt:src="9a3dc2d0fcc48f27c237a0829af4cfbb9bc5809c">Limite Drive</string>
     <string name="controls_feature_charge_limit" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Limite de carga</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Carregamento programado</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Hora de início do carregamento</string>
+    <string name="controls_feature_charge_start_short" volt:src="03f1f88780620a29167bab73b48cd85097cfa5c8">Início do carregamento</string>
     <string name="controls_feature_lock_expiry" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Duração do bloqueio</string>
+    <string name="controls_feature_lock_expiry_short" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Duração do bloqueio</string>
     <string name="controls_feature_low_power" volt:src="b8528f58a68d9d264698b24b3a94b85d9f6e5e4c">Modo de bateria fraca</string>
+    <string name="controls_feature_low_power_short" volt:src="07e24c88c64442b90521041d222838dd2cbcef7c">Modo de bateria fraca</string>
     <string name="controls_feature_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modo de longa autonomia</string>
+    <string name="controls_feature_long_range_mode_short" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modo de longa autonomia</string>
     <string name="controls_feature_hill_start_assist" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Assistência à caminhada</string>
+    <string name="controls_feature_hill_start_assist_short" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Assistência à caminhada</string>
     <string name="controls_feature_parking_assist" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Assistência de potência</string>
+    <string name="controls_feature_parking_assist_short" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Assistência de potência</string>
     <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698">Controlo de descida</string>
+    <string name="controls_feature_hill_descent_control_short" volt:src="ae8dde31911b96f4a313f7393f917525dcceb45b">Descida</string>
     <string name="controls_feature_overspeed_control" volt:src="62129dd7be5c7491da7c0e3dd74368ed8b8bb65d">Controlo ativo de excesso de velocidade</string>
+    <string name="controls_feature_overspeed_control_short" volt:src="197de7eac4102495e8654ef24e068d5aec723bf5">Excesso de velocidade</string>
     <string name="controls_feature_prompt_tone" volt:src="1aa3e25dd0ca7640deef3de5698158c98f2a73a2">Sinal sonoro</string>
     <string name="controls_feature_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luzes de linha</string>
+    <string name="controls_feature_line_lights_short" volt:src="a16f7fc391f9f5174273a0fe140aefd33f93f637">Linha</string>
     <string name="controls_feature_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Luzes de estrela</string>
+    <string name="controls_feature_star_lights_short" volt:src="b92a60f9da083e12e33a8e4e25af06b776111e92">Estrela</string>
     <string name="controls_feature_proximity_key" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Desbloqueio por proximidade</string>
+    <string name="controls_feature_proximity_key_short" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Desbloqueio por proximidade</string>
     <string name="controls_feature_pin" volt:src="9ebceaa07ef3bbec8add681acdb6a2a6a780f643">PIN do guiador</string>
     <string name="controls_feature_ambient_light_mode" volt:src="b5d7c85febfcabf7d1d5c6761e480e10236fbd3b">Luz ambiente</string>
     <string name="controls_feature_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Luz do logótipo</string>
     <string name="controls_feature_daytime_light" volt:src="27d1e22bbf9c92075fb26ffc4dda7493d953f9e8">Luz de circulação diurna</string>
     <string name="controls_feature_light_pattern" volt:src="3239188baa808e18ac1dd53a33e49b824ddbdb78">%1$s: padrão</string>
+    <string name="controls_feature_light_pattern_short" volt:src="3239188baa808e18ac1dd53a33e49b824ddbdb78">%1$s: padrão</string>
     <string name="controls_feature_light_color" volt:src="b8c5d740f7f6d2100d197f849fac96450d6e85ed">%1$s: cor</string>
-    <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s: cor no modo Boost</string>
+    <string name="controls_feature_light_color_short" volt:src="b8c5d740f7f6d2100d197f849fac96450d6e85ed">%1$s: cor</string>
+    <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s: cor em Boost</string>
+    <string name="controls_feature_light_boost_color_short" volt:src="59f46c0455e32a9a50a11b83a3639ad6380cfd57">%1$s: Boost</string>
     <string name="controls_feature_acceleration_about" volt:src="fcf339c861a400488abaf5e72b2ff55f0871d5dd">Eco/Turbo dos outros modelos.</string>
     <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">O botão de alimentação pausa as luzes automáticas até a trotinete reiniciar.</string>
     <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Isto vai alterar apenas a estimativa.</string>

@@ -116,6 +116,8 @@
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt s’est fermée pendant la mesure. La fonction « Finir la recharge à » est désactivée.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">La fonction « Finir la recharge à » est configurée. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">La fonction « Finir la recharge à » n’a pas été configurée. %1$s</string>
+    <string name="service_done_start_sent" volt:src="be03d1d959bcab58892410b7a62f52b0ede8e456">Début de recharge envoyé à la trottinette : %1$s. Déconnexion possible.</string>
+    <string name="service_done_safe_to_disconnect" volt:src="c4cb42903ef51f1db0f2cdda1172ed0f4e631d20">%1$s Vous pouvez déconnecter la trottinette.</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">La fonction « Finir la recharge à » est configurée</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">La fonction « Finir la recharge à » n’a pas été configurée</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Rouvrir Volt</string>
