@@ -5,10 +5,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /** Reads a LiveChargingHoldCheck.Observed from the real service; call on the main thread right after leaving Volt. */
-final class LiveChargingHoldProbe {
+public final class LiveChargingHoldProbe {
     private LiveChargingHoldProbe() {}
 
-    static LiveChargingHoldCheck.Observed observe(ScooterService service) throws ReflectiveOperationException {
+    public static LiveChargingHoldCheck.Observed observe(ScooterService service) throws ReflectiveOperationException {
         Field field = ScooterService.class.getDeclaredField("chargeLive");
         field.setAccessible(true);
         ChargeLiveHold hold = (ChargeLiveHold) field.get(service);
