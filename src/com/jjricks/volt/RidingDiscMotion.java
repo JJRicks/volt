@@ -1,8 +1,5 @@
 package com.jjricks.volt;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,8 +18,7 @@ final class RidingDiscMotion {
     /** The disc's place in the top bar: its width and margin move, the disc keeps its full size inside. */
     private final FrameLayout slot;
     private final int fullWidth, fullMargin;
-    private final RidingDisc state = new RidingDisc();
-    private ValueAnimator running;
+    private final RidingDiscAnimator motion = new RidingDiscAnimator(this::apply);
 
     /** The disc must already sit in a LinearLayout with its full width and start margin. */
     RidingDiscMotion(View disc) {
@@ -42,41 +38,19 @@ final class RidingDiscMotion {
     }
 
     /** True while the disc is meant to show; a tap that arrives while it hides is ignored. */
-    boolean takesTaps() { return state.takesTaps(); }
+    boolean takesTaps() { return motion.takesTaps(); }
 
     /** Moves the disc toward shown or gone; nothing happens when it's already going there. */
     void show(boolean shown) {
-        if (!state.want(shown)) return;
+        if (!motion.want(shown)) return;
         // Taps stop at once when hiding, and come back as soon as it starts to show.
         disc.setClickable(shown);
         disc.setEnabled(shown);
-        if (running != null) { running.cancel(); running = null; }
-        long length = RidingDisc.duration(Motion.CHANGE_MS, state.progress(), shown, Ui.motionEnabled());
-        if (length <= 0) {
-            state.finish();
-            apply(state.progress());
-            return;
-        }
-        ValueAnimator motion = ValueAnimator.ofFloat(state.progress(), shown ? 1 : 0);
-        motion.setDuration(length);
-        motion.setInterpolator(Motion.STANDARD);
-        motion.addUpdateListener(a -> { state.at((Float) a.getAnimatedValue()); apply(state.progress()); });
-        motion.addListener(new AnimatorListenerAdapter() {
-            private boolean cancelled;
-            @Override public void onAnimationCancel(Animator a) { cancelled = true; }
-            @Override public void onAnimationEnd(Animator a) {
-                if (running == a) running = null;
-                if (cancelled) return;
-                state.finish();
-                apply(state.progress());
-            }
-        });
-        running = motion;
-        motion.start();
+        motion.run();
     }
 
     /** Stops the motion where it is, as the screen closes. */
-    void stop() { if (running != null) { running.cancel(); running = null; } }
+    void stop() { motion.stop(); }
 
     private void apply(float progress) {
         LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) slot.getLayoutParams();
