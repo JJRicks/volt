@@ -313,7 +313,7 @@
     <!-- src:0281fbf6f7600ad050eb841157c487cb3cd033a4 -->
     <string name="stats_row_binding_status">Vinculação à conta</string>
     <!-- src:4bcaf6456fc552b2062a5529d8b0bed3f7322878 -->
-    <string name="stats_row_cruise_control">Controlo de cruzeiro</string>
+    <string name="stats_row_cruise_control">Cruise Control</string>
     <!-- src:632a9e5e7f963924206336e0422b05c2dcf14b04 -->
     <string name="stats_row_tail_light">Luz traseira</string>
     <!-- src:98733b2dbd677ee389f2e1a99bdea5c640b6fcea -->
