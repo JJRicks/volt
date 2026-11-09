@@ -1,11 +1,11 @@
-# Turkish. Claude-only proposal (2026-11-05), awaiting the council; status stays draft. See l10n/README.md for each field.
+# Turkish. Every string decided by the three-vendor translation council (l10n/decisions/tr/), beta; see l10n/README.md for each field.
 # percent_style puts the sign before the number with no space (%85). decimal_style is an example of the separators.
 field	value
 tag	tr
 folder	values-tr
 endonym	Türkçe
 wave	2
-status	draft
+status	beta
 formality	siz
 plurals	one,other
 quote_style	“…” ‘…’
