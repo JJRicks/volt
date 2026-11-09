@@ -164,7 +164,7 @@ public final class ScooterService extends Service {
         autoEnds = new RideAutoEnds(new RideAutoEnds.Store(){
             public long count(){return settings.getLong(RIDE_AUTO_ENDS,0);}
             public String pending(){return settings.getString(RIDE_AUTO_END_PENDING,null);}
-            public boolean save(long count,String pending){return settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_END_PENDING,pending).commit();}
+            public void save(long count,String pending){settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_END_PENDING,pending).commit();}
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);

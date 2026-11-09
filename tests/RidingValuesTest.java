@@ -41,6 +41,7 @@ public final class RidingValuesTest {
         autoEnd();
         speedBoundaries();
         speedFollowsTelemetry();
+        quickReconnect();
         battery();
         ranges();
         System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
@@ -838,13 +839,51 @@ public final class RidingValuesTest {
         RidingSession.Resume saved = session.resume();
         RidingSession restored = new RidingSession(PROFILE, null, t + 6000, saved, 0, new RidingSpeed(t + 1));
         check(restored.maxKmh() == 30 && near(restored.averageKmh(), expected, 1e-9) && restored.speed() != session.speed(), "after a process death the save carries Max and Avg");
-        // A reconnect clears readings but not the count, and the gap rule keeps the dropout out.
+        // A long reconnect clears readings but not the count, and the gap rule keeps the dropout out.
         telemetry.clear();
         telemetry.putSimulationSample(RidingValues.SPEED_KEY, "0", 0d, t + 60_000);
         check(session.maxKmh() == 30 && near(session.averageKmh(), expected, 1e-9), "cleared telemetry holds them");
         telemetry.followSpeed(null);
         telemetry.putSimulationSample(RidingValues.SPEED_KEY, "50", 50d, t + 61_000);
         check(session.maxKmh() == 30, "closed: nothing feeds it any more");
+    }
+
+    /** A new connection inside the gap threshold: nothing was observed across it, so no interval joins it. */
+    private static void quickReconnect() {
+        long t = 14_000_000;
+        Telemetry telemetry = new Telemetry();
+        RidingSession session = open(t);
+        telemetry.followSpeed(session.speed());
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "10", 10d, t + 1000);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "20", 20d, t + 2000);
+        session.feed(telemetry.metrics(), t + 2000, false, "km", true);
+        check(session.maxKmh() == 20 && near(session.averageKmh(), 15, 1e-9), "1 s from 10 to 20: " + session.averageKmh());
+
+        telemetry.clear();
+        // The screen still holds the last reading, and feeding it again must not use up the break.
+        session.feed(telemetry.metrics(), t + 2500, false, "km", true);
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "0", 0d, t + 4000);
+        session.feed(telemetry.metrics(), t + 4000, false, "km", true);
+        check(session.maxKmh() == 20 && near(session.averageKmh(), 15, 1e-9), "2 s across a reconnect adds nothing: " + session.averageKmh());
+
+        // Readings after it count as usual, from the first one on the new connection.
+        telemetry.putSimulationSample(RidingValues.SPEED_KEY, "30", 30d, t + 5000);
+        check(session.maxKmh() == 30 && near(session.averageKmh(), (15d * 1000 + 15 * 1000) / 2000, 1e-9), "the new connection's first interval counts: " + session.averageKmh());
+
+        // A process death straight after the break: the save doesn't anchor on the old connection either.
+        telemetry.clear();
+        RidingSession restored = new RidingSession(PROFILE, null, t + 5500, session.resume());
+        restored.speed().accept(0, t + 6000);
+        check(restored.maxKmh() == 30 && near(restored.averageKmh(), 15, 1e-9), "restored after a reconnect, it still doesn't join: " + restored.averageKmh());
+        restored.speed().accept(20, t + 7000);
+        check(near(restored.averageKmh(), (15d * 2000 + 10 * 1000) / 3000, 1e-9), "and carries on from its first reading: " + restored.averageKmh());
+
+        // A session with no reading yet has nothing to break.
+        RidingSpeed none = new RidingSpeed(t);
+        none.connectionReset();
+        check(none.maxKmh() == null, "a reconnect before any reading shows nothing");
+        none.accept(0, t + 1000);
+        check(none.maxKmh() == 0 && none.averageKmh() == 0, "and the first reading still reads 0");
     }
 
     /** Riding mode remembers how many recordings had auto-ended when it opened, a count that needs no clock across process death. */

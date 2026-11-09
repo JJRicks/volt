@@ -8,15 +8,21 @@ public final class RideAutoEndsTest {
     private static final String REASON = RideStore.STOP_AUTO_NO_MOTION;
     private static int checks;
 
-    /** app_settings' two keys: any save can be made to fail, and a "process death" just drops the unsaved count. */
+    /**
+     * app_settings' two keys as SharedPreferences.Editor.commit keeps them: memory changes first, even when
+     * the disk write then fails, and a write that works writes everything in memory. count and pending are
+     * what's on disk; restart() is a process death.
+     */
     private static final class Prefs implements RideAutoEnds.Store {
-        long count; String pending; boolean failing, failingOnce;
-        public long count() { return count; }
-        public String pending() { return pending; }
-        public boolean save(long count, String pending) {
-            if (failing || failingOnce) { failingOnce = false; return false; }
-            this.count = count; this.pending = pending; return true;
+        long count, liveCount; String pending, livePending; boolean failing, failingOnce;
+        public long count() { return liveCount; }
+        public String pending() { return livePending; }
+        public void save(long count, String pending) {
+            liveCount = count; livePending = pending;
+            if (failing || failingOnce) { failingOnce = false; return; }
+            this.count = liveCount; this.pending = livePending;
         }
+        void restart() { liveCount = count; livePending = pending; }
     }
 
     public static void main(String[] args) throws Exception {
@@ -24,6 +30,7 @@ public final class RideAutoEndsTest {
         deathBeforeJournalStop();
         deathAfterJournalStop();
         failedCountWrite();
+        failedDiskWriteThenNewSession();
         failedIntentWrite();
         bothWritesFail();
         journalRefusesStop();
@@ -80,9 +87,43 @@ public final class RideAutoEndsTest {
         ends.stopped();
         check(ends.count() == 1 && prefs.count == 0 && id.equals(prefs.pending), "after a failed write it still reads 1 in this process");
         prefs.failing = false;
+        prefs.restart();
         RideStore reloaded = store(dir); RideAutoEnds next = new RideAutoEnds(prefs);
         next.reconcile(reloaded.activeId(), reloaded::finished);
         check(next.count() == 1 && prefs.count == 1 && prefs.pending == null, "and the next load saves it exactly once");
+    }
+
+    /** One end whose count missed the disk: the riding mode from before it closes, and one opened after it survives a restart. */
+    private static void failedDiskWriteThenNewSession() throws Exception {
+        File dir = dir(); RideStore rides = store(dir); Prefs prefs = new Prefs(); RideAutoEnds ends = new RideAutoEnds(prefs);
+        RidingSession before = new RidingSession("p1", null, 1_000, null, ends.count());
+        String id = startRide(rides);
+        ends.stopping(id);
+        stop(rides, REASON);
+        prefs.failing = true;
+        ends.stopped();
+        check(ends.count() == 1 && prefs.count == 0 && id.equals(prefs.pending), "one end reads 1 live, with the intent left on disk");
+        check(before.autoEnded(ends.count()), "the riding mode it ended closes now");
+        RidingSession after = new RidingSession("p1", null, 2_000, null, ends.count());
+        check(!after.autoEnded(ends.count()), "a riding mode opened after the end is open");
+        RidingSession.Resume savedBefore = before.resume(), savedAfter = after.resume();
+
+        // The disk is still failing at the first load: the intent survives it, and it reads 1 again.
+        prefs.restart();
+        RideStore reloaded = store(dir); RideAutoEnds next = new RideAutoEnds(prefs);
+        next.reconcile(reloaded.activeId(), reloaded::finished);
+        check(next.count() == 1 && prefs.count == 0 && id.equals(prefs.pending), "a load that can't write still reads 1");
+        check(!savedAfter.autoEnded(next.count()), "and the later riding mode restores");
+
+        prefs.failing = false;
+        prefs.restart();
+        next = new RideAutoEnds(prefs);
+        next.reconcile(reloaded.activeId(), reloaded::finished);
+        check(next.count() == 1 && prefs.count == 1 && prefs.pending == null, "a working load saves it once");
+        check(!savedAfter.autoEnded(next.count()), "the riding mode opened after the end is restored");
+        check(savedBefore.autoEnded(next.count()), "the one it ended is not");
+        next.reconcile(reloaded.activeId(), reloaded::finished);
+        check(next.count() == 1, "and nothing counts it twice");
     }
 
     /** Only the intent's write fails: the count after the journal stop stands on its own. */

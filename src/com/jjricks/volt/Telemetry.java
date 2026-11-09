@@ -373,6 +373,7 @@ public final class Telemetry {
         electricalBatch = 0;
         voltageBatch = currentBatch = -1;
         currentSignState = temperatureSignState = null;
+        if (speedFollower != null) speedFollower.connectionReset();
     }
 
     private void settings(byte[] data, int cmd, long time) {

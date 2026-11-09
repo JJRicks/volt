@@ -8,7 +8,8 @@ package com.jjricks.volt;
  *
  * Avg is time-weighted over the intervals the scooter was moving, with each interval's speed the mean of
  * its two ends: the same rule as a recording's moving average, so a ride's last second before a stop
- * counts. An interval only counts from opening on, and a gap in the readings is not moving time.
+ * counts. An interval only counts from opening on, and a gap in the readings is not moving time, nor is
+ * the time across a new connection, however short.
  */
 final class RidingSpeed {
     /** Length of state(): seen, top, moving time, moving km/h-ms, last reading's time and speed, and its interval. */
@@ -18,6 +19,8 @@ final class RidingSpeed {
     private double topKmh, movingMs, movingKmhMs, lastKmh;
     /** When the newest reading counted was measured, or -1 before any. */
     private long lastMs = -1;
+    /** A new connection began after that reading: it still spots a repeat, but no interval starts from it. */
+    private boolean unanchored;
     /** The readings' measured interval, an EMA like RidingValues', which decides what counts as a gap. */
     private double intervalMs = RidingValues.RIDE_NOMINAL_MS;
 
@@ -39,14 +42,19 @@ final class RidingSpeed {
 
     long openedMs() { return openedMs; }
 
-    synchronized double[] state() { return new double[]{seen ? 1 : 0, topKmh, movingMs, movingKmhMs, lastMs, lastKmh, intervalMs}; }
+    /** Saved without the last time once unanchored: a restored collector has no repeats to spot. */
+    synchronized double[] state() { return new double[]{seen ? 1 : 0, topKmh, movingMs, movingKmhMs, unanchored ? -1 : lastMs, lastKmh, intervalMs}; }
+
+    /** A new connection: Max and Avg stand, and the next reading starts a new interval however soon it comes. */
+    synchronized void connectionReset() { unanchored = lastMs >= 0; }
 
     /** One speed reading and when it was measured. Time across a dropout isn't counted, the same gap rule as the speed trace. */
     synchronized void accept(double kmh, long atMs) {
         if (!Double.isFinite(kmh) || atMs < 0 || atMs <= lastMs) return;
         long previousMs = lastMs;
         double previousKmh = lastKmh;
-        boolean first = previousMs < 0;
+        boolean first = previousMs < 0 || unanchored;
+        unanchored = false;
         seen = true;
         lastMs = atMs;
         lastKmh = kmh;
