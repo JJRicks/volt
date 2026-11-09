@@ -270,9 +270,10 @@ public final class RidesScreen implements AppScreen {
         }
     }
     private String defaultRideName() { return defaultRideName(host); }
+    static String defaultRideName(ScreenHost host) { return defaultRideName(host.service()); }
     /** A new ride's name: date, time and the scooter's fresh drive mode, when it is known. */
-    static String defaultRideName(ScreenHost host) {
-        ScooterService service = host.service(); SharedPreferences preferences = service.settings;
+    static String defaultRideName(ScooterService service) {
+        SharedPreferences preferences = service.settings;
         String mode = "";
         long now = android.os.SystemClock.elapsedRealtime();
         ScooterProfiles.Profile active = service.profiles.active(), bound = service.ble.profile();
@@ -285,7 +286,7 @@ public final class RidesScreen implements AppScreen {
                 break;
             }
         }
-        return DisplayTime.rideName(host.activity(), preferences, System.currentTimeMillis(), mode);
+        return DisplayTime.rideName(service, preferences, System.currentTimeMillis(), mode);
     }
     private EditText input(String hint) {
         EditText input = new EditText(host.activity()); input.setSingleLine(true); input.setHint(hint);
@@ -1350,11 +1351,15 @@ public final class RidesScreen implements AppScreen {
         toggle.setChecked(preferences.getBoolean(key, fallback)); toggle.setMinimumWidth(ui.dp(56)); toggle.setMinimumHeight(ui.dp(48));
         ui.styleSwitch(toggle); toggle.setContentDescription(sub == null ? title : title + ", " + sub);
         if (sub == null && "phone_motion".equals(key)) toggle.setContentDescription(T.ridesSwitchExperimental(title));
-        toggle.setOnCheckedChangeListener((button, on) -> preferences.edit().putBoolean(key, on).apply());
+        toggle.setOnCheckedChangeListener((button, on) -> { preferences.edit().putBoolean(key, on).apply(); if (on && AutoStartPolicy.PHONE_GPS_KEY.equals(key)) offerAutoRecordLocation(); });
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(-2, -2); toggleParams.leftMargin = ui.dp(12);
         row.addView(toggle, toggleParams);
         row.setOnClickListener(v -> toggle.performClick()); row.setFocusable(false);
         group.addView(row);
+    }
+    /** GPS route turned on with auto-record already on: the next automatic ride would otherwise have no route and no way to ask. */
+    private void offerAutoRecordLocation() {
+        if (AutoStartPolicy.asksLocationOnGpsOn(preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), service.simulating(), service.ridingNow())) host.requestAutoRecordLocation(null);
     }
     private void infoRow(LinearLayout group, String glyph, String title, String sub, String value) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(60)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));

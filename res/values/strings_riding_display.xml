@@ -27,6 +27,10 @@
     <string name="riding_display_rotation_lock" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Lock on open</string>
     <!-- Rotation choice: riding mode turns with the phone. -->
     <string name="riding_display_rotation_follow" volt:screen="App preferences" volt:purpose="option" volt:max="148dp@14sp">Follow phone</string>
+    <!-- Switch row: Volt opens riding mode by itself when the scooter starts moving. Off by default. -->
+    <string name="riding_display_auto_open" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">Open automatically</string>
+    <!-- Caption under that switch. Leaving riding mode turns this off for the rest of the connection. -->
+    <string name="riding_display_auto_open_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">Opens when the connected scooter moves and Volt is on screen. After you leave riding mode, waits until the scooter reconnects</string>
     <!-- Switch row: riding mode hides the phone's status bar too (off by default, so the clock and battery show). -->
     <string name="riding_display_hide_status_bar" volt:screen="App preferences" volt:purpose="row">Hide status bar</string>
     <string name="riding_display_hide_status_bar_sub" volt:screen="App preferences" volt:purpose="caption">Clock and battery hidden while riding</string>
