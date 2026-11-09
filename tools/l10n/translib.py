@@ -77,6 +77,9 @@ class Paths(object):
     def decisions(self, tag, area):
         return os.path.join(self.root, "l10n", "decisions", tag, area + ".jsonl")
 
+    def owner_decisions(self, tag):
+        return os.path.join(self.root, "l10n", "owner-decisions", tag + ".jsonl")
+
     def font(self):
         return self.res("font", "saira_medium.ttf")
 
@@ -751,7 +754,10 @@ def items_of(kind, value):
     return collections.OrderedDict((q, value[q]) for q in QUANTITIES if q in value)
 
 
-TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged")
+OWNER_DECIDED = "owner-decided"  # the owner chose the text (l10n/owner-decisions/<tag>.jsonl); no model did
+TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged", OWNER_DECIDED)
+OWNER_DECISION_FORMAT = "volt-l10n-owner-decision-v1"
+OWNER_DECISION_FIELDS = ("format", "area", "key", "source_sha1", "english", "text", "decided", "reason")
 
 
 def why_english(source, decision, categories):
@@ -777,6 +783,95 @@ def why_english(source, decision, categories):
     if blank:
         return "the decision's text is blank"
     return None
+
+
+def decided_areas(paths, tag):
+    """The areas with a decisions file for this language, sorted."""
+    directory = os.path.dirname(paths.decisions(tag, "x"))
+    return sorted(f[:-6] for f in os.listdir(directory) if f.endswith(".jsonl")) if os.path.isdir(directory) else []
+
+
+def load_owner_decisions(paths, tag):
+    """{key: row} of l10n/owner-decisions/<tag>.jsonl, the owner's texts that council.py decide must keep.
+
+    {} when the language has none. A malformed file stops the caller (L10nError): an owner decision is
+    never silently dropped."""
+    path = paths.owner_decisions(tag)
+    pins = collections.OrderedDict()
+    for row in read_jsonl(path):
+        where = "%s: %s" % (paths.rel(path), row.get("key"))
+        if row.get("format") != OWNER_DECISION_FORMAT:
+            raise L10nError("%s: format must be %s" % (where, OWNER_DECISION_FORMAT))
+        if sorted(row) != sorted(OWNER_DECISION_FIELDS):
+            raise L10nError("%s: the fields must be exactly %s" % (where, ", ".join(OWNER_DECISION_FIELDS)))
+        if not all(isinstance(row[f], str) and row[f] for f in OWNER_DECISION_FIELDS if f != "text"):
+            raise L10nError("%s: every field must be filled in" % where)
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", row["decided"]):
+            raise L10nError("%s: decided must be a date, YYYY-MM-DD" % where)
+        if row["key"] in pins:
+            raise L10nError("%s: listed twice" % where)
+        pins[row["key"]] = row
+    return pins
+
+
+def owner_pin_problems(paths, tag, sources, area=None):
+    """Why an owner decision of this language (of one area, if given) cannot be kept, one line each.
+
+    The owner chose a text for one English sentence, so a changed English stops here until the owner
+    has chosen again; lock and alarm keys keep the council's safety path, which ship_check requires."""
+    categories = plural_categories(load_language(paths, tag))
+    problems = []
+    for key, pin in load_owner_decisions(paths, tag).items():
+        if area is not None and pin["area"] != area:
+            continue
+        where = "%s: %s" % (paths.rel(paths.owner_decisions(tag)), key)
+        rows = [s for s in sources.get(pin["area"], []) if s.translatable]
+        source = next((s for s in rows if s.key == key), None)
+        if source is None:
+            problems.append("%s: no such translatable key in area %s" % (where, pin["area"]))
+            continue
+        why = why_english(source, dict(pin, outcome=OWNER_DECIDED), categories)
+        if why == "the English changed since the decision":
+            problems.append("%s: the English changed since the owner decided (now %r): ask the owner, then update this "
+                            "line, or remove it only if they withdraw the decision" % (where, source.items["other"]))
+        elif why:
+            problems.append("%s: %s" % (where, why))
+        hit = [x for x in effective_safety(rows).get(key, []) if x in SAFETY_BLOCKING]
+        if hit:
+            problems.append("%s: a %s key must keep the council's safety path" % (where, ", ".join(hit)))
+    return problems
+
+
+def owner_decision_problems(paths, tag, sources):
+    """owner_pin_problems, plus every decision row out of step with the owner's lines, in both directions.
+
+    A line needs its owner-decided row, with the owner's text, from the English the line was decided on; an
+    owner-decided row needs its line. merge.py checks this before it writes anything, and ship_check through
+    drift_problems. Empty for a language with neither owner lines nor owner-decided rows."""
+    problems = owner_pin_problems(paths, tag, sources)
+    pins = load_owner_decisions(paths, tag)
+    pin_file = paths.rel(paths.owner_decisions(tag))
+    rows = {}
+    for area in decided_areas(paths, tag):
+        for row in read_jsonl(paths.decisions(tag, area)):
+            rows[(area, row.get("key"))] = row
+    decide = "run council.py decide --tag %s --area %%s, then merge.py" % tag
+    for key, pin in pins.items():
+        row = rows.get((pin["area"], key))
+        if row is None or row.get("outcome") != OWNER_DECIDED or row.get("text") != pin["text"]:
+            problems.append("%s: %s has %s, not the owner's text: %s" % (
+                pin_file, key, "no decision" if row is None else "outcome %s, text %r" % (
+                    row.get("outcome"), row.get("text")), decide % pin["area"]))
+        elif row.get("source_sha1") != pin["source_sha1"]:
+            problems.append("%s: %s was decided from an older English than the owner's line, so merge.py would leave "
+                            "it out: %s" % (pin_file, key, decide % pin["area"]))
+    for (area, key), row in rows.items():
+        pin = pins.get(key)
+        if row.get("outcome") == OWNER_DECIDED and (pin is None or pin["area"] != area):
+            problems.append("%s: %s is owner-decided but %s has no line for it in area %s: restore the owner's line. "
+                            "Never remove one to get past this; if the owner has withdrawn the decision, %s" % (
+                                paths.rel(paths.decisions(tag, area)), key, pin_file, area, decide % area))
+    return problems
 
 
 QUOTES = {"“": '"', "”": '"', "„": '"', "«": '"', "»": '"', "‹": "'",
