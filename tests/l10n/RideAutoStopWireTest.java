@@ -286,7 +286,7 @@ public final class RideAutoStopWireTest {
         String auto = between(src, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
         check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("ble.connected())return;"),
                 "an automatic end goes through stopRide(reason) after the ownership checks");
-        check(src.contains("public void stopRide(){if(stopRide(\"\"))autoStart.riderStoppedRecording();}"), "the rider's Stop uses the same stopRide(reason), and only it holds auto-record");
+        check(src.contains("public void stopRide(){if(isRecording())autoStart.riderStoppedRecording();stopRide(\"\");}"), "the rider's Stop uses the same stopRide(reason), and only it holds auto-record");
         String stop = between(src, "private boolean stopRide(String reason){", "\n    /**");
         check(stop.contains("stopPhoneRecording();"), "stopRide finishes the phone journal");
         check(between(src, "private void stopPhoneRecording(){", "phoneLocationForeground=false;}").contains("rideFullySaved();"), "the finished phone journal reaches rideFullySaved");

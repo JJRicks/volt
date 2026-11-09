@@ -1775,8 +1775,11 @@ public final class ScooterService extends Service {
             // the idle service's earlier START_NOT_STICKY result.
             startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){if(!quiet)android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
 
-    /** The rider's stop, from Volt or the notification. Only this one holds auto-record: automatic ride ends call the private stop. */
-    public void stopRide(){if(stopRide(""))autoStart.riderStoppedRecording();}
+    /**
+     * The rider's stop, from Volt or the notification. Only this one holds auto-record: automatic ride ends call the private stop.
+     * The hold comes first: the stop's own change notice would otherwise start a new recording while the scooter still moves.
+     */
+    public void stopRide(){if(isRecording())autoStart.riderStoppedRecording();stopRide("");}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**

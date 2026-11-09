@@ -1,7 +1,6 @@
 package com.jjricks.volt;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Instrumentation;
 import android.bluetooth.*;
@@ -80,7 +79,7 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording() && !ridingOpen(), "With both switches off, moving does nothing");
     }
 
-    private void autoRecord() {
+    private void autoRecord() throws Exception {
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
         stale(); settle();
         require(!recording(), "A stale speed reading never starts a recording");
@@ -88,14 +87,16 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Speed zero does not start a recording");
         moving(); await(this::recording, "Speed above zero starts a recording");
         shot("auto-record-started");
-        main(() -> service.stopRide());
+        // Fresh speed at the moment of the stop: the hold must already be in place when the stop announces itself.
+        moving(); main(() -> service.stopRide());
         require(!recording(), "Manual stop stops");
         moving(); settle(); moving(); settle();
         require(!recording(), "After a manual stop, still moving does not restart it");
         reconnect(); stopped(); settle();
         require(!recording(), "Reconnect alone (no speed) does not start one");
         moving(); await(this::recording, "Disconnect, reconnect and speed starts one");
-        // The automatic 10-minute end: same private stop the policy's tick uses, no hold.
+        // The automatic 10-minute end: same private stop the policy's tick uses, no hold. It only happens after no motion.
+        stopped(); settle();
         main(() -> invoke(service, "stopRide", new Class<?>[]{String.class}, RideStore.STOP_AUTO_NO_MOTION));
         require(!recording(), "Automatic end stopped the recording");
         moving(); await(this::recording, "After an automatic end, moving again starts a new recording");
@@ -109,12 +110,13 @@ public final class AutoStartValidation extends Instrumentation {
         require(!resumed(), "Volt is in the background");
         moving(); await(this::recording, "Auto-record starts in the background");
         require(!ridingOpen(), "Auto ride mode stayed off");
-        main(() -> service.stopRide());
+        moving(); main(() -> service.stopRide());
+        require(!recording(), "Manual stop in the background holds too");
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
     }
 
-    private void autoRide() {
+    private void autoRide() throws Exception {
         enable(AutoStartPolicy.AUTO_RIDE_MODE_KEY, true);
         reconnect(); stopped(); settle();
         goHome();
@@ -184,8 +186,8 @@ public final class AutoStartValidation extends Instrumentation {
         SystemClock.sleep(400);
     }
     private void returnToVolt() {
-        Activity back = startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
-        require(back == activity, "Same activity came back");
+        // Not startActivitySync: it waits for a new instance, and this brings the existing one back.
+        getTargetContext().startActivity(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
         await(() -> resumed() && onMain(() -> activity.hasWindowFocus()), "Volt back on screen");
         settle();
     }
