@@ -1425,26 +1425,33 @@ final class RidingScreen implements AppScreen {
         }
     }
 
-    /** A row of chips that shows only the chips that fit whole, in order: a chip never shows cut. */
+    /**
+     * A row of chips that tightens before it gives anything up (RidingChipFit): the drive mode's letter spacing goes, then
+     * the icons, and only then the last chip. The whole row uses one rung. A chip never shows cut.
+     */
     private final class ChipRow extends LinearLayout {
         ChipRow() {
             super(host.activity());
             setOrientation(HORIZONTAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int room = MeasureSpec.getSize(widthSpec), used = 0;
-            boolean full = false;
+            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE : MeasureSpec.getSize(widthSpec);
+            List<Chip> wanted = new ArrayList<>();
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (child instanceof Chip && ((Chip) child).wanted) wanted.add((Chip) child);
+            }
+            int[][] widths = new int[RidingChipFit.RUNGS][wanted.size()];
+            for (int rung = 0; rung < RidingChipFit.RUNGS; rung++)
+                for (int i = 0; i < wanted.size(); i++) widths[rung][i] = wanted.get(i).widthAt(rung);
+            RidingChipFit fit = RidingChipFit.choose(widths, ui.dp(8), room);
+            int shown = 0;
             for (int i = 0; i < getChildCount(); i++) {
                 View child = getChildAt(i);
                 if (!(child instanceof Chip)) continue;
                 Chip chip = (Chip) child;
                 int want = GONE;
-                if (chip.wanted && !full) {
-                    chip.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                    int need = chip.getMeasuredWidth() + (used > 0 ? ui.dp(8) : 0);
-                    if (MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED || used + need <= room) { want = VISIBLE; used += need; }
-                    else full = true;
-                }
+                if (chip.wanted && shown < fit.count) { want = VISIBLE; shown++; chip.useRung(fit.rung); }
                 if (chip.getVisibility() != want) chip.setVisibility(want);
             }
             super.onMeasure(widthSpec, heightSpec);
@@ -1457,8 +1464,11 @@ final class RidingScreen implements AppScreen {
      * value only; it takes no taps.
      */
     private final class Chip extends LinearLayout {
+        private static final float MODE_SPACING = .06f;
         final String content;
         private final TextView text;
+        /** Measures the text at each rung's letter spacing; off screen, so trying a rung never disturbs the layout. */
+        private final TextView probe;
         private final View icon;
         private final boolean mode;
         /** False for a chip with nothing to say (no drive mode yet): it steps aside. */
@@ -1481,13 +1491,32 @@ final class RidingScreen implements AppScreen {
                 p.setMarginEnd(ui.dp(6));
                 addView(icon, p);
             }
-            text = ui.text(T.ridingNoValue(), labelSp(17), true);
-            text.setTypeface(ui.bold());
-            text.setMaxLines(1);
+            text = label();
             text.setTextColor(mode ? ui.onAccent : ui.text);
             text.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-            if (mode) text.setLetterSpacing(.06f);
+            if (mode) text.setLetterSpacing(MODE_SPACING);
             addView(text, new LayoutParams(-2, -2));
+            probe = label();
+        }
+        private TextView label() {
+            TextView label = ui.text(T.ridingNoValue(), labelSp(17), true);
+            label.setTypeface(ui.bold());
+            label.setMaxLines(1);
+            return label;
+        }
+        /** This chip's whole width at a RidingChipFit rung, with its current text. */
+        int widthAt(int rung) {
+            if (!TextUtils.equals(probe.getText(), text.getText())) probe.setText(text.getText());
+            probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
+            probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            int iconWidth = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(18) + ui.dp(6) : 0;
+            return getPaddingStart() + iconWidth + probe.getMeasuredWidth() + getPaddingEnd();
+        }
+        /** Shows this chip at a RidingChipFit rung. Setting the same rung again changes nothing, so measuring settles. */
+        void useRung(int rung) {
+            if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
+            int visible = rung < RidingChipFit.NO_ICONS ? VISIBLE : GONE;
+            if (icon != null && icon.getVisibility() != visible) icon.setVisibility(visible);
         }
         void show(long now, String units, Double recordingKm) {
             Shown s = shown(content, now, units, recordingKm);
