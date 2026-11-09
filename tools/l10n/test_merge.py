@@ -108,6 +108,20 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("common_cancel: stale", out)
 
+    def test_check_compares_the_folder_with_the_decisions(self):
+        self.decide()
+        self.assertEqual(self.run_merge("--tag", "es", "--area", "common", "--aapt", "off")[0], 0)
+        self.assertEqual(self.run_merge("--tag", "es", "--check", "--aapt", "off")[0], 0)
+        path = "res/values-es/strings_common.xml"
+        original = self.repo.read(path)
+        # A well-formed edit that every validation rule accepts: only the comparison sees it.
+        self.repo.write(path, original.replace(">Cancelar<", ">Anular<"))
+        code, out = self.run_merge("--tag", "es", "--check", "--aapt", "off")
+        self.assertEqual(code, 1, out)
+        self.assertIn("not what merge.py --tag es --all writes", out)
+        self.assertEqual(self.run_merge("--tag", "es", "--all", "--aapt", "off")[0], 0)
+        self.assertEqual(self.repo.read(path), original, "merging again puts the decided text back")
+
     def test_folder_must_be_a_listed_language(self):
         self.repo.write("res/values-fr/strings_common.xml", "<resources><string name=\"common_cancel\">Annuler"
                                                             "</string></resources>")

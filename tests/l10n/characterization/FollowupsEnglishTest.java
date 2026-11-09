@@ -70,12 +70,12 @@ public final class FollowupsEnglishTest {
 
     private static void names(Locale phone) {
         equal(Base.DEFAULT_NAME, T.ownerProfileDefaultName(), phone, "the default scooter name");
-        equal("Connecting to Scooter", T.onboardingConnectConnecting(Base.DEFAULT_NAME), phone, "connecting sentence");
+        equal("Connecting to Scooter…", T.onboardingConnectConnecting(Base.DEFAULT_NAME), phone, "connecting sentence");
         equal("Scooter is ready.", T.onboardingDoneReady(Base.DEFAULT_NAME), phone, "done sentence");
-        equal("Connecting to Blue", T.onboardingConnectConnecting("Blue"), phone, "connecting sentence, renamed");
+        equal("Connecting to Blue…", T.onboardingConnectConnecting("Blue"), phone, "connecting sentence, renamed");
         equal("Blue is ready.", T.onboardingDoneReady("Blue"), phone, "done sentence, renamed");
-        equal("Removes Scooter's history. Rides stay.", T.moreHistoryClearOneBody(Base.DEFAULT_NAME), phone, "clear history");
-        equal("Removes Blue's history. Rides stay.", T.moreHistoryClearOneBody("Blue"), phone, "clear history, renamed");
+        equal("Removes history for Scooter. Rides stay.", T.moreHistoryClearOneBody(Base.DEFAULT_NAME), phone, "clear history");
+        equal("Removes history for Blue. Rides stay.", T.moreHistoryClearOneBody("Blue"), phone, "clear history, renamed");
         equal(Base.LAYOUT_NAME, T.backupFileLayout(), phone, "the layout file's display name");
         equal(Base.LAYOUT_NAME, Base.destinationName(Base.LAYOUT_SOURCE, Base.LAYOUT_NAME), phone, "the layout destination");
         equal("Blue", Base.destinationName(Base.LAYOUT_SOURCE, "Blue"), phone, "a backup scooter with the layout file's id");

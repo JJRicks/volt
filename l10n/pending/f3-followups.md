@@ -44,12 +44,6 @@ B13 merged as #189 without these, because F3 could not edit DashboardScreen.java
    because non-Latin languages are deferred. Fix: also join between the letters of a unit that allow a
    break.
 
-## MainActivity, owner: B19
-
-8. **`lock_expiry`'s `label.replace(" hours", " h")`** (:1762) reads `featureLabel`'s English id, so it
-   works today; it becomes a read-back when B19 makes that label display text. Fix: a catalog short-hours
-   form built from the option value.
-
 ## MoreScreen, owner: a later follow-up
 
 9. **`row.feature.label` lower-cased into three spoken descriptions:** `T.moreLabReviewRow`,

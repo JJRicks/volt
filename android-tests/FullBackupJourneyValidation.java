@@ -262,7 +262,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         }
         RideStore.Summary summary=rides.stop(wall+6000,mono+6000);
         require(settings.edit().putString("fixture_ride_id",ride).putString("fixture_ride_summary",summary.toJson()).commit(),"Store expected ride summary");
-        PhoneRideStore phone=new PhoneRideStore(new File(app.getFilesDir(),"phone-rides"));phone.start(ride,wall,mono,"pocket");
+        PhoneRideStore phone=new PhoneRideStore(new File(app.getFilesDir(),"phone-rides"));phone.start(ride,wall,mono);
         StringBuilder phoneRows=new StringBuilder();for(int i=0;i<3;i++)phoneRows.append(PhoneRideStore.row("GPS",wall+i*1000,mono+i*1000,43.82+i*.00005,-111.78,3,5,.2,1500,4));
         phoneRows.append(PhoneRideStore.row("MOTION",wall+3000,mono+3000,3,1.25));
         phone.appendBatch(ride,phoneRows.toString(),"100000,0,0,9.8,0,0,0,0,0,0,0,0,0,1,3\n");phone.stop(ride,wall+4000,mono+4000);

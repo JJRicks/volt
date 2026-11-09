@@ -165,11 +165,11 @@ public final class RideMapsEnglishTest {
             PhoneRideStore store = new PhoneRideStore(dir);
             PhoneRideStore.Track missing = store.load("missing");
             eq("No usable GPS fixes recorded", missing.status, "no GPS");
-            store.start("one", 1700000000000L, 1000, "pocket");
+            store.start("one", 1700000000000L, 1000);
             store.appendBatch("one", gps(1000, 43.82, 3, 5, 1500.0), "");
             PhoneRideStore.Track one = store.load("one");
             eq("1 GPS fixes", one.status, "one fix keeps the base plural bug");
-            store.start("quality", 1700000000000L, 1000, "mounted");
+            store.start("quality", 1700000000000L, 1000);
             StringBuilder b = new StringBuilder();
             b.append(gps(1000, 43.82, 2, 0, 1500.0));
             b.append(gps(2000, 43.82005, 2, 0, 1550.0));
@@ -183,7 +183,7 @@ public final class RideMapsEnglishTest {
             eq(trackStatus(quality.locationCount, quality.rejectedLocationCount, quality.rejectedElevationCount),
                     quality.status, "quality formula");
             eq("4 GPS fixes · 3 low-quality fixes excluded · 1 elevation outliers excluded", quality.status, "rejected fixes and an outlier");
-            store.start("spike", 1700000000000L, 1000, "pocket");
+            store.start("spike", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i <= 30; i++) {
                 double altitude = i >= 5 && i <= 25 ? 1500 + 76.2 * (1 - Math.abs(i - 15) / 10.0) : 1500;

@@ -64,7 +64,8 @@ def instrument(mode, theme, text, variant):
 
 results = []
 try:
-    for case in args.case or ['344x882:dark:1', '725x604:light:1.4']:
+    # 725x604 at 1x keeps the wide layout (rail, two columns); at 1.4x it is the phone layout (WideLayout: width over text scale).
+    for case in args.case or ['344x882:dark:1', '725x604:light:1', '725x604:light:1.4']:
         fields = case.split(':')
         width, height = map(int, fields[0].split('x')); theme, font = fields[1:3]
         text = fields[3] if len(fields) > 3 else '1'

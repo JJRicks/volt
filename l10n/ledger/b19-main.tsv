@@ -1,0 +1,513 @@
+# Ledger for b19-main: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MainActivity.java:178	["Preparing your app data…"]	main_preparing_data	exact	
+src/com/jjricks/volt/MainActivity.java:190	["Opening your saved data…"]	main_opening_data	exact	
+src/com/jjricks/volt/MainActivity.java:211	["Unfinished export cleared"]	main_export_cleared	exact	
+src/com/jjricks/volt/MainActivity.java:306	["Service failed. Reopen Volt."]	main_service_failed	exact	
+src/com/jjricks/volt/MainActivity.java:307	["Service failed. Reopen Volt."]	main_service_failed	exact	
+src/com/jjricks/volt/MainActivity.java:381	["Simulation · Exit"]	main_simulation_banner	exact	
+src/com/jjricks/volt/MainActivity.java:388	["Simulation, sample data. Tap to exit simulation."]	main_simulation_description	exact	
+src/com/jjricks/volt/MainActivity.java:453	["Lock"]	main_lock_title	exact	
+src/com/jjricks/volt/MainActivity.java:466	["Lock state unverified"]	main_lock_state_unverified	exact	
+src/com/jjricks/volt/MainActivity.java:474	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:488	["Lock"]	main_lock_title	exact	
+src/com/jjricks/volt/MainActivity.java:492	["Lock state unknown"]	main_lock_state_unknown	exact	
+src/com/jjricks/volt/MainActivity.java:501	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:535	["Cancel"]	-	stays-english	what the link does, kept in the LINK_CANCEL constant; never shown or compared with the text on screen
+src/com/jjricks/volt/MainActivity.java:535	["Disconnect"]	-	stays-english	as LINK_CANCEL
+src/com/jjricks/volt/MainActivity.java:673	["Disconnected"]	ble_status_disconnected	exact	
+src/com/jjricks/volt/MainActivity.java:676	["Connection details"]	main_connection_details	exact	
+src/com/jjricks/volt/MainActivity.java:700	["No permission"]	main_connection_no_permission	exact	
+src/com/jjricks/volt/MainActivity.java:701	["Starting…"]	main_connection_starting	exact	
+src/com/jjricks/volt/MainActivity.java:702	["Simulated"]	main_connection_simulated	exact	
+src/com/jjricks/volt/MainActivity.java:702	["Connected"]	ble_status_connected	exact	
+src/com/jjricks/volt/MainActivity.java:703	["Retrying…"]	main_connection_retrying	exact	
+src/com/jjricks/volt/MainActivity.java:704	["Searching…"]	ble_status_searching	exact	
+src/com/jjricks/volt/MainActivity.java:705	["Checking owner…"]	ble_status_checking_owner	exact	
+src/com/jjricks/volt/MainActivity.java:706	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/MainActivity.java:707	["Bluetooth off"]	ble_bluetooth_off	exact	
+src/com/jjricks/volt/MainActivity.java:708	["Not connected"]	ble_status_not_connected	exact	
+src/com/jjricks/volt/MainActivity.java:714	["State"]	main_connection_state	exact	
+src/com/jjricks/volt/MainActivity.java:718	["Last connected"]	main_connection_last_connected	exact	
+src/com/jjricks/volt/MainActivity.java:723	["Why?"]	main_connection_why	exact	
+src/com/jjricks/volt/MainActivity.java:723	["Power the scooter on and close the NAVEE app."]	main_connection_why_detail	exact	
+src/com/jjricks/volt/MainActivity.java:727	["Check owner setup"]	main_connection_check_owner	exact	
+src/com/jjricks/volt/MainActivity.java:732	["Disconnect"]	main_action_disconnect	exact	
+src/com/jjricks/volt/MainActivity.java:732	["Allow Nearby devices"]	main_action_allow_nearby	exact	
+src/com/jjricks/volt/MainActivity.java:732	["Turn on Bluetooth"]	main_connection_turn_on_bluetooth	exact	
+src/com/jjricks/volt/MainActivity.java:732	["Add scooter"]	main_connection_add_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:732	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:733	["Connection"]	main_connection_title	exact	
+src/com/jjricks/volt/MainActivity.java:733	["Close"]	common_close	exact	
+src/com/jjricks/volt/MainActivity.java:736	["Add scooter"]	-	stays-english	what the button does, kept in ADD_SCOOTER; never shown or compared with the text on screen
+src/com/jjricks/volt/MainActivity.java:747	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value", "arg": 2, "type": "s"}]	main_label_value	template	
+src/com/jjricks/volt/MainActivity.java:775	["Set up a scooter profile first."]	main_rename_first	exact	
+src/com/jjricks/volt/MainActivity.java:776	["Scooter name"]	main_rename_title	exact	
+src/com/jjricks/volt/MainActivity.java:778	["Scooter name"]	main_rename_title	exact	
+src/com/jjricks/volt/MainActivity.java:778	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:778	["Save"]	main_rename_save	exact	
+src/com/jjricks/volt/MainActivity.java:778	["Enter a name."]	main_rename_empty	exact	
+src/com/jjricks/volt/MainActivity.java:889	["your scooter"]	main_lock_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:898	["Updating…"]	main_lock_updating	exact	
+src/com/jjricks/volt/MainActivity.java:898	["Lock"]	main_lock_title	exact	
+src/com/jjricks/volt/MainActivity.java:898	["Locked"]	main_lock_locked	exact	
+src/com/jjricks/volt/MainActivity.java:898	["Unlocked"]	main_lock_unlocked	exact	
+src/com/jjricks/volt/MainActivity.java:908	["Lock state unknown"]	main_lock_state_unknown	exact	
+src/com/jjricks/volt/MainActivity.java:908	["Lock state unverified"]	main_lock_state_unverified	exact	
+src/com/jjricks/volt/MainActivity.java:909	["Locked"]	main_lock_locked	id-kept	known stays the state id, which the last known sentences test; the title shows main_lock_locked or main_lock_unlocked, the same English word, in a statement of its own after line 910
+src/com/jjricks/volt/MainActivity.java:909	["Unlocked"]	main_lock_unlocked	id-kept	known stays the state id, which the last known sentences test; the title shows main_lock_locked or main_lock_unlocked, the same English word, in a statement of its own after line 910
+src/com/jjricks/volt/MainActivity.java:910	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/MainActivity.java:910	["Connecting"]	main_lock_connecting	exact	
+src/com/jjricks/volt/MainActivity.java:912	{"if": "\"Locked\".equals(known)", "then": ["Last known lock state: ", "locked", ". Reconnect to verify."], "else": {"if": "\"Unlocked\".equals(known)", "then": ["Last known lock state: ", "unlocked", ". Reconnect to verify."], "else": ["Last known lock state: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, ". Reconnect to verify."]}}	main_lock_last_known_full_locked,main_lock_last_known_full_unlocked,main_lock_last_known_full	choice	the lower-cased state word becomes a whole sentence per state, so a language can inflect it and no display word sits in a hole; the last branch cannot run, since known holds only these two ids
+src/com/jjricks/volt/MainActivity.java:913	["Connecting to ", {"hole": "scooterName", "arg": 1, "type": "s"}, ". ", {"hole": "description", "arg": 2, "type": "s"}]	main_lock_connecting_to	template	
+src/com/jjricks/volt/MainActivity.java:917	{"if": "\"Locked\".equals(known)", "then": ["Last known: ", "locked"], "else": {"if": "\"Unlocked\".equals(known)", "then": ["Last known: ", "unlocked"], "else": ["Last known: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}]}}	main_lock_last_known_word_locked,main_lock_last_known_word_unlocked,main_lock_last_known_word	choice	as main_lock_last_known_full_locked
+src/com/jjricks/volt/MainActivity.java:917	["Last known"]	main_lock_last_known	exact	
+src/com/jjricks/volt/MainActivity.java:924	["Connected"]	ble_status_connected	exact	
+src/com/jjricks/volt/MainActivity.java:924	["Connecting"]	main_lock_connecting	exact	
+src/com/jjricks/volt/MainActivity.java:924	["Disconnected"]	ble_status_disconnected	exact	
+src/com/jjricks/volt/MainActivity.java:925	[{"hole": "state", "arg": 1, "type": "s"}, " · ", {"hole": "active.name", "arg": 2, "type": "s", "as": "active.shownName()"}, ""]	main_status_connected_named	template	manual: a ternary picks a whole template; shownName() is the stored name in English except default names, whose English is the same
+src/com/jjricks/volt/MainActivity.java:925	[{"hole": "state", "arg": 1, "type": "s"}, " · last seen ", {"hole": "DisplayTime.recent(this,preferences,last,System.currentTimeMillis())", "arg": 2, "type": "s"}, ""]	main_status_last_seen	template	manual: a ternary picks a whole template. Neither condition holds: the plain state, no text of its own
+src/com/jjricks/volt/MainActivity.java:927	[{"hole": "state", "arg": 1, "type": "s"}, ", last connected ", {"hole": "DisplayTime.dateTime(this,preferences,last)", "arg": 2, "type": "s"}, "", ". Connection details"]	main_status_description_last	template	manual: a ternary picks a whole template; without the clause, main_status_description "%1$s. Connection details", which MainTextTest checks
+src/com/jjricks/volt/MainActivity.java:931	["Your scooter"]	main_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:968	["Disconnect"]	main_action_disconnect	exact	
+src/com/jjricks/volt/MainActivity.java:968	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:968	["Allow Nearby devices"]	main_action_allow_nearby	exact	
+src/com/jjricks/volt/MainActivity.java:968	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:969	["Disconnect scooter"]	main_action_disconnect_description	exact	
+src/com/jjricks/volt/MainActivity.java:969	["Cancel connection"]	main_action_cancel_description	exact	
+src/com/jjricks/volt/MainActivity.java:969	["Allow Nearby devices"]	main_action_allow_nearby	exact	
+src/com/jjricks/volt/MainActivity.java:969	["Connect scooter"]	main_action_connect_description	exact	
+src/com/jjricks/volt/MainActivity.java:1001	["Electronic lock switch"]	main_lock_switch	exact	
+src/com/jjricks/volt/MainActivity.java:1014	{"if": "locked", "then": ["Electronic lock, ", "locked", ". Double-tap or slide to ", "unlock"], "else": ["Electronic lock, ", "unlocked", ". Double-tap or slide to ", "lock"]}	main_lock_switch_locked,main_lock_switch_unlocked	choice	the lock switch read aloud, a whole sentence per state
+src/com/jjricks/volt/MainActivity.java:1014	["Electronic lock state unavailable"]	main_lock_switch_unavailable	exact	
+src/com/jjricks/volt/MainActivity.java:1015	["Unavailable"]	main_lock_unavailable	exact	
+src/com/jjricks/volt/MainActivity.java:1015	["Locked"]	main_lock_locked	exact	
+src/com/jjricks/volt/MainActivity.java:1015	["Unlocked"]	main_lock_unlocked	exact	
+src/com/jjricks/volt/MainActivity.java:1096	["Unavailable"]	main_lock_unavailable	exact	
+src/com/jjricks/volt/MainActivity.java:1096	["Unlock"]	main_lock_action_unlock	exact	
+src/com/jjricks/volt/MainActivity.java:1096	["Lock"]	main_lock_action_lock	exact	
+src/com/jjricks/volt/MainActivity.java:1114	["Locked"]	main_lock_locked	exact	
+src/com/jjricks/volt/MainActivity.java:1114	["Unlocked"]	main_lock_unlocked	exact	
+src/com/jjricks/volt/MainActivity.java:1125	["This phone does not support Bluetooth."]	main_scan_no_bluetooth	exact	
+src/com/jjricks/volt/MainActivity.java:1134	["Exit simulation first"]	main_scan_exit_simulation	exact	
+src/com/jjricks/volt/MainActivity.java:1159	["Exit simulation to find a real scooter"]	main_scan_exit_simulation_find	exact	
+src/com/jjricks/volt/MainActivity.java:1162	["Stop recording first"]	main_scan_stop_recording	exact	
+src/com/jjricks/volt/MainActivity.java:1163	["Scooter busy. Try again."]	main_scan_busy	exact	
+src/com/jjricks/volt/MainActivity.java:1164	["This phone does not support Bluetooth."]	main_scan_no_bluetooth	exact	
+src/com/jjricks/volt/MainActivity.java:1169	["Choose your scooter"]	main_scan_title	exact	
+src/com/jjricks/volt/MainActivity.java:1177	["Scan again"]	main_scan_again	exact	
+src/com/jjricks/volt/MainActivity.java:1178	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:1199	["1 scooter found"]	main_scan_found_one	exact	
+src/com/jjricks/volt/MainActivity.java:1199	{"one": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooters found"], "other": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooters found"]}	main_scan_found_many	plural	never asked for 1: main_scan_found_one says that
+src/com/jjricks/volt/MainActivity.java:1199	["Searching…"]	ble_status_searching	exact	
+src/com/jjricks/volt/MainActivity.java:1199	["No scooter found. Is it on?"]	main_scan_none	exact	
+src/com/jjricks/volt/MainActivity.java:1214	["Navee scooter"]	main_scan_navee	exact	
+src/com/jjricks/volt/MainActivity.java:1218	["Strong signal"]	main_scan_strong	exact	
+src/com/jjricks/volt/MainActivity.java:1218	["Good signal"]	main_scan_good	exact	
+src/com/jjricks/volt/MainActivity.java:1218	["Fair signal"]	main_scan_fair	exact	
+src/com/jjricks/volt/MainActivity.java:1218	["Weak signal"]	main_scan_weak	exact	
+src/com/jjricks/volt/MainActivity.java:1229	["Yours"]	main_scan_yours	exact	
+src/com/jjricks/volt/MainActivity.java:1229	["Saved"]	main_scan_saved	exact	
+src/com/jjricks/volt/MainActivity.java:1238	[{"hole": "name", "arg": 1, "type": "s"}, ", ", {"hole": "strength", "arg": 2, "type": "s"}, {"hole": "(saved==null?\"\":match?\", your scooter\":\", saved scooter in My scooters\")", "arg": 3, "type": "s", "as": "saved==null?\"\":match?T.mainScanStateYours():T.mainScanStateSaved()"}, ", address ending ", {"hole": "suffix", "arg": 4, "type": "s"}]	main_scan_option	template	manual: a scan row read aloud; its state a whole phrase
+src/com/jjricks/volt/MainActivity.java:1238	[", your scooter"]	main_scan_state_yours	exact	
+src/com/jjricks/volt/MainActivity.java:1238	[", saved scooter in My scooters"]	main_scan_state_saved	exact	
+src/com/jjricks/volt/MainActivity.java:1239	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/MainActivity.java:1246	["—"]	-	removed	whole block: number() was already dead at the base (only distance() called it, and nothing called distance()); deleted with its literals, with distance()
+src/com/jjricks/volt/MainActivity.java:1246	["%.", {"hole": "digits", "arg": 1, "type": "s"}, "f"]	-	removed	whole block: number(), as above
+src/com/jjricks/volt/MainActivity.java:1246	[""]	-	removed	whole block: number(), as above
+src/com/jjricks/volt/MainActivity.java:1246	[" ", {"hole": "unit", "arg": 1, "type": "s"}]	-	removed	whole block: number(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["—"]	-	removed	whole block: distance() was already dead at the base (nothing called it); deleted with its literals
+src/com/jjricks/volt/MainActivity.java:1247	["units"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["dual"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["mi"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["km"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["km"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["mi"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["km"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	["mi"]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1247	[{"hole": "number(km/1.609344,1,\"mi\")", "arg": 1, "type": "s"}, " / ", {"hole": "number(km,1,\"km\")", "arg": 2, "type": "s"}]	-	removed	whole block: distance(), as above
+src/com/jjricks/volt/MainActivity.java:1250	["Standing start"]	main_value_standing_start	exact	
+src/com/jjricks/volt/MainActivity.java:1254	["units"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1274	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:1274	["Continue"]	main_confirm_continue	exact	
+src/com/jjricks/volt/MainActivity.java:1277	["Auto (riding mode)"]	-	removed	whole block: AUTO_RANGE constant; the choice sheet calls T.mainAutoRange()
+src/com/jjricks/volt/MainActivity.java:1287	["Allow Nearby devices"]	main_action_allow_nearby	exact	
+src/com/jjricks/volt/MainActivity.java:1297	["Needed to connect"]	main_loading_needed	exact	
+src/com/jjricks/volt/MainActivity.java:1336	["Scooter"]	main_controls_back	exact	
+src/com/jjricks/volt/MainActivity.java:1337	["Back to Scooter settings"]	main_controls_back_description	exact	
+src/com/jjricks/volt/MainActivity.java:1339	["Lights"]	main_controls_lights_title	exact	
+src/com/jjricks/volt/MainActivity.java:1345	["Last seen (disconnected)"]	main_controls_last_seen	exact	
+src/com/jjricks/volt/MainActivity.java:1347	["Connect"]	main_action_connect	exact	
+src/com/jjricks/volt/MainActivity.java:1347	["Connect scooter"]	main_action_connect_description	exact	
+src/com/jjricks/volt/MainActivity.java:1354	["Identify"]	main_controls_identify	exact	
+src/com/jjricks/volt/MainActivity.java:1354	["Identify scooter model"]	main_controls_identify_description	exact	
+src/com/jjricks/volt/MainActivity.java:1354	["scooter-identify-model"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1361	["Unfinished test"]	main_controls_unfinished_test	exact	
+src/com/jjricks/volt/MainActivity.java:1362	["Review"]	main_controls_review	exact	
+src/com/jjricks/volt/MainActivity.java:1362	["Review unfinished test"]	main_controls_review_unfinished	exact	
+src/com/jjricks/volt/MainActivity.java:1368	["Search"]	main_controls_search	exact	
+src/com/jjricks/volt/MainActivity.java:1368	["Search scooter settings"]	main_controls_search_description	exact	
+src/com/jjricks/volt/MainActivity.java:1398	["Headlight"]	main_row_headlight	exact	
+src/com/jjricks/volt/MainActivity.java:1398	["Power button"]	main_row_headlight_value	exact	
+src/com/jjricks/volt/MainActivity.java:1399	["Headlight, switched with the scooter's power button"]	main_row_headlight_description	exact	
+src/com/jjricks/volt/MainActivity.java:1403	["Line & star lights"]	main_row_zones	exact	
+src/com/jjricks/volt/MainActivity.java:1405	["Scooter clock"]	main_row_clock	exact	
+src/com/jjricks/volt/MainActivity.java:1407	["Sync"]	main_row_sync	exact	
+src/com/jjricks/volt/MainActivity.java:1407	["Sync scooter clock"]	main_row_sync_description	exact	
+src/com/jjricks/volt/MainActivity.java:1412	["Charger for estimates"]	main_row_charger	exact	
+src/com/jjricks/volt/MainActivity.java:1418	["PIN & proximity unlock"]	main_row_security	exact	
+src/com/jjricks/volt/MainActivity.java:1420	["Scooter name"]	main_rename_title	exact	
+src/com/jjricks/volt/MainActivity.java:1457	["clock_sync"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1468	["Lights"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1468	["Headlights"]	main_group_headlights	exact	
+src/com/jjricks/volt/MainActivity.java:1468	["Lights"]	main_group_lights	exact	
+src/com/jjricks/volt/MainActivity.java:1470	{"one": [{"hole": "count", "arg": 1, "type": "d", "quantity": true}, " setting"], "other": [{"hole": "count", "arg": 1, "type": "d", "quantity": true}, " settings"]}	main_search_results	plural	manual: count+(count==1?" setting":" settings") became T.mainSearchResults(count,count)
+src/com/jjricks/volt/MainActivity.java:1470	["No matching settings"]	main_search_none	exact	
+src/com/jjricks/volt/MainActivity.java:1502	["2 zones"]	main_row_zones_two	exact	
+src/com/jjricks/volt/MainActivity.java:1503	["Off"]	common_off	exact	
+src/com/jjricks/volt/MainActivity.java:1503	["Both on"]	main_row_zones_both	exact	
+src/com/jjricks/volt/MainActivity.java:1503	["1 on"]	main_row_zones_one	exact	
+src/com/jjricks/volt/MainActivity.java:1516	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/MainActivity.java:1516	["Last seen (disconnected)"]	main_controls_last_seen	exact	
+src/com/jjricks/volt/MainActivity.java:1526	["Test records unavailable"]	main_test_records_unavailable	exact	
+src/com/jjricks/volt/MainActivity.java:1527	["Unfinished try · ", {"hole": "ScooterCommands.find(unfinished.get(0).feature).label", "arg": 1, "type": "s", "as": "ScooterCommands.find(unfinished.get(0).feature).label()"}, ""]	main_test_try	template	manual: a ternary picks a whole template; label() is the feature's catalog name, the same English. Its other branches are pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:1527	["Unfinished test · ", {"hole": "ScooterCommands.find(unfinished.get(0).feature).label", "arg": 1, "type": "s", "as": "ScooterCommands.find(unfinished.get(0).feature).label()"}, " +", {"hole": "(unfinished.size()-1)", "arg": 2, "type": "s", "as": "Fmt.integer(unfinished.size()-1)"}]	main_test_test_more	template	manual: as main_test_try
+src/com/jjricks/volt/MainActivity.java:1528	["Unfinished test · removed scooter"]	main_test_removed	exact	
+src/com/jjricks/volt/MainActivity.java:1529	["Unfinished test · another scooter"]	main_test_another	exact	
+src/com/jjricks/volt/MainActivity.java:1530	["Trying ", {"hole": "ScooterCommands.find(ble.guidedTest().feature).label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s", "as": "inSentence(ScooterCommands.find(ble.guidedTest().feature))"}, "…"]	main_test_trying	template	manual: lower-cased in English only, as inSentence says, the same value there
+src/com/jjricks/volt/MainActivity.java:1530	["Setting test in progress"]	main_test_in_progress	exact	
+src/com/jjricks/volt/MainActivity.java:1532	{"if": "!unfinished.isEmpty()&&unfinished.get(0).isTry()", "then": ["Review unfinished ", "try"], "else": ["Review unfinished ", "test"]}	main_test_review_try,main_controls_review_unfinished	choice	the review button read aloud
+src/com/jjricks/volt/MainActivity.java:1532	["Review test records"]	main_test_review_records	exact	
+src/com/jjricks/volt/MainActivity.java:1532	["Review setting test"]	main_test_review_setting	exact	
+src/com/jjricks/volt/MainActivity.java:1547	["Sent ", {"hole": "DisplayTime.clock(MainActivity.this,preferences,sent)", "arg": 1, "type": "s"}]	main_row_clock_value	template	
+src/com/jjricks/volt/MainActivity.java:1549	{"if": "clockPending", "then": ["Scooter clock", ", sending"], "else": {"if": "accepted", "then": ["Scooter clock", ", sent ", {"hole": "DisplayTime.clock(MainActivity.this,preferences,sent)", "arg": 1, "type": "s"}, ", not verified"], "else": {"if": "chip!=null", "then": ["Scooter clock", ", ", {"hole": "chip", "arg": 1, "type": "s"}], "else": ["Scooter clock", ""]}}}	main_row_clock_sending,main_row_clock_sent,main_row_clock_chip,main_row_clock	choice	the clock row read aloud
+src/com/jjricks/volt/MainActivity.java:1551	["Not set"]	main_row_name_not_set	exact	
+src/com/jjricks/volt/MainActivity.java:1557	["High-speed"]	main_row_high_speed	exact	
+src/com/jjricks/volt/MainActivity.java:1557	["Stock"]	main_row_stock	exact	
+src/com/jjricks/volt/MainActivity.java:1558	["Automatic"]	main_row_automatic	exact	
+src/com/jjricks/volt/MainActivity.java:1558	["Auto · ", {"hole": "family", "arg": 1, "type": "s"}]	main_row_auto_family	template	
+src/com/jjricks/volt/MainActivity.java:1559	["Recording label · stop to change"]	main_row_recording_label	exact	
+src/com/jjricks/volt/MainActivity.java:1560	["Detected from power"]	main_row_detected	exact	
+src/com/jjricks/volt/MainActivity.java:1561	["Stop charge recording to change"]	main_row_stop_recording	exact	
+src/com/jjricks/volt/MainActivity.java:1576	["Connect to your scooter first."]	main_quick_connect_first	exact	
+src/com/jjricks/volt/MainActivity.java:1603	["Connect to change this setting."]	main_quick_connect_change	exact	
+src/com/jjricks/volt/MainActivity.java:1604	["Wait for the current scooter change."]	main_quick_wait_change	exact	
+src/com/jjricks/volt/MainActivity.java:1610	["No fresh value yet"]	main_quick_no_fresh	exact	
+src/com/jjricks/volt/MainActivity.java:1642	["Scooter settings"]	main_quick_scooter_settings	exact	
+src/com/jjricks/volt/MainActivity.java:1642	["Settings"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1687	["PIN & proximity unlock"]	main_row_security	exact	
+src/com/jjricks/volt/MainActivity.java:1688	["Experimental controls"]	main_quick_experimental	exact	
+src/com/jjricks/volt/MainActivity.java:1689	["App preferences"]	main_quick_app	exact	
+src/com/jjricks/volt/MainActivity.java:1690	["My scooters"]	main_quick_scooters	exact	
+src/com/jjricks/volt/MainActivity.java:1691	["Compatibility"]	main_quick_compatibility	exact	
+src/com/jjricks/volt/MainActivity.java:1691	["Compatibility"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1692	["Data & history"]	main_quick_data	exact	
+src/com/jjricks/volt/MainActivity.java:1692	["About & permissions"]	main_quick_about	exact	
+src/com/jjricks/volt/MainActivity.java:1722	["Rejected"]	main_chip_rejected	exact	
+src/com/jjricks/volt/MainActivity.java:1722	["Not confirmed"]	main_chip_not_confirmed	exact	
+src/com/jjricks/volt/MainActivity.java:1733	["Charge start"]	main_short_charge_start	exact	
+src/com/jjricks/volt/MainActivity.java:1734	["Charge limit"]	main_short_charge_limit	exact	
+src/com/jjricks/volt/MainActivity.java:1736	["Scooter display units"]	main_short_display_units	exact	
+src/com/jjricks/volt/MainActivity.java:1736	["display_units"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1737	["Boost color"]	main_short_boost_color	exact	
+src/com/jjricks/volt/MainActivity.java:1738	["Pattern"]	main_short_pattern	exact	
+src/com/jjricks/volt/MainActivity.java:1739	["Color"]	main_short_color	exact	
+src/com/jjricks/volt/MainActivity.java:1743	["Boost + full throttle uphill in Sport"]	main_detail_parking	exact	
+src/com/jjricks/volt/MainActivity.java:1744	["Limits speed below 20%"]	main_detail_low_power	exact	
+src/com/jjricks/volt/MainActivity.java:1754	["lock_expiry"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1760	["Miles"]	main_value_miles	exact	
+src/com/jjricks/volt/MainActivity.java:1760	["Kilometers"]	main_value_kilometers	exact	
+src/com/jjricks/volt/MainActivity.java:1760	["display_units"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:1829	["Choose Notify me or Alarm sound"]	main_alert_choose_delivery	exact	
+src/com/jjricks/volt/MainActivity.java:1830	["Notifications are off"]	main_alert_notifications_off	exact	
+src/com/jjricks/volt/MainActivity.java:1837	["Low battery alert"]	main_alert_low	exact	
+src/com/jjricks/volt/MainActivity.java:1837	["Charge alert"]	main_alert_charge	exact	
+src/com/jjricks/volt/MainActivity.java:1844	["Off"]	common_off	exact	
+src/com/jjricks/volt/MainActivity.java:1844	["Below ", {"hole": "a.lowBelow", "arg": 1, "type": "s", "as": "Fmt.integer(a.lowBelow)"}, "%"]	main_alert_below	template	
+src/com/jjricks/volt/MainActivity.java:1846	["Watching this charge"]	main_alert_watching	exact	
+src/com/jjricks/volt/MainActivity.java:1848	["Watching"]	-	stays-english	which kind of line the row shows, kept in WATCHING; never compared with the text on screen
+src/com/jjricks/volt/MainActivity.java:1849	["Low battery alert"]	main_alert_low	exact	
+src/com/jjricks/volt/MainActivity.java:1849	["Charge alert"]	main_alert_charge	exact	
+src/com/jjricks/volt/MainActivity.java:1849	[{"hole": "(low?\"Low battery alert\":\"Charge alert\")", "arg": 1, "type": "s", "as": "low?T.mainAlertLow():T.mainAlertCharge()"}, ", ", {"hole": "value", "arg": 2, "type": "s"}, "", ", ", {"hole": "sub", "arg": 3, "type": "s"}]	main_label_value_detail	template	manual: with a line under the row; without one main_label_value, pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:1854	["Choose a scooter first"]	main_alert_choose_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:1872	["Battery alerts"]	main_alert_title	exact	
+src/com/jjricks/volt/MainActivity.java:1872	["Volt checks the battery while it's connected to this scooter. Alerts stay on for every charge until you turn them off."]	main_alert_intro	exact	
+src/com/jjricks/volt/MainActivity.java:1876	["Charge alert"]	main_alert_charge	exact	
+src/com/jjricks/volt/MainActivity.java:1877	["Charge alert level"]	main_alert_charge_level	exact	
+src/com/jjricks/volt/MainActivity.java:1878	[{"hole": "ChargeAlertPolicy.CHARGE_MIN", "arg": 1, "type": "s", "as": "Fmt.integer(ChargeAlertPolicy.CHARGE_MIN)"}, "%"]	fmt_percent	template	
+src/com/jjricks/volt/MainActivity.java:1878	["Full"]	main_alert_full	exact	
+src/com/jjricks/volt/MainActivity.java:1880	["Low battery alert"]	main_alert_low	exact	
+src/com/jjricks/volt/MainActivity.java:1881	["Low battery alert level"]	main_alert_low_level	exact	
+src/com/jjricks/volt/MainActivity.java:1882	[{"hole": "ChargeAlertPolicy.LOW_MIN", "arg": 1, "type": "s", "as": "Fmt.integer(ChargeAlertPolicy.LOW_MIN)"}, "%"]	fmt_percent	template	
+src/com/jjricks/volt/MainActivity.java:1882	[{"hole": "ChargeAlertPolicy.LOW_MAX", "arg": 1, "type": "s", "as": "Fmt.integer(ChargeAlertPolicy.LOW_MAX)"}, "%"]	fmt_percent	template	
+src/com/jjricks/volt/MainActivity.java:1883	["Alert me with"]	main_alert_with	exact	
+src/com/jjricks/volt/MainActivity.java:1885	["Notify me"]	main_alert_notify	exact	
+src/com/jjricks/volt/MainActivity.java:1887	["Alarm sound"]	main_alert_alarm	exact	
+src/com/jjricks/volt/MainActivity.java:1887	["Your alarm sound, for up to a minute, even when notifications are silent"]	main_alert_alarm_detail	exact	
+src/com/jjricks/volt/MainActivity.java:1888	["Turn on Notify me or Alarm sound to get alerts."]	main_alert_need_delivery	exact	
+src/com/jjricks/volt/MainActivity.java:1895	["Allow"]	main_alert_allow	exact	
+src/com/jjricks/volt/MainActivity.java:1897	["While a charge alert waits, Volt stays connected in the background with a notification, for up to 12 hours. ", "The low battery alert needs Volt to be connected already."]	main_alert_background	template	
+src/com/jjricks/volt/MainActivity.java:1900	["Phones that close apps in the background, like Xiaomi, can stop the alert. In Volt's app settings, set battery use to No restrictions."]	main_alert_saver	exact	
+src/com/jjricks/volt/MainActivity.java:1902	["App settings"]	main_alert_app_settings	exact	
+src/com/jjricks/volt/MainActivity.java:1904	["Open Volt's app settings"]	main_alert_app_settings_description	exact	
+src/com/jjricks/volt/MainActivity.java:1945	["Below ", {"hole": "a.lowBelow", "arg": 1, "type": "s", "as": "Fmt.integer(a.lowBelow)"}, "%"]	main_alert_below	template	
+src/com/jjricks/volt/MainActivity.java:1946	["Below ", {"hole": "a.lowBelow", "arg": 1, "type": "s", "as": "Fmt.integer(a.lowBelow)"}, "%"]	main_alert_below	template	
+src/com/jjricks/volt/MainActivity.java:1957	["Notifications are off for Volt, so alerts work only while Volt is open."]	main_alert_perm_app	exact	
+src/com/jjricks/volt/MainActivity.java:1958	["Volt's connection notification is off, so Volt can't watch a charge in the background."]	main_alert_perm_watch	exact	
+src/com/jjricks/volt/MainActivity.java:1959	["Battery alert notifications are off, so Notify me can't show."]	main_alert_perm_alerts	exact	
+src/com/jjricks/volt/MainActivity.java:1961	["Allow notifications for Volt"]	main_alert_allow_description	exact	
+src/com/jjricks/volt/MainActivity.java:1981	["Open Volt's settings in Android"]	main_alert_open_settings	exact	
+src/com/jjricks/volt/MainActivity.java:1990	["Stop alarm"]	main_alert_stop_alarm	exact	
+src/com/jjricks/volt/MainActivity.java:1990	["OK"]	common_ok	exact	
+src/com/jjricks/volt/MainActivity.java:2006	["Connect your scooter first"]	main_schedule_connect_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2007	["Wait for the current scooter change"]	main_schedule_wait_scooter_change	exact	
+src/com/jjricks/volt/MainActivity.java:2011	["Connect a charger first"]	common_connect_charger_first	exact	
+src/com/jjricks/volt/MainActivity.java:2023	["Measure this charge first?"]	main_schedule_measure_title	exact	
+src/com/jjricks/volt/MainActivity.java:2024	{"if": "background", "then": ["Volt didn't see this charge begin, so it would plan for a fresh charger, which usually finishes early. ", "Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. ", "Volt stays connected", "", " and shows a notification until the schedule is set."], "else": ["Volt didn't see this charge begin, so it would plan for a fresh charger, which usually finishes early. ", "Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. ", "Volt stays connected", ", even in the background,", " and shows a notification until the schedule is set."]}	main_schedule_measure_body,main_schedule_measure_body_foreground	choice	whole sentences
+src/com/jjricks/volt/MainActivity.java:2027	["Measure first"]	main_schedule_measure_first	exact	
+src/com/jjricks/volt/MainActivity.java:2030	["Measuring · Charge done by is set within ", {"hole": "scooterService.chargeMeasureMinutesLeft()", "arg": 1, "type": "s", "as": "Fmt.integer(scooterService.chargeMeasureMinutesLeft())"}, " min"]	main_schedule_measuring_toast	template	
+src/com/jjricks/volt/MainActivity.java:2034	["Schedule now"]	main_schedule_schedule_now	exact	
+src/com/jjricks/volt/MainActivity.java:2039	["Setting the schedule…"]	main_schedule_setting_schedule	exact	
+src/com/jjricks/volt/MainActivity.java:2040	["Measuring this charge"]	main_schedule_measuring_title	exact	
+src/com/jjricks/volt/MainActivity.java:2041	["Charge done by is set automatically within ", {"hole": "scooterService.chargeMeasureMinutesLeft()", "arg": 1, "type": "s", "as": "Fmt.integer(scooterService.chargeMeasureMinutesLeft())"}, " min. ", "Schedule now plans with what Volt knows so far. Stop measuring leaves Charge done by off."]	main_schedule_measuring_body	template	
+src/com/jjricks/volt/MainActivity.java:2043	["Keep measuring"]	main_schedule_keep_measuring	exact	
+src/com/jjricks/volt/MainActivity.java:2044	["Schedule now"]	main_schedule_schedule_now	exact	
+src/com/jjricks/volt/MainActivity.java:2045	["Stop measuring"]	main_schedule_stop_measuring	exact	
+src/com/jjricks/volt/MainActivity.java:2056	["Turn off schedule"]	main_schedule_turn_off_schedule	exact	
+src/com/jjricks/volt/MainActivity.java:2059	["Schedule off. Charging starts now if the charger is plugged in."]	main_schedule_schedule_off	exact	
+src/com/jjricks/volt/MainActivity.java:2061	["OK"]	common_ok	exact	
+src/com/jjricks/volt/MainActivity.java:2069	["Connect the scooter first"]	main_schedule_connect_the_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2072	["Test scheduled charging?"]	main_schedule_test_title	exact	
+src/com/jjricks/volt/MainActivity.java:2073	["Volt pauses charging and sets the scooter to resume in about 2 minutes, to check the scooter's clock and schedule. ", "It takes about 3–5 minutes; keep the phone near the scooter."]	main_schedule_test_intro	template	
+src/com/jjricks/volt/MainActivity.java:2075	["Start test"]	main_schedule_start_test	exact	
+src/com/jjricks/volt/MainActivity.java:2076	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:2083	["Testing scheduled charging"]	main_schedule_testing_title	exact	
+src/com/jjricks/volt/MainActivity.java:2084	["Charging should resume at ", {"hole": "DisplayTime.clock(this,preferences,charge.testStartWallMs)", "arg": 1, "type": "s"}, ". ", "Cancel test turns the schedule off and restores your Charge start."]	main_schedule_test_body	template	
+src/com/jjricks/volt/MainActivity.java:2086	["Keep testing"]	main_schedule_keep_testing	exact	
+src/com/jjricks/volt/MainActivity.java:2087	["Cancel test"]	main_schedule_cancel_test	exact	
+src/com/jjricks/volt/MainActivity.java:2096	["OK"]	common_ok	exact	
+src/com/jjricks/volt/MainActivity.java:2103	["Passed"]	main_schedule_result_passed	exact	
+src/com/jjricks/volt/MainActivity.java:2103	["Clock ahead"]	main_schedule_result_ahead	exact	
+src/com/jjricks/volt/MainActivity.java:2103	["Clock behind"]	main_schedule_result_behind	exact	
+src/com/jjricks/volt/MainActivity.java:2103	["Didn't pause"]	main_schedule_result_no_pause	exact	
+src/com/jjricks/volt/MainActivity.java:2104	["Didn't resume"]	main_schedule_result_no_resume	exact	
+src/com/jjricks/volt/MainActivity.java:2104	["At limit"]	main_schedule_result_limit	exact	
+src/com/jjricks/volt/MainActivity.java:2104	["Cancelled"]	main_schedule_result_cancelled	exact	
+src/com/jjricks/volt/MainActivity.java:2104	["Interrupted"]	main_schedule_result_interrupted	exact	
+src/com/jjricks/volt/MainActivity.java:2105	["Didn't start"]	main_schedule_result_not_started	exact	
+src/com/jjricks/volt/MainActivity.java:2110	["Test scheduled charging"]	main_schedule_test_row	exact	
+src/com/jjricks/volt/MainActivity.java:2118	["Connect the scooter first"]	main_schedule_connect_the_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2123	["Test scheduled charging", "", ", ", {"hole": "value", "arg": 1, "type": "s"}, "", ", ", {"hole": "blocked", "arg": 2, "type": "s"}]	main_schedule_test_row_both	template	manual: both states; the other three are the row name, and main_label_value, pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:2128	["Connect your scooter first"]	main_schedule_connect_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2136	["Select a scooter first"]	main_schedule_select_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2142	["The selected scooter changed"]	main_schedule_scooter_changed	exact	
+src/com/jjricks/volt/MainActivity.java:2145	["Saved for next time"]	main_schedule_saved_next	exact	
+src/com/jjricks/volt/MainActivity.java:2149	["Charge done by"]	main_schedule_done_by	exact	
+src/com/jjricks/volt/MainActivity.java:2157	["Charge done by"]	main_schedule_done_by	exact	
+src/com/jjricks/volt/MainActivity.java:2164	["Charge done by"]	main_schedule_done_by	exact	
+src/com/jjricks/volt/MainActivity.java:2173	["Select a scooter first"]	main_schedule_select_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2173	["Connect a charger first"]	common_connect_charger_first	exact	
+src/com/jjricks/volt/MainActivity.java:2178	["Measuring · ", {"hole": "scooterService.chargeMeasureMinutesLeft()", "arg": 1, "type": "s", "as": "Fmt.integer(scooterService.chargeMeasureMinutesLeft())"}, " min"]	main_schedule_measuring_value	template	
+src/com/jjricks/volt/MainActivity.java:2178	["On"]	common_on	exact	
+src/com/jjricks/volt/MainActivity.java:2178	["Off"]	common_off	exact	
+src/com/jjricks/volt/MainActivity.java:2182	["Charge done by time"]	main_schedule_done_by_time	exact	
+src/com/jjricks/volt/MainActivity.java:2182	["Charge done by"]	main_schedule_done_by	exact	
+src/com/jjricks/volt/MainActivity.java:2182	[{"hole": "(time?\"Charge done by time\":\"Charge done by\")", "arg": 1, "type": "s", "as": "time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy()"}, ", ", {"hole": "value", "arg": 2, "type": "s"}, "", ", ", {"hole": "blocked", "arg": 3, "type": "s"}]	main_label_value_detail	template	manual: with a blocked reason; without one main_label_value, pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:2210	["Stop to change"]	main_row_stop_to_change	exact	
+src/com/jjricks/volt/MainActivity.java:2229	[{"hole": "shortLabel(feature)", "arg": 1, "type": "s"}, " ", {"hole": "label", "arg": 2, "type": "s", "as": "feature.optionLabel(i)"}]	main_swatch_description	template	manual: the option's catalog label; the English label is kept beside it for the colour
+src/com/jjricks/volt/MainActivity.java:2234	["Stop to change"]	main_row_stop_to_change	exact	
+src/com/jjricks/volt/MainActivity.java:2240	["Volt (learned)"]	main_row_range_learned	exact	
+src/com/jjricks/volt/MainActivity.java:2240	["Scooter"]	main_row_range_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2244	["Range estimate, ", {"hole": "source", "arg": 1, "type": "s"}, ", opens choices"]	main_row_range_description	template	
+src/com/jjricks/volt/MainActivity.java:2252	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/MainActivity.java:2252	["Not scheduled"]	main_row_not_scheduled	exact	
+src/com/jjricks/volt/MainActivity.java:2253	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/MainActivity.java:2265	[""]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:2266	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/MainActivity.java:2274	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/MainActivity.java:2282	[", confirming"]	main_row_confirming_part	exact	
+src/com/jjricks/volt/MainActivity.java:2282	[", ", {"hole": "chip.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s", "as": "lowerInEnglish(chip)"}]	main_row_state_note	template	manual: lower-cased only in English, the same value there; the trailing state of main_label_value_state
+src/com/jjricks/volt/MainActivity.java:2282	[", stop to change"]	main_row_stop_part	exact	
+src/com/jjricks/volt/MainActivity.java:2282	[", ", {"hole": "note.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s", "as": "lowerInEnglish(note)"}]	main_row_state_note	template	manual: as above
+src/com/jjricks/volt/MainActivity.java:2282	[{"hole": "shortLabel(feature)", "arg": 1, "type": "s"}, ", ", {"hole": "shown", "arg": 2, "type": "s"}, {"hole": "(pending?\", confirming\":chip!=null?\", \"+chip.toLowerCase(Locale.ROOT):parkedBlocked?\", stop to change\":note!=null?\", \"+note.toLowerCase(Locale.ROOT):\"\")", "arg": 3, "type": "s", "as": "pending?T.mainRowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?T.mainRowStateNote(lowerInEnglish(note)):\"\""}]	main_label_value_state	template	manual: the row and its one state; screen reader only
+src/com/jjricks/volt/MainActivity.java:2283	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/MainActivity.java:2283	["On"]	common_on	exact	
+src/com/jjricks/volt/MainActivity.java:2283	["Off"]	common_off	exact	
+src/com/jjricks/volt/MainActivity.java:2290	["Connect your scooter first"]	main_schedule_connect_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2292	["On"]	common_on	exact	
+src/com/jjricks/volt/MainActivity.java:2292	["Off"]	common_off	exact	
+src/com/jjricks/volt/MainActivity.java:2292	["Not scheduled"]	main_row_not_scheduled	exact	
+src/com/jjricks/volt/MainActivity.java:2299	[{"hole": "shortLabel(feature)", "arg": 1, "type": "s"}, ", ", {"hole": "shown", "arg": 2, "type": "s"}, "", ", ", {"hole": "blocked", "arg": 3, "type": "s"}, "", ", ", {"hole": "note", "arg": 4, "type": "s"}]	main_label_value_details	template	manual: both lines; the other states are main_label_value and main_label_value_detail, pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:2312	["Unconfirmed here"]	main_row_unconfirmed	exact	
+src/com/jjricks/volt/MainActivity.java:2313	["Untested here"]	main_row_untested	exact	
+src/com/jjricks/volt/MainActivity.java:2328	[{"hole": "shortLabel(feature)", "arg": 1, "type": "s"}, " ", {"hole": "label", "arg": 2, "type": "s", "as": "decision.labelText(v)"}]	main_swatch_description	template	manual: the option's catalog label; the English label is kept beside it for the colour
+src/com/jjricks/volt/MainActivity.java:2335	[{"hole": "text", "arg": 1, "type": "s"}, " · ", {"hole": "note", "arg": 2, "type": "s"}]	main_join_note	template	
+src/com/jjricks/volt/MainActivity.java:2410	["Top speed · Sport"]	main_speed_title	exact	
+src/com/jjricks/volt/MainActivity.java:2427	["km"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:2429	[{"hole": "kmh", "arg": 1, "type": "s", "as": "Fmt.integer(kmh)"}, " kilometres per hour"]	main_speed_spoken_km	template	
+src/com/jjricks/volt/MainActivity.java:2429	[{"hole": "number(kmh,units)", "arg": 1, "type": "s"}, " miles per hour, ", {"hole": "kmh", "arg": 2, "type": "s", "as": "Fmt.integer(kmh)"}, " kilometres per hour"]	main_speed_spoken_mi	template	
+src/com/jjricks/volt/MainActivity.java:2444	["km/h"]	units_kmh	exact	
+src/com/jjricks/volt/MainActivity.java:2444	["mph · ", {"hole": "actual", "arg": 1, "type": "s", "as": "Fmt.integer(actual)"}, " km/h"]	main_speed_unit_dual	template	
+src/com/jjricks/volt/MainActivity.java:2444	["mph"]	units_mph	exact	
+src/com/jjricks/volt/MainActivity.java:2445	["Top speed, Sport mode maximum, ", "not reported", "", ", last seen setting"]	main_speed_not_reported_seen	template	manual: a whole sentence per state; the other three pinned in MainTextTest
+src/com/jjricks/volt/MainActivity.java:2450	["Set top speed to ", {"hole": "spoken(kmh,units)", "arg": 1, "type": "s"}]	main_speed_set	template	
+src/com/jjricks/volt/MainActivity.java:2451	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/MainActivity.java:2457	["Confirming"]	main_speed_confirming	exact	
+src/com/jjricks/volt/MainActivity.java:2459	["Confirming…"]	main_speed_confirming_visible	exact	
+src/com/jjricks/volt/MainActivity.java:2461	["Unconfirmed here"]	main_row_unconfirmed	exact	
+src/com/jjricks/volt/MainActivity.java:2524	["Volt hasn't seen a Model ", {"hole": "model", "arg": 1, "type": "s"}, " before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it."]	main_report_invite_body	template	
+src/com/jjricks/volt/MainActivity.java:2526	["No serial, MAC, owner key, PIN, names or routes are included."]	main_report_invite_privacy	exact	
+src/com/jjricks/volt/MainActivity.java:2530	["Help Volt support this scooter"]	main_report_invite_title	exact	
+src/com/jjricks/volt/MainActivity.java:2531	["Check & share"]	main_report_check_share	exact	
+src/com/jjricks/volt/MainActivity.java:2531	["Not now"]	main_report_not_now	exact	
+src/com/jjricks/volt/MainActivity.java:2531	["Don't ask again"]	main_report_dont_ask	exact	
+src/com/jjricks/volt/MainActivity.java:2546	["Connect your scooter first."]	main_report_connect_first	exact	
+src/com/jjricks/volt/MainActivity.java:2566	["Next"]	main_report_next	exact	
+src/com/jjricks/volt/MainActivity.java:2566	["Checking your scooter, about 30 seconds…"]	main_report_checking	exact	
+src/com/jjricks/volt/MainActivity.java:2567	["Try again"]	common_try_again	exact	
+src/com/jjricks/volt/MainActivity.java:2568	["Next"]	main_report_next	exact	
+src/com/jjricks/volt/MainActivity.java:2568	["Check finished ✓ Choose your scooter, or Not sure."]	main_report_check_choose	exact	
+src/com/jjricks/volt/MainActivity.java:2568	["Check finished ✓"]	main_report_check_finished	exact	
+src/com/jjricks/volt/MainActivity.java:2580	["The check stopped before it finished."]	main_report_check_stopped	exact	
+src/com/jjricks/volt/MainActivity.java:2592	["Which scooter is this?"]	main_report_which	exact	
+src/com/jjricks/volt/MainActivity.java:2593	["Next"]	main_report_next	exact	
+src/com/jjricks/volt/MainActivity.java:2607	["The scooter changed, so Volt didn't open the report."]	main_report_changed	exact	
+src/com/jjricks/volt/MainActivity.java:2614	["Your email app has the report. Thanks for helping!"]	main_report_thanks_report	exact	
+src/com/jjricks/volt/MainActivity.java:2650	["Save"]	main_report_save	exact	
+src/com/jjricks/volt/MainActivity.java:2651	["Which scooter is this?"]	main_report_which	exact	
+src/com/jjricks/volt/MainActivity.java:2652	["Save"]	main_report_save	exact	
+src/com/jjricks/volt/MainActivity.java:2654	["Save"]	main_report_save	exact	
+src/com/jjricks/volt/MainActivity.java:2655	["Volt shows this model's name and photo until it can identify your scooter itself."]	main_report_model_note	exact	
+src/com/jjricks/volt/MainActivity.java:2673	["Sending Volt's connection details helps fix this for your model. Your email app opens a short report you can read before you send it."]	main_report_failure_body	exact	
+src/com/jjricks/volt/MainActivity.java:2675	["It lists each connection step and error code, the scooter's model ID, and your Android version and phone model. No serial, MAC, owner key, PIN or names."]	main_report_failure_privacy	exact	
+src/com/jjricks/volt/MainActivity.java:2678	["Volt couldn't connect to this scooter"]	main_report_failure_title	exact	
+src/com/jjricks/volt/MainActivity.java:2679	["Send details"]	main_report_send_details	exact	
+src/com/jjricks/volt/MainActivity.java:2679	["Not now"]	main_report_not_now	exact	
+src/com/jjricks/volt/MainActivity.java:2679	["Don't ask again"]	main_report_dont_ask	exact	
+src/com/jjricks/volt/MainActivity.java:2695	["Your email app has the details. Thanks for helping!"]	main_report_thanks_details	exact	
+src/com/jjricks/volt/MainActivity.java:2696	["No email app could open the details."]	main_report_no_email_details	exact	
+src/com/jjricks/volt/MainActivity.java:2699	["Send"]	main_report_send	exact	
+src/com/jjricks/volt/MainActivity.java:2699	["Your email app opens next, so you can read it first."]	main_report_email_next	exact	
+src/com/jjricks/volt/MainActivity.java:2700	["Which scooter is this?"]	main_report_which	exact	
+src/com/jjricks/volt/MainActivity.java:2701	["Send"]	main_report_send	exact	
+src/com/jjricks/volt/MainActivity.java:2702	["Send"]	main_report_send	exact	
+src/com/jjricks/volt/MainActivity.java:2702	["Choose your scooter, or Not sure, then Send."]	main_report_choose_send	exact	
+src/com/jjricks/volt/MainActivity.java:2709	["To ", {"hole": "ReportInvite.ADDRESS", "arg": 1, "type": "s"}]	main_report_to	template	
+src/com/jjricks/volt/MainActivity.java:2719	["Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names."]	-	removed	whole block: the note is a catalog call in the sheet below
+src/com/jjricks/volt/MainActivity.java:2720	["Include diagnostics"]	-	removed	whole block: the sheet below calls the catalog for these labels
+src/com/jjricks/volt/MainActivity.java:2720	["Diagnostics"]	-	removed	whole block: the sheet below calls the catalog for these labels
+src/com/jjricks/volt/MainActivity.java:2731	["Email Volt"]	main_report_email_title	exact	
+src/com/jjricks/volt/MainActivity.java:2732	["To ", {"hole": "ReportInvite.ADDRESS", "arg": 1, "type": "s"}]	main_report_to	template	
+src/com/jjricks/volt/MainActivity.java:2755	["Preview"]	main_report_preview	exact	
+src/com/jjricks/volt/MainActivity.java:2757	["Preview the diagnostics file"]	main_report_preview_description	exact	
+src/com/jjricks/volt/MainActivity.java:2761	["Volt couldn't prepare the diagnostics file, so this email goes without it."]	main_report_no_bundle	exact	
+src/com/jjricks/volt/MainActivity.java:2762	["diagnostics-note"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:2764	["Open email"]	main_report_open_email	exact	
+src/com/jjricks/volt/MainActivity.java:2767	["Volt couldn't attach the diagnostics file, so the email goes without it."]	main_report_no_attach	exact	
+src/com/jjricks/volt/MainActivity.java:2768	["No email app could open the report."]	main_report_no_email	exact	
+src/com/jjricks/volt/MainActivity.java:2780	{"one": [{"hole": "bytes", "arg": 1, "type": "d", "quantity": true}, " bytes"], "other": [{"hole": "bytes", "arg": 1, "type": "d", "quantity": true}, " bytes"]}	main_report_size_bytes	plural	manual: bytes+" bytes" (English says 1 bytes; pending fix) became T.mainReportSizeBytes(bytes,bytes)
+src/com/jjricks/volt/MainActivity.java:2780	[{"spec": "%.1f", "arg": 1, "value": "bytes/1024.0", "as": "Fmt.decimal(Locale.ROOT, bytes / 1024.0, 1)"}, " KB"]	main_report_size_kb	format	
+src/com/jjricks/volt/MainActivity.java:2781	["Diagnostics file"]	main_report_diagnostics_title	exact	
+src/com/jjricks/volt/MainActivity.java:2781	[{"hole": "DiagnosticsProvider.NAME", "arg": 1, "type": "s"}, " · ", {"hole": "size", "arg": 2, "type": "s"}, ". This is exactly what Volt attaches."]	main_report_preview_body	template	
+src/com/jjricks/volt/MainActivity.java:2804	["Email the report"]	main_report_chooser	exact	
+src/com/jjricks/volt/MainActivity.java:2813	["Email the report"]	main_report_chooser	exact	
+src/com/jjricks/volt/MainActivity.java:2842	["Close"]	common_close	exact	
+src/com/jjricks/volt/MainActivity.java:2896	["Choose a scooter first"]	main_alert_choose_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2917	["Range estimate"]	main_range_title	exact	
+src/com/jjricks/volt/MainActivity.java:2920	["Scooter's estimate"]	main_range_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:2920	["Volt's estimate (learned)"]	main_range_volt	exact	
+src/com/jjricks/volt/MainActivity.java:2949	["Exit simulation to use saved rides."]	main_range_exit_simulation	exact	
+src/com/jjricks/volt/MainActivity.java:2951	["Checking saved rides…"]	main_range_checking	exact	
+src/com/jjricks/volt/MainActivity.java:2966	["Volt's estimate"]	main_range_intro_title	exact	
+src/com/jjricks/volt/MainActivity.java:2966	["More rides needed"]	main_range_more_title	exact	
+src/com/jjricks/volt/MainActivity.java:2971	["Volt uses your recorded rides to learn how far you can go. It improves as you record more rides."]	main_range_intro_body	exact	
+src/com/jjricks/volt/MainActivity.java:2971	["Record a few more rides so Volt can learn your range. Use your scooter's estimate for now."]	main_range_more_body	exact	
+src/com/jjricks/volt/MainActivity.java:2973	["Got it"]	main_range_got_it	exact	
+src/com/jjricks/volt/MainActivity.java:2997	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/MainActivity.java:2997	["Not selected"]	main_range_not_selected	exact	
+src/com/jjricks/volt/MainActivity.java:2998	[", unavailable in simulation"]	main_range_state_simulation	exact	
+src/com/jjricks/volt/MainActivity.java:2998	[", checking saved rides"]	main_range_state_checking	exact	
+src/com/jjricks/volt/MainActivity.java:2998	[", more rides needed"]	main_range_state_more	exact	
+src/com/jjricks/volt/MainActivity.java:2998	[", tap to retry"]	main_range_state_retry	exact	
+src/com/jjricks/volt/MainActivity.java:3001	["Exit simulation to use saved rides."]	main_range_exit_simulation	exact	
+src/com/jjricks/volt/MainActivity.java:3001	["Checking saved rides…"]	main_range_checking	exact	
+src/com/jjricks/volt/MainActivity.java:3001	["Couldn't read saved rides. Tap Volt's estimate to retry."]	main_range_read_failed	exact	
+src/com/jjricks/volt/MainActivity.java:3002	["Using scooter's estimate for now."]	main_range_using_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:3013	{"if": "low==null||high==null", "then": ["About ", {"hole": "wholeDistance(km,km)", "arg": 1, "type": "s"}, " at ", {"hole": "Math.round(percent)", "arg": 2, "type": "s", "as": "Fmt.integer(Math.round(percent))"}, "%", ""], "else": ["About ", {"hole": "wholeDistance(km,km)", "arg": 1, "type": "s"}, " at ", {"hole": "Math.round(percent)", "arg": 2, "type": "s", "as": "Fmt.integer(Math.round(percent))"}, "%", " · likely ", {"hole": "wholeDistance(low,high)", "arg": 3, "type": "s"}]}	main_range_summary,main_range_summary_likely	choice	the learned forecast
+src/com/jjricks/volt/MainActivity.java:3017	["km"]	units_km	exact	
+src/com/jjricks/volt/MainActivity.java:3017	["mi"]	units_mi	exact	
+src/com/jjricks/volt/MainActivity.java:3018	[{"hole": "mi", "arg": 1, "type": "s"}, " / ", {"hole": "km", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/MainActivity.java:3022	[{"hole": "a", "arg": 1, "type": "s", "as": "Fmt.integer(a)"}, "–", {"hole": "b", "arg": 2, "type": "s", "as": "Fmt.integer(b)"}, " ", {"hole": "unit", "arg": 3, "type": "s"}]	fmt_range	template	manual: a==b picks fmt_quantity, else this, whose English is the same
+src/com/jjricks/volt/MainActivity.java:3031	["Charger for estimates"]	main_row_charger	exact	
+src/com/jjricks/volt/MainActivity.java:3032	["Automatic recognizes UT5 MAX chargers from live charging power. You can choose a charger yourself instead."]	main_charger_intro	exact	
+src/com/jjricks/volt/MainActivity.java:3034	["Charger for estimates"]	main_row_charger	exact	
+src/com/jjricks/volt/MainActivity.java:3034	["Auto"]	main_charger_auto	exact	
+src/com/jjricks/volt/MainActivity.java:3034	["Stock"]	main_row_stock	exact	
+src/com/jjricks/volt/MainActivity.java:3034	["High-speed"]	main_row_high_speed	exact	
+src/com/jjricks/volt/MainActivity.java:3040	["Stop charge recording before changing the charger."]	main_charger_stop_recording	exact	
+src/com/jjricks/volt/MainActivity.java:3046	["Connecting near full may leave the charger uncertain; Volt uses the current rate until it knows. This preference changes estimates only and is saved for this scooter."]	main_charger_note	exact	
+src/com/jjricks/volt/MainActivity.java:3072	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:3074	["Apply"]	main_edit_apply	exact	
+src/com/jjricks/volt/MainActivity.java:3076	["Not connected"]	main_edit_not_connected	exact	
+src/com/jjricks/volt/MainActivity.java:3113	["Updated on scooter"]	main_edit_updated	exact	
+src/com/jjricks/volt/MainActivity.java:3113	["Updated on scooter"]	main_edit_updated	exact	
+src/com/jjricks/volt/MainActivity.java:3139	["Not on this firmware"]	main_edit_not_on_firmware	exact	
+src/com/jjricks/volt/MainActivity.java:3173	["Auto"]	main_edit_auto	exact	
+src/com/jjricks/volt/MainActivity.java:3187	["Confirming…"]	main_speed_confirming_visible	exact	
+src/com/jjricks/volt/MainActivity.java:3217	["Not confirmed"]	main_chip_not_confirmed	exact	
+src/com/jjricks/volt/MainActivity.java:3217	["Rejected"]	main_chip_rejected	exact	
+src/com/jjricks/volt/MainActivity.java:3224	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/MainActivity.java:3224	["Not selected"]	main_edit_not_selected	exact	
+src/com/jjricks/volt/MainActivity.java:3227	["Not connected"]	main_edit_not_connected	exact	
+src/com/jjricks/volt/MainActivity.java:3237	["Connect your scooter first"]	main_schedule_connect_your_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:3247	["The selected scooter changed"]	main_schedule_scooter_changed	exact	
+src/com/jjricks/volt/MainActivity.java:3251	["Next charge start (on the hour)"]	main_edit_next_start_hour	exact	
+src/com/jjricks/volt/MainActivity.java:3251	["Next charge start"]	main_edit_next_start	exact	
+src/com/jjricks/volt/MainActivity.java:3267	["Choose a scooter first."]	main_import_choose_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:3272	["Export failed: unreadable slot."]	main_import_export_failed	exact	
+src/com/jjricks/volt/MainActivity.java:3275	["Choose a scooter first."]	main_import_choose_scooter	exact	
+src/com/jjricks/volt/MainActivity.java:3278	["A document picker could not open."]	main_import_no_picker	exact	
+src/com/jjricks/volt/MainActivity.java:3283	["Replace dashboard layouts?"]	main_import_replace_title	exact	
+src/com/jjricks/volt/MainActivity.java:3284	["Replaces ", {"hole": "scooterService.profiles.active().name", "arg": 1, "type": "s", "as": "scooterService.profiles.active().shownName()"}, "’s dashboard and all 3 slots."]	main_import_replace_body	template	manual: a default name shows through shownName(), the stored name otherwise; English the same. 
+src/com/jjricks/volt/MainActivity.java:3285	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:3285	["Import layouts"]	main_import_import_layouts	exact	
+src/com/jjricks/volt/MainActivity.java:3287	["The selected scooter changed. Import again."]	main_import_scooter_changed	exact	
+src/com/jjricks/volt/MainActivity.java:3290	["Dashboards imported."]	main_import_imported	exact	
+src/com/jjricks/volt/MainActivity.java:3290	["The dashboards could not be imported."]	main_import_not_imported	exact	
+src/com/jjricks/volt/MainActivity.java:3298	["Save or restore your recorded rides."]	main_import_rides_summary	exact	
+src/com/jjricks/volt/MainActivity.java:3299	["One backup for scooter access, rides, charges, history, dashboards and settings. Choose what to include next."]	main_import_all_summary	exact	
+src/com/jjricks/volt/MainActivity.java:3301	["Back up"]	main_import_back_up	exact	
+src/com/jjricks/volt/MainActivity.java:3301	["Restore"]	main_import_restore	exact	
+src/com/jjricks/volt/MainActivity.java:3303	["Ride backups"]	main_import_rides_title	exact	
+src/com/jjricks/volt/MainActivity.java:3303	["Back up & restore"]	main_import_all_title	exact	
+src/com/jjricks/volt/MainActivity.java:3303	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:3307	["Restore?"]	main_import_restore_title	exact	
+src/com/jjricks/volt/MainActivity.java:3307	["Back up?"]	main_import_back_up_title	exact	
+src/com/jjricks/volt/MainActivity.java:3308	{"if": "restore", "then": ["Choose a backup, review its contents, then confirm. Nothing changes before you approve. ", "Volt pauses until you reopen it."], "else": ["", "Volt pauses until you reopen it."]}	main_import_restore_body,main_import_pause_body	choice	whole sentences
+src/com/jjricks/volt/MainActivity.java:3309	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MainActivity.java:3309	["Continue"]	main_confirm_continue	exact	
+src/com/jjricks/volt/MainActivity.java:3314	["Still opening. Try again."]	main_import_still_opening	exact	
+src/com/jjricks/volt/MainActivity.java:3316	["Finish the current import or export first."]	main_import_finish_first	exact	
+src/com/jjricks/volt/MainActivity.java:3319	["Finish Shizuku cleanup first"]	main_import_finish_shizuku	exact	
+src/com/jjricks/volt/MainActivity.java:3329	["Preparing your app data…"]	main_import_preparing	exact	
+src/com/jjricks/volt/MainActivity.java:3342	["Owner import waiting…"]	main_import_owner_waiting	exact	
+src/com/jjricks/volt/MainActivity.java:3346	["The export file is unavailable."]	main_import_export_missing	exact	
+src/com/jjricks/volt/MainActivity.java:3350	["Finish the current save before starting another export."]	main_import_finish_save	exact	
+src/com/jjricks/volt/MainActivity.java:3352	["Could not prepare the export."]	main_import_prepare_failed	exact	
+src/com/jjricks/volt/MainActivity.java:3357	["A document picker could not open."]	main_import_no_picker	exact	
+src/com/jjricks/volt/MainActivity.java:3370	["Import failed. Retry setup."]	main_import_retry_setup	exact	
+src/com/jjricks/volt/MainActivity.java:3374	["Saved."]	main_import_saved	exact	
+src/com/jjricks/volt/MainActivity.java:3374	["The export could not be saved."]	main_import_save_failed	exact	
+src/com/jjricks/volt/MainActivity.java:3381	["Not a Volt layout file. Nothing changed."]	main_import_not_layout	exact	
+src/com/jjricks/volt/MainActivity.java:3386	["The setup file could not be read."]	main_import_setup_unreadable	exact	
+src/com/jjricks/volt/MainActivity.java:3430	["Import failed. Pick file again."]	main_import_pick_again	exact	
+src/com/jjricks/volt/MainActivity.java:3440	["Saved setup no longer matches. Pick file again."]	main_import_no_longer_matches	exact	
+src/com/jjricks/volt/MainActivity.java:3441	["That scooter was removed. Pick file again."]	main_import_removed	exact	
+src/com/jjricks/volt/MainActivity.java:3452	["Imported scooter is unavailable. Pick file again."]	main_import_unavailable	exact	
+src/com/jjricks/volt/MainActivity.java:3472	["Owner setup imported"]	main_import_imported_owner	exact	
+src/com/jjricks/volt/MainActivity.java:3472	["home"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:3472	["home"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:3472	["home"]	-	stays-english	id beside the text on the line, moved to a named constant; never shown
+src/com/jjricks/volt/MainActivity.java:3474	["Import paused. Will retry."]	main_import_paused	exact	
+src/com/jjricks/volt/MainActivity.java:3483	["Setup files must be smaller than 1 MiB."]	main_import_too_big	exact	

@@ -12,9 +12,8 @@
   "Try ..."), each combination is a whole template here, so a language can order and inflect it. PIN,
   experimental-control and disclaimer text is whole sentences.
 
-  The App preferences battery row's shown value ("Unrestricted ✓", "Optimized ⚠") stays English for now:
-  none of the Saira weights has a glyph for its status marks, so GlyphCoverageTest refuses that text here.
-  Its screen-reader text (more_prefs_battery_unrestricted, more_prefs_battery_optimized) is translated.
+  Text with a mark (✓, —, ⚠) keeps the mark (volt:dnt). Android's fallback font draws ✓ and ⚠, not
+  Saira (l10n/README.md, "Glyph coverage"). Its screen-reader text is separate and has no mark.
   What else stays English, and why, is in l10n/pending/b18-more-followups.md.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
@@ -49,7 +48,7 @@
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
     <!-- Screen-reader text of the LAB badge. -->
-    <string name="more_lab_badge_description" volt:screen="More" volt:purpose="accessibility">Lab</string>
+    <string name="more_lab_badge_description" volt:screen="More" volt:purpose="accessibility">Experimental</string>
     <!-- Footer under the menu. %1$s is the version ("1.11.1"). Volt and NAVEE are names. -->
     <string name="more_footer" volt:screen="More" volt:purpose="caption" volt:safety="disclaimer" volt:dnt="Volt|NAVEE">Volt %1$s · not affiliated with NAVEE</string>
     <!-- Link under the menu: draft an email to Volt about a problem. -->
@@ -161,16 +160,24 @@
     <string name="more_prefs_awake" volt:screen="App preferences" volt:purpose="row">Keep screen awake</string>
     <!-- Under the screen switch: only while a ride is recorded. -->
     <string name="more_prefs_awake_sub" volt:screen="App preferences" volt:purpose="caption">While recording</string>
-    <!-- Switch: end a ride recording automatically after parking. -->
-    <string name="more_prefs_auto_stop" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">End parked rides</string>
-    <!-- Under the End parked rides switch: when the recording ends. -->
-    <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">10 s after Bluetooth drops at a stop</string>
+    <!-- Switch: end a ride recording automatically when the scooter is switched off, parked or carried out of range. -->
+    <string name="more_prefs_auto_stop" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">End rides automatically</string>
+    <!-- Under the End rides automatically switch: when the recording ends. A scooter switched off at walking pace or at a stop ends the ride after about 1 minute; any other loss of the scooter (or the phone's Bluetooth switched off) after 5 minutes; and a ride that stays connected but shows no movement (no speed, odometer or trip change) for 10 minutes also ends, so waiting at traffic lights does not. "5 min" and "10 min" are minutes. -->
+    <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">When the scooter turns off, stays out of reach for 5 min, or doesn\'t move for 10 min</string>
+    <!-- Switch: Volt starts a ride recording by itself when the scooter starts moving. Off by default. -->
+    <string name="more_prefs_auto_record" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">Record rides automatically</string>
+    <!-- Caption under that switch. Stopping a recording yourself turns this off for the rest of the connection. -->
+    <string name="more_prefs_auto_record_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">Starts when the connected scooter moves. After you stop a recording, waits until the scooter reconnects</string>
     <!-- Row: Android's battery setting for Volt, which decides whether long background recordings survive. -->
     <string name="more_prefs_battery" volt:screen="App preferences" volt:purpose="row">Background recording</string>
     <!-- Screen-reader text of the battery value when Android lets Volt run freely. -->
     <string name="more_prefs_battery_unrestricted" volt:screen="App preferences" volt:purpose="accessibility">Battery use unrestricted</string>
     <!-- Screen-reader text of the battery value when Android may stop Volt in the background. -->
     <string name="more_prefs_battery_optimized" volt:screen="App preferences" volt:purpose="accessibility">Battery optimized; long recordings may stop. Opens battery settings</string>
+    <!-- The Background recording row's value when battery use is unrestricted: keep the check mark. Screen readers say more_prefs_battery_unrestricted instead. -->
+    <string name="more_prefs_battery_value_unrestricted" volt:screen="App preferences" volt:purpose="status" volt:dnt="✓">Unrestricted ✓</string>
+    <!-- The Background recording row's value when Android may stop recordings: keep the warning sign and the \uFE0E right after it, which keeps the sign a plain symbol. Screen readers say more_prefs_battery_optimized instead. -->
+    <string name="more_prefs_battery_value_optimized" volt:screen="App preferences" volt:purpose="status" volt:dnt="⚠">Optimized ⚠\uFE0E</string>
     <!-- Map settings row value: a custom map source. USGS and OSM stay as they are (map service names). -->
     <string name="more_prefs_map_custom" volt:screen="App preferences" volt:purpose="value">Custom</string>
     <!-- Shown when Android's app list opens instead of Volt's own settings page. -->
@@ -208,21 +215,55 @@
     <string name="more_language_beta" volt:screen="Language" volt:purpose="chip">Beta</string>
     <!-- The Language row's value for a beta language. %1$s is the language's own name ("Español"), never translated. -->
     <string name="more_language_value_beta" volt:screen="Language" volt:purpose="value">%1$s · Beta</string>
-    <!-- Below the options. "Report an issue" is the More menu row (more_report_issue): use the same words. -->
-    <string name="more_language_note" volt:screen="Language" volt:purpose="note">Beta translations are made with AI and checked automatically. Reports and diagnostics stay in English. To report a wording problem, use Report an issue.</string>
+    <!-- Heading above the languages whose translation is still being made: listed, greyed out and not yet choosable. -->
+    <string name="more_language_in_progress" volt:screen="Language" volt:purpose="section title">In progress</string>
+    <!-- What a screen reader says for one of those languages. %1$s is the language's own name ("Deutsch"), never translated. -->
+    <string name="more_language_in_progress_description" volt:screen="Language" volt:purpose="accessibility description">%1$s, in progress</string>
+    <!-- Below the options, above the two email buttons (more_language_report_error, more_language_request). -->
+    <string name="more_language_note" volt:screen="Language" volt:purpose="note">Beta translations are made with AI and checked automatically. Reports and diagnostics stay in English. To report a wording problem or ask for a language, use the buttons below.</string>
     <!-- Android 13 and later only. Use the names Android's own Settings app shows in this language. -->
     <string name="more_language_android_settings" volt:screen="Language" volt:purpose="caption" volt:dnt="Volt">You can also change this in Android Settings › Apps › Volt › Language.</string>
+    <!-- Button at the bottom of the sheet: opens an email to Volt about a wrong or awkward translation. The email itself stays English. -->
+    <string name="more_language_report_error" volt:screen="Language" volt:purpose="button">Report a translation error</string>
+    <!-- Button at the bottom of the sheet: opens an email asking for Volt in another language. The email itself stays English. -->
+    <string name="more_language_request" volt:screen="Language" volt:purpose="button">Request a language</string>
 
     <!-- ===== Data & history ===== -->
 
     <!-- Group label: readings Volt saves while connected to the scooter. -->
-    <string name="more_history_connected" volt:screen="Data &amp; history" volt:purpose="label">Connected history</string>
+    <string name="more_history_connected" volt:screen="Data &amp; history" volt:purpose="label">Readings history</string>
     <!-- Switch: save readings while connected. -->
-    <string name="more_history_save" volt:screen="Data &amp; history" volt:purpose="row">Save connected history</string>
+    <string name="more_history_save" volt:screen="Data &amp; history" volt:purpose="row">Save readings history</string>
     <!-- Under the history switch when it is on. -->
     <string name="more_history_while_connected" volt:screen="Data &amp; history" volt:purpose="caption">While connected</string>
     <!-- Under the history switch when it is off: the last readings stay. -->
     <string name="more_history_off_kept" volt:screen="Data &amp; history" volt:purpose="caption">Off · last readings kept</string>
+    <!-- Small group heading above the automatic ride copy rows, below the readings history row. -->
+    <string name="more_auto_save_heading" volt:screen="Data &amp; history" volt:purpose="label">Ride auto-save</string>
+    <!-- The one auto-save switch: after each ride ends, Volt saves a copy of it to a folder the rider chose. -->
+    <string name="more_auto_save_json" volt:screen="Data &amp; history" volt:purpose="row">Auto-save rides</string>
+    <!-- Under the auto-save switch: what it saves. "Everything in one JSON" is the name of that file on the ride's Export ride data sheet (rides_export_everything_json); use the same words. -->
+    <string name="more_auto_save_json_sub" volt:screen="Data &amp; history" volt:purpose="caption" volt:dnt="JSON">One file per ride: Everything in one JSON</string>
+    <!-- Row title: the folder the auto-saved files go to. Tapping it opens the folder picker. -->
+    <string name="more_auto_save_folder" volt:screen="Data &amp; history" volt:purpose="row">Folder</string>
+    <!-- Under the folder row while auto-save is off; the row is greyed out. -->
+    <string name="more_auto_save_no_folder" volt:screen="Data &amp; history" volt:purpose="caption">No folder chosen yet</string>
+    <!-- Under the folder row while saving works. %1$s is the folder's path as the phone names it, such as Download/VoltRides. -->
+    <string name="more_auto_save_saving_to" volt:screen="Data &amp; history" volt:purpose="caption">Saving to %1$s</string>
+    <!-- Under the folder row while saving works, when the folder's storage gives no readable path (a cloud folder). -->
+    <string name="more_auto_save_saving_chosen" volt:screen="Data &amp; history" volt:purpose="caption">Saving to your chosen folder</string>
+    <!-- Under the folder row: an auto-save switch is on but this phone has no folder yet (a restored backup). Rides wait until one is chosen. -->
+    <string name="more_auto_save_choose_folder" volt:screen="Data &amp; history" volt:purpose="caption">Choose a folder to start saving</string>
+    <!-- Under the folder row: the folder was deleted or Volt lost access to it. Tapping the row chooses it again. -->
+    <string name="more_auto_save_folder_problem" volt:screen="Data &amp; history" volt:purpose="caption">Couldn\'t save the last ride. Choose the folder again.</string>
+    <!-- Under the folder row: writing to the folder failed (storage full, for example). Volt retries after the next ride and when it opens. -->
+    <string name="more_auto_save_save_problem" volt:screen="Data &amp; history" volt:purpose="caption">Couldn\'t save the last ride. Volt will try again.</string>
+    <!-- Note below the auto-save rows. -->
+    <string name="more_auto_save_folder_note" volt:screen="Data &amp; history" volt:purpose="note">A new folder is used for rides saved after the change. Files already saved stay where they are.</string>
+    <!-- Toast: the phone has no app that can pick a folder. -->
+    <string name="more_auto_save_no_picker" volt:screen="Data &amp; history" volt:purpose="toast">This phone can\'t open a folder picker.</string>
+    <!-- Toast: Android refused to let Volt keep access to the chosen folder. -->
+    <string name="more_auto_save_not_kept" volt:screen="Data &amp; history" volt:purpose="toast">Volt couldn\'t keep access to that folder. Choose another.</string>
     <!-- Card title: how much history is stored on the phone. -->
     <string name="more_history_local_storage" volt:screen="Data &amp; history" volt:purpose="label">Local storage</string>
     <!-- Shown while Volt measures the stored history. -->
@@ -244,11 +285,20 @@
     <!-- Red row: delete the current scooter's saved history (asks first). -->
     <string name="more_history_clear_scooter" volt:screen="Data &amp; history" volt:purpose="row">Clear this scooter\'s history</string>
     <!-- Red row: delete every scooter's saved history (asks first). -->
-    <string name="more_history_clear_all" volt:screen="Data &amp; history" volt:purpose="row">Clear all connected history</string>
+    <string name="more_history_clear_all" volt:screen="Data &amp; history" volt:purpose="row">Clear all readings history</string>
     <!-- Symbol for mebibytes (1,048,576 bytes), after a number. -->
     <string name="more_unit_mib" volt:screen="Data &amp; history" volt:purpose="unit">MiB</string>
     <!-- Stored history: %1$s used of %2$s allowed, both numbers in %3$s ("MiB"): "1.5 of 256 MiB". -->
     <string name="more_history_used" volt:screen="Data &amp; history" volt:purpose="value">%1$s of %2$s %3$s</string>
+    <!-- Under each history kind (Detailed samples, Minute summaries, Daily summaries): how many of that kind are saved. %1$s is the count, already grouped ("1,234"), and picks the plural form. -->
+    <plurals name="more_history_samples_saved" volt:screen="Data &amp; history" volt:purpose="value">
+        <item quantity="one">%1$s saved</item>
+        <item quantity="other">%1$s saved</item>
+    </plurals>
+    <!-- Spoken for the Local storage card. %1$s is the space used (more_history_used, "1.5 of 256 MiB"); %2$s is the sentence of saved counts (more_history_samples_description). -->
+    <string name="more_history_storage_description" volt:screen="Data &amp; history" volt:purpose="accessibility description">Local storage, %1$s used. %2$s</string>
+    <!-- Spoken for the Local storage card: how many detailed samples (%1$s), minute summaries (%2$s) and daily summaries (%3$s) are saved, each count already grouped ("1,234"). The three counts differ and none picks a plural form, so choose wording that reads right at any count, including 0 and 1 (for example "detailed: 1,234"). -->
+    <string name="more_history_samples_description" volt:screen="Data &amp; history" volt:purpose="accessibility description">%1$s detailed, %2$s minute and %3$s daily samples saved.</string>
     <!-- Shown when there is no current scooter whose history could be cleared. -->
     <string name="more_history_choose_scooter" volt:screen="Data &amp; history" volt:purpose="toast">Choose a scooter first.</string>
     <!-- Title of the confirmation before deleting saved history. -->
@@ -256,7 +306,7 @@
     <!-- Body of the confirmation before deleting every scooter's history. Saved rides are not deleted. -->
     <string name="more_history_clear_all_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes history for all scooters. Rides stay.</string>
     <!-- Body of the confirmation before deleting one scooter's history. %1$s is the scooter's name. Saved rides are not deleted. -->
-    <string name="more_history_clear_one_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes %1$s\'s history. Rides stay.</string>
+    <string name="more_history_clear_one_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes history for %1$s. Rides stay.</string>
     <!-- Red button: delete (history or try results). -->
     <string name="more_clear" volt:screen="Data &amp; history" volt:purpose="button">Clear</string>
     <!-- Shown after saved history was deleted. -->
@@ -279,7 +329,7 @@
     <!-- Group label: the PIN typed on the scooter's handlebar. -->
     <string name="more_pin_handlebar" volt:screen="PIN &amp; proximity" volt:purpose="label" volt:safety="pin">Handlebar PIN</string>
     <!-- Switch: let the handlebar PIN unlock the scooter without the phone. -->
-    <string name="more_pin_fallback" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">Fallback PIN</string>
+    <string name="more_pin_fallback" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">PIN unlock</string>
     <!-- Icon button: ask the scooter whether the PIN is on. -->
     <string name="more_pin_read" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">Read PIN state</string>
     <!-- Row: set a new handlebar PIN. -->
@@ -344,7 +394,7 @@
     <!-- ===== Experimental controls ===== -->
 
     <!-- Card title when the official app doesn't offer some controls on this model. -->
-    <string name="more_lab_untested" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Untested controls</string>
+    <string name="more_lab_untested" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Controls to try</string>
     <!-- Card title and group label: controls the official app offers here but Volt hasn't tested. -->
     <string name="more_lab_help_verify" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Help verify</string>
     <!-- Card title when there is nothing to try on this scooter. -->
@@ -386,6 +436,16 @@
     <string name="more_lab_absent" volt:screen="Experimental controls" volt:purpose="label" volt:safety="experimental">Not reported by this scooter</string>
     <!-- Under the Not reported group. -->
     <string name="more_lab_absent_note" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt can\'t read these back, so it doesn\'t offer them.</string>
+    <!-- The model as the Experimental controls card names it inside a sentence (more_lab_intro_untested, more_lab_intro_verify, more_lab_empty_oem, more_lab_sheet_untested, more_lab_sheet_unverified). %1$s is a model name, such as N65i or UT5 MAX. Use the article or form your language needs inside those sentences. -->
+    <string name="more_lab_model_named" volt:screen="Experimental controls" volt:purpose="model phrase">the %1$s</string>
+    <!-- The model phrase when Volt has no model name or model ID; it goes inside the same sentences as more_lab_model_named. -->
+    <string name="more_lab_model_yours" volt:screen="Experimental controls" volt:purpose="model phrase">your model</string>
+    <!-- Card intro above controls the official app doesn't offer on this model. %1$s is the model phrase (more_lab_model_named, more_lab_model_yours, or a model ID such as Model 24431). Meaning: these controls are untested here; the rider should try one only while the scooter is parked, and Volt then reads the setting back from the scooter to show whether it took. -->
+    <string name="more_lab_intro_untested" volt:screen="Experimental controls" volt:purpose="intro, safety instruction" volt:safety="experimental" volt:dnt="Volt">The official app doesn\'t offer these for %1$s. Try one while parked; Volt reads it back.</string>
+    <!-- Card intro above controls the official app offers on this model but Volt hasn't tested on it. %1$s is the model phrase, as in more_lab_intro_untested. Meaning: the rider should try one only while the scooter is parked, and Volt then reads the setting back from the scooter to show whether it took. -->
+    <string name="more_lab_intro_verify" volt:screen="Experimental controls" volt:purpose="intro, safety instruction" volt:safety="experimental" volt:dnt="Volt">The official app offers these for %1$s, but Volt hasn\'t tested them there. Try one while parked; Volt reads it back.</string>
+    <!-- Card intro for a model in a group whose controls the official app already offers, so Volt has nothing extra to try. %1$s is the model phrase, as in more_lab_intro_untested. Scooter settings is the name of Volt's settings page. -->
+    <string name="more_lab_empty_oem" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental" volt:dnt="Volt">Nothing to try on %1$s: the official app already offers the controls Volt could try. They\'re in Scooter settings.</string>
     <!-- Intro when the product isn't a supported scooter. -->
     <string name="more_lab_empty_product" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Volt sends no scooter commands to this product.</string>
     <!-- Intro on the UT5 MAX. UT5 MAX is a model name. -->
@@ -437,7 +497,7 @@
     <!-- Why no control can be tried now. -->
     <string name="more_lab_held_locked" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="lock">Unlock the scooter to try these.</string>
     <!-- Why no control can be tried now. -->
-    <string name="more_lab_held_owner" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="owner-key">Only the owner\'s profile can try these.</string>
+    <string name="more_lab_held_owner" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="owner-key">Only the scooter owner can try these.</string>
     <!-- Why no control can be tried now. -->
     <string name="more_lab_held_discovery" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Wait for the compatibility check to finish.</string>
     <!-- Why no control can be tried now. -->
@@ -500,6 +560,10 @@
     <string name="more_lab_status_unconfirmed" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Unconfirmed</string>
     <!-- Status while a try runs and Volt reads the control back, on the control's row and in the try sheet. Narrow; keep it short. -->
     <string name="more_lab_status_checking" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Checking…</string>
+    <!-- Heading of the Try sheet's caution box for a control the official app doesn't offer on this model. %1$s is the model phrase (more_lab_model_named or more_lab_model_yours, or a model ID). -->
+    <string name="more_lab_sheet_untested" volt:screen="Try sheet" volt:purpose="heading" volt:safety="experimental">Untested on %1$s</string>
+    <!-- Heading of the Try sheet's caution box for a control the official app offers on this model but Volt hasn't tested. %1$s is the model phrase, as in more_lab_sheet_untested. -->
+    <string name="more_lab_sheet_unverified" volt:screen="Try sheet" volt:purpose="heading" volt:safety="experimental">Unverified on %1$s</string>
     <!-- Try sheet caution for a control to help verify. -->
     <string name="more_lab_verify_why" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this for your model, but Volt hasn\'t tested it there. Your try and answer go in your next compatibility report.</string>
     <!-- Try sheet: the current value's label, and the tag beside the current value's option. -->
@@ -557,6 +621,8 @@
     <string name="more_lab_why_many" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
     <!-- Try sheet caution when no other model has it in the official app. -->
     <string name="more_lab_why_none" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer this on your model. It may do nothing here, or work differently.</string>
+    <!-- Try sheet caution for kick-start speed where the official app offers it only at 3 to 5 km/h in this region; this try also offers lower speeds. -->
+    <string name="more_lab_why_region_start" volt:screen="Try sheet" volt:purpose="body" volt:safety="ride,experimental" volt:dnt="km/h">The official app offers 3–5 km/h in your scooter\'s region. Lower speeds may do nothing here, or work differently.</string>
     <!-- Under the Command evidence title. -->
     <string name="more_lab_evidence_hidden" volt:screen="Command evidence" volt:purpose="dialog" volt:safety="pin">PIN and auth bytes hidden</string>
     <!-- Shown when no change was sent yet. -->
@@ -619,7 +685,7 @@
     <!-- A newer release exists. %1$s is its version ("1.12.0"). -->
     <string name="more_update_available" volt:screen="Update check" volt:purpose="title" volt:dnt="Volt">Volt %1$s is available</string>
     <!-- %1$s is the installed version. -->
-    <string name="more_update_available_body" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Get it from the release page and install it over this version; your data stays.</string>
+    <string name="more_update_available_body" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Get the new version from the release page and install it over this one; your data stays.</string>
     <!-- No newer release. -->
     <string name="more_update_current" volt:screen="Update check" volt:purpose="title">You\'re up to date</string>
     <!-- %1$s is the installed development version, %2$s the latest release. -->
@@ -636,6 +702,20 @@
     <string name="more_update_open" volt:screen="Update check" volt:purpose="button">Open release page</string>
     <!-- Shown when no browser app is installed. -->
     <string name="more_update_no_browser" volt:screen="Update check" volt:purpose="toast">No browser could open the release page</string>
+    <!-- Group label in the More menu, above the version line: its two rows are the automatic and the manual update check. Shown in capitals. -->
+    <string name="more_updates_title" volt:screen="More" volt:purpose="label" volt:max="280dp@11sp">Updates</string>
+    <!-- Switch, off by default: let Volt ask GitHub for a newer release by itself, at most once a day. On a phone the title wraps to two lines, so the budget is two lines of about 165dp. -->
+    <string name="more_updates_auto" volt:screen="More" volt:purpose="row" volt:max="330dp@15sp">Automatically check for updates</string>
+    <!-- Shorter form of that switch's title, shown only where the full title would need more than two lines (the narrow menu pane of the wide layout). It sits under the "Updates" header, so "updates" is implied. Two lines at most there, about 110dp each. -->
+    <string name="more_updates_auto_short" volt:screen="More" volt:purpose="row" volt:max="220dp@15sp">Check automatically</string>
+    <!-- Under that switch: how often the automatic check runs, and that it runs while Volt is closed. Two lines at most. -->
+    <string name="more_updates_auto_sub" volt:screen="More" volt:purpose="caption" volt:max="300dp@11.5sp">Once a day, in the background</string>
+    <!-- Name of the notification channel in Android's settings for the automatic update check. -->
+    <string name="more_updates_channel" volt:screen="Android notification settings" volt:purpose="channel name" volt:max="240dp@16sp">App updates</string>
+    <!-- Description of that channel in Android's settings. GitHub is a name. -->
+    <string name="more_updates_channel_description" volt:screen="Android notification settings" volt:purpose="channel description" volt:dnt="GitHub|Volt">A quiet notice when the daily check finds a newer Volt release on GitHub</string>
+    <!-- Notification text under "Volt 1.12.0 is available", posted once per new release by the automatic check. Tapping it opens Volt's update check. -->
+    <string name="more_updates_notice" volt:screen="Update notification" volt:purpose="message" volt:max="260dp@14sp">Tap to see what\'s new</string>
     <!-- Shown when the version is tapped again after Developer options are on. -->
     <string name="more_dev_already" volt:screen="About &amp; permissions" volt:purpose="toast">Developer options are already enabled.</string>
     <!-- Shown after the seventh tap on the version. -->
@@ -744,10 +824,20 @@
     <string name="more_dev_curves_loading" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves loading</string>
     <!-- Screen-reader text while the charger is unknown. -->
     <string name="more_dev_curves_not_applied" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves not applied until the charger is known</string>
-    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
-    <string name="more_dev_curves_stock" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified stock charge recordings</string>
-    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
-    <string name="more_dev_curves_fast" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified high-speed charge recordings</string>
+    <!-- Unused since more_dev_curves_stock_count: kept for B18's ledger row, no need to translate. -->
+    <string name="more_dev_curves_stock" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">%1$s qualified stock charge recordings</string>
+    <!-- Unused since more_dev_curves_fast_count: kept for B18's ledger row, no need to translate. -->
+    <string name="more_dev_curves_fast" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">%1$s qualified high-speed charge recordings</string>
+    <!-- Screen-reader text of the charge curves card with the stock charger. %1$s is how many recordings qualify, and picks the plural form. -->
+    <plurals name="more_dev_curves_stock_count" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">
+        <item quantity="one">%1$s qualified stock charge recording</item>
+        <item quantity="other">%1$s qualified stock charge recordings</item>
+    </plurals>
+    <!-- Screen-reader text of the charge curves card with the high-speed charger. %1$s is how many recordings qualify, and picks the plural form. -->
+    <plurals name="more_dev_curves_fast_count" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">
+        <item quantity="one">%1$s qualified high-speed charge recording</item>
+        <item quantity="other">%1$s qualified high-speed charge recordings</item>
+    </plurals>
     <!-- Tooltip of the charge curves card. -->
     <string name="more_dev_curves_tooltip" volt:screen="Developer options" volt:purpose="tooltip" volt:safety="charge">A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings.</string>
     <!-- Row: show the full licence texts (they stay in English). -->
@@ -766,7 +856,7 @@
     <!-- Connection state after the role ("Owner · connected"). Lower case on purpose. -->
     <string name="more_link_connected" volt:screen="More" volt:purpose="value">connected</string>
     <!-- Connection state after the role. Lower case on purpose. -->
-    <string name="more_link_disconnected" volt:screen="More" volt:purpose="value">disconnected</string>
+    <string name="more_link_disconnected" volt:screen="More" volt:purpose="value">not connected</string>
     <!-- Connection state after the role. Lower case on purpose. -->
     <string name="more_link_connecting" volt:screen="More" volt:purpose="value">connecting</string>
     <!-- Top card of More before any scooter is saved. -->
@@ -786,7 +876,7 @@
     <!-- Card line when Volt doesn't know the scooter's model. -->
     <string name="more_scooters_model_unknown" volt:screen="My scooters" volt:purpose="caption">Model not identified</string>
     <!-- Added after the model on a shared scooter's card ("N65i · Shared access"). Keep the leading space and the separator. -->
-    <string name="more_scooters_shared_suffix" volt:screen="My scooters" volt:purpose="caption">" · Shared access"</string>
+    <string name="more_scooters_shared_suffix" volt:screen="My scooters" volt:purpose="caption">" · Shared rider"</string>
     <!-- Card line: %1$s is Android's relative time ("5 minutes ago", "Yesterday"). -->
     <string name="more_scooters_last_connected" volt:screen="My scooters" volt:purpose="caption">Last connected %1$s</string>
     <!-- Screen-reader label of the pencil button. %1$s is the scooter's name. -->
@@ -813,6 +903,14 @@
     <string name="more_pin_disabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Disabled</string>
     <!-- PIN state: on (shown in green). -->
     <string name="more_pin_enabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Enabled</string>
+    <!-- The PIN chip when the PIN is on: keep the check mark. Screen readers say more_chip_pin_on instead. -->
+    <string name="more_chip_pin_on_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin" volt:dnt="✓">PIN ✓</string>
+    <!-- The PIN chip when the PIN is not on: keep the dash. Screen readers say more_chip_pin_off instead. -->
+    <string name="more_chip_pin_off_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin" volt:dnt="—">PIN —</string>
+    <!-- The pairing chip when this phone is paired: keep the check mark. Screen readers say more_chip_paired instead. -->
+    <string name="more_chip_paired_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="lock" volt:dnt="✓">Paired ✓</string>
+    <!-- The pairing chip when this phone is not paired: keep the dash. Screen readers say more_chip_not_paired instead. -->
+    <string name="more_chip_not_paired_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="lock" volt:dnt="—">Paired —</string>
     <!-- Screen-reader text of the PIN chip (the chip itself shows "PIN ✓"). -->
     <string name="more_chip_pin_on" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">PIN enabled</string>
     <!-- Screen-reader text of the PIN chip. -->
@@ -832,7 +930,7 @@
     <!-- Why proximity unlock can't be changed: the scooter doesn't report it. -->
     <string name="more_proximity_not_reported" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Not reported by firmware</string>
     <!-- Why proximity unlock can't be turned on. -->
-    <string name="more_proximity_pin_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Enable the fallback PIN first</string>
+    <string name="more_proximity_pin_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Enable the handlebar PIN first</string>
     <!-- Why proximity unlock can't be turned on. -->
     <string name="more_proximity_pair_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Pair this phone first</string>
     <!-- Screen-reader label of the disabled proximity switch: %1$s its name, %2$s why it is disabled. -->

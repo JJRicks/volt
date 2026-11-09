@@ -1,0 +1,4 @@
+# The plain connection notice out of sight, where status is asked for every 15 s (StatusCadence, #269).
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/StatusCadence.java
+tests/l10n/ConnectionNoticeBackgroundTest.java

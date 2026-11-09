@@ -100,7 +100,7 @@ public final class DashboardScreenEnglishTest {
             // The two signed readings: the screen drops the marker, so they need names of their own.
             if (m.label.contains(" (signed)"))
                 signed.append(signed.length() == 0 ? "" : ",").append(m.key).append('=').append(m.label.replace(" (signed)", ""));
-            same(m.label, ScooterReadingLabels.full(m.key, m.key), phone, "the full name of " + m.key);
+            same(ReadingsCatalogTest.shownName(m), ScooterReadingLabels.full(m.key, m.key), phone, "the full name of " + m.key);
         }
         same("current_a=Battery current,power_w=Battery power", signed.toString(), phone, "the signed readings");
         for (String preference : new String[]{"c", "f", null, "", "x", "F"})

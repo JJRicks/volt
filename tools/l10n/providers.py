@@ -13,6 +13,8 @@ in council_models.json.
 Tests replace the transport (set_transport) and never reach the network.
 """
 
+import collections
+import contextlib
 import json
 import os
 import re
@@ -24,6 +26,8 @@ import urllib.request
 KEY_ENV = {"openai": "OPENAI_API_KEY", "google": "GEMINI_API_KEY"}
 OPENAI_BASE = "https://api.openai.com/v1"
 GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta"
+# Leads every Responses API input (see generate).
+OPENAI_JSON_NOTE = "Reply with the one JSON object the instructions describe.\n\n"
 CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "council_models.json")
 REDACTED = "[redacted]"
 TIMEOUT = 300
@@ -234,6 +238,53 @@ def choose_model(provider, role, available, config=None, prefer=None, avoid=()):
 
 
 # ---------------------------------------------------------------------------
+# Token usage
+# ---------------------------------------------------------------------------
+
+@contextlib.contextmanager
+def recorded_responses():
+    """Every decoded provider response while the block runs (for the token usage generate() drops)."""
+    global call
+    seen = []
+    original = call
+
+    def recording(provider, method, url, payload=None):
+        value = original(provider, method, url, payload)
+        seen.append(value)
+        return value
+
+    call = recording
+    try:
+        yield seen
+    finally:
+        call = original
+
+
+def usage_of(response):
+    """The token counts a provider reported (numbers only), or None."""
+    if not isinstance(response, dict):
+        return None
+    usage = response.get("usage") if isinstance(response.get("usage"), dict) else response.get("usageMetadata")
+    if not isinstance(usage, dict):
+        return None
+    out = collections.OrderedDict()
+    for name, value in sorted(usage.items()):
+        if isinstance(value, int) and not isinstance(value, bool):
+            out[name] = value
+        elif isinstance(value, dict):
+            for inner, number in sorted(value.items()):
+                if isinstance(number, int) and not isinstance(number, bool):
+                    out["%s.%s" % (name, inner)] = number
+    return out or None
+
+
+def add_usage(total, usage):
+    for name, value in (usage or {}).items():
+        total[name] = total.get(name, 0) + value
+    return total
+
+
+# ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
 
@@ -248,6 +299,10 @@ def generate(provider, model, instructions, prompt, config=None):
             choices = value.get("choices") or []
             text = choices[0].get("message", {}).get("content") if choices else None
         else:
+            # The Responses API takes text.format json_object only when the input itself mentions JSON (HTTP 400
+            # otherwise); it does not count the instructions, where every caller asks for one JSON object. Always
+            # lead with the note, so the request never depends on a string that happens to contain ".json".
+            prompt = OPENAI_JSON_NOTE + prompt
             value = call("openai", "POST", OPENAI_BASE + "/responses", {
                 "model": model, "instructions": instructions, "input": prompt,
                 "text": {"format": {"type": "json_object"}}, "store": False})

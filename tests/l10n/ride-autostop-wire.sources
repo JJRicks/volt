@@ -1,0 +1,8 @@
+# Ride behaviours PR D: the went-quiet auto-stop as ScooterService wires it (policy, store, loss code, text).
+# RideAutoStopPolicy, RideStore and ConnectionEventLog are also in tests/run.sh's own lists; listing them is harmless.
+src/com/jjricks/volt/RideAutoStopText.java
+src/com/jjricks/volt/RideAutoStopPolicy.java
+src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/ConnectionEventLog.java
+tests/l10n/RideAutoStopWireTest.java
+src/com/jjricks/volt/PowerSign.java

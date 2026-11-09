@@ -152,7 +152,7 @@
         volt:safety="owner-key">Scooter access only · no rides or history</string>
     <!-- Setup method: type the 12-character owner identity by hand. -->
     <string name="onboarding_path_identity" volt:screen="Setup choices" volt:purpose="option"
-        volt:safety="owner-key">Enter a 12-character identity</string>
+        volt:safety="owner-key">Enter a 12-character owner key</string>
     <!-- Toast, and the end of the spoken description of the Shizuku choice, on Android 10 and older. -->
     <string name="onboarding_needs_android_11" volt:screen="Setup choices" volt:purpose="message"
         volt:dnt="Android">Needs Android 11 or newer</string>
@@ -184,7 +184,7 @@
     <!-- Dialog title after tapping Skip. -->
     <string name="onboarding_skip_title" volt:screen="Skip dialog" volt:purpose="title">Skip setup for now?</string>
     <!-- Dialog message: the scooter can be added later from the More tab. "More" is the name of Volt's tab. -->
-    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add it later in More.</string>
+    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add your scooter later in More.</string>
     <!-- Dialog button: stay in setup. -->
     <string name="onboarding_skip_keep_going" volt:screen="Skip dialog" volt:purpose="button">Keep going</string>
 
@@ -367,9 +367,9 @@
     <!-- Keep the cable plugged in until the website has finished cleaning up (it turns logging back off). -->
     <string name="onboarding_browser_keep_cable" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:safety="privacy">Keep the cable in until cleanup finishes.</string>
-    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep **Start** exactly as written, in English: the website is English only and shows its button in English. -->
+    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep **Start capture** exactly as written, in English: the website is English only and shows its button in English. -->
     <string name="onboarding_browser_start" volt:screen="Approve the capture" volt:purpose="instruction"
-        volt:dnt="**Start**">Read the capture explanation and choose **Start**</string>
+        volt:dnt="**Start capture**">Read the capture explanation and choose **Start capture**</string>
     <!-- Instruction 2: in NAVEE's app, select the scooter and connect. -->
     <string name="onboarding_browser_select_scooter" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:dnt="NAVEE">Select your scooter in NAVEE and connect</string>
@@ -380,7 +380,7 @@
         volt:safety="owner-key" volt:dnt="**Save to phone Downloads**">After cleanup, choose **Save to phone Downloads**</string>
     <!-- Warning: the saved file works like a key to the scooter. Never soften it. -->
     <string name="onboarding_browser_key_private" volt:screen="Approve the capture" volt:purpose="warning"
-        volt:safety="owner-key">This file is a scooter key. Keep it private.</string>
+        volt:safety="owner-key">This file holds your owner key. Keep it private.</string>
     <!-- Main button: the file is now in the phone's Downloads folder. -->
     <string name="onboarding_browser_in_downloads" volt:screen="Approve the capture" volt:purpose="button"
         volt:safety="owner-key">The file is in Downloads</string>
@@ -416,25 +416,25 @@
         volt:safety="owner-key">Choose owner file</string>
     <!-- Link: type the 12-character owner identity instead. -->
     <string name="onboarding_import_enter_identity" volt:screen="Import" volt:purpose="link"
-        volt:safety="owner-key">Enter the identity instead</string>
+        volt:safety="owner-key">Enter the owner key instead</string>
     <!-- Link: restore a full Volt backup instead. -->
     <string name="onboarding_import_restore_instead" volt:screen="Import" volt:purpose="link"
         volt:dnt="Volt">Restore Volt backup instead</string>
     <!-- The kind of access an owner file gives: a shared user's access, not the owner's. Keep "shared" and "owner" distinct; lower case, it follows a scooter name. -->
     <string name="onboarding_role_shared" volt:screen="Import" volt:purpose="label"
-        volt:safety="owner-key">shared role</string>
+        volt:safety="owner-key">shared rider</string>
     <!-- The kind of access an owner file gives: the owner's. Keep "owner" and "shared" distinct; lower case, it follows a scooter name. -->
     <string name="onboarding_role_owner" volt:screen="Import" volt:purpose="label"
-        volt:safety="owner-key">owner role</string>
+        volt:safety="owner-key">owner</string>
     <!-- Card title after a file was read: an owner identity was found in it. -->
     <string name="onboarding_import_found" volt:screen="Import" volt:purpose="title"
-        volt:safety="owner-key">Owner identity found</string>
+        volt:safety="owner-key">Owner key found</string>
     <!-- Card line: %1$s is the scooter's name from the file, %2$s its role (onboarding_role_owner or onboarding_role_shared). -->
     <string name="onboarding_import_summary" volt:screen="Import" volt:purpose="detail"
         volt:safety="owner-key">%1$s · %2$s</string>
     <!-- Spoken description of that card: %1$s is the card line (name · role). -->
     <string name="onboarding_import_found_description" volt:screen="Import" volt:purpose="accessibility description"
-        volt:safety="owner-key">Owner identity found, stored privately on this phone. %1$s</string>
+        volt:safety="owner-key">Owner key found, stored privately on this phone. %1$s</string>
     <!-- After a phone-only capture: the key is stored privately; now remove Volt's access in Shizuku. Never soften it. -->
     <string name="onboarding_import_revoke_shizuku" volt:screen="Import" volt:purpose="warning"
         volt:safety="owner-key,privacy" volt:dnt="Shizuku">Stored privately. Revoke Shizuku now.</string>
@@ -465,21 +465,21 @@
 
     <!-- Heading: type the owner identity. -->
     <string name="onboarding_identity_title" volt:screen="Enter owner identity" volt:purpose="title"
-        volt:safety="owner-key">Enter owner identity</string>
+        volt:safety="owner-key">Enter owner key</string>
     <!-- Under the heading: the identity is not a password (it is a code read from the scooter's owner data). Never soften or invert it. -->
     <string name="onboarding_identity_not_password" volt:screen="Enter owner identity" volt:purpose="instruction"
         volt:safety="owner-key">Not a password.</string>
     <!-- Hint read by screen readers in the identity field: 12 characters, or a pasted private backup. -->
     <string name="onboarding_identity_hint" volt:screen="Enter owner identity" volt:purpose="hint"
-        volt:safety="owner-key">Owner identity, 12 characters, or a private backup</string>
+        volt:safety="owner-key">Owner key, 12 characters, or a private backup</string>
     <!-- Spoken description of the Save and continue button while Volt is still starting. -->
     <string name="onboarding_save_continue_starting" volt:screen="Enter owner identity" volt:purpose="accessibility description">Save and continue, starting</string>
     <!-- Status line: a pasted private backup was recognised; it gives a shared user's access. Keep "shared" and "owner" distinct. -->
     <string name="onboarding_identity_backup_shared" volt:screen="Enter owner identity" volt:purpose="status"
-        volt:safety="owner-key">Private backup recognised · shared role</string>
+        volt:safety="owner-key">Private backup recognized · shared rider</string>
     <!-- Status line: a pasted private backup was recognised; it gives the owner's access. Keep "owner" and "shared" distinct. -->
     <string name="onboarding_identity_backup_owner" volt:screen="Enter owner identity" volt:purpose="status"
-        volt:safety="owner-key">Private backup recognised · owner role</string>
+        volt:safety="owner-key">Private backup recognized · owner</string>
     <!-- Error: the identity takes only the digits 0 to 9 and the letters A to F. Keep the characters as written. -->
     <string name="onboarding_identity_hex_only" volt:screen="Enter owner identity" volt:purpose="error"
         volt:dnt="0–9|A–F">Only 0–9 and A–F.</string>
@@ -510,13 +510,13 @@
         volt:dnt="Bluetooth">Bluetooth connected</string>
     <!-- Checklist row 3: the scooter is checking the owner identity. -->
     <string name="onboarding_connect_checking" volt:screen="Find your scooter" volt:purpose="checklist item"
-        volt:safety="owner-key">Checking owner identity</string>
+        volt:safety="owner-key">Checking owner key</string>
     <!-- Checklist row 4: Volt saves this scooter. -->
     <string name="onboarding_connect_saving" volt:screen="Find your scooter" volt:purpose="checklist item">Saving this scooter</string>
     <!-- Main button: connect to the scooter. -->
     <string name="onboarding_connect_button" volt:screen="Find your scooter" volt:purpose="button">Connect</string>
     <!-- Heading while connecting: %1$s is the scooter's name (as the owner typed it). -->
-    <string name="onboarding_connect_connecting" volt:screen="Find your scooter" volt:purpose="title">Connecting to %1$s</string>
+    <string name="onboarding_connect_connecting" volt:screen="Find your scooter" volt:purpose="title">Connecting to %1$s…</string>
     <!-- Checklist row 1 while the scan runs. -->
     <string name="onboarding_connect_looking" volt:screen="Find your scooter" volt:purpose="checklist item">Looking for your scooter</string>
     <!-- Spoken description of a finished checklist row: %1$s is the row's text. -->
@@ -532,7 +532,7 @@
         volt:safety="owner-key">Waiting for your owner profile…</string>
     <!-- Status line when no scooter was found: is the scooter switched on, and is NAVEE's app closed (it would hold the connection)? -->
     <string name="onboarding_connect_is_it_on" volt:screen="Find your scooter" volt:purpose="status"
-        volt:dnt="NAVEE">Is it on? Is NAVEE closed?</string>
+        volt:dnt="NAVEE">Is it on? Is the NAVEE app closed?</string>
     <!-- Main button when the service cannot start yet: ask for Android's Nearby devices permission. -->
     <string name="onboarding_connect_allow_nearby" volt:screen="Find your scooter" volt:purpose="button">Allow Nearby devices</string>
 
@@ -576,7 +576,7 @@
         volt:dnt="NAVEE">NAVEE didn\'t connect</string>
     <!-- Fix: check that NAVEE's app connects on its own. -->
     <string name="onboarding_fix_navee_detail" volt:screen="Capture didn\'t work" volt:purpose="fix"
-        volt:dnt="NAVEE">Check NAVEE connects alone</string>
+        volt:dnt="NAVEE">Check NAVEE connects without the helper</string>
     <!-- Problem: the helper waited too long. -->
     <string name="onboarding_fix_timeout" volt:screen="Capture didn\'t work" volt:purpose="problem">Helper timed out</string>
     <!-- Fix: close other apps and run the helper again. -->

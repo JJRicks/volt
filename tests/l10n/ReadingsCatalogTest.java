@@ -32,13 +32,38 @@ public final class ReadingsCatalogTest {
         System.out.println("ReadingsCatalogTest: " + checks + " checks passed (reading ladders, groups, values and legends from the catalog)");
     }
 
+    /**
+     * Full names the owner-approved D3 terms renamed (l10n/english-changes.tsv). Their Telemetry names stay
+     * English as they were, for reports, history and the Stats search; every other full name is its Telemetry name.
+     */
+    static final java.util.Map<String, String> RENAMED = new java.util.HashMap<>();
+
+    /** The full name a reading shows in English: its Telemetry name, or its D3 rename. */
+    static String shownName(Telemetry.Metric m) { return RENAMED.containsKey(m.key) ? RENAMED.get(m.key) : m.label; }
+    static {
+        String[][] renamed = {{"maximum_speed_kmh", "Current trip top speed"}, {"driving_mode", "Drive mode (raw)"},
+                {"display_units", "Scooter display units"}, {"auto_sensor", "Automatic lights (raw)"},
+                {"tyre_reminder", "Tire reminder (raw)"}, {"proximity_key", "Proximity unlock setting (raw)"},
+                {"start_speed", "Kick-start speed setting (raw)"}, {"timed_charging", "Scheduled charging setting (raw)"},
+                {"slope_assist", "Assist settings (raw)"}, {"overspeed_control", "Overspeed active control setting (raw)"},
+                {"drive_speed_limit", "Drive mode speed limit setting (raw)"}};
+        for (String[] r : renamed) RENAMED.put(r[0], r[1]);
+    }
+
     private static void english() throws Exception {
+        int renamed = 0;
         for (Telemetry.Metric m : new Telemetry().metrics()) {
-            check(m.label.equals(ScooterReadingLabels.full(m.key, null)), m.key + ": the full name is the Telemetry name, not "
+            String expected = RENAMED.containsKey(m.key) ? RENAMED.get(m.key) : m.label;
+            if (RENAMED.containsKey(m.key)) {
+                renamed++;
+                check(!m.label.equals(expected), m.key + ": listed as renamed, but its Telemetry name is " + m.label);
+            }
+            check(expected.equals(ScooterReadingLabels.full(m.key, null)), m.key + ": the full name is " + expected + ", not "
                     + ScooterReadingLabels.full(m.key, null));
             check(m.group.equals(ScooterReadingLabels.group(m.group)), m.key + ": the group label is the group id " + m.group);
             check(!ScooterReadingLabels.label(m.key, "<none>").equals("<none>"), m.key + " has a short name");
         }
+        check(renamed == RENAMED.size(), "every renamed reading is a Telemetry metric");
         check("x".equals(ScooterReadingLabels.full("not_a_reading", "x")) && ScooterReadingLabels.full(null, null) == null,
                 "unknown readings keep the fallback");
         check("Firmware".equals(ScooterReadingLabels.group("Firmware")) && ScooterReadingLabels.group(null) == null, "unknown groups stay as they are");
@@ -111,7 +136,7 @@ public final class ReadingsCatalogTest {
         equal(null, ScooterReadingLabels.shown("charge_cycles", "-1 charges", -1.0, de), "nor a negative count");
         // The unknown history format note, exactly as Telemetry writes it, and text that only resembles it.
         String note = Telemetry.UNKNOWN_FORMAT + 7 + Telemetry.UNKNOWN_FORMAT_SEPARATOR + 1 + Telemetry.UNKNOWN_FORMAT_RECORDS;
-        equal("Unknown format 7 \u00b7 1 records", ScooterReadingLabels.shown("stored_trips", note, null, de), "the note, 1 record (English keeps \"records\")");
+        equal("Unknown format 7 \u00b7 1 record", ScooterReadingLabels.shown("stored_trips", note, null, de), "the note, 1 record");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("7;", "07;"), null, de), "a padded format number");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("; 1", "; -1"), null, de), "a negative record count");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("7;", "7; 2;"), null, de), "a third number");

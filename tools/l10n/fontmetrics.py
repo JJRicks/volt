@@ -198,3 +198,81 @@ class Measurer(object):
         except ValueError:
             self.java_problem = "java.awt printed something other than widths"
             return None
+
+
+# A text with more hard line breaks than its budget allows fits at no width.
+NO_FIT = 9999.0
+
+
+def _paragraph_words(text):
+    """The words of each hard line: split at plain spaces only (a no-break space joins its words)."""
+    return [[w for w in line.split(" ") if w] for line in text.split("\n")]
+
+
+def _greedy_lines(words, span, limit):
+    """Lines a greedy whole-word wrap takes at limit, or None when a single word is wider than limit.
+
+    span(i, j) is the measured width of words[i:j] joined by spaces. Like Android's simple break
+    strategy, each line takes words while they fit and never breaks inside a word.
+    """
+    lines, start = 0, 0
+    while start < len(words):
+        if span(start, start + 1) > limit + 0.01:
+            return None
+        end = start + 1
+        while end < len(words) and span(start, end + 1) <= limit + 0.01:
+            end += 1
+        lines, start = lines + 1, end
+    return max(lines, 1)
+
+
+def wrapped_width(paragraphs, span, lines):
+    """The narrowest width at which every hard line wraps into at most lines lines in all.
+
+    paragraphs is _paragraph_words(text); span(p, i, j) the width of paragraph p's words[i:j].
+    """
+    if len(paragraphs) > lines:
+        return NO_FIT
+    candidates = sorted(set(span(p, i, j) for p, words in enumerate(paragraphs)
+                            for i in range(len(words)) for j in range(i + 1, len(words) + 1)))
+    for limit in candidates:
+        total = 0
+        for p, words in enumerate(paragraphs):
+            used = _greedy_lines(words, lambda i, j, p=p: span(p, i, j), limit)
+            if used is None:
+                total = lines + 1
+                break
+            total += used
+        if total <= lines:
+            return limit
+    return candidates[-1] if candidates else 0.0
+
+
+def measure_lines(measurer, requests):
+    """[(size_px, text, lines)] -> [width_px]: for one line the plain width (Measurer.measure), for more
+    the narrowest width that holds the text in that many lines of whole words (wrapped_width), which is
+    what a budget of that many lines must hold. Every line is measured as a whole, with its kerning."""
+    plain, spans, plans = [], [], []
+    for size, text, lines in requests:
+        if lines <= 1:
+            plans.append(("plain", len(plain)))
+            plain.append((size, text))
+            continue
+        paragraphs = _paragraph_words(text)
+        index = {}
+        for p, words in enumerate(paragraphs):
+            for i in range(len(words)):
+                for j in range(i + 1, len(words) + 1):
+                    index[(p, i, j)] = len(spans)
+                    spans.append((size, " ".join(words[i:j])))
+        plans.append(("wrap", (paragraphs, index, lines)))
+    widths = measurer.measure(plain + spans)
+    plain_widths, span_widths = widths[:len(plain)], widths[len(plain):]
+    result = []
+    for kind, plan in plans:
+        if kind == "plain":
+            result.append(plain_widths[plan])
+        else:
+            paragraphs, index, lines = plan
+            result.append(wrapped_width(paragraphs, lambda p, i, j: span_widths[index[(p, i, j)]], lines))
+    return result

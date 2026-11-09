@@ -90,6 +90,13 @@ class TextClassTest(unittest.TestCase):
         self.assertFalse(l10nlib.is_multiword("%d %s"))
         self.assertFalse(l10nlib.is_multiword("12 34"))
 
+    def test_is_multiword_counts_a_word_and_a_symbol(self):
+        for value in ("Unrestricted ✓", "Optimized ⚠", "Optimized ⚠\ufe0e", "☆ Star", "✓ Save", "PIN ✓", "★ %1$s pinned"):
+            self.assertTrue(l10nlib.is_multiword(value), value)
+        # A symbol alone, joined to a word, or with a number is not a word and a mark; ASCII symbols are code.
+        for value in ("✓", "⚠\ufe0e", "✓ ✓", "✓Save", "2 ✓", "x = ", "a +", "%d ✓", "Temp -", "km · "):
+            self.assertFalse(l10nlib.is_multiword(value), value)
+
     def test_has_letters_ignores_format_specifiers(self):
         self.assertFalse(l10nlib.has_letters("%1$d%%"))
         self.assertFalse(l10nlib.has_letters("%.1f"))
@@ -117,6 +124,101 @@ class TsvTest(unittest.TestCase):
             l10nlib.read_tsv("a\tb\n1\n", ("a", "b"))
         with self.assertRaises(ValueError):
             l10nlib.read_tsv("x\ty\n", ("a", "b"))
+
+
+class ConcurrentWriteTest(unittest.TestCase):
+    """Several processes on one area: council.log_run keeps every row, and write_text never leaves a torn file."""
+
+    PROCESSES = 6
+    ROWS = 100
+
+    def setUp(self):
+        import tempfile
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, self.root)
+
+    def run_processes(self, script, *args):
+        import subprocess
+        here = os.path.dirname(os.path.abspath(__file__))
+        children = [subprocess.Popen([sys.executable, "-c", script, here, self.root, str(n)] + list(args))
+                    for n in range(self.PROCESSES)]
+        for child in children:
+            self.assertEqual(child.wait(timeout=120), 0)
+
+    def test_log_run_from_several_processes_keeps_every_row(self):
+        script = ("import sys, collections\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import council, translib\n"
+                  "paths = translib.Paths(sys.argv[2])\n"
+                  "for i in range(int(sys.argv[4])):\n"
+                  "    council.log_run(paths, 'xx', 'core', collections.OrderedDict([('stage', 'api-call'),\n"
+                  "        ('writer', int(sys.argv[3])), ('n', i), ('usage', {'input_tokens': i})]))\n")
+        self.run_processes(script, str(self.ROWS))
+        import json
+        import translib
+        path = translib.Paths(self.root).work("xx", "core", "runs.jsonl")
+        lines = l10nlib.read_text(path).split("\n")
+        self.assertEqual(lines[-1], "")
+        rows = [json.loads(line) for line in lines[:-1]]  # each line on its own is valid JSON
+        self.assertEqual(len(rows), self.PROCESSES * self.ROWS)
+        self.assertEqual(sorted((r["writer"], r["n"]) for r in rows),
+                         [(w, n) for w in range(self.PROCESSES) for n in range(self.ROWS)])
+        for writer in range(self.PROCESSES):  # each process's rows stay in its own order
+            self.assertEqual([r["n"] for r in rows if r["writer"] == writer], list(range(self.ROWS)))
+
+    def test_append_line_after_a_last_line_without_newline(self):
+        path = os.path.join(self.root, "a", "runs.jsonl")
+        os.makedirs(os.path.dirname(path))
+        with open(path, "wb") as handle:
+            handle.write(b'{"n":0}')
+        l10nlib.append_line(path, '{"n":1}')
+        self.assertEqual(l10nlib.read_text(path), '{"n":0}\n{"n":1}\n')
+
+    def test_write_text_is_whole_under_concurrent_writers(self):
+        script = ("import sys, os\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import l10nlib\n"
+                  "path = os.path.join(sys.argv[2], 'pack.json')\n"
+                  "body = ('writer %s\\n' % sys.argv[3]) * 20000\n"
+                  "for _ in range(int(sys.argv[4])):\n"
+                  "    l10nlib.write_text(path, body)\n"
+                  "    text = l10nlib.read_text(path)\n"
+                  "    assert len(set(text.splitlines())) == 1 and len(text) == len(body), 'torn file'\n")
+        self.run_processes(script, "30")
+        self.assertEqual([n for n in os.listdir(self.root) if n != "pack.json"], [])  # no temporary file left
+
+    def test_new_files_from_threads_take_the_umask_and_leave_it(self):
+        # In a child process, so the umask set here touches no other test.
+        script = ("import sys, os, threading\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import l10nlib\n"
+                  "os.umask(0o077)\n"
+                  "sys.setswitchinterval(1e-6)  # switch threads often, so a umask race would show\n"
+                  "def write(n):\n"
+                  "    for i in range(200):\n"
+                  "        l10nlib.write_text(os.path.join(sys.argv[2], 't%d-%d.txt' % (n, i)), 'x')\n"
+                  "threads = [threading.Thread(target=write, args=(n,)) for n in range(8)]\n"
+                  "[t.start() for t in threads]\n"
+                  "[t.join() for t in threads]\n"
+                  "print(oct(os.umask(0o077)))\n"
+                  "print(sorted(set(oct(os.stat(os.path.join(sys.argv[2], f)).st_mode & 0o777)\n"
+                  "                 for f in os.listdir(sys.argv[2]))))\n"
+                  "print(len(os.listdir(sys.argv[2])))\n")
+        import subprocess
+        out = subprocess.run([sys.executable, "-c", script, os.path.dirname(os.path.abspath(__file__)), self.root],
+                             check=True, capture_output=True, text=True).stdout.split("\n")
+        self.assertEqual(out[:3], ["0o77", "['0o600']", "1600"])
+
+    def test_write_text_keeps_mode_and_symlink(self):
+        target = os.path.join(self.root, "target.txt")
+        l10nlib.write_text(target, "one\n")
+        os.chmod(target, 0o640)
+        link = os.path.join(self.root, "link.txt")
+        os.symlink(target, link)
+        l10nlib.write_text(link, "two\n")
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(l10nlib.read_text(target), "two\n")
+        self.assertEqual(os.stat(target).st_mode & 0o777, 0o640)
 
 
 if __name__ == "__main__":

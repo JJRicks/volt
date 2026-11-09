@@ -1,0 +1,3 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+common_connect_charger_first	Connect a charger first	Conecte o carregador primeiro	Connect the charger first	claude-opus	claude-opus-5-5	5b031d6cb469e6bedcd3749c53369e3bb19f9c53	88fadf6e4e4bd98f7a3a061c8c318bc6d22cae59

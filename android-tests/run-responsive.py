@@ -18,6 +18,7 @@ parser.add_argument('--serial', required=True)
 parser.add_argument('--app', type=Path, required=True)
 parser.add_argument('--runner', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
+parser.add_argument('--theme', choices=('dark', 'light'), default='dark', help='App theme for the fixture (default dark)')
 parser.add_argument('--baseline', action='store_true', help='Only the two original reported regressions')
 parser.add_argument('--case', action='append', help='Target widthxheight:app-text-scale:mode[:system-font-scale] (repeatable; example restores saved All widgets slot)')
 args = parser.parse_args()
@@ -35,6 +36,8 @@ if run('shell', 'getprop', 'ro.kernel.qemu').strip() != '1':
 if run('shell', 'getprop', 'sys.boot_completed').strip() != '1':
     raise SystemExit('Wait for the emulator to finish booting')
 # Deliberately vary width, aspect ratio, navigation breakpoint, and text size.
+# The navigation breakpoint is width over text scale (WideLayout, 650 dp): 686 dp at 1.4x is the phone
+# layout, 920 dp at 1.4x (657) is the wide one with large text.
 # 344x882dp models the Fold5 cover; 725x604dp models its open landscape panel.
 matrix = [(344, 882, 1.0, 'cards', 1.0), (725, 604, 1.0, 'fold', 1.0)] if args.baseline else [
     (320, 720, 1.0, 'cards', 1.0), (336, 800, 1.0, 'cards', 1.0),
@@ -42,7 +45,7 @@ matrix = [(344, 882, 1.0, 'cards', 1.0), (725, 604, 1.0, 'fold', 1.0)] if args.b
     (344, 882, 1.0, 'constraints', 1.3), (360, 800, 1.4, 'cards', 1.0),
     (411, 840, 1.0, 'cards', 1.0), (600, 850, 1.0, 'all', 1.0),
     (649, 850, 1.0, 'cards', 1.0), (650, 850, 1.0, 'cards', 1.0),
-    (686, 725, 1.4, 'all', 1.0), (725, 604, 1.0, 'all', 1.0),
+    (686, 725, 1.4, 'all', 1.0), (725, 604, 1.0, 'all', 1.0), (920, 725, 1.4, 'all', 1.0),
     (852, 690, 1.0, 'all', 1.0), (344, 882, 1.0, 'constraints', 1.0),
     (360, 800, 1.4, 'constraints', 1.0), (650, 850, 1.0, 'constraints', 1.0),
     (344, 882, 1.0, 'edit', 1.0), (725, 604, 1.0, 'edit', 1.0),
@@ -67,7 +70,7 @@ if args.case:
         width, height = map(int, size.split('x'))
         if not 280 <= width <= 1400 or not 280 <= height <= 1600 or not 1 <= float(scale) <= 2 or not 1 <= system_scale <= 2:
             parser.error('Cases must stay within reasonable emulator dimensions/text sizes')
-        if mode not in ('all', 'cards', 'fold', 'battery', 'constraints', 'edit', 'editor', 'gauge', 'motion', 'quick', 'followup', 'chart', 'example', 'narrow', 'compact', 'closeout', 'layout-modes'):
+        if mode not in ('all', 'cards', 'fold', 'battery', 'constraints', 'edit', 'editor', 'gauge', 'motion', 'quick', 'followup', 'chart', 'example', 'narrow', 'compact', 'closeout', 'layout-modes', 'tiles'):
             parser.error('Unknown validation mode')
         matrix.append((width, height, float(scale), mode, system_scale))
 args.out.mkdir(parents=True, exist_ok=True)
@@ -89,7 +92,7 @@ try:
         for permission in ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'):
             run('shell', 'pm', 'grant', 'com.jjricks.volt', 'android.permission.' + permission)
         output = run('shell', 'am', 'instrument', '-w', '-e', 'variant', variant,
-                     '-e', 'text_scale', str(scale), '-e', 'mode', mode,
+                     '-e', 'text_scale', str(scale), '-e', 'mode', mode, '-e', 'theme', args.theme,
                      'com.jjricks.volt.tests/com.jjricks.volt.tests.ResponsiveDashboardValidation')
         (args.out / (variant + '.txt')).write_text(output)
         passed = 'result=PASS' in output and 'result=FAIL' not in output

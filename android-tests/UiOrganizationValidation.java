@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.Fmt;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.PhoneRideStore;
@@ -48,6 +49,7 @@ import com.jjricks.volt.RidesScreen;
 import com.jjricks.volt.RouteMapView;
 import com.jjricks.volt.ScooterCommands;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.T;
 import com.jjricks.volt.Ui;
 
 /** UI checks on a fresh emulator only. No owner profile, sensor recording, radio or network work. */
@@ -200,8 +202,11 @@ public final class UiOrganizationValidation extends Instrumentation {
             main(() -> scroller.fullScroll(View.FOCUS_UP)); waitForIdleSync();
             screenshot("synthetic-route-top-dark");
             main(() -> scroller.fullScroll(View.FOCUS_DOWN)); waitForIdleSync();
-            TextView export = findText(dialogRoot, "Export phone data");
-            require(export != null, "Route export action is missing"); reveal(export); requireFullyVisible(export, "Phone export action");
+            // The phone section's own export button became ride details' one Export ride data sheet (#253):
+            // the preview now ends with the motion-sample note, which must still scroll fully into view.
+            TextView last = findText(dialogRoot, T.ridesMotionSamples(fixture.motionSampleCount, Fmt.groupedInteger(java.util.Locale.US, fixture.motionSampleCount)));
+            require(last != null, "Route preview's last block is missing"); reveal(last); requireFullyVisible(last, "Route preview's last block");
+            require(findText(dialogRoot, T.ridesExportData()) == null, "Route preview kept a separate export action");
             screenshot("synthetic-route-bottom-dark");
             main(() -> {
                 require(!((Boolean)field(map, "streets")), "Preview enabled network tile loading");
@@ -209,7 +214,7 @@ public final class UiOrganizationValidation extends Instrumentation {
             });
             click(preview.getButton(AlertDialog.BUTTON_POSITIVE)); preview = null;
             assertNoScooterWork();
-            check("Synthetic route renders offline, responds to touch/zoom/color controls, and scrolls to phone exports");
+            check("Synthetic route renders offline, responds to touch/zoom/color controls, and scrolls to its last block");
 
             result.putString("result", "PASS"); result.putStringArrayList("checks", new ArrayList<>(checks));
             result.putStringArrayList("screenshots", new ArrayList<>(screenshots));
@@ -462,7 +467,7 @@ public final class UiOrganizationValidation extends Instrumentation {
         require(fixtureDirectory.mkdir(), "Could not create isolated UI fixture");
         PhoneRideStore store = new PhoneRideStore(fixtureDirectory);
         String id = "synthetic-ui-preview"; long start = 100000, wall = 1700000000000L;
-        store.start(id, wall, start, "pocket"); StringBuilder rows = new StringBuilder();
+        store.start(id, wall, start); StringBuilder rows = new StringBuilder();
         for (int i = 0; i < 70; i++) {
             long mono = start + i * 1000, stamp = wall + i * 1000;
             if (i == 36) rows.append(PhoneRideStore.row("GAP", stamp, mono));
@@ -523,7 +528,8 @@ public final class UiOrganizationValidation extends Instrumentation {
         waitForIdleSync();
     }
     /** More shows its menu and submenu side by side (no submenu Back step) at unfolded widths. */
-    private boolean wideMore() { return activity.getResources().getConfiguration().screenWidthDp >= 650; }
+    /** The activity's own wide-or-phone choice (Ui.wideLayout: width over text scale), not the raw width. */
+    private boolean wideMore() { return Boolean.TRUE.equals(field(activity, "expanded")); }
     private void requireFullyVisible(View view, String name) { main(() -> requireFullyVisibleNow(view, name)); }
     private void requireFullyVisibleNow(View view, String name) {
         Rect rect = new Rect(); require(view.getGlobalVisibleRect(rect), name + " is not visible");

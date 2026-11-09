@@ -81,7 +81,7 @@ public final class DashboardModelTextTest {
             same(e.group, e.groupLabel().english(), e.id + " groupLabel().english()");
             check(e.id.equals(QuickAccessActions.find(e.id).id), e.id + " find");
         }
-        same("Top speed", T.dashboardModelTileTopSpeed(), "tile top speed");
+        same("Max. speed", T.dashboardModelTileTopSpeed(), "tile top speed (the abbreviated rung of Maximum speed)");
         same("Charge schedule", T.dashboardModelTileChargeSchedule(), "tile charge schedule");
     }
 
@@ -150,13 +150,19 @@ public final class DashboardModelTextTest {
         String[][] pairs = {
             {"SPEED_TITLE", T.dashboardModelExampleSpeed()}, {"BATTERY_CHARGE_TITLE", T.dashboardModelExampleBatteryCharge()},
             {"ELECTRICAL_TITLE", T.dashboardModelExampleElectrical()}, {"BATTERY_POWER_TITLE", T.dashboardModelExampleBatteryPower()},
-            {"CHARGE_HISTORY_TITLE", T.dashboardModelExampleChargeHistory()}, {"NOTE_TEXT", T.dashboardModelExampleNote()},
+            {"CHARGE_HISTORY_TITLE", T.dashboardModelExampleChargeHistory()},
         };
         for (String[] pair : pairs) {
             Matcher c = Pattern.compile("\\b" + pair[0] + " = \"([^\"]*)\"").matcher(example);
             check(c.find(), pair[0] + " not declared");
             same(c.group(1), pair[1], "example " + pair[0]);
         }
+        // NOTE_TEXT is the example note's stored value and keeps its saved spelling, so saved example notes still
+        // read as Volt's; the catalog shows the US spelling (an owner-approved change, l10n/english-changes.tsv).
+        Matcher note = Pattern.compile("\\bNOTE_TEXT = \"([^\"]*)\"").matcher(example);
+        check(note.find(), "NOTE_TEXT not declared");
+        same("Check tyre pressure", note.group(1), "example NOTE_TEXT stays the stored value");
+        same("Check tire pressure", T.dashboardModelExampleNote(), "example note shown");
         Matcher slot = Pattern.compile("EXAMPLE_SLOT_NAME = \"([^\"]*)\"").matcher(config);
         check(slot.find(), "EXAMPLE_SLOT_NAME not declared");
         same(slot.group(1), T.dashboardModelSlotExample(), "example slot name");
@@ -221,9 +227,11 @@ public final class DashboardModelTextTest {
     /**
      * DashboardExampleIds.exampleSlot against the example create() makes (its types read from src/, its
      * ids made as add() makes them): the whole example in slot 3 under its name counts, and so does it
-     * with any one type fewer (an example this version saves, read by a version with a type more) or one
-     * more (a later version's example); any widget not the example's, a type twice, another slot, another
-     * name or no widgets does not. And where the example is saved: slot index 2, EXAMPLE_SLOT_NAME.
+     * with any one type fewer (an example this version saves, read by a version with a type more). This
+     * method alone does not compare types with TYPES, so a tagged widget of an unknown type also counts;
+     * DashboardConfig.validateSlot refuses such a slot before this runs. Any widget not the example's, a
+     * type twice, another slot, another name or no widgets does not count. And where the example is
+     * saved: slot index 2, EXAMPLE_SLOT_NAME.
      */
     private static void exampleSlotRule() throws Exception {
         String example = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/AllWidgetsDashboard.java")), StandardCharsets.UTF_8);
@@ -258,7 +266,7 @@ public final class DashboardModelTextTest {
         check(!DashboardExampleIds.exampleSlot(2, true, with(ids, UUID.randomUUID().toString()), with(kinds, "future")),
                 "the example with an owner's widget of a new type is the example's slot");
         check(DashboardExampleIds.exampleSlot(2, true, with(ids, DashboardExampleIds.create()), with(kinds, "future")),
-                "a later example, with a type more, is not the example's slot");
+                "exampleSlot alone does not check types against TYPES (validateSlot does that first)");
         check(DashboardExampleIds.exampleSlot(2, true, new String[] {ids[0]}, new String[] {kinds[0]}), "one example widget");
         for (int index : new int[] {-1, 0, 1, 3})
             check(!DashboardExampleIds.exampleSlot(index, true, ids, kinds), "the example in slot index " + index + " is the example's slot");

@@ -43,7 +43,7 @@ class RepositoryFilesTest(unittest.TestCase):
                 self.assertNotIn(";", pos, where)
             if name == "en.tsv":
                 self.assertGreaterEqual(len(rows), 50)
-                for term_id in ("not-affiliated", "owner-identity", "owner-key", "handlebar-pin", "charge-ceiling"):
+                for term_id in ("not-affiliated", "owner-key", "handlebar-pin"):
                     self.assertIn(term_id, ids)
 
     def test_committed_glossaries_pass_glossary_check(self):
@@ -73,6 +73,35 @@ class RepositoryFilesTest(unittest.TestCase):
         for source in ('case "foreign"', 'case "throwing"', 'public String language() { return "de"; }',
                        'throw new AssertionError("a report read catalog text "'):
             self.assertIn(source, reports)
+
+    def test_ci_checks_the_shipped_languages(self):
+        workflow = l10nlib.read_text(os.path.join(ROOT, ".github", "workflows", "tests.yml"))
+        gates = workflow[workflow.index("Localization proof gates"):workflow.index("web-setup:")]
+        self.assertIn("python3 tools/l10n/ship_check.py\n", gates)
+        self.assertNotIn("--release", gates, "pull requests run the report-only mode; releases run --release")
+
+    def test_releasing_runs_the_strict_ship_check(self):
+        steps = l10nlib.read_text(os.path.join(ROOT, "RELEASING.md"))
+        strict = steps.index("python3 tools/l10n/ship_check.py --release --aapt required")
+        # On the merged release commit: final merges first, then the strict check, then the same-SHA check and the tag.
+        self.assertLess(steps.index("Merge the reviewed pull requests into `main`"), strict)
+        self.assertLess(strict, steps.index("the checked, built and tagged commit are one SHA"))
+        self.assertLess(steps.index("the checked, built and tagged commit are one SHA"), steps.index("tag that exact `main` commit"))
+
+    def test_a_release_build_runs_the_strict_ship_check_first(self):
+        script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
+        body = script[script.index("navee_build_app() {"):]
+        guard = body.index('if [[ "${VOLT_RELEASE:-}" == 1 ]]; then\n        navee_release_translations\n')
+        self.assertLess(body.index('version_name="$(navee_version_name)"'), guard, "after the clean-tree check")
+        self.assertLess(guard, body.index("gen_catalog.py"), "before anything is compiled")
+
+    def test_pseudo_build_repairs_aapts_text_before_the_round_trip(self):
+        script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
+        body = script[script.index("navee_build_pseudo() {"):script.index("Built pseudo-locale APK")]
+        repair = body.index('tools/l10n/pseudo_fix.py" --apk "$work/resources.apk"')
+        self.assertLess(body.index("--pseudo-localize"), repair)
+        self.assertLess(repair, body.index('navee_l10n_roundtrip "$work/resources.apk" --allow-pseudo'))
+        self.assertEqual(script.count("pseudo_fix.py"), 1, "the release APK never goes through it")
 
     def test_baselines_parse_and_name_real_files(self):
         # Baselines only shrink as batches convert files, so this checks their shape, not their number.

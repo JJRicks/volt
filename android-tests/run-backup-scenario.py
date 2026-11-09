@@ -64,7 +64,8 @@ for name in ('complete', 'corrupted'):
 if args.render:
     results = []
     try:
-        for case in args.case or ['344x882:dark:1', '725x604:light:1.4']:
+        # 725x604 at 1x keeps the wide layout (rail, two columns); at 1.4x it is the phone layout (WideLayout: width over text scale).
+        for case in args.case or ['344x882:dark:1', '725x604:light:1', '725x604:light:1.4']:
             size, theme, font = case.split(':'); width, height = map(int, size.split('x'))
             if theme not in ('dark', 'light') or not 280 <= width <= 1400 or not 280 <= height <= 1600 or not 1 <= float(font) <= 2:
                 raise ValueError('Unsupported case')
