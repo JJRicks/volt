@@ -376,7 +376,7 @@ public final class ScooterService extends Service {
             android.widget.Toast.makeText(this, chargeMeasure.active() ? T.serviceWaitMeasuring() : scheduleTesting() ? T.serviceWaitScheduleTest() : T.serviceSimulationFinishRecording(), android.widget.Toast.LENGTH_LONG).show();
             return false;
         }
-        if (enabled && (profiles.active() == null || !settings.getBoolean("developer_options", false))) return false;
+        if (enabled && profiles.active() == null) return false;
         // Flush only genuine data before the BLE layer closes its current connection.
         if (enabled) { observeTelemetry(); persistHistory(true); }
         historyConnected = false; historyDirty = false; observedSources.clear();
@@ -432,12 +432,10 @@ public final class ScooterService extends Service {
     /** Why a charge recording can't start now, in the current language, or null when it can. */
     public String chargeCaptureUnavailable(){CharSequence why=chargeCaptureBlocked();return why==null?null:why.toString();}
     /**
-     * chargeCaptureUnavailable() deferred, for the status line that keeps it (plan R2). The developer-options refusal is
-     * still rendered here: G1 holds that line as B8 left it, since it also holds the preference key's literal.
+     * chargeCaptureUnavailable() deferred, for the status line that keeps it (plan R2).
      */
     private CharSequence chargeCaptureBlocked(){
         if(destroyed||chargeStore==null)return M.serviceChargeStorageUnavailable();
-        if(!settings.getBoolean("developer_options",false))return T.serviceChargeEnableDeveloper();
         if(simulating())return M.serviceChargeSimulation();
         if(isRecording()||phoneSaving())return M.serviceChargeFinishRide();
         if(chargeExporting)return M.serviceChargePreparingExport();
@@ -553,7 +551,7 @@ public final class ScooterService extends Service {
         if(chargeUpdating||!isChargeRecording())return;chargeUpdating=true;
         try{
             ChargeSessionStore.Stop stop=null;
-            if(simulating()||!settings.getBoolean("developer_options",false))stop=ChargeSessionStore.Stop.STOPPED;
+            if(simulating())stop=ChargeSessionStore.Stop.STOPPED;
             else if(!Objects.equals(chargeStore.profile(),activeProfileId()))stop=ChargeSessionStore.Stop.PROFILE_CHANGED;
             else if(ble.connected()&&(ble.profile()==null||!Objects.equals(chargeStore.profile(),ble.profile().id)))stop=ChargeSessionStore.Stop.PROFILE_CHANGED;
             else if(chargeRecovery==null)stop=ChargeSessionStore.Stop.CONNECTION_FAILED;

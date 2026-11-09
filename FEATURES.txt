@@ -461,8 +461,8 @@ UT5 MAX polling is unchanged.
 The checker no longer changes settings: the guided tests of dashboard units, tail
 light, turn signal sound, automatic lights and range estimate moved to
 Experimental controls as Help verify (below). It still reviews any unfinished
-try or older guided test (Restore, Keep or Dismiss), with Developer options
-hidden too, and its report includes the tries.
+try or older guided test (Restore, Keep or Dismiss), and its report includes
+the tries.
 
 PHONE-FREE AND RIDING CHECKS STILL NEEDED
 
@@ -763,8 +763,7 @@ Distance/speed, temperature and time format are grouped under App preferences >
 Units. Narrow controls may scroll sideways; light-pattern controls fit or wrap
 to show every choice. Their highlight follows confirmed scooter state, with
 pending writes disabled and rejected/unknown values represented honestly.
-A hidden Developer options menu is unlocked by seven taps on the Volt
-version under About & permissions. Its simulation toggle closes real Bluetooth,
+Developer options sit in the More menu. Its simulation toggle closes real Bluetooth,
 shows all catalog parameters using sample readings, and offers local-only scalar
 control responses and generated chart previews. A persistent banner marks the
 samples and exits simulation. Samples are never saved into the real telemetry

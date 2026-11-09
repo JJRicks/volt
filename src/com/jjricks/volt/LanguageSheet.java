@@ -18,7 +18,7 @@ import java.util.Locale;
  * More › App preferences › Language (plan section 5): the row's value and the picker sheet.
  *
  * The row is offered only once a language other than English ships (beta or stable in
- * l10n/lang/*.tsv), or with the pseudo APK while Developer options are on, where the sheet also lists
+ * l10n/lang/*.tsv), or with the pseudo APK, where the sheet also lists
  * en-XA and ar-XB for layout checks. Until then English builds show no row at all. Below the choices,
  * an In progress section lists the draft languages, which cannot be chosen (LanguagePicker). At the
  * bottom, Report a translation error and Request a language open English email drafts (IssueReport).
@@ -35,11 +35,11 @@ final class LanguageSheet {
 
     private LanguageSheet() {}
 
-    /** Whether the Language row shows: a non-English language ships, or the pseudo APK in Developer options. */
-    static boolean offered(Context context, boolean developer) {
+    /** Whether the Language row shows: a non-English language ships, or the pseudo APK. */
+    static boolean offered(Context context) {
         for (int i = 0; i < AppLanguages.size(); i++)
             if (AppLanguages.shipped(i) && !AppLanguages.ENGLISH.equals(AppLanguages.tag(i))) return true;
-        return developer && pseudoBuild(context);
+        return pseudoBuild(context);
     }
 
     /** The row's value: "System default (Deutsch)", "English", "Español · Beta" or a pseudo locale's tag. */
@@ -55,7 +55,7 @@ final class LanguageSheet {
      * The picker. changed runs after a choice on API 33 and later, where the framework recreates the
      * activity only when the locale it resolves to changes, so the row's value can catch up.
      */
-    static void show(ScreenHost host, boolean developer, Runnable changed) {
+    static void show(ScreenHost host, Runnable changed) {
         Activity activity = host.activity();
         if (activity == null) return;
         Ui ui = host.ui();
@@ -66,7 +66,7 @@ final class LanguageSheet {
         for (int i : LanguagePicker.choices(AppLanguages.STATUSES)) {
             tags.add(AppLanguages.tag(i)); labels.add(AppLanguages.endonym(i)); betas.add(beta(i));
         }
-        if (developer && pseudoBuild(activity)) {
+        if (pseudoBuild(activity)) {
             for (Locale locale : pseudoLocales()) {
                 tags.add(locale.toLanguageTag()); labels.add(locale.toLanguageTag()); betas.add(false);
             }
