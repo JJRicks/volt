@@ -20,6 +20,9 @@ public final class ChargeLiveBackgroundTest {
         backgroundStaysCharging();
         linkDownDrops();
         silentLinkDrops();
+        unplugClearsAfterTheHold();
+        briefDropoutKeepsTheCard();
+        replugDuringTheHoldKeepsTheCard();
         alertsKeepWatching();
         System.out.println("ChargeLiveBackgroundTest: " + checks + " checks passed");
     }
@@ -56,10 +59,12 @@ public final class ChargeLiveBackgroundTest {
         ChargeLiveHold.End end = ChargeLiveHold.End.NONE;
         ChargeLiveState card;
         boolean connected;
-        void step(long now, boolean up, long statusMs, long readingMs, boolean fast) {
+        void step(long now, boolean up, long statusMs, long readingMs, boolean fast) { step(now, up, statusMs, readingMs, fast, Boolean.TRUE); }
+        /** charging is the last reading's value; a stale or absent reading is null, as liveReading() makes it. */
+        void step(long now, boolean up, long statusMs, long readingMs, boolean fast, Boolean charging) {
             connected = StatusCadence.linked(up, statusMs, now, fast);
             boolean fresh = connected && readingMs > 0 && now >= readingMs && now - readingMs <= ChargeAlertPolicy.FRESH_MS;
-            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? Boolean.TRUE : null, false, fresh ? 99 : null, null, "ut5");
+            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? charging : null, false, fresh ? 62 : null, null, "ut5");
             if (f.percent != null) lastPercent = f.percent;
             ChargeLiveHold.End e = hold.step(now, f);
             if (e != ChargeLiveHold.End.NONE) end = e;
@@ -139,6 +144,52 @@ public final class ChargeLiveBackgroundTest {
         check(failedAt > lostAt && failedAt - lastStatus <= StatusCadence.silenceMs(false) + StatusCadence.POLL_SLOW_MS, "poll() ends the link on its next tick");
         check(endAt == lostAt + ChargeLiveHold.RECONNECT_MS + STEP, "the card ends 18 s after it started reconnecting");
         check(endAt - lastStatus <= 60 * S, "a silent scooter ends the card within a minute of its last answer");
+    }
+
+    /** Out of sight the owner's phone polls every 15 s: steps the service from now to end with this charging reading. */
+    private static long run(Service s, long from, long end, Boolean charging) {
+        for (long t = from; t <= end; t += STEP) {
+            long status = backgroundStatus(t, Long.MAX_VALUE);
+            s.step(t, true, status, status, false, charging);
+            if (s.end != ChargeLiveHold.End.NONE) return t;
+        }
+        return -1;
+    }
+
+    /**
+     * The reported bug's rule: unplugged with Volt out of sight, the card stays through ChargeLiveHold.STOP_MS (3 minutes)
+     * and then ends on its own, with no one opening Volt; the first poll after that window ends it. A level below the limit
+     * makes it CHARGER_OFF, the plain Connected notice again.
+     */
+    private static void unplugClearsAfterTheHold() {
+        Service s = armed();
+        long unplug = T0 + 2 * 60 * S;
+        check(run(s, T0, unplug - STEP, Boolean.TRUE) < 0 && s.hold.active(), "still held until the unplug");
+        long ended = run(s, unplug, unplug + ChargeLiveHold.STOP_MS + 2 * StatusCadence.POLL_SLOW_MS, Boolean.FALSE);
+        check(ended > 0 && s.end == ChargeLiveHold.End.CHARGER_OFF, "the hold ended by itself, out of sight: " + s.end);
+        check(ended - unplug > ChargeLiveHold.STOP_MS && !s.hold.active(), "and not before the 3 minute hold");
+        check(ended - unplug <= ChargeLiveHold.STOP_MS + StatusCadence.POLL_SLOW_MS + STEP, "within one poll of the hold's end: " + (ended - unplug) + " ms");
+    }
+
+    /** A charger that cuts out for 40 s and resumes keeps the hold, and a later unplug counts its full 3 minutes from scratch. */
+    private static void briefDropoutKeepsTheCard() {
+        Service s = armed();
+        long off = T0 + 30 * S, back = off + 40 * S;
+        check(run(s, T0, off - STEP, Boolean.TRUE) < 0, "held before the dropout");
+        check(run(s, off, back - STEP, Boolean.FALSE) < 0 && s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "a 40 s dropout never ends the hold or the card");
+        check(run(s, back, back + 60 * S, Boolean.TRUE) < 0 && s.hold.active(), "charging again: still held");
+        long unplug = back + 60 * S + STEP;
+        long ended = run(s, unplug, unplug + ChargeLiveHold.STOP_MS + 2 * StatusCadence.POLL_SLOW_MS, Boolean.FALSE);
+        check(ended - unplug > ChargeLiveHold.STOP_MS, "the dropout's seconds don't count toward a later unplug's 3 minutes");
+    }
+
+    /** Plugged back in just before the hold would have ended: the card stays, and nothing has started counting. */
+    private static void replugDuringTheHoldKeepsTheCard() {
+        Service s = armed();
+        long off = T0 + 15 * S, back = off + ChargeLiveHold.STOP_MS - 15 * S;
+        check(run(s, T0, off - STEP, Boolean.TRUE) < 0, "held before the unplug");
+        check(run(s, off, back - STEP, Boolean.FALSE) < 0 && s.hold.active(), "off for most of the hold: still held");
+        check(run(s, back, back + 6 * 60 * S, Boolean.TRUE) < 0 && s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "replugged inside the hold: the card stays");
     }
 
     /**
