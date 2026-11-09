@@ -62,17 +62,47 @@ public final class RideAutoExportTest {
             names(); theSwitch(); waitingList(); folderLabels(); problemsAndRow();
             savesThroughTemporary(); sameFileTwice(); changedFileReplaced(); interruptedPassCleanedUp(); oldFilesLeftAlone();
             whichRidesExport(); failures(); retryAfterFailure(); cacheFilesRemoved();
-            storeBytesMatchTheSheet();
+            storeBytesMatchTheSheet(); queuedBeforeDatedNames();
             throwingTextSource();
         } finally { Fixture.delete(scratch); }
         System.out.println("RideAutoExportTest: " + checks + " checks passed");
     }
 
+    /** A fake source's rides all started now-ish; only the real stores read a ride's own start. */
+    private static final long START = 1794234720000L;
+    private static String name(String id) { return RideAutoExport.everythingName(id, START); }
+    /** A waiting list holds only ride ids, so a ride queued before dated names exports like any other. */
+    private static void queuedBeforeDatedNames() throws IOException {
+        Fixture f = new Fixture();
+        try {
+            List<String> waiting = RideAutoExport.parse(RideAutoExport.add("", f.gps));
+            RideAutoExport.Source source = RideAutoExport.stores(f.rides, f.phone, f.cache, "1.12.0");
+            FakeFolder folder = new FakeFolder();
+            String older = "ride-" + f.gps.substring(0, 8) + "-route.csv";
+            folder.files.put(older, older.getBytes(StandardCharsets.UTF_8));
+            RideAutoExport.Result first = RideAutoExport.run(waiting, source, folder);
+            String dated = RideAutoExport.everythingName(f.gps, f.rides.get(f.gps).startWallMs);
+            check(dated.matches("ride-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-" + f.gps.substring(0, 8) + "-everything\\.json"), "Dated from the ride's own start: " + dated);
+            check(first.problem == RideAutoExport.Problem.NONE && first.finished.equals(waiting) && first.saved.equals(Collections.singletonList(dated)) && folder.noDuplicatesOrTemporaries(), "Exported under its dated name: " + folder.files.keySet());
+            RideAutoExport.Result same = RideAutoExport.run(waiting, source, folder);
+            check(same.saved.isEmpty() && same.finished.equals(waiting) && folder.files.size() == 2, "An identical file is left alone");
+            folder.files.put(dated, "an older copy".getBytes(StandardCharsets.UTF_8));
+            RideAutoExport.Result replaced = RideAutoExport.run(waiting, source, folder);
+            check(replaced.saved.equals(Collections.singletonList(dated)) && folder.files.size() == 2 && folder.noDuplicatesOrTemporaries() && Arrays.equals(folder.files.get(dated), f.sheet(f.gps, "1.12.0")), "A different file of the same name is replaced, with no copy");
+            check(Arrays.equals(folder.files.get(older), older.getBytes(StandardCharsets.UTF_8)), "A file under an older name is left as it was");
+        } finally { f.delete(); }
+    }
+
     private static void names() {
-        check(RideAutoExport.everythingName(A).equals("ride-1a2b3c4d-everything.json"), "Same name as the sheet's Everything in one JSON");
-        check(RideAutoExport.everythingName(A).equals(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, A)), "The sheet's own name rule");
-        check(RideAutoExport.everythingName("abc").equals("ride-abc-everything.json"), "Short ids keep the manual export's rule");
-        String temporary = RideAutoExport.temporaryName(RideAutoExport.everythingName(A));
+        TimeZone zone = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+            check(RideAutoExport.everythingName(A, START).equals("ride-2026-11-09_14-32-1a2b3c4d-everything.json"), "The ride's date and time, then the sheet's Everything in one JSON: " + name(A));
+        } finally { TimeZone.setDefault(zone); }
+        check(name(A).equals(RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(A, START, TimeZone.getDefault()))), "The sheet's own name rule");
+        check(RideAutoExport.everythingName(A, 0).equals("ride-1a2b3c4d-everything.json") && RideAutoExport.everythingName(A, -5).equals("ride-1a2b3c4d-everything.json"), "No usable start: the older name");
+        check(RideAutoExport.everythingName("abc", 0).equals("ride-abc-everything.json"), "Short ids keep the manual export's rule");
+        String temporary = RideAutoExport.temporaryName(name(A));
         check(temporary.startsWith(".") && temporary.endsWith(".partial") && !temporary.endsWith(".json"), "Temporary name is hidden and never looks like a finished file: " + temporary);
         check(RideAutoExport.ON.equals("ride_auto_export_json") && RideAutoExport.LEGACY_ROUTE_CSV.equals("ride_auto_export_route_csv")
                 && RideAutoExport.FOLDER.equals("ride_auto_export_folder") && RideAutoExport.PENDING.equals("ride_auto_export_pending")
@@ -159,7 +189,7 @@ public final class RideAutoExportTest {
     }
 
     private static void savesThroughTemporary() throws IOException {
-        FakeFolder folder = new FakeFolder(); String name = RideAutoExport.everythingName(A), temporary = RideAutoExport.temporaryName(name);
+        FakeFolder folder = new FakeFolder(); String name = name(A), temporary = RideAutoExport.temporaryName(name);
         check(RideAutoExport.save(folder, name, file("{\"a\":1}")) == RideAutoExport.Outcome.SAVED, "New file saved");
         check("{\"a\":1}".equals(folder.text(name)) && folder.files.size() == 1, "Exactly the bytes, under the final name only");
         check(folder.log.contains("create " + temporary) && folder.log.contains("rename " + temporary + " -> " + name), "Written under the temporary name, then renamed: " + folder.log);
@@ -167,7 +197,7 @@ public final class RideAutoExportTest {
     }
 
     private static void sameFileTwice() throws IOException {
-        FakeFolder folder = new FakeFolder(); String name = RideAutoExport.everythingName(A);
+        FakeFolder folder = new FakeFolder(); String name = name(A);
         RideAutoExport.save(folder, name, file("{}")); folder.log.clear();
         check(RideAutoExport.save(folder, name, file("{}")) == RideAutoExport.Outcome.UNCHANGED, "Unchanged bytes are left alone");
         check(folder.files.size() == 1 && folder.noDuplicatesOrTemporaries(), "No second copy");
@@ -175,7 +205,7 @@ public final class RideAutoExportTest {
     }
 
     private static void changedFileReplaced() throws IOException {
-        FakeFolder folder = new FakeFolder(); String name = RideAutoExport.everythingName(A);
+        FakeFolder folder = new FakeFolder(); String name = name(A);
         RideAutoExport.save(folder, name, file("{\"old\":1}"));
         check(RideAutoExport.save(folder, name, file("{\"new\":1}")) == RideAutoExport.Outcome.SAVED, "Changed content replaces the file");
         check(folder.files.size() == 1 && "{\"new\":1}".equals(folder.text(name)) && folder.noDuplicatesOrTemporaries(), "Replaced in place, never name (1).json: " + folder.files.keySet());
@@ -183,12 +213,12 @@ public final class RideAutoExportTest {
         check("{\"new\":1,\"longer\":true}".equals(folder.text(name)), "A longer file with the same start is a change");
         RideAutoExport.save(folder, name, file("{\"new\":1"));
         check("{\"new\":1".equals(folder.text(name)) && folder.files.size() == 1, "A shorter file with the same start is a change");
-        FakeFolder manual = new FakeFolder(); manual.files.put(RideAutoExport.everythingName(B), "same".getBytes(StandardCharsets.UTF_8));
-        check(RideAutoExport.save(manual, RideAutoExport.everythingName(B), file("same")) == RideAutoExport.Outcome.UNCHANGED && manual.files.size() == 1, "A manual export of the same ride is not duplicated");
+        FakeFolder manual = new FakeFolder(); manual.files.put(name(B), "same".getBytes(StandardCharsets.UTF_8));
+        check(RideAutoExport.save(manual, name(B), file("same")) == RideAutoExport.Outcome.UNCHANGED && manual.files.size() == 1, "A manual export of the same ride is not duplicated");
     }
 
     private static void interruptedPassCleanedUp() throws IOException {
-        String name = RideAutoExport.everythingName(A), temporary = RideAutoExport.temporaryName(name);
+        String name = name(A), temporary = RideAutoExport.temporaryName(name);
         FakeFolder folder = new FakeFolder(); folder.files.put(temporary, "half".getBytes(StandardCharsets.UTF_8));
         RideAutoExport.save(folder, name, file("whole"));
         check(folder.files.size() == 1 && folder.noDuplicatesOrTemporaries() && "whole".equals(folder.text(name)), "A temporary file left by an interrupted pass is replaced, not suffixed: " + folder.files.keySet());
@@ -206,7 +236,7 @@ public final class RideAutoExportTest {
         RideAutoExport.Result r = RideAutoExport.run(Arrays.asList(A, B), source(A, B), folder);
         check(r.problem == RideAutoExport.Problem.NONE && r.finished.equals(Arrays.asList(A, B)), "Both waiting rides written");
         for (String old : new String[]{route, combined, analysis}) check(Arrays.equals(folder.files.get(old), old.getBytes(StandardCharsets.UTF_8)), "Left as it was: " + old);
-        check(folder.files.size() == 5 && folder.files.containsKey(RideAutoExport.everythingName(A)) && folder.files.containsKey(RideAutoExport.everythingName(B)), "Everything files beside the old ones: " + folder.files.keySet());
+        check(folder.files.size() == 5 && folder.files.containsKey(name(A)) && folder.files.containsKey(name(B)), "Everything files beside the old ones: " + folder.files.keySet());
         for (String entry : folder.log) check(!entry.contains("route.csv") && !entry.contains("combined.json") && !entry.contains("analysis.json"), "Never read, deleted or renamed: " + entry);
     }
 
@@ -220,9 +250,9 @@ public final class RideAutoExportTest {
         return id -> {
             if (!rides.contains(id)) return null;
             File own = RideExportFiles.newStaging(scratch, System.currentTimeMillis());
-            File f = new File(own, RideAutoExport.everythingName(id));
+            File f = new File(own, name(id));
             Files.write(f.toPath(), ("{\"rideId\":\"" + id + "\"}").getBytes(StandardCharsets.UTF_8));
-            RideAutoExport.Output out = new RideAutoExport.Output(RideAutoExport.everythingName(id), f, own);
+            RideAutoExport.Output out = new RideAutoExport.Output(name(id), f, own);
             made.add(out); return out;
         };
     }
@@ -231,8 +261,8 @@ public final class RideAutoExportTest {
         FakeFolder folder = new FakeFolder();
         // C: deleted before its turn. It finishes quietly.
         RideAutoExport.Result r = RideAutoExport.run(Arrays.asList(A, C, B), source(A, B), folder);
-        check(r.problem == RideAutoExport.Problem.NONE && r.finished.equals(Arrays.asList(A, C, B)) && r.saved.equals(Arrays.asList(RideAutoExport.everythingName(A), RideAutoExport.everythingName(B))), "Saved; a deleted ride is skipped quietly");
-        check(folder.files.keySet().equals(new TreeSet<>(Arrays.asList(RideAutoExport.everythingName(A), RideAutoExport.everythingName(B)))) && folder.noDuplicatesOrTemporaries(), "One Everything file per ride: " + folder.files.keySet());
+        check(r.problem == RideAutoExport.Problem.NONE && r.finished.equals(Arrays.asList(A, C, B)) && r.saved.equals(Arrays.asList(name(A), name(B))), "Saved; a deleted ride is skipped quietly");
+        check(folder.files.keySet().equals(new TreeSet<>(Arrays.asList(name(A), name(B)))) && folder.noDuplicatesOrTemporaries(), "One Everything file per ride: " + folder.files.keySet());
         RideAutoExport.Result none = RideAutoExport.run(Collections.singletonList(C), source(), null);
         check(none.problem == RideAutoExport.Problem.NONE && none.finished.equals(Collections.singletonList(C)), "A deleted ride needs no folder at all");
         RideAutoExport.Result again = RideAutoExport.run(Arrays.asList(A, B), source(A, B), folder);
@@ -261,7 +291,7 @@ public final class RideAutoExportTest {
         FakeFolder ok = new FakeFolder();
         RideAutoExport.Result partly = RideAutoExport.run(Arrays.asList(A, B), flaky, ok);
         check(partly.problem == RideAutoExport.Problem.SAVE && partly.finished.equals(Collections.singletonList(B)) && ok.files.size() == 1, "One unreadable ride does not hold up the next");
-        FakeFolder unreadable = new FakeFolder(); unreadable.files.put(RideAutoExport.everythingName(A), "a".getBytes(StandardCharsets.UTF_8)); unreadable.readFails = true;
+        FakeFolder unreadable = new FakeFolder(); unreadable.files.put(name(A), "a".getBytes(StandardCharsets.UTF_8)); unreadable.readFails = true;
         check(RideAutoExport.run(Collections.singletonList(A), source(A), unreadable).problem == RideAutoExport.Problem.SAVE, "An unreadable existing file is a save problem, not a silent skip");
     }
 
@@ -341,20 +371,20 @@ public final class RideAutoExportTest {
             RideAutoExport.Result r = RideAutoExport.run(Arrays.asList(f.gps, f.motionOnly, f.scooterOnly, C), source, folder);
             check(r.problem == RideAutoExport.Problem.NONE && r.finished.size() == 4 && folder.files.size() == 3 && folder.noDuplicatesOrTemporaries(), "Every ride finished, one file each: " + folder.files.keySet());
             for (String id : new String[]{f.gps, f.motionOnly, f.scooterOnly}) {
-                byte[] auto = folder.files.get(RideAutoExport.everythingName(id));
+                byte[] auto = folder.files.get(RideAutoExport.everythingName(id, f.rides.get(id).startWallMs));
                 check(auto != null && Arrays.equals(auto, f.sheet(id, "1.12.0")), "Written byte for byte as the sheet's Everything in one JSON: " + id);
                 String text = new String(auto, StandardCharsets.UTF_8);
                 check(text.startsWith("{\"format\":\"volt-ride-everything\",\"formatVersion\":1,\"rideId\":\"" + id + "\""), "The Everything format, for this ride");
             }
-            check(folder.text(RideAutoExport.everythingName(f.gps)).contains("\"phone\":{\"journal\":") && folder.text(RideAutoExport.everythingName(f.scooterOnly)).contains("\"phone\":null"), "With and without a phone recording");
-            check(folder.text(RideAutoExport.everythingName(f.gps)).contains("Commute 🛴"), "The ride's own name stays inside the file, never in its name");
+            check(folder.text(RideAutoExport.everythingName(f.gps, f.rides.get(f.gps).startWallMs)).contains("\"phone\":{\"journal\":") && folder.text(RideAutoExport.everythingName(f.scooterOnly, f.rides.get(f.scooterOnly).startWallMs)).contains("\"phone\":null"), "With and without a phone recording");
+            check(folder.text(RideAutoExport.everythingName(f.gps, f.rides.get(f.gps).startWallMs)).contains("Commute 🛴"), "The ride's own name stays inside the file, never in its name");
             String[] left = f.cache.list();
             check(left != null && left.length == 0, "Nothing left in the cache: " + Arrays.toString(left));
             RideAutoExport.Result again = RideAutoExport.run(Arrays.asList(f.gps, f.motionOnly, f.scooterOnly), RideAutoExport.stores(f.rides, f.phone, f.cache, "1.12.0"), folder);
             check(again.saved.isEmpty() && again.finished.size() == 3 && folder.files.size() == 3, "The same rides again: unchanged files left alone");
             RideAutoExport.Result updated = RideAutoExport.run(Collections.singletonList(f.gps), RideAutoExport.stores(f.rides, f.phone, f.cache, "1.12.1"), folder);
-            check(updated.saved.equals(Collections.singletonList(RideAutoExport.everythingName(f.gps))) && folder.files.size() == 3
-                    && Arrays.equals(folder.files.get(RideAutoExport.everythingName(f.gps)), f.sheet(f.gps, "1.12.1")), "A changed file (another app version) replaces it in place");
+            check(updated.saved.equals(Collections.singletonList(RideAutoExport.everythingName(f.gps, f.rides.get(f.gps).startWallMs))) && folder.files.size() == 3
+                    && Arrays.equals(folder.files.get(RideAutoExport.everythingName(f.gps, f.rides.get(f.gps).startWallMs)), f.sheet(f.gps, "1.12.1")), "A changed file (another app version) replaces it in place");
         } finally { f.delete(); }
     }
 

@@ -651,7 +651,8 @@ public final class RidesAnalysisValidation extends Instrumentation {
             for(int everythingLine=0;everythingLine<everythingLayout.getLineCount();everythingLine++){if(everythingLayout.getEllipsisCount(everythingLine)!=0||everythingLine<everythingLayout.getLineCount()-1&&everything.getText().charAt(everythingLayout.getLineEnd(everythingLine)-1)!=' ')everythingWholeWords=false;}
             check(everythingWholeWords,"Everything's label is never cut short or broken mid-word");
             check(everything.getTextSize()>26*everything.getResources().getDisplayMetrics().density||everythingLayout.getLineCount()==1,"Everything's label fits on one line at normal text sizes");
-            check(text(root(),"ride-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
+            long legacyStart;try{legacyStart=service.rides.get(legacy).startWallMs;}catch(IOException e){throw new IllegalStateException(e);}
+            check(text(root(),"ride-"+new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm",Locale.ROOT).format(new Date(legacyStart))+"-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
             screenshot("export-sheet-"+attempt);
             main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }

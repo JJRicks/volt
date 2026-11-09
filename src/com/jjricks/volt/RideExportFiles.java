@@ -2,6 +2,7 @@ package com.jjricks.volt;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -12,7 +13,7 @@ import java.util.*;
  * Every file but Everything (JSON) is byte for byte what the separate Export CSV, Export JSON and Export phone data
  * buttons wrote: RideStore.exportCsv's copy of the sensor journal, Summary.toJson, Track.toCsv, toGpx, the phone's
  * raw journal and motion files as they are, and combinedJson. Everything (JSON) is
- * RideExportEverything's one file with all of those recordings (docs/ride-export-everything.md). Files, names and stored values are
+ * RideExportEverything's one file with all of those recordings (docs/ride-export-everything.md). File contents, names and stored values are
  * English and locale-independent; nothing here reads the catalog (RideExportFilesTest proves it under a
  * throwing text source). Automatic ride copies (RideAutoExport) save this class's Everything payload, with their own
  * folder and settings.
@@ -24,8 +25,8 @@ final class RideExportFiles {
     static final String CHOICE = "ride_export_choice";
     /** The folder a several-file export last went to, only as the picker's starting place. Never backed up. */
     static final String FOLDER_HINT = "ride_export_folder_hint";
-    /** Intent extras for the several-file save: the staging folder's path, the ride id and the format ids. */
-    static final String EXTRA_DIR = "ride_export_dir", EXTRA_RIDE = "ride_export_ride", EXTRA_FORMATS = "ride_export_formats";
+    /** Intent extras for the several-file save: the staging folder's path, the files' shared stem and the format ids. */
+    static final String EXTRA_DIR = "ride_export_dir", EXTRA_STEM = "ride_export_stem", EXTRA_FORMATS = "ride_export_formats";
     /** Staging folders in the cache: this prefix plus the time they were made. */
     private static final String STAGING = "ride-export-";
     /** A staging folder older than this was left by a pick that never answered (the process died). */
@@ -71,10 +72,28 @@ final class RideExportFiles {
         }
     }
 
-    /** ride-&lt;first 8 characters of the id&gt; plus the format's ending: the name every manual export used. */
-    static String name(Format format, String rideId) {
-        return "ride-" + rideId.substring(0, Math.min(8, rideId.length())) + format.suffix;
+    /**
+     * The start every file of a ride is named after: the ride's analysis, whatever the format. The Rides sheet and auto-save
+     * both refuse a ride without one, so a phone recording's own times never name a file; with no analysis, or no usable
+     * start in it, stem gives every format the older name, and the ride's files still share one stem.
+     */
+    static long start(RideStore.Summary summary) { return summary == null ? 0 : summary.startWallMs; }
+    /** The ride's stem for what the phone's time zone is now (the date and time the Rides list shows). */
+    static String stem(String rideId, RideStore.Summary summary) { return stem(rideId, start(summary), TimeZone.getDefault()); }
+    /**
+     * Everything before a file's ending: ride-&lt;yyyy-MM-dd&gt;_&lt;HH-mm&gt;-&lt;first 8 characters of the id&gt;, or without a usable
+     * start ride-&lt;first 8 characters of the id&gt;. Always ASCII digits and the Gregorian calendar, in any language or phone
+     * locale. A caller makes one stem and uses it for every step, so a time zone change partway cannot split the names.
+     */
+    static String stem(String rideId, long startWallMs, TimeZone zone) {
+        String id = rideId.substring(0, Math.min(8, rideId.length()));
+        if (startWallMs <= 0) return "ride-" + id;
+        SimpleDateFormat when = new SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.ROOT);
+        when.setTimeZone(zone);
+        return "ride-" + when.format(new Date(startWallMs)) + "-" + id;
     }
+    /** The file's name: the ride's stem plus the format's ending. */
+    static String fileName(Format format, String stem) { return stem + format.suffix; }
 
     /** Why a format is not offered for this ride. */
     enum Unavailable {
@@ -245,7 +264,7 @@ final class RideExportFiles {
         switch (format) {
             case EVERYTHING_JSON: {
                 File own = newStaging(cacheDir, System.currentTimeMillis());
-                File output = new File(own, name(format, rideId));
+                File output = new File(own, fileName(format, stem(rideId, summary)));
                 try {
                     RideExportEverything.write(output, rideId, appVersion, rides.journal(rideId), summary,
                             phone == null ? null : phone.rawCsv(rideId), phone == null ? null : phone.motionCsv(rideId), track);
@@ -257,14 +276,14 @@ final class RideExportFiles {
                 return new Payload(null, output);
             }
             case ANALYSIS_JSON:
-                if (summary == null) throw new Missing(name(format, rideId));
+                if (summary == null) throw new Missing(fileName(format, stem(rideId, summary)));
                 return new Payload(summary.toJson(), null);
             case ROUTE_CSV: return new Payload(need(track).toCsv(), null);
             case GPX: return new Payload(need(track).toGpx(), null);
             case COMBINED_JSON: return new Payload(combinedJson(summary, need(track)), null);
             default: {
                 File file = rawFile(format, phone, rideId);
-                if (!file.isFile()) throw new Missing(name(format, rideId));
+                if (!file.isFile()) throw new Missing(fileName(format, stem(rideId, summary)));
                 return new Payload(null, file);
             }
         }
@@ -289,8 +308,8 @@ final class RideExportFiles {
         return dir;
     }
     /** Writes one export into the staging folder under its final name, and returns the file. */
-    static File stage(File staging, Format format, String rideId, Payload payload) throws IOException {
-        File out = new File(staging, name(format, rideId));
+    static File stage(File staging, Format format, String stem, Payload payload) throws IOException {
+        File out = new File(staging, fileName(format, stem));
         try (OutputStream stream = new FileOutputStream(out)) {
             if (payload.text != null) stream.write(payload.text.getBytes(StandardCharsets.UTF_8));
             else try (InputStream in = new FileInputStream(payload.file)) { copy(in, stream); }
