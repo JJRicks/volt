@@ -1419,11 +1419,12 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * The same optional prompt a manual recording uses, answered before the switch saves, so a ride can't start
-     * behind the prompt. Either answer turns it on; a restored switch never comes through here.
+     * behind the prompt. Either answer turns it on; a restored switch never comes through here, the activity offers
+     * that one on screen.
      */
     private void offerRideLocation(Runnable save) {
         ScooterService service = service();
-        if (AutoStartPolicy.asksLocationFirst(service.settings.getBoolean("phone_gps", true), service.simulating())) host.requestRideLocation(save);
+        if (AutoStartPolicy.asksLocationFirst(service.settings.getBoolean("phone_gps", true), service.simulating(), service.ridingNow())) host.requestRideLocation(() -> { service.autoRecordLocationAsked(); save.run(); });
         else save.run();
     }
 

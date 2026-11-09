@@ -1351,11 +1351,15 @@ public final class RidesScreen implements AppScreen {
         toggle.setChecked(preferences.getBoolean(key, fallback)); toggle.setMinimumWidth(ui.dp(56)); toggle.setMinimumHeight(ui.dp(48));
         ui.styleSwitch(toggle); toggle.setContentDescription(sub == null ? title : title + ", " + sub);
         if (sub == null && "phone_motion".equals(key)) toggle.setContentDescription(T.ridesSwitchExperimental(title));
-        toggle.setOnCheckedChangeListener((button, on) -> preferences.edit().putBoolean(key, on).apply());
+        toggle.setOnCheckedChangeListener((button, on) -> { preferences.edit().putBoolean(key, on).apply(); if (on && AutoStartPolicy.PHONE_GPS_KEY.equals(key)) offerAutoRecordLocation(); });
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(-2, -2); toggleParams.leftMargin = ui.dp(12);
         row.addView(toggle, toggleParams);
         row.setOnClickListener(v -> toggle.performClick()); row.setFocusable(false);
         group.addView(row);
+    }
+    /** GPS route turned on with auto-record already on: the next automatic ride would otherwise have no route and no way to ask. */
+    private void offerAutoRecordLocation() {
+        if (AutoStartPolicy.asksLocationOnGpsOn(preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), service.simulating(), service.ridingNow())) host.requestRideLocation(service::autoRecordLocationAsked);
     }
     private void infoRow(LinearLayout group, String glyph, String title, String sub, String value) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(60)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));

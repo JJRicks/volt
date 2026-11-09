@@ -1820,6 +1820,14 @@ public final class ScooterService extends Service {
         }catch(IOException|IllegalStateException ignored){/* said nothing, on purpose; held below */}
         if(!isRecording())autoStart.recordingStartFailed();
     }
+    /** Recording, or fresh motion from the real scooter: no moment for a location prompt. */
+    boolean ridingNow(){return isRecording()||autoStartMoving(SystemClock.elapsedRealtime());}
+    /** Auto-record's one location offer for switches that never went through its own, for the activity to show while it is on screen. */
+    boolean offersAutoRecordLocation(boolean screenClear){
+        return !destroyed&&!dataMaintenance&&AutoStartPolicy.offersLocationOnScreen(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.PHONE_GPS_KEY,true),PhoneRideRecorder.hasLocationPermission(this),settings.getBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,false),simulating(),ridingNow(),screenClear);
+    }
+    /** The rider answered the location offer, whichever way. */
+    void autoRecordLocationAsked(){settings.edit().putBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,true).apply();}
     /** Auto ride mode's decision for the activity, which knows what is on screen; a true answer counts as this trigger's open. */
     boolean takeAutoRideMode(boolean screenClear){
         if(destroyed||!autoStart.shouldOpenRidingMode(settings.getBoolean(AutoStartPolicy.AUTO_RIDE_MODE_KEY,false),autoStartMoving(SystemClock.elapsedRealtime()),screenClear))return false;

@@ -547,6 +547,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
         boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
+        else if(scooterService.offersAutoRecordLocation(clear))requestRideLocation(scooterService::autoRecordLocationAsked);
     }
     /** More holds Volt's setup flows, tests and text fields; Home and Scooter have editors. */
     private boolean inSetupOrEditor(){

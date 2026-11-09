@@ -143,9 +143,26 @@ public final class AutoStartPolicyTest {
     }
 
     private static void locationPrompt() {
-        check(AutoStartPolicy.asksLocationFirst(true, false), "Phone GPS on (the default): turning it on offers the prompt");
-        check(!AutoStartPolicy.asksLocationFirst(false, false), "GPS recording off: nothing to offer");
-        check(!AutoStartPolicy.asksLocationFirst(true, true), "simulation: the request would only refuse with a toast");
+        check(AutoStartPolicy.asksLocationFirst(true, false, false), "Phone GPS on (the default): turning it on offers the prompt");
+        check(!AutoStartPolicy.asksLocationFirst(false, false, false), "GPS recording off: nothing to offer");
+        check(!AutoStartPolicy.asksLocationFirst(true, true, false), "simulation: the request would only refuse with a toast");
+        check(!AutoStartPolicy.asksLocationFirst(true, false, true), "riding: no prompt from the tap, the on-screen offer asks later");
+        check(AutoStartPolicy.asksLocationOnGpsOn(true, false, false), "GPS turned on with auto-record on: offers the prompt");
+        check(!AutoStartPolicy.asksLocationOnGpsOn(false, false, false), "auto-record off: the GPS switch only saves, a manual start asks");
+        check(!AutoStartPolicy.asksLocationOnGpsOn(true, true, false), "GPS switch in simulation: no prompt");
+        check(!AutoStartPolicy.asksLocationOnGpsOn(true, false, true), "GPS switch during a ride: no prompt");
+        check(offers(true, true, false, false, false, false, true), "restored on, no permission, stopped, on screen: offered");
+        check(!offers(false, true, false, false, false, false, true), "auto-record off: no offer");
+        check(!offers(true, false, false, false, false, false, true), "GPS route off: no offer");
+        check(!offers(true, true, true, false, false, false, true), "permission already held: no offer");
+        check(!offers(true, true, false, true, false, false, true), "already answered: asked once only");
+        check(!offers(true, true, false, false, true, false, true), "simulation: no offer");
+        check(!offers(true, true, false, false, false, true, true), "moving or recording: no offer");
+        check(!offers(true, true, false, false, false, false, false), "a dialog, setup or typing on screen: no offer");
+    }
+
+    private static boolean offers(boolean autoRecord, boolean phoneGps, boolean hasLocation, boolean asked, boolean simulating, boolean riding, boolean clear) {
+        return AutoStartPolicy.offersLocationOnScreen(autoRecord, phoneGps, hasLocation, asked, simulating, riding, clear);
     }
 
     private static void check(boolean ok, String message) {

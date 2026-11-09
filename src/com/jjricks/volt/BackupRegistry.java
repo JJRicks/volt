@@ -59,6 +59,7 @@ final class BackupRegistry {
         // problem belong to this phone.
         add(app, "auto_record_rides", Boolean.class, PREFERENCES);
         add(app, "riding_auto_open", Boolean.class, PREFERENCES);
+        exclude(app, AutoStartPolicy.LOCATION_ASKED_KEY, Boolean.class, PERMISSION);
         add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
         add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);

@@ -22,6 +22,10 @@ package com.jjricks.volt;
 final class AutoStartPolicy {
     /** Settings switches, both off by default (BackupRegistry includes them). */
     static final String AUTO_RECORD_KEY = "auto_record_rides", AUTO_RIDE_MODE_KEY = "riding_auto_open";
+    /** The Rides GPS route switch, on by default. */
+    static final String PHONE_GPS_KEY = "phone_gps";
+    /** Set once the rider has answered auto-record's location offer. Belongs to this phone's permission, so BackupRegistry leaves it out. */
+    static final String LOCATION_ASKED_KEY = "auto_record_location_asked";
     /** The longest a speed reading may have been held. Each one is judged as it arrives, so this only guards stale reads. */
     static final long SPEED_FRESH_MS = 3000;
 
@@ -70,8 +74,24 @@ final class AutoStartPolicy {
     /**
      * Whether turning auto-record on should first offer the ride location prompt. Asked only from the rider's tap on
      * the switch, never from an automatic start. The answer doesn't matter: declining still turns it on, without a route.
+     * riding: a recording is running or the scooter is moving. No prompt then; {@link #offersLocationOnScreen} asks afterwards.
      */
-    static boolean asksLocationFirst(boolean phoneGps, boolean simulating) { return phoneGps && !simulating; }
+    static boolean asksLocationFirst(boolean phoneGps, boolean simulating, boolean riding) { return phoneGps && !simulating && !riding; }
+
+    /** Whether the rider turning the GPS route switch on, with auto-record already on, should offer the same prompt. */
+    static boolean asksLocationOnGpsOn(boolean autoRecord, boolean simulating, boolean riding) {
+        return autoRecord && asksLocationFirst(true, simulating, riding);
+    }
+
+    /**
+     * Whether Volt, on screen, should offer the location prompt because auto-record and GPS route are on without the
+     * rider ever having answered it: both restore from a backup, Android's permission doesn't. Asked once, while
+     * stopped, never from the service or because of motion. Either answer ends it; declining records without a route.
+     */
+    static boolean offersLocationOnScreen(boolean autoRecord, boolean phoneGps, boolean hasLocation, boolean asked,
+            boolean simulating, boolean riding, boolean screenClear) {
+        return autoRecord && phoneGps && !hasLocation && !asked && !simulating && !riding && screenClear;
+    }
 
     /** Whether to open riding mode now. screenClear: resumed on screen, with nothing open that it would cover. */
     boolean shouldOpenRidingMode(boolean enabled, boolean moving, boolean screenClear) {
