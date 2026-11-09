@@ -131,6 +131,10 @@ public final class RegenDisplayValidation extends Instrumentation {
     }
     @SuppressWarnings("unchecked")
     private List<RideChartData.Value> powerValues() {
+        // The details load off the main thread: wait for the chart and its data.
+        await(() -> { View chart = find(activity.getWindow().getDecorView(), RideChartView.class); if (chart == null) return false;
+            View v = chart; while (v != null && !v.getClass().getName().contains("ChartPanel")) v = (View) v.getParent();
+            return v != null && fieldOn(v, "data") != null; }, "Chart never loaded", 12000);
         AtomicReference<List<RideChartData.Value>> out = new AtomicReference<>();
         main(() -> {
             View chart = find(activity.getWindow().getDecorView(), RideChartView.class);
