@@ -39,10 +39,15 @@ import java.util.Locale;
  * speed. Every frame has the tall power bar on the left, and sideways or on a wide screen each puts
  * its parts side by side.
  *
- * It only reads. No view here sends a scooter command, locks, unlocks, changes a setting or starts
- * a recording (Q12 A); there is no lock control and no lock state (Q16). Only the top bar takes
- * taps (back, and the layout picker while stopped, 56 dp); the gauge area ignores them, so a bump or
- * a glove changes nothing.
+ * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped (the
+ * layout picker's own gate, RidingFrames.pickerShown) riding mode also shows two 56 dp controls, Lock
+ * and Record, which are Home's own: MainActivity's LockControl through its LockTapQueue, and
+ * RideRecordingControl. They go the moment the scooter moves, and a lock tap still waiting in the queue
+ * goes back then too. Nothing else here sends a scooter
+ * command, changes a setting or starts a recording, and there is still no lock state in the readings
+ * or the layout spots. Moving, the only control that acts on the scooter or the app is back, top
+ * bar, 56 dp; the moon and the brightness slider stay live but change only this screen's look. The
+ * gauge area always ignores taps, so a bump or a glove changes nothing.
  */
 final class RidingScreen implements AppScreen {
     /** Label size before the cap; labels grow with the text size up to RidingFocus.labelCap, numbers stay fixed. */
@@ -71,6 +76,15 @@ final class RidingScreen implements AppScreen {
     private final TextView status, warning, speedLast, wattsCaption;
     /** The layout picker's disc: shown only while stopped (owner Q17 A). */
     private final FrameLayout picker;
+    /** Lock and Record over the power readout while stopped (owner, Nov 8); the lock is null on a host without one. */
+    private final View stoppedLock;
+    private final FrameLayout recordDisc;
+    private final LinearLayout stoppedControls;
+    private boolean stoppedShown;
+    /** Home's record and stop marks on the disc. */
+    private final RecordGlyph recordGlyph;
+    /** Whether the record disc is live now; null before the first refresh. */
+    private Boolean recordLive;
     /** The frame's big number; every frame has one. Focus's range, battery and bottom cells are made with it. */
     private Cell big, highlight, battery;
     private final List<Cell> bottom = new ArrayList<>();
@@ -217,6 +231,14 @@ final class RidingScreen implements AppScreen {
         power.addView(watts, new LinearLayout.LayoutParams(-1, 0, 1));
         power.addView(wattsCaption, new LinearLayout.LayoutParams(-1, -2));
         bar = new PowerBar();
+        stoppedLock = host.ridingLock(() -> stopped(SystemClock.elapsedRealtime()));
+        recordDisc = new FrameLayout(context);
+        recordDisc.setFocusable(true);
+        recordDisc.setOnClickListener(v -> recordTap());
+        recordGlyph = new RecordGlyph();
+        recordDisc.addView(recordGlyph, new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
+        stoppedControls = new StoppedControls();
+        stoppedControls.setVisibility(View.GONE);
 
         LinearLayout body = row();
         if (layout.on(RidingLayout.POWER_BAR)) body.addView(bar, new LinearLayout.LayoutParams(ui.dp(side ? 40 : 44), -1));
@@ -257,7 +279,7 @@ final class RidingScreen implements AppScreen {
             LinearLayout speed = column();
             speed.addView(big, new LinearLayout.LayoutParams(-1, 0, 2.3f));
             divider(speed);
-            speed.addView(power, new LinearLayout.LayoutParams(-1, 0, 1f));
+            speed.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1f));
             out.addView(speed, new LinearLayout.LayoutParams(0, -1, 1.1f));
             LinearLayout readings = column();
             readings.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1.1f));
@@ -279,7 +301,7 @@ final class RidingScreen implements AppScreen {
         divider(readings);
         readings.addView(bottomRow, new LinearLayout.LayoutParams(-1, 0, 1.25f));
         divider(readings);
-        readings.addView(power, new LinearLayout.LayoutParams(-1, 0, 1.3f));
+        readings.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1.3f));
         return readings;
     }
 
@@ -305,7 +327,8 @@ final class RidingScreen implements AppScreen {
             LinearLayout left = column();
             left.addView(new View(host.activity()), new LinearLayout.LayoutParams(-1, 0, 1.4f));
             left.addView(power, new LinearLayout.LayoutParams(-1, 0, 1f));
-            out.addView(left, new LinearLayout.LayoutParams(0, -1, .62f));
+            // This column is too narrow for a row: the two controls stack, up over its empty top.
+            out.addView(stoppedOver(left, true), new LinearLayout.LayoutParams(0, -1, .62f));
             LinearLayout middle = column();
             middle.addView(ring, new LinearLayout.LayoutParams(-1, 0, 1));
             if (strip != null) middle.addView(strip, new LinearLayout.LayoutParams(-1, ui.dp(shortWindow ? 40 : 48)));
@@ -340,7 +363,7 @@ final class RidingScreen implements AppScreen {
         }
         LinearLayout.LayoutParams powerSize = new LinearLayout.LayoutParams(-1, 0, 1.05f);
         powerSize.topMargin = ui.dp(10);
-        readings.addView(power, powerSize);
+        readings.addView(stoppedOver(power, false), powerSize);
         if (chipRow != null) {
             LinearLayout.LayoutParams chipsSize = new LinearLayout.LayoutParams(-1, -2);
             chipsSize.topMargin = ui.dp(8);
@@ -394,7 +417,7 @@ final class RidingScreen implements AppScreen {
             right.addView(tiles, tilesSize);
             LinearLayout.LayoutParams powerSize = new LinearLayout.LayoutParams(-1, 0, .9f);
             powerSize.topMargin = ui.dp(10);
-            right.addView(power, powerSize);
+            right.addView(stoppedOver(power, false), powerSize);
             LinearLayout.LayoutParams rightSize = new LinearLayout.LayoutParams(0, -1, 1);
             rightSize.setMarginStart(ui.dp(18));
             out.addView(right, rightSize);
@@ -413,8 +436,42 @@ final class RidingScreen implements AppScreen {
         readings.addView(tiles, tilesSize);
         LinearLayout.LayoutParams powerSize = new LinearLayout.LayoutParams(-1, 0, 1.05f);
         powerSize.topMargin = ui.dp(10);
-        readings.addView(power, powerSize);
+        readings.addView(stoppedOver(power, false), powerSize);
         return readings;
+    }
+
+    /**
+     * Puts the stopped controls over a part of the frame, in a slot the frame sizes as before, so showing
+     * and hiding them moves nothing. They sit over the power readout, the reading a stopped rider needs
+     * least, and it only goes invisible, keeping the bar's zero line. Stacked is for a slot too narrow
+     * for a row.
+     */
+    private View stoppedOver(View part, boolean stacked) {
+        FrameLayout slot = new FrameLayout(host.activity());
+        slot.addView(part, new FrameLayout.LayoutParams(-1, -1));
+        boolean row = !stacked;
+        stoppedControls.setOrientation(row ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        int size = ui.dp(TOUCH_DP);
+        if (stoppedLock != null) stoppedControls.addView(stoppedLock, row
+                ? new LinearLayout.LayoutParams(0, size, 1) : new LinearLayout.LayoutParams(-1, size));
+        LinearLayout.LayoutParams disc = new LinearLayout.LayoutParams(size, size);
+        if (stoppedLock != null) {
+            if (row) disc.setMarginStart(ui.dp(12));
+            else disc.topMargin = ui.dp(8);
+        }
+        stoppedControls.addView(recordDisc, disc);
+        slot.addView(stoppedControls, new FrameLayout.LayoutParams(-1, -2, stacked ? Gravity.BOTTOM : Gravity.CENTER_VERTICAL));
+        return slot;
+    }
+
+    /** The row of stopped controls; on a tablet the lock's slide stays a sensible length. */
+    private final class StoppedControls extends LinearLayout {
+        StoppedControls() { super(host.activity()); }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP);
+            if (MeasureSpec.getSize(widthSpec) > cap) widthSpec = MeasureSpec.makeMeasureSpec(cap, MeasureSpec.getMode(widthSpec));
+            super.onMeasure(widthSpec, heightSpec);
+        }
     }
 
     /** Takes a view out of the Focus cell it was made in, for another frame to place. */
@@ -551,8 +608,7 @@ final class RidingScreen implements AppScreen {
     /**
      * The top spot. Record and Status both show the status pill: drive mode and connection, never the
      * lock. While a ride records it becomes the red recording pill with the recording's own timer (owner,
-     * Nov 6). A tap does nothing either way: recording starts and stops only on Home's Record ride card and
-     * the Rides page, so riding mode never starts or stops a recording itself.
+     * Nov 6). The pill takes no taps; a stopped rider starts and ends a recording with the Record disc.
      */
     private View topControl(String content, View statusPill) {
         return statusPill;
@@ -595,9 +651,10 @@ final class RidingScreen implements AppScreen {
         showPower(now);
         if (ring != null) ring.show(now, units);
         if (trace != null) trace.show(now, units);
-        // The picker shows only while stopped (Q17 A): a moving rider sees no control but back.
+        // The picker, Lock and Record show only while stopped (Q17 A; owner, Nov 8): a moving rider sees neither.
         boolean stoppedNow = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
         disc.show(stoppedNow);
+        showStopped(stoppedNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
         // A sheet opened while stopped closes once riding resumes; its choices can't be tapped mid-ride.
         if (sheetState.update(stoppedNow)) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
@@ -606,6 +663,78 @@ final class RidingScreen implements AppScreen {
         frame.setTranslationY(ui.dp(offset[1]));
         float alpha = RidingBurnIn.chromeAlpha(now - session.openedMs);
         for (View v : chrome) v.setAlpha(alpha);
+    }
+
+    /**
+     * Lock and Record, the moment the gate changes: hidden at once with nothing to animate, so a moving
+     * rider never finds them taking taps. They dim with the chrome on a long ride, and drift with the
+     * frame they sit in.
+     */
+    private void showStopped(boolean shown, float alpha) {
+        if (shown != stoppedShown) {
+            stoppedShown = shown;
+            stoppedControls.setVisibility(shown ? View.VISIBLE : View.GONE);
+            power.setVisibility(shown ? View.INVISIBLE : View.VISIBLE);
+        }
+        if (!shown) return;
+        stoppedControls.setAlpha(alpha);
+        boolean recording = service != null && service.isRecording(), ready = service != null && service.ble.ready();
+        boolean saving = service != null && service.phoneSaving(), enabled = RidingFrames.recordEnabled(recording, ready, saving);
+        recordDisc.setEnabled(enabled);
+        recordDisc.setClickable(enabled);
+        recordDisc.setContentDescription(recording ? T.ridesEndDescription() : saving ? T.dashboardRecordSaving() : T.dashboardStartRecording());
+        recordGlyph.set(recording, enabled ? ui.onAccent : ui.dim);
+        if (recordLive != null && recordLive == enabled) return;
+        recordLive = enabled;
+        recordDisc.setBackground(oval(enabled ? ui.accent : ui.raised));
+    }
+
+    /** The record mark (a ring and dot) or stop mark (a rounded square), drawn as Home's recorder disc draws them. */
+    private final class RecordGlyph extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF square = new RectF(6, 6, 18, 18);
+        private boolean stop;
+        private int color;
+
+        RecordGlyph() {
+            super(host.activity());
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        void set(boolean stop, int color) {
+            if (this.stop == stop && this.color == color) return;
+            this.stop = stop;
+            this.color = color;
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            float unit = Math.min(getWidth(), getHeight()) / 24f;
+            canvas.save();
+            canvas.scale(unit, unit);
+            paint.setColor(color);
+            if (stop) {
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawRoundRect(square, 2.5f, 2.5f, paint);
+            } else {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(1.8f);
+                canvas.drawCircle(12, 12, 8, paint);
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(12, 12, 3.6f, paint);
+            }
+            canvas.restore();
+        }
+    }
+
+    /** The Record disc: Home's start and stop, asked once more whether the scooter is still stopped. */
+    private void recordTap() {
+        if (closed || service == null) return;
+        int action = RidingFrames.recordAction(stopped(SystemClock.elapsedRealtime()), service.isRecording(), service.ble.ready());
+        RideRecordingControl recorder = RideRecordingApp.of(host);
+        if (action == RecorderTap.STOP) recorder.stop();
+        else if (action == RecorderTap.START) { Haptics.tick(view); recorder.start(); }
+        host.redraw();
     }
 
     private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
