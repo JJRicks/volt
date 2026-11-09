@@ -118,12 +118,12 @@ public final class RegenDisplayValidation extends Instrumentation {
     private void chartDirection(String name, boolean unsigned) throws Exception {
         AtomicReference<List<String>> seen = new AtomicReference<>();
         AtomicReference<String> described = new AtomicReference<>();
+        List<RideChartData.Value> values = powerValues();
         main(() -> {
             List<String> all = new ArrayList<>();
             collect(root(), all);
             seen.set(all);
             View chart = find(root(), RideChartView.class);
-            List<RideChartData.Value> values = powerValues();
             double at = Double.NaN;
             if (unsigned) for (RideChartData.Value v : values) if (v.value != null && v.value < 0) at = v.time;
             if (unsigned) {
