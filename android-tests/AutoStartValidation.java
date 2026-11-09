@@ -29,13 +29,13 @@ import java.util.function.BooleanSupplier;
  * BleController, on a synthetic in-process GATT link. Every packet goes to a stand-in, never a radio.
  * Bluetooth stays off. Needs hidden_api_policy 1 for the stand-in.
  *
- * <p>No arguments runs the full pass on a fresh install. {@code -e only gates}, {@code gps-grant}, {@code gps-decline} and
- * {@code gps-riding} are single runs on a fresh install too. The release sweep runs all of these. The remaining
- * {@code -e only} scenarios follow a permission across runs of one install, so whoever runs them changes it between runs
- * with {@code pm} (see {@link #permissionState}). In order, with cleared app data at the start: expiry-first; revoke location,
- * again-offer-grant; revoke and clear its flags, again-offer-decline; grant, again-settings-grant; revoke and clear flags,
- * again-offer-decline; set user-set and user-fixed, again-dontask. Then, each after clearing app data: dialog-guard,
- * cancel-empty, restored-grant, restored-decline.
+ * <p>No arguments runs the full pass on a fresh install. {@code -e only gates}, {@code gps-grant}, {@code gps-decline},
+ * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant} and {@code restored-decline} are
+ * single runs on a fresh install too. The release sweep runs all of these. The remaining {@code -e only} scenarios follow a
+ * permission across runs of one install, so whoever runs them changes it between runs with {@code pm} (see
+ * {@link #permissionState}). In order, with cleared app data at the start: expiry-first; revoke location, again-offer-grant;
+ * revoke and clear its flags, again-offer-decline; grant, again-settings-grant; revoke and clear flags, again-offer-decline;
+ * set user-set and user-fixed, again-dontask.
  */
 public final class AutoStartValidation extends Instrumentation {
     private MainActivity activity; private ScooterService service; private BleController ble;
@@ -92,10 +92,10 @@ public final class AutoStartValidation extends Instrumentation {
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", android.util.Log.getStackTraceString(error));
-            try { shot("failure"); } catch (Throwable ignored) { }
+            if (admitted) try { shot("failure"); } catch (Throwable ignored) { }
         } finally {
             result.putInt("checks", checks); result.putStringArrayList("screenshots", new ArrayList<>(screenshots));
-            if (activity != null) main(() -> { if (service != null && service.isRecording()) service.stopRide(); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
+            if (admitted && activity != null) main(() -> { if (service != null && service.isRecording()) service.stopRide(); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }

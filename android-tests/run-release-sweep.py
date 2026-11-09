@@ -169,11 +169,12 @@ STEPS += [
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
-    # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The harness's other -e only
-    # scenarios follow one permission across runs of one install, which a step's fresh install can't do (order in its class comment).
+    # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The restored-* steps are the
+    # restored-settings first launch. The harness's other -e only scenarios follow one permission across runs of one install, which
+    # a step's fresh install can't do (order in its class comment).
     inst('auto-start', PKG + '.AutoStartValidation', grant=NEARBY, hidden_api=True),
     *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
-      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding')],
+      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline')],
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
