@@ -146,7 +146,7 @@ class OwnerDecisionFlowTest(test_council.Base):
 
     def test_malformed_lines_stop_decide(self):
         for changes, says in (({"format": "other"}, "format must be"), ({"decided": "soon"}, "a date"),
-                              ({"area": "ble"}, "no such translatable key"), ({"reason": ""}, "filled in")):
+                              ({"area": "ble"}, "listed under area ble"), ({"reason": ""}, "filled in")):
             self.pin(**changes)
             self.repack()
             code, out = self.decide()

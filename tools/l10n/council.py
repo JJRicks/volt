@@ -2768,6 +2768,9 @@ def owner_decisions(paths, tag, area, pack):
     pins = dict((k, p) for k, p in translib.load_owner_decisions(paths, tag).items() if p["area"] == area)
     problems = translib.owner_pin_problems(paths, tag, translib.load_source(paths)[0], area)
     entries = dict((e["key"], e) for e in pack["entries"])
+    for key, pin in translib.load_owner_decisions(paths, tag).items():
+        if key in entries and pin["area"] != area:
+            problems.append("%s: listed under area %s, but it is in area %s" % (key, pin["area"], area))
     for key, pin in pins.items():
         if entries.get(key, {}).get("source_sha1") != pin["source_sha1"]:
             problems.append("%s: not in the pack at the owner's English; run pack.py first" % key)
