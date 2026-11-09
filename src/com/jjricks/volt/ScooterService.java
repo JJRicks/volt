@@ -103,6 +103,7 @@ public final class ScooterService extends Service {
     private final ChargeLiveHold chargeLive=new ChargeLiveHold();
     private boolean chargeLiveHeld,chargeLiveUpdating;
     private final ChargeLiveState.Reposts chargeLiveReposts=new ChargeLiveState.Reposts();
+    private final ChargeLiveDial chargeLiveDial=new ChargeLiveDial();
     /** The live card the last notification() built (null: none); what a connection notice post then carries. */
     private ChargeLiveState chargeLiveBuilt;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
@@ -1157,7 +1158,7 @@ public final class ScooterService extends Service {
         ChargeLiveState.Input in=new ChargeLiveState.Input();
         in.scooter=profile==null?null:profile.displayName();in.detail=chargeLiveDetail();in.nowWall=System.currentTimeMillis();
         boolean cached=facts.profile.equals(chargeLiveCacheProfile);
-        in.percent=facts.percent!=null?facts.percent:cached?chargeLivePercent:null;in.limit=facts.connected?facts.limit:cached?chargeLiveLimit:null;
+        in.percent=facts.percent!=null?facts.percent:cached?chargeLivePercent:null;in.percentStale=facts.percent==null;in.limit=facts.connected?facts.limit:cached?chargeLiveLimit:null;
         in.reconnecting=isChargeRecording()?chargeRecovery!=null&&chargeRecovery.recovering():!facts.connected;
         in.waiting=facts.scheduled&&!Boolean.TRUE.equals(facts.charging);
         if(in.waiting){
@@ -1183,10 +1184,14 @@ public final class ScooterService extends Service {
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
         if(capture!=null)big.setSummaryText(capture);
         if(!promoted)builder.setStyle(big);
+        // Only a promoted card takes the dial and the shorter title; Android 15 and earlier, and a card Android doesn't get asked to promote, stay the plain card.
+        android.graphics.drawable.Icon dial=promoted&&live.dialPercent!=null?chargeLiveDial.icon(live.dialPercent):null;
+        if(dial!=null)builder.setLargeIcon(dial).setContentTitle(live.dialTitle);
         if(live.publicTitle==null)return;
         Notification.Builder lock=new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification).setColor(red)
                 .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
         if(live.publicSubText!=null)lock.setSubText(live.publicSubText);
+        if(dial!=null)lock.setLargeIcon(dial).setContentTitle(live.dialTitle);
         if(live.progress>=0)lock.setProgress(live.max,live.progress,false);
         lock.setShowWhen(false);
         builder.setPublicVersion(lock.build());
@@ -1245,7 +1250,7 @@ public final class ScooterService extends Service {
             for(ChargeLiveUpdate.Point mark:bar.points)points.add(new Notification.ProgressStyle.Point(mark.position).setColor(liveUpdateColor(mark.role)));
             Notification.ProgressStyle style=new Notification.ProgressStyle().setProgressSegments(segments).setProgressPoints(points)
                     .setProgress(bar.progress).setProgressIndeterminate(bar.indeterminate)
-                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification));
+                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_charge_bar_bolt));
             builder.setStyle(style);
             if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
             if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
