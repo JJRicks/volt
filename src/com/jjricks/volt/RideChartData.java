@@ -255,23 +255,30 @@ public final class RideChartData {
         return RegenInference.wholeRide(samples);
     }
     /**
-     * Inferred regen in Wh for an unsigned ride's details, each reading held until the next.
-     * Draw is the ride's measured throughput less that regen. Null when there's nothing to measure, or when a
-     * long ride's saved preview is too thinned to infer from: there it would read as a confident 0 Wh of regen.
+     * The draw and regen split of an unsigned ride's measured throughput, in Wh, from the segments
+     * and the integration that throughput uses, so the two always add up to it. Null when there's
+     * nothing to split, when no covered reading could be given a direction (no evidence is not
+     * 0 Wh of regen), or when a long ride's saved preview is too thinned to infer from.
      */
     static double[] inferredEnergyWh(List<RideStore.Point> points, Double throughputWh) {
         if (throughputWh == null || points.size() < 2 || medianGapMs(points) > INFERRED_ENERGY_MAX_SPACING_MS) return null;
         RegenInference.Label[] labels = regenLabels(points);
-        double regenWh = 0;
+        double coveredWh = 0, regenWh = 0;
+        boolean evidence = false;
         for (int i = 0; i + 1 < points.size(); i++) {
-            Double w = points.get(i).powerW;
-            long dt = points.get(i + 1).elapsedMs - points.get(i).elapsedMs;
-            if (w != null && labels[i] == RegenInference.Label.REGEN && dt > 0 && dt <= INFERRED_ENERGY_MAX_GAP_MS)
-                regenWh += Math.abs(w) * dt / 3_600_000.0;
+            Double wh = RideStore.coveredThroughputWh(points.get(i), points.get(i + 1));
+            if (wh == null) continue;
+            coveredWh += wh;
+            evidence |= labels[i] != RegenInference.Label.UNKNOWN || labels[i + 1] != RegenInference.Label.UNKNOWN;
+            // Each end of a trapezoid carries a share of it in proportion to its own power.
+            double from = Math.abs(points.get(i).powerW), to = Math.abs(points.get(i + 1).powerW);
+            double regenW = (labels[i] == RegenInference.Label.REGEN ? from : 0) + (labels[i + 1] == RegenInference.Label.REGEN ? to : 0);
+            if (from + to > 0) regenWh += wh * regenW / (from + to);
         }
-        return new double[]{Math.max(0, throughputWh - regenWh), regenWh};
+        if (!evidence || coveredWh <= 0) return null;
+        double regen = throughputWh * regenWh / coveredWh;
+        return new double[]{throughputWh - regen, regen};
     }
-    private static final long INFERRED_ENERGY_MAX_GAP_MS = 5_000;
     private static final long INFERRED_ENERGY_MAX_SPACING_MS = 3_000;
     private static long medianGapMs(List<RideStore.Point> points) {
         long[] gaps = new long[points.size() - 1];

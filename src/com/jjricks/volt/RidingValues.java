@@ -213,7 +213,7 @@ final class RidingValues {
     /** Past-only regen inference, fed only for readings this scooter doesn't sign. */
     private final RegenInference.Live inference = new RegenInference.Live();
     /** What the latest power sample added, so a sign correction can redo it without double-counting. */
-    private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
+    private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, peakInferredRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
     private double lastSegmentPreviousW;
     private Direction lastSegmentPreviousDirection = Direction.UNKNOWN;
     private long lastSegmentPreviousMs = -1;
@@ -316,7 +316,7 @@ final class RidingValues {
             rideEnergyWh -= lastSegmentWh;
             unconfirmedEnergyWh -= lastSegmentUnconfirmedWh;
             inferredDrawWh -= lastSegmentInferredWh;
-            peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW;
+            peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW; peakInferredRegenW = peakInferredRegenBeforeW;
             double drawW = scale.drawW, regenW = scale.regenW;
             scale.drawW = scaleDrawBeforeW; scale.regenW = scaleRegenBeforeW;
             applyPower(value, now, t.updatedMs, lastSegmentPreviousMs, lastSegmentPreviousW, lastSegmentPreviousDirection);
@@ -331,12 +331,23 @@ final class RidingValues {
         }
     }
 
-    /** The live inference for one unsigned power reading, from the voltage and speed measured with it. */
+    /** The live inference for one unsigned power reading, from what was measured up to its own time. */
     private RegenInference.Label inferenceLabel(double watts, long updatedMs) {
-        Track voltage = tracks.get("voltage_v"), speed = tracks.get(SPEED_KEY);
-        double volts = voltage == null || voltage.updatedMs < 0 ? Double.NaN : voltage.value;
-        double kmh = speed == null || speed.updatedMs < 0 || updatedMs - speed.updatedMs > INFERENCE_SPEED_MAX_AGE_MS ? Double.NaN : speed.value;
-        return inference.accept(new RegenInference.Sample(updatedMs, watts, volts, kmh));
+        Track voltage = tracks.get("voltage_v");
+        double volts = voltage == null || voltage.updatedMs < 0 || voltage.updatedMs > updatedMs ? Double.NaN : voltage.value;
+        return inference.accept(new RegenInference.Sample(updatedMs, watts, volts, speedAtOrBefore(updatedMs)));
+    }
+
+    /** The newest recent speed measured no later than a power reading (a refresh can bring a later one first), or NaN. */
+    private double speedAtOrBefore(long updatedMs) {
+        java.util.Iterator<long[]> times = speedSamples.descendingIterator();
+        java.util.Iterator<double[]> values = speedValues.descendingIterator();
+        while (times.hasNext()) {
+            long at = times.next()[0];
+            double kmh = values.next()[0];
+            if (at <= updatedMs) return updatedMs - at > INFERENCE_SPEED_MAX_AGE_MS ? Double.NaN : kmh;
+        }
+        return Double.NaN;
     }
 
     private void powerSample(double watts, long updatedMs, long previousMs, Track t) {
@@ -353,7 +364,7 @@ final class RidingValues {
         double previousW = powerValues.isEmpty() ? 0 : powerValues.peekLast()[0];
         Direction previousDirection = direction();
         append(powerSamples, powerValues, updatedMs, new double[]{watts, direction.ordinal()}, gapMs(t));
-        peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW;
+        peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW; peakInferredRegenBeforeW = peakInferredRegenW;
         scaleDrawBeforeW = scale.drawW; scaleRegenBeforeW = scale.regenW;
         lastSegmentPreviousW = previousW;
         lastSegmentPreviousDirection = previousDirection;

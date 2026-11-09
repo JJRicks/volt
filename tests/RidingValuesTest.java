@@ -26,6 +26,8 @@ public final class RidingValuesTest {
         inferredWindow();
         inferredFromFrames();
         inferredRegen();
+        inferredRegenUsesOnlyEarlierSpeed();
+        inferredRegenCorrectedToDraw();
         signedNeverInfers();
         inferredThenStrongerRegen();
         meterMatchesRecording();
@@ -442,6 +444,51 @@ public final class RidingValuesTest {
         for (long t = 0; t < 28_000; t += 1000) compare.sample("power_w", v.powerTrace(now, 60_000).get((int) (t / 1000)).value < 0 ? -v.powerTrace(now, 60_000).get((int) (t / 1000)).value : v.powerTrace(now, 60_000).get((int) (t / 1000)).value, 0x72, t);
         check(near(v.rideEnergyWh(), compare.rideEnergyWh(), 0.01), "energy is the sum of magnitudes, as before: " + v.rideEnergyWh() + " vs " + compare.rideEnergyWh());
         check(v.inferredDrawWh() == 0 && near(v.unconfirmedEnergyWh(), v.rideEnergyWh(), 1e-6), "and all of it unconfirmed, none inferred draw");
+    }
+
+    /** A refresh can bring a later speed before the power reading it follows: only a speed from before counts. */
+    private static void inferredRegenUsesOnlyEarlierSpeed() {
+        for (boolean laterSpeed : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            long t = 0;
+            for (int i = 0; i < 8; i++) { v.sample("voltage_v", 50, 0x72, t); v.sample("speed_kmh", 30, 0x92, t); v.sample("power_w", 10, 0x72, t); t += 1000; }
+            v.sample("voltage_v", 50.4, 0x72, t);
+            if (laterSpeed) v.sample("speed_kmh", 20, 0x92, t + 1000);
+            v.sample("power_w", 150, 0x72, t);
+            check(v.power(t + 100).direction == RidingValues.Direction.UNKNOWN, "the latest speed before it was steady, so this stays unknown (later speed " + laterSpeed + "): " + v.power(t + 100).direction);
+        }
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        long t = 40_000; // no speed from the last 3 seconds, only a later one
+        v.sample("voltage_v", 50.6, 0x72, t);
+        v.sample("speed_kmh", 5, 0x92, t + 1000);
+        v.sample("power_w", 150, 0x72, t);
+        check(v.power(t + 100).direction == RidingValues.Direction.UNKNOWN, "with no speed from before it, the direction stays unknown: " + v.power(t + 100).direction);
+    }
+
+    /** A same-time sign correction takes back the sample's inferred regen peak with everything else. */
+    private static void inferredRegenCorrectedToDraw() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        double before = v.power(27_500).peakRegenW;
+        check(before > 0, "the brake left an inferred peak: " + before);
+        long t = 28_000;
+        double volts = 50.72, watts = 9 * volts;
+        v.sample("voltage_v", volts, 0x72, t);
+        v.sample("speed_kmh", 8, 0x92, t);
+        v.sample("power_w", watts, 0x72, t);
+        check(v.power(t + 100).direction == RidingValues.Direction.REGEN_INFERRED && near(v.power(t + 100).peakRegenW, watts, 1e-6), "a stronger inferred sample raises the peak: " + v.power(t + 100).peakRegenW);
+        v.sample("current_sign_state", 0, 0x79, t + 200);
+        v.sample("power_w", watts, 0x72, t);
+        RidingValues.Power corrected = v.power(t + 300);
+        check(corrected.direction == RidingValues.Direction.DRAW && near(corrected.watts, watts, 1e-9), "the correction made it confirmed draw: " + corrected.direction);
+        check(near(corrected.peakRegenW, before, 1e-9), "and took its inferred peak back: " + corrected.peakRegenW + " vs " + before);
     }
 
     /** A signed scooter reads exactly as before: no inference runs, whatever it does. */

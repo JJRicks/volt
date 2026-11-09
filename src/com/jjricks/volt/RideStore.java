@@ -1163,6 +1163,15 @@ public final class RideStore {
         return in.readBoolean() ? Double.valueOf(in.readDouble()) : null;
     }
 
+    /** The throughput between two neighbouring points by the rule the measured total uses; null where that rule skips them. */
+    static Double coveredThroughputWh(Point a, Point b) {
+        long dt = b.elapsedMs - a.elapsedMs;
+        if (a.powerW == null || b.powerW == null || a.segment != b.segment || b.monotonicMs < a.monotonicMs
+                || dt <= 0 || dt > MAX_INTEGRATION_INTERVAL_MS) return null;
+        double[] energy = segmentEnergy(a.powerW, b.powerW, dt);
+        return energy[0] + energy[1];
+    }
+
     // Exact trapezoidal signed energy, split at zero when direction reverses.
     private static double[] segmentEnergy(double a, double b, long dt) {
         double factor = dt / 3600000.0;

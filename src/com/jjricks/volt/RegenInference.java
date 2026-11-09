@@ -97,7 +97,8 @@ final class RegenInference {
         for (int i = 0; i < labels.length; i++) seed[i] = labels[i] == Label.REGEN;
         for (int i = 0; i < labels.length; i++) {
             if (labels[i] != Label.UNKNOWN || !samples.get(i).usable() || samples.get(i).amps() < p.minAmps) continue;
-            if (decel(samples, i, p.aroundDecelMs, p.aroundDecelMs) <= 0) continue;
+            double decel = decel(samples, i, p.aroundDecelMs, p.aroundDecelMs);
+            if (decel <= 0 || !withinLimits(samples.get(i), decel, p)) continue;
             boolean near = i > 0 && seed[i - 1] && samples.get(i).timeMs - samples.get(i - 1).timeMs <= p.extendMs
                     || i + 1 < labels.length && seed[i + 1] && samples.get(i + 1).timeMs - samples.get(i).timeMs <= p.extendMs;
             if (near) labels[i] = Label.REGEN;
@@ -124,7 +125,7 @@ final class RegenInference {
             boolean afterDraw = previous != null && previousLabel == Label.DRAW && previous.amps() >= p.afterDrawAmps && s.timeMs - previous.timeMs <= p.afterDrawMs;
             Label label = decide(s, decel, rest, resistance(ohms, p), afterDraw, p);
             if (p.extend && label == Label.UNKNOWN && previousLabel == Label.REGEN && previous != null && s.timeMs - previous.timeMs <= p.extendMs
-                    && s.amps() >= p.minAmps && decel > 0) label = Label.REGEN;
+                    && s.amps() >= p.minAmps && decel > 0 && withinLimits(s, decel, p)) label = Label.REGEN;
             previous = s; previousLabel = label;
             recent.addLast(s);
             if (s.amps() < p.restAmps) low.addLast(s);
@@ -149,12 +150,21 @@ final class RegenInference {
         double amps = s.amps();
         if (decel <= 0 && amps >= p.minAmps) return Label.DRAW; // speed rising: regen is impossible.
         if (amps < p.minAmps || s.speedKmh < p.minSpeedKmh || decel < p.minDecelKmhPerS) return Label.UNKNOWN;
-        double kineticW = p.massKg * (s.speedKmh / 3.6) * (decel / 3.6) + p.kineticSlackW;
-        if (s.watts > kineticW) return Label.DRAW;
+        if (s.watts > kineticLimitW(s, decel, p)) return Label.DRAW;
         if (Double.isNaN(rest)) return Label.UNKNOWN;
         double swing = 2 * amps * ohms;
         double above = s.volts - rest + amps * ohms; // 0 if this is draw, swing if it is regen
         return above / swing >= (afterDraw ? p.afterDrawTau : p.tau) && above >= p.marginV ? Label.REGEN : above < 0 ? Label.DRAW : Label.UNKNOWN;
+    }
+
+    /** The most power this much slowing can supply as regen. */
+    private static double kineticLimitW(Sample s, double decel, Params p) {
+        return p.massKg * (s.speedKmh / 3.6) * (decel / 3.6) + p.kineticSlackW;
+    }
+
+    /** What an extended reading must meet as well: extension skips the voltage, never the physics. */
+    private static boolean withinLimits(Sample s, double decel, Params p) {
+        return s.speedKmh >= p.minSpeedKmh && s.watts <= kineticLimitW(s, decel, p);
     }
 
     private static double decel(List<Sample> samples, int i, long pastMs, long futureMs) {

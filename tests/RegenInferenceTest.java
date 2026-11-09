@@ -46,7 +46,44 @@ public final class RegenInferenceTest {
         nearStandstillAndWeakCurrentStayUnknown();
         noRestingVoltageStaysUnknown();
         unusableSamplesStayUnknown();
+        extensionKeepsTheLimits();
         System.out.println("RegenInferenceTest passed " + checks + " checks");
+    }
+
+    /** Rest, an acceleration for the resistance, a cruise, then a gentle slowing where seconds 3 and 4 of it hold the seed and its neighbour. */
+    private static List<RegenInference.Sample> seedAndNeighbour(double neighbourKmh, double neighbourAmps) {
+        List<RegenInference.Sample> s = new ArrayList<>();
+        long t = 0;
+        for (int i = 0; i < 6; i++) s.add(at(t++, 0, 0.2, false));
+        double kmh = 0;
+        for (int i = 0; i < 8; i++) { kmh += 3; s.add(at(t++, kmh, 18, false)); }
+        for (int i = 0; i < 8; i++) s.add(at(t++, kmh, 0.4, false));
+        s.add(at(t++, 21.2, 0.4, false));
+        s.add(at(t++, 20.4, 0.4, false));
+        s.add(at(t++, 20, 4, true)); // the seed: index 24
+        s.add(sagged(t++, neighbourKmh, neighbourAmps, REST)); // its neighbour: index 25
+        s.add(at(t++, 19.1, 0.4, false));
+        s.add(at(t++, 19, 0.4, false));
+        return s;
+    }
+
+    /** A weak unknown reading can join a neighbouring regen one, but the physics still apply to it. */
+    private static void extensionKeepsTheLimits() {
+        List<RegenInference.Sample> fits = seedAndNeighbour(19.9, 2.5);
+        for (RegenInference.Label[] labels : bothModes(fits)) {
+            check(labels[24] == RegenInference.Label.REGEN, "the seed is regen: " + labels[24]);
+            check(labels[25] == RegenInference.Label.REGEN, "a neighbour within the limits joins it: " + labels[25]);
+        }
+        for (RegenInference.Label[] labels : bothModes(seedAndNeighbour(19.9, 8)))
+            check(labels[24] == RegenInference.Label.REGEN && labels[25] != RegenInference.Label.REGEN, "400 W is more than the gentle slowing can supply: " + labels[25]);
+        for (RegenInference.Label[] labels : bothModes(seedAndNeighbour(1, 2.5)))
+            check(labels[24] == RegenInference.Label.REGEN && labels[25] != RegenInference.Label.REGEN, "1 km/h is under the minimum speed: " + labels[25]);
+    }
+    private static List<RegenInference.Label[]> bothModes(List<RegenInference.Sample> s) {
+        RegenInference.Live live = new RegenInference.Live();
+        RegenInference.Label[] past = new RegenInference.Label[s.size()];
+        for (int i = 0; i < past.length; i++) past[i] = live.accept(s.get(i));
+        return java.util.Arrays.asList(RegenInference.wholeRide(s), past);
     }
 
     private static int regenCount(RegenInference.Label[] labels, int from, int to) {
