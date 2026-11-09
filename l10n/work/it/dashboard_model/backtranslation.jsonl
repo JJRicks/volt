@@ -18,3 +18,4 @@
 {"back":"Charging","key":"dashboard_model_type_charging","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74","target":"Ricarica"}
 {"back":"Scheduled charging","key":"dashboard_model_tile_charge_schedule","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"be989e0ff6f15c4ace058c5c42d78af73188cd49","target":"Ricarica programmata"}
 {"back":"Lock bar","key":"dashboard_model_type_lockbar","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"02d2f80d03759b90639b3d316a491d5d2d53477a","target":"Barra del blocco"}
+{"back":"Sched. charging","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Ricarica progr."}
