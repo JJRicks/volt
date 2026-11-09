@@ -33,6 +33,11 @@ public final class RidingChipFitTest {
         expect(THREE, 75, 0, RidingChipFit.FULL, "no room shows nothing rather than a cut chip");
         expect(THREE, Integer.MAX_VALUE, 3, RidingChipFit.FULL, "an unbounded row shows everything as designed");
 
+        // The first chip stepped aside: two remain with one gap between them, 66 + 8 + 80 = 154 without icons.
+        int[][] two = {{90, 104}, {90, 104}, {66, 80}, {52, 66}};
+        expect(two, 154, 2, RidingChipFit.NO_ICONS, "the two left fit exactly with one gap");
+        expect(two, 153, 2, RidingChipFit.TIGHT, "one short of that tightens the padding");
+
         expect(new int[][]{{}, {}, {}, {}}, 300, 0, RidingChipFit.FULL, "no wanted chips");
         // No overflow from huge widths: the sum is long.
         int big = Integer.MAX_VALUE / 2 + 1;

@@ -477,9 +477,7 @@ final class RidingScreen implements AppScreen {
         LinearLayout out = new ChipRow();
         out.setGravity(Gravity.CENTER_VERTICAL);
         for (int i = 0; i < spots.size(); i++) {
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, -2);
-            if (i > 0) p.setMarginStart(ui.dp(8));
-            out.addView(chip(spots.get(i)), p);
+            out.addView(chip(spots.get(i)), new LinearLayout.LayoutParams(-2, -2));
         }
         return out;
     }
@@ -1444,17 +1442,31 @@ final class RidingScreen implements AppScreen {
             int[][] widths = new int[RidingChipFit.RUNGS][wanted.size()];
             for (int rung = 0; rung < RidingChipFit.RUNGS; rung++)
                 for (int i = 0; i < wanted.size(); i++) widths[rung][i] = wanted.get(i).widthAt(rung);
-            RidingChipFit fit = RidingChipFit.choose(widths, ui.dp(8), room);
+            int gap = ui.dp(8);
+            RidingChipFit fit = RidingChipFit.choose(widths, gap, room);
             int shown = 0;
             for (int i = 0; i < getChildCount(); i++) {
                 View child = getChildAt(i);
                 if (!(child instanceof Chip)) continue;
                 Chip chip = (Chip) child;
                 int want = GONE;
-                if (chip.wanted && shown < fit.count) { want = VISIBLE; shown++; chip.useRung(fit.rung); }
+                if (chip.wanted && shown < fit.count) {
+                    want = VISIBLE;
+                    chip.useRung(fit.rung);
+                    // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
+                    setStartMargin(chip, shown == 0 ? 0 : gap);
+                    shown++;
+                }
                 if (chip.getVisibility() != want) chip.setVisibility(want);
             }
             super.onMeasure(widthSpec, heightSpec);
+        }
+        private void setStartMargin(View chip, int margin) {
+            LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+            if (p.getMarginStart() == margin) return;
+            p.setMarginStart(margin);
+            // LinearLayout measures with the left and right margins, and only the child's first measure would resolve them.
+            p.resolveLayoutDirection(getLayoutDirection());
         }
     }
 
