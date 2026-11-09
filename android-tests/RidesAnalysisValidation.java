@@ -653,6 +653,10 @@ public final class RidesAnalysisValidation extends Instrumentation {
             check(everything.getTextSize()>26*everything.getResources().getDisplayMetrics().density||everythingLayout.getLineCount()==1,"Everything's label fits on one line at normal text sizes");
             long legacyStart;try{legacyStart=service.rides.get(legacy).startWallMs;}catch(IOException e){throw new IllegalStateException(e);}
             check(text(root(),"ride-"+new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm",Locale.ROOT).format(new Date(legacyStart))+"-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
+            Method stemOf;try{stemOf=Class.forName("com.jjricks.volt.RideExportFiles").getDeclaredMethod("stem",String.class,long.class,TimeZone.class);stemOf.setAccessible(true);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
+            Locale phoneLocale=Locale.getDefault();
+            try{for(String tag:new String[]{"ar","ar-SA-u-nu-arab","th-TH","th-TH-u-ca-buddhist-nu-thai","fa-IR"}){Locale.setDefault(Locale.forLanguageTag(tag));String stem;try{stem=(String)stemOf.invoke(null,"c5ba30b9-rest",1794234720000L,TimeZone.getTimeZone("UTC"));}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}check("ride-2026-11-09_14-32-c5ba30b9".equals(stem),"Android's formatter stays ASCII and Gregorian in "+tag+": "+stem);}}
+            finally{Locale.setDefault(phoneLocale);}
             screenshot("export-sheet-"+attempt);
             main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }
