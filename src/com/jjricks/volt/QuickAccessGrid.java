@@ -144,7 +144,11 @@ final class QuickAccessGrid extends ViewGroup {
                 }
                 cell.label.setVisibility(tileLabels && !state.isEmpty() ? VISIBLE : GONE);
             } else {
-                if (!state.contentEquals(cell.value.getText())) cell.value.setText(state);
+                if (!state.contentEquals(cell.value.getText())) {
+                    cell.value.setText(state);
+                    // A lock word's fit is decided while measuring, and a text of the same height requests no layout.
+                    if (cell.lockState) cell.requestLayout();
+                }
                 ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
                 cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
                 cell.value.setTag(state);

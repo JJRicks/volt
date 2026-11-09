@@ -129,7 +129,8 @@ public final class LockStateTextTest {
         check(grid.contains("String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);"), "the word does not depend on whether the reading is live");
         check(!L10nFiles.read(new File("src/com/jjricks/volt/DisplayUnits.java")).contains("mainLockLastKnownWord"), "these tiles have no Last known text");
         check(grid.contains("cell.value.setTextColor(highlight ? ui.onAccent : muted ? ui.muted : ui.text);") && grid.contains("boolean muted = (feature != null || chargeControl) && !featureLive;"), "a stale Setting tile dims");
-        check(grid.indexOf("if (!state.contentEquals(cell.value.getText())) cell.value.setText(state);") < grid.indexOf("ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));"), "a Quick access button's padlock follows the reading");
+        check(grid.contains("if (cell.lockState) cell.requestLayout();"), "a new lock word is measured again, even at the same height");
+        check(grid.indexOf("cell.value.setText(state);\n") < grid.indexOf("ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));"), "a Quick access button's padlock follows the reading");
         check(grid.contains("cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);"), "a stale button stays muted");
         check(grid.contains("T.dashboardModelTileDescPart(state)") && grid.contains("cell.setStateDescription(state);"), "TalkBack keeps the full state");
         check(grid.contains("cell.lockState = !pending && lockState != null;"), "Updating is not a lock state");
