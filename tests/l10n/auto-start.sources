@@ -1,3 +1,4 @@
 # Auto-record and auto ride mode decisions (AutoStartPolicy, off by default).
 src/com/jjricks/volt/AutoStartPolicy.java
 tests/l10n/AutoStartPolicyTest.java
+src/com/jjricks/volt/WorkReasons.java

@@ -74,10 +74,12 @@ final class AutoStartPolicy {
 
     /**
      * Whether the activity may open riding mode over what it is showing. A focused window is what rules
-     * out every dialog, sheet and system prompt, wherever it was opened.
+     * out every dialog, sheet and system prompt, wherever it was opened. It says nothing about a text
+     * field in the activity's own window, such as a Stats search, so textEntry covers those: a field
+     * holding the focus is still taking text, with or without an on-screen keyboard.
      */
     static boolean screenClear(boolean resumed, boolean windowFocused, boolean ridingOpen, boolean onboarding,
-            boolean inSetupOrEditor) {
-        return resumed && windowFocused && !ridingOpen && !onboarding && !inSetupOrEditor;
+            boolean inSetupOrEditor, boolean textEntry) {
+        return resumed && windowFocused && !ridingOpen && !onboarding && !inSetupOrEditor && !textEntry;
     }
 }

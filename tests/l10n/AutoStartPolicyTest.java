@@ -10,6 +10,7 @@ public final class AutoStartPolicyTest {
         recordingHolds();
         rideModeGates();
         rideModeHolds();
+        backgroundPrerequisite();
         System.out.println("AutoStartPolicyTest: " + checks + " checks");
     }
 
@@ -81,12 +82,13 @@ public final class AutoStartPolicyTest {
         check(!p.shouldOpenRidingMode(false, true, true), "switch off: nothing (the default)");
         check(!p.shouldOpenRidingMode(true, false, true), "not moving, or stale: nothing");
         check(!ride(p, false), "screen not clear: nothing");
-        check(AutoStartPolicy.screenClear(true, true, false, false, false), "resumed and focused with nothing open is clear");
-        check(!AutoStartPolicy.screenClear(false, true, false, false, false), "not on screen: never (no background launch)");
-        check(!AutoStartPolicy.screenClear(true, false, false, false, false), "a dialog or sheet has the focus: never");
-        check(!AutoStartPolicy.screenClear(true, true, true, false, false), "riding mode already open: never");
-        check(!AutoStartPolicy.screenClear(true, true, false, true, false), "onboarding: never");
-        check(!AutoStartPolicy.screenClear(true, true, false, false, true), "editor or setup flow: never");
+        check(AutoStartPolicy.screenClear(true, true, false, false, false, false), "resumed and focused with nothing open is clear");
+        check(!AutoStartPolicy.screenClear(false, true, false, false, false, false), "not on screen: never (no background launch)");
+        check(!AutoStartPolicy.screenClear(true, false, false, false, false, false), "a dialog or sheet has the focus: never");
+        check(!AutoStartPolicy.screenClear(true, true, true, false, false, false), "riding mode already open: never");
+        check(!AutoStartPolicy.screenClear(true, true, false, true, false, false), "onboarding: never");
+        check(!AutoStartPolicy.screenClear(true, true, false, false, true, false), "editor or setup flow: never");
+        check(!AutoStartPolicy.screenClear(true, true, false, false, false, true), "a text field in the window has the focus (a Stats search): never");
     }
 
     private static void rideModeHolds() {
@@ -105,6 +107,19 @@ public final class AutoStartPolicyTest {
         check(ride(p, true), "reconnect clears the back-out hold");
         p.riderStoppedRecording();
         check(ride(p, true) && p.recordHeld(), "the two holds are independent");
+    }
+
+    /**
+     * Auto-record is not a reason to stay connected. With nothing else keeping the service, leaving Volt still
+     * arms the ten-second stop unless the rider turned on Stay connected in background (off by default).
+     */
+    private static void backgroundPrerequisite() {
+        WorkReasons idle = new WorkReasons(false, false, false, false, false, false);
+        check(!idle.keepsServiceUp(false, false), "default background off, out of sight, no work: the service does not stay up");
+        check(!idle.skipsTenSecondStop(true, false), "default background off: leaving arms the ten-second stop");
+        check(idle.keepsServiceUp(false, true) && idle.skipsTenSecondStop(true, true), "background connection on: no ten-second stop, so auto-record can see motion");
+        WorkReasons recording = new WorkReasons(true, false, false, false, false, false);
+        check(recording.keepsServiceUp(false, false) && recording.skipsTenSecondStop(true, false), "a recording already running stays connected with background off");
     }
 
     private static void check(boolean ok, String message) {

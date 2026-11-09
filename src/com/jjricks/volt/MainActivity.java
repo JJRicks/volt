@@ -551,7 +551,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Auto ride mode: opens at most once per connection, only on what's safe to cover. */
     private void maybeAutoOpenRiding(){
         if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
-        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor());
+        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
     }
     /** More holds Volt's setup flows, tests and text fields; Home and Scooter have editors. */
