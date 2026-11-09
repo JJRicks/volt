@@ -115,7 +115,7 @@ public final class ChargeScheduleControllerTest {
     private static Rig manualOn(List<Long> heard,long first){Rig r=new Rig();r.c.wireStart=first/1000-6*3600;r.controller.setManualEnabled(true,r.results::add,heard::add);confirmWrites(r);check(heard.size()==1&&r.controller.view().manualEnabled,"manual armed");heard.clear();return r;}
     /** A time edit writes no ON, so only a live reading of the switch can back the message; a reliable OFF retires one already out. */
     private static void reassuranceNeedsLiveOn(){
-        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z"),second=time("2026-10-20T10:00:00Z"),secondWire=second/1000-6*3600;
+        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");long secondWire=second/1000-6*3600;
         Rig before=manualOn(heard,first);before.c.enabled=0;check(before.controller.view().manualEnabled,"the remembered plan still says on over a zero");
         before.controller.setManualStart(second,before.results::add,heard::add);before.reply(true);before.c.wireStart=secondWire;before.reply(true);
         check(heard.isEmpty()&&before.results.get(1)==null,"OFF before the edit: saved, but no reassurance");
