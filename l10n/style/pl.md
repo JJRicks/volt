@@ -1,6 +1,6 @@
 # Polish style guide (pl)
 
-**Status: Claude-only proposal, 2026-11-05.** Drafted by Claude alone. The three vendors have not debated it, no native reader has reviewed it, and nothing here is final. It uses the D3 English terms (approved, not merged yet), so "owner key", "shared rider", "Maximum speed" and so on are the source meanings even where `res/values` still shows older words. Plan 7.2 stage 5 still decides every safety string.
+**Status: Claude-only proposal, 2026-11-05.** Drafted by Claude alone. The three vendors have not debated it, no native reader has reviewed it, and nothing here is final. It uses the D3 English terms, merged with the English fixes (#208, 2026-11-05), so "owner key", "shared rider", "Maximum speed" and so on are the source meanings, and `res/values` now uses them. Plan 7.2 stage 5 still decides every safety string.
 
 ## Register and form of address
 
@@ -243,7 +243,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
 11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
 12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
-13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+13. **"Dashboard" in the English.** The English fix (D3) has merged, but a few strings still say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
 
 ### Fixed words
 
@@ -284,7 +284,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | prompt (a system dialog) | the dialog on the phone | **komunikat**. Not `monit`, not `pytanie`. |
 | More as a place | the screen | **sekcja „Więcej”**. Not `karta`. |
 | offered for a model / state on a model | which preposition | Offered **dla modelu** (`dla Twojego modelu`); a state or test **w modelu** (`w tym modelu`, `nie przetestowała tej zmiany w tym modelu`). Not `na modelu`. |
-| a shared rider's credential | the 12-character value for the shared role | **klucz współużytkownika**. Proposed; the debate decides it. Never `klucz właściciela` for this one. |
+| a shared rider's credential | the 12-character value for a shared rider | **klucz współużytkownika**. Proposed; the debate decides it. Never `klucz właściciela` for this one. |
 | raw after a placeholder or on a full rung | a fixed form, since `%1$s` has an unseen gender | **(surowa wartość)** on every full rung and after any placeholder. The agreeing tags `(surowy)`, `(surowe)`, `(surowa)` only on `_short` rungs with a fixed noun. The `surowa` chip stands for `wartość`. |
 | battery sign states | plus or minus | **znak**, `Znaki baterii`. Not `oznaki` (symptoms) or `oznaczenia` (markings). |
 | timed charging | the reading of scheduled charging | **zaplanowane ładowanie**, the same as the setting. Not `ładowanie czasowe`, which reads as temporary. |
