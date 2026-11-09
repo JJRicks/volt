@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <string name="charging_alert_level_full" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Dolu</string>
+    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Tam dolana kadar şarj ediliyor</string>
+    <string name="charging_alert_watch_title" volt:src="f5a8a98dee559c956440570b99faee4a54c3b681">Şarj hedefi: %%%1$s</string>
+    <string name="charging_alert_title_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Tam şarj oldu</string>
+    <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Düşük pil</string>
+    <string name="charging_alert_title_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">%%%1$s seviyesine şarj edildi</string>
+    <string name="charging_alert_title_paused" volt:src="c0f5087cc1f2f76881eb4df511f993c66f34f372">Şarj uyarısı duraklatıldı</string>
+    <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">Volt, %1$s adlı scooter ile bağlantıyı kaybetti. Bu şarjı izlemeye devam etmek için Volt’u açın.</string>
+    <plurals name="charging_alert_text_time_limit" volt:src="32b9b982b24bca33971b9665cb271e5a54340f1a">
+        <item quantity="one">Volt, %1$d saat sonra izlemeyi durdurdu. Bu şarjı izlemeye devam etmek için Volt’u açın.</item>
+        <item quantity="other">Volt, %1$d saat sonra izlemeyi durdurdu. Bu şarjı izlemeye devam etmek için Volt’u açın.</item>
+    </plurals>
+    <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: %%%2$s.</string>
+    <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Veri bekleniyor</string>
+    <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792">Şarj edilmiyor</string>
+    <string name="charging_estimate_waiting_readings" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Okumalar bekleniyor</string>
+    <string name="charging_estimate_out_of_range" volt:src="c57affcd338bb5dce1fe4daca90b62bac125e5e3">Okumalar aralık dışında</string>
+    <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapasite bilinmiyor</string>
+    <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Pil yüzdesi bekleniyor</string>
+    <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Tahmin yok</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Mevcut şarj hızı</string>
+    <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Hızlı şarj cihazı referansı</string>
+    <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Orijinal şarj cihazı referansı</string>
+    <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
+        <item quantity="one">Geçmiş %1$d şarjdan</item>
+        <item quantity="other">Geçmiş %1$d şarjdan</item>
+    </plurals>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Şarj cihazı uyumsuzluğu · şarj hızı tahmini</string>
+    <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Şarj hızına dayalı tahmin</string>
+    <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Ölçüm sırasında seçilen scooter değişti</string>
+    <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Ölçüm sırasında telefon saati değişti</string>
+    <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">Zamanlama ayarlanmadan önce şarj durdu</string>
+    <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Ölçüm sırasında şarj okumaları durdu</string>
+    <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">Ölçüm sırasında scooter bağlantısı kesildi</string>
+    <string name="charging_capacity_reason_clock" volt:src="bd0cbe1e6a34024c382e0a173b62a0a590da83ed">Saat değişti</string>
+    <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Kayıtta veri boşlukları</string>
+    <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Akım yönü değişti</string>
+    <string name="charging_capacity_reason_short" volt:src="6720813ef194da35220a213f19c55b064d3c9c92">1 dakikadan kısa</string>
+    <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Pil uç değerleri eksik</string>
+    <string name="charging_capacity_reason_drop" volt:src="23d901ac85e7f40738f439d9825f174a6a467477">Düşüş %5 altında</string>
+    <string name="charging_capacity_reason_coverage" volt:src="d1a240e2b0ab5ceed1763a8e91579d20ecda9f7c">Kapsama %95 altında</string>
+    <string name="charging_capacity_reason_movement" volt:src="d4fbb0b84c836e661c1bfdce10f478adfa427453">Çok az hareket</string>
+    <string name="charging_capacity_reason_no_energy" volt:src="512a3262c7036d3e7cf2ff6e33bd5fcae331f5a7">Enerji okuması yok</string>
+    <string name="charging_capacity_reason_no_net_energy" volt:src="ef0483fe5d928b460a5092bfe963e372aa6bf2d4">Net enerji yok</string>
+    <string name="charging_capacity_reason_end_readings" volt:src="f95863adde9e0d788b6874054296ddbcac3f023e">Uç okumalar eksik</string>
+    <string name="charging_capacity_reason_misaligned" volt:src="dcb8700adaaaa918466fb8c6a6d375e2f6a2465a">Uç noktalar uyumsuz</string>
+    <string name="charging_capacity_reason_gauge_rose" volt:src="600f0521edf7bda1b8cdee018569debfe94fb977">Pil göstergesi yükseldi</string>
+    <string name="charging_capacity_reason_gauge_jumped" volt:src="28e5a1a01fcfd318be3ea165d03baa4c514e9b33">Gösterge sıçradı</string>
+    <string name="charging_capacity_reason_insufficient" volt:src="c940ebfa0820f7c71c4ea23615e2067da3da34e6">Yetersiz veri</string>
+    <string name="charging_schedule_choose_valid_time" volt:src="cdcc908f4854bc0655a51d0a547c41ff745f2184">Geçerli bir saat seçin</string>
+    <string name="charging_schedule_fresh_estimate_needed" volt:src="d503d678f557d920d6d4afcda535e7fe8aaac9da">Yeni bir şarj tahmini gerekiyor; “Şarj bitiş hedefi” özelliğini devre dışı bırakın ve kısa bir süre şarj edin</string>
+    <string name="charging_schedule_at_limit" volt:src="8eaa52fc69b91c9c53d11c2de49a998831fc66c3">Pil zaten şarj sınırında</string>
+    <string name="charging_schedule_wait_estimate" volt:src="7859255353edf8f843e51bdf85160a78ffdc05cb">Şarj süresi tahminini bekleyin</string>
+    <string name="charging_schedule_outside_range" volt:src="56cf564bb7aded708bbeecb06b25382d1e9f3363">Şarj süresi kullanılabilir aralığın dışında</string>
+    <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137">Şimdi şarj ediliyor: Bitiş hedefine kadar beklemek için yeterli süre yok</string>
+    <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Önce “Şarj başlangıcı” ayarını seçin</string>
+    <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">48 saat içinde bir şarj başlangıcı seçin</string>
+    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">48 saat içinde tam bir saat seçin</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Zamanlama testinin bitmesini bekleyin</string>
+    <string name="charging_schedule_disable_done_by" volt:src="a197560e1fef7930b9170fdeb68a078ad5036d90">Önce “Şarj bitiş hedefi” özelliğini devre dışı bırakın</string>
+    <string name="charging_schedule_choose_scooter" volt:src="e1b0e0a597ae31db97ba169a3c3740e9ac855524">Önce bir scooter seçin</string>
+    <string name="charging_schedule_connect_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Önce scooter’a bağlanın</string>
+    <string name="charging_schedule_not_on_model" volt:src="0518e1140e1f916f793160a631b6265d02a55883">Bu modelde kullanılamaz</string>
+    <string name="charging_schedule_turn_off_done_by" volt:src="96cca66872e859bcf1616978b7cb0fe8a74b8abf">Önce “Şarj bitiş hedefi” özelliğini kapatın</string>
+    <string name="charging_schedule_turn_off_scheduled" volt:src="5f0067adf313562c67b074bc33608e1853cab5f4">Önce “Zamanlanmış şarj” özelliğini kapatın</string>
+    <string name="charging_schedule_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Yeni şarj okumalarını bekleyin</string>
+    <string name="charging_schedule_cancel_not_confirmed" volt:src="63289e8a5cc58aeab6d1d0e0f4f8e7634446bac4">Zamanlama iptali onaylanmadı; yeniden bağlanıp yeniden deneyin</string>
+    <string name="charging_schedule_clock_failed" volt:src="c4b495c877ca869fae6c108aadfc74766637a6c4">Scooter saati ayarlanamadı; zamanlama değişmedi</string>
+    <string name="charging_schedule_battery_changed" volt:src="0a27c043c120c8ba089de42d53565c25b9b20bab">Pil seviyesi değişti; yeni bir şarj tahmini gerekiyor</string>
+    <string name="charging_schedule_start_not_confirmed" volt:src="a91441dba7b7dea111b3393eeba4acf83ef82629">Şarj başlangıcı onaylanmadı; scooter zamanlamasını kontrol edin</string>
+    <string name="charging_schedule_limit_changed" volt:src="a51efe59592d08bd0aec88843bd4cc04680feb96">Şarj sınırı değişti; zamanlamayı kontrol edip yeniden deneyin</string>
+    <string name="charging_schedule_start_changed_estimate" volt:src="27db30fb4a095e46706d219c2044a55c9fbb7a22">Şarj başlangıcı değişti ancak yeni bir şarj tahmini gerekiyor</string>
+    <string name="charging_schedule_start_passed" volt:src="35da343e6ca1933a8d187632b5b5673a990a003c">Şimdi şarj ediliyor: Hesaplanan başlangıç saati geçti</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5">Başlangıç saati geçti ancak zamanlama iptali onaylanmadı</string>
+    <string name="charging_schedule_limit_saved_no_estimate" volt:src="2cc8005ea08f3fc5617ad39055e67924ba7c253a">Şarj sınırı değişti; şarj başlangıcı bitiş tahmini olmadan kaydedildi</string>
+    <string name="charging_schedule_battery_saved_no_estimate" volt:src="40f4b80d5c3e565325127cddf97c07970a1d0936">Pil seviyesi değişti; şarj başlangıcı bitiş tahmini olmadan kaydedildi</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d">Şarj başlangıcı değişti ancak zamanlamanın etkinleştirilmesi onaylanmadı</string>
+    <string name="charging_schedule_connection_changed" volt:src="25fe61147b8404efb684ce3a9bfda49efc2c7207">Bağlantı değişti; yeniden denemeden önce scooter zamanlamasını kontrol edin</string>
+    <string name="charging_schedule_stopped_before_finish" volt:src="7bc9b4b59362f543f1dda93235a136bf1848b91b">Volt tamamlanmadan önce durdu; “Zamanlanmış şarj” özelliğinin kapalı olup olmadığını kontrol edin</string>
+</resources>
