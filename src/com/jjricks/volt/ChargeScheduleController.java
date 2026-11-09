@@ -324,10 +324,12 @@ public final class ChargeScheduleController {
         program(c,plan.startWallMs,plan.offsetSeconds,()->{
             State s=state(c);s.mode=2;s.minute=minute;s.start=plan.startWallMs;s.wire=plan.startWallMs/1000+plan.offsetSeconds;
             s.deadline=plan.deadlineWallMs;s.armed=context().now;s.target=c.target;s.estimate=c.estimateMinutes;s.capturedSoc=c.soc;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);
-            if(confirmed!=null)confirmed.accept(plan.startWallMs);
+            startConfirmed(confirmed,plan.startWallMs);
         },true,c.target,paused?c.soc:null,completion);
     }
-    public void setManualEnabled(boolean enabled,Consumer<String> completion){
+    public void setManualEnabled(boolean enabled,Consumer<String> completion){setManualEnabled(enabled,completion,null);}
+    /** confirmed hears a start the scooter just confirmed when turning on; turning off or a failure never reaches it. */
+    public void setManualEnabled(boolean enabled,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         if(view.manualBlockedReason!=null){completion.accept(reasonText(view.manualBlockedReason));return;}
         if(!enabled){disable(completion);return;}
@@ -341,9 +343,11 @@ public final class ChargeScheduleController {
         // Enabling an existing native time is also an explicit manual choice. Keep
         // it even if confirmation fails after the native timestamp was rewritten.
         state(c).manualStart=chosen;save(c,state(c));
-        program(c,chosen,offset,()->{state(c).manualStart=chosen;state(c).calculatedWire=0;armManual(c,chosen,offset);},true,null,null,completion);
+        program(c,chosen,offset,()->{state(c).manualStart=chosen;state(c).calculatedWire=0;armManual(c,chosen,offset);startConfirmed(confirmed,chosen);},true,null,null,completion);
     }
-    public void setManualStart(long wallMs,Consumer<String> completion){
+    public void setManualStart(long wallMs,Consumer<String> completion){setManualStart(wallMs,completion,null);}
+    /** confirmed hears the new start only while Scheduled charging is on: with it off, the scooter will not act on the time. */
+    public void setManualStart(long wallMs,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         String reason=view.manualTimeBlockedReason;
         if(reason!=null){completion.accept(reasonText(reason));return;}
@@ -353,9 +357,22 @@ public final class ChargeScheduleController {
         boolean enabled=view.manualEnabled;
         program(c,wallMs,offset,()->{
             state(c).manualStart=wallMs;state(c).calculatedWire=0;
-            if(enabled)armManual(c,wallMs,offset);
+            if(enabled){armManual(c,wallMs,offset);startConfirmed(confirmed,wallMs);}
             else{State s=state(c);s.start=wallMs;s.wire=wallMs/1000+offset;s.retired=false;save(c,s);}
         },false,null,null,completion);
+    }
+    /**
+     * Only a start still ahead when the scooter's last confirmation arrives: past it, nothing shows the scooter accepted
+     * the change before that instant, so the plan stays tracked but no one is told it is safe to leave.
+     */
+    private void startConfirmed(LongConsumer confirmed,long start){if(confirmed!=null&&start>context().now)confirmed.accept(start);}
+    /**
+     * Whether scope's plan is still the one with this start, for a notice that says so. Away from that scooter
+     * nothing can be known, so an earlier claim stands.
+     */
+    public boolean startStillPlanned(String scope,long start){
+        Context c=context();if(!c.ready||!c.scope.equals(scope))return true;
+        reconcile(c);State s=state(c);return s.mode!=0&&s.start==start;
     }
     private void armManual(Context c,long start,int offset){State s=state(c);s.mode=1;s.start=start;s.wire=start/1000+offset;s.armed=context().now;
         s.deadline=start+24*60*60_000L;s.target=finite(c.target)&&c.target>0&&c.target<=100?c.target:100;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);}
