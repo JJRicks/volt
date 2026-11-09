@@ -131,31 +131,35 @@ public final class RidingFramesTest {
         check(RidingFrames.pickerShown(true, 0.4), "a crawl under 1 km/h counts as stopped");
         check(!RidingFrames.pickerShown(true, 5.0), "moving: no picker");
         check(!RidingFrames.pickerShown(false, 0.0), "the scooter isn't stationary: no picker");
-        // Stop, open the sheet, then ride off: the sheet closes and a late tap saves nothing.
+        // The tune button: hidden while moving, and shown with no scooter connected (owner, Nov 9).
+        check(RidingFrames.tuneShown(false, false, null) && RidingFrames.tuneShown(false, false, 22.0), "disconnected: the tune button shows");
+        check(RidingFrames.tuneShown(true, true, 0.0), "connected and stopped: it shows");
+        check(!RidingFrames.tuneShown(true, true, 5.0) && !RidingFrames.tuneShown(true, false, 0.0), "connected and moving: it hides");
+        check(!RidingFrames.pickerShown(false, 0.0), "Lock and Record keep the stopped-only gate while disconnected");
+        // The menu's close rule: only 4 mph (6.437 km/h) or more, in any display unit.
+        check(RidingFrames.MENU_CLOSE_KMH == 6.437, "4 mph");
         RidingFrames.PickerSheet sheet = new RidingFrames.PickerSheet();
-        check(!sheet.open(false), "the sheet doesn't open while moving");
-        check(sheet.open(true) && sheet.isOpen(), "the sheet opens while stopped");
-        check(!sheet.update(true) && sheet.isOpen(), "still stopped: the sheet stays");
-        check(sheet.update(false) && !sheet.isOpen(), "riding resumes: the sheet must close");
-        check(!sheet.update(false), "it closes once");
-        check(!sheet.accept(false), "a tap after riding resumed saves nothing");
-        RidingFrames.PickerSheet moving = new RidingFrames.PickerSheet();
-        moving.open(true);
-        check(!moving.accept(false) && !moving.isOpen(), "a tap while moving saves nothing and closes the sheet");
-        RidingFrames.PickerSheet still = new RidingFrames.PickerSheet();
-        still.open(true);
-        check(still.accept(true) && !still.isOpen(), "a tap while stopped is taken once");
-        check(!still.accept(true), "a second tap on the same sheet is not taken");
-        // Open, then the screen is rebuilt (rotation, folding): the old sheet closes and can't save.
+        check(!sheet.open(false), "the menu doesn't open while the tune button is hidden");
+        check(sheet.open(true) && sheet.isOpen(), "the menu opens");
+        check(!sheet.update(null) && sheet.isOpen(), "no live speed: the menu stays");
+        check(!sheet.update(0.0) && !sheet.update(5.0) && !sheet.update(6.43) && sheet.isOpen(), "walking pace, under 4 mph: the menu stays");
+        check(sheet.update(6.437) && !sheet.isOpen(), "4 mph closes the menu");
+        check(!sheet.update(30.0), "it closes once");
+        check(!sheet.accept(0.0), "a change after it closed saves nothing");
+        RidingFrames.PickerSheet saving = new RidingFrames.PickerSheet();
+        saving.open(true);
+        check(saving.accept(0.0) && saving.isOpen() && saving.accept(null), "changes save and the menu stays open");
+        check(!saving.accept(6.437) && !saving.accept(30.0), "a change that lands at 4 mph or more saves nothing");
+        // Open, then the screen is rebuilt (rotation, folding): the old menu closes and can't save.
         RidingFrames.PickerSheet old = new RidingFrames.PickerSheet();
         old.open(true);
-        check(old.close() && !old.isOpen(), "a rebuild closes the old screen's sheet");
-        check(!old.accept(true), "a choice on the old screen's sheet saves nothing");
-        check(!old.open(true), "a closed screen opens no sheet");
+        check(old.close() && !old.isOpen(), "a rebuild closes the old screen's menu");
+        check(!old.accept(0.0), "a change on the old screen's menu saves nothing");
+        check(!old.open(true), "a closed screen opens no menu");
         RidingFrames.PickerSheet shut = new RidingFrames.PickerSheet();
         shut.open(true);
         shut.dismissed();
-        check(!shut.close() && !shut.accept(true), "a sheet closed by Back has nothing left to close or take");
+        check(!shut.close() && !shut.accept(0.0), "a menu closed by Back has nothing left to close or take");
         RidingLayout layout = new RidingLayout();
         layout.setContent(RidingLayout.FOCUS, "tile_2", RidingLayout.ODOMETER);
         check(RidingFrames.choose(layout, RidingLayout.HALO) && RidingLayout.HALO.equals(layout.frame()), "choosing Halo");
@@ -179,9 +183,11 @@ public final class RidingFramesTest {
     private static void source() throws IOException {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state or control in riding mode");
-        check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "the picker follows the stopped state");
-        check(screen.contains("if (sheetState.update(stoppedNow)) dismissSheet();"), "a resumed ride closes the sheet");
-        check(screen.contains("sheetState.close();") && screen.contains("sheetState.accept(stopped("), "the screen owns the sheet on close and on a choice");
+        check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "Lock and Record follow the stopped state");
+        check(screen.contains("RidingFrames.tuneShown(ble != null && ble.ready(), ble != null && ble.stationary()"), "the tune button follows its own gate");
+        check(screen.contains("if (sheetState.update(liveKmh(now))) dismissSheet();"), "live speed alone closes the menu");
+        check(screen.contains("ble != null && ble.ready() && !speed.stale ? speed.kmh : null"), "only a live reading from a connected scooter counts");
+        check(screen.contains("sheetState.close();") && screen.contains("sheetState.accept(liveKmh("), "the screen owns the menu on close and on a change");
         check(!screen.contains(".send(") && !screen.contains("write("), "riding mode sends nothing");
     }
 }
