@@ -278,9 +278,9 @@ public final class RidingLostConnectionValidation extends Instrumentation {
 
     /** Off screen with the activity alive. */
     private void leave() throws Exception { shell("input keyevent KEYCODE_HOME"); await(() -> field(activity, "riding") != null && (Boolean) call(field(activity, "riding"), "away", new Class<?>[]{}), "Activity did not stop"); settle(); }
-    private void comeBack() throws Exception { start(); await(() -> (Boolean) field(activity, "resumed"), "Activity did not come back"); settle(); }
+    private void comeBack() throws Exception { bringForward(); await(() -> (Boolean) field(activity, "resumed"), "Activity did not come back"); settle(); }
     /** The intent the task started with brings it forward, so the same task and its saved state come back. */
-    private void start() { getTargetContext().startActivity(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+    private void bringForward() { getTargetContext().startActivity(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
     /** Destroyed the way Android does under memory pressure: its state is saved. */
     private void goneToBackground() throws Exception {
         MainActivity old = activity;
@@ -291,7 +291,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
     }
     private void foreground() throws Exception {
         Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
-        start();
+        bringForward();
         Activity next = waitForMonitorWithTimeout(monitor, 8000);
         removeMonitor(monitor);
         require(next instanceof MainActivity, "Activity did not come back");
