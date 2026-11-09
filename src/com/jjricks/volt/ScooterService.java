@@ -703,9 +703,9 @@ public final class ScooterService extends Service {
     /** Remembered intentions are displayed separately from raw firmware readings. */
     public ChargeScheduleController.View chargeSchedule(){return schedules().view();}
     private Consumer<String> scheduleCompletion(Consumer<String> completion){return result->{if(!destroyed){changed();if(completion!=null)completion.accept(result);}};}
-    public void setChargeDoneByEnabled(boolean enabled,Consumer<String> completion){schedules().setDoneEnabled(enabled,scheduleCompletion(completion));changed();}
+    public void setChargeDoneByEnabled(boolean enabled,Consumer<String> completion){schedules().setDoneEnabled(enabled,scheduleCompletion(completion),this::doneByStartSent);changed();}
     public void setChargeDoneByTime(int hour,int minute,Consumer<String> completion){
-        schedules().setDoneTime(hour,minute,scheduleCompletion(result->{if(result==null)retargetChargeMeasure(hour*60+minute);if(completion!=null)completion.accept(result);}));changed();
+        schedules().setDoneTime(hour,minute,scheduleCompletion(result->{if(result==null)retargetChargeMeasure(hour*60+minute);if(completion!=null)completion.accept(result);}),this::doneByStartSent);changed();
     }
     public void setManualChargeEnabled(boolean enabled,Consumer<String> completion){schedules().setManualEnabled(enabled,scheduleCompletion(completion));changed();}
     public void setManualChargeStart(long wallMs,Consumer<String> completion){schedules().setManualStart(wallMs,scheduleCompletion(completion));changed();}
@@ -812,11 +812,18 @@ public final class ScooterService extends Service {
             if(!chargeMeasure.active())return;
             ChargeScheduleController.View plan=chargeSchedule();boolean armed=result==null&&plan.doneByEnabled;
             chargeMeasure.finish();
-            chargeDoneNotice(armed,armed?(measured?T.serviceMeasureMeasured(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs))
-                    :T.serviceMeasurePlanned(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs)))
+            // On screen, the short start-sent line; the background notice keeps the plan's detail and adds that Volt is no longer needed.
+            String start=armed?DisplayTime.clock(this,settings,plan.startWallMs):"",finish=armed?DisplayTime.clock(this,settings,plan.doneByWallMs):"";
+            chargeDoneNotice(armed,armed?(visible?T.serviceDoneStartSent(start):T.serviceDoneSafeToDisconnect(measured?T.serviceMeasureMeasured(start,finish):T.serviceMeasurePlanned(start,finish)))
                     :result==null?T.serviceMeasureOff():T.serviceMeasureResult(ChargeScheduleText.shown(result)));
             endChargeMeasureWork();
         });
+    }
+    /** The scooter confirmed this Charge done by start, so it no longer needs Volt: say so. armMeasured has its own message. */
+    private void doneByStartSent(long startWallMs){
+        if(destroyed||chargeMeasure.active())return;
+        String text=T.serviceDoneStartSent(DisplayTime.clock(this,settings,startWallMs));
+        if(visible)android.widget.Toast.makeText(this,text,android.widget.Toast.LENGTH_LONG).show();else chargeDoneNotice(true,text);
     }
     /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
     private void endChargeMeasure(CharSequence reason){

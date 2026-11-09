@@ -37,8 +37,40 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
+    }
+    /** The start-sent listener hears only a start the scooter confirmed. */
+    private static void doneByConfirmation(){
+        List<Long> heard=new ArrayList<>();
+        Rig on=new Rig();on.controller.setDoneEnabled(true,on.results::add,heard::add);
+        check(heard.isEmpty(),"nothing heard before the clock write");on.reply(true);check(heard.isEmpty(),"nothing heard before the time write");
+        on.c.wireStart=on.sentTime/1000+on.sentOffset;on.reply(true);check(heard.isEmpty(),"time ack alone is not a confirmed enable");
+        on.c.enabled=1;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==on.sentTime&&on.results.get(0)==null,"confirmed enable heard once, with the saved start");
+        check(on.controller.view().doneByEnabled&&on.controller.view().startWallMs==heard.get(0),"the heard start is the plan the view shows");
+        heard.clear();
+        // A confirmed edit while active sends a new start.
+        on.controller.setDoneTime(9,0,on.results::add,heard::add);on.reply(true);on.c.wireStart=on.sentTime/1000+on.sentOffset;on.reply(true);check(heard.isEmpty(),"edit waits for confirmation");on.c.enabled=1;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==on.sentTime&&on.controller.view().doneByEnabled,"confirmed active edit heard once with the new start");
+        // Each step of a failed enable.
+        for(int fail=0;fail<3;fail++){Rig r=new Rig();heard.clear();r.controller.setDoneEnabled(true,r.results::add,heard::add);
+            for(int step=0;step<=fail;step++)r.reply(step!=fail);
+            check(heard.isEmpty()&&!r.controller.view().doneByEnabled&&r.results.get(0)!=null,"unconfirmed step "+fail+" is not heard");}
+        // A limit changed while the switch was being confirmed keeps the time but drops the plan: no claim.
+        Rig limit=new Rig();heard.clear();limit.controller.setDoneEnabled(true,limit.results::add,heard::add);limit.reply(true);limit.reply(true);limit.c.target=80d;limit.reply(true);
+        check(heard.isEmpty()&&limit.results.get(0)!=null,"changed limit after ACK is not heard");
+        // A dropped connection before the switch confirmed.
+        Rig dropped=new Rig();heard.clear();dropped.controller.setDoneEnabled(true,dropped.results::add,heard::add);dropped.reply(true);dropped.reply(true);dropped.c.generation++;dropped.controller.observe();
+        check(heard.isEmpty()&&!dropped.controller.view().doneByEnabled,"interrupted enable is not heard");
+        // Not enough time to wait: Volt turns the schedule off and charges now, so no start was saved.
+        Rig now=new Rig();now.c.now=time("2026-10-20T13:50:00Z");heard.clear();now.controller.setDoneEnabled(true,now.results::add,heard::add);now.reply(true);
+        check(heard.isEmpty()&&now.results.get(0)!=null&&!now.controller.view().doneByEnabled,"charging now is never heard");
+        // A saved preference while off and an edit while offline do not reach the scooter.
+        Rig pref=new Rig();heard.clear();pref.controller.setDoneTime(7,30,pref.results::add,heard::add);check(heard.isEmpty()&&pref.results.get(0)==null&&pref.writes.isEmpty(),"preference edit is not heard");
+        // Measuring arms through the listener-free call, which has nothing to hear it.
+        Rig measured=new Rig();heard.clear();measured.controller.setDoneEnabled(true,measured.results::add);measured.reply(true);measured.reply(true);measured.reply(true);
+        check(heard.isEmpty()&&measured.controller.view().doneByEnabled,"no listener, no message");
     }
     private static void planner(){
         TimeZone boise=TimeZone.getTimeZone("America/Boise");long now=time("2026-10-20T05:00:00Z");

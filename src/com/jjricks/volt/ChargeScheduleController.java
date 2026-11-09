@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /** One-shot charging intentions. Reconciliation never sends commands or arms another day. */
 public final class ChargeScheduleController {
@@ -276,19 +277,23 @@ public final class ChargeScheduleController {
         if(c.toggleReason!=null)return c.toggleReason;
         return needsTime?c.timeReason:null;
     }
-    public void setDoneTime(int hour,int minute,Consumer<String> completion){
+    public void setDoneTime(int hour,int minute,Consumer<String> completion){setDoneTime(hour,minute,completion,null);}
+    /** confirmed hears the start the scooter just confirmed; a saved preference or a failed edit never reaches it. */
+    public void setDoneTime(int hour,int minute,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
         if(view.timeBlockedReason!=null){completion.accept(reasonText(view.timeBlockedReason));return;}
-        if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion);return;}
+        if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion,confirmed);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
     }
-    public void setDoneEnabled(boolean enabled,Consumer<String> completion){
-        Context c=context();if(enabled){enableDone(state(c).minute,completion);return;}
+    public void setDoneEnabled(boolean enabled,Consumer<String> completion){setDoneEnabled(enabled,completion,null);}
+    /** confirmed hears the start the scooter just confirmed, only when one was saved: never for charging now or a failure. */
+    public void setDoneEnabled(boolean enabled,Consumer<String> completion,LongConsumer confirmed){
+        Context c=context();if(enabled){enableDone(state(c).minute,completion,confirmed);return;}
         if(state(c).mode!=2){completion.accept(null);return;}
         disable(true,"Charge done by is off; ",completion);
     }
-    private void enableDone(int minute,Consumer<String> completion){
+    private void enableDone(int minute,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         String blocked=view.doneByEnabled?(busy?T.commonWaitCurrentChange():baseReason(c,true)):view.doneByBlockedReason;
         if(blocked!=null){completion.accept(reasonText(blocked));return;}
@@ -319,6 +324,7 @@ public final class ChargeScheduleController {
         program(c,plan.startWallMs,plan.offsetSeconds,()->{
             State s=state(c);s.mode=2;s.minute=minute;s.start=plan.startWallMs;s.wire=plan.startWallMs/1000+plan.offsetSeconds;
             s.deadline=plan.deadlineWallMs;s.armed=context().now;s.target=c.target;s.estimate=c.estimateMinutes;s.capturedSoc=c.soc;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);
+            if(confirmed!=null)confirmed.accept(plan.startWallMs);
         },true,c.target,paused?c.soc:null,completion);
     }
     public void setManualEnabled(boolean enabled,Consumer<String> completion){

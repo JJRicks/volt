@@ -63,7 +63,7 @@ public final class ChargeScheduleValidation extends Instrumentation {
         controls();verifyOrdering();verifyUnplugged();verifyDisabledThumb(false);
         controls();main(()->service.ble.setSimulationCharging(true));settle();
         verifyStartupEstimateGuard();
-        verifyPickers();verifyStalePicker();verifyMeasureWindow();verifyPlanAndPausedControls();verifyManualAndQuickRefresh();verifyScheduleTest();
+        verifyPickers();verifyStalePicker();verifyMeasureWindow();verifyDoneByToast();verifyPlanAndPausedControls();verifyManualAndQuickRefresh();verifyScheduleTest();
         assertNoRadio();
         main(()->require(service.setSimulation(false),"Simulation did not stop"));
         for(String key:settings().getAll().keySet())require(!key.startsWith("charge_schedule_owned_"),"Simulation persisted a charging plan: "+key);
@@ -237,6 +237,63 @@ public final class ChargeScheduleValidation extends Instrumentation {
         await(()->!"pending".equals(restored.get())&&!service.chargeSchedule().busy,"Original finish time was not restored");require(restored.get()==null,"Restoring the finish time failed");
         checks.add("Editing the finish time while measuring re-plans at once: a too-close deadline ends measuring and keeps charging instead of arming tomorrow");
     }
+    /** The "safe to disconnect" toast: only for a start the scooter confirmed, in the owner's clock format. */
+    private void verifyDoneByToast() throws Exception {
+        List<String> toasts=Collections.synchronizedList(new ArrayList<>());
+        getUiAutomation().setOnAccessibilityEventListener(event->{if(event.getEventType()==android.view.accessibility.AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED&&String.valueOf(event.getClassName()).contains("Toast"))toasts.add(android.text.TextUtils.join("",event.getText()));});
+        try{
+            int[] original={0};main(()->original[0]=service.chargeSchedule().doneByMinuteOfDay);
+            for(boolean is24:new boolean[]{false,true}){String format=is24?"24h":"12h";
+                main(()->require(settings().edit().putString("time_format",format).commit(),"Could not choose a clock"));controls();drainToasts(toasts);
+                armDoneBy();long[] start={0};String[] clock={""};
+                main(()->{start[0]=service.chargeSchedule().startWallMs;clock[0]=DisplayTime.clock(getTargetContext(),settings(),start[0]);});
+                require(is24==!clock[0].contains("M"),"Fixture clock is not "+format+": "+clock[0]);
+                String expected=clock[0]+" charge start sent to scooter. Safe to disconnect.";
+                awaitToast(toasts,expected);screenshot("done-by-toast-"+format);drainToasts(toasts);
+                // A confirmed edit while active sends a new start.
+                AtomicReference<String> edit=new AtomicReference<>("pending");
+                main(()->{int next=(service.chargeSchedule().doneByMinuteOfDay+15)%1440;service.setChargeDoneByTime(next/60,next%60,edit::set);});
+                await(()->!"pending".equals(edit.get())&&!service.chargeSchedule().busy,"Active edit did not finish");require(edit.get()==null,"Active edit failed: "+edit.get());
+                main(()->clock[0]=DisplayTime.clock(getTargetContext(),settings(),service.chargeSchedule().startWallMs));
+                awaitToast(toasts,clock[0]+" charge start sent to scooter. Safe to disconnect.");drainToasts(toasts);
+                disableDoneBy();assertNoToast(toasts,"Turning Charge done by off");
+            }
+            // Charging now saves no start, so nothing may say it was sent.
+            AtomicReference<String> now=new AtomicReference<>("pending");
+            main(()->{java.util.Calendar soon=java.util.Calendar.getInstance();soon.add(java.util.Calendar.MINUTE,5);service.setChargeDoneByTime(soon.get(java.util.Calendar.HOUR_OF_DAY),soon.get(java.util.Calendar.MINUTE),null);});settle();
+            assertNoToast(toasts,"A saved preference");
+            main(()->service.setChargeDoneByEnabled(true,now::set));
+            await(()->!"pending".equals(now.get())&&!service.chargeSchedule().busy,"Charge now did not finish");
+            main(()->require(now.get()!=null&&!service.chargeSchedule().doneByEnabled,"Expected charging now: "+now.get()));
+            assertNoToast(toasts,"Charging now");
+            AtomicReference<String> restored=new AtomicReference<>("pending");main(()->service.setChargeDoneByTime(original[0]/60,original[0]%60,restored::set));
+            await(()->!"pending".equals(restored.get())&&!service.chargeSchedule().busy,"Finish time was not restored");
+            // Measuring: silent until armed; on screen it then says so, in the background its existing notice does.
+            long sixHours=6*60*60_000L;
+            main(()->require((Boolean)invoke(service,"beginChargeMeasure",new Class<?>[]{int.class,long.class},service.chargeSchedule().doneByMinuteOfDay,System.currentTimeMillis()+sixHours),"Window did not start"));
+            assertNoToast(toasts,"Measuring");
+            main(()->service.scheduleChargeNow());
+            await(()->service.chargeSchedule().doneByEnabled&&!service.chargeSchedule().busy&&!service.isChargeMeasuring(),"Schedule now did not arm the plan");
+            String[] clock={""};main(()->clock[0]=DisplayTime.clock(getTargetContext(),settings(),service.chargeSchedule().startWallMs));
+            awaitToast(toasts,"Charge done by is set. "+clock[0]+" charge start sent to scooter. Safe to disconnect.");screenshot("done-by-toast-measured");drainToasts(toasts);
+            disableDoneBy();
+            main(()->{require((Boolean)invoke(service,"beginChargeMeasure",new Class<?>[]{int.class,long.class},service.chargeSchedule().doneByMinuteOfDay,System.currentTimeMillis()+sixHours),"Background window did not start");ScooterService.setUiVisible(false);service.scheduleChargeNow();});
+            await(()->service.chargeSchedule().doneByEnabled&&!service.chargeSchedule().busy&&!service.isChargeMeasuring(),"Background Schedule now did not arm the plan");
+            try{android.app.NotificationManager manager=getTargetContext().getSystemService(android.app.NotificationManager.class);String[] body={""};
+                long end=SystemClock.uptimeMillis()+10000;while(SystemClock.uptimeMillis()<end&&body[0].isEmpty()){for(android.service.notification.StatusBarNotification n:manager.getActiveNotifications()){CharSequence title=n.getNotification().extras.getCharSequence(android.app.Notification.EXTRA_TITLE);if("Charge done by is set".contentEquals(title==null?"":title))body[0]=String.valueOf(n.getNotification().extras.getCharSequence(android.app.Notification.EXTRA_TEXT));}if(body[0].isEmpty())SystemClock.sleep(100);}
+                require(body[0].contains("Charging resumes at")&&body[0].endsWith(" Safe to disconnect."),"Background measured notice: "+body[0]);
+                assertNoToast(toasts,"Background arming");
+            }finally{ScooterService.setUiVisible(true);}
+            disableDoneBy();
+            main(()->{settings().edit().putString("time_format","24h").commit();});controls();
+            checks.add("The safe-to-disconnect toast fires once on a confirmed enable and a confirmed active edit, in 12- and 24-hour clocks; never for a preference, charging now or while measuring; a background measured arm adds it to the existing notice");
+        }finally{getUiAutomation().setOnAccessibilityEventListener(null);}
+    }
+    private void armDoneBy(){AtomicReference<String> response=new AtomicReference<>("pending");main(()->service.setChargeDoneByEnabled(true,response::set));
+        await(()->!"pending".equals(response.get())&&!service.chargeSchedule().busy,"Enable did not finish");require(response.get()==null&&service.chargeSchedule().doneByEnabled,"Enable failed: "+response.get());}
+    private void drainToasts(List<String> toasts){SystemClock.sleep(4200);toasts.clear();}
+    private void awaitToast(List<String> toasts,String expected){long end=SystemClock.uptimeMillis()+20000;while(SystemClock.uptimeMillis()<end){if(toasts.contains(expected)){int seen=Collections.frequency(toasts,expected);SystemClock.sleep(700);require(Collections.frequency(toasts,expected)==seen&&seen==1,"Toast fired more than once: "+toasts);assertions++;return;}SystemClock.sleep(50);}throw new IllegalStateException("Toast missing: wanted '"+expected+"', saw "+toasts);}
+    private void assertNoToast(List<String> toasts,String when){SystemClock.sleep(1500);synchronized(toasts){for(String toast:toasts)require(!toast.contains("Safe to disconnect"),when+" announced a start: "+toast);}toasts.clear();assertions++;}
     /** Outside simulation, a measuring window with no recording must keep the CPU awake between ticks. */
     private void verifyStandaloneMeasureTick(){
         main(()->{
