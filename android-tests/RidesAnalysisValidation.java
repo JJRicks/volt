@@ -651,7 +651,19 @@ public final class RidesAnalysisValidation extends Instrumentation {
             for(int everythingLine=0;everythingLine<everythingLayout.getLineCount();everythingLine++){if(everythingLayout.getEllipsisCount(everythingLine)!=0||everythingLine<everythingLayout.getLineCount()-1&&everything.getText().charAt(everythingLayout.getLineEnd(everythingLine)-1)!=' ')everythingWholeWords=false;}
             check(everythingWholeWords,"Everything's label is never cut short or broken mid-word");
             check(everything.getTextSize()>26*everything.getResources().getDisplayMetrics().density||everythingLayout.getLineCount()==1,"Everything's label fits on one line at normal text sizes");
-            check(text(root(),"ride-"+legacy.substring(0,8)+"-everything.json")!=null,"Everything's file name shows under it");
+            long legacyStart;try{legacyStart=service.rides.get(legacy).startWallMs;}catch(IOException e){throw new IllegalStateException(e);}
+            String shownStem="ride-"+new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm",Locale.ROOT).format(new Date(legacyStart)).replace("_","_\u200B")+"-"+legacy.substring(0,8);
+            for(String ending:new String[]{"everything.json","sensors.csv","analysis.json"}){
+                TextView nameRow=text(root(),shownStem+"-\u200B"+ending);
+                check(nameRow!=null,"The "+ending+" file name shows under its row");
+                android.text.Layout nameLayout=nameRow.getLayout();
+                check(nameLayout!=null,"The "+ending+" file name is laid out");
+                for(int line=0;line<nameLayout.getLineCount();line++){check(nameLayout.getEllipsisCount(line)==0,"The "+ending+" file name is not cut short");if(line<nameLayout.getLineCount()-1)check(nameRow.getText().charAt(nameLayout.getLineEnd(line)-1)=='\u200B',"The "+ending+" file name wraps only at its break points: "+nameRow.getText());}
+            }
+            Method stemOf;try{stemOf=Class.forName("com.jjricks.volt.RideExportFiles").getDeclaredMethod("stem",String.class,long.class,TimeZone.class);stemOf.setAccessible(true);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
+            Locale phoneLocale=Locale.getDefault();
+            try{for(String tag:new String[]{"ar","ar-SA-u-nu-arab","th-TH","th-TH-u-ca-buddhist-nu-thai","fa-IR"}){Locale.setDefault(Locale.forLanguageTag(tag));String stem;try{stem=(String)stemOf.invoke(null,"c5ba30b9-rest",1794234720000L,TimeZone.getTimeZone("UTC"));}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}check("ride-2026-11-09_14-32-c5ba30b9".equals(stem),"Android's formatter stays ASCII and Gregorian in "+tag+": "+stem);}}
+            finally{Locale.setDefault(phoneLocale);}
             screenshot("export-sheet-"+attempt);
             main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();});settle();
         }

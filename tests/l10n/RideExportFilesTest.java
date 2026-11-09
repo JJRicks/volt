@@ -17,7 +17,7 @@ public final class RideExportFilesTest {
     private static void check(boolean value, String message) { checks++; if (!value) throw new AssertionError(message); }
 
     public static void main(String[] args) throws Exception {
-        names();
+        names(); datedNames(); oneStemPerRide();
         sameBytesAsTheOldButtons();
         legacyPlacementKept();
         availability();
@@ -62,6 +62,74 @@ public final class RideExportFilesTest {
     private static final String[][] OLD_TO_NEW = {{"csv", "sensor_csv"}, {"json", "analysis_json"}, {"route", "route_csv"}, {"gpx", "gpx"},
             {"raw", "phone_raw"}, {"motion", "motion_raw"}, {"all", "combined_json"}, {"fallback-raw", "phone_raw"}, {"fallback-motion", "motion_raw"}};
 
+    private static final long NOV_9_1432_UTC = 1794234720000L;
+    /** The date part worked out here, on its own, in the time zone the test runs in. */
+    private static String stem(long wall) {
+        Calendar c = new GregorianCalendar(TimeZone.getDefault(), Locale.ROOT); c.setTimeInMillis(wall);
+        return String.format(Locale.ROOT, "ride-%04d-%02d-%02d_%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
+    }
+    private static String utc(String id, long wall) { return RideExportFiles.stem(id, wall, TimeZone.getTimeZone("UTC")); }
+
+    /** ride-yyyy-MM-dd_HH-mm-id: the format, padding, zones, the fallback and the locales that must not change it. */
+    private static void datedNames() {
+        String id = "c5ba30b9-0000-4000-8000-000000000001";
+        check(RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, utc(id, NOV_9_1432_UTC)).equals("ride-2026-11-09_14-32-c5ba30b9-everything.json"), "The documented example: " + utc(id, NOV_9_1432_UTC));
+        check(RideExportFiles.fileName(RideExportFiles.Format.GPX, utc(id, NOV_9_1432_UTC)).equals("ride-2026-11-09_14-32-c5ba30b9.gpx"), "GPX keeps its bare ending");
+        check(utc(id, 1767312300000L).equals("ride-2026-01-02_00-05-c5ba30b9"), "Midnight is 00, and single-digit month, day and minute are padded: " + utc(id, 1767312300000L));
+        check(utc(id, 1772615220000L).equals("ride-2026-03-04_09-07-c5ba30b9"), "Single-digit hour padded: " + utc(id, 1772615220000L));
+        check(RideExportFiles.stem(id, NOV_9_1432_UTC, TimeZone.getTimeZone("America/Boise")).equals("ride-2026-11-09_07-32-c5ba30b9"), "The zone it is given");
+        check(RideExportFiles.stem(id, 1767312300000L, TimeZone.getTimeZone("America/Boise")).equals("ride-2026-01-01_17-05-c5ba30b9"), "A start that is another day in that zone");
+        check(utc("abc", NOV_9_1432_UTC).equals("ride-2026-11-09_14-32-abc"), "Short ids stay whole");
+        for (long unusable : new long[]{0, -1, Long.MIN_VALUE}) {
+            check(utc(id, unusable).equals("ride-c5ba30b9"), "No usable start, the older name: " + unusable);
+            check(utc("abc", unusable).equals("ride-abc"), "Short id, no usable start: " + unusable);
+        }
+        check(RideExportFiles.stem(id, (RideStore.Summary) null).equals("ride-c5ba30b9") && RideExportFiles.start(null) == 0, "No analysis, the older name");
+        String dated = utc(id, NOV_9_1432_UTC);
+        for (RideExportFiles.Format format : RideExportFiles.Format.values()) {
+            check(RideExportFiles.shownName(format, dated).replace("\u200B", "").equals(RideExportFiles.fileName(format, dated)), format + ": the sheet shows the saved name's characters");
+            check(!RideExportFiles.fileName(format, dated).contains("\u200B"), format + ": no invisible character in the saved name");
+        }
+        check(RideExportFiles.shownName(RideExportFiles.Format.EVERYTHING_JSON, dated).equals("ride-2026-11-09_\u200B14-32-c5ba30b9-\u200Beverything.json"), "Breaks after the date and before the ending");
+        check(RideExportFiles.shownName(RideExportFiles.Format.GPX, "ride-c5ba30b9").equals("ride-c5ba30b9.gpx"), "A short name has nothing to add");
+        Locale before = Locale.getDefault(); TimeZone zone = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+            for (String tag : new String[]{"ar", "ar-SA", "ar-EG-u-nu-arab", "th", "th-TH", "th-TH-u-ca-buddhist-nu-thai", "fa-IR", "hi-IN-u-nu-deva", "ja-JP-u-ca-japanese", "my-MM", "de-DE", "tr-TR"}) {
+                Locale.setDefault(Locale.forLanguageTag(tag));
+                String stem = RideExportFiles.stem(id, NOV_9_1432_UTC, TimeZone.getDefault());
+                check(stem.equals("ride-2026-11-09_14-32-c5ba30b9"), "ASCII digits and the Gregorian year in " + tag + ": " + stem);
+                check(stem.matches("[A-Za-z0-9_-]+"), "Only plain filename characters in " + tag + ": " + stem);
+            }
+        } finally { Locale.setDefault(before); TimeZone.setDefault(zone); }
+    }
+
+    /** Every format of one ride, from the scooter or the phone, saved under one stem; no analysis means the older one for all. */
+    private static void oneStemPerRide() throws IOException {
+        Fixture f = new Fixture();
+        try {
+            RideStore.Summary s = f.rides.get(f.combined);
+            PhoneRideStore.Track track = f.phone.load(f.combined);
+            String stem = RideExportFiles.stem(f.combined, s), expected = stem(s.startWallMs) + "-" + f.combined.substring(0, 8);
+            check(stem.equals(expected), "The scooter analysis's start names the ride: " + stem);
+            File staging = RideExportFiles.newStaging(f.cache, 1700000500000L);
+            Set<String> names = new HashSet<>();
+            for (RideExportFiles.Format format : RideExportFiles.Format.values()) {
+                RideExportFiles.Payload payload = RideExportFiles.payload(format, f.combined, f.rides, s, f.phone, track, f.cache, "1.0");
+                try { names.add(RideExportFiles.stage(staging, format, stem, payload).getName()); } finally { payload.discard(); }
+                check(new File(staging, stem + format.suffix).isFile(), format + " staged under the ride's stem");
+            }
+            check(names.size() == RideExportFiles.Format.values().length, "One file per format: " + names);
+            RideExportFiles.Payload everything = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, f.combined, f.rides, s, f.phone, track, f.cache, "1.0");
+            try { check(everything.file.getName().equals(stem + "-everything.json"), "Everything's own staged file uses it too: " + everything.file.getName()); }
+            finally { everything.discard(); }
+            String older = "ride-" + f.phoneOnly.substring(0, 8);
+            check(RideExportFiles.stem(f.phoneOnly, f.rides.get(f.phoneOnly)).equals(older), "A phone recording without an analysis: the older stem, never the phone's time");
+            try { RideExportFiles.payload(RideExportFiles.Format.ANALYSIS_JSON, f.phoneOnly, f.rides, null, f.phone, null, f.cache); check(false, "No analysis to save"); }
+            catch (RideExportFiles.Missing missing) { check(missing.getMessage().equals(older + "-analysis.json"), "The missing file is reported by its older name: " + missing.getMessage()); }
+        } finally { f.delete(); }
+    }
+
     private static void names() {
         String id = "1a2b3c4d-0000-4000-8000-000000000001";
         String[][] expected = {{"everything_json", "ride-1a2b3c4d-everything.json", "application/json"}, {"sensor_csv", "ride-1a2b3c4d-sensors.csv", "text/csv"}, {"analysis_json", "ride-1a2b3c4d-analysis.json", "application/json"},
@@ -72,10 +140,11 @@ public final class RideExportFilesTest {
         for (int i = 0; i < expected.length; i++) {
             RideExportFiles.Format f = RideExportFiles.Format.values()[i];
             check(f.id.equals(expected[i][0]) && RideExportFiles.Format.of(f.id) == f, "Format order and id " + f);
-            check(RideExportFiles.name(f, id).equals(expected[i][1]), f + " keeps its old file name: " + RideExportFiles.name(f, id));
+            String older = RideExportFiles.fileName(f, RideExportFiles.stem(id, 0, TimeZone.getTimeZone("UTC")));
+            check(older.equals(expected[i][1]), f + " keeps its old file name with no start time: " + older);
             check(f.mime.equals(expected[i][2]), f + " keeps its old MIME type");
         }
-        check(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id).equals(RideAutoExport.everythingName(id)), "Automatic copies keep the same name");
+        check(RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(id, NOV_9_1432_UTC, TimeZone.getDefault())).equals(RideAutoExport.everythingName(id, NOV_9_1432_UTC)), "Automatic copies keep the same name");
         check(RideExportFiles.Format.of("CSV") == null && RideExportFiles.Format.of(null) == null, "Unknown ids read as nothing");
         check(RideExportFiles.CHOICE.equals("ride_export_choice") && RideExportFiles.FOLDER_HINT.equals("ride_export_folder_hint"), "Stored keys");
         BackupRegistry.Rule choice = BackupRegistry.rule("app_settings", RideExportFiles.CHOICE), hint = BackupRegistry.rule("app_settings", RideExportFiles.FOLDER_HINT);
@@ -103,12 +172,14 @@ public final class RideExportFilesTest {
                     RideExportFiles.Format format = RideExportFiles.Format.of(pair[1]);
                     RideExportFiles.Payload payload = RideExportFiles.payload(format, id, f.rides, s, f.phone, track, f.cache);
                     String what = kinds[r] + ", " + pair[0];
-                    check(RideExportFiles.name(format, id).equals(before.name) && format.mime.equals(before.mime), what + ": same name and type");
+                    String stem = RideExportFiles.stem(id, s), older = "ride-" + id.substring(0, 8);
+                    check(stem.equals(s == null ? older : stem(s.startWallMs) + "-" + id.substring(0, 8)), what + ": the ride's stem: " + stem);
+                    check(before.name.startsWith(older) && RideExportFiles.fileName(format, stem).equals(stem + before.name.substring(older.length())) && format.mime.equals(before.mime), what + ": same ending and type");
                     check(Arrays.equals(payload.bytes(), before.bytes), what + ": same bytes");
                     check((payload.text != null) == (pair[0].equals("json") || pair[0].equals("route") || pair[0].equals("gpx") || pair[0].equals("all")),
                             what + ": text stays saveText, a file stays saveFile");
-                    File staged = RideExportFiles.stage(staging, format, id, payload);
-                    check(staged.getName().equals(before.name) && Arrays.equals(Files.readAllBytes(staged.toPath()), before.bytes), what + ": the several-file copy is the same file");
+                    File staged = RideExportFiles.stage(staging, format, stem, payload);
+                    check(staged.getName().equals(RideExportFiles.fileName(format, stem)) && Arrays.equals(Files.readAllBytes(staged.toPath()), before.bytes), what + ": the several-file copy is the same file");
                 }
                 check(Objects.requireNonNull(staging.list()).length == (r == 0 ? 2 : r == 1 ? 5 : 7), kinds[r] + ": one staged file per format");
                 RideExportFiles.remove(staging);

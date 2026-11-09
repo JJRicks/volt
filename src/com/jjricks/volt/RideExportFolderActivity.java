@@ -27,9 +27,9 @@ public final class RideExportFolderActivity extends Activity {
     private static final int PICK_FOLDER = 502;
     private File staging;
 
-    static Intent intent(Context context, File staging, String rideId, List<RideExportFiles.Format> formats) {
+    static Intent intent(Context context, File staging, String stem, List<RideExportFiles.Format> formats) {
         return new Intent(context, RideExportFolderActivity.class).putExtra(RideExportFiles.EXTRA_DIR, staging.getAbsolutePath())
-                .putExtra(RideExportFiles.EXTRA_RIDE, rideId).putExtra(RideExportFiles.EXTRA_FORMATS, RideExportFiles.ids(formats));
+                .putExtra(RideExportFiles.EXTRA_STEM, stem).putExtra(RideExportFiles.EXTRA_FORMATS, RideExportFiles.ids(formats));
     }
 
     @Override protected void onCreate(Bundle state) {
@@ -65,13 +65,13 @@ public final class RideExportFolderActivity extends Activity {
         Uri tree = result == RESULT_OK && data != null ? data.getData() : null;
         if (tree == null || DataMaintenance.active()) { RideExportFiles.remove(staging); finish(); return; }
         settings().edit().putString(RideExportFiles.FOLDER_HINT, tree.toString()).apply();
-        String rideId = getIntent().getStringExtra(RideExportFiles.EXTRA_RIDE);
+        String stem = getIntent().getStringExtra(RideExportFiles.EXTRA_STEM);
         List<RideExportFiles.Format> formats = RideExportFiles.formats(getIntent().getStringArrayExtra(RideExportFiles.EXTRA_FORMATS));
         ContentResolver resolver = getContentResolver();
         File source = staging;
         new Thread(() -> {
             int saved = 0;
-            if (rideId != null) saved = write(resolver, tree, source, rideId, formats);
+            if (stem != null) saved = write(resolver, tree, source, stem, formats);
             RideExportFiles.remove(source);
             final int count = saved, total = formats.size();
             runOnUiThread(() -> {
@@ -84,13 +84,13 @@ public final class RideExportFolderActivity extends Activity {
     }
 
     /** Creates each file in the picked folder (the provider adds " (1)" rather than replace a file of the same name). */
-    private static int write(ContentResolver resolver, Uri tree, File staging, String rideId, List<RideExportFiles.Format> formats) {
+    private static int write(ContentResolver resolver, Uri tree, File staging, String stem, List<RideExportFiles.Format> formats) {
         Uri root;
         try { root = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree)); }
         catch (RuntimeException notAFolder) { return 0; }
         int saved = 0;
         for (RideExportFiles.Format format : formats) {
-            String name = RideExportFiles.name(format, rideId);
+            String name = RideExportFiles.fileName(format, stem);
             Uri document = null;
             try (InputStream in = new FileInputStream(new File(staging, name))) {
                 document = DocumentsContract.createDocument(resolver, root, format.mime, name);
