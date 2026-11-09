@@ -36,6 +36,32 @@ public final class ChargingEstimateTest {
                 context + " cannot produce charging times");
     }
 
+    /** The alert's level as a run's own target: no limit reading involved, so the main estimate stays uncapped. */
+    private static void chargeAlertCountdown() {
+        ChargingEstimate.Value noLimit = new ChargingEstimate.Value(null, false, 0);
+        ChargingEstimate.Value[] readings = nominal();
+        readings[5] = noLimit;
+        ChargingEstimate.Result shown = estimate(readings);
+        check(shown.targetPercent == null, "No limit reading: the main estimate claims no target");
+        readings[5] = live(70);
+        ChargingEstimate.Result alert = estimate(readings);
+        near(70, alert.targetPercent, 0, "The alert's level is that run's target");
+        near(87, alert.remainingMinutesToLimit, .00001, "Time from 50% to a 70% alert");
+        near(217.5, alert.remainingMinutesToFull, .00001, "The alert run keeps the same time to 100%");
+        near(217.5, shown.remainingMinutesToFull, .00001, "The main estimate is untouched by an alert");
+        near(87, ChargingEstimate.minutesToAlert(alert, shown), .00001, "Minutes to the alert");
+        check(ChargingEstimate.minutesToAlert(null, shown) == null, "No alert estimate means no alert time");
+        readings[1] = new ChargingEstimate.Value(null, false, 0);
+        ChargingEstimate.Result waiting = estimate(readings);
+        check(ChargingEstimate.minutesToAlert(waiting, waiting) == null, "Missing readings give no alert time");
+        ChargingEstimate.Result nearlyFull = estimate(live(1), live(52), live(-2), live(99), live(14.5), noLimit);
+        ChargingEstimate.Value[] beyond = {live(1), live(52), live(-2), live(50), live(14.5), live(70)};
+        near(nearlyFull.remainingMinutesToFull, ChargingEstimate.minutesToAlert(estimate(beyond), nearlyFull), .00001,
+                "An alert time is never longer than the time to 100% shown beside it");
+        ChargingEstimate.Result same = ChargingEstimate.forScooter(alert, live(50), live(14.5), -1, null, null);
+        near(87, ChargingEstimate.minutesToAlert(same, shown), .00001, "The alert run takes the same path through forScooter");
+    }
+
     public static void main(String[] args) {
         ChargingEstimate.Result baseline = estimate(nominal());
         check(baseline.charging, "Fresh active state identifies charging");
@@ -47,6 +73,7 @@ public final class ChargingEstimateTest {
         check(baseline.status.contains("higher charge limit") && baseline.status.contains("taper"),
                 "Time estimate explains cutoff and taper assumptions");
         check("Current rate".equals(baseline.label), "Short label names the current-rate source");
+        chargeAlertCountdown();
 
         ChargingEstimate.Value[] values = nominal(); values[2] = live(2);
         ChargingEstimate.Result positive = estimate(values);

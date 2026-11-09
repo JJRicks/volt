@@ -671,9 +671,22 @@ public final class ScooterService extends Service {
     }
     /** Fresh paired data first; recognized models get defaults without requiring capture setup. */
     public ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings){
+        return chargingEstimate(readings,chargingValue(readings,"charge_limit_percent"));
+    }
+    /**
+     * The charging hero's countdown to a charge alert's level, or null when it has none (ChargeAlertPolicy.countdownLevel).
+     * The alert's level is only this estimate's target: charge_limit_percent, charge limits, Charge done by, the live
+     * card and the widgets never see it. Reading the same frame twice is harmless (ChargeReferenceGate).
+     */
+    public ChargingEstimate.Result chargeAlertEstimate(Map<String,TelemetryHistory.Reading> readings){
+        ChargingEstimate.Value soc=chargingValue(readings,"battery_percent");
+        Integer level=ChargeAlertPolicy.countdownLevel(chargeAlertsOffered(),chargeAlerts(),soc.fresh?soc.number:null);
+        return level==null?null:chargingEstimate(readings,new ChargingEstimate.Value(level.doubleValue(),true,soc.observedMs));
+    }
+    private ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(chargingValue(readings,"charging_state"),chargingValue(readings,"voltage_v"),
-                chargingValue(readings,"current_a"),soc,rated,chargingValue(readings,"charge_limit_percent"));
+                chargingValue(readings,"current_a"),soc,rated,target);
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
