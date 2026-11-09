@@ -198,7 +198,7 @@ final class RidingSession {
             RidingValues.Power power = values.power(nowMs);
             RidingValues.Reading battery = values.reading(RidingValues.BATTERY_KEY, nowMs);
             RidingValues.Reading odometer = values.reading("odometer_km", nowMs);
-            estimator.accept(newest, speed.kmh, power.watts, battery == null || battery.stale ? null : battery.value,
+            estimator.accept(newest, speed.kmh, power.countedWatts, battery == null || battery.stale ? null : battery.value,
                     odometer == null ? null : odometer.value, charging);
             fedMs = newest;
         }

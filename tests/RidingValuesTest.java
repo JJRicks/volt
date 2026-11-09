@@ -25,6 +25,8 @@ public final class RidingValuesTest {
         inferredThreshold();
         inferredWindow();
         inferredFromFrames();
+        inferredRegen();
+        signedNeverInfers();
         inferredThenStrongerRegen();
         meterMatchesRecording();
         unknownUntilSign();
@@ -404,6 +406,54 @@ public final class RidingValuesTest {
         gt3.sample("power_w", -300, 0x72, 5000);
         check(gt3.power(5100).direction == RidingValues.Direction.REGEN && near(gt3.power(5100).peakRegenW, 300, 0.01), "a negative current proves the scooter signs it: regen");
         check(gt3.signState() != RidingValues.Direction.UNKNOWN, "and from then on it is signed");
+    }
+
+    /** Feeds an unsigned ride: rest, acceleration, cruise, then a brake where the voltage rises. */
+    private static void unsignedBrake(RidingValues v, long t0) {
+        double rest = 50, ohms = 0.08, kmh = 0;
+        long t = t0;
+        for (int i = 0; i < 8; i++) { v.sample("voltage_v", rest, 0x72, t); v.sample("speed_kmh", 0, 0x92, t); v.sample("power_w", 10, 0x72, t); t += 1000; }
+        for (int i = 0; i < 8; i++) { kmh += 3; double volts = rest - 18 * ohms; v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 18 * volts, 0x72, t); t += 1000; }
+        for (int i = 0; i < 8; i++) { v.sample("voltage_v", rest, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 15, 0x72, t); t += 1000; }
+        for (int i = 0; i < 4; i++) { kmh -= 3.2; double volts = rest + 8 * ohms; v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 8 * volts, 0x72, t); t += 1000; }
+    }
+
+    /** An unsigned brake reads as inferred regen everywhere a screen looks, but never moves the energy (owner, Nov 9). */
+    private static void inferredRegen() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        long now = 27_500;
+        RidingValues.Power p = v.power(now);
+        check(p.direction == RidingValues.Direction.REGEN_INFERRED, "the brake is inferred regen: " + p.direction);
+        check(p.watts != null && p.watts < 0 && p.direction.regen(), "and shown on the regen side");
+        check(p.countedWatts > 0 && near(p.countedWatts, -p.watts, 1e-9), "range still gets the magnitude");
+        check(p.peakRegenW > 0, "the inferred regen peak is there for the caption");
+        check(v.inferredDrawThresholdW() == 1200, "and an inference never raises the threshold");
+        check(!p.direction.knownOrInferred() && p.direction.unsigned(), "for energy and efficiency it counts like an unknown reading");
+        check(v.direction() == RidingValues.Direction.REGEN_INFERRED, "the screen can tell it from confirmed regen");
+        boolean negative = false;
+        for (RidingValues.TracePoint point : v.powerTrace(now, 60_000)) { negative |= point.value < 0; check(!point.directionUnknown || point.value >= 0, "unknown points stay magnitudes"); }
+        check(negative, "the live trace goes below zero");
+        RidingValues compare = new RidingValues();
+        compare.setNominalIntervals(1000, 2000);
+        compare.sample("current_sign_state", 254, 0x79, 0);
+        for (long t = 0; t < 28_000; t += 1000) compare.sample("power_w", v.powerTrace(now, 60_000).get((int) (t / 1000)).value < 0 ? -v.powerTrace(now, 60_000).get((int) (t / 1000)).value : v.powerTrace(now, 60_000).get((int) (t / 1000)).value, 0x72, t);
+        check(near(v.rideEnergyWh(), compare.rideEnergyWh(), 0.01), "energy is the sum of magnitudes, as before: " + v.rideEnergyWh() + " vs " + compare.rideEnergyWh());
+        check(v.inferredDrawWh() == 0 && near(v.unconfirmedEnergyWh(), v.rideEnergyWh(), 1e-6), "and all of it unconfirmed, none inferred draw");
+    }
+
+    /** A signed scooter reads exactly as before: no inference runs, whatever it does. */
+    private static void signedNeverInfers() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 0, 0x79, 0);
+        unsignedBrake(v, 0);
+        RidingValues.Power p = v.power(27_500);
+        check(p.direction == RidingValues.Direction.DRAW && p.watts > 0, "a signed scooter's positive reading stays draw: " + p.direction);
+        for (RidingValues.TracePoint point : v.powerTrace(27_500, 60_000)) check(point.value >= 0, "and nothing goes below zero");
+        check(p.peakRegenW == 0, "no regen peak appears");
     }
 
     /** A strong reading without a known sign is inferred draw; a weaker one stays unknown (owner, Nov 6). */

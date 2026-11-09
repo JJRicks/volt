@@ -205,7 +205,12 @@ public final class RideChartData {
         return build(scooter, phone, miles, false);
     }
     public static List<Series> build(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail) {
+        return build(scooter, phone, miles, fullDetail, false);
+    }
+    /** inferRegen: a ride whose current is unsigned plots inferred regen below zero. Stored values never change. */
+    public static List<Series> build(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
         if (fullDetail) RideStore.checkDetailMemory();
+        RegenInference.Label[] regen = inferRegen ? regenLabels(scooter) : null;
         List<Series> result = new ArrayList<>();
         List<PhoneRideStore.Point> phonePoints = phone == null ? Collections.emptyList() : fullDetail ? phone.fullPoints() : phone.points;
         ClockIndex clocks = new ClockIndex(scooter); List<Long> alignedTimes = new ArrayList<>();
@@ -223,10 +228,11 @@ public final class RideChartData {
                     Long aligned = alignedTimes.get(position);
                     if (aligned != null) values.add(new Value(aligned, v, p.segment));
                 }
-            } else for (RideStore.Point p : scooter) {
+            } else for (int position = 0; position < scooter.size(); position++) {
+                RideStore.Point p = scooter.get(position);
                 checkCanceled();
                 if (fullDetail) RideStore.checkDetailMemory();
-                Double v = index == 0 ? p.powerW : index == 1 ? p.speedKmh : index == 3 ? p.voltageV : index == 4 ? p.batteryPercent : energyPerDistance(p.powerW, p.speedKmh, miles);
+                Double v = index == 0 ? shownPower(p, regen, position) : index == 1 ? p.speedKmh : index == 3 ? p.voltageV : index == 4 ? p.batteryPercent : energyPerDistance(p.powerW, p.speedKmh, miles);
                 if (index == 1 && v != null && miles) v /= RideStore.KM_PER_MILE;
                 values.add(new Value(p.elapsedMs, v, p.segment));
             }
@@ -235,5 +241,35 @@ public final class RideChartData {
         }
         return Collections.unmodifiableList(result);
     }
+    /** A plotted power value: inferred regen goes negative; every other reading stays as stored. */
+    private static Double shownPower(RideStore.Point p, RegenInference.Label[] regen, int position) {
+        if (p.powerW == null) return null;
+        return regen != null && regen[position] == RegenInference.Label.REGEN ? -Math.abs(p.powerW) : p.powerW;
+    }
+    /** The whole-ride inference over a saved ride's points (a point missing a reading keeps its place, unknown). */
+    static RegenInference.Label[] regenLabels(List<RideStore.Point> points) {
+        List<RegenInference.Sample> samples = new ArrayList<>(points.size());
+        for (RideStore.Point p : points)
+            samples.add(new RegenInference.Sample(p.elapsedMs, p.powerW == null ? Double.NaN : p.powerW,
+                    p.voltageV == null ? Double.NaN : p.voltageV, p.speedKmh == null ? Double.NaN : p.speedKmh));
+        return RegenInference.wholeRide(samples);
+    }
+    /**
+     * Inferred regen in Wh for an unsigned ride's details, each reading held until the next.
+     * Draw is the ride's measured throughput less that regen. Null when there's nothing to measure.
+     */
+    static double[] inferredEnergyWh(List<RideStore.Point> points, Double throughputWh) {
+        if (throughputWh == null || points.size() < 2) return null;
+        RegenInference.Label[] labels = regenLabels(points);
+        double regenWh = 0;
+        for (int i = 0; i + 1 < points.size(); i++) {
+            Double w = points.get(i).powerW;
+            long dt = points.get(i + 1).elapsedMs - points.get(i).elapsedMs;
+            if (w != null && labels[i] == RegenInference.Label.REGEN && dt > 0 && dt <= INFERRED_ENERGY_MAX_GAP_MS)
+                regenWh += Math.abs(w) * dt / 3_600_000.0;
+        }
+        return new double[]{Math.max(0, throughputWh - regenWh), regenWh};
+    }
+    private static final long INFERRED_ENERGY_MAX_GAP_MS = 5_000;
     private static void checkCanceled() { if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Ride chart loading canceled"); }
 }

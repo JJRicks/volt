@@ -2,6 +2,7 @@
 # tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
 src/com/jjricks/volt/RidingLayout.java
 src/com/jjricks/volt/RidingValues.java
+src/com/jjricks/volt/RegenInference.java
 src/com/jjricks/volt/RidingFocus.java
 src/com/jjricks/volt/RidingFrames.java
 tests/l10n/RidingFramesTest.java

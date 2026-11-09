@@ -885,7 +885,7 @@ final class RidingScreen implements AppScreen {
             bar.set(null, p.direction, scale, p.peakDrawW, 0, false, now);
             return;
         }
-        boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
+        boolean regen = p.direction.regen() && p.watts < 0;
         boolean unknown = p.direction == RidingValues.Direction.UNKNOWN;
         int color = regen ? ui.ok : unknown ? ui.muted : ui.text;
         Formatted shown = Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT));
@@ -1080,7 +1080,7 @@ final class RidingScreen implements AppScreen {
                 RidingValues.Power p = v.power(now);
                 if (p.watts == null) { none(s); break; }
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT)));
-                if (p.direction == RidingValues.Direction.REGEN && p.watts < 0) s.color = ui.ok;
+                if (p.direction.regen() && p.watts < 0) s.color = ui.ok;
                 break;
             }
             default: none(s); break;
@@ -1493,7 +1493,7 @@ final class RidingScreen implements AppScreen {
                 paint.setColor(ui.dim);
                 canvas.drawRoundRect(new RectF(inset, zero - ui.dp(6), w - inset, zero + ui.dp(6)), ui.dp(6), ui.dp(6), paint);
                 paint.setStyle(Paint.Style.FILL);
-            } else if (value >= 0 || direction != RidingValues.Direction.REGEN) {
+            } else if (value >= 0 || !direction.regen()) {
                 double magnitude = Math.abs(value);
                 float top = (float) (zero - (zero - inset) * Math.min(1, magnitude / Math.max(1, drawScale)));
                 if (direction == RidingValues.Direction.UNKNOWN) paint.setColor(ui.muted);
@@ -1752,7 +1752,7 @@ final class RidingScreen implements AppScreen {
                 sample = v.reading(RidingValues.POWER_KEY, now);
                 if (p.watts != null) {
                     value = Math.abs(p.watts);
-                    boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
+                    boolean regen = p.direction.regen() && p.watts < 0;
                     regenPower = regen;
                     tint = regen ? ui.ok : p.direction == RidingValues.Direction.UNKNOWN ? ui.muted : ui.accent;
                     top = regen ? v.scale().regenW : v.scale().drawW;

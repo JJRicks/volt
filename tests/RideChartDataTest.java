@@ -8,6 +8,7 @@ public final class RideChartDataTest {
     static void check(boolean value, String message) { checks++; if (!value) throw new AssertionError(message); }
     static void near(double expected, Double actual, String message) { check(actual != null && Math.abs(expected - actual) < 0.00001, message + ": " + actual); }
     public static void main(String[] args) throws Exception {
+        inferredRegen();
         near(50, RideChartData.energyPerDistance(1000d, 20d, false), "W divided by km/h yields Wh/km");
         near(80.4672, RideChartData.energyPerDistance(1000d, 20d, true), "Imperial conversion preserves energy");
         near(-10, RideChartData.energyPerDistance(-200d, 20d, false), "Battery input keeps negative sign");
@@ -171,5 +172,34 @@ public final class RideChartDataTest {
         try { RideChartData.build(points, null, false, true); } catch (java.util.concurrent.CancellationException expected) { canceled = true; } finally { Thread.interrupted(); }
         check(canceled, "Full chart preparation honors cancellation before posting UI data");
         System.out.println("RideChartDataTest: " + checks + " assertions passed");
+    }
+    /** Unsigned ride: the power line goes below zero on the brake and the energy split appears; a signed plot is untouched. */
+    private static void inferredRegen() throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-regen").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Brake", 1000000, 1000);
+        long t = 0; double kmh = 0, rest = 50, r = 0.08;
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.2, rest, 0);
+        for (int i = 0; i < 8; i++) { kmh += 3; unsigned(store, t++, 18, rest - 18 * r, kmh); }
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.4, rest, kmh);
+        for (int i = 0; i < 6; i++) { kmh -= 3.2; unsigned(store, t++, 8, rest + 8 * r, kmh); }
+        for (int i = 0; i < 4; i++) unsigned(store, t++, 0.3, rest, kmh);
+        store.stop(1000000 + t * 1000, 1000 + t * 1000);
+        RideStore.Summary s = store.get(id);
+        check(s.unsignedCurrent(), "254 with no negative current is an unsigned ride");
+        List<RideStore.Point> points = store.fullTrend(id);
+        List<RideChartData.Value> raw = RideChartData.build(points, null, false, true).get(0).values, shown = RideChartData.build(points, null, false, true, true).get(0).values;
+        int negative = 0;
+        for (RideChartData.Value v : raw) check(v.value == null || v.value >= 0, "the stored line never goes negative");
+        for (int i = 0; i < shown.size(); i++) if (shown.get(i).value != null && shown.get(i).value < 0) {
+            negative++; check(Math.abs(shown.get(i).value + raw.get(i).value) < 1e-9, "a flipped point is the same magnitude"); }
+        check(negative >= 4, "the brake goes below zero: " + negative);
+        double[] energy = RideChartData.inferredEnergyWh(points, s.measuredThroughputWh);
+        check(energy != null && energy[1] > 0 && Math.abs(energy[0] + energy[1] - s.measuredThroughputWh) < 1e-6, "draw and regen split the throughput");
+    }
+    private static void unsigned(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
+        long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();
+        row.put("voltage_v", new RideStore.Sample(volts, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(amps, "", "A", 0x72, mono));
+        row.put("speed_kmh", new RideStore.Sample(kmh, mono)); row.put("current_sign_state", new RideStore.Sample(254d, mono)); row.put("battery_percent", new RideStore.Sample(90d, mono));
+        store.sample(1000000 + t * 1000, mono, row);
     }
 }

@@ -809,7 +809,7 @@ public final class RidesScreen implements AppScreen {
     private void buildOverview(LinearLayout body, RideStore.Summary ride, List<RideStore.Point> measured, Runnable afterDelete) throws IOException {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
-        ChartPanel graph = new ChartPanel(ride.id, measured, null, false); body.addView(graph);
+        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         if (ride.distanceKm != null) tileReadings(distanceParts(ride.distanceKm));
         if (ride.averageSpeedKmh != null) tileReadings(speedParts(ride.averageSpeedKmh));
@@ -907,13 +907,14 @@ public final class RidesScreen implements AppScreen {
         final RideChartView chart; final Flow choices; final Set<String> chosen;
         final android.widget.HorizontalScrollView chartScroll;
         final LinearLayout inspection; String inspectionSignature = "";
-        final boolean full; List<RideChartData.Series> data;
+        final boolean full, inferRegen; List<RideChartData.Series> data;
         final TextView loadStatus; AlertDialog expandedDialog; java.util.concurrent.Future<?> fullLoad;
         /** A waiting "load once saving finishes" step; cancelled with the load so it can't reload later. */
         Runnable fullLoadRetry;
         int loadGeneration; boolean fullDataLoaded;
         int overlayLimit = ui.dp(112); ScrollView overlayScroll;
-        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full) {
+        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen) {
+            this.inferRegen = inferRegen;
             super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
             LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
@@ -987,7 +988,7 @@ public final class RidesScreen implements AppScreen {
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi"))));
+            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
@@ -1009,7 +1010,7 @@ public final class RidesScreen implements AppScreen {
         }
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
-            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true);
+            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
             expandedDialog = dialog;
@@ -1037,7 +1038,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true);
+                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true, inferRegen);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;
@@ -1089,8 +1090,10 @@ public final class RidesScreen implements AppScreen {
         energyHead.addView(direction, directionParams); body.addView(energyHead);
         LinearLayout energy = ui.groupCard();
         boolean partialDirection = s.confirmedDirectionCoverageMs > 0 && !s.directionConfirmed;
-        LinearLayout draw = valueRow(energy, partialDirection ? T.ridesDrawShort() : T.ridesDraw(), quantity(s.drawWh, "Wh", 2));
-        LinearLayout input = valueRow(energy, partialDirection ? T.ridesInputShort() : T.ridesInput(), quantity(s.returnedWh, "Wh", 2));
+        // A ride with no current direction at all shows its inferred split, still under "Direction ?".
+        double[] inferred = s.unsignedCurrent() ? RideChartData.inferredEnergyWh(measured, s.measuredThroughputWh) : null;
+        LinearLayout draw = valueRow(energy, partialDirection ? T.ridesDrawShort() : T.ridesDraw(), quantity(inferred != null ? Double.valueOf(inferred[0]) : s.drawWh, "Wh", 2));
+        LinearLayout input = valueRow(energy, partialDirection ? T.ridesInputShort() : T.ridesInput(), quantity(inferred != null ? Double.valueOf(inferred[1]) : s.returnedWh, "Wh", 2));
         if (partialDirection) {
             partialGlyph(draw, T.ridesDrawPartial()); partialGlyph(input, T.ridesInputPartial());
         }
