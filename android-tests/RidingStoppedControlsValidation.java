@@ -123,7 +123,7 @@ public final class RidingStoppedControlsValidation extends Instrumentation {
         moving(false);
         await(() -> onMain(() -> view("stoppedControls").getVisibility() == View.VISIBLE), "Stopped again: no controls");
         settle();
-        require(Arrays.equals(speedBefore, position(view("big"))), frame + ": gauges moved when the controls showed");
+        require(Arrays.equals(speedBefore, position(view("big"))), frame + ": gauges moved when the controls showed " + Arrays.toString(speedBefore) + " " + Arrays.toString(position(view("big"))));
     }
 
     private void requireSize(View lock, View record, float density) {
@@ -201,7 +201,12 @@ public final class RidingStoppedControlsValidation extends Instrumentation {
     private Object screen() { return field(activity, "screen"); }
     private View view(String name) { return (View) field(screen(), name); }
     private View lock() { return (View) field(screen(), "stoppedLock"); }
-    private int[] position(View v) { int[] xy = new int[2]; final View target = v; main(() -> target.getLocationOnScreen(xy)); return xy; }
+    /** Where a view sits in the frame, so the OLED drift of the whole frame doesn't count as a jump. */
+    private int[] position(View v) {
+        int[] xy = new int[2], origin = new int[2]; final View target = v, frame = view("frame");
+        main(() -> { target.getLocationOnScreen(xy); frame.getLocationOnScreen(origin); });
+        return new int[]{xy[0] - origin[0], xy[1] - origin[1]};
+    }
 
     private void screenshot(String name) throws Exception {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "riding-stopped");
