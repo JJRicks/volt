@@ -461,8 +461,8 @@ UT5 MAX polling is unchanged.
 The checker no longer changes settings: the guided tests of dashboard units, tail
 light, turn signal sound, automatic lights and range estimate moved to
 Experimental controls as Help verify (below). It still reviews any unfinished
-try or older guided test (Restore, Keep or Dismiss), with Developer options
-hidden too, and its report includes the tries.
+try or older guided test (Restore, Keep or Dismiss), and its report includes
+the tries.
 
 PHONE-FREE AND RIDING CHECKS STILL NEEDED
 
