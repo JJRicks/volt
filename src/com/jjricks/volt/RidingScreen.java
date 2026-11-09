@@ -468,7 +468,7 @@ final class RidingScreen implements AppScreen {
     /** The row of stopped controls; on a tablet the lock's slide stays a sensible length. */
     private final class StoppedControls extends LinearLayout {
         StoppedControls() { super(host.activity()); }
-        /** Stealing the touch cancels a press on either button; Lock's queue never hears of it. */
+        /** A touch that lands as they hide goes nowhere (one already down was cancelled when the hide began); Lock's queue never hears of it. */
         @Override public boolean onInterceptTouchEvent(MotionEvent event) { return !stoppedMotion.takesTaps() || super.onInterceptTouchEvent(event); }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP);

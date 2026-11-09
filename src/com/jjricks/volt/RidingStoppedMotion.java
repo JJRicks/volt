@@ -1,5 +1,8 @@
 package com.jjricks.volt;
 
+import android.os.SystemClock;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.View;
 
 /**
@@ -7,7 +10,8 @@ import android.view.View;
  * motion (owner, Nov 9): each button fades and grows from its own centre with {@link RidingDisc}'s
  * numbers. Nothing changes size in the layout, so the readout keeps its place, and the power bar its
  * zero line: the readout is gone before the buttons get strong, and comes back only once they've
- * nearly left. Taps stop the moment they start to hide.
+ * nearly left. Taps stop the moment they start to hide, and a press or slide already down ends there:
+ * only a fresh press works once they're back.
  */
 final class RidingStoppedMotion {
     private final View controls, readout;
@@ -29,9 +33,22 @@ final class RidingStoppedMotion {
     /** Moves them toward shown or gone; true when that's a change. */
     boolean show(boolean shown) {
         if (!motion.want(shown)) return false;
+        if (!shown) cancelTouch();
         controls.setImportantForAccessibility(shown ? View.IMPORTANT_FOR_ACCESSIBILITY_AUTO : View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         motion.run();
         return true;
+    }
+
+    /**
+     * Ends a touch already on a button, before it's disabled (a disabled view ignores the cancel). The row then has no
+     * touch target, so the rest of that finger's events reach neither button: its release can't fire after they return.
+     */
+    private void cancelTouch() {
+        long now = SystemClock.uptimeMillis();
+        MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+        cancel.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        controls.dispatchTouchEvent(cancel);
+        cancel.recycle();
     }
 
     /** The long-ride dimming (RidingBurnIn), on top of the fade. */

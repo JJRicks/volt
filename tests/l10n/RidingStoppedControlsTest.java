@@ -126,6 +126,9 @@ public final class RidingStoppedControlsTest {
         check(stoppedMotion.contains("new RidingDiscAnimator(this::apply)") && stoppedMotion.contains("RidingDisc.scale(at)") && stoppedMotion.contains("RidingDisc.alpha(at)"), "the tune disc's own numbers, not a copy");
         check(stoppedMotion.contains("View.INVISIBLE") && !stoppedMotion.contains("readout.setVisibility(View.GONE)"), "the readout keeps its place for the power bar's zero line");
         check(screen.contains("if (stoppedMotion.takesTaps()) recordTap();") && screen.contains("onInterceptTouchEvent(MotionEvent event) { return !stoppedMotion.takesTaps()"), "taps stop the moment they start to hide");
+        int cancelled = stoppedMotion.indexOf("if (!shown) cancelTouch();");
+        check(cancelled > stoppedMotion.indexOf("if (!motion.want(shown)) return false;") && cancelled < stoppedMotion.indexOf("motion.run();") && stoppedMotion.contains("MotionEvent.ACTION_CANCEL") && stoppedMotion.contains("controls.dispatchTouchEvent(cancel);"), "a gesture already down is cancelled as the hide starts, only then, and through the row");
+        check(screen.indexOf("if (stoppedMotion.show(shown) && !shown) {") < screen.indexOf("recordDisc.setEnabled(false);", screen.indexOf("if (stoppedMotion.show(shown) && !shown) {")), "Record is disabled only after that cancel, which a disabled view would ignore");
         check(screen.indexOf("stoppedMotion.dim(alpha);") < screen.indexOf("if (!shown) return;", screen.indexOf("stoppedMotion.dim(alpha);")), "the long-ride dim keeps up while they hide");
         check(screen.contains("stoppedLock = host.ridingLock(() -> stopped(") && screen.contains("showStopped(stoppedNow,"), "Lock and Record follow the stopped gate");
         check(main.contains("lockQueue.stoppedGateClosed(") && main.indexOf("lockQueue.stoppedGateClosed(") < main.indexOf("decisionOnceIdle(\"lock\",Boolean.TRUE"), "a waiting tap meets the stopped gate before the lock's own gate");
