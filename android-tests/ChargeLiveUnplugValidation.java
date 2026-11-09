@@ -75,15 +75,19 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
     /** Volt in front with a charge running, then Home: the owner's real path, through MainActivity.onPause. */
     private void leaveWhileCharging(String what){
         ensureFront();
-        main(()->link.charging(ON));
-        settle();
-        // Three 2 s polls in front, so the armed reading is a fresh "charging".
-        SystemClock.sleep(6*S);
-        await(()->onMain(()->ble.ready()&&Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))),10000,"No fresh charging reading to arm on");
+        readChargingInFront();
         getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(()->onMain(()->!service.isVisible()),10000,"Volt never left the foreground");
         await(()->isCard(),20000,what+": the live card did not appear after leaving Volt");
         log(what+": left Volt, card showing: "+notice());
+    }
+    /** Coming back in front, the first 2 s poll waits out the 15 s one already queued, so allow one background poll. */
+    private void readChargingInFront(){
+        main(()->{link.charging(ON);link.home();});
+        settle();
+        await(()->onMain(()->ble.ready()&&Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))),StatusCadence.POLL_SLOW_MS+10*S,"No fresh charging reading to arm on");
+        // A couple of 2 s polls in front, so the armed reading is a fresh "charging".
+        SystemClock.sleep(4*S);
     }
     private void ensureFront(){
         if(onMain(()->service.isVisible()))return;
@@ -164,10 +168,7 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
      */
     private void notificationsBlockedHasNoEffectiveHold(){
         ensureFront();
-        main(()->link.charging(ON));
-        settle();
-        SystemClock.sleep(6*S);
-        await(()->onMain(()->ble.ready()&&Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))),10000,"No fresh charging reading to arm on");
+        readChargingInFront();
         NotificationManager manager=getTargetContext().getSystemService(NotificationManager.class);
         main(()->{android.app.NotificationChannel channel=new android.app.NotificationChannel("scooter","x",NotificationManager.IMPORTANCE_NONE);manager.createNotificationChannel(channel);});
         android.app.NotificationChannel after=manager.getNotificationChannel("scooter");
