@@ -80,7 +80,7 @@ final class QuickAccessGrid extends ViewGroup {
             // whatever else holds the control right now (moving, locked).
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
-            String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value, featureLive);
+            String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);
             String state = feature == null || feature.sensitive && !unmapped ? ""
                     : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
                     : lockState != null ? lockState

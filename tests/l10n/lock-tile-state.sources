@@ -1,2 +1,2 @@
-# The electronic lock's Setting tile and Quick access button read as its state (Locked/Unlocked), not On/Off.
+# The electronic lock's tile and Quick access button: state words in Turkish and Polish only; the padlock follows the last known state everywhere.
 tests/l10n/LockStateTextTest.java
