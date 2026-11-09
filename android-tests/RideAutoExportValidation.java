@@ -669,13 +669,15 @@ public final class RideAutoExportValidation extends Instrumentation {
         Notification n = notice(78);
         check(T.serviceAutoSaveFailed().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TITLE)) && T.serviceAutoSaveFolder().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TEXT)), "Notification title and text from the catalog");
         check("scooter".equals(n.getChannelId()), "On the existing scooter channel");
-        String nightMode = nightMode();
+        boolean createdDark = (activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         shell("cmd uimode night yes"); shell("cmd statusbar expand-notifications"); SystemClock.sleep(1800);
         screenshot("06-failure-notification-dark");
         shell("cmd uimode night no"); SystemClock.sleep(1800);
         screenshot("06-failure-notification-light");
-        // Back to the mode Volt was created in while it is hidden, or showing it again relaunches MainActivity and strands `activity`.
-        shell("cmd uimode night " + nightMode); SystemClock.sleep(1800);
+        // Back to the theme Volt was created in while it is hidden, or showing it again relaunches MainActivity and strands `activity`.
+        // A fixed yes/no on purpose: a restored auto or custom schedule can defer its theme until the screen goes off, so a later show could still relaunch.
+        // The emulator stays on that fixed mode; these runs are disposable.
+        shell("cmd uimode night " + (createdDark ? "yes" : "no")); SystemClock.sleep(1800);
         shell("cmd statusbar collapse"); SystemClock.sleep(800);
         dismissNotice(78);
         screenOnAndShow();
@@ -899,13 +901,6 @@ public final class RideAutoExportValidation extends Instrumentation {
         } catch (IOException e) { throw new IllegalStateException(command, e); }
     }
     private void shell(String command) { shellText(command); }
-    /** The emulator's night mode as `cmd uimode night` reports and accepts it: yes, no, auto or a custom mode. */
-    private String nightMode() {
-        String output = shellText("cmd uimode night");
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("Night mode: (\\w+)").matcher(output);
-        check(m.find(), "Night mode readable: " + output);
-        return m.group(1);
-    }
     private static String sha(String text) {
         try { StringBuilder b = new StringBuilder(); for (byte x : MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))) b.append(String.format("%02x", x)); return b.toString(); }
         catch (Exception e) { throw new IllegalStateException(e); }
