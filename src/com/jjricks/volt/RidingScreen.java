@@ -81,7 +81,7 @@ final class RidingScreen implements AppScreen {
     private final View stoppedLock;
     private final FrameLayout recordDisc;
     private final LinearLayout stoppedControls;
-    private final RidingStoppedMotion stoppedMotion;
+    private RidingStoppedMotion stoppedMotion;
     /** Home's record and stop marks on the disc. */
     private final RecordGlyph recordGlyph;
     /** Whether the record disc is live now; null before the first refresh. */
