@@ -1,0 +1,18 @@
+# Dutch. Every string decided by the three-vendor translation council (l10n/decisions/nl/), beta; see l10n/README.md for each field.
+# percent_style has no space (CLDR nl, usual Dutch practice). decimal_style is an example of the separators.
+field	value
+tag	nl
+folder	values-nl
+endonym	Nederlands
+wave	1
+status	beta
+formality	je
+plurals	one,other
+quote_style	‘…’ “…”
+percent_style	%1$s%%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

@@ -126,7 +126,7 @@ public final class RideExportEverythingTest {
             File own = p.file.getParentFile();
             check(p.text == null && p.file.isFile() && RideExportFiles.isStaging(own) && own.getParentFile().equals(f.cache)
                     && p.owned.equals(own) && Objects.requireNonNull(own.list()).length == 1, "Everything is written into a staging folder of its own");
-            check(p.file.getName().equals(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id)), "Under its saved name");
+            check(p.file.getName().equals(RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(id, s))), "Under its saved name");
             check(!new File(f.cache, "ride-" + id + "-everything.json").exists(), "No fixed per-ride file in the cache");
             byte[] bytes = p.bytes();
             p.discard();
@@ -148,7 +148,7 @@ public final class RideExportEverythingTest {
             File staging = RideExportFiles.newStaging(f.cache, System.currentTimeMillis());
             RideExportFiles.Payload c = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, id, f.rides, s, f.phone, track, f.cache, "1.0");
             File staged;
-            try { staged = RideExportFiles.stage(staging, RideExportFiles.Format.EVERYTHING_JSON, id, c); } finally { c.discard(); }
+            try { staged = RideExportFiles.stage(staging, RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(id, s), c); } finally { c.discard(); }
             check(!c.owned.exists() && Arrays.equals(Files.readAllBytes(staged.toPath()), bytes) && stagings(f.cache).equals(Collections.singletonList(staging)),
                     "Several files: the staged copy stays, Everything's own folder is gone");
             RideExportFiles.remove(staging);
@@ -192,9 +192,10 @@ public final class RideExportEverythingTest {
         try {
             String id = combinedRide(f, 1792026000000L, 40, "America/Boise", true);
             File file = export(f, id, "1.13.0");
-            check(file.getName().equals(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id)) && RideExportFiles.isStaging(file.getParentFile())
+            String saved = RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(id, f.rides.get(id)));
+            check(file.getName().equals(saved) && RideExportFiles.isStaging(file.getParentFile())
                     && file.getParentFile().getParentFile().equals(f.cache), "Written into its own staging folder in the cache: " + file);
-            check(RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, id).equals("ride-" + id.substring(0, 8) + "-everything.json")
+            check(saved.matches("ride-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-" + id.substring(0, 8) + "-everything\\.json")
                     && RideExportFiles.Format.EVERYTHING_JSON.mime.equals("application/json"), "Saved name and type");
             String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
             Map<String, Object> root = obj(Json.parse(text));
