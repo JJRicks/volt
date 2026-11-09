@@ -282,15 +282,17 @@ public final class LearnedRangeEstimate {
          * at least 95% of the ride has power readings, and the missing share is scaled in.
          */
         private Double rideWh(RideStore.Summary s) {
-            if (s.recovered || s.clockDiscontinuities > 0 || s.odometerReset || charged || s.netConsumptionWh == null
-                    || s.unconfirmedDirectionCoverageMs > 0 || !positive(s.distanceKm) || s.distanceKm < .2) return null;
+            // A scooter with unsigned current still measures its draw, so its energy model keeps working.
+            Double net = s.netConsumptionWh != null ? s.netConsumptionWh : s.unsignedDrawWh;
+            if (s.recovered || s.clockDiscontinuities > 0 || s.odometerReset || charged || net == null
+                    || !positive(s.distanceKm) || s.distanceKm < .2) return null;
             if (s.endWallMs < s.startWallMs || Math.abs((s.endWallMs - s.startWallMs) - s.elapsedMs) > 5000) return null;
             long elapsed = parkedTail(s) ? complete.elapsedMs : s.elapsedMs;
             if (elapsed < 60000 || s.movingMs < 30000 || !positive(s.speedIntegratedDistanceKm)
                     || Math.abs(s.distanceKm - s.speedIntegratedDistanceKm) > Math.max(.3, s.distanceKm * .25)) return null;
             double electrical = Math.min(1, s.electricalCoverageMs / (double) elapsed), speed = Math.min(1, s.speedCoverageMs / (double) elapsed);
-            if (electrical < MIN_ELECTRICAL_COVERAGE || speed < MIN_ELECTRICAL_COVERAGE || s.netConsumptionWh <= 0) return null;
-            return s.netConsumptionWh / electrical;
+            if (electrical < MIN_ELECTRICAL_COVERAGE || speed < MIN_ELECTRICAL_COVERAGE || net <= 0) return null;
+            return net / electrical;
         }
         /** A ride Volt ended after a parked or went-quiet Bluetooth loss: its tail holds no distance or battery use. */
         private boolean parkedTail(RideStore.Summary s) {

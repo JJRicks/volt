@@ -4,3 +4,4 @@ src/com/jjricks/volt/RecordingPill.java
 src/com/jjricks/volt/RidingFocus.java
 src/com/jjricks/volt/RidingValues.java
 tests/l10n/RecordingPillTest.java
+src/com/jjricks/volt/PowerSign.java
