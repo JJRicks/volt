@@ -85,7 +85,8 @@ public final class RidingFramesTest {
 
         // Power without a known 0x79 direction is a magnitude, drawn neutral; with one, regen stays negative.
         RidingValues unsigned = new RidingValues();
-        unsigned.sample(RidingValues.POWER_KEY, -300, 0x72, 1000);
+        unsigned.sample(RidingValues.SIGN_KEY, 254, 0x79, 500);
+        unsigned.sample(RidingValues.POWER_KEY, 300, 0x72, 1000);
         RidingValues.TracePoint p = unsigned.powerTrace(1000, RidingFrames.TRACE_WINDOW_MS).get(0);
         check(p.directionUnknown && p.value == 300, "an unsigned reading is a neutral magnitude, never regen");
         RidingValues signed = new RidingValues();

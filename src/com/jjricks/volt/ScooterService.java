@@ -103,6 +103,7 @@ public final class ScooterService extends Service {
     private final ChargeLiveHold chargeLive=new ChargeLiveHold();
     private boolean chargeLiveHeld,chargeLiveUpdating;
     private final ChargeLiveState.Reposts chargeLiveReposts=new ChargeLiveState.Reposts();
+    private final ChargeLiveDial chargeLiveDial=new ChargeLiveDial();
     /** The live card the last notification() built (null: none); what a connection notice post then carries. */
     private ChargeLiveState chargeLiveBuilt;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
@@ -671,9 +672,22 @@ public final class ScooterService extends Service {
     }
     /** Fresh paired data first; recognized models get defaults without requiring capture setup. */
     public ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings){
+        return chargingEstimate(readings,chargingValue(readings,"charge_limit_percent"));
+    }
+    /**
+     * The charging hero's countdown to a charge alert's level, or null when it has none (ChargeAlertPolicy.countdownLevel).
+     * The alert's level is only this estimate's target: charge_limit_percent, charge limits, Charge done by, the live
+     * card and the widgets never see it. Reading the same frame twice is harmless (ChargeReferenceGate).
+     */
+    public ChargingEstimate.Result chargeAlertEstimate(Map<String,TelemetryHistory.Reading> readings){
+        ChargingEstimate.Value soc=chargingValue(readings,"battery_percent");
+        Integer level=ChargeAlertPolicy.countdownLevel(chargeAlertsOffered(),chargeAlerts(),soc.fresh?soc.number:null);
+        return level==null?null:chargingEstimate(readings,new ChargingEstimate.Value(level.doubleValue(),true,soc.observedMs));
+    }
+    private ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(chargingValue(readings,"charging_state"),chargingValue(readings,"voltage_v"),
-                chargingValue(readings,"current_a"),soc,rated,chargingValue(readings,"charge_limit_percent"));
+                chargingValue(readings,"current_a"),soc,rated,target);
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
@@ -1126,7 +1140,7 @@ public final class ScooterService extends Service {
             boolean held=chargeLiveHold();
             if(held!=chargeLiveHeld){
                 if(!held)captureLiveUpdate();// the card's last moment: keep Android's verdict for the developer row
-                chargeLiveHeld=held;chargeLiveReposts.reset();
+                chargeLiveHeld=held;chargeLiveReposts.reset();chargeLiveLook.reset();
                 // Out of sight, the end of the hold is like leaving Volt: the usual ten seconds, then sleep.
                 if(!held&&!visible)stopAfterChargeLive();
                 applyWorkPolicy(false);updateNotification();
@@ -1157,7 +1171,7 @@ public final class ScooterService extends Service {
         ChargeLiveState.Input in=new ChargeLiveState.Input();
         in.scooter=profile==null?null:profile.displayName();in.detail=chargeLiveDetail();in.nowWall=System.currentTimeMillis();
         boolean cached=facts.profile.equals(chargeLiveCacheProfile);
-        in.percent=facts.percent!=null?facts.percent:cached?chargeLivePercent:null;in.limit=facts.connected?facts.limit:cached?chargeLiveLimit:null;
+        in.percent=facts.percent!=null?facts.percent:cached?chargeLivePercent:null;in.percentStale=facts.percent==null;in.limit=facts.connected?facts.limit:cached?chargeLiveLimit:null;
         in.reconnecting=isChargeRecording()?chargeRecovery!=null&&chargeRecovery.recovering():!facts.connected;
         in.waiting=facts.scheduled&&!Boolean.TRUE.equals(facts.charging);
         if(in.waiting){
@@ -1177,16 +1191,21 @@ public final class ScooterService extends Service {
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
         // Android 16 and later, where allowed: the same card asked to be a Live Update, with ProgressStyle's bar.
-        boolean promoted=promoteChargeLive(builder,live,capture);
-        if(!promoted&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
+        boolean asked=promoteChargeLive(builder,live,capture);
+        if(!asked&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         builder.setShowWhen(false);
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
         if(capture!=null)big.setSummaryText(capture);
-        if(!promoted)builder.setStyle(big);
+        if(!asked)builder.setStyle(big);
+        // Only a card Android really promoted takes the dial and the shorter title (ChargeLiveUpdate.Look): asking isn't enough, Android can decline. Everything else stays the plain card, the level in its title.
+        android.graphics.drawable.Icon dial=asked&&chargeLiveLook.dial()&&live.dialPercent!=null?chargeLiveDial.icon(live.dialPercent):null;
+        if(dial!=null)builder.setLargeIcon(dial).setContentTitle(live.dialTitle);
         if(live.publicTitle==null)return;
         Notification.Builder lock=new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification).setColor(red)
                 .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
         if(live.publicSubText!=null)lock.setSubText(live.publicSubText);
+        // The dial, but not the shorter title: the lock screen's title says the level in words. Android gives the dial no description, and the bar's own value is a share of the limit.
+        if(dial!=null)lock.setLargeIcon(dial);
         if(live.progress>=0)lock.setProgress(live.max,live.progress,false);
         lock.setShowWhen(false);
         builder.setPublicVersion(lock.build());
@@ -1197,6 +1216,8 @@ public final class ScooterService extends Service {
     private boolean liveUpdateAsked;
     private final ChargeLiveUpdate.Last liveUpdateLast=new ChargeLiveUpdate.Last();
     private boolean liveUpdateRestored;
+    /** What Android did with this hold's card: the dial waits for it. */
+    private final ChargeLiveUpdate.Look chargeLiveLook=new ChargeLiveUpdate.Look();
     static final String CHARGE_LIVE_UPDATE_LAST="charge_live_update_last";
     /** A moment after each post of the live card: Android decides promotion as it posts, so read it back then. */
     private final Runnable liveUpdateProbe=this::captureLiveUpdate;
@@ -1245,7 +1266,7 @@ public final class ScooterService extends Service {
             for(ChargeLiveUpdate.Point mark:bar.points)points.add(new Notification.ProgressStyle.Point(mark.position).setColor(liveUpdateColor(mark.role)));
             Notification.ProgressStyle style=new Notification.ProgressStyle().setProgressSegments(segments).setProgressPoints(points)
                     .setProgress(bar.progress).setProgressIndeterminate(bar.indeterminate)
-                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification));
+                    .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_charge_bar_bolt));
             builder.setStyle(style);
             if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
             if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
@@ -1291,7 +1312,9 @@ public final class ScooterService extends Service {
             for(android.service.notification.StatusBarNotification n:getSystemService(NotificationManager.class).getActiveNotifications())
                 if(n.getId()==71)promoted=(n.getNotification().flags&Notification.FLAG_PROMOTED_ONGOING)!=0;
         }catch(RuntimeException|LinkageError unknown){}
-        if(promoted==null||!liveUpdateLast.observed(promoted,System.currentTimeMillis())||settings==null)return;
+        if(promoted==null)return;
+        if(chargeLiveLook.observed(promoted)&&chargeLiveShown())updateNotification();
+        if(!liveUpdateLast.observed(promoted,System.currentTimeMillis())||settings==null)return;
         try{
             settings.edit().putString(CHARGE_LIVE_UPDATE_LAST,new JSONObject().put("status",liveUpdateLast.status().name())
                     .put("wall",liveUpdateLast.wallMs()).toString()).apply();

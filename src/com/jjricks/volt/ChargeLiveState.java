@@ -30,6 +30,8 @@ public final class ChargeLiveState {
     public static final class Input {
         /** The battery level, the last one seen when not fresh; null when none was seen. */
         public Integer percent;
+        /** percent is an old reading (connected, but no fresh level came in); the dial won't show it. */
+        public boolean percentStale;
         /** The scooter's own charge limit, or null for a model without one (or none read yet). */
         public Integer limit;
         /** Minutes left to the limit (or to full without one); null when not known. */
@@ -58,13 +60,20 @@ public final class ChargeLiveState {
     public final Detail detail;
     /** The battery level shown (0 to 100), the last one seen while out of reach; null without one. */
     public final Integer percent;
+    /**
+     * The level for the promoted card's dial (ChargeLiveDial): a fresh reading while charging or waiting. Null when the
+     * level isn't known right now (reconnecting, or no fresh reading): no dial then, and the card keeps its plain title.
+     */
+    public final Integer dialPercent;
+    /** The promoted card's title, not the lock screen's: the target alone when the dial shows the level ("Charging to 80%"), or the plain title. */
+    public final String dialTitle;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
-            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent, Integer watts) {
+            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent, Integer watts, Integer dialPercent, String dialTitle) {
         this.kind = kind;this.title = title;this.text = text;this.subText = subText;this.publicTitle = publicTitle;
         this.publicText = publicText;this.publicSubText = publicSubText;this.progress = progress;this.max = max;
         this.dedupeKey = dedupeKey;this.detail = detail;
-        this.percent = percent;this.watts = watts;
+        this.percent = percent;this.watts = watts;this.dialPercent = dialPercent;this.dialTitle = dialTitle;
     }
 
     /** clock formats a wall time as the phone's clock (DisplayTime.clock in the service). */
@@ -112,8 +121,12 @@ public final class ChargeLiveState {
         // Whether one is shown is in: losing the reading or getting it back reposts at once.
         // The finish time as shown, not the minutes left: a minute that passes with the same finish time changes nothing.
         Integer shownWatts = kind == Kind.CHARGING ? watts : null;
-        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name, shownWatts != null);
-        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct, shownWatts);
+        // Only a level read just now goes on the dial. Reconnecting or without a fresh read there is none, and the plain title keeps saying what it knows.
+        Integer dialPercent = kind != Kind.RECONNECTING && !in.percentStale ? pct : null;
+        String dialTitle = dialPercent == null ? title : kind == Kind.WAITING ? T.chargeLiveTitleWaitingTime(clock.apply(in.startWallMs))
+                : capped ? T.chargingAlertWatchTitle(Fmt.integer(max)) : T.chargingAlertWatchFull();
+        java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name, shownWatts != null, dialPercent != null);
+        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct, shownWatts, dialPercent, dialTitle);
     }
 
     /**
@@ -154,6 +167,25 @@ public final class ChargeLiveState {
             int moved = Math.abs(now - shown);
             return sinceMs >= POWER_PACE_MS && moved >= POWER_MIN_W && moved >= POWER_MIN_SHARE * shown;
         }
+    }
+
+    /** The dial's number and text size. */
+    public static final class DialFit {
+        public final String text;public final float size;
+        DialFit(String text, float size) { this.text = text;this.size = size; }
+    }
+
+    /**
+     * The dial's number, narrow-label style: the percent at full size, smaller only down to floor, and past that the
+     * bare number (a language's wider "100 %") rather than tiny text or a broken one.
+     */
+    public static DialFit dialFit(String percent, String bare, float size, float floor, float room, java.util.function.ToDoubleFunction<String> width) {
+        double wide = width.applyAsDouble(percent);
+        if (wide <= room) return new DialFit(percent, size);
+        float fitted = (float) (size * room / wide);
+        if (fitted >= floor) return new DialFit(percent, fitted);
+        double bareWide = width.applyAsDouble(bare);
+        return new DialFit(bare, bareWide <= room ? size : (float) (size * room / bareWide));
     }
 
     /** The card's one action: it ends Volt's hold and lets the connection go, and never touches charging (owner, 2026-11-06). */

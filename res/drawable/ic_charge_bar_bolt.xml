@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="72" android:viewportHeight="72">
+    <!-- The live card's bar marker: a notification can't know the card's theme, so the white bolt carries a dark outline that reads on light and dark. -->
+    <group android:translateX="4" android:translateY="4">
+        <path android:fillColor="#FFFFFFFF" android:strokeColor="#FF1E1F1C"
+            android:strokeWidth="5" android:strokeLineJoin="round"
+            android:pathData="M40,2 L12,36 L28,36 L23,61 L53,25 L36,25 Z" />
+    </group>
+</vector>

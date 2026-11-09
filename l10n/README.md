@@ -1891,9 +1891,14 @@ change a check inside a language or batch pull request.
   whatever the drafts and rulings say, with no model as judge or back-translator. To change a shipped text
   this way, add the line here, then `decide` and `merge.py`; editing a decisions file alone is undone by the
   next `decide`. The run stops and writes nothing when the English has changed since the owner decided (ask
-  the owner, then update or remove the line), when the text fails the checks, when a ladder or overflow rule
-  would drop it, and for a lock or alarm key, which keeps the safety path. `merge.py` and `ship_check.py`
-  fail when a decision row does not carry its owner line, so a regeneration that lost one cannot ship.
+  the owner, then update the line, or remove it only if they withdraw the decision), when the text fails the
+  checks, when a ladder or overflow rule would drop it, and for a lock or alarm key, which keeps the safety
+  path. `merge.py --check` and `ship_check.py` fail, and `merge.py` exits 1 before writing any resource, when
+  the lines and the decision rows are out of step in either direction: a line whose row lacks its text or
+  was decided from an older English than the line (run `decide`), or an `owner-decided` row with no line.
+  Restore that line; never remove one to get past the check. A withdrawn decision is the line's removal and
+  then `decide`, which gives the key back to the council; with no current drafts it falls back to English
+  until a top-up drafts it.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
   key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
   and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
