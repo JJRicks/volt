@@ -5,7 +5,7 @@
     <string name="stats_tab_overview" volt:src="ad5db4edb299a9ca622aa7b531d7e30f1216f17c">Przegląd</string>
     <string name="stats_tab_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Odczyty</string>
     <string name="stats_tab_charts" volt:src="e70c83922397efd17a9ff999248dd873c7cc2019">Wykresy</string>
-    <string name="stats_tab_diagnostics" volt:src="1a6b5eb30d87b7a41c7f72b3a94300e46fcf920f">Diagnostyka</string>
+    <string name="stats_tab_diagnostics" volt:src="1a6b5eb30d87b7a41c7f72b3a94300e46fcf920f">Diagnoza</string>
     <string name="stats_overview_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Oczekiwanie na odczyty</string>
     <string name="stats_battery_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Brak odczytu</string>
     <string name="stats_battery_last_seen" volt:src="a0e42ea848425633bedcf0672916de65f04613e0">Ostatni odczyt</string>

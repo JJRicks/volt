@@ -8,8 +8,9 @@
     <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Należy poczekać na zakończenie testu harmonogramu</string>
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">Konserwacja danych aplikacji już trwa</string>
     <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Należy poczekać na zakończenie zapisywania danych z telefonu</string>
+    <string name="service_wait_auto_save" volt:src="fef27d2d2fea5a2564eabf036659c6992c3e4157">Należy poczekać na zakończenie zapisywania kopii przejazdu</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Najpierw należy dokończyć bieżący eksport zapisu ładowania</string>
-    <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Należy poczekać na zakończenie ustawiania harmonogramu ładowania</string>
+    <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Należy poczekać, aż aplikacja Volt zakończy ustawianie harmonogramu ładowania</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Należy poczekać na zakończenie pomiaru w funkcji „Termin końca ładowania”</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Należy poczekać na zakończenie czyszczenia historii</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Najpierw należy dokończyć konfigurację właściciela i przywrócić ustawienie dziennika NAVEE</string>
@@ -35,14 +36,50 @@
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Standardowa ładowarka · ładowarka przerwała ładowanie · oczekiwanie na wznowienie</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Standardowa ładowarka · wstrzymano do zaplanowanego startu</string>
     <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Standardowa ładowarka · próbki lokalne: %1$s</string>
+    <plurals name="service_charge_stock_samples_count" volt:src="9d16c78dbd36572bab00578db0e0a3551ca03acf">
+        <item quantity="one">Standardowa ładowarka · %1$s lokalna próbka</item>
+        <item quantity="few">Standardowa ładowarka · %1$s lokalne próbki</item>
+        <item quantity="many">Standardowa ładowarka · %1$s lokalnych próbek</item>
+        <item quantity="other">Standardowa ładowarka · %1$s lokalnej próbki</item>
+    </plurals>
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Szybka ładowarka · ładowarka przerwała ładowanie · oczekiwanie na wznowienie</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Szybka ładowarka · wstrzymano do zaplanowanego startu</string>
     <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Szybka ładowarka · próbki lokalne: %1$s</string>
+    <plurals name="service_charge_fast_samples_count" volt:src="6800ddcf187c635621dce44f3a5619535ae5d60a">
+        <item quantity="one">Szybka ładowarka · %1$s lokalna próbka</item>
+        <item quantity="few">Szybka ładowarka · %1$s lokalne próbki</item>
+        <item quantity="many">Szybka ładowarka · %1$s lokalnych próbek</item>
+        <item quantity="other">Szybka ładowarka · %1$s lokalnej próbki</item>
+    </plurals>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Nie stosuje się, dopóki ładowarka nie jest znana · zachowane zapisy: %1$s</string>
+    <plurals name="service_charge_learning_unknown_count" volt:src="a6fbf8526f101a68d48f3c2712760fe256ed14cb">
+        <item quantity="one">Nie stosuje się, dopóki ładowarka nie będzie znana · %1$s przechowywany zapis</item>
+        <item quantity="few">Nie stosuje się, dopóki ładowarka nie będzie znana · %1$s przechowywane zapisy</item>
+        <item quantity="many">Nie stosuje się, dopóki ładowarka nie będzie znana · %1$s przechowywanych zapisów</item>
+        <item quantity="other">Nie stosuje się, dopóki ładowarka nie będzie znana · %1$s przechowywanego zapisu</item>
+    </plurals>
     <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">Kwalifikujące się ładowania szybką ładowarką: %1$s · zachowane zapisy: %2$s</string>
+    <plurals name="service_charge_recordings_stored" volt:src="7d1afdde6652f343523a9dc4d891d80a70cf73f2">
+        <item quantity="one">%1$s przechowywany zapis</item>
+        <item quantity="few">%1$s przechowywane zapisy</item>
+        <item quantity="many">%1$s przechowywanych zapisów</item>
+        <item quantity="other">%1$s przechowywanego zapisu</item>
+    </plurals>
     <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">Kwalifikujące się ładowania szybką ładowarką: %1$s · zachowane zapisy: %2$s</string>
+    <plurals name="service_charge_learning_fast_count" volt:src="895a8b5a30809d23bccf65fb7966af79635b1696">
+        <item quantity="one">%1$s kwalifikujące się ładowanie szybką ładowarką · %2$s</item>
+        <item quantity="few">%1$s kwalifikujące się ładowania szybką ładowarką · %2$s</item>
+        <item quantity="many">%1$s kwalifikujących się ładowań szybką ładowarką · %2$s</item>
+        <item quantity="other">%1$s kwalifikującego się ładowania szybką ładowarką · %2$s</item>
+    </plurals>
     <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">Kwalifikujące się ładowania standardową ładowarką: %1$s · zachowane zapisy: %2$s</string>
     <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">Kwalifikujące się ładowania standardową ładowarką: %1$s · zachowane zapisy: %2$s</string>
+    <plurals name="service_charge_learning_stock_count" volt:src="503999cd4b9fd7618f17940c7888894eda44cb2f">
+        <item quantity="one">%1$s kwalifikujące się ładowanie standardową ładowarką · %2$s</item>
+        <item quantity="few">%1$s kwalifikujące się ładowania standardową ładowarką · %2$s</item>
+        <item quantity="many">%1$s kwalifikujących się ładowań standardową ładowarką · %2$s</item>
+        <item quantity="other">%1$s kwalifikującego się ładowania standardową ładowarką · %2$s</item>
+    </plurals>
     <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Wyczyszczono zapisy ładowania</string>
     <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">Nie udało się wyczyścić zapisów ładowania</string>
     <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">Brak zachowanych zapisów ładowania dla tej hulajnogi</string>
@@ -63,7 +100,7 @@
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">nie udało się połączyć</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth wyłączony</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">utracono uprawnienie</string>
-    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">zmieniła się tożsamość hulajnogi</string>
+    <string name="service_charge_stop_identity_changed" volt:src="797bb568d0e9ea59223f2eeec94d76db7460c586">inna hulajnoga</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Zatrzymano zapis; nie udało się sfinalizować pliku ładowania</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Należy poczekać na wykrycie ładowarki lub wybrać ładowarkę</string>
     <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">Funkcja „Termin końca ładowania” nie uruchomiła ładowania</string>
@@ -85,6 +122,8 @@
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Aplikacja Volt została zamknięta podczas pomiaru. Funkcja „Termin końca ładowania” jest wyłączona.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">Ustawiono funkcję „Termin końca ładowania”. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">Nie ustawiono funkcji „Termin końca ładowania”. %1$s</string>
+    <string name="service_done_start_sent" volt:src="be03d1d959bcab58892410b7a62f52b0ede8e456">Wysłano do hulajnogi start ładowania: %1$s. Volt może się rozłączyć.</string>
+    <string name="service_done_safe_to_disconnect" volt:src="c4cb42903ef51f1db0f2cdda1172ed0f4e631d20">%1$s Volt może się rozłączyć.</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">Ustawiono funkcję „Termin końca ładowania”</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">Nie ustawiono funkcji „Termin końca ładowania”</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Należy ponownie otworzyć aplikację Volt</string>
@@ -106,7 +145,19 @@
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundę przed startem.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundę po starcie.</string>
     <string name="service_test_passed_seconds_before" volt:src="4d0a7e2e8b19afa3560c66ac24c8f4856e7e5325">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s s przed startem.</string>
+    <plurals name="service_test_passed_before_count" volt:src="cbe3c4cf9a15ba3979dff54dd084d36bb12d1828">
+        <item quantity="one">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundę przed startem.</item>
+        <item quantity="few">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundy przed startem.</item>
+        <item quantity="many">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekund przed startem.</item>
+        <item quantity="other">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundy przed startem.</item>
+    </plurals>
     <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s s po starcie.</string>
+    <plurals name="service_test_passed_after_count" volt:src="a4537fc2503749b4a58e4633fdc5281cd9dca570">
+        <item quantity="one">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundę po starcie.</item>
+        <item quantity="few">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundy po starcie.</item>
+        <item quantity="many">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekund po starcie.</item>
+        <item quantity="other">Zegar i harmonogram hulajnogi działają. Ładowanie wznowiło się %1$s sekundy po starcie.</item>
+    </plurals>
     <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
         <item quantity="one">około %1$d minuty</item>
         <item quantity="few">około %1$d minut</item>
@@ -131,8 +182,20 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Najpierw należy wyjść z symulacji</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Kończenie poprzedniego przejazdu</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Przejazd zapisano automatycznie</string>
+    <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Nie zapisano kopii przejazdu</string>
+    <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Aplikacja Volt nie ma dostępu do folderu automatycznego zapisywania. Należy otworzyć aplikację Volt i ponownie wybrać folder. Przejazdy są bezpieczne w aplikacji Volt.</string>
+    <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Aplikacja Volt nie mogła zapisać danych w folderze automatycznego zapisywania. Spróbuje ponownie po następnym przejeździe. Przejazdy są bezpieczne w aplikacji Volt.</string>
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Utracono połączenie Bluetooth na postoju</string>
     <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · utracono połączenie Bluetooth na postoju</string>
+    <string name="service_ride_quiet_lost" volt:src="4e91beb92f47ac8e8850aadc386fbe314269da11">Hulajnoga wyłączona lub poza zasięgiem</string>
+    <string name="service_ride_quiet_lost_at" volt:src="458752a56ccec967956520f1e7e7fb3d1bbf6372">Hulajnoga wyłączona lub poza zasięgiem. Koniec: %1$s (ostatni odczyt).</string>
+    <string name="service_ride_quiet_lost_label_at" volt:src="14fea5a72b31cad36cd59e08ac7fd56ca8968c4d">%1$s · Hulajnoga wyłączona lub poza zasięgiem. Koniec: %2$s (ostatni odczyt).</string>
+    <string name="service_ride_phone_bluetooth_off" volt:src="1cc26a9f52c231a705e74ae1b9c9e1a50ecbc99b">Bluetooth w telefonie pozostał wyłączony</string>
+    <string name="service_ride_phone_bluetooth_off_at" volt:src="1f8822cd34c4bc1bf78d319141b1ea138678cba4">Bluetooth w telefonie pozostał wyłączony. Koniec: %1$s (ostatni odczyt).</string>
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:src="33246da082f7b90d3ef4f36414e0451cf6d4c98b">%1$s · Bluetooth w telefonie pozostał wyłączony. Koniec: %2$s (ostatni odczyt).</string>
+    <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Brak ruchu przez 10 minut</string>
+    <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Brak ruchu przez 10 minut. Koniec: %1$s (ostatni ruch).</string>
+    <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Brak ruchu przez 10 minut. Koniec: %2$s (ostatni ruch).</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Połączenie z hulajnogą i nagrywanie</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Pomiar ładowania dla funkcji „Termin końca ładowania”</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Testowanie zaplanowanego ładowania</string>
