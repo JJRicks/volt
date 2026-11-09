@@ -270,9 +270,10 @@ public final class RidesScreen implements AppScreen {
         }
     }
     private String defaultRideName() { return defaultRideName(host); }
+    static String defaultRideName(ScreenHost host) { return defaultRideName(host.service()); }
     /** A new ride's name: date, time and the scooter's fresh drive mode, when it is known. */
-    static String defaultRideName(ScreenHost host) {
-        ScooterService service = host.service(); SharedPreferences preferences = service.settings;
+    static String defaultRideName(ScooterService service) {
+        SharedPreferences preferences = service.settings;
         String mode = "";
         long now = android.os.SystemClock.elapsedRealtime();
         ScooterProfiles.Profile active = service.profiles.active(), bound = service.ble.profile();
@@ -285,7 +286,7 @@ public final class RidesScreen implements AppScreen {
                 break;
             }
         }
-        return DisplayTime.rideName(host.activity(), preferences, System.currentTimeMillis(), mode);
+        return DisplayTime.rideName(service, preferences, System.currentTimeMillis(), mode);
     }
     private EditText input(String hint) {
         EditText input = new EditText(host.activity()); input.setSingleLine(true); input.setHint(hint);

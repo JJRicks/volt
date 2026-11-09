@@ -6833,6 +6833,8 @@ public final class DashboardScreen implements AppScreen {
         cancelWidgetReveal(); revealWidgetId = null;
     }
 
+    boolean editing() { return editing; }
+
     public boolean back() {
         if (editing) {
             toggleEditing();

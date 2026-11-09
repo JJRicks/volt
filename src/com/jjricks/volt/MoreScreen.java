@@ -1126,6 +1126,8 @@ public final class MoreScreen implements AppScreen {
         preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        // Off by default. ScooterService/AutoStartPolicy decide; this only stores the choice.
+        preferenceToggle(connection, "walk", T.morePrefsAutoRecord(), T.morePrefsAutoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false);
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
@@ -1156,6 +1158,9 @@ public final class MoreScreen implements AppScreen {
         LinearLayout box = group();
         box.setTag("preference_riding_display");
         // Off by default: the status bar keeps the phone's clock and battery (#254). Applies on the next entry.
+        // Off by default. MainActivity/AutoStartPolicy decide; this only stores the choice.
+        preferenceToggle(box, "speed", T.ridingDisplayAutoOpen(), T.ridingDisplayAutoOpenSub(), AutoStartPolicy.AUTO_RIDE_MODE_KEY, false)
+                .view.setTag("preference_riding_auto_open");
         Row hideBar = preferenceToggle(box, "screen", T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(),
                 RidingBars.HIDE_STATUS_BAR_KEY, false);
         hideBar.view.setTag("preference_riding_hide_status_bar");

@@ -175,6 +175,7 @@ public final class BackupPlanTest {
         BackupTransaction.apply(phone, plan);
         Map<String, Map<String, Object>> after = phone.preferences(); Map<String, Object> app = after.get("app_settings");
         check("light".equals(app.get("theme")) && !app.containsKey("stats_chart_window") && !app.containsKey("keep_screen_awake") && Boolean.TRUE.equals(app.get("ride_auto_stop")), "App preferences: the backup wins and keys it lacks go back to default");
+        check(!app.containsKey("auto_record_rides") && !app.containsKey("riding_auto_open"), "a backup older than the auto-start switches leaves them absent, and absent is off");
         check(app.get("last_page").equals("home") && app.get("more_away_boot").equals(9), "device keys stay");
         check(Boolean.TRUE.equals(app.get("ride_auto_export_json")) && Boolean.FALSE.equals(app.get("ride_auto_export_route_csv")), "a phone with only the old Route CSV switch on, untouched since the update, backs up the ride JSON key on and Route CSV off");
         check(Boolean.TRUE.equals(app.get(RideAutoExport.ON)), "so an older Volt restoring it turns on its ride JSON switch, and this one restores auto-save on");

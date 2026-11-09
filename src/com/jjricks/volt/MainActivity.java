@@ -319,7 +319,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void navigateBack(){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
-        if(riding!=null){closeRiding();return;}
+        if(riding!=null){riderClosedRiding();return;}
         if(screen instanceof DashboardScreen&&((DashboardScreen)screen).back())return;
         if(screen instanceof ControlsScreen&&((ControlsScreen)screen).back())return;
         if(screen instanceof MoreScreen&&((MoreScreen)screen).back())return;
@@ -384,7 +384,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
-        observeConnectionFeedback(false);maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -449,7 +449,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
-            screen=new RidingScreen(this,riding,this::closeRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
+            screen=new RidingScreen(this,riding,this::riderClosedRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
         }
@@ -548,6 +548,20 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile profile=scooterService.profiles==null?null:scooterService.profiles.active();
         return profile==null?"unconfigured":profile.id;
     }
+    /** Auto ride mode: opens at most once per connection, only on what's safe to cover. */
+    private void maybeAutoOpenRiding(){
+        if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
+        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor());
+        if(scooterService.takeAutoRideMode(clear))openRiding();
+    }
+    /** More holds Volt's setup flows, tests and text fields; Home and Scooter have editors. */
+    private boolean inSetupOrEditor(){
+        if(selectedPage.equals("more"))return true;
+        if(screen instanceof DashboardScreen)return ((DashboardScreen)screen).editing();
+        return screen instanceof ControlsScreen&&((ControlsScreen)screen).editingOrSubpage();
+    }
+    /** The rider's own exit (the back gesture or riding mode's back button) holds auto ride mode. */
+    private void riderClosedRiding(){if(riding!=null&&scooterService!=null)scooterService.autoStart.riderLeftRidingMode();closeRiding();}
     private void closeRiding(){
         if(riding==null)return;
         keepRidingTrip();riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
@@ -1708,6 +1722,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** The menu can be edited on the main page of a known scooter, while nothing is typed in search and Maintenance is closed. */
         private boolean canEdit(){return !lights&&maintenance==null&&normalize(query).isEmpty()&&!menuProfile.isEmpty();}
         private boolean editing(){return editor!=null;}
+        boolean editingOrSubpage(){return editing()||maintenance!=null||lights||!query.isEmpty();}
         /** The header's pencil, or Done while editing; hidden on the Lights page and during a search. */
         private Boolean shownEditing;
         private void updateEditAction(){

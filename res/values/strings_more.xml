@@ -164,6 +164,10 @@
     <string name="more_prefs_auto_stop" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">End rides automatically</string>
     <!-- Under the End rides automatically switch: when the recording ends. A scooter switched off at walking pace or at a stop ends the ride after about 1 minute; any other loss of the scooter (or the phone's Bluetooth switched off) after 5 minutes; and a ride that stays connected but shows no movement (no speed, odometer or trip change) for 10 minutes also ends, so waiting at traffic lights does not. "5 min" and "10 min" are minutes. -->
     <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">When the scooter turns off, stays out of reach for 5 min, or doesn\'t move for 10 min</string>
+    <!-- Switch: Volt starts a ride recording by itself when the scooter starts moving. Off by default. -->
+    <string name="more_prefs_auto_record" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">Record rides automatically</string>
+    <!-- Caption under that switch. Stopping a recording yourself turns this off for the rest of the connection. -->
+    <string name="more_prefs_auto_record_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">Starts when the connected scooter moves. After you stop a recording, waits until the scooter reconnects</string>
     <!-- Row: Android's battery setting for Volt, which decides whether long background recordings survive. -->
     <string name="more_prefs_battery" volt:screen="App preferences" volt:purpose="row">Background recording</string>
     <!-- Screen-reader text of the battery value when Android lets Volt run freely. -->

@@ -80,6 +80,7 @@ public final class ScooterService extends Service {
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
     private String trendProfile = "", recordingError;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
+    final AutoStartPolicy autoStart=new AutoStartPolicy();
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
     /** Opt-in copies of finished rides to the rider's folder (RideAutoExport); null when the service never started. */
     private RideAutoExportRunner rideAutoExport;
@@ -1759,20 +1760,43 @@ public final class ScooterService extends Service {
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
         notices.cancel(71);stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
-    public void startRide(String label){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
-            android.widget.Toast.makeText(this, T.serviceRideExitSimulation(), android.widget.Toast.LENGTH_SHORT).show();
+    public void startRide(String label){startRide(label,false);}
+    /** quiet: auto-record. It already checked these refusals (AutoStartPolicy), and shows the rider none of them. */
+    private void startRide(String label,boolean quiet){if(destroyed)return;if(isChargeRecording()){if(!quiet)android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
+            if(!quiet)android.widget.Toast.makeText(this, T.serviceRideExitSimulation(), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }if(phoneSaving()){
-            android.widget.Toast.makeText(
+            if(!quiet)android.widget.Toast.makeText(
                             this, T.serviceRideFinishing(), android.widget.Toast.LENGTH_SHORT)
                     .show();
             return;}if(rides==null||!ble.ready()||isRecording())return;try{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
             rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);
             // Re-evaluate START_STICKY after the user starts a ride, rather than retaining
             // the idle service's earlier START_NOT_STICKY result.
-            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
+            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){if(!quiet)android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
 
-    public void stopRide(){stopRide("");}
+    /** The rider's stop, from Volt or the notification. Only this one holds auto-record: automatic ride ends call the private stop. */
+    public void stopRide(){if(stopRide(""))autoStart.riderStoppedRecording();}
+    /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
+    private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
+    /**
+     * Auto-record, on every Bluetooth change and service tick, in the background too. The start goes through startRide
+     * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
+     */
+    private void observeAutoStart(long mono){
+        autoStart.observeLink(ble.connected()&&!simulating(),ble.connectionGeneration());
+        if(dataMaintenance||rides==null)return;
+        ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
+        boolean canStart=ble.ready()&&active!=null&&bound!=null&&active.id.equals(bound.id);
+        if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
+        startRide(RidesScreen.defaultRideName(this),true);
+        if(!isRecording())autoStart.recordingStartFailed();
+    }
+    /** Auto ride mode's decision for the activity, which knows what is on screen; a true answer counts as this trigger's open. */
+    boolean takeAutoRideMode(boolean screenClear){
+        if(destroyed||!autoStart.shouldOpenRidingMode(settings.getBoolean(AutoStartPolicy.AUTO_RIDE_MODE_KEY,false),autoStartMoving(SystemClock.elapsedRealtime()),screenClear))return false;
+        autoStart.rideModeOpened();return true;
+    }
     /** The one stop/save path: rider, notification and automatic stops share error handling, sensor drain and wake-lock release. */
     private boolean stopRide(String reason){if(!isRecording())return false;rideAutoStop=null;
         // rides.stop clears the active id: keep it for the automatic copy.
@@ -2048,7 +2072,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
