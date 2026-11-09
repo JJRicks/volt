@@ -1767,13 +1767,13 @@ public final class ScooterService extends Service {
             android.widget.Toast.makeText(
                             this, T.serviceRideFinishing(), android.widget.Toast.LENGTH_SHORT)
                     .show();
-            return;}if(rides==null||!ble.ready()||isRecording())return;try{beginRide(label);}catch(IOException|IllegalStateException e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
-    /** Starts the recording; the caller has done every check. startRide and auto-record both come through here. */
-    private void beginRide(String label)throws IOException{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
-            rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);
+            return;}if(rides==null||!ble.ready()||isRecording())return;try{beginRide(label);
             // Re-evaluate START_STICKY after the user starts a ride, rather than retaining
             // the idle service's earlier START_NOT_STICKY result.
-            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}
+            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
+    /** Starts the recording: startRide and auto-record both come through here, the caller having done every check. */
+    private void beginRide(String label)throws IOException{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+            rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);}
 
     public void stopRide(){stopRide("");}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
@@ -1788,7 +1788,11 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
         boolean canStart=ble.ready()&&active!=null&&bound!=null&&active.id.equals(bound.id);
         if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
-        try{beginRide(RidesScreen.defaultRideName(this));}catch(IOException|IllegalStateException ignored){/* said nothing, on purpose; held below */}
+        try{
+            beginRide(RidesScreen.defaultRideName(this));
+            // Any action but a stop re-evaluates START_STICKY, like the rider's start.
+            startService(new Intent(this,ScooterService.class).setAction("auto_record_started"));ble.refresh(false);
+        }catch(IOException|IllegalStateException ignored){/* said nothing, on purpose; held below */}
         if(!isRecording())autoStart.recordingStartFailed();
     }
     /** Auto ride mode's decision for the activity, which knows what is on screen; a true answer counts as this trigger's open. */
