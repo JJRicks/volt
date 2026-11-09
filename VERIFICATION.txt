@@ -1,3 +1,101 @@
+VOLT 1.12.1 — RIDING MODE FIXES, AUTO-START, LIVE CHARGING CARD (versionCode 56)
+November 9, 2026
+
+- Every pull request merged since 1.12.0 (#324 to #343) passed CI (core-tests
+  and web-setup) on its final head, and each merged only after an independent
+  review came back clean on that head. Each one's pure-Java suites cover its
+  change: the power bar's direction rule and unsigned rides, ride time and
+  distance from zero, the chip row's rungs, Lock and Record while stopped,
+  the auto-record and auto ride mode gates and holds, the time to a charge
+  alert's level, the live card's unplug cutoff and layout, the charge start
+  notice and the Setting tile labels.
+- Power bar direction: replaying the owner's UT5 MAX rides locally (not
+  committed), the live direction matched the ride recording on all 821
+  non-zero samples, and the owner's 8 rides replayed identically after the
+  review fix.
+- Seven beta languages: Spanish, Portuguese (Portugal), Portuguese (Brazil),
+  Swedish, German, French and Italian. This release's new strings and Setting
+  tile short labels came through the translation council in #341, with the
+  safe-to-disconnect toast and the Charge schedule tile reworked after
+  independent review. ship_check --release shows zero English fallback in
+  every one: 0 of 3817 keys each. Cruise Control stays in English in
+  Portuguese (Portugal), from a tester's report (#327).
+- Release candidate checks on the final tree: commit b1df1240, which is main
+  at 4c3792d4 plus this release's version, changelog and features lines. This
+  verification update changes no app code.
+  - ship_check --release --aapt required: PASS. All seven languages have 0 of
+    3817 keys falling back; aapt compiles 4038 texts exactly for es, pt-PT,
+    pt-BR, fr and it, and 3928 for sv and de.
+  - Pinned Shizuku dependencies verified; tests/run.sh passes (160
+    suites, about 2.34 million checks); owner-capture guard (11),
+    capture-owner (22) and hardware-sweep (15) tests pass.
+  - VOLT_RELEASE=1 bash build.sh with a local contributor key on that commit:
+    versionName 1.12.1 (no -dev), versionCode 56. This is the build the sweep
+    below ran.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off), spread over eight emulators at once:
+  - All 82 gating steps passed, each on its first run.
+  - rides-timing: passed (best of two cold starts per case, slowest case):
+    first frame 154 ms and service start command 125 ms (budgets 1.5 s),
+    Rides first row 58 ms and longest main-thread message 48 ms cold, 41 ms
+    warm (budget 1 s). The slowest single cold launch held the main thread
+    for 121 ms, under the 250 ms everyday target.
+  - Locale reports (report only, not gating), 42 steps: seven languages at
+    344 dp, 725 dp and 725 dp with large font, app and scooter screens. All
+    42 finished, and every scooter walk reached all 20 screens. No glued,
+    direction or unfilled problems. Fit problems match the #341 validation
+    sweep: Spanish and both Portugueses 0, French 1, Italian 1, Swedish 3 and
+    German 19. Setting tiles that still end in an ellipsis, in each
+    language's reports: Spanish 10, Portuguese (Portugal) 8, French 8,
+    Portuguese (Brazil) 7, German 4, Italian 4 and Swedish 3.
+  - The pseudo-locale reports (en-XA and ar-XB) were skipped: the sweep was
+    given no pseudo-locale build.
+- An earlier full sweep of this release, one merge before this tree, found
+  three problems in the checks rather than the app, all fixed before this
+  run: DashboardValidation still expected the full Charge schedule label
+  (#342); the simulated trip fell for long stretches once an emulator had
+  been up a few minutes, which failed riding-from-zero (#342); and the ride
+  auto-save check below (#343). battery-widgets timed out once under load
+  and passed alone.
+- Ride auto-save (RideAutoExportValidation, run separately with
+  run-ride-auto-export.py, since it drives the system folder pickers):
+  passed in full on the candidate (585 checks), run on one emulator after
+  the sweep had finished. This corrects 1.12.0's explanation of that check's
+  two failures, which blamed load. Our emulators boot in night mode, the
+  check left the emulator in light mode, and Android relaunched Volt on the
+  way back, stranding the check on the old activity. #343 sets the effective
+  theme back before Volt is shown; on its own head it passed on freshly
+  booted emulators in fixed dark mode and in a dark night-mode schedule (585
+  checks each).
+- Release path: the published APK is a release-key build of the merge
+  commit. It is checked three times: when built, before its assets are
+  uploaded to the draft, and again before publishing. Each time, its
+  contents outside META-INF must match the swept build, it must carry
+  1.12.0's certificate, it must be zipaligned and it must read 1.12.1 (56).
+  The draft's body must equal the final notes. Any failed check stops the
+  release. Tested by feeding the checks the 1.12.0 APK and a contributor-key
+  build as the final APK, and a body that isn't the notes; all three were
+  refused.
+- Not run for this release: the owner-present hardware sweep. The owner's
+  phone was disconnected for this overnight run, so nothing here ran on a
+  real phone or scooter.
+- Real-phone checks only the owner can do, not yet done:
+  - the live charging card's dial on Android 16 and later;
+  - unplugging with Volt out of sight: the card should clear in about 15 to
+    20 seconds;
+  - Lock and Record on the riding screen while stopped;
+  - Record rides automatically and riding mode's Open automatically on a
+    real ride;
+  - the Safe to disconnect notice on a scooter other than the UT5 MAX, where
+    it's unconfirmed;
+  - ride time and distance from zero on a real ride, and the power bar's
+    direction on the road.
+- Physical scope: this release's riding mode, auto-start, live charging and
+  charge notice changes are tested on emulators and in JVM suites, not yet
+  on a ride or on a real phone.
+
+--- Previous verification ---
+
 VOLT 1.12.0 — OPENS INSTANTLY, RIDING MODE, LIVE CHARGING, SEVEN LANGUAGES (versionCode 55)
 November 7, 2026
 
