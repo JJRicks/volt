@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
+import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 
@@ -38,7 +39,7 @@ import java.util.regex.Pattern;
  * sample scooter, whose trip max is 35.6 km/h while its live speed never passes 29.8. Disposable emulator only.
  */
 public final class RidingAutoCloseValidation extends Instrumentation {
-    private static final String NO_MOTION = "auto_no_motion";
+    private static final String NO_MOTION = RideStore.STOP_AUTO_NO_MOTION;
     private MainActivity activity;
     private ScooterService service;
     private final Bundle result = new Bundle();
