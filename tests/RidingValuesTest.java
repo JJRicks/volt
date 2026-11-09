@@ -36,6 +36,9 @@ public final class RidingValuesTest {
         distanceWhileRecording();
         distanceWhileThePhoneLooksAway();
         reopenAndRecreate();
+        speedFromOpen();
+        speedResume();
+        autoEnd();
         battery();
         ranges();
         System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
@@ -669,6 +672,114 @@ public final class RidingValuesTest {
     }
 
     private static final String PROFILE = "p1";
+
+    /** A speed reading arriving now, then the screen's refresh. */
+    private static void speed(RidingSession session, double kmh, long nowMs) {
+        session.values.sample(RidingValues.SPEED_KEY, kmh, 0x92, nowMs);
+        feed(session, nowMs);
+    }
+
+    /** Max and Avg count from this open, not from the scooter's trip (a GT3 Max tester saw 36.0 and 22.0 beside a zeroed Trip). */
+    private static void speedFromOpen() {
+        long t = 7_000_000;
+        RidingSession session = open(t);
+        check(session.maxKmh() == null && session.averageKmh() == null, "no speed reading: nothing to show yet");
+        session.values.sample("maximum_speed_kmh", 36.0, 0x92, t);
+        session.values.sample("average_speed_kmh", 22.0, 0x92, t);
+        feed(session, t);
+        check(session.maxKmh() == null && session.averageKmh() == null, "the scooter's trip values aren't this session's");
+        speed(session, 0, t + 1000);
+        check(session.maxKmh() == 0 && session.averageKmh() == 0, "a parked scooter's first reading is 0, whatever the scooter's trip says");
+        speed(session, 0.9, t + 2000);
+        check(session.maxKmh() == 0 && session.averageKmh() == 0, "below the stopped line nothing has moved yet");
+
+        // Riding: 20 km/h for 10 s, then 40 km/h for 10 s, then a long stop at zero.
+        long now = t + 2000;
+        for (int i = 0; i < 10; i++) speed(session, 20, now += 1000);
+        check(session.maxKmh() == 20 && near(session.averageKmh(), 20, 1e-9), "first stretch: " + session.maxKmh() + ", " + session.averageKmh());
+        for (int i = 0; i < 10; i++) speed(session, 40, now += 1000);
+        check(session.maxKmh() == 40, "Max is the top speed: " + session.maxKmh());
+        check(near(session.averageKmh(), 30, 1e-9), "Avg is weighted by time: " + session.averageKmh());
+        for (int i = 0; i < 60; i++) speed(session, 0, now += 1000);
+        check(session.maxKmh() == 40 && near(session.averageKmh(), 30, 1e-9), "stopped: both hold, and stopped time doesn't dilute Avg: " + session.averageKmh());
+
+        // A dropout isn't moving time, and the reading after it adds no time.
+        now += 60_000;
+        feed(session, now);
+        check(session.maxKmh() == 40 && near(session.averageKmh(), 30, 1e-9), "with speed gone they still hold");
+        speed(session, 60, now + 1000);
+        check(session.maxKmh() == 60 && near(session.averageKmh(), 30, 1e-9), "time across a gap isn't counted; the top speed still is: " + session.averageKmh());
+        // Time-weighted, not sample-weighted: 10 km/h for 1 s and 30 km/h for 2 s across uneven readings.
+        RidingSession uneven = open(t);
+        speed(uneven, 10, t);
+        speed(uneven, 10, t + 1000);
+        speed(uneven, 30, t + 3000);
+        check(near(uneven.averageKmh(), (10 * 1000 + 30 * 2000) / 3000d, 1e-9), "uneven gaps are weighted by time: " + uneven.averageKmh());
+
+        // The screen refreshes faster than the scooter reports: only new readings count.
+        RidingSession steady = open(t);
+        speed(steady, 20, t);
+        speed(steady, 20, t + 1000);
+        feed(steady, t + 1200);
+        feed(steady, t + 1600);
+        check(near(steady.averageKmh(), 20, 1e-9), "re-feeding the same reading adds nothing");
+
+        // A leftover from before this open, gone stale, isn't this ride: same rule as the distance baseline.
+        RidingSession leftover = open(t);
+        leftover.values.sample(RidingValues.SPEED_KEY, 42, 0x92, t - 60_000);
+        feed(leftover, t);
+        check(leftover.maxKmh() == null, "a stale reading from before opening is not counted");
+        speed(leftover, 0, t + 500);
+        check(leftover.maxKmh() == 0, "the first live reading starts it");
+        // A reading just before the open is still current: riding mode opened while moving.
+        RidingSession moving = open(t);
+        moving.values.sample(RidingValues.SPEED_KEY, 25, 0x92, t - 200);
+        feed(moving, t);
+        check(moving.maxKmh() == 25, "a fresh reading just before opening counts");
+    }
+
+    /** Rotation is the same session; a recreation rebuilds it from what the activity saved. */
+    private static void speedResume() {
+        long t = 9_000_000;
+        RidingSession before = open(t);
+        speed(before, 0, t + 1000);
+        speed(before, 20, t + 2000);
+        speed(before, 40, t + 3000);
+        double[] written = before.resume().speed();
+        RidingSession after = new RidingSession(PROFILE, null, t + 4000, RidingSession.Resume.of(PROFILE, before.resume().openedMs(), before.resume().distance(), written, 3));
+        check(after.maxKmh() == 40 && near(after.averageKmh(), before.averageKmh(), 1e-9), "Max and Avg carry over before any new reading: " + after.maxKmh());
+        speed(after, 0, t + 4000);
+        check(after.maxKmh() == 40 && near(after.averageKmh(), before.averageKmh(), 1e-9), "and a stop still holds them");
+        speed(after, 20, t + 5000);
+        check(near(after.averageKmh(), (20 * 1000 + 40 * 1000 + 20 * 1000) / 3000d, 1e-9), "and riding on keeps the same average: " + after.averageKmh());
+        // Other shapes.
+        RidingSession old = new RidingSession(PROFILE, null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance()));
+        check(old.maxKmh() == null && old.rideTimeMs(t + 4000) == 4000, "a save from before these existed keeps time and starts Max and Avg over");
+        RidingSession odd = new RidingSession(PROFILE, null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance(), new double[3], 3));
+        check(odd.maxKmh() == null && odd.rideTimeMs(t + 4000) == 4000, "as does a speed array of another shape");
+        check(new RidingSession("p2", null, t + 4000, RidingSession.Resume.of(PROFILE, t, before.resume().distance(), written, 3)).maxKmh() == null, "another scooter doesn't inherit them");
+    }
+
+    /** Riding mode remembers how many recordings had auto-ended when it opened, a count that needs no clock across process death. */
+    private static void autoEnd() {
+        long t = 11_000_000;
+        RidingSession session = new RidingSession(PROFILE, null, t, null, 3);
+        check(!session.autoEnded(3), "no auto-end since it opened");
+        check(session.autoEnded(4), "one auto-end since it opened closes it");
+        RidingSession.Resume saved = session.resume();
+        check(saved.autoEnds() == 3 && !saved.autoEnded(3) && saved.autoEnded(4), "the saved state answers the same");
+        RidingSession.Resume restored = RidingSession.Resume.of(saved.profileId(), saved.openedMs(), saved.distance(), saved.speed(), saved.autoEnds());
+        check(!restored.autoEnded(3) && restored.autoEnded(5), "and so does what the activity reads back");
+        // Process death: only the saved Bundle and the saved count survive, and a clock from another boot is not involved.
+        RidingSession recreated = new RidingSession(PROFILE, null, t + 1000, restored, 9);
+        check(!recreated.autoEnded(3) && recreated.autoEnded(4), "a recreated session keeps the count it opened with, not the current one");
+        // A riding mode opened after that end started from the new count.
+        check(!new RidingSession(PROFILE, null, t + 2000, null, 4).autoEnded(4), "a riding mode opened after the end is unaffected");
+        // A save from before this existed is never treated as ended.
+        RidingSession.Resume unknown = RidingSession.Resume.of(PROFILE, t, saved.distance(), saved.speed(), -1);
+        check(!unknown.autoEnded(7), "a save with no count isn't ended");
+        check(!new RidingSession(PROFILE, null, t + 1000, unknown, 7).autoEnded(7), "and takes the count at restore");
+    }
     private static RidingSession open(long nowMs) { return new RidingSession(PROFILE, null, nowMs); }
     private static void feed(RidingSession session, long nowMs) { session.feed(Collections.emptyList(), nowMs, false, "km", true); }
     /** A trip report arriving now, then the screen's refresh. */
