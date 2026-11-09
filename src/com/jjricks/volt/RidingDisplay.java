@@ -313,7 +313,7 @@ final class RidingDisplay {
         };
     }
 
-    /** The tune menu (RidingSettingsMenu): whether this phone has a light sensor, so Volt auto can be offered. */
+    /** The tune menu (MoreScreen.RidingSettingsMenu): whether this phone has a light sensor, so Volt auto can be offered. */
     static boolean hasLightSensor(Context context) {
         SensorManager manager = context.getSystemService(SensorManager.class);
         return manager != null && manager.getDefaultSensor(Sensor.TYPE_LIGHT) != null;

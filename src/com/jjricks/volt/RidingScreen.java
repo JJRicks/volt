@@ -592,7 +592,7 @@ final class RidingScreen implements AppScreen {
 
     /**
      * The tune menu: the layout editor (RidingLayoutSheet), then riding mode's own settings
-     * (RidingSettingsMenu). Everything saves as it changes; the screen is rebuilt with a change once
+     * (MoreScreen.RidingSettingsMenu). Everything saves as it changes; the screen is rebuilt with a change once
      * the menu closes, so a save never closes it mid-edit. The ride's readings carry over, since they
      * live in the session.
      */
@@ -602,7 +602,7 @@ final class RidingScreen implements AppScreen {
         LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
         body.setTag("riding_layout_editor");
         new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
-        RidingSettingsMenu settings = new RidingSettingsMenu(host, ui, preferences, () -> applyAfterMenu = true);
+        MoreScreen.RidingSettingsMenu settings = new MoreScreen.RidingSettingsMenu(host, ui, preferences, () -> applyAfterMenu = true);
         settings.fill(body);
         AlertDialog shown = host.showSheet(body);
         if (shown == null) { sheetState.dismissed(); settings.close(); return; }

@@ -302,7 +302,9 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         SystemClock.sleep(350);
         Bitmap bitmap = getUiAutomation().takeScreenshot();
         require(bitmap != null, "Screenshot failed");
-        try (FileOutputStream out = new FileOutputStream(new File(evidence, name + ".png"))) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        File image = new File(evidence, name + ".png");
+        try (FileOutputStream out = new FileOutputStream(image)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        TextCensus.write(this, image);
     }
 
     private void note(String text) { notes.add(text); }

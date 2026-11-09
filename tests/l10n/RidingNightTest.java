@@ -58,12 +58,12 @@ public final class RidingNightTest {
         has(display, "boolean hide = statusBarSetting || on;", "RidingDisplay");
         has(display, "level = NightFade.level(level, night);", "RidingDisplay");
 
-        String more = read("src/com/jjricks/volt/RidingSettingsMenu.java");
+        String more = read("src/com/jjricks/volt/MoreScreen.java");
         for (String key : new String[] {"riding_night_off", "riding_night_on", "riding_night_scheduled", "riding_night_sun",
                 "riding_night_custom", "riding_night_consent_title", "riding_night_consent_allow", "riding_night_consent_zone"})
-            has(more, "T." + accessor(key) + "(", "RidingSettingsMenu");
-        has(more, "NightSchedule.AREA_KEY", "RidingSettingsMenu");
-        has(more, "private void night()", "RidingSettingsMenu");
+            has(more, "T." + accessor(key) + "(", "MoreScreen");
+        has(more, "NightSchedule.AREA_KEY", "MoreScreen");
+        has(more, "nightPreferences()", "MoreScreen");
 
         String backup = read("src/com/jjricks/volt/BackupRegistry.java");
         for (String key : new String[] {"MODE_KEY", "SCHEDULE_KEY", "START_KEY", "END_KEY", "AREA_KEY"}) has(backup, "NightSchedule." + key, "BackupRegistry");
