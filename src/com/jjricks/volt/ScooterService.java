@@ -55,6 +55,8 @@ public final class ScooterService extends Service {
     }
     private ChargeScheduleController chargeScheduleController;
     private ChargeScheduleController.TestResult pendingScheduleTest;
+    /** The start this measured arm's scooter confirmed in time, 0 until then. */
+    private long measuredStartSent;
     private ChargeSessionStore chargeStore;
     private ChargeSessionStore.Snapshot chargeSnapshot;
     private final ChargeReferenceGate chargeReferenceGate = new ChargeReferenceGate();
@@ -87,7 +89,7 @@ public final class ScooterService extends Service {
     private static final int AUTO_EXPORT_NOTICE = 78;
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -715,12 +717,12 @@ public final class ScooterService extends Service {
     /** Remembered intentions are displayed separately from raw firmware readings. */
     public ChargeScheduleController.View chargeSchedule(){return schedules().view();}
     private Consumer<String> scheduleCompletion(Consumer<String> completion){return result->{if(!destroyed){changed();if(completion!=null)completion.accept(result);}};}
-    public void setChargeDoneByEnabled(boolean enabled,Consumer<String> completion){schedules().setDoneEnabled(enabled,scheduleCompletion(completion));changed();}
+    public void setChargeDoneByEnabled(boolean enabled,Consumer<String> completion){schedules().setDoneEnabled(enabled,scheduleCompletion(completion),this::doneByStartSent);changed();}
     public void setChargeDoneByTime(int hour,int minute,Consumer<String> completion){
-        schedules().setDoneTime(hour,minute,scheduleCompletion(result->{if(result==null)retargetChargeMeasure(hour*60+minute);if(completion!=null)completion.accept(result);}));changed();
+        schedules().setDoneTime(hour,minute,scheduleCompletion(result->{if(result==null)retargetChargeMeasure(hour*60+minute);if(completion!=null)completion.accept(result);}),this::doneByStartSent);changed();
     }
-    public void setManualChargeEnabled(boolean enabled,Consumer<String> completion){schedules().setManualEnabled(enabled,scheduleCompletion(completion));changed();}
-    public void setManualChargeStart(long wallMs,Consumer<String> completion){schedules().setManualStart(wallMs,scheduleCompletion(completion));changed();}
+    public void setManualChargeEnabled(boolean enabled,Consumer<String> completion){schedules().setManualEnabled(enabled,scheduleCompletion(completion),this::manualStartSent);changed();}
+    public void setManualChargeStart(long wallMs,Consumer<String> completion){schedules().setManualStart(wallMs,scheduleCompletion(completion),this::manualStartSent);changed();}
     /** The missed-start dialog is on screen: no notification follows for that intention. */
     public void missedStartShown(){schedules().missedShown();cancelMissedStartNotice();}
     public void acknowledgeMissedStart(){schedules().acknowledgeMissed();cancelMissedStartNotice();changed();}
@@ -819,16 +821,36 @@ public final class ScooterService extends Service {
     }
     /** Keeps the bounded connection until the one-shot arming has finished its scooter writes. */
     private void armMeasured(boolean measured){
-        chargeMeasure.arm();updateNotification();changed();
+        chargeMeasure.arm();updateNotification();changed();measuredStartSent=0;
         schedules().setDoneEnabled(true,result->{
             if(!chargeMeasure.active())return;
             ChargeScheduleController.View plan=chargeSchedule();boolean armed=result==null&&plan.doneByEnabled;
             chargeMeasure.finish();
+            // On screen, the short start-sent toast; the background notice below keeps its plan detail and gains the safe-to-disconnect line.
+            if(armed&&visible&&measuredStartSent>0){doneByStartSent(plan.startWallMs);endChargeMeasureWork();return;}
             chargeDoneNotice(armed,armed?(measured?T.serviceMeasureMeasured(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs))
                     :T.serviceMeasurePlanned(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs)))
                     :result==null?T.serviceMeasureOff():T.serviceMeasureResult(ChargeScheduleText.shown(result)));
             endChargeMeasureWork();
-        });
+        },start->measuredStartSent=start);
+    }
+    /** The scooter confirmed this Charge done by start, so it no longer needs Volt: say so. armMeasured has its own message. */
+    private void doneByStartSent(long startWallMs){if(!chargeMeasure.active())startSent(startWallMs,true);}
+    private void manualStartSent(long startWallMs){startSent(startWallMs,false);}
+    private void startSent(long startWallMs,boolean doneBy){
+        if(destroyed)return;
+        String text=T.serviceDoneStartSent(DisplayTime.clock(this,settings,startWallMs));
+        if(visible){android.widget.Toast.makeText(this,text,android.widget.Toast.LENGTH_LONG).show();return;}
+        // Off screen, the same one notice a measured arm posts, with the short line. Kept beside chargeDoneNotice: that one's text statements are frozen in a catalog change.
+        try{
+            notification();// Ensures the channel exists even if the foreground notice never posted.
+            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            noteStartSentNotice(startWallMs);
+            // Manual Scheduled charging has no title of its own; the line says what happened either way.
+            post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(doneBy?T.serviceDoneTitleSet():null).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
+                    .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
+        }catch(RuntimeException unavailable){}
     }
     /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
     private void endChargeMeasure(CharSequence reason){
@@ -925,16 +947,31 @@ public final class ScooterService extends Service {
     }
     /** Separate from the foreground notice, which Android removes once measuring ends. */
     private void chargeDoneNotice(boolean set,String text){
+        // A posted notice is a measured arm's: its text already says when charging resumes; the scooter no longer needs Volt,
+        // unless that start passed while its confirmation was in flight. Consumed here: this arm's answer, for this notice only.
+        long safeStart=set?measuredStartSent:0;measuredStartSent=0;
+        if(safeStart>0&&!visible)text=T.serviceDoneSafeToDisconnect(text);
         if(visible){android.widget.Toast.makeText(this,set?T.serviceDoneToastSet(text):T.serviceDoneToastNotSet(text),android.widget.Toast.LENGTH_LONG).show();return;}
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
             PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            noteStartSentNotice(safeStart);
             post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(set?T.serviceDoneTitleSet():T.serviceDoneTitleNotSet()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
     private void cancelChargeDoneNotice(){cancelNotice(CHARGE_DONE_NOTICE);}
+    /** The start a posted or queued "safe to disconnect" notice speaks for, 0 for none. Saved: the notice outlives this service, whose connection it says can end. */
+    private void noteStartSentNotice(long start){
+        if(start>0)settings.edit().putLong(START_SENT_NOTICE,start).putString(START_SENT_SCOPE,chargeScheduleContext().scope).apply();
+        else if(settings.contains(START_SENT_NOTICE))settings.edit().remove(START_SENT_NOTICE).remove(START_SENT_SCOPE).apply();
+    }
+    /** Takes back a "safe to disconnect" notice, posted or still queued, once its plan was turned off or replaced. */
+    private void retireStartSentNotice(){
+        long start=settings.getLong(START_SENT_NOTICE,0);if(start==0||chargeScheduleController.startStillPlanned(settings.getString(START_SENT_SCOPE,""),start))return;
+        noteStartSentNotice(0);cancelChargeDoneNotice();
+    }
     // ---- Battery alerts (ChargeAlertPolicy) -------------------------------------------------------
 
     /** Loads the selected scooter's alert settings and session; another scooter never inherits them. */
@@ -2069,7 +2106,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }

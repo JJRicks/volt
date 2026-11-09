@@ -210,6 +210,12 @@
     <!-- Toast in Volt: %1$s is the message above (measured, planned or why not). -->
     <string name="service_done_toast_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by is set. %1$s</string>
     <string name="service_done_toast_not_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by wasn\'t set. %1$s</string>
+    <!-- %1$s is the clock time charging will start on the scooter. Shown only after the scooter has confirmed that start; a text toast shows at most two lines. -->
+    <string name="service_done_start_sent" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:max="260dp@14sp*2" volt:safety="charge">%1$s charge start sent to scooter. Safe to disconnect.</string>
+    <!-- %1$s is a complete sentence saying when charging resumes and when it finishes. -->
+    <string name="service_done_safe_to_disconnect" volt:screen="Charge done by notification" volt:purpose="message"
+        volt:safety="charge">%1$s Safe to disconnect.</string>
     <string name="service_done_title_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by is set</string>
     <string name="service_done_title_not_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by wasn\'t set</string>
 

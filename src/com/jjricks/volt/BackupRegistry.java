@@ -112,6 +112,9 @@ final class BackupRegistry {
         prefix(app, "charge_charger_", String.class, SCOOTER_PREFERENCES, true);
         // Displayed one-shot intentions only; restoration never sends charging commands.
         prefix(app, "charge_schedule_owned_", String.class, SCOOTER_PREFERENCES, true);
+        // Which notification is on this phone's shade right now: nothing a restored copy should inherit.
+        exclude(app, "charge_start_sent_notice", Long.class, DEVICE);
+        exclude(app, "charge_start_sent_scope", String.class, DEVICE);
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
         // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
