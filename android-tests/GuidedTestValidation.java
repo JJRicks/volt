@@ -170,7 +170,7 @@ public final class GuidedTestValidation extends Instrumentation {
     }
     /**
      * An unfinished guided test as an older Volt (journal version 1, from before Experimental controls) left it, for
-     * the mapped profile: it must load and stay recoverable from the Scooter page with Developer options hidden.
+     * the mapped profile: it must load and stay recoverable from the Scooter page.
      */
     private void seedVersionOneJournal(ScooterProfiles profiles) {
         String id = null; for (ScooterProfiles.Profile p : profiles.all()) if (p.serial.equals(MODELS[1][1])) id = p.id;
@@ -193,11 +193,10 @@ public final class GuidedTestValidation extends Instrumentation {
         throw new IllegalStateException("No profile " + label);
     }
 
-    /** Other-profile and forgotten-profile journals still have an ordinary recovery entry with dev tools hidden. */
+    /** Other-profile and forgotten-profile journals have an ordinary recovery entry that exposes no checker. */
     private void recoveryNavigation()throws Exception {
         ScooterProfiles.Profile other=profileFor("mapped");
         main(()->{
-            settings().edit().putBoolean("developer_options",false).commit();
             // The version 1 journal an older Volt left: one unfinished guided test, loaded as kind "test".
             TestJournal.Entry loaded=((TestJournal)field(activity.service().ble,"testJournal")).find("0123456789abcdef");
             require(loaded!=null&&!loaded.isTry()&&loaded.profileId.equals(other.id)&&loaded.phase.equals("OUTSTANDING"),"Version 1 journal entry did not load: "+(loaded==null?null:TestJournal.line(loaded)));
@@ -223,7 +222,7 @@ public final class GuidedTestValidation extends Instrumentation {
             invoke(activity,"select",new Class<?>[]{String.class},"controls");
         });settle();
         main(()->require(!root().findViewWithTag("scooter-review-test").isShown(),"Resolved recovery banner remains visible"));
-        checks.add("A version 1 journal's unfinished guided test loads; with Developer options hidden, other-profile and forgotten-profile tests retain Scooter Review access; recovery exposes no checker or new tests, and orphan dismissal sends no command");
+        checks.add("A version 1 journal's unfinished guided test loads; other-profile and forgotten-profile tests have Scooter Review access; recovery exposes no checker or new tests, and orphan dismissal sends no command");
     }
     private void openRecoveryFromBanner(){
         main(()->{View review=root().findViewWithTag("scooter-review-test");require(review!=null&&review.isShown(),"Recovery entry is hidden");review.performClick();});settle();
@@ -904,8 +903,7 @@ public final class GuidedTestValidation extends Instrumentation {
         require(before.length == 5 && before[1].equals("OBSERVE") && before[2].equals("2") && before[3].equals("4") && before[4].equals("experimental"), "interrupt marker " + m);
         ScooterProfiles.Profile p = profileFor("ut5");
         main(() -> {
-            // An unfinished try stays recoverable with Developer options hidden.
-            require(settings().edit().putBoolean("developer_options", false).commit(), "Could not hide Developer options for recovery");
+            // An unfinished try stays recoverable from the Scooter page.
             BleController ble = activity.service().ble;
             require(!ble.testing() && ble.guidedTest() == null, "a try resumed after process death");
             List<TestJournal.Entry> open = ble.unresolvedTests();

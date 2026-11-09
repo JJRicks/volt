@@ -77,7 +77,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
             verifySelectors(); checks.add("Rounded preference tracks retain readable labels, 48dp targets, radio semantics, selected indication and existing preference keys");
             verifyControlArtwork(); checks.add("On/off switch tracks remain opaque and contrast against both themes; notification artwork is a transparent bolt silhouette");
             verifyFeedbackSwitches(); checks.add("Switch thumb drags count like taps: Haptic feedback saves a swipe and keeps it through a redraw; one click in the dragged direction, none for a cancelled drag or code");
-            verifyDeveloperGate(); checks.add("Developer options stay hidden and reject direct access until seven version taps");
+            verifyDeveloperVisible(); checks.add("Developer options are always in the menu, ignore a stored unlock flag and the version line takes no taps");
             if (!"preferences".equals(arguments.getString("mode", "all"))) {
                 verifySimulation();
                 checks.add("Simulation supplies every telemetry field and ephemeral charts; local controls never create GATT/scans/command queues, recording or persisted sample data");
@@ -372,37 +372,29 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         }
         require(selected == 1 && field(track, "animation") == null, "Preference selection is ambiguous or animation did not settle");
     }
-    private void verifyDeveloperGate() {
+    /** Developer options are always in the menu, for a fresh install and for one that stored the retired unlock flag. */
+    private void verifyDeveloperVisible() {
         main(() -> {
-            require(!settings().getBoolean("developer_options", false), "Developer options start unlocked");
-            require(root().findViewWithTag("developer-options-menu") == null, "Hidden menu is visible before unlock");
-            require(root().findViewWithTag("developer-compatibility-check") == null, "Checker is exposed before developer unlock");
-            require(field(more(), "compatibilityPanel") == null, "Checker was built before developer unlock");
-            require(!activity.service().setSimulation(true) && !activity.service().simulating(), "Locked API enabled simulation");
-            invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer");
-            require(!"Developer".equals(field(more(), "selectedSection")), "Direct section access bypassed developer gate");
-            invoke(more(), "selectSection", new Class<?>[]{String.class}, "Compatibility");
-            require(!"Compatibility".equals(field(more(), "selectedSection")), "Direct compatibility access bypassed developer gate");
-            settings().edit().putString("more_section", "Developer").commit(); activity.redraw();
-        }); settle();
-        main(() -> {
-            require(!"Developer".equals(field(more(), "selectedSection")), "Persisted section bypassed developer gate");
+            require(!settings().getBoolean("developer_options", false), "Fixture started with the retired flag on");
+            View menu = root().findViewWithTag("developer-options-menu");
+            require(menu != null && menu.getVisibility() == View.VISIBLE, "Developer options row is not always in the menu");
+            require(field(more(), "compatibilityPanel") != null, "Compatibility panel missing without a stored flag");
             invoke(more(), "selectSection", new Class<?>[]{String.class}, "About");
         }); settle();
         main(() -> {
-            View version = root().findViewWithTag("about-version"); require(version != null, "Version unlock target missing");
-            for (int n = 0; n < 6; n++) version.performClick();
-            require(!settings().getBoolean("developer_options", false), "Developer options unlocked before seven taps");
-            version.performClick();
-            require(settings().getBoolean("developer_options", false), "Seven taps did not unlock developer options");
+            View version = root().findViewWithTag("about-version"); require(version != null, "Version line missing");
+            require(!version.isClickable(), "Version line still takes taps");
+            settings().edit().putBoolean("developer_options", false).commit(); activity.redraw();
         }); settle();
         main(() -> {
+            View menu = root().findViewWithTag("developer-options-menu");
+            require(menu != null && menu.getVisibility() == View.VISIBLE, "A stored false flag hid Developer options");
+            require(root().findViewWithTag("developer-hide-options") == null, "Hide developer options row is still there");
             invoke(more(), "selectSection", new Class<?>[]{String.class}, "");
-            require(root().findViewWithTag("developer-options-menu") != null, "Unlocked developer menu missing");
-            invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer");
         }); settle();
+        main(() -> { settings().edit().remove("developer_options").putString("more_section", "Developer").commit(); activity.redraw(); }); settle();
         main(() -> require("Developer".equals(field(more(), "selectedSection")) && root().findViewWithTag("developer-simulation-toggle") != null,
-                "Unlocked developer screen is unreachable"));
+                "Saved Developer section did not reopen"));
         main(() -> {
             View checker = root().findViewWithTag("developer-compatibility-check");
             require(checker != null && checker.isShown(), "Compatibility checker is missing from Developer options");

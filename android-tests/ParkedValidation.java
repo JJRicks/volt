@@ -244,7 +244,7 @@ public final class ParkedValidation extends Instrumentation {
             Map<?,?> rows=(Map<?,?>)field(currentScreen(activity),"rows");Object voltage=rows.get("voltage_v");require(voltage!=null,"Voltage favourite row missing");require(((View)field(voltage,"layout")).isShown(),"Voltage search result missing");View star=(View)field(voltage,"star");require(star.isShown(),"Voltage favourite is not reachable");star.performClick();star.performClick();});
         render(activity,"navigation-stats-readings.png");runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());input.setText("");require(input.getText().length()==0&&"".equals(field(currentScreen(activity),"query")),"Clearing Stats search did not clear its input/query");});clickStatsSection(activity,"Overview");render(activity,"navigation-stats-overview.png");
         navigate(activity,"more");
-        // The expected sections come from the screen's own rules: Developer only with developer options on; Units always; Compatibility with developer options on or a test recovery pending.
+        // The expected sections come from the screen's own rules: every menu section, plus Units and Compatibility.
         List<String[]> menu=new ArrayList<>();Set<String> expected=new LinkedHashSet<>();AtomicReference<Boolean> compatibility=new AtomicReference<>();
         runMain(()->{Object more=currentScreen(activity);String[] ids=(String[])field(more,"SECTIONS");int[] labels=(int[])field(more,"SECTION_LABEL_IDS");require(ids.length==labels.length,"More menu labels out of step with its sections");
             for(int i=0;i<ids.length;i++)if(Boolean.TRUE.equals(call(more,"knownSection",new Class<?>[]{String.class},ids[i]))){menu.add(new String[]{ids[i],T.render(labels[i])});expected.add(ids[i]);}
@@ -257,9 +257,7 @@ public final class ParkedValidation extends Instrumentation {
         require(appLabel!=null,"More menu has no App preferences row");
         clickMoreSection(activity,appLabel);clickMoreTagged(activity,"preference-units-menu");eventually(()->assertSectionMap(currentScreen(activity),"Units",expected));moreSeen.add("Units");
         if(compatibility.get()){
-            if(developerLabel!=null){clickMoreSection(activity,developerLabel);clickMoreTagged(activity,"developer-compatibility-check");}
-            // Without developer options, Compatibility is the recovery-only route an unfinished test opens; open it the same way.
-            else runMain(()->call(currentScreen(activity),"selectSection",new Class<?>[]{String.class},"Compatibility"));
+            clickMoreSection(activity,developerLabel);clickMoreTagged(activity,"developer-compatibility-check");
             waitForIdleSync();eventually(()->assertSectionMap(currentScreen(activity),"Compatibility",expected));moreSeen.add("Compatibility");
         }
         require(moreSeen.equals(expected),"More sections visited "+moreSeen+" but the screen has "+expected);

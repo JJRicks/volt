@@ -64,8 +64,8 @@ final class CompatibilityPanel {
         shown=key;root.removeAllViews();progressText=null;
         if(ble==null){root.addView(note(T.compatServiceStarting()));return;}
         DiscoveryCoordinator check=ble.discovery();boolean running=ble.discovering();
-        // A pre-upgrade or interrupted test must remain recoverable even when developer options
-        // are hidden. This route never offers a new check, test or report.
+        // While a test is unfinished, Compatibility opens as this route (the Scooter page's Review goes here).
+        // A pre-upgrade or interrupted test stays recoverable, and this route never offers a new check, test or report.
         if(recoveryOnly){
             if(!ble.ready())root.addView(ui.button(T.compatConnect(),host::connect));
             tests(ble);
