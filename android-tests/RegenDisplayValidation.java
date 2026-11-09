@@ -89,9 +89,11 @@ public final class RegenDisplayValidation extends Instrumentation {
             call(activity, "select", new Class<?>[]{String.class}, "rides");
         });
         settle();
+        SystemClock.sleep(2500); // the Rides list loads off the main thread
         Object screen = fieldOn(activity, "screen");
         main(() -> call(screen, "showDetails", new Class<?>[]{String.class}, unsigned));
         settle();
+        shot("rides-unsigned-open");
         int negative = negatives(powerValues());
         note("unsigned ride negative power points: " + negative);
         require(negative >= 4, "An unsigned ride's power line should go below zero on the brake: " + negative);
@@ -100,6 +102,7 @@ public final class RegenDisplayValidation extends Instrumentation {
         shot("rides-unsigned");
         main(() -> call(screen, "showDetails", new Class<?>[]{String.class}, signed));
         settle();
+        SystemClock.sleep(1500);
         int signedNegative = negatives(powerValues());
         note("signed ride negative power points: " + signedNegative);
         require(signedNegative >= 4, "A signed ride shows its own regen");
