@@ -297,6 +297,8 @@ public final class GuidedTestValidation extends Instrumentation {
     }
     private void openCompatibility() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
+        // The full checker is only reachable from Developer options, as here; a leftover recovery page is left first.
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer")); settle();
         main(() -> invoke(more(), "openCompatibility", new Class<?>[]{boolean.class}, false)); settle();
     }
 
