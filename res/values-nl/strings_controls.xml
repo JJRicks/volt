@@ -53,7 +53,7 @@
     <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
     <string name="controls_feature_dual_drive">Aandrijving met twee motoren</string>
     <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
-    <string name="controls_feature_dual_drive_short">Aandrijving met twee motoren</string>
+    <string name="controls_feature_dual_drive_short">Twee motoren</string>
     <!-- src:3fe5f3c90e71a367347eea8875268efd19912d90 -->
     <string name="controls_feature_drive_speed_limit">Snelheidslimiet per rijmodus: Drive</string>
     <!-- src:9a3dc2d0fcc48f27c237a0829af4cfbb9bc5809c -->
@@ -107,7 +107,7 @@
     <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
     <string name="controls_feature_proximity_key">Ontgrendelen bij nabijheid</string>
     <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
-    <string name="controls_feature_proximity_key_short">Ontgrendelen bij nabijheid</string>
+    <string name="controls_feature_proximity_key_short">Nabijheid</string>
     <!-- src:9ebceaa07ef3bbec8add681acdb6a2a6a780f643 -->
     <string name="controls_feature_pin">Stuur-PIN</string>
     <!-- src:b5d7c85febfcabf7d1d5c6761e480e10236fbd3b -->

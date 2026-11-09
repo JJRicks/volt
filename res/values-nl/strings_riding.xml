@@ -90,6 +90,10 @@
     <string name="riding_label_average_speed">Gemiddeld</string>
     <!-- src:a2755aa4f573c4e5a952a379c4e347dfa8367cc0 -->
     <string name="riding_label_average_speed_short">Gem.</string>
+    <!-- src:17ae76385b628a388d3faaab61116919201212b3 -->
+    <string name="riding_label_max_speed">Topsnelh.</string>
+    <!-- src:7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d -->
+    <string name="riding_label_max_speed_short">Top</string>
     <!-- src:deae1c30efa1cde42393254cf1d88b476297f5df -->
     <string name="riding_label_efficiency">Verbruik</string>
     <!-- src:0e85b741bc4a3623a94385147993516b603c8e43 -->
@@ -160,6 +164,8 @@
     <string name="riding_layout_choose">Indeling kiezen</string>
     <!-- src:b12784bd1a78199af50601c39355d949c5494ee0 -->
     <string name="riding_ring_max">top %1$s</string>
+    <!-- src:be82caaed8b18ef144864fbb89e965d5305f01f5 -->
+    <string name="riding_trace_regen">Terugw.</string>
     <!-- src:3d0735234e6143966db2a62686d1e50de0336c7b -->
     <string name="riding_trace_start">1 min geleden</string>
     <!-- src:b288bcfc69d6e39af23779a408b1ac81f51ac054 -->
