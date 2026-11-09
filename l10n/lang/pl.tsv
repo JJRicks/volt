@@ -1,10 +1,10 @@
-# Polish. Claude-only proposal, drafted 2026-11-05; not final until the three-vendor debate. See l10n/README.md for each field.
+# Polish. Every string decided by the three-vendor translation council (l10n/decisions/pl/), beta; see l10n/README.md for each field.
 field	value
 tag	pl
 folder	values-pl
 endonym	Polski
 wave	1
-status	draft
+status	beta
 formality	ty, impersonal for instructions
 plurals	one,few,many,other
 quote_style	„…” «…»
