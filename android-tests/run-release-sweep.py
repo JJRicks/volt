@@ -165,6 +165,7 @@ STEPS += [
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
+    inst('riding-from-zero', T + 'RidingFromZeroValidation'),
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
@@ -172,6 +173,7 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (

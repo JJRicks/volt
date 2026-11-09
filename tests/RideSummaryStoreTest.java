@@ -31,6 +31,7 @@ public final class RideSummaryStoreTest {
         damagedEntriesMissAndAreRebuilt();
         unfinishedJournalsAreNeverServedFromDisk();
         pruneAndDelete();
+        signTransitionsSurviveTheCache();
         neverInABackup();
         System.out.println("RideSummaryStoreTest: " + checks + " checks passed");
     }
@@ -272,6 +273,43 @@ public final class RideSummaryStoreTest {
         RideStore after = new RideStore(rides, true, index);
         after.flushIndex();
         sameSummary(after.listCached().get(0), RideStore.inspectJournal(journal), "the re-finished ride is saved again");
+    }
+
+    /** Interval sign accounting (RideStore.Accumulator) reads back identically from the journal and the saved summary. */
+    private static void signTransitionsSurviveTheCache() throws Exception {
+        File rides = directory("rides"), index = directory("index");
+        RideStore store = new RideStore(rides, false, index);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+        double[][][] cases = {
+            {{1, 254, 254, 254}, {-100, -100, -100, -100}},
+            {{254, 254, 254, 1, 1}, {100, 100, 100, 100, 100}},
+            {{254, 254, 254, 1, 1}, {-100, 100, 100, 100, 100}},
+            {{0, 254, 254, 0, 0}, {100, 100, -100, 100, 100}},
+            {{254, 254, 254, 254}, {100, 100, 100, 100}},
+            {{Double.NaN, Double.NaN, Double.NaN}, {100, -100, 100}},
+        };
+        Map<String, RideStore.Summary> live = new LinkedHashMap<>();
+        for (int c = 0; c < cases.length; c++) {
+            long w = WALL + c * DAY;
+            String id = store.start("UT5", "Sign " + c, w, 0);
+            for (int i = 0; i < cases[c][0].length; i++) {
+                Map<String, RideStore.Sample> m = sample(i * 1000L, cases[c][1][i], 20, i * .01, 80);
+                if (!Double.isNaN(cases[c][0][i])) m.put("current_sign_state", new RideStore.Sample(cases[c][0][i], "raw", "", 0x79, i * 1000L));
+                store.sample(w + i * 1000L, i * 1000L, m);
+            }
+            live.put(id, store.stop(w + cases[c][0].length * 1000L, cases[c][0].length * 1000L));
+        }
+        store.flushIndex();
+        long before = replays();
+        RideStore cold = new RideStore(rides, true, index);
+        cold.flushIndex();
+        check(replays() == before, "a cold start reads no journal for these rides");
+        for (RideStore.Summary cached : cold.listCached()) {
+            sameSummary(cached, live.get(cached.id), "saved summary vs live " + cached.label);
+            sameSummary(cached, RideStore.inspectJournal(new File(rides, cached.id + ".csv")), "saved summary vs journal " + cached.label);
+        }
+        RideStore.Summary stale = live.values().iterator().next();
+        check(!stale.directionConfirmed && stale.confirmedDirectionCoverageMs == 0 && stale.regeneratedWh == null, "the first case really is the stale-sign ride");
     }
 
     private static void pruneAndDelete() throws Exception {

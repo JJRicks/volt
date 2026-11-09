@@ -45,8 +45,10 @@ sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSl
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
 # Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
-for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
+# Riding mode's chip row: which chips fit, and at which compact rung.
+sources+=("$APP_DIR/src/com/jjricks/volt/RidingChipFit.java" "$TEST_DIR/RidingChipFitTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
@@ -140,7 +142,8 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
-for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideSummaryStoreTest

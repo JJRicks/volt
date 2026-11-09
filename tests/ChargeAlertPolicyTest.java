@@ -26,6 +26,22 @@ public final class ChargeAlertPolicyTest {
     private static Settings charge(int at) { return new Settings(true, at, false, ChargeAlertPolicy.LOW_DEFAULT, true, false); }
     private static Settings low(int below) { return new Settings(false, ChargeAlertPolicy.CHARGE_DEFAULT, true, below, true, false); }
 
+    private static void countdownLevel() {
+        check(Integer.valueOf(70).equals(ChargeAlertPolicy.countdownLevel(true, charge(70), 50d)), "An alert ahead of the battery is counted down to");
+        check(ChargeAlertPolicy.countdownLevel(true, charge(70), 69.4d) != null, "A battery that still rounds below the level keeps its countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, charge(70), 69.5d) == null, "A battery that rounds up to the level has reached it, as step() counts it");
+        check(ChargeAlertPolicy.countdownLevel(true, charge(70), 70d) == null, "A battery at the level has no countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, charge(70), 85d) == null, "A battery past the level has no countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, Settings.OFF, 50d) == null, "An alert that's off has no countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, low(20), 10d) == null, "A low-battery alert alone has no countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, null, 50d) == null, "Missing settings have no countdown");
+        check(ChargeAlertPolicy.countdownLevel(true, charge(100), 50d) == null, "An alert at Full is the time to full, not a second time");
+        check(ChargeAlertPolicy.countdownLevel(false, charge(70), 50d) == null, "A model with a native charge limit never gets a countdown");
+        for (Double unusable : new Double[]{null, Double.NaN, -1d, 101d})
+            check(ChargeAlertPolicy.countdownLevel(true, charge(70), unusable) == null, "An unusable battery reading has no countdown: " + unusable);
+    }
+
+
     public static void main(String[] args) {
         settings();
         crossing();
@@ -38,6 +54,7 @@ public final class ChargeAlertPolicyTest {
         gating();
         wording();
         changesNeverFire();
+        countdownLevel();
         System.out.println("ChargeAlertPolicy: " + checks + " checks passed");
     }
 
