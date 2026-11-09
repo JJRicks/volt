@@ -9,7 +9,8 @@ import java.util.List;
  * The Halo and Trace frames' choices in riding mode (riding-mode plan PR 3), kept Android-free so
  * plain JVM tests run them: the speed ring's scale, the live trace's runs and axes, which optional
  * parts show at large text, and when the frame picker shows. Focus stays the default frame (owner,
- * Q10). Riding mode only reads; nothing here sends a scooter command, and there is no lock state (Q16).
+ * Q10). Nothing here sends a scooter command. Stopped, riding mode also shows Home's Lock and Record
+ * (owner, Nov 8, reversing Q12 A and Q16); this class only says when.
  */
 final class RidingFrames {
     private RidingFrames() {}
@@ -29,6 +30,8 @@ final class RidingFrames {
     static final List<String> TILES = Collections.unmodifiableList(Arrays.asList("tile_1", "tile_2"));
     /** Below this speed (km/h) the rider counts as stopped for the picker, with the scooter's own stationary state. */
     static final double STOPPED_KMH = 1;
+    /** The stopped controls' widest row, dp, so the lock's slide stays a sensible length on a tablet. */
+    static final float STOPPED_CONTROLS_MAX_DP = 320;
 
     /**
      * The ring's top in the rider's unit: the larger of 20 mph (30 km/h) and the fastest speed seen,
@@ -99,10 +102,23 @@ final class RidingFrames {
 
     /**
      * The frame picker shows only while stopped (owner Q17 A, like the editor's pencil): the scooter
-     * says it's stationary, and the latest speed is missing or under 1 km/h.
+     * says it's stationary, and the latest speed is missing or under 1 km/h. Lock and Record use this
+     * same gate (owner, Nov 8), so everything a tap can reach while stopped goes together.
      */
     static boolean pickerShown(boolean stationary, Double speedKmh) {
         return stationary && (speedKmh == null || speedKmh < STOPPED_KMH);
+    }
+
+    /** The Record disc takes a tap as Home's does: connected or already recording, and no ride still saving. */
+    static boolean recordEnabled(boolean recording, boolean ready, boolean saving) { return (recording || ready) && !saving; }
+
+    /**
+     * What a tap on the Record disc does (RecorderTap's START, STOP or NONE): Home's rule, but only
+     * while stopped, so a tap that lands as the scooter starts moving does nothing.
+     */
+    static int recordAction(boolean stopped, boolean recording, boolean ready) {
+        int action = RecorderTap.lead(recording, ready, false);
+        return !stopped || action == RecorderTap.CONNECT ? RecorderTap.NONE : action;
     }
 
     /**

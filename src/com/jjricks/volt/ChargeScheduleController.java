@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /** One-shot charging intentions. Reconciliation never sends commands or arms another day. */
 public final class ChargeScheduleController {
@@ -276,19 +277,23 @@ public final class ChargeScheduleController {
         if(c.toggleReason!=null)return c.toggleReason;
         return needsTime?c.timeReason:null;
     }
-    public void setDoneTime(int hour,int minute,Consumer<String> completion){
+    public void setDoneTime(int hour,int minute,Consumer<String> completion){setDoneTime(hour,minute,completion,null);}
+    /** confirmed hears the start the scooter just confirmed; a saved preference or a failed edit never reaches it. */
+    public void setDoneTime(int hour,int minute,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
         if(view.timeBlockedReason!=null){completion.accept(reasonText(view.timeBlockedReason));return;}
-        if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion);return;}
+        if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion,confirmed);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
     }
-    public void setDoneEnabled(boolean enabled,Consumer<String> completion){
-        Context c=context();if(enabled){enableDone(state(c).minute,completion);return;}
+    public void setDoneEnabled(boolean enabled,Consumer<String> completion){setDoneEnabled(enabled,completion,null);}
+    /** confirmed hears the start the scooter just confirmed, only when one was saved: never for charging now or a failure. */
+    public void setDoneEnabled(boolean enabled,Consumer<String> completion,LongConsumer confirmed){
+        Context c=context();if(enabled){enableDone(state(c).minute,completion,confirmed);return;}
         if(state(c).mode!=2){completion.accept(null);return;}
         disable(true,"Charge done by is off; ",completion);
     }
-    private void enableDone(int minute,Consumer<String> completion){
+    private void enableDone(int minute,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         String blocked=view.doneByEnabled?(busy?T.commonWaitCurrentChange():baseReason(c,true)):view.doneByBlockedReason;
         if(blocked!=null){completion.accept(reasonText(blocked));return;}
@@ -319,9 +324,12 @@ public final class ChargeScheduleController {
         program(c,plan.startWallMs,plan.offsetSeconds,()->{
             State s=state(c);s.mode=2;s.minute=minute;s.start=plan.startWallMs;s.wire=plan.startWallMs/1000+plan.offsetSeconds;
             s.deadline=plan.deadlineWallMs;s.armed=context().now;s.target=c.target;s.estimate=c.estimateMinutes;s.capturedSoc=c.soc;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);
+            startConfirmed(confirmed,plan.startWallMs);
         },true,c.target,paused?c.soc:null,completion);
     }
-    public void setManualEnabled(boolean enabled,Consumer<String> completion){
+    public void setManualEnabled(boolean enabled,Consumer<String> completion){setManualEnabled(enabled,completion,null);}
+    /** confirmed hears a start the scooter just confirmed when turning on; turning off or a failure never reaches it. */
+    public void setManualEnabled(boolean enabled,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         if(view.manualBlockedReason!=null){completion.accept(reasonText(view.manualBlockedReason));return;}
         if(!enabled){disable(completion);return;}
@@ -335,9 +343,11 @@ public final class ChargeScheduleController {
         // Enabling an existing native time is also an explicit manual choice. Keep
         // it even if confirmation fails after the native timestamp was rewritten.
         state(c).manualStart=chosen;save(c,state(c));
-        program(c,chosen,offset,()->{state(c).manualStart=chosen;state(c).calculatedWire=0;armManual(c,chosen,offset);},true,null,null,completion);
+        program(c,chosen,offset,()->{state(c).manualStart=chosen;state(c).calculatedWire=0;armManual(c,chosen,offset);startConfirmed(confirmed,chosen);},true,null,null,completion);
     }
-    public void setManualStart(long wallMs,Consumer<String> completion){
+    public void setManualStart(long wallMs,Consumer<String> completion){setManualStart(wallMs,completion,null);}
+    /** confirmed hears the new start only while Scheduled charging is on: with it off, the scooter will not act on the time. */
+    public void setManualStart(long wallMs,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();
         String reason=view.manualTimeBlockedReason;
         if(reason!=null){completion.accept(reasonText(reason));return;}
@@ -347,9 +357,25 @@ public final class ChargeScheduleController {
         boolean enabled=view.manualEnabled;
         program(c,wallMs,offset,()->{
             state(c).manualStart=wallMs;state(c).calculatedWire=0;
-            if(enabled)armManual(c,wallMs,offset);
+            // This path writes no ON, and enabled can be a remembered plan: only a live reading of the switch backs the message.
+            if(enabled){armManual(c,wallMs,offset);if(Integer.valueOf(1).equals(context().enabled))startConfirmed(confirmed,wallMs);}
             else{State s=state(c);s.start=wallMs;s.wire=wallMs/1000+offset;s.retired=false;save(c,s);}
         },false,null,null,completion);
+    }
+    /**
+     * Only a start still ahead when the scooter's last confirmation arrives: past it, nothing shows the scooter accepted
+     * the change before that instant, so the plan stays tracked but no one is told it is safe to leave.
+     */
+    private void startConfirmed(LongConsumer confirmed,long start){Context now=context();if(confirmed!=null&&start>now.now&&!readsOff(now,state(now)))confirmed.accept(start);}
+    /** The switch reading OFF beside the plan's own saved time. A zero with no time, or none readable, may only be a reboot, so it proves nothing. */
+    private static boolean readsOff(Context c,State s){return Integer.valueOf(0).equals(c.enabled)&&c.wireStart!=null&&c.wireStart>0&&c.wireStart==s.wire;}
+    /**
+     * Whether scope's plan is still the one with this start, for a notice that says so. Away from that scooter
+     * nothing can be known, so an earlier claim stands; a reliable OFF (readsOff) ends it even while the plan stays tracked.
+     */
+    public boolean startStillPlanned(String scope,long start){
+        Context c=context();if(!c.ready||!c.scope.equals(scope))return true;
+        reconcile(c);State s=state(c);return s.mode!=0&&s.start==start&&!readsOff(c,s);
     }
     private void armManual(Context c,long start,int offset){State s=state(c);s.mode=1;s.start=start;s.wire=start/1000+offset;s.armed=context().now;
         s.deadline=start+24*60*60_000L;s.target=finite(c.target)&&c.target>0&&c.target<=100?c.target:100;s.retired=false;s.status="";newIntention(s,armingSoc(c));save(c,s);}
