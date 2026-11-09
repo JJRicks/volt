@@ -101,10 +101,8 @@
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Während der Verbindung</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Aus · letzte Messwerte bleiben erhalten</string>
     <string name="more_auto_save_heading" volt:src="3306dbdeccfc25335130c26851c550b072b30c74">Fahrten automatisch speichern</string>
-    <string name="more_auto_save_route_csv" volt:src="2d843aa9d08b999648f569b7c7c6c8f6474c8085">Routen-CSV automatisch speichern</string>
-    <string name="more_auto_save_route_csv_sub" volt:src="af4791ddad6e51aba3baed3b9ae0a8a5490d4f53">Die GPS-Route des Telefons, für Fahrten mit Positionsdaten</string>
-    <string name="more_auto_save_json" volt:src="83eb41da14f19b3d8736b66249aa3fad84ea8143">Fahrt als JSON automatisch speichern</string>
-    <string name="more_auto_save_json_sub" volt:src="0180df032c9283264b2b6accabda326729907b9f">Fahrtzusammenfassung und, falls vorhanden, die Aufzeichnung des Telefons</string>
+    <string name="more_auto_save_json" volt:src="0bb6976a9b15466395c5fd52e70b89c3c868eeb1">Fahrten automatisch speichern</string>
+    <string name="more_auto_save_json_sub" volt:src="138d63b8c4aeef7d0317a12f15279642ed1628dc">Eine Datei pro Fahrt: Alles in einer JSON-Datei</string>
     <string name="more_auto_save_folder" volt:src="8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec">Ordner</string>
     <string name="more_auto_save_no_folder" volt:src="bcbd72a20ff44510ee37859d1aa734922a772667">Noch kein Ordner ausgewählt</string>
     <string name="more_auto_save_saving_to" volt:src="5ea59c4e03e3f7f022df7b407063f92eddb30038">Speichern in: %1$s</string>
@@ -225,7 +223,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d" volt:attempt="2">Verbinde dich, um diese Funktionen auszuprobieren.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Warten auf einen aktuellen Status des Scooters.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Halte den Scooter an, um diese Funktionen auszuprobieren.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Halte den Scooter an, um diese auszuprobieren.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Warten darauf, dass der Scooter meldet, dass er geparkt ist.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d" volt:attempt="2">Behebe die Warnung des Scooters, um diese Funktionen auszuprobieren.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5" volt:attempt="2">Entsperre den Scooter, um diese Funktionen auszuprobieren.</string>

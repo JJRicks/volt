@@ -202,6 +202,10 @@
     <string name="more_history_off_kept">Desactivado · se conservan las últimas lecturas</string>
     <!-- src:3306dbdeccfc25335130c26851c550b072b30c74 -->
     <string name="more_auto_save_heading">Guardado automático de viajes</string>
+    <!-- src:0bb6976a9b15466395c5fd52e70b89c3c868eeb1 -->
+    <string name="more_auto_save_json">Guardar viajes automáticamente</string>
+    <!-- src:138d63b8c4aeef7d0317a12f15279642ed1628dc -->
+    <string name="more_auto_save_json_sub">Un archivo por viaje: Todo en un solo JSON</string>
     <!-- src:8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec -->
     <string name="more_auto_save_folder">Carpeta</string>
     <!-- src:bcbd72a20ff44510ee37859d1aa734922a772667 -->

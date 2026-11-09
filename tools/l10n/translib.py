@@ -473,12 +473,27 @@ def value_out_of_context(term, terms, text):
     return not term_pattern(parent.term).search(text)
 
 
+# Glossary terms whose words mean something else in some texts: "Stop to change" is stopping the
+# scooter on a row that can't change while riding, but in "Recording label · stop to change" the
+# recording is what stops. There the term is not used, and the Stop term (silence an alarm, end a
+# recording) applies to the text instead.
+OTHER_SENSE = {"stop to change": re.compile(r"(?<![^\W_])recordings?(?![^\W_])", re.IGNORECASE | re.UNICODE)}
+
+
+def used_in_another_sense(term, text):
+    """Whether a text that matches a glossary term uses its words in another sense (OTHER_SENSE)."""
+    rule = OTHER_SENSE.get(term.lower())
+    return bool(rule and rule.search(text))
+
+
 def glossary_hits(terms, text):
     """The terms a text uses: whole-word matches (lock verbs also in their -s and -ing forms, see
-    inflects), without a term found only inside a longer one (nested_in_longer) or a setting value
-    used in another sense (value_out_of_context)."""
+    inflects), without a term used in another sense (used_in_another_sense), a term found only
+    inside a longer one (nested_in_longer) or a setting value used in another sense
+    (value_out_of_context)."""
     terms = list(terms)
-    found = [t for t in terms if term_pattern(t.term, inflects(t)).search(text)]
+    found = [t for t in terms if term_pattern(t.term, inflects(t)).search(text) and
+             not used_in_another_sense(t.term, text)]
     names = [t.term for t in found]
     hits = [t for t in found if not nested_in_longer(t.term, names, text) and
             not value_out_of_context(t, terms, text)]

@@ -202,6 +202,10 @@
     <string name="more_history_off_kept">Désactivé · derniers relevés conservés</string>
     <!-- src:3306dbdeccfc25335130c26851c550b072b30c74 -->
     <string name="more_auto_save_heading">Copie automatique des trajets</string>
+    <!-- src:0bb6976a9b15466395c5fd52e70b89c3c868eeb1 -->
+    <string name="more_auto_save_json">Copier automatiquement les trajets</string>
+    <!-- src:138d63b8c4aeef7d0317a12f15279642ed1628dc -->
+    <string name="more_auto_save_json_sub">Un fichier par trajet : Tout dans un seul fichier JSON</string>
     <!-- src:8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec -->
     <string name="more_auto_save_folder">Dossier</string>
     <!-- src:bcbd72a20ff44510ee37859d1aa734922a772667 -->
@@ -439,7 +443,7 @@
     <!-- src:93ea6e97022298fb420f544a8fe862210653bde2 -->
     <string name="more_lab_held_stale">En attente d’un état à jour de la trottinette.</string>
     <!-- src:48b4a309916228287815630a6728a140fb6fdd17 -->
-    <string name="more_lab_held_moving">Immobilisez la trottinette : vous pourrez essayer ces commandes à l’arrêt.</string>
+    <string name="more_lab_held_moving">Immobilisez la trottinette pour essayer ces commandes.</string>
     <!-- src:dded465fb578d2209d143c24e95b37a8870d63a3 -->
     <string name="more_lab_held_parked">En attente : la trottinette doit indiquer qu’elle est immobile.</string>
     <!-- src:09238fc37efd64dde3335073d22ed3eccada162d -->

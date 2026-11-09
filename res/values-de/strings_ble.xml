@@ -107,7 +107,7 @@
     <!-- src:650960e2658beae93355ff6eb32ebb30c8928f82 -->
     <string name="ble_resolve_warning">Behebe vor dem Sperren die Warnung %1$d des Scooters.</string>
     <!-- src:b2e9ba8c346162f0f43557018788c4582205f244 -->
-    <string name="ble_stop_scooter_first">Stopp den Scooter zuerst</string>
+    <string name="ble_stop_scooter_first">Halte den Scooter zuerst an</string>
     <!-- src:6c9df4e71ecc71e079b6f5d8555721a04d4e55ed -->
     <string name="ble_not_available_now">Derzeit nicht verfügbar</string>
     <!-- src:83ccb0307f7518bc4a90026bca28b92ed5084d52 -->
