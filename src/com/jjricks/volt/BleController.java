@@ -63,7 +63,10 @@ public final class BleController {
     /** Handshake responses stay private until the transport's hardware belongs to this profile. */
     private Protocol.Frame pendingStatusFrame,pendingSerialFrame;private long pendingStatusMs;
     private long savedProfileMs,lastBatteryPollMs,scanSequence,backgroundDeadlineMs,batteryWatchUntilMs;private ScanCallback scanCallback;private Runnable scanTimeout;
-    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
+    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;
+        /** Until the frame goes out, the condition the caller accepted it under (holdUnsent); null for every other change. */
+        java.util.function.BooleanSupplier sendCondition;Runnable conditionClosed;
+        Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
     /** A proximity change whose link dropped before it was confirmed (ProximityFollowUp): checked on the reconnect's first status read. */
     private ProximityFollowUp.Recheck recheck;private long recheckSequence;
     /** The scooter this phone last asked to pair with, and one whose pairing ended without a bond while proximity read on. */
@@ -531,6 +534,8 @@ public final class BleController {
         if(pending==null||pending.sent)return false;
         CapabilityResolver.Runtime rt=runtime(pending.key);rt.busy=false;
         CapabilityResolver.Decision d=duringDiscovery(MutationGate.check(pending.request,descriptor(),status(),rt));
+        boolean stillHeld=pending.sendCondition==null||pending.sendCondition.getAsBoolean();
+        if(d.available()&&!stillHeld)d=CapabilityResolver.withReason(d,CapabilityResolver.Reason.MOVING);
         boolean unchanged=pending.variant==null||d.variant!=null&&pending.variant.id.equals(d.variant.id);
         if(guided(pending))unchanged&=test!=null&&!test.terminal()&&test.awaitingWrite()
                 &&test.feature.equals(pending.key)&&profile()!=null&&test.profileId.equals(profile().id)
@@ -547,6 +552,7 @@ public final class BleController {
         if(d.available()&&unchanged)return true;
         if(guided(pending)&&test!=null&&!test.terminal())test.onWriteRefused(now());
         clearMutation();result(pending.key,RESULT_CANCELLED);
+        if(!stillHeld&&pending.conditionClosed!=null)pending.conditionClosed.run();
         if(!d.available())refused(pending.request,d);else{logMutation(pending,CommandLog.Outcome.CANCELLED,-1,null);notice(M.bleSettingChangedWaiting());}
         if(guided(pending))stepTest();
         return false;
@@ -666,6 +672,13 @@ public final class BleController {
     public void setChargeSchedule(boolean enabled,Consumer<Boolean> completion){
         set("timed_charging",enabled?1:0,MutationGate.Origin.USER,true,completion);
     }
+    /**
+     * Holds the change set() just accepted to a condition until its frame actually goes out. Accepted while stopped, riding
+     * mode's unlock must not go out once moving, but a read still in flight can leave it queued: the check at the radio
+     * boundary lets a USER unlock through while moving, on purpose for Home's recovery. A change that went out, or any other
+     * mutation, is left alone. closed runs if the condition is what cancels it, before the refusal's notice redraws anything.
+     */
+    public void holdUnsent(String key,java.util.function.BooleanSupplier condition,Runnable closed){if(mutation!=null&&!mutation.sent&&mutation.key.equals(key)){mutation.sendCondition=condition;mutation.conditionClosed=closed;}}
     private boolean completed(Consumer<Boolean> completion,boolean success){if(completion!=null)handler.post(()->completion.accept(success));return success;}
     private boolean set(String key,int value,MutationGate.Origin origin,boolean force,Consumer<Boolean> completion){ScooterCommands.Feature f=ScooterCommands.find(key);
         if(discovering&&key.equals("lock")&&origin==MutationGate.Origin.USER)stopDiscovery();

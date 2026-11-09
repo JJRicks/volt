@@ -1114,10 +1114,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Marked first: a refused send redraws the header from inside set(), which must neither send again nor call it unconfirmed.
             lockQueue.sending(true);
             lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+            // A riding-mode tap stays stopped-only until its frame goes out: a read in flight can leave it queued past this point.
+            if(lockQueue.stoppedOnly())ble.holdUnsent("lock",lockStoppedGate,this::stoppedLockCancelled);
             lockQueue.sending(false);
             if(!lockQueue.waiting())toast(ble.displayMessage());
         }else if(action==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());}
     }
+    /** A stopped-only tap whose frame hadn't left the phone when the scooter started moving: nothing went out. */
+    private void stoppedLockCancelled(){lockQueue.refused();Haptics.reject(lockControl);toast(movingReason());}
     /** Why a stopped-only tap went back: locking's own refusal, the one unlocking is excused from. */
     private static CharSequence movingReason(){return CapabilityResolver.message(CapabilityResolver.Reason.MOVING);}
     /**

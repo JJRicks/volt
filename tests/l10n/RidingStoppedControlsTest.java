@@ -93,5 +93,11 @@ public final class RidingStoppedControlsTest {
         check(main.contains("stoppedGate!=null&&!stoppedGate.getAsBoolean()") && main.contains("lockQueue.sending(true);"), "a tap as motion starts is refused, and a send is held from redraws");
         check(screen.contains("RidingFrames.recordAction(stopped(SystemClock.elapsedRealtime())") && screen.contains("RideRecordingApp.of(host)"), "Record is Home's control, re-checked at the tap");
         check(!screen.contains("ble.set("), "the lock's tap goes through MainActivity's queue, never straight to the scooter");
+        String ble = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/BleController.java")), StandardCharsets.UTF_8);
+        check(main.contains("if(lockQueue.stoppedOnly())ble.holdUnsent(\"lock\",lockStoppedGate,"), "a riding tap's stopped gate is carried past the queue (a read in flight can leave it unsent)");
+        String admit = ble.substring(ble.indexOf("private boolean admitQueuedMutation()"), ble.indexOf("private void incoming(byte[] bytes)"));
+        check(admit.indexOf("pending.sendCondition.getAsBoolean()") > 0 && admit.contains("withReason(d,CapabilityResolver.Reason.MOVING)"), "the radio boundary re-checks the carried condition");
+        check(admit.indexOf("pending.conditionClosed.run()") > 0 && admit.indexOf("pending.conditionClosed.run()") < admit.indexOf("refused(pending.request,d)"), "the tap is settled before the refusal's redraw (no 'did not confirm')");
+        check(ble.contains("!mutation.sent&&mutation.key.equals(key)"), "only a queued change is held to the condition, and it never applies to one that went out");
     }
 }
