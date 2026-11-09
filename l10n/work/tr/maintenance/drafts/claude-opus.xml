@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="standard">
+    <string name="maintenance_title" volt:src="8d6f8673c2c45710c2150dde5b1f9ef58b220c5d">Bakım</string>
+    <string name="maintenance_row" volt:src="f388fd4b8b1fc8a8b205da3c5865f89adb1cb507">Hatırlatıcılar</string>
+    <string name="maintenance_search" volt:src="0d1a5cdb3a82fd3e86c3c2cd58312fc89f0a4529">bakım servis hatırlatıcı hatırlatıcılar kontrol lastik basınç hava fren frenler cıvata katlama temizlik</string>
+    <plurals name="maintenance_row_count" volt:src="b9f3dae724fa44d9b5aa079b728013caf5e458ff">
+        <item quantity="one">%1$d hatırlatıcı</item>
+        <item quantity="other">%1$d hatırlatıcı</item>
+    </plurals>
+    <plurals name="maintenance_row_due" volt:src="c74afe1f860be56a9885fd23d36973372e45e13e">
+        <item quantity="one">%1$d zamanı geldi</item>
+        <item quantity="other">%1$d zamanı geldi</item>
+    </plurals>
+    <string name="maintenance_tab_due" volt:src="6f3c512051b6d2f7fad34779ceb250f66eeea77b">%1$s, bakım zamanı geldi</string>
+    <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Bakım hatırlatıcıları</string>
+    <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Belirlediğiniz kontroller zamanı gelince gösterilecek</string>
+    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">2 haftada bir lastik basıncını veya 300 milde bir frenleri kontrol etmek gibi kendi hatırlatıcılarınızı eklemek için bunu açın. Volt, zamanı gelen kontrolü burada ve “Scooter” sekmesinde gösterir.</string>
+    <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1">Bunlar sizin belirlediğiniz hatırlatıcılardır. Bir hatırlatıcı ne derse desin, bir sorun hissettiğinizde scooter’ınızı kontrol edin.</string>
+    <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">Zamanı gelenler</string>
+    <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">Yaklaşanlar</string>
+    <string name="maintenance_none" volt:src="0365bf97e53bf152034de616e65570283ccd3cff">Henüz hatırlatıcı yok.</string>
+    <string name="maintenance_add" volt:src="83223cd4e92d95228de16bd6dad9d17463f098d9">Hatırlatıcı ekle</string>
+    <string name="maintenance_manual_title" volt:src="f8a7800c1b2608a82f975b7e2f762214ca0ec5d8">%1$s kılavuzundan</string>
+    <string name="maintenance_manual_title_unknown" volt:src="9c163ea2a1b2ad0475c71179b0ce2d2654b9da59">Kılavuzdan</string>
+    <string name="maintenance_manual_none" volt:src="03f659b8e00e9ca5fade2ab6775e480f34d36363">Henüz listelenmiş aralık yok. Volt, kılavuzdaki aralıkları yalnızca alındıkları sayfayla birlikte listeler; bu yüzden şimdilik sıklığı siz seçiyorsunuz.</string>
+    <string name="maintenance_manual_listed" volt:src="6fe6759c5cdefa83eda8b55809fa7aaac4b2884d">Kılavuzun önerdikleri. Hatırlatıcı almak için birini ekleyin.</string>
+    <string name="maintenance_manual_source" volt:src="536a37aa8fc0739fcb32c88ddb59b52a9e1380fc">%1$s (%2$s), s. %3$s</string>
+    <string name="maintenance_manual_add" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Ekle</string>
+    <string name="maintenance_manual_added" volt:src="8cd3db4cf159ed1f6fbf53d2face254189c232ef">Eklendi</string>
+    <string name="maintenance_manual_unknown" volt:src="482974707753e3476207b7426e32b4f266abe3b3">Bilinmeyen model. Volt, bunun hangi model olduğunu öğrendiğinde kılavuzdaki aralıkları listeleyebilir.</string>
+    <string name="maintenance_history" volt:src="2deed1ef9f0ed4e22b4caa9f0fa01a841518d557">Geçmiş</string>
+    <plurals name="maintenance_history_done" volt:src="a11b919e8001bc0f8d2c1bd600cc5b407c213078">
+        <item quantity="one">%1$d kontrol yapıldı</item>
+        <item quantity="other">%1$d kontrol yapıldı</item>
+    </plurals>
+    <string name="maintenance_history_none" volt:src="04cd9da553dfa69d35d68b98ebd7dbf4243ba18c">Henüz yapılan kontrol yok.</string>
+    <string name="maintenance_stale" volt:src="7d21a0a84f05a330d6fb0c2bcd4630a0da8caa78">Kilometre sayacının son okunduğu tarih: %1$s. O zamandan beri yapılan sürüşler, Volt yeniden bağlandığında sayılacak.</string>
+    <string name="maintenance_reset" volt:src="2112883eafe451e0996b7e081ceef0efcf31c01f">Kilometre sayacı geriye gitti (yeni bir scooter ekranı veya kontrol ünitesi mi takıldı, yoksa sıfırlama mı yapıldı?). Mesafe hatırlatıcıları saymaya buradan devam eder.</string>
+    <string name="maintenance_distance_next" volt:src="8b40298cfdfba790a58baf2f29eaf7876c2ca160">Mesafe bir sonraki bağlantıdan itibaren sayılacak.</string>
+    <string name="maintenance_never_read" volt:src="c3c8bac70f46aa28046200ad44f68f67d68d51f1">Volt’un kilometre sayacını okuyabilmesi için bir kez bağlanın.</string>
+    <string name="maintenance_whole_km" volt:src="feac7ec65a71dc220fc5c431fd1c4c2ea88836da">Bu scooter tam kilometre bildiriyor. İki bağlantı arasında 255 km’den fazla gidilirse mesafe eksik sayılabilir.</string>
+    <string name="maintenance_badge_due" volt:src="13d916781834a30aebd921740d4e2b81b4d8d244">ZAMANI GELDİ</string>
+    <string name="maintenance_badge_soon" volt:src="6e7162855bb9a0204e99ab62bf621cae55709fb0">YAKINDA</string>
+    <string name="maintenance_badge_snoozed" volt:src="374219df3278d97cb2a40e6bed02f0314fbc320b">ERTELENDİ</string>
+    <string name="maintenance_every_distance" volt:src="88bda2cceb10a8497f0a0dd9e70203ca6e3f6c20">Her %1$s</string>
+    <string name="maintenance_every_day" volt:src="dda3995e113116f5a791955802494ac56675a37a">Her gün</string>
+    <string name="maintenance_every_week" volt:src="7f51feecd9c4d2a421555ba0b228583dc71d8b05">Her hafta</string>
+    <string name="maintenance_every_month" volt:src="978594b54f74a7fe34dbd36cc98b29d2c343fc9c">Her ay</string>
+    <plurals name="maintenance_every_days" volt:src="c557bb34fac2a6e5fbc88b216f6cb6b0397cc648">
+        <item quantity="one">%1$d günde bir</item>
+        <item quantity="other">%1$d günde bir</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks" volt:src="237695181c64878ec4ddbe75a792e2753795cc55">
+        <item quantity="one">%1$d haftada bir</item>
+        <item quantity="other">%1$d haftada bir</item>
+    </plurals>
+    <plurals name="maintenance_every_months" volt:src="7b003f438a4f32af95702a44ae81f8cef6f4690a">
+        <item quantity="one">%1$d ayda bir</item>
+        <item quantity="other">%1$d ayda bir</item>
+    </plurals>
+    <string name="maintenance_every_day_or" volt:src="87c9ca7476b01327ae3d1ab5ef55af1a663cd079">Her gün veya %1$s</string>
+    <string name="maintenance_every_week_or" volt:src="3c7eea0e95d1b59559e0598aa794f90e3ca42633">Her hafta veya %1$s</string>
+    <string name="maintenance_every_month_or" volt:src="4d071a1926999ead8057e93be325747f703d16af">Her ay veya %1$s</string>
+    <plurals name="maintenance_every_days_or" volt:src="9115209fa4ee936cc71d19db0c1f68350fc0715c">
+        <item quantity="one">%1$d günde bir veya %2$s</item>
+        <item quantity="other">%1$d günde bir veya %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks_or" volt:src="f89e60e5f755dd6e76599df6d6278b667148a9ca">
+        <item quantity="one">%1$d haftada bir veya %2$s</item>
+        <item quantity="other">%1$d haftada bir veya %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_months_or" volt:src="15b54bacf09d2fcdd90f6dfcfa3bd75dd502da04">
+        <item quantity="one">%1$d ayda bir veya %2$s</item>
+        <item quantity="other">%1$d ayda bir veya %2$s</item>
+    </plurals>
+    <string name="maintenance_distance_left" volt:src="8206a75d21118fc55fb4ff8545d2cbf4c953f973">%1$s kaldı</string>
+    <string name="maintenance_distance_over" volt:src="8370856fdc3452791446cc7f434bc2bf85a918e0">%1$s aşıldı</string>
+    <plurals name="maintenance_days_left" volt:src="f5e8e0c93faca820f7493d5aae55e409fab5fb65">
+        <item quantity="one">%1$d gün kaldı</item>
+        <item quantity="other">%1$d gün kaldı</item>
+    </plurals>
+    <plurals name="maintenance_days_over" volt:src="45523d3e83e55d1d236ef85d677b6db5f7586c4c">
+        <item quantity="one">%1$d gün gecikti</item>
+        <item quantity="other">%1$d gün gecikti</item>
+    </plurals>
+    <string name="maintenance_due_today" volt:src="4ee8c3b94d4e5daa38ce89bc9bb7622764e44644">Bugün zamanı geldi</string>
+    <string name="maintenance_waiting" volt:src="c968e86abfa83d6a4d273bcb806b791f9155aa7a">Kilometre sayacı bekleniyor</string>
+    <string name="maintenance_snoozed_until" volt:src="d9e08a6881dbfb96ba2cc044a0d3375587748b57">%1$s tarihine kadar ertelendi</string>
+    <string name="maintenance_pair" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="maintenance_mark_done" volt:src="0212e4820605a16867a5bda24019af6dee4b6ab7">Yapıldı işaretle</string>
+    <string name="maintenance_mark_done_short" volt:src="a3226307b1168b09401e9231e2fe8a8ab6d0d8af">Yapıldı</string>
+    <string name="maintenance_snooze" volt:src="d9a9f1cb2da1834c677d9c0cf93b05c704f90ac4">Ertele</string>
+    <string name="maintenance_edit" volt:src="39dce4e3cb7131455c9b2e9182552c9eb3fe432a">Düzenle</string>
+    <string name="maintenance_delete" volt:src="e80cb30249520a7386a84b9726dfb06735bca1d2">Hatırlatıcıyı sil</string>
+    <string name="maintenance_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">%1$s silinsin mi?</string>
+    <string name="maintenance_delete_body" volt:src="54d81d33b2d5fe02ce1a6f7bb79edc2e1e3baed7">Geçmişi de silinecek. Bu işlem geri alınamaz.</string>
+    <string name="maintenance_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Sil</string>
+    <string name="maintenance_snooze_explain" volt:src="52427401921f6bbeabd95435f2b22ef8a3b0e316">O zamana kadar “Zamanı geldi” durumu gizlenecek. Yapıldı sayılmaz.</string>
+    <plurals name="maintenance_count_days" volt:src="8e0740162d51d699a03819781780072ee12a147f">
+        <item quantity="one">%1$d gün</item>
+        <item quantity="other">%1$d gün</item>
+    </plurals>
+    <plurals name="maintenance_count_weeks" volt:src="9577d897ef793915980ee879d4143002f12cadaf">
+        <item quantity="one">%1$d hafta</item>
+        <item quantity="other">%1$d hafta</item>
+    </plurals>
+    <plurals name="maintenance_count_months" volt:src="3275fb707ae702cb5f4034651229331251bb3fac">
+        <item quantity="one">%1$d ay</item>
+        <item quantity="other">%1$d ay</item>
+    </plurals>
+    <string name="maintenance_done_today_at" volt:src="4c8c3f43d1fcba0253933df8a6e944b2ae4851b6">Bugün yapıldı · Kilometre sayacı: %1$s</string>
+    <string name="maintenance_done_today" volt:src="fa59e45c679eec5d5b0f8b34fd9a9874aeef050f">Bugün yapıldı</string>
+    <string name="maintenance_change" volt:src="cd8a36e9e1b2c8078958818b0aa23695ec393ac9">Değiştir</string>
+    <string name="maintenance_when_today" volt:src="d50a6e8a642cbf60877ed4850c400084b2eb7331">Bugün</string>
+    <string name="maintenance_when_now" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Şimdi</string>
+    <string name="maintenance_when_earlier" volt:src="58a4c0be604643ff89848f32fdac8834900ad1f9">Daha önce</string>
+    <string name="maintenance_date" volt:src="af4010b949b4542d0deef5f74ea3afd764409c7a">Tarih</string>
+    <string name="maintenance_odometer_then" volt:src="23ffaa65cdea74e9d3ce9244c06b87d0eb03aead">O andaki kilometre sayacı, %1$s (isteğe bağlı)</string>
+    <string name="maintenance_odometer_then_note" volt:src="c3c11c26b22b3da27144d2a0ebfa09c7ff92b1aa">Mesafeyi şu anki kilometre sayacından saymak için boş bırakın.</string>
+    <string name="maintenance_odometer_ahead" volt:src="717a8989edec22604b76085eb1df7bcb516343f7">Bu değer, kilometre sayacının şu anki değerinden fazla.</string>
+    <string name="maintenance_odometer_before_reset" volt:src="5a379201aeae7684ad046af22000fae1a4bf22f8">Bu değer, kilometre sayacı geriye gitmeden önceki bir zamana ait. Bunun yerine boş bırakın.</string>
+    <string name="maintenance_number_invalid" volt:src="4af55579966f5d483c52bd6e228fb61650456169">Bir sayı girin.</string>
+    <string name="maintenance_add_title" volt:src="83223cd4e92d95228de16bd6dad9d17463f098d9">Hatırlatıcı ekle</string>
+    <string name="maintenance_edit_title" volt:src="6686c7e6eb3f84239d80c62edcb21f072459da21">Hatırlatıcıyı düzenle</string>
+    <string name="maintenance_what" volt:src="fbe4b7bbed273ed231496894e1f270295a45c8c6">Kontrol edilecek şey</string>
+    <string name="maintenance_name_hint" volt:src="d0d9cac759507466483efea80c4b1f01ed03b377">Bir ad yazın veya seçin</string>
+    <string name="maintenance_name_empty" volt:src="1d685e7b88d30570a2577163cd07f14ed2282049">Bir ad girin veya seçin.</string>
+    <string name="maintenance_task_tire_pressure" volt:src="9565b01a1f1ae7a5c09b7c6448331a60ede9b912">Lastik basıncı</string>
+    <string name="maintenance_task_tire_tread" volt:src="c8816a6b3386c2dd9cb9fe115372bc6fdc157fb6">Lastik dişi</string>
+    <string name="maintenance_task_brakes" volt:src="5bf9d3b57b098ef52f7d25ebc1f04c233cd1feff">Frenler</string>
+    <string name="maintenance_task_bolts_folding" volt:src="4262da6df44354aea9089ef1a1a0519bc0e0dfed">Cıvatalar ve katlama</string>
+    <string name="maintenance_task_steering" volt:src="e98a0af8d76acc15916a240b98cff347f4184d81">Direksiyon</string>
+    <string name="maintenance_task_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Işıklar</string>
+    <string name="maintenance_task_clean_dry" volt:src="a06a0040875049932e540c01a1d941b790cdb5ab">Temizleme ve kurutma</string>
+    <string name="maintenance_task_battery_storage" volt:src="948167902527851b6ee6a93d4d96d69ec87c1237">Pil depolama</string>
+    <string name="maintenance_remind_after" volt:src="7e1ffc9eacdd43eaad9927effcd5816015244955">Şundan sonra hatırlat</string>
+    <string name="maintenance_by_distance" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Mesafe</string>
+    <string name="maintenance_by_time" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Süre</string>
+    <string name="maintenance_by_either" volt:src="ad43057e7f2e01296b87db27910a44073ee9a6c5">İkisi de</string>
+    <string name="maintenance_either_note" volt:src="5993cd0179ad9d9fb2cd30e4828600aa93f09667">Hangisi önce gelirse.</string>
+    <string name="maintenance_distance_field" volt:src="d8f191d6a8ab9146bfe59afa9ddc21188c8f191e">Mesafe (%1$s)</string>
+    <string name="maintenance_time_field" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Süre</string>
+    <string name="maintenance_unit_days" volt:src="aaf6eb9c21f629c1a70367a239dd235ac1be9c9c">Gün</string>
+    <string name="maintenance_unit_weeks" volt:src="f7243f6187937041fc14345a809879a166b4a8b6">Hafta</string>
+    <string name="maintenance_unit_months" volt:src="6390470865285b04d1468f2d4c77c3744a0a5b45">Ay</string>
+    <string name="maintenance_counting_from" volt:src="a823553ba2d871cae288830b84f93f6afbc9f76e">Sayım başlangıcı</string>
+    <string name="maintenance_save" volt:src="85544c0c7a1fc4b6488d35fca424c3b7f7c1a7e9">Hatırlatıcıyı kaydet</string>
+    <string name="maintenance_full" volt:src="b255a4f4a98624f6c38a15d79670bbab333441ce">Bir scooter’da en fazla %1$d hatırlatıcı olabilir.</string>
+    <string name="maintenance_detail_interval" volt:src="8636a3bbb45e14fcd55406c6c845cfa6d6356931">Sıklık</string>
+    <string name="maintenance_detail_from" volt:src="a823553ba2d871cae288830b84f93f6afbc9f76e">Sayım başlangıcı</string>
+    <string name="maintenance_detail_due" volt:src="937e31b4bf5437153d93fed921f8b8f8f65c126d">Kontrol zamanı</string>
+    <string name="maintenance_at_odometer" volt:src="5755a5832d73c7b5aa142ee94f71a003338a3fb9">%1$s değerinde</string>
+    <string name="maintenance_event_added" volt:src="8cd3db4cf159ed1f6fbf53d2face254189c232ef">Eklendi</string>
+    <string name="maintenance_event_done" volt:src="a3226307b1168b09401e9231e2fe8a8ab6d0d8af">Yapıldı</string>
+    <string name="maintenance_event_snoozed" volt:src="3cb237b94aa079721aeaa59797e7d46f75e91009">Ertelendi</string>
+    <string name="maintenance_event_after" volt:src="dc534fa6e75b20b68005a71d9c70e19942935976">Bir öncekinden %1$s sonra</string>
+    <string name="maintenance_notify" volt:src="37cdc480a4aa94342fab06d7f6f17d9ff2efdf2a">Bana bildir</string>
+    <string name="maintenance_notify_detail" volt:src="a62173aa99122e968d3a6456c2864202b8576ce0">Zamanı gelince bir kez bildirim</string>
+    <string name="maintenance_channel" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Bakım hatırlatıcıları</string>
+    <string name="maintenance_channel_detail" volt:src="aeef3c56adaeb985a0f9646ea7f0abf4daaaa3e0">Scooter › Bakım bölümünde belirlediğiniz kontroller, her biri için zamanı gelince bir kez</string>
+    <plurals name="maintenance_notice_title" volt:src="019e234eff3132c9cd55bac2fb8afb8733d192b4">
+        <item quantity="one">%2$s: %1$d kontrolün zamanı geldi</item>
+        <item quantity="other">%2$s: %1$d kontrolün zamanı geldi</item>
+    </plurals>
+    <plurals name="maintenance_notice_title_plain" volt:src="113abae86d6fd891755d3406240b33d408ea98b4">
+        <item quantity="one">%1$d kontrolün zamanı geldi</item>
+        <item quantity="other">%1$d kontrolün zamanı geldi</item>
+    </plurals>
+    <plurals name="maintenance_notice_more" volt:src="66bef6f9a9e140779e1606e6d44fceb57936e356">
+        <item quantity="one">%2$s ve %1$d tane daha</item>
+        <item quantity="other">%2$s ve %1$d tane daha</item>
+    </plurals>
+    <string name="maintenance_notice_other" volt:src="0a1eb2bfe94e181c95579ce682019ac1c4447e69">%1$s için bakım zamanı geldi. “Scooterlarım” ekranında seçin.</string>
+</resources>
