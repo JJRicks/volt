@@ -163,14 +163,15 @@ Volt's **Time to full** gets better with real charges from real scooters, and yo
 
 1. Connect to your scooter and plug in the charger.
 2. Tap **Record this charge** and pick the charger you're using. Volt asks you to choose **Stock** or **High-speed** so the recording is labelled correctly.
-3. Keep charging as usual. You can leave Volt; a notification shows the recording is running. The recording stops by itself at 100% or shortly after you unplug. To end it sooner, tap **Stop charge recording**. A recording needs at least ten minutes of charging to count.
+3. Keep charging as usual. You can leave Volt; a notification shows the recording is running. The recording ends by itself at 100%, or within a few seconds if you unplug at 99% or above. If charging stops below 99%, because you unplugged or the charger cut out, Volt waits up to 30 minutes in case charging comes back, then ends the recording. To end it sooner, tap **Stop charge recording** in Developer options. That still counts as a finished recording.
 
 **Which charges help.**
 
 - **Your everyday partial charges,** such as 50→80%, teach the early part of a charge, so keep recording those if they're what you normally do.
 - **One charge from low to 100%, when it suits you, helps most.** A battery slows right down near full, and that slowdown is the hardest part to predict. A single full charge captures it.
+- **For Volt to learn from a charge on your phone,** it needs at least ten minutes of charging and a climb of at least 11 percentage points (50% to 61%, say), with few gaps in the readings. Any finished recording can still be sent, even one too short for your phone to learn from.
 
-**Sending a recording.** Tap **Export charge recordings** (the same page; it isn't available while a recording is running). Volt saves one file with this scooter's recordings. Attach it to an email to volt-reports@jjricks.com and say which scooter and charger you have. The file holds battery level, voltage, current, temperature and time readings from your charges. It doesn't contain your name, your scooter's serial number or the owner key.
+**Sending a recording.** Tap **Export charge recordings** (the same page; it isn't available while a recording is running, so if one is still waiting after you unplugged, tap **Stop charge recording** first). Volt saves one file with this scooter's recordings. Attach it to an email to volt-reports@jjricks.com and say which scooter and charger you have. The file holds battery level, voltage, current, temperature and time readings from your charges. It doesn't contain your name, your scooter's serial number or the owner key.
 
 ### Charge done by
 

@@ -348,7 +348,9 @@ public final class MoreScreen implements AppScreen {
         sectionScrollPositions.put(leaving, pane.getScrollY());
         Motion.page(pane, sectionDirection(leaving, section), () -> {
             selectedSection = section;
-            if (!standalone) settings().edit().putString("more_section", section).apply();
+            // The recovery-only route is saved as its own value, so a rebuild comes back to it.
+            String saved = "Compatibility".equals(section) && compatibilityRecovery ? COMPATIBILITY_RECOVERY : section;
+            if (!standalone) settings().edit().putString("more_section", saved).apply();
             showSelectedSection(); refresh();
             String shown = shownSection();
             Motion.scrollBeforeDraw(pane, sectionScrollPositions.containsKey(shown) ? sectionScrollPositions.get(shown) : 0);

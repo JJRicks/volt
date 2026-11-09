@@ -283,6 +283,18 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Lab")); settle();
     }
+    /** A rotation or fold rebuilds the screen: Review's recovery route and the full checker each come back as themselves. */
+    private void requireRouteSurvivesRebuild(String label, boolean recovery) {
+        String saved = settings().getString("more_section", "");
+        require(saved.equals(recovery ? "CompatibilityRecovery" : "Compatibility"), label + ": saved section " + saved);
+        main(() -> activity.rebuild()); settle();
+        main(() -> {
+            require(field(more(), "compatibilityRecovery").equals(recovery), label + ": rebuilt with the wrong Compatibility route");
+            String title = ((TextView)field(more(), "sectionTitle")).getText().toString();
+            require(title.equals(recovery ? "Unfinished test" : "Compatibility"), label + ": rebuilt title " + title);
+        });
+        checks.add(label + ": " + (recovery ? "Review's recovery route" : "the full checker") + " came back after a screen rebuild");
+    }
     private void openCompatibility() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "openCompatibility", new Class<?>[]{boolean.class}, false)); settle();
@@ -566,6 +578,8 @@ public final class GuidedTestValidation extends Instrumentation {
         awaitSheetText("This try didn't finish"); sheetShot(label + "-unfinished-sheet");
         tapSheetTag("lab-review");
         awaitText("Set back to Kilometers / km/h");
+        requireRouteSurvivesRebuild(label, true);
+        awaitText("Set back to Kilometers / km/h");
         main(() -> require(texts(root()).contains("Still on the test value, Miles / mph.") && texts(root()).contains("Keep Miles / mph"), label + ": review text"));
         revealText("Unfinished try · Scooter display units"); screenshot(label + "-review-restore");
         require(fake.writes.size() == writes, label + ": reconnect wrote " + fake.describeWrites());
@@ -618,6 +632,7 @@ public final class GuidedTestValidation extends Instrumentation {
     private void report(String label) throws Exception {
         int writes = fake.writes.size();
         openCompatibility();
+        requireRouteSurvivesRebuild(label, false);
         main(() -> activity.service().ble.startDiscovery());
         await(() -> { boolean[] r = {true}; main(() -> r[0] = activity.service().ble.discovering()); return !r[0]; }, label + ": check did not finish", 60000);
         require(fake.writes.size() == writes, label + ": the check wrote");
