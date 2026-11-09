@@ -117,16 +117,18 @@ public final class RegenDisplayValidation extends Instrumentation {
         main(() -> {
             List<String> all = new ArrayList<>();
             collect(root(), all);
-            int at = all.indexOf("Draw");
-            require(at >= 0, "No Draw row in " + all);
+            int at = -1;
+            for (int i = 0; i < all.size() && at < 0; i++) if (all.get(i).startsWith("Battery draw")) at = i;
+            require(at >= 0, "No draw row in " + all);
             rows.set(new ArrayList<>(all.subList(Math.max(0, at - 2), Math.min(all.size(), at + 8))));
-            View draw = text(root(), "Draw");
+            View draw = text(root(), "Battery draw");
+            require(draw != null, "No draw label");
             draw.requestRectangleOnScreen(new android.graphics.Rect(0, 0, draw.getWidth(), draw.getHeight() + activity.ui().dp(160)), true);
         });
         note(name + ": " + rows.get());
-        int at = rows.get().indexOf("Draw");
-        require(rows.get().get(at + 1).contains("Wh"), name + ": Draw should show an amount: " + rows.get());
-        if (unsigned) require(rows.get().contains("Direction ?"), name + ": the not-confirmed chip stays: " + rows.get());
+        String joined = String.join(" | ", rows.get());
+        require(joined.matches(".*Battery draw[^|]*(\\| )?[^|]*[0-9.]+ Wh.*"), name + ": the draw row should show an amount: " + joined);
+        if (unsigned) require(joined.contains("Direction ?"), name + ": the not-confirmed chip stays: " + joined);
         settle();
         shot(name);
     }
