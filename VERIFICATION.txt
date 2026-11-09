@@ -21,8 +21,9 @@ November 9, 2026
   every one: 0 of 3817 keys each. Cruise Control stays in English in
   Portuguese (Portugal), from a tester's report (#327).
 - Release candidate checks on the final tree: commit b1df1240, which is main
-  at 4c3792d4 plus this release's version, changelog and features lines. This
-  verification update changes no app code.
+  at 4c3792d4 plus this release's version, changelog and features lines.
+  Later commits only reword CHANGELOG.md and FEATURES.txt and add this
+  section; none of those three files goes into the APK.
   - ship_check --release --aapt required: PASS. All seven languages have 0 of
     3817 keys falling back; aapt compiles 4038 texts exactly for es, pt-PT,
     pt-BR, fr and it, and 3928 for sv and de.
@@ -69,13 +70,16 @@ November 9, 2026
   checks each).
 - Release path: the published APK is a release-key build of the merge
   commit. It is checked three times: when built, before its assets are
-  uploaded to the draft, and again before publishing. Each time, its
-  contents outside META-INF must match the swept build, it must carry
-  1.12.0's certificate, it must be zipaligned and it must read 1.12.1 (56).
-  The draft's body must equal the final notes. Any failed check stops the
+  uploaded to the draft, and again before publishing. Each time, every entry
+  outside META-INF must have the same SHA-256, over its uncompressed bytes,
+  as in the swept build, no entry name may repeat, it must carry 1.12.0's
+  certificate, it must be zipaligned and it must read 1.12.1 (56). The
+  draft's body must equal the final notes. Any failed check stops the
   release. Tested by feeding the checks the 1.12.0 APK and a contributor-key
-  build as the final APK, and a body that isn't the notes; all three were
-  refused.
+  build as the final APK, a body that isn't the notes, and synthetic
+  archives: two whose classes.dex bytes differ with the same CRC-32, and
+  others with a repeated entry name, an extra entry or a corrupted entry.
+  All were refused.
 - Not run for this release: the owner-present hardware sweep. The owner's
   phone was disconnected for this overnight run, so nothing here ran on a
   real phone or scooter.

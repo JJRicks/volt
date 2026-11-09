@@ -28,8 +28,10 @@ See VERIFICATION.txt for executed checks and physical validation limits.
 NEW IN 1.12.1
 ------------
 - Riding mode's power bar uses the same direction rule as ride recordings: a
-  UT5 MAX shows draw and regen right away, and scooters that report only
-  unsigned current stay muted, with Draw and Input on saved rides unconfirmed.
+  UT5 MAX shows draw and regen right away. Scooters that report only unsigned
+  current stay muted, except that a reading from about 1,200 W up shows as
+  draw, inferred rather than measured. Draw and Input on their saved rides are
+  unconfirmed.
 - Riding mode's Ride time and distance start from zero each time it opens. Its
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
   screen, and it has Lock and Record buttons while the scooter is stopped.
@@ -38,8 +40,9 @@ NEW IN 1.12.1
 - The live charging card clears about 15 s after unplugging and, on Android 16
   and later, shows the level on a dial.
 - Charge done by and Scheduled charging say when the scooter has confirmed the
-  start time and it's safe to disconnect. A charge alert shows the time to its
-  level in the charging hero on scooters with no charge limit of their own.
+  start time and Volt can safely disconnect. Keep the charger plugged in so
+  the charge can start. A charge alert shows the time to its level in the
+  charging hero on scooters with no charge limit of their own.
 - Developer options are always in More. Most Home Setting tiles use short
   labels. Maintenance lists the UT5 Max's manual intervals.
   Full list: CHANGELOG.md.

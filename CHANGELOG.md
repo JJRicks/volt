@@ -2,7 +2,7 @@
 
 ## 1.12.1 — 2026-11-09
 
-- **Riding mode's power bar** now reads direction the same way your ride recordings do. On a UT5 MAX, which reports signed current, the bar shows draw and regen right away instead of staying muted with "direction unknown". On scooters that report only unsigned current, such as a GT3 Max, the bar stays muted, and saved rides now show Draw and Input as unconfirmed instead of claiming a measured direction, including rides you've already saved.
+- **Riding mode's power bar** now reads direction the same way your ride recordings do. On a UT5 MAX, which reports signed current, the bar shows draw and regen right away instead of staying muted with "direction unknown". On scooters that report only unsigned current, such as a GT3 Max, the bar stays muted with its direction unknown, except that a reading from about 1,200 W up shows as draw. That direction is inferred from the reading's strength, not measured. Saved rides on those scooters now show Draw and Input as unconfirmed instead of claiming a measured direction, including rides you've already saved.
 - **Riding mode's Ride time and distance** start from zero every time you open riding mode. They survive rotating the phone, and reset when you back out and open it again.
 - **Riding mode's chip row** tightens before it gives anything up, so **SPORT** or **DRIVE** no longer pushes the clock off a narrow screen.
 - **Lock and Record in riding mode, while you're stopped.** When the scooter is stationary and under 1 km/h, two buttons show over the power readout. They work like Home's lock and recording controls, and they disappear the moment the scooter moves.
@@ -10,7 +10,7 @@
 - **Charging hero:** on scooters with no charge limit of their own, a charge alert now shows the time to its level beside the time to full.
 - **Live charging card** (Android 16 and later): the battery level moves to a dial on the right of the card, and the title says what it's charging to.
 - **Live charging card:** it now clears about 15 seconds after the charger is unplugged, without opening Volt. It used to be able to say **Charging** for up to 3 minutes.
-- **Charge done by** and **Scheduled charging** now tell you when the scooter has confirmed the start time and it's safe to disconnect, for example **6:10 AM charge start sent to scooter. Safe to disconnect.**
+- **Charge done by** and **Scheduled charging** now tell you when the scooter has confirmed the start time, for example **6:10 AM charge start sent to scooter. Safe to disconnect.** That means Volt can disconnect from the scooter. Keep the charger plugged in so the charge can start.
 - **Developer options** are now always in the **More** menu, so charge recording is easy to find; the seven taps on the version line are gone. The user guide has a new section on which charges help improve time estimates.
 - **Home Setting tiles:** most now use a short label instead of ending in an ellipsis.
 - **Maintenance:** the UT5 Max now lists its manual's service intervals (from its printed manual, pp. 14–15).
