@@ -40,6 +40,7 @@ import java.util.function.BooleanSupplier;
  */
 public final class RegenDisplayValidation extends Instrumentation {
     private MainActivity activity;
+    private Object screen;
     private final Bundle result = new Bundle();
     private final ArrayList<String> notes = new ArrayList<>();
     private File evidence;
@@ -90,16 +91,15 @@ public final class RegenDisplayValidation extends Instrumentation {
         });
         settle();
         SystemClock.sleep(2500); // the Rides list loads off the main thread
-        Object screen = fieldOn(activity, "screen");
+        screen = fieldOn(activity, "screen");
         main(() -> call(screen, "showDetails", new Class<?>[]{String.class}, unsigned));
         settle();
         shot("rides-unsigned-open");
         int negative = negatives(powerValues());
         note("unsigned ride negative power points: " + negative);
         require(negative >= 4, "An unsigned ride's power line should go below zero on the brake: " + negative);
-        List<String> rows = texts();
-        note("unsigned energy rows: " + rows);
         shot("rides-unsigned");
+        energyRows("rides-unsigned-energy", true);
         main(() -> call(screen, "showDetails", new Class<?>[]{String.class}, signed));
         settle();
         SystemClock.sleep(1500);
@@ -108,6 +108,36 @@ public final class RegenDisplayValidation extends Instrumentation {
         require(signedNegative >= 4, "A signed ride shows its own regen");
         require(signedNegative == 6, "A signed ride plots its stored values, no more: " + signedNegative);
         shot("rides-signed");
+        energyRows("rides-signed-energy", false);
+    }
+
+    /** Scrolls the open details to the energy card, reads its rows and takes a picture. */
+    private void energyRows(String name, boolean unsigned) throws Exception {
+        AtomicReference<List<String>> rows = new AtomicReference<>();
+        main(() -> {
+            List<String> all = new ArrayList<>();
+            collect(root(), all);
+            int at = all.indexOf("Draw");
+            require(at >= 0, "No Draw row in " + all);
+            rows.set(new ArrayList<>(all.subList(Math.max(0, at - 2), Math.min(all.size(), at + 8))));
+            View draw = text(root(), "Draw");
+            draw.requestRectangleOnScreen(new android.graphics.Rect(0, 0, draw.getWidth(), draw.getHeight() + activity.ui().dp(160)), true);
+        });
+        note(name + ": " + rows.get());
+        int at = rows.get().indexOf("Draw");
+        require(rows.get().get(at + 1).contains("Wh"), name + ": Draw should show an amount: " + rows.get());
+        if (unsigned) require(rows.get().contains("Direction ?"), name + ": the not-confirmed chip stays: " + rows.get());
+        settle();
+        shot(name);
+    }
+    private View root() {
+        List<?> dialogs = (List<?>) fieldOn(screen, "dialogs");
+        return dialogs.isEmpty() ? activity.getWindow().getDecorView() : ((android.app.AlertDialog) dialogs.get(dialogs.size() - 1)).getWindow().getDecorView();
+    }
+    private static View text(View view, String wanted) {
+        if (view instanceof TextView && wanted.contentEquals(((TextView) view).getText())) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View hit = text(((ViewGroup) view).getChildAt(i), wanted); if (hit != null) return hit; }
+        return null;
     }
 
     private String seed(RideStore store, String label, long wall, boolean signed) throws Exception {
@@ -135,12 +165,12 @@ public final class RegenDisplayValidation extends Instrumentation {
     @SuppressWarnings("unchecked")
     private List<RideChartData.Value> powerValues() {
         // The details load off the main thread: wait for the chart and its data.
-        await(() -> { View chart = find(activity.getWindow().getDecorView(), RideChartView.class); if (chart == null) return false;
+        await(() -> { View chart = find(root(), RideChartView.class); if (chart == null) return false;
             View v = chart; while (v != null && !v.getClass().getName().contains("ChartPanel")) v = (View) v.getParent();
             return v != null && fieldOn(v, "data") != null; }, "Chart never loaded", 12000);
         AtomicReference<List<RideChartData.Value>> out = new AtomicReference<>();
         main(() -> {
-            View chart = find(activity.getWindow().getDecorView(), RideChartView.class);
+            View chart = find(root(), RideChartView.class);
             require(chart != null, "No chart");
             View v = chart;
             while (v != null && !v.getClass().getName().contains("ChartPanel")) v = (View) v.getParent();
@@ -157,6 +187,8 @@ public final class RegenDisplayValidation extends Instrumentation {
     }
 
     private void rideModeUnsigned() throws Exception {
+        main(() -> { for (Object d : new ArrayList<>((List<?>) fieldOn(screen, "dialogs"))) ((android.app.AlertDialog) d).dismiss(); });
+        settle();
         main(() -> {
             require(activity.service().setSimulation(true), "Simulation on failed");
             activity.service().ble.setSimulationScript("unsigned_regen");
