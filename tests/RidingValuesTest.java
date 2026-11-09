@@ -21,6 +21,7 @@ public final class RidingValuesTest {
         directionHistory();
         unknownAfterRegen();
         unsignedCurrent();
+        inferenceStopsAtANewConnection();
         inferredDraw();
         inferredThreshold();
         inferredWindow();
@@ -396,6 +397,36 @@ public final class RidingValuesTest {
     }
 
     /** The GT3 Max's unsigned current stays unknown; a negative reading proves a signed one (PowerSign). */
+    /**
+     * Ride mode's view of a short Bluetooth drop: a new connection between two readings means they
+     * can't be compared, even when the drop is shorter than the staleness gap. A pre-drop speed
+     * paired with a new power reading isn't either.
+     */
+    private static void inferenceStopsAtANewConnection() {
+        for (boolean reconnect : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            v.setLinkGeneration(7, 0);
+            unsignedBrake(v, 0);
+            long t = 28_000;
+            double volts = 50.24;
+            if (reconnect) v.setLinkGeneration(8, 28_000);
+            t += 1000; // one second missed
+            v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", 9, 0x92, t); v.sample("power_w", 3 * volts, 0x72, t);
+            RidingValues.Direction direction = v.power(t + 100).direction;
+            if (reconnect) check(direction != RidingValues.Direction.REGEN_INFERRED, "the speed before a new connection isn't a slowing: " + direction);
+            else check(direction == RidingValues.Direction.REGEN_INFERRED, "the same readings on one connection are: " + direction);
+        }
+        RidingValues first = new RidingValues();
+        first.setLinkGeneration(3, 100);
+        first.setLinkGeneration(3, 200);
+        first.setNominalIntervals(1000, 2000);
+        first.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(first, 1000);
+        check(first.power(29_000).direction == RidingValues.Direction.REGEN_INFERRED, "learning the first connection, and seeing it again, is no interruption");
+    }
+
     private static void unsignedCurrent() {
         RidingValues gt3 = new RidingValues();
         gt3.setNominalIntervals(1000, 2000);

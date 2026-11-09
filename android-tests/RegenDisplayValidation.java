@@ -35,7 +35,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Inferred regen on a scooter that doesn't sign its current (owner, Nov 9): ride mode's power on
- * the regen side in every frame, and a saved unsigned ride's graph below zero with its energy split;
+ * the regen side in every frame, and a saved unsigned ride's graph below zero with its energy rows unavailable;
  * a signed ride stays exactly as measured. Synthetic only. Disposable emulator only.
  */
 public final class RegenDisplayValidation extends Instrumentation {
@@ -127,7 +127,8 @@ public final class RegenDisplayValidation extends Instrumentation {
         });
         note(name + ": " + rows.get());
         String joined = String.join(" | ", rows.get());
-        require(joined.matches(".*Battery draw[^|]*(\\| )?[^|]*[0-9.]+ Wh.*"), name + ": the draw row should show an amount: " + joined);
+        if (unsigned) require(joined.matches(".*Battery draw[^|]*\\| \u2014 \\| Battery input[^|]*\\| \u2014.*"), name + ": draw and input stay unavailable: " + joined);
+        else require(joined.matches(".*Battery draw[^|]*(\\| )?[^|]*[0-9.]+ Wh.*"), name + ": the draw row should show an amount: " + joined);
         if (unsigned) require(joined.contains("Direction ?"), name + ": the not-confirmed chip stays: " + joined);
         settle();
         shot(name);

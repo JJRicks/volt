@@ -635,6 +635,7 @@ final class RidingScreen implements AppScreen {
         if (ble != null) {
             session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             session.setRecordingKm(ride == null ? null : ride.distanceKm);
+            session.values.setLinkGeneration(ble.connectionGeneration(), now);
             Double charging = ble.telemetry.number("charging_state");
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());

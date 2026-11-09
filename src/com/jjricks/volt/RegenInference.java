@@ -14,7 +14,9 @@ import java.util.List;
  * <p>A reading can only be regen while the scooter is slowing, and regen raises the voltage where
  * draw lowers it, so a reading is compared against a resting voltage from nearby low-current
  * samples. Two limits never give way: regen can't supply more power than the deceleration has,
- * and a reading too strong to be regen stays draw.
+ * and a reading too strong to be regen stays draw. Speeds are never compared across an interruption
+ * (a recorded gap, or a new connection in ride mode), because the change between two readings
+ * separated by one says nothing about what the scooter did; a resting voltage still carries across.
  */
 final class RegenInference {
     enum Label { DRAW, REGEN, UNKNOWN }
@@ -53,8 +55,11 @@ final class RegenInference {
     /** One power reading: its magnitude, the voltage and speed measured with it. */
     static final class Sample {
         final long timeMs; final double watts, volts, speedKmh;
-        Sample(long timeMs, double watts, double volts, double speedKmh) {
-            this.timeMs = timeMs; this.watts = Math.abs(watts); this.volts = volts; this.speedKmh = speedKmh;
+        /** Samples with different segments have an interruption between them. */
+        final int segment;
+        Sample(long timeMs, double watts, double volts, double speedKmh) { this(timeMs, watts, volts, speedKmh, 0); }
+        Sample(long timeMs, double watts, double volts, double speedKmh, int segment) {
+            this.timeMs = timeMs; this.watts = Math.abs(watts); this.volts = volts; this.speedKmh = speedKmh; this.segment = segment;
         }
         boolean usable() {
             return Double.isFinite(watts) && Double.isFinite(volts) && Double.isFinite(speedKmh) && volts > 0 && speedKmh >= 0;
@@ -99,8 +104,8 @@ final class RegenInference {
             if (labels[i] != Label.UNKNOWN || !samples.get(i).usable() || samples.get(i).amps() < p.minAmps) continue;
             double decel = decel(samples, i, p.aroundDecelMs, p.aroundDecelMs);
             if (decel <= 0 || !withinLimits(samples.get(i), decel, p)) continue;
-            boolean near = i > 0 && seed[i - 1] && samples.get(i).timeMs - samples.get(i - 1).timeMs <= p.extendMs
-                    || i + 1 < labels.length && seed[i + 1] && samples.get(i + 1).timeMs - samples.get(i).timeMs <= p.extendMs;
+            boolean near = i > 0 && seed[i - 1] && samples.get(i - 1).segment == samples.get(i).segment && samples.get(i).timeMs - samples.get(i - 1).timeMs <= p.extendMs
+                    || i + 1 < labels.length && seed[i + 1] && samples.get(i + 1).segment == samples.get(i).segment && samples.get(i + 1).timeMs - samples.get(i).timeMs <= p.extendMs;
             if (near) labels[i] = Label.REGEN;
         }
     }
@@ -117,6 +122,8 @@ final class RegenInference {
 
         Label accept(Sample s) {
             if (!s.usable()) return Label.UNKNOWN;
+            boolean sameRun = previous != null && previous.segment == s.segment;
+            if (!sameRun) recent.clear(); // no slowing is measured across an interruption
             while (!recent.isEmpty() && s.timeMs - recent.peekFirst().timeMs > Math.max(p.pastDecelMs, 5_000)) recent.removeFirst();
             while (!low.isEmpty() && s.timeMs - low.peekFirst().timeMs > p.restWindowMs) low.removeFirst();
             double rest = median(low, p.restSamples);
@@ -124,7 +131,7 @@ final class RegenInference {
             if (!Double.isNaN(rest) && s.amps() >= p.learnAmps && decel < 0 && ohms.size() < 400) ohms.add((rest - s.volts) / s.amps());
             boolean afterDraw = previous != null && previousLabel == Label.DRAW && previous.amps() >= p.afterDrawAmps && s.timeMs - previous.timeMs <= p.afterDrawMs;
             Label label = decide(s, decel, rest, resistance(ohms, p), afterDraw, p);
-            if (p.extend && label == Label.UNKNOWN && previousLabel == Label.REGEN && previous != null && s.timeMs - previous.timeMs <= p.extendMs
+            if (p.extend && label == Label.UNKNOWN && previousLabel == Label.REGEN && sameRun && s.timeMs - previous.timeMs <= p.extendMs
                     && s.amps() >= p.minAmps && decel > 0 && withinLimits(s, decel, p)) label = Label.REGEN;
             previous = s; previousLabel = label;
             recent.addLast(s);
@@ -169,8 +176,8 @@ final class RegenInference {
 
     private static double decel(List<Sample> samples, int i, long pastMs, long futureMs) {
         Sample s = samples.get(i), first = s, last = s;
-        for (int j = i - 1; j >= 0 && s.timeMs - samples.get(j).timeMs <= pastMs; j--) if (samples.get(j).usable()) first = samples.get(j);
-        for (int j = i + 1; j < samples.size() && samples.get(j).timeMs - s.timeMs <= futureMs; j++) if (samples.get(j).usable()) last = samples.get(j);
+        for (int j = i - 1; j >= 0 && samples.get(j).segment == s.segment && s.timeMs - samples.get(j).timeMs <= pastMs; j--) if (samples.get(j).usable()) first = samples.get(j);
+        for (int j = i + 1; j < samples.size() && samples.get(j).segment == s.segment && samples.get(j).timeMs - s.timeMs <= futureMs; j++) if (samples.get(j).usable()) last = samples.get(j);
         return last.timeMs <= first.timeMs ? 0 : (first.speedKmh - last.speedKmh) * 1000.0 / (last.timeMs - first.timeMs);
     }
 

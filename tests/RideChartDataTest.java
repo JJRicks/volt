@@ -9,8 +9,8 @@ public final class RideChartDataTest {
     static void near(double expected, Double actual, String message) { check(actual != null && Math.abs(expected - actual) < 0.00001, message + ": " + actual); }
     public static void main(String[] args) throws Exception {
         inferredRegen();
-        inferredSplitMatchesThroughput();
-        inferredSplitNeedsEvidence();
+        signedRideIsNotInferred();
+        noRegenAcrossARecordedGap();
         near(50, RideChartData.energyPerDistance(1000d, 20d, false), "W divided by km/h yields Wh/km");
         near(80.4672, RideChartData.energyPerDistance(1000d, 20d, true), "Imperial conversion preserves energy");
         near(-10, RideChartData.energyPerDistance(-200d, 20d, false), "Battery input keeps negative sign");
@@ -175,7 +175,7 @@ public final class RideChartDataTest {
         check(canceled, "Full chart preparation honors cancellation before posting UI data");
         System.out.println("RideChartDataTest: " + checks + " assertions passed");
     }
-    /** Unsigned ride: the power line goes below zero on the brake and the energy split appears; a signed plot is untouched. */
+    /** Unsigned ride: the power line goes below zero on the brake, and the energy rows stay unavailable; a signed plot is untouched. */
     private static void inferredRegen() throws Exception {
         File dir = Files.createTempDirectory("ride-chart-regen").toFile(); RideStore store = new RideStore(dir);
         store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Brake", 1000000, 1000);
@@ -195,67 +195,51 @@ public final class RideChartDataTest {
         for (int i = 0; i < shown.size(); i++) if (shown.get(i).value != null && shown.get(i).value < 0) {
             negative++; check(Math.abs(shown.get(i).value + raw.get(i).value) < 1e-9, "a flipped point is the same magnitude"); }
         check(negative >= 4, "the brake goes below zero: " + negative);
-        double[] energy = RideChartData.inferredEnergyWh(points, s.measuredThroughputWh);
-        check(energy != null && energy[1] > 0 && Math.abs(energy[0] + energy[1] - s.measuredThroughputWh) < 1e-6, "draw and regen split the throughput");
-        check(RideChartData.inferredEnergyWh(everyNth(points, 2), s.measuredThroughputWh) != null, "a preview thinned to every 2nd reading still estimates");
-        check(RideChartData.inferredEnergyWh(everyNth(points, 4), s.measuredThroughputWh) == null, "a preview thinned to every 4th reading claims no split");
+        check(s.drawWh == null && s.returnedWh == null, "an unsigned ride's draw and input stay unavailable, inference or not");
+        check(s.measuredThroughputWh != null, "its throughput is still measured");
     }
-    /** The split comes from the covered segments of the measured total, so it can't add up to more than that total. */
-    private static void inferredSplitMatchesThroughput() throws Exception {
-        File dir = Files.createTempDirectory("ride-chart-split").toFile(); RideStore store = new RideStore(dir);
-        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Split", 1000000, 1000);
-        long t = 0;
-        for (int i = 0; i < 5; i++) unsigned(store, t++, 0.2, 50, 60);
-        missingCurrent(store, t++, 50, 56); // no power here, so neither segment touching it counts
-        unsigned(store, t++, 19.4, 51.55, 52); // 1,000 W of inferred regen
-        unsigned(store, t++, 0.2, 50, 48);
-        unsigned(store, t++, 19.4, 51.55, 44);
-        t += 4; // past the integration limit: nothing is counted across this gap
-        unsigned(store, t++, 0.2, 50, 30);
-        unsigned(store, t++, 0.2, 50, 30);
+    /** A signed ride keeps its stored power line and its measured draw and input. */
+    private static void signedRideIsNotInferred() throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-signed").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Signed", 1000000, 1000);
+        long t = 0; double kmh = 0;
+        for (int i = 0; i < 8; i++) { kmh += 3; signed(store, t++, 18, 48.56, kmh); }
+        for (int i = 0; i < 6; i++) { kmh -= 3.2; signed(store, t++, -8, 50.64, kmh); }
         store.stop(1000000 + t * 1000, 1000 + t * 1000);
         RideStore.Summary s = store.get(id);
+        check(!s.unsignedCurrent(), "a scooter that signs its current is not an unsigned ride");
+        check(s.drawWh != null && s.drawWh > 0 && s.returnedWh != null && s.returnedWh > 0, "its draw and input are the measured ones: " + s.drawWh + " / " + s.returnedWh);
         List<RideStore.Point> points = store.fullTrend(id);
-        RegenInference.Label[] labels = RideChartData.regenLabels(points);
-        check(labels[6] == RegenInference.Label.REGEN && labels[8] == RegenInference.Label.REGEN, "the fixture's strong readings are inferred regen");
-        double[] energy = RideChartData.inferredEnergyWh(points, s.measuredThroughputWh);
-        check(energy != null && energy[0] >= 0 && energy[1] > 0, "there is a split");
-        check(Math.abs(energy[0] + energy[1] - s.measuredThroughputWh) < 1e-9, "the parts add up to the measured total: " + energy[0] + " + " + energy[1] + " vs " + s.measuredThroughputWh);
-        double[][] covered = {{1000, 10}, {10, 1000}}; double expected = 0;
-        for (double[] w : covered) expected += (w[0] == 1000 ? w[0] / 2 : w[1] / 2) / 3600;
-        check(Math.abs(energy[1] - expected) < 0.01, "a regen reading only counts over its covered half-segments: " + energy[1] + " vs " + expected);
+        List<RideChartData.Value> shown = RideChartData.build(points, null, false, true, s.unsignedCurrent()).get(0).values;
+        for (int i = 0; i < shown.size(); i++) check(Objects.equals(shown.get(i).value, points.get(i).powerW), "a signed point plots as stored");
     }
-    /** Nothing could be given a direction: the split stays unavailable. Readings that could be are evidence, even of no regen. */
-    private static void inferredSplitNeedsEvidence() throws Exception {
-        File dir = Files.createTempDirectory("ride-chart-evidence").toFile(); RideStore store = new RideStore(dir);
-        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Unknown", 1000000, 1000);
-        long t = 0; double kmh = 40;
-        for (int i = 0; i < 7; i++) { unsigned(store, t++, 8, 50.6, kmh); kmh -= 3.2; }
-        store.stop(1000000 + t * 1000, 1000 + t * 1000);
-        RideStore.Summary s = store.get(id);
-        List<RideStore.Point> points = store.fullTrend(id);
-        for (RegenInference.Label label : RideChartData.regenLabels(points)) check(label == RegenInference.Label.UNKNOWN, "no resting voltage, so every reading is unknown: " + label);
-        check(s.measuredThroughputWh != null && RideChartData.inferredEnergyWh(points, s.measuredThroughputWh) == null, "an all-unknown ride has no split, not 0 Wh of input");
-
-        store = new RideStore(Files.createTempDirectory("ride-chart-draw").toFile());
-        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); id = store.start("fixture", "Draw", 1000000, 1000);
-        t = 0; kmh = 0;
-        for (int i = 0; i < 7; i++) { kmh += 3; unsigned(store, t++, 18, 48.5, kmh); }
-        store.stop(1000000 + t * 1000, 1000 + t * 1000);
-        s = store.get(id);
-        double[] draw = RideChartData.inferredEnergyWh(store.fullTrend(id), s.measuredThroughputWh);
-        check(draw != null && draw[1] == 0 && Math.abs(draw[0] - s.measuredThroughputWh) < 1e-9, "a ride of readings that can only be draw has its split");
+    /** Different speeds on the two sides of a marked gap don't make a slowing; the same readings without one do. */
+    private static void noRegenAcrossARecordedGap() throws Exception {
+        RegenInference.Label[] gap = gapRide(true), joined = gapRide(false);
+        for (int i = 0; i < gap.length; i++) check(gap[i] != RegenInference.Label.REGEN, "no regen on either side of the gap, at " + i + ": " + gap[i]);
+        boolean found = false;
+        for (RegenInference.Label label : joined) found |= label == RegenInference.Label.REGEN;
+        check(found, "the same readings with no gap are read as a slowing, so the gap is what stops it");
     }
-    private static void missingCurrent(RideStore store, long t, double volts, double kmh) throws Exception {
+    private static RegenInference.Label[] gapRide(boolean marked) throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-gap").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Gap", 1000000, 1000);
+        long t = 0; double kmh = 0, watts = 150, volts = 50.24, amps = watts / volts;
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.2, 50, 0);
+        for (int i = 0; i < 8; i++) { kmh += 3.75; unsigned(store, t++, 18, 50 - 18 * 0.08, kmh); }
+        for (int i = 0; i < 3; i++) unsigned(store, t++, 0.4, 50, 30);
+        for (int i = 0; i < 3; i++) unsigned(store, t++, amps, volts, 30);
+        if (marked) store.markGap(1000000 + t * 1000, 1000 + t * 1000, "Bluetooth disconnected");
+        t++; // one second missed
+        for (int i = 0; i < 2; i++) unsigned(store, t++, amps, volts, 20);
+        store.stop(1000000 + t * 1000, 1000 + t * 1000);
+        return RideChartData.regenLabels(store.fullTrend(id));
+    }
+    private static void signed(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
         long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();
-        row.put("voltage_v", new RideStore.Sample(volts, "", "V", 0x72, mono));
-        row.put("speed_kmh", new RideStore.Sample(kmh, mono)); row.put("current_sign_state", new RideStore.Sample(254d, mono)); row.put("battery_percent", new RideStore.Sample(90d, mono));
+        row.put("voltage_v", new RideStore.Sample(volts, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(amps, "", "A", 0x72, mono));
+        row.put("speed_kmh", new RideStore.Sample(kmh, mono)); row.put("current_sign_state", new RideStore.Sample(1d, mono)); row.put("battery_percent", new RideStore.Sample(90d, mono));
         store.sample(1000000 + t * 1000, mono, row);
-    }
-    private static List<RideStore.Point> everyNth(List<RideStore.Point> points, int n) {
-        List<RideStore.Point> kept = new java.util.ArrayList<>();
-        for (int i = 0; i < points.size(); i += n) kept.add(points.get(i));
-        return kept;
     }
     private static void unsigned(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
         long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();

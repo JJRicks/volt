@@ -1090,10 +1090,8 @@ public final class RidesScreen implements AppScreen {
         energyHead.addView(direction, directionParams); body.addView(energyHead);
         LinearLayout energy = ui.groupCard();
         boolean partialDirection = s.confirmedDirectionCoverageMs > 0 && !s.directionConfirmed;
-        // A ride with no current direction at all shows its inferred split, still under "Direction ?".
-        double[] inferred = s.unsignedCurrent() ? RideChartData.inferredEnergyWh(measured, s.measuredThroughputWh) : null;
-        LinearLayout draw = valueRow(energy, partialDirection ? T.ridesDrawShort() : T.ridesDraw(), quantity(inferred != null ? Double.valueOf(inferred[0]) : s.drawWh, "Wh", 2));
-        LinearLayout input = valueRow(energy, partialDirection ? T.ridesInputShort() : T.ridesInput(), quantity(inferred != null ? Double.valueOf(inferred[1]) : s.returnedWh, "Wh", 2));
+        LinearLayout draw = valueRow(energy, partialDirection ? T.ridesDrawShort() : T.ridesDraw(), quantity(s.drawWh, "Wh", 2));
+        LinearLayout input = valueRow(energy, partialDirection ? T.ridesInputShort() : T.ridesInput(), quantity(s.returnedWh, "Wh", 2));
         if (partialDirection) {
             partialGlyph(draw, T.ridesDrawPartial()); partialGlyph(input, T.ridesInputPartial());
         }

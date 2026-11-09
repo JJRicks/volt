@@ -212,6 +212,10 @@ final class RidingValues {
     private double rideEnergyWh, unconfirmedEnergyWh, inferredDrawWh, peakDrawW, peakRegenW, peakInferredRegenW;
     /** Past-only regen inference, fed only for readings this scooter doesn't sign. */
     private final RegenInference.Live inference = new RegenInference.Live();
+    /** The inference's run of readings, advanced by a new connection; readings measured by inferenceFloorMs belong to the old one. */
+    private int inferenceSegment, linkGeneration = NO_LINK_YET;
+    private long inferenceFloorMs = -1;
+    private static final int NO_LINK_YET = Integer.MIN_VALUE;
     /** What the latest power sample added, so a sign correction can redo it without double-counting. */
     private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, peakInferredRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
     private double lastSegmentPreviousW;
@@ -256,6 +260,15 @@ final class RidingValues {
     }
     /** The reading a range spot shows, or null for a content that isn't a range. */
     Range range(String contentId, long nowMs) { RangeSource s = ranges.get(contentId); return s == null ? null : s.range(nowMs); }
+
+    /**
+     * The connection the next snapshot comes from. A new one is an interruption the readings can't
+     * show when it is shorter than their gap rule, so the inference starts a new run of readings.
+     */
+    void setLinkGeneration(int generation, long nowMs) {
+        if (linkGeneration != NO_LINK_YET && generation != linkGeneration) { inferenceSegment++; inferenceFloorMs = Math.max(inferenceFloorMs, nowMs); }
+        linkGeneration = generation;
+    }
 
     /** Feeds every reading in a Telemetry snapshot. Readings already seen add nothing; a re-signed one is a correction. */
     void update(List<Telemetry.Metric> metrics) {
@@ -334,8 +347,8 @@ final class RidingValues {
     /** The live inference for one unsigned power reading, from what was measured up to its own time. */
     private RegenInference.Label inferenceLabel(double watts, long updatedMs) {
         Track voltage = tracks.get("voltage_v");
-        double volts = voltage == null || voltage.updatedMs < 0 || voltage.updatedMs > updatedMs ? Double.NaN : voltage.value;
-        return inference.accept(new RegenInference.Sample(updatedMs, watts, volts, speedAtOrBefore(updatedMs)));
+        double volts = voltage == null || voltage.updatedMs <= inferenceFloorMs || voltage.updatedMs < 0 || voltage.updatedMs > updatedMs ? Double.NaN : voltage.value;
+        return inference.accept(new RegenInference.Sample(updatedMs, watts, volts, speedAtOrBefore(updatedMs), inferenceSegment));
     }
 
     /** The newest recent speed measured no later than a power reading (a refresh can bring a later one first), or NaN. */
@@ -345,7 +358,7 @@ final class RidingValues {
         while (times.hasNext()) {
             long at = times.next()[0];
             double kmh = values.next()[0];
-            if (at <= updatedMs) return updatedMs - at > INFERENCE_SPEED_MAX_AGE_MS ? Double.NaN : kmh;
+            if (at <= updatedMs) return at <= inferenceFloorMs || updatedMs - at > INFERENCE_SPEED_MAX_AGE_MS ? Double.NaN : kmh;
         }
         return Double.NaN;
     }

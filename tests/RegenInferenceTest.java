@@ -47,6 +47,7 @@ public final class RegenInferenceTest {
         noRestingVoltageStaysUnknown();
         unusableSamplesStayUnknown();
         extensionKeepsTheLimits();
+        noSlowingAcrossAnInterruption();
         System.out.println("RegenInferenceTest passed " + checks + " checks");
     }
 
@@ -78,6 +79,40 @@ public final class RegenInferenceTest {
             check(labels[24] == RegenInference.Label.REGEN && labels[25] != RegenInference.Label.REGEN, "400 W is more than the gentle slowing can supply: " + labels[25]);
         for (RegenInference.Label[] labels : bothModes(seedAndNeighbour(1, 2.5)))
             check(labels[24] == RegenInference.Label.REGEN && labels[25] != RegenInference.Label.REGEN, "1 km/h is under the minimum speed: " + labels[25]);
+    }
+    /** Three 30 km/h readings, an interruption, then two flat 20 km/h ones (the speed change is only across it). */
+    private static List<RegenInference.Sample> shortGap(boolean interrupted) {
+        List<RegenInference.Sample> s = new ArrayList<>();
+        long t = 0;
+        for (int i = 0; i < 8; i++) s.add(at(t++, 0, 0.2, false));
+        double kmh = 0;
+        for (int i = 0; i < 8; i++) { kmh += 3.75; s.add(at(t++, kmh, 18, false)); }
+        for (int i = 0; i < 3; i++) s.add(at(t++, 30, 0.4, false));
+        int segment = 0;
+        for (int i = 0; i < 3; i++) s.add(sample(t++, 30, 3, true, segment));
+        if (interrupted) segment = 1;
+        t++;
+        for (int i = 0; i < 2; i++) s.add(sample(t++, 20, 3, true, segment));
+        return s;
+    }
+    private static RegenInference.Sample sample(long seconds, double kmh, double amps, boolean regen, int segment) {
+        double volts = REST + (regen ? amps * OHMS : -amps * OHMS);
+        return new RegenInference.Sample(seconds * 1000, amps * volts, volts, kmh, segment);
+    }
+    private static void noSlowingAcrossAnInterruption() {
+        for (RegenInference.Label[] labels : bothModes(shortGap(true)))
+            check(regenCount(labels, 0, labels.length) == 0, "no regen on either side of an interruption: " + regenCount(labels, 0, labels.length));
+        for (RegenInference.Label[] labels : bothModes(shortGap(false)))
+            check(regenCount(labels, 0, labels.length) >= 1, "the same readings, uninterrupted, are a slowing: so the interruption is what stops it");
+
+        // A seed before the interruption doesn't extend onto a slowing reading just after it.
+        List<RegenInference.Sample> s = seedAndNeighbour(19.9, 2.5), split = new ArrayList<>();
+        for (int i = 0; i < s.size(); i++) {
+            RegenInference.Sample r = s.get(i);
+            split.add(new RegenInference.Sample(r.timeMs, r.watts, r.volts, r.speedKmh, i < 25 ? 0 : 1));
+        }
+        for (RegenInference.Label[] labels : bothModes(split))
+            check(labels[24] == RegenInference.Label.REGEN && labels[25] != RegenInference.Label.REGEN, "extension stays on its own side: " + labels[24] + " / " + labels[25]);
     }
     private static List<RegenInference.Label[]> bothModes(List<RegenInference.Sample> s) {
         RegenInference.Live live = new RegenInference.Live();
