@@ -23,7 +23,7 @@ Implementation invariants and native test guidance for contributors. Start with 
 `android-tests/run-hardware-sweep.py` runs those modes as one owner-present plan on a physical phone (`--list` prints it): read-only snapshot, navigation and background checks, then clock, reversible settings, charging start time and, while charging, the schedule test. It refuses emulators and runs without `--parked`, never installs or removes Volt, excludes speed caps, maximum speed, dual motor drive and the bare Scheduled charging toggle, keeps lock and the PIN state read behind `--include`, and skips later writes after a failed one. `tests/hardware-sweep-test.py` checks those rules against a fake adb.
 
 `android-tests/DeveloperSettingsValidation.java` validates rounded preferences and
-the hidden simulation menu on a disposable emulator with Bluetooth disabled.
+the Developer options simulation on a disposable emulator with Bluetooth disabled.
 Its default mode tests simulation isolation; `-e mode preferences` limits it to
 the selectors and unlock gate. It refuses physical phones or existing profiles.
 Compare the real telemetry database, profile/control-evidence preferences and

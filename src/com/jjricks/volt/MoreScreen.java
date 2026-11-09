@@ -19,7 +19,6 @@ import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
-import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -91,8 +90,11 @@ public final class MoreScreen implements AppScreen {
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
-    /** More › Developer options › Compatibility; legacy unfinished tests retain a recovery-only route. */
+    /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
+    private boolean compatibilityRecovery;
+    /** Saved more_section value for the recovery-only route; it is shown as the Compatibility section. */
+    static final String COMPATIBILITY_RECOVERY = "CompatibilityRecovery";
     /** TelemetryHistory's database file; only its size on disk is read here, never its contents. */
     private static final String HISTORY_DATABASE = "telemetry-history.db";
     private final Map<String,LinearLayout> sections = new LinkedHashMap<>();
@@ -122,9 +124,6 @@ public final class MoreScreen implements AppScreen {
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
     private ChargeHistoryDialog chargeHistoryDialog;
     private SegmentedSelector chargeChargerSelector;
-    private android.widget.Toast developerCountdown;
-    private int developerTaps;
-    private long lastDeveloperTap;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -164,7 +163,9 @@ public final class MoreScreen implements AppScreen {
         if (wide) content.setPadding(ui.dp(24), ui.dp(6), ui.dp(24), 0);
         else content.setPadding(ui.dp(18), ui.dp(6), ui.dp(18), ui.dp(24));
         scroll.addView(content, new ScrollView.LayoutParams(-1, wide ? -1 : -2));
-        selectedSection = standalone ? initialSection : settings().getString("more_section", "");
+        String savedSection = standalone ? initialSection : settings().getString("more_section", "");
+        compatibilityRecovery = COMPATIBILITY_RECOVERY.equals(savedSection);
+        selectedSection = compatibilityRecovery ? "Compatibility" : savedSection;
         if (!knownSection(selectedSection)) selectedSection = "";
 
         LinearLayout menuParent = content, sectionParent = content;
@@ -241,7 +242,7 @@ public final class MoreScreen implements AppScreen {
         if (knownSection("Compatibility")) {
             cardDestination = column(); sections.put("Compatibility", cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
-            compatibilityPanel = new CompatibilityPanel(host, cardDestination, !developerEnabled());
+            compatibilityPanel = new CompatibilityPanel(host, cardDestination, compatibilityRecovery);
         }
         cardDestination = content;
         showSelectedSection();
@@ -253,7 +254,6 @@ public final class MoreScreen implements AppScreen {
         saveWideScroll();
         closed = true;
         if (chargeHistoryDialog != null) chargeHistoryDialog.close();
-        if (developerCountdown != null) { developerCountdown.cancel(); developerCountdown = null; }
         for (SegmentedSelector selector : preferenceSelectors) selector.finishMotion();
         for (AlertDialog dialog : new ArrayList<>(dialogs)) if (dialog.isShowing()) dialog.dismiss();
         dialogs.clear();
@@ -298,24 +298,16 @@ public final class MoreScreen implements AppScreen {
     public boolean back() {
         if ("Units".equals(selectedSection)) { selectSection("App"); return true; }
         if ("Compatibility".equals(selectedSection) && !standalone) {
-            selectSection(developerEnabled() ? "Developer" : ""); return true;
+            selectSection(compatibilityRecovery ? "" : "Developer"); return true;
         }
         if (standalone || wide || selectedSection.isEmpty()) return false;
         selectSection(""); return true;
     }
 
     private boolean knownSection(String section) {
-        if ("Units".equals(section)) return true;
-        if ("Compatibility".equals(section)) return developerEnabled() || testRecoveryNeeded();
-        if ("Developer".equals(section) && !developerEnabled()) return false;
+        if ("Units".equals(section) || "Compatibility".equals(section)) return true;
         for (String candidate : SECTIONS) if (candidate.equals(section)) return true;
         return false;
-    }
-    private boolean developerEnabled() { return settings().getBoolean("developer_options", false); }
-    private boolean testRecoveryNeeded() {
-        BleController ble = service() == null ? null : service().ble;
-        return ble != null && (!ble.testRecordsHealthy() || !ble.unresolvedTests().isEmpty()
-                || ble.unresolvedTestsElsewhere() > 0 || !ble.orphanedTests().isEmpty() || ble.testing());
     }
     /**
      * The submenu on screen. Wide mode always shows one: with none chosen (first visit, or one expired
@@ -331,11 +323,11 @@ public final class MoreScreen implements AppScreen {
         boolean compatibility = "Compatibility".equals(shown);
         sectionHeader.setVisibility(index || (standalone && !units) ? View.GONE : View.VISIBLE);
         sectionBack.setVisibility(units || compatibility || !wide ? View.VISIBLE : View.GONE);
-        String parent = units ? T.moreSectionApp() : compatibility && developerEnabled() ? T.moreSectionDeveloper() : T.moreTitle();
+        String parent = units ? T.moreSectionApp() : compatibility && !compatibilityRecovery ? T.moreSectionDeveloper() : T.moreTitle();
         sectionBackLabel.setText(parent);
         sectionBack.setContentDescription(T.moreBackTo(parent));
         if (units) sectionTitle.setText(T.moreUnitsTitle());
-        if (compatibility) sectionTitle.setText(developerEnabled() ? T.moreCompatibilityTitle() : T.moreUnfinishedTestTitle());
+        if (compatibility) sectionTitle.setText(compatibilityRecovery ? T.moreUnfinishedTestTitle() : T.moreCompatibilityTitle());
         for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(T.render(SECTION_TITLE_IDS[i]));
         for (Map.Entry<String,LinearLayout> section : sections.entrySet())
             section.getValue().setVisibility(section.getKey().equals(shown) ? View.VISIBLE : View.GONE);
@@ -356,7 +348,9 @@ public final class MoreScreen implements AppScreen {
         sectionScrollPositions.put(leaving, pane.getScrollY());
         Motion.page(pane, sectionDirection(leaving, section), () -> {
             selectedSection = section;
-            if (!standalone) settings().edit().putString("more_section", section).apply();
+            // The recovery-only route is saved as its own value, so a rebuild comes back to it.
+            String saved = "Compatibility".equals(section) && compatibilityRecovery ? COMPATIBILITY_RECOVERY : section;
+            if (!standalone) settings().edit().putString("more_section", saved).apply();
             showSelectedSection(); refresh();
             String shown = shownSection();
             Motion.scrollBeforeDraw(pane, sectionScrollPositions.containsKey(shown) ? sectionScrollPositions.get(shown) : 0);
@@ -495,7 +489,7 @@ public final class MoreScreen implements AppScreen {
         link.setContentDescription(T.moreBackToMore()); link.setFocusable(true);
         link.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null, ui.shape(Color.WHITE, 10, 0)));
         link.setOnClickListener(v -> selectSection("Units".equals(selectedSection) ? "App"
-                : "Compatibility".equals(selectedSection) && developerEnabled() ? "Developer" : ""));
+                : "Compatibility".equals(selectedSection) && !compatibilityRecovery ? "Developer" : ""));
         return link;
     }
     /** Group label; keeps natural case in its text so screen readers say words, not letters. */
@@ -1063,7 +1057,7 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * The Language row (plan 5.1), first in the display card with Units and Text size, offered only once a
-     * language other than English ships, or with the pseudo APK while Developer options are on. The row is
+     * language other than English ships, or with the pseudo APK. The row is
      * built here, in a holder of its own that is never attached, and stays out of the card until offered:
      * a GONE child would still take a child slot and shift every later sibling's index, so view trees
      * without the row must not hold it, or its divider, at all.
@@ -1071,14 +1065,14 @@ public final class MoreScreen implements AppScreen {
     private void languageRow(LinearLayout display) {
         LinearLayout holder = column();
         Row row = row(holder, "globe", T.moreLanguageTitle(), null,
-                () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
+                () -> LanguageSheet.show(host, this::refresh));
         View language = row.view;
         language.setTag("preference_language");
         holder.removeView(language);
         View divider = new View(host.activity());
         divider.setBackgroundColor(ui.raised);
         valueRefreshers.add(() -> {
-            boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
+            boolean offered = LanguageSheet.offered(host.activity());
             // The current language goes under the title, as Android's own language setting shows it: the
             // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
             // at large text sizes.
@@ -2140,7 +2134,7 @@ public final class MoreScreen implements AppScreen {
     /** An unfinished try is reviewed where every unfinished test is: Restore, Keep or Dismiss. */
     private void reviewTry() {
         if (labSheet != null) labSheet.dialog.dismiss();
-        selectSection("Compatibility");
+        openCompatibility(true);
     }
     private void labAction(LabRow row) {
         BleController ble = service() == null ? null : service().ble; if (ble == null) return;
@@ -2433,7 +2427,6 @@ public final class MoreScreen implements AppScreen {
         TextView version = ui.text(T.moreAboutVersion(AppVersion.name(host.activity())), 17, true);
         version.setTag("about-version");
         version.setMinHeight(ui.dp(48)); version.setGravity(Gravity.CENTER_VERTICAL);
-        clickable(version, this::tapDeveloperVersion);
         c.addView(version);
         TextView about = ui.caption(T.moreAboutTagline());
         about.setPadding(0, ui.dp(6), 0, 0); c.addView(about);
@@ -2581,28 +2574,6 @@ public final class MoreScreen implements AppScreen {
         catch (android.content.ActivityNotFoundException none) { host.toast(T.moreUpdateNoBrowser()); }
     }
 
-    /** Deliberate local opt-in, matching Android's familiar seven-tap developer unlock. */
-    private void tapDeveloperVersion() {
-        if (closed) return;
-        if (developerCountdown != null) { developerCountdown.cancel(); developerCountdown = null; }
-        if (developerEnabled()) { host.toast(T.moreDevAlready()); return; }
-        long now = SystemClock.uptimeMillis();
-        if (now - lastDeveloperTap > 3000) developerTaps = 0;
-        lastDeveloperTap = now;
-        int remaining = 7 - ++developerTaps;
-        if (remaining <= 0) {
-            developerTaps = 0;
-            settings().edit().putBoolean("developer_options", true).apply();
-            host.toast(T.moreDevEnabled());
-            host.rebuild();
-        } else if (remaining <= 3) {
-            developerCountdown = android.widget.Toast.makeText(host.activity(),
-                    M.moreDevTaps(remaining, remaining),
-                    android.widget.Toast.LENGTH_SHORT);
-            developerCountdown.show();
-        }
-    }
-
     /** An email draft to Volt's report address: a prompt, then Volt's and Android's versions, the phone model and the scooter's model name. */
     private void reportIssue() {
         ScooterService s = service(); DeviceDescriptor d = s == null ? null : s.ble.descriptor();
@@ -2615,14 +2586,14 @@ public final class MoreScreen implements AppScreen {
     private void developerOptions() {
         LinearLayout diagnostics = group();
         row(diagnostics, "check", T.moreDevCompat(), T.moreDevCompatSub(),
-                () -> selectSection("Compatibility")).view.setTag("developer-compatibility-check");
+                () -> openCompatibility(false)).view.setTag("developer-compatibility-check");
         // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
         liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
         liveUpdateRow.view.setTag("developer_live_update");
         LinearLayout controls = group();
         simulationRow = toggleRow(controls, "scooter", T.moreDevSimulate(), null, enabled -> {
             ScooterService s = service();
-            if (closed || s == null || !developerEnabled()) return;
+            if (closed || s == null) return;
             s.setSimulation(enabled);
             // The service may refuse while a ride or phone recording is active. Always show
             // its actual state, never the tentative state of a performed switch click.
@@ -2697,28 +2668,22 @@ public final class MoreScreen implements AppScreen {
                 host.toast(saved ? T.moreDevSlot3Saved() : T.moreDevSlot3Failed());
             });
         }).view.setTag("developer-example-slot");
-        LinearLayout visibility = group();
-        Row hide = row(visibility, "close", T.moreDevHide(), null, () -> {
-            if (closed) return;
-            ScooterService s = service();
-            if(s!=null&&s.isChargeRecording()){host.toast(T.moreDevHideRecording());return;}
-            if(s!=null&&s.ble.testing()){host.toast(T.moreDevHideTest());return;}
-            if (s != null && !s.setSimulation(false)) { refreshDeveloper(); return; }
-            selectedSection = "";
-            settings().edit().putBoolean("developer_options", false).putString("more_section", "").apply();
-            host.rebuild();
-        });
-        hide.view.setTag("developer-hide-options");
+    }
+
+    private void openCompatibility(boolean recovery) {
+        compatibilityRecovery = recovery;
+        if (compatibilityPanel != null) compatibilityPanel.setRecoveryOnly(recovery);
+        selectSection("Compatibility");
     }
 
     private void chooseSimulationModel() {
         ScooterService s = service();
-        if (closed || s == null || !developerEnabled()) return;
+        if (closed || s == null) return;
         int selected = Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulatedModel())
                 .setSingleChoiceItems(SIMULATION_MODEL_NAMES, selected, (d, which) -> {
                     ScooterService current = service();
-                    if (closed || current == null || !developerEnabled()) return;
+                    if (closed || current == null) return;
                     current.ble.setSimulationModel(SIMULATION_MODELS[which]); d.dismiss();
                     refreshDeveloper(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
@@ -2726,7 +2691,6 @@ public final class MoreScreen implements AppScreen {
 
     private void refreshDeveloper() {
         ScooterService s = service();
-        boolean enabled = developerEnabled();
         boolean simulating = s != null && s.simulating();
         if (liveUpdateRow != null) {
             ChargeLiveUpdate.Status live = s != null ? s.liveUpdateStatus()
@@ -2734,16 +2698,15 @@ public final class MoreScreen implements AppScreen {
             liveUpdateRow.sub(ChargeLiveUpdate.label(live));
         }
         if (developerIndexRow != null) {
-            developerIndexRow.view.setVisibility(enabled ? View.VISIBLE : View.GONE);
             developerIndexRow.value(simulating ? T.moreDevSimulating() : null);
             developerIndexRow.value.setTextColor(ui.orange);
         }
         if (simulationRow != null) {
-            refreshSwitch(simulationRow, simulating, enabled && s != null);
+            refreshSwitch(simulationRow, simulating, s != null);
             simulationStatus.setVisibility(simulating ? View.VISIBLE : View.GONE);
             int model = s == null ? 0 : Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
             simulationModelRow.value(model == 0 ? "UT5 MAX" : model == 1 ? "Mapped" : "Unknown");
-            simulationModelRow.enabled(enabled && s != null);
+            simulationModelRow.enabled(s != null);
         }
         if(chargeCaptureRow!=null){
             ChargeSessionStore.Charger selected=s==null?null:s.chargeCharger();
@@ -2751,17 +2714,15 @@ public final class MoreScreen implements AppScreen {
             boolean capturing=s!=null&&s.isChargeRecording();
             String unavailable=s==null?T.moreDevConnectFirst():s.chargeCaptureUnavailable();
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
-            chargeCaptureRow.enabled(enabled&&s!=null&&(capturing||unavailable==null));
+            chargeCaptureRow.enabled(s!=null&&(capturing||unavailable==null));
             chargeCaptureStatus.setText(capturing||unavailable==null?s.chargeCaptureStatus():unavailable);
             refreshChargeCurve(s);
-            clearChargeRow.enabled(enabled&&s!=null&&!capturing&&!s.chargeExporting());
-            exportChargeRow.enabled(enabled&&s!=null&&!capturing&&!s.chargeExporting());
-            chargeHistoryRow.enabled(enabled&&s!=null&&s.profiles!=null&&s.profiles.active()!=null);
+            clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
+            exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
+            chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
             chargeChargerSelector.setAlpha(capturing?.5f:1f);
             setChildrenEnabled(chargeChargerSelector,!capturing);
         }
-        // A stale saved shortcut must not reveal the section after developer options are hidden.
-        if (!enabled && "Developer".equals(selectedSection)) selectSection("");
     }
 
     /**

@@ -170,7 +170,7 @@ public final class GuidedTestValidation extends Instrumentation {
     }
     /**
      * An unfinished guided test as an older Volt (journal version 1, from before Experimental controls) left it, for
-     * the mapped profile: it must load and stay recoverable from the Scooter page with Developer options hidden.
+     * the mapped profile: it must load and stay recoverable from the Scooter page.
      */
     private void seedVersionOneJournal(ScooterProfiles profiles) {
         String id = null; for (ScooterProfiles.Profile p : profiles.all()) if (p.serial.equals(MODELS[1][1])) id = p.id;
@@ -193,11 +193,10 @@ public final class GuidedTestValidation extends Instrumentation {
         throw new IllegalStateException("No profile " + label);
     }
 
-    /** Other-profile and forgotten-profile journals still have an ordinary recovery entry with dev tools hidden. */
+    /** Other-profile and forgotten-profile journals have an ordinary recovery entry that exposes no checker. */
     private void recoveryNavigation()throws Exception {
         ScooterProfiles.Profile other=profileFor("mapped");
         main(()->{
-            settings().edit().putBoolean("developer_options",false).commit();
             // The version 1 journal an older Volt left: one unfinished guided test, loaded as kind "test".
             TestJournal.Entry loaded=((TestJournal)field(activity.service().ble,"testJournal")).find("0123456789abcdef");
             require(loaded!=null&&!loaded.isTry()&&loaded.profileId.equals(other.id)&&loaded.phase.equals("OUTSTANDING"),"Version 1 journal entry did not load: "+(loaded==null?null:TestJournal.line(loaded)));
@@ -223,14 +222,15 @@ public final class GuidedTestValidation extends Instrumentation {
             invoke(activity,"select",new Class<?>[]{String.class},"controls");
         });settle();
         main(()->require(!root().findViewWithTag("scooter-review-test").isShown(),"Resolved recovery banner remains visible"));
-        checks.add("A version 1 journal's unfinished guided test loads; with Developer options hidden, other-profile and forgotten-profile tests retain Scooter Review access; recovery exposes no checker or new tests, and orphan dismissal sends no command");
+        checks.add("A version 1 journal's unfinished guided test loads; other-profile and forgotten-profile tests have Scooter Review access; recovery exposes no checker or new tests, and orphan dismissal sends no command");
     }
+    private boolean isShownTag(String tag){View view=root().findViewWithTag(tag);return view!=null&&view.isShown();}
     private void openRecoveryFromBanner(){
         main(()->{View review=root().findViewWithTag("scooter-review-test");require(review!=null&&review.isShown(),"Recovery entry is hidden");review.performClick();});settle();
     }
     private void requireRecoveryOnly(){
         main(()->{String shown=texts(root());require(!shown.contains("Run check")&&!shown.contains("Run again")&&!shown.toLowerCase(Locale.ROOT).contains("try a setting")
-                &&root().findViewWithTag("developer-compatibility-check")==null,"Recovery exposed developer checker tools");});
+                &&!isShownTag("developer-compatibility-check"),"Recovery exposed developer checker tools");});
     }
 
     // ---- guided: Help verify and experimental tries over the synthetic link --------------------
@@ -283,9 +283,23 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Lab")); settle();
     }
+    /** A rotation or fold rebuilds the screen: Review's recovery route and the full checker each come back as themselves. */
+    private void requireRouteSurvivesRebuild(String label, boolean recovery) {
+        String saved = settings().getString("more_section", "");
+        require(saved.equals(recovery ? "CompatibilityRecovery" : "Compatibility"), label + ": saved section " + saved);
+        main(() -> activity.rebuild()); settle();
+        main(() -> {
+            require(field(more(), "compatibilityRecovery").equals(recovery), label + ": rebuilt with the wrong Compatibility route");
+            String title = ((TextView)field(more(), "sectionTitle")).getText().toString();
+            require(title.equals(recovery ? "Unfinished test" : "Compatibility"), label + ": rebuilt title " + title);
+        });
+        checks.add(label + ": " + (recovery ? "Review's recovery route" : "the full checker") + " came back after a screen rebuild");
+    }
     private void openCompatibility() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Compatibility")); settle();
+        // The full checker is only reachable from Developer options, as here; a leftover recovery page is left first.
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer")); settle();
+        main(() -> invoke(more(), "openCompatibility", new Class<?>[]{boolean.class}, false)); settle();
     }
 
     /** What Experimental controls lists: Help verify exactly where the official app offers and Volt hasn't verified. */
@@ -566,6 +580,8 @@ public final class GuidedTestValidation extends Instrumentation {
         awaitSheetText("This try didn't finish"); sheetShot(label + "-unfinished-sheet");
         tapSheetTag("lab-review");
         awaitText("Set back to Kilometers / km/h");
+        requireRouteSurvivesRebuild(label, true);
+        awaitText("Set back to Kilometers / km/h");
         main(() -> require(texts(root()).contains("Still on the test value, Miles / mph.") && texts(root()).contains("Keep Miles / mph"), label + ": review text"));
         revealText("Unfinished try · Scooter display units"); screenshot(label + "-review-restore");
         require(fake.writes.size() == writes, label + ": reconnect wrote " + fake.describeWrites());
@@ -618,6 +634,7 @@ public final class GuidedTestValidation extends Instrumentation {
     private void report(String label) throws Exception {
         int writes = fake.writes.size();
         openCompatibility();
+        requireRouteSurvivesRebuild(label, false);
         main(() -> activity.service().ble.startDiscovery());
         await(() -> { boolean[] r = {true}; main(() -> r[0] = activity.service().ble.discovering()); return !r[0]; }, label + ": check did not finish", 60000);
         require(fake.writes.size() == writes, label + ": the check wrote");
@@ -904,8 +921,7 @@ public final class GuidedTestValidation extends Instrumentation {
         require(before.length == 5 && before[1].equals("OBSERVE") && before[2].equals("2") && before[3].equals("4") && before[4].equals("experimental"), "interrupt marker " + m);
         ScooterProfiles.Profile p = profileFor("ut5");
         main(() -> {
-            // An unfinished try stays recoverable with Developer options hidden.
-            require(settings().edit().putBoolean("developer_options", false).commit(), "Could not hide Developer options for recovery");
+            // An unfinished try stays recoverable from the Scooter page.
             BleController ble = activity.service().ble;
             require(!ble.testing() && ble.guidedTest() == null, "a try resumed after process death");
             List<TestJournal.Entry> open = ble.unresolvedTests();
@@ -917,7 +933,7 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> { View review = root().findViewWithTag("scooter-review-test"); require(review != null && review.isShown(), "no Review pill"); require("Review unfinished try".contentEquals(review.getContentDescription()), "Review pill label " + review.getContentDescription()); review.performClick(); }); settle();
         awaitText("Unfinished try · Prompt sound");
         main(() -> require(!texts(root()).contains("Run check") && !texts(root()).contains("Run again")
-                && !texts(root()).toLowerCase(Locale.ROOT).contains("try a setting") && root().findViewWithTag("developer-compatibility-check") == null,
+                && !texts(root()).toLowerCase(Locale.ROOT).contains("try a setting") && !isShownTag("developer-compatibility-check"),
                 "Recovery opened the developer checker"));
         main(() -> require(texts(root()).contains("Connect to this scooter to review.") && texts(root()).contains("Setting confirmed · Interrupted/no response"), "offline review " + texts(root()).replace('\n', '|')));
         revealText("Unfinished try · Prompt sound"); screenshot("interrupt-3-relaunch-review-offline");
