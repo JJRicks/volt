@@ -80,8 +80,10 @@ final class RidingScreen implements AppScreen {
     private final FrameLayout recordDisc;
     private final LinearLayout stoppedControls;
     private boolean stoppedShown;
-    /** What the record disc shows now: its glyph and whether it's live; null before the first refresh. */
-    private String recordLook;
+    /** Home's record and stop marks on the disc. */
+    private final RecordGlyph recordGlyph;
+    /** Whether the record disc is live now; null before the first refresh. */
+    private Boolean recordLive;
     /** The frame's big number; every frame has one. Focus's range, battery and bottom cells are made with it. */
     private Cell big, highlight, battery;
     private final List<Cell> bottom = new ArrayList<>();
@@ -232,6 +234,8 @@ final class RidingScreen implements AppScreen {
         recordDisc = new FrameLayout(context);
         recordDisc.setFocusable(true);
         recordDisc.setOnClickListener(v -> recordTap());
+        recordGlyph = new RecordGlyph();
+        recordDisc.addView(recordGlyph, new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
         stoppedControls = new StoppedControls();
         stoppedControls.setVisibility(View.GONE);
 
@@ -681,13 +685,48 @@ final class RidingScreen implements AppScreen {
         recordDisc.setEnabled(enabled);
         recordDisc.setClickable(enabled);
         recordDisc.setContentDescription(recording ? T.ridesEndDescription() : saving ? T.dashboardRecordSaving() : T.dashboardStartRecording());
-        String look = (recording ? "stop" : "record") + enabled;
-        if (look.equals(recordLook)) return;
-        recordLook = look;
+        recordGlyph.set(recording, enabled ? ui.onAccent : ui.dim);
+        if (recordLive != null && recordLive == enabled) return;
+        recordLive = enabled;
         recordDisc.setBackground(oval(enabled ? ui.accent : ui.raised));
-        recordDisc.removeAllViews();
-        recordDisc.addView(ui.icon(recording ? "stop" : "record", 22, enabled ? ui.onAccent : ui.dim),
-                new FrameLayout.LayoutParams(ui.dp(22), ui.dp(22), Gravity.CENTER));
+    }
+
+    /** The record mark (a ring and dot) or stop mark (a rounded square), drawn as Home's recorder disc draws them. */
+    private final class RecordGlyph extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF square = new RectF(6, 6, 18, 18);
+        private boolean stop;
+        private int color;
+
+        RecordGlyph() {
+            super(host.activity());
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        void set(boolean stop, int color) {
+            if (this.stop == stop && this.color == color) return;
+            this.stop = stop;
+            this.color = color;
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            float unit = Math.min(getWidth(), getHeight()) / 24f;
+            canvas.save();
+            canvas.scale(unit, unit);
+            paint.setColor(color);
+            if (stop) {
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawRoundRect(square, 2.5f, 2.5f, paint);
+            } else {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(2);
+                canvas.drawCircle(12, 12, 8, paint);
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(12, 12, 3.6f, paint);
+            }
+            canvas.restore();
+        }
     }
 
     /** The Record disc: Home's start and stop, asked once more whether the scooter is still stopped. */

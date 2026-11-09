@@ -85,7 +85,7 @@ public final class RidingStoppedControlsValidation extends Instrumentation {
             profile = profiles.create("Synthetic riding scooter", "0F1E2D3C4B5A", 0);
             profile.serial = "Q2538ZZ9US7777777"; profile.mac = "C0:FF:EE:00:25:38"; profiles.update(profile);
             SharedPreferences settings = getTargetContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
-            settings.edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("phone_gps", false).commit();
+            settings.edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("phone_gps", false).putBoolean("developer_options", true).commit();
             try {
                 Class<?> layouts = Class.forName("com.jjricks.volt.RidingLayout"), frames = Class.forName("com.jjricks.volt.RidingFrames");
                 Class<?> config = Class.forName("com.jjricks.volt.RidingConfig");

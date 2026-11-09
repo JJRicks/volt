@@ -1017,10 +1017,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen instanceof MoreScreen)((MoreScreen)screen).resetScroll();
         return hadSection;
     }
-    /** The lock bar's switch alone for riding mode (RidingScreen), registered like any Home lock so updates and the queue reach it. */
+    /**
+     * The lock bar's switch alone for riding mode (RidingScreen), registered like any Home lock so updates and the queue
+     * reach it. There is no offline card to swap to, so no lockReady: a dropped link greys the switch and it keeps its place.
+     */
     @Override public View ridingLock(){
         compactLock=true;lockTitle=design.text(T.mainLockTitle(),15,true);
-        lockControl=new LockControl();lockControl.compact=true;lockReady=lockControl;
+        lockControl=new LockControl();lockControl.compact=true;
         return registerDashboardLock(lockControl);
     }
     private void openMoreSection(String section){
