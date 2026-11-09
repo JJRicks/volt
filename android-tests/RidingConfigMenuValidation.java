@@ -185,13 +185,13 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         settle();
         close();
         await(() -> "halo".equals(field(screen(), "frameId")), "The layout applied when the menu closed");
-        call(activity, "closeRiding", new Class<?>[0]);
+        main(() -> call(activity, "closeRiding", new Class<?>[0]));
         settle();
         main(() -> activity.openRiding());
         await(() -> "RidingScreen".equals(field(activity, "screen").getClass().getSimpleName()), "Riding mode reopened");
         settle();
         require("halo".equals(field(screen(), "frameId")), "The saved layout persists across reopening");
-        call(activity, "closeRiding", new Class<?>[0]);
+        main(() -> call(activity, "closeRiding", new Class<?>[0]));
         settle();
 
         // More keeps the two automatic switches, and only those.
