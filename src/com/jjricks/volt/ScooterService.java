@@ -228,6 +228,7 @@ public final class ScooterService extends Service {
      */
     private static java.util.List<?> shownLanguage(){return java.util.Arrays.asList(T.language(),Fmt.legacy()?null:Fmt.displayLocale());}
     @Override public int onStartCommand(Intent intent,int flags,int startId){
+        if(intent!=null&&"C1_PREVIEW".equals(intent.getAction())){c1StartPreview(intent);return START_NOT_STICKY;}// C1 concepts only: never ships
         if (destroyed || DataMaintenance.active()) { stopSelf(); return START_NOT_STICKY; }
         if(!ble.permissions()){finishChargeCapture(ChargeSessionStore.Stop.PERMISSION_LOST);endChargeMeasure(T.serviceMeasureBluetoothRemoved());stopIdleWork();return START_NOT_STICKY;}
         // A queued startForegroundService still needs to fulfill Android's startup contract.
@@ -1170,6 +1171,20 @@ public final class ScooterService extends Service {
             in.watts=estimate.charging?estimate.inputWatts:null;
         }
         return ChargeLiveState.of(in,wall->DisplayTime.clock(this,settings,wall));
+    }
+    // ---- C1 concepts only (never ships): a faked charge, every value synthetic, so the card can be photographed. ----
+    private static ChargeLiveState c1Preview;
+    private static int c1Variant;
+    private void c1StartPreview(Intent intent){
+        c1Variant=intent.getIntExtra("variant",0);
+        ChargeLiveState.Input in=new ChargeLiveState.Input();
+        in.percent=intent.getIntExtra("percent",72);int limit=intent.getIntExtra("limit",80);in.limit=limit<=0?null:limit;
+        in.minutesLeft=(double)intent.getIntExtra("minutes",38);in.watts=(double)intent.getIntExtra("watts",412);
+        in.scooter="UT5 MAX";in.nowWall=System.currentTimeMillis();
+        c1Preview=ChargeLiveState.of(in,wall->DisplayTime.clock(this,settings,wall));
+        Notification notice=notification();
+        if(Build.VERSION.SDK_INT>=29)startForeground(71,notice,ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+        else startForeground(71,notice);
     }
     /** The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner, 2026-11-06). */
     private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
@@ -2684,7 +2699,7 @@ public final class ScooterService extends Service {
             text = T.serviceNoticeSensorsNotSaving();
         }
         // The live card takes the charge recording's place, or the plain connected notice's while the hold runs.
-        ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
+        ChargeLiveState live = c1Preview != null ? c1Preview : chargeLiveShown() ? chargeLiveState() : null;
         chargeLiveBuilt = live;
         if (live != null) {
             title = live.title;
