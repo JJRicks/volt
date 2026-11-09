@@ -46,7 +46,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `ride_chart_key` | String | global | Durable | Ride chart metric. |
 | `ride_chart_series`, `charge_chart_series` | String set | global | Durable | Chart series choices. |
 | `last_ride_label` | String | global | Durable | Default name for the next ride. |
-| `developer_options` | Boolean | global | Durable | Seven-tap unlock. |
+| `developer_options` | Boolean | global | Durable | Retired: no longer read or written; older installs and backups keep it, harmlessly. |
 | `range_learned_intro_seen` | Boolean | global | Durable | Learned-range introduction shown. |
 | `ride_auto_stop` | Boolean | global | Durable | Conservatively end forgotten rides (added by the ride auto-stop work; registered ahead of it). |
 | `ride_auto_export_json` | Boolean | global | Durable | Auto-save rides: save each finished ride's Everything in one JSON to the folder below. Default off. RideAutoExport. A restored choice with no folder on this phone waits until one is chosen. |
