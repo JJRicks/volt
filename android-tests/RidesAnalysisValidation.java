@@ -654,11 +654,11 @@ public final class RidesAnalysisValidation extends Instrumentation {
             long legacyStart;try{legacyStart=service.rides.get(legacy).startWallMs;}catch(IOException e){throw new IllegalStateException(e);}
             String shownStem="ride-"+new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm",Locale.ROOT).format(new Date(legacyStart)).replace("_","_\u200B")+"-"+legacy.substring(0,8);
             for(String ending:new String[]{"everything.json","sensors.csv","analysis.json"}){
-                TextView shown=text(root(),shownStem+"-\u200B"+ending);
-                check(shown!=null,"The "+ending+" file name shows under its row");
-                android.text.Layout nameLayout=shown.getLayout();
+                TextView nameRow=text(root(),shownStem+"-\u200B"+ending);
+                check(nameRow!=null,"The "+ending+" file name shows under its row");
+                android.text.Layout nameLayout=nameRow.getLayout();
                 check(nameLayout!=null,"The "+ending+" file name is laid out");
-                for(int line=0;line<nameLayout.getLineCount();line++){check(nameLayout.getEllipsisCount(line)==0,"The "+ending+" file name is not cut short");if(line<nameLayout.getLineCount()-1)check(shown.getText().charAt(nameLayout.getLineEnd(line)-1)=='\u200B',"The "+ending+" file name wraps only at its break points: "+shown.getText());}
+                for(int line=0;line<nameLayout.getLineCount();line++){check(nameLayout.getEllipsisCount(line)==0,"The "+ending+" file name is not cut short");if(line<nameLayout.getLineCount()-1)check(nameRow.getText().charAt(nameLayout.getLineEnd(line)-1)=='\u200B',"The "+ending+" file name wraps only at its break points: "+nameRow.getText());}
             }
             Method stemOf;try{stemOf=Class.forName("com.jjricks.volt.RideExportFiles").getDeclaredMethod("stem",String.class,long.class,TimeZone.class);stemOf.setAccessible(true);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
             Locale phoneLocale=Locale.getDefault();
