@@ -1498,6 +1498,8 @@ final class RidingScreen implements AppScreen {
             if (mode) text.setLetterSpacing(MODE_SPACING);
             addView(text, new LayoutParams(-2, -2));
             probe = label();
+            // TextView needs layout params to re-measure after a text change, even off screen.
+            probe.setLayoutParams(new LayoutParams(-2, -2));
         }
         private TextView label() {
             TextView label = ui.text(T.ridingNoValue(), labelSp(17), true);
