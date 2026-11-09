@@ -90,9 +90,11 @@ public final class MoreScreen implements AppScreen {
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
-    /** More › Developer options › Compatibility; while a test is unfinished it opens as a recovery-only route. */
+    /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
     private boolean compatibilityRecovery;
+    /** Saved more_section value for the recovery-only route; it is shown as the Compatibility section. */
+    static final String COMPATIBILITY_RECOVERY = "CompatibilityRecovery";
     /** TelemetryHistory's database file; only its size on disk is read here, never its contents. */
     private static final String HISTORY_DATABASE = "telemetry-history.db";
     private final Map<String,LinearLayout> sections = new LinkedHashMap<>();
@@ -161,7 +163,9 @@ public final class MoreScreen implements AppScreen {
         if (wide) content.setPadding(ui.dp(24), ui.dp(6), ui.dp(24), 0);
         else content.setPadding(ui.dp(18), ui.dp(6), ui.dp(18), ui.dp(24));
         scroll.addView(content, new ScrollView.LayoutParams(-1, wide ? -1 : -2));
-        selectedSection = standalone ? initialSection : settings().getString("more_section", "");
+        String savedSection = standalone ? initialSection : settings().getString("more_section", "");
+        compatibilityRecovery = COMPATIBILITY_RECOVERY.equals(savedSection);
+        selectedSection = compatibilityRecovery ? "Compatibility" : savedSection;
         if (!knownSection(selectedSection)) selectedSection = "";
 
         LinearLayout menuParent = content, sectionParent = content;
@@ -238,7 +242,6 @@ public final class MoreScreen implements AppScreen {
         if (knownSection("Compatibility")) {
             cardDestination = column(); sections.put("Compatibility", cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
-            compatibilityRecovery = testRecoveryNeeded();
             compatibilityPanel = new CompatibilityPanel(host, cardDestination, compatibilityRecovery);
         }
         cardDestination = content;
@@ -305,11 +308,6 @@ public final class MoreScreen implements AppScreen {
         if ("Units".equals(section) || "Compatibility".equals(section)) return true;
         for (String candidate : SECTIONS) if (candidate.equals(section)) return true;
         return false;
-    }
-    private boolean testRecoveryNeeded() {
-        BleController ble = service() == null ? null : service().ble;
-        return ble != null && (!ble.testRecordsHealthy() || !ble.unresolvedTests().isEmpty()
-                || ble.unresolvedTestsElsewhere() > 0 || !ble.orphanedTests().isEmpty() || ble.testing());
     }
     /**
      * The submenu on screen. Wide mode always shows one: with none chosen (first visit, or one expired
@@ -2112,7 +2110,7 @@ public final class MoreScreen implements AppScreen {
     /** An unfinished try is reviewed where every unfinished test is: Restore, Keep or Dismiss. */
     private void reviewTry() {
         if (labSheet != null) labSheet.dialog.dismiss();
-        selectSection("Compatibility");
+        openCompatibility(true);
     }
     private void labAction(LabRow row) {
         BleController ble = service() == null ? null : service().ble; if (ble == null) return;
@@ -2564,7 +2562,7 @@ public final class MoreScreen implements AppScreen {
     private void developerOptions() {
         LinearLayout diagnostics = group();
         row(diagnostics, "check", T.moreDevCompat(), T.moreDevCompatSub(),
-                () -> selectSection("Compatibility")).view.setTag("developer-compatibility-check");
+                () -> openCompatibility(false)).view.setTag("developer-compatibility-check");
         // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
         liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
         liveUpdateRow.view.setTag("developer_live_update");
@@ -2646,6 +2644,12 @@ public final class MoreScreen implements AppScreen {
                 host.toast(saved ? T.moreDevSlot3Saved() : T.moreDevSlot3Failed());
             });
         }).view.setTag("developer-example-slot");
+    }
+
+    private void openCompatibility(boolean recovery) {
+        compatibilityRecovery = recovery;
+        if (compatibilityPanel != null) compatibilityPanel.setRecoveryOnly(recovery);
+        selectSection("Compatibility");
     }
 
     private void chooseSimulationModel() {

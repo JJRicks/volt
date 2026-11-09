@@ -21,7 +21,7 @@ final class CompatibilityPanel {
     private final ScreenHost host;
     private final Ui ui;
     private final LinearLayout root;
-    private final boolean recoveryOnly;
+    private boolean recoveryOnly;
     private String shown="";
     private TextView progressText;
     private View progressFill,progressRest;
@@ -59,12 +59,14 @@ final class CompatibilityPanel {
         if(running&&check!=null)progress(check);
     }
 
+    void setRecoveryOnly(boolean value){if(value!=recoveryOnly){recoveryOnly=value;shown="";}}
+
     private void rebuild(String key,BleController ble){
         if(key.equals(shown))return;
         shown=key;root.removeAllViews();progressText=null;
         if(ble==null){root.addView(note(T.compatServiceStarting()));return;}
         DiscoveryCoordinator check=ble.discovery();boolean running=ble.discovering();
-        // While a test is unfinished, Compatibility opens as this route (the Scooter page's Review goes here).
+        // The Scooter page's Review opens this route.
         // A pre-upgrade or interrupted test stays recoverable, and this route never offers a new check, test or report.
         if(recoveryOnly){
             if(!ble.ready())root.addView(ui.button(T.compatConnect(),host::connect));
