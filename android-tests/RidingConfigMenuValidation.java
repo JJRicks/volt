@@ -141,6 +141,19 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         speed(0);
         tuneShows("stopped again");
 
+        // A moved setting saves at once, leaves the menu open, and riding mode picks it up when the menu closes.
+        openMenu();
+        Object beforeFixed = screen();
+        click(findText(root(), "Fixed"));
+        settle();
+        require("fixed".equals(prefs("app_settings").getString("riding_brightness", null)), "Fixed saved at once");
+        require(menuOpen() && screen() == beforeFixed, "A moved setting doesn't close the menu or rebuild the screen");
+        require(((View) field(field(screen(), "display"), "controls")).getVisibility() == View.GONE, "The slider waits for the menu to close");
+        close();
+        await(() -> screen() != beforeFixed && ((View) field(field(screen(), "display"), "controls")).getVisibility() == View.VISIBLE, "Fixed brightness applied when the menu closed");
+        main(() -> prefs("app_settings").edit().remove("riding_brightness").commit());
+        tuneShows("after the brightness change");
+
         // Dialogs from the menu close with it at 4 mph: the time picker, and the consent sheet.
         schedule("custom");
         openMenu();
