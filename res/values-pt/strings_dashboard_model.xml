@@ -83,9 +83,9 @@
     <!-- src:d1cb36b44b04e38c459d67d7da24a13492e5c327 -->
     <string name="dashboard_model_tile_top_speed">Vel. máxima</string>
     <!-- src:be989e0ff6f15c4ace058c5c42d78af73188cd49 -->
-    <string name="dashboard_model_tile_charge_schedule">Carregamento</string>
+    <string name="dashboard_model_tile_charge_schedule">Carregamento programado</string>
     <!-- src:699259da8d38c2a1d8a69c8ac841763d53ab11da -->
-    <string name="dashboard_model_tile_charge_schedule_short">Carregamento</string>
+    <string name="dashboard_model_tile_charge_schedule_short">Carreg. progr.</string>
     <!-- src:dc6742d6d9ee09ea554a81f62fada24d6c4b1562 -->
     <string name="dashboard_model_tile_updating">A atualizar…</string>
     <!-- src:cfbf195febe31a997f31b2d239cbe5a20868290e -->

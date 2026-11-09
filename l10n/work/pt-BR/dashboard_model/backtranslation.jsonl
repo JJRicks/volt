@@ -3,7 +3,7 @@
 {"back":"Ready by","key":"dashboard_model_qa_charge_done_by_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"8b94ea18cd9613195d80e65a6eb505dca980c89c","target":"Pronta até"}
 {"back":"Experimental controls","key":"dashboard_model_qa_group_experimental","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fe834ab52a00109da8d8f3077a7229f92735c9a2","target":"Controles experimentais"}
 {"back":"Max. speed","key":"dashboard_model_tile_top_speed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"d1cb36b44b04e38c459d67d7da24a13492e5c327","target":"Vel. máxima"}
-{"back":"Scheduling","key":"dashboard_model_tile_charge_schedule","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"be989e0ff6f15c4ace058c5c42d78af73188cd49","target":"Programação"}
+{"back":"Scheduled charging","key":"dashboard_model_tile_charge_schedule","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"be989e0ff6f15c4ace058c5c42d78af73188cd49","target":"Carregamento programado"}
 {"back":"Activated • %1$s","key":"dashboard_model_tile_on_at","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"36bb83c10ec32db86dc71f331a909921f5587794","target":"Ativado • %1$s"}
 {"back":"Not scheduled","key":"dashboard_model_tile_not_scheduled","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0","target":"Não programado"}
 {"back":" • %1$s","key":"dashboard_model_tile_at_time","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"bf2c1d9211787ac67f4d9a7a67895abba193869e","target":" • %1$s"}
@@ -18,4 +18,4 @@
 {"back":"Time: Ready by","key":"dashboard_model_qa_charge_done_time_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"5e8ef4566f297b6db0e662bca61dc57c4f3c167b","target":"Hora: Pronta até"}
 {"back":"Measuring…","key":"dashboard_model_tile_measuring","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a7bc4f8672d17e6bda47b74ab5c9707777e3b738","target":"Medindo…"}
 {"back":"Connect the scooter first","key":"dashboard_model_tile_connect_scooter","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fbc9bb6baff246c2834f064cbd71cbe77243f7c0","target":"Conecte o patinete primeiro"}
-{"back":"Scheduling","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Programação"}
+{"back":"Sched. charge","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Carga progr."}

@@ -669,10 +669,15 @@ public final class RideAutoExportValidation extends Instrumentation {
         Notification n = notice(78);
         check(T.serviceAutoSaveFailed().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TITLE)) && T.serviceAutoSaveFolder().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TEXT)), "Notification title and text from the catalog");
         check("scooter".equals(n.getChannelId()), "On the existing scooter channel");
+        boolean createdDark = (activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         shell("cmd uimode night yes"); shell("cmd statusbar expand-notifications"); SystemClock.sleep(1800);
         screenshot("06-failure-notification-dark");
         shell("cmd uimode night no"); SystemClock.sleep(1800);
         screenshot("06-failure-notification-light");
+        // Back to the theme Volt was created in while it is hidden, or showing it again relaunches MainActivity and strands `activity`.
+        // A fixed yes/no on purpose: a restored auto or custom schedule can defer its theme until the screen goes off, so a later show could still relaunch.
+        // The emulator stays on that fixed mode; these runs are disposable.
+        shell("cmd uimode night " + (createdDark ? "yes" : "no")); SystemClock.sleep(1800);
         shell("cmd statusbar collapse"); SystemClock.sleep(800);
         dismissNotice(78);
         screenOnAndShow();
