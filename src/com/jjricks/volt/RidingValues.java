@@ -65,10 +65,11 @@ final class RidingValues {
 
     enum Band { GREEN, AMBER, RED }
     /**
-     * How a power reading's direction is known. DRAW and REGEN were measured under a known 0x79
-     * sign. DRAW_INFERRED had no known sign but was too strong to be regen (inferredDrawThresholdW());
-     * it counts as draw everywhere, yet stays apart from confirmed so a screen can show the difference.
-     * UNKNOWN is a weaker reading without a sign: only its magnitude is known.
+     * How a power reading's direction is known. DRAW and REGEN came from a current this scooter
+     * really signs, the rule recordings use (PowerSign). DRAW_INFERRED was unsigned but too strong
+     * to be regen (inferredDrawThresholdW()); it counts as draw everywhere, yet stays apart from
+     * confirmed so a screen can show the difference. UNKNOWN is a weaker unsigned reading: only
+     * its magnitude is known.
      */
     enum Direction { DRAW, REGEN, UNKNOWN, DRAW_INFERRED;
         /** True for DRAW_INFERRED and UNKNOWN: the reading's sign can't be trusted, so it counts as a magnitude. */
@@ -194,6 +195,8 @@ final class RidingValues {
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
     private boolean scaleChanged;
+    /** Whether this scooter's current carries a real sign: the same rule a recording's summary uses. */
+    private final PowerSign sign = new PowerSign();
     /**
      * Ride energy; the part of it from stretches touching an unknown direction (counted as
      * magnitude); and the part from stretches touching inferred draw (and no unknown end).
@@ -274,6 +277,8 @@ final class RidingValues {
      */
     void sample(String key, double value, int sourceCmd, long updatedMs) {
         if (!KEYS.contains(key) || !Double.isFinite(value) || updatedMs < 0) return;
+        if (key.equals(SIGN_KEY)) sign.signState(value);
+        else if (key.equals(POWER_KEY) || key.equals("current_a")) sign.current(value);
         Track t = tracks.get(key);
         if (t == null) { t = new Track(); t.nominalMs = nominal(key); t.intervalMs = t.nominalMs; tracks.put(key, t); }
         else if (updatedMs < t.updatedMs) return;
@@ -482,22 +487,17 @@ final class RidingValues {
         return new Speed(gone ? null : r.value, lastSpeedKmh, lastSpeedTenths, r.stale || gone);
     }
 
-    /** True while the latest 0x79 sign state is a known 0 or 1. */
-    private boolean signKnown() {
-        Track sign = tracks.get(SIGN_KEY);
-        return sign != null && (sign.value == 0 || sign.value == 1);
-    }
-    private Direction signDirection(double watts) { return !signKnown() ? Direction.UNKNOWN : watts < 0 ? Direction.REGEN : Direction.DRAW; }
+    private Direction signDirection(double watts) { return !sign.signedNow() ? Direction.UNKNOWN : watts < 0 ? Direction.REGEN : Direction.DRAW; }
 
     /**
      * The direction of the latest power reading, as stored when it was measured (or corrected).
-     * A later sign never reinterprets it. UNKNOWN before any power or without a 0x79 sign;
-     * DRAW_INFERRED for a strong reading without one.
+     * A later sign never reinterprets it. UNKNOWN before any power or for an unsigned current
+     * (PowerSign); DRAW_INFERRED for a strong reading that was unsigned.
      */
     Direction direction() {
         return powerValues.isEmpty() ? Direction.UNKNOWN : Direction.values()[(int) powerValues.peekLast()[1]];
     }
-    /** The direction a new power reading would be read under: UNKNOWN until the 0x79 sign is a known 0 or 1. */
+    /** The direction a new power reading would be read under (PowerSign.signedNow): UNKNOWN only for an unsigned current. */
     Direction signState() { return signDirection(0); }
 
     Power power(long nowMs) {
