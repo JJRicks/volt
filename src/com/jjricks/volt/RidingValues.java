@@ -8,7 +8,7 @@ import java.util.*;
  *
  * It tracks each reading's interval (an EMA of the gaps between new samples), staleness, the
  * 30 s efficiency with the recording rules' 80 % coverage gate, ride energy, peak draw and regen,
- * the power scale, a 120 s trace buffer, ride time and recording time. Range readings come from
+ * the power scale, a 120 s trace buffer and recording time. Range readings come from
  * pluggable sources. Nothing here extrapolates past the latest real reading or invents a zero.
  */
 final class RidingValues {
@@ -65,10 +65,11 @@ final class RidingValues {
 
     enum Band { GREEN, AMBER, RED }
     /**
-     * How a power reading's direction is known. DRAW and REGEN were measured under a known 0x79
-     * sign. DRAW_INFERRED had no known sign but was too strong to be regen (inferredDrawThresholdW());
-     * it counts as draw everywhere, yet stays apart from confirmed so a screen can show the difference.
-     * UNKNOWN is a weaker reading without a sign: only its magnitude is known.
+     * How a power reading's direction is known. DRAW and REGEN came from a current this scooter
+     * really signs, the rule recordings use (PowerSign). DRAW_INFERRED was unsigned but too strong
+     * to be regen (inferredDrawThresholdW()); it counts as draw everywhere, yet stays apart from
+     * confirmed so a screen can show the difference. UNKNOWN is a weaker unsigned reading: only
+     * its magnitude is known.
      */
     enum Direction { DRAW, REGEN, UNKNOWN, DRAW_INFERRED;
         /** True for DRAW_INFERRED and UNKNOWN: the reading's sign can't be trusted, so it counts as a magnitude. */
@@ -194,6 +195,8 @@ final class RidingValues {
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
     private boolean scaleChanged;
+    /** Whether this scooter's current carries a real sign: the same rule a recording's summary uses. */
+    private final PowerSign sign = new PowerSign();
     /**
      * Ride energy; the part of it from stretches touching an unknown direction (counted as
      * magnitude); and the part from stretches touching inferred draw (and no unknown end).
@@ -207,20 +210,6 @@ final class RidingValues {
     private Double lastSpeedKmh;
     private boolean lastSpeedTenths;
     private Long recordingStartMs;
-    /** Monotonic time the scooter's trip started, estimated from trip_minutes. */
-    private Long tripStartMs;
-    /** The trip_minutes reading that last anchored it, and when it was measured. */
-    private double tripMinutesSeen;
-    private long tripSeenMs;
-    /** A previous riding session's trip clock, used by this session's first trip report if it still fits. */
-    private TripClock resumeTrip;
-    /**
-     * The trip's distance and top speed so far (NaN before a reading). Both only grow within a trip and start
-     * over at 0 when the scooter powers on, so a drop is a new trip even when the minute looks the same.
-     */
-    private double tripKmMark = Double.NaN, tripMaxMark = Double.NaN;
-    /** A drop arrived before this report's trip_minutes: the next one starts a new trip. */
-    private boolean tripRestarted;
     private final Map<String, RangeSource> ranges = new HashMap<>();
 
     RidingValues() { this(new PowerScale()); }
@@ -274,6 +263,8 @@ final class RidingValues {
      */
     void sample(String key, double value, int sourceCmd, long updatedMs) {
         if (!KEYS.contains(key) || !Double.isFinite(value) || updatedMs < 0) return;
+        if (key.equals(SIGN_KEY)) sign.signState(value);
+        else if (key.equals(POWER_KEY) || key.equals("current_a")) sign.current(value);
         Track t = tracks.get(key);
         if (t == null) { t = new Track(); t.nominalMs = nominal(key); t.intervalMs = t.nominalMs; tracks.put(key, t); }
         else if (updatedMs < t.updatedMs) return;
@@ -291,10 +282,6 @@ final class RidingValues {
             append(speedSamples, speedValues, updatedMs, new double[]{value}, gapMs(t));
         } else if (key.equals(POWER_KEY)) {
             powerSample(value, updatedMs, previous, t);
-        } else if (key.equals(TRIP_MINUTES_KEY)) {
-            tripMinutes(value, updatedMs, t);
-        } else if (key.equals(TRIP_KM_KEY) || key.equals(MAX_SPEED_KEY)) {
-            tripEvidence(key.equals(TRIP_KM_KEY), value, updatedMs);
         }
     }
     private static double clampInterval(double ms) { return Math.max(MIN_INTERVAL_MS, Math.min(MAX_INTERVAL_MS, ms)); }
@@ -385,80 +372,6 @@ final class RidingValues {
         scaleChanged |= scale.observe(watts, direction == Direction.REGEN ? Direction.REGEN : Direction.DRAW);
     }
 
-    /**
-     * Ride time follows the scooter's trip: anchored from trip_minutes, then counted on the phone's clock.
-     * The scooter's whole-minute counter can stand still while its reports keep coming (a stop, a slow
-     * scooter clock), so a count ahead of it is kept: pulling it back pinned ride time at the next whole
-     * minute (owner, Nov 7: frozen at 2:00 or 3:00). A count behind the scooter's moves forward to it. A
-     * lower count, a higher one than the time since the last report allows, or a drop in the trip's
-     * distance or top speed (tripEvidence) is a new trip. A dropped and restored link alone is not.
-     *
-     * Still ambiguous: a power cycle within TRIP_RESUME_MS of the last report that shows the same minute,
-     * before the old trip had moved (under 1 km and under 1 km/h top speed), carries on the old count. The
-     * extra time is the old trip's age, which is small unless the scooter sat on without moving while its
-     * minute stood still: TRIP_RESUME_MS counts from the last report, not from the old trip's start.
-     */
-    private void tripMinutes(double minutes, long updatedMs, Track t) {
-        if (minutes < 0) return;
-        if (tripStartMs == null && resumeTrip != null) {
-            tripStartMs = resumeTrip.startMs; tripMinutesSeen = resumeTrip.minutes; tripSeenMs = resumeTrip.seenMs;
-        }
-        resumeTrip = null;
-        long whole = (long) Math.floor(minutes), latest = updatedMs - whole * 60_000L;
-        long tolerance = (long) Math.max(2000, t.intervalMs), gap = updatedMs - tripSeenMs;
-        boolean sameTrip = tripStartMs != null && !tripRestarted && minutes >= tripMinutesSeen && gap >= 0 && gap <= TRIP_RESUME_MS
-                && (whole - (long) Math.floor(tripMinutesSeen)) * 60_000L <= gap + 60_000L + tolerance;
-        tripRestarted = false;
-        // A new trip's marks start over (this report's distance and top speed land again with the next one).
-        if (!sameTrip && tripStartMs != null) tripKmMark = tripMaxMark = Double.NaN;
-        tripStartMs = sameTrip ? Math.min(tripStartMs, latest) : latest;
-        tripMinutesSeen = minutes;
-        tripSeenMs = updatedMs;
-    }
-
-    /**
-     * The trip's distance or top speed. Falling by a whole unit or more means the scooter started a new trip:
-     * drop any carried clock and re-anchor on this report's minute, or on the next one if it hasn't arrived
-     * yet. A smaller drop, even to 0, is not evidence: a whole-unit (0x91) report rounds down what a tenths
-     * (0x92) report showed, so 0.4 km can come back as 0 within the same trip (Codex #319).
-     */
-    private void tripEvidence(boolean km, double value, long updatedMs) {
-        double mark = km ? tripKmMark : tripMaxMark;
-        if (!Double.isNaN(mark) && mark - value >= 1) {
-            resumeTrip = null;
-            if (tripStartMs != null && tripSeenMs == updatedMs) tripStartMs = updatedMs - (long) Math.floor(tripMinutesSeen) * 60_000L;
-            else tripRestarted = true;
-            tripKmMark = tripMaxMark = Double.NaN;
-        }
-        if (km) tripKmMark = Double.isNaN(tripKmMark) ? value : Math.max(tripKmMark, value);
-        else tripMaxMark = Double.isNaN(tripMaxMark) ? value : Math.max(tripMaxMark, value);
-    }
-
-    /** Longest silence after which a trip report still continues the same count (rather than re-anchoring). */
-    static final long TRIP_RESUME_MS = 5 * 60_000L;
-
-    /** Ride time's anchor, carried from one riding session to the next so reopening doesn't snap it back. */
-    static final class TripClock {
-        final long startMs, seenMs;
-        /** kmMark and maxSpeedMark are the trip's distance and top speed so far, NaN when unknown. */
-        final double minutes, kmMark, maxSpeedMark;
-        TripClock(long startMs, double minutes, long seenMs, double kmMark, double maxSpeedMark) {
-            this.startMs = startMs; this.minutes = minutes; this.seenMs = seenMs; this.kmMark = kmMark; this.maxSpeedMark = maxSpeedMark;
-        }
-    }
-    /** This session's ride-time anchor, or null before a trip report. */
-    TripClock tripClock() { return tripStartMs == null ? null : new TripClock(tripStartMs, tripMinutesSeen, tripSeenMs, tripKmMark, tripMaxMark); }
-    /**
-     * Offers a previous session's anchor, before this session's first reading. The first trip report keeps
-     * it only if it is the same trip, and a drop in distance or top speed from its marks drops it.
-     */
-    void resumeTrip(TripClock clock) {
-        if (tripStartMs != null || clock == null) return;
-        resumeTrip = clock;
-        if (Double.isNaN(tripKmMark)) tripKmMark = clock.kmMark;
-        if (Double.isNaN(tripMaxMark)) tripMaxMark = clock.maxSpeedMark;
-    }
-
     private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double[] v, long gapMs) {
         boolean gap = !times.isEmpty() && t - times.peekLast()[0] > gapMs;
         times.addLast(new long[]{t, gap ? 1 : 0});
@@ -482,22 +395,17 @@ final class RidingValues {
         return new Speed(gone ? null : r.value, lastSpeedKmh, lastSpeedTenths, r.stale || gone);
     }
 
-    /** True while the latest 0x79 sign state is a known 0 or 1. */
-    private boolean signKnown() {
-        Track sign = tracks.get(SIGN_KEY);
-        return sign != null && (sign.value == 0 || sign.value == 1);
-    }
-    private Direction signDirection(double watts) { return !signKnown() ? Direction.UNKNOWN : watts < 0 ? Direction.REGEN : Direction.DRAW; }
+    private Direction signDirection(double watts) { return !sign.signedNow() ? Direction.UNKNOWN : watts < 0 ? Direction.REGEN : Direction.DRAW; }
 
     /**
      * The direction of the latest power reading, as stored when it was measured (or corrected).
-     * A later sign never reinterprets it. UNKNOWN before any power or without a 0x79 sign;
-     * DRAW_INFERRED for a strong reading without one.
+     * A later sign never reinterprets it. UNKNOWN before any power or for an unsigned current
+     * (PowerSign); DRAW_INFERRED for a strong reading that was unsigned.
      */
     Direction direction() {
         return powerValues.isEmpty() ? Direction.UNKNOWN : Direction.values()[(int) powerValues.peekLast()[1]];
     }
-    /** The direction a new power reading would be read under: UNKNOWN until the 0x79 sign is a known 0 or 1. */
+    /** The direction a new power reading would be read under (PowerSign.signedNow): UNKNOWN only for an unsigned current. */
     Direction signState() { return signDirection(0); }
 
     Power power(long nowMs) {
@@ -606,23 +514,7 @@ final class RidingValues {
         return out;
     }
 
-    /** The trip spot: the recording's distance while recording, otherwise the scooter's trip (Q15 B). */
-    static final class Trip {
-        final Double km;
-        /** Labels it "Ride" rather than "Trip". */
-        final boolean fromRecording;
-        private Trip(Double km, boolean fromRecording) { this.km = km; this.fromRecording = fromRecording; }
-    }
-    Trip trip(Double recordingKm, long nowMs) {
-        if (recordingStartMs != null && recordingKm != null && Double.isFinite(recordingKm)) return new Trip(recordingKm, true);
-        Reading r = reading("trip_km", nowMs);
-        return new Trip(r == null ? null : r.value, false);
-    }
-
-    /** Ride time: since the scooter's trip started, or null before trip_minutes arrives. */
-    Long rideTimeMs(long nowMs) { return tripStartMs == null ? null : Math.max(0, nowMs - tripStartMs); }
-
-    /** Recording time is separate from ride time (owner): a rider may record only part of a ride. */
+    /** Recording time is separate from ride time (RidingSession): a rider may record only part of a ride (owner). */
     void setRecordingStart(Long startMs) { recordingStartMs = startMs; }
     Long recordingTimeMs(long nowMs) { return recordingStartMs == null ? null : Math.max(0, nowMs - recordingStartMs); }
 }

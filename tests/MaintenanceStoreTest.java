@@ -155,7 +155,7 @@ public final class MaintenanceStoreTest {
     // The models whose NAVEE manual states a schedule (see MaintenanceDefaults), and which of them list tire pressure
     // or a single battery-storage number.
     private static final List<String> SCHEDULED = Arrays.asList("GT3", "GT3 Pro", "GT3 Max", "ST3", "ST3 Pro", "V25i Pro II", "V40i Pro II", "V50i Pro II",
-            "K100", "K100 Pro", "K100 Max", "S40", "S60", "V40i Pro", "V50i Pro", "V40i", "V40 Pro", "V25", "V25i Pro", "S65C");
+            "K100", "K100 Pro", "K100 Max", "S40", "S60", "V40i Pro", "V50i Pro", "V40i", "V40 Pro", "V25", "V25i Pro", "S65C", "UT5 Max");
     private static final List<String> PRESSURE = Arrays.asList("S40", "S60", "V40i Pro", "V50i Pro", "V40i", "V40 Pro", "V25", "V25i Pro", "S65C");
     private static final List<String> BATTERY = Arrays.asList("GT3", "GT3 Pro", "GT3 Max", "ST3", "ST3 Pro", "V25i Pro II", "V40i Pro II", "V50i Pro II",
             "K100", "K100 Pro", "K100 Max");
@@ -167,7 +167,7 @@ public final class MaintenanceStoreTest {
             check(NaveeModels.all().contains(i.model), "every entry names a listed model exactly: " + i.model);
             check(SCHEDULED.contains(i.model), "only models whose manual has a schedule: " + i.model);
             check(seen.add(i.model + "/" + i.task), "one entry per task per model: " + i.model + " " + i.task);
-            check(i.source.title.startsWith("NAVEE ") && i.source.edition.equals("2026-03") && i.source.page.matches("\\d{2}"), "every entry cites its manual and page: " + i.model);
+            check(i.source.title.startsWith("NAVEE ") && i.source.edition.equals(i.model.equals("UT5 Max") ? "\u2014" : "2026-03") && i.source.page.matches("\\d{2}"), "every entry cites its manual and page: " + i.model);
         }
         for (String model : NaveeModels.all()) {
             MaintenanceDefaults.Result r = MaintenanceDefaults.forModel(model);
@@ -180,7 +180,7 @@ public final class MaintenanceStoreTest {
             check(tasks.contains(MaintenanceDefaults.BATTERY_STORAGE) == BATTERY.contains(model), "battery storage only where the manual gives one number: " + model);
             check(!tasks.contains(MaintenanceDefaults.LIGHTS) && !tasks.contains(MaintenanceDefaults.CLEAN_DRY), "no manual states lights or cleaning: " + model);
         }
-        for (String model : new String[]{"UT5 Max", "UT5 Ultra X", "N65i", "GT5 Max", "G5 Pro", "V3 Pro", "S65"})
+        for (String model : new String[]{"UT5 Ultra X", "N65i", "GT5 Max", "G5 Pro", "V3 Pro", "S65"})
             check(MaintenanceDefaults.forModel(model).kind == MaintenanceDefaults.Kind.NOT_LISTED, "searched, nothing stated or no manual: " + model);
         MaintenanceDefaults.Result gt3Max = MaintenanceDefaults.forModel("GT3 MAX");
         check(gt3Max.kind == MaintenanceDefaults.Kind.LISTED && gt3Max.intervals.size() == 5, "the scooter's upper-case name finds the GT3 Max schedule");
@@ -190,6 +190,15 @@ public final class MaintenanceStoreTest {
             if (i.task.equals(MaintenanceDefaults.BOLTS_FOLDING)) check(i.km == null && i.months == 3, "GT3 Max handlebar screws: every 3 months");
             if (i.task.equals(MaintenanceDefaults.STEERING)) check(i.km == 1000.0 && i.months == 12, "GT3 Max steering: 1000 km or a year");
             if (i.task.equals(MaintenanceDefaults.BATTERY_STORAGE)) check(i.km == null && i.days == 60, "GT3 Max battery storage: every 60 days");
+        }
+        MaintenanceDefaults.Result ut5Max = MaintenanceDefaults.forModel("UT5 MAX");
+        check(ut5Max.kind == MaintenanceDefaults.Kind.LISTED && ut5Max.intervals.size() == 4, "the UT5 Max lists the four rows its printed pp. 14-15 state");
+        for (MaintenanceDefaults.Interval i : ut5Max.intervals) {
+            check(i.source.title.equals("NAVEE UT5 Max printed manual") && !i.source.edition.matches(".*[\\p{L}\\d].*"), "the printed copy has no date to cite: its edition is a mark, no word to translate");
+            if (i.task.equals(MaintenanceDefaults.TIRE_TREAD)) check(i.km == 500.0 && i.months == 6 && i.source.page.equals("14"), "UT5 Max tire tread: p. 14");
+            if (i.task.equals(MaintenanceDefaults.BOLTS_FOLDING)) check(i.km == null && i.months == 3 && i.source.page.equals("14"), "UT5 Max handlebar screws: every 3 months, p. 14");
+            if (i.task.equals(MaintenanceDefaults.BRAKES)) check(i.km == 500.0 && i.months == 6 && i.source.page.equals("15"), "UT5 Max brakes: 500 km or 6 months, p. 15");
+            if (i.task.equals(MaintenanceDefaults.STEERING)) check(i.km == 1000.0 && i.months == 12 && i.source.page.equals("15"), "UT5 Max steering: 1000 km or a year, p. 15");
         }
         for (MaintenanceDefaults.Interval i : MaintenanceDefaults.forModel("V40 Pro").intervals)
             if (i.task.equals(MaintenanceDefaults.TIRE_PRESSURE)) check(i.km == null && i.months == 1 && i.source.page.equals("05"), "V40 Pro tire pressure: every month, p. 05");

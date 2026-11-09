@@ -16,6 +16,8 @@ import java.util.*;
  * adjustment, steering, and battery storage where the manual gives one number. Left out: where a manual
  * gives two numbers for the same thing (battery storage "every 30 days" in its text and "every 60 days"
  * in the table), the second screw rows, the charging row, and any model whose manual has no schedule.
+ * The UT5 Max is the one model read from a printed copy: NAVEE's online UT5 Max PDF is a Quick User Guide
+ * with no schedule (checked 2026-11-08), so its line cites the owner's paper manual, see {@link #PRINTED}.
  * Adding a model later is one reviewed line with its citation, plus a test.
  */
 final class MaintenanceDefaults {
@@ -71,6 +73,13 @@ final class MaintenanceDefaults {
      */
     private static final String ONLINE = "2026-03";
 
+    /**
+     * The edition of a manual read from a printed copy that states no edition or date (the owner's UT5 Max
+     * manual). A dash rather than the month we read it, which would look like the manual's own date: the
+     * caption shows this value untranslated, so it can't be a word.
+     */
+    private static final String PRINTED = "\u2014";
+
     private static List<Interval> build() {
         List<Interval> t = new ArrayList<>();
         // service.naveetech.com/wp-content/uploads/2026/03/NAVEE-Electric-Scooter-GT3-User-Manual.pdf, -GT3-Pro-, -GT3-Max- (one file each).
@@ -98,6 +107,8 @@ final class MaintenanceDefaults {
         schedule(t, "V25i Pro", "NAVEE Electric Scooter V25i Pro User Manual", "06", "07", true, false);
         // .../2026/03/NAVEE-Elecitric-Scooter-S65-User-Manual.pdf: NAVEE's S65 link, a manual that names the S65C only.
         schedule(t, "S65C", "NAVEE Electric Scooter User Manual, SPU: S65C", "05", "06", true, false);
+        // The owner's printed manual, pp. 14-15: no tire pressure row. Battery storage left out until p. 13's storage text is read.
+        schedule(t, "UT5 Max", "NAVEE UT5 Max printed manual", PRINTED, "14", "15", false, false);
         return t;
     }
 
@@ -108,7 +119,11 @@ final class MaintenanceDefaults {
      * gives that one number.
      */
     private static void schedule(List<Interval> t, String model, String title, String first, String second, boolean pressure, boolean battery) {
-        Source tires = new Source(title, ONLINE, first), rest = new Source(title, ONLINE, second);
+        schedule(t, model, title, ONLINE, first, second, pressure, battery);
+    }
+
+    private static void schedule(List<Interval> t, String model, String title, String edition, String first, String second, boolean pressure, boolean battery) {
+        Source tires = new Source(title, edition, first), rest = new Source(title, edition, second);
         if (pressure) t.add(new Interval(model, TIRE_PRESSURE, null, 0, 1, tires));
         t.add(new Interval(model, TIRE_TREAD, 500.0, 0, 6, tires));
         t.add(new Interval(model, BOLTS_FOLDING, null, 0, 3, tires));

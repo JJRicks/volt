@@ -34,6 +34,8 @@ public final class RideStoreTest {
         unfinishedJournalsAreNeverServedAsFinished();
         listReplayDoesNotBlockRecording();
         deferredStartReadsOnlyUnfinishedJournals();
+        unsignedCurrentIsDirectionUnconfirmed();
+        signTransitionsAreCountedByInterval();
         System.out.println("RideStoreTest: " + assertions + " assertions passed");
     }
     private static File directory() throws Exception { return Files.createTempDirectory("navee-rides-test-").toFile(); }
@@ -47,6 +49,107 @@ public final class RideStoreTest {
         values.put("battery_percent", new RideStore.Sample(80, mono));
         values.put("temperature_c", new RideStore.Sample(21, mono));
         return values;
+    }
+    private static RideStore.Summary signRide(RideStore store, RideStore.Sample sign, double firstWatts) throws Exception {
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+        store.start("scooter", "Sign", WALL, 0);
+        for (int i = 0; i <= 2; i++) {
+            Map<String, RideStore.Sample> m = snapshot(i * 1000, i == 0 ? firstWatts : 360, 36, 10 + i * .1);
+            if (sign != null) m.put("current_sign_state", sign);
+            store.sample(WALL + i * 1000, i * 1000, m);
+        }
+        return store.stop(WALL + 2000, 2000);
+    }
+    /** A sign state that was never 0 or 1 and no negative current: no Draw/Input claim, however the ride was recorded. */
+    private static void unsignedCurrentIsDirectionUnconfirmed() throws Exception {
+        File dir = directory();
+        RideStore store = new RideStore(dir);
+        RideStore.Summary unsigned = signRide(store, new RideStore.Sample(254.0, "254 (raw)", "", 0x79, 0), 360);
+        check(!unsigned.directionConfirmed, "A 254 sign state without a negative current is unconfirmed");
+        check(unsigned.drawWh == null && unsigned.regeneratedWh == null && unsigned.returnedWh == null && unsigned.netConsumptionWh == null,
+                "It claims no draw, input or net");
+        check(unsigned.confirmedDirectionCoverageMs == 0 && unsigned.unconfirmedDirectionCoverageMs == 2000,
+                "And its whole coverage counts as unconfirmed, so no partial-direction row shows");
+        near(0.2, unsigned.measuredThroughputWh, "Throughput stays measured");
+        near(0.2, unsigned.unsignedDrawWh, "Learned range keeps the unsigned energy");
+        check(unsigned.netWhPerKm == null && unsigned.energyInterpretation.startsWith("Absolute measured"), "And per-km and the interpretation follow");
+        String id = unsigned.id;
+        RideStore reloaded = new RideStore(dir);
+        RideStore.Summary replayed = reloaded.get(id);
+        check(replayed != null && !replayed.directionConfirmed && replayed.drawWh == null && replayed.unsignedDrawWh != null,
+                "A saved ride is judged the same when read back");
+
+        RideStore.Summary negative = signRide(new RideStore(directory()), new RideStore.Sample(254.0, "254 (raw)", "", 0x79, 0), -360);
+        check(negative.directionConfirmed && negative.regeneratedWh != null && negative.unsignedDrawWh == null, "Any negative current means the ride was signed");
+        RideStore.Summary known = signRide(new RideStore(directory()), new RideStore.Sample(0.0, "0", "", 0x79, 0), 360);
+        check(known.directionConfirmed && known.drawWh != null, "A sign state of 0 is confirmed");
+        // UT5 MAX: the key exists in every frame but never has a value.
+        RideStore.Summary empty = signRide(new RideStore(directory()), new RideStore.Sample(null, "", "", -1, -1), 360);
+        check(empty.directionConfirmed && empty.drawWh != null && empty.unsignedDrawWh == null, "An empty sign state row is no sign state");
+        RideStore.Summary missing = signRide(new RideStore(directory()), null, 360);
+        check(missing.directionConfirmed && missing.drawWh != null, "No sign state at all is confirmed, as recordings always were");
+    }
+    /** A ride under a sequence of sign states (NaN: no sign state in that frame), one second apart, at the given watts. */
+    private static RideStore.Summary signSequence(double[] signs, double... watts) throws Exception {
+        RideStore store = new RideStore(directory());
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+        store.start("scooter", "Transition", WALL, 0);
+        for (int i = 0; i < watts.length; i++) {
+            Map<String, RideStore.Sample> m = snapshot(i * 1000, watts[i], 36, 10 + i * .1);
+            if (!Double.isNaN(signs[i])) m.put("current_sign_state", new RideStore.Sample(signs[i], "raw", "", 0x79, i * 1000));
+            store.sample(WALL + i * 1000L, i * 1000L, m);
+        }
+        return store.stop(WALL + (watts.length - 1) * 1000L, (watts.length - 1) * 1000L);
+    }
+    /** Direction is earned interval by interval: an unknown sign state after a known one confirms nothing. */
+    private static void signTransitionsAreCountedByInterval() throws Exception {
+        double none = Double.NaN;
+        // The reviewer's case: sign 1, then 254 for three samples, -100 W throughout.
+        RideStore.Summary stale = signSequence(new double[]{1, 254, 254, 254}, -100, -100, -100, -100);
+        check(!stale.directionConfirmed && stale.confirmedDirectionCoverageMs == 0 && stale.unconfirmedDirectionCoverageMs == 3000,
+                "A known sign going to 254 confirms nothing after it, including the interval that changes");
+        check(stale.drawWh == null && stale.regeneratedWh == null && stale.returnedWh == null && stale.netConsumptionWh == null,
+                "And claims no draw, input or net");
+        check(stale.unsignedDrawWh == null, "A ride with a stale-sign stretch keeps no learned-range energy either");
+        near(100 * 3 / 3600.0, stale.measuredThroughputWh, "Throughput stays measured");
+
+        // A real sign before and after an unknown stretch: only the known intervals earn direction, and a negative in the stretch is no evidence.
+        RideStore.Summary window = signSequence(new double[]{0, 254, 254, 0, 0}, 100, 100, -100, 100, 100);
+        check(!window.directionConfirmed && window.confirmedDirectionCoverageMs == 1000 && window.unconfirmedDirectionCoverageMs == 3000,
+                "Only the last interval, both ends known, is confirmed");
+        near(100 / 3600.0, window.drawWh, "Draw counts only that interval");
+        near(0, window.regeneratedWh, "No input is claimed from the unknown stretch, despite its negative current");
+        check(window.netConsumptionWh == null, "Net needs a fully confirmed ride");
+
+        // The other way: unknown first, then a real sign. With no negative in the unknown part, that part stays unconfirmed.
+        RideStore.Summary reverse = signSequence(new double[]{254, 254, 254, 1, 1}, 100, 100, 100, 100, 100);
+        check(!reverse.directionConfirmed && reverse.confirmedDirectionCoverageMs == 1000 && reverse.unconfirmedDirectionCoverageMs == 3000,
+                "Unknown then known: confirmed only from the known interval on, as live does");
+        near(100 / 3600.0, reverse.drawWh, "Draw counts only the known interval");
+        check(reverse.unsignedDrawWh == null, "A mixed ride isn't an unsigned one");
+        // With a negative before any 0 or 1 the value's own sign bit is real, so that stretch counts and the ride is signed, as live says.
+        RideStore.Summary signBit = signSequence(new double[]{254, 254, 254, 1, 1}, -100, 100, 100, 100, 100);
+        check(signBit.directionConfirmed && signBit.confirmedDirectionCoverageMs == 4000 && signBit.unconfirmedDirectionCoverageMs == 0,
+                "A sign-bit negative before the first known sign settles the stretch");
+        near((300 + 25) / 3600.0, signBit.drawWh, "Draw includes it"); near(25 / 3600.0, signBit.regeneratedWh, "And input");
+        // A negative only after the first known sign confirms nothing earlier.
+        RideStore.Summary late = signSequence(new double[]{254, 254, 1, 254, 254}, 100, 100, -100, -100, -100);
+        check(!late.directionConfirmed && late.confirmedDirectionCoverageMs == 0 && late.unconfirmedDirectionCoverageMs == 4000,
+                "Negatives under a known sign and its stale tail confirm neither unknown stretch");
+
+        // Unchanged: UT5 MAX (no sign state ever), steady 0/1, always-254, and an absent start before a known sign or a 254.
+        RideStore.Summary ut5 = signSequence(new double[]{none, none, none, none}, 100, -100, 100, 100);
+        check(ut5.directionConfirmed && ut5.confirmedDirectionCoverageMs == 3000 && ut5.unconfirmedDirectionCoverageMs == 0 && ut5.netConsumptionWh != null,
+                "No sign state at all stays fully confirmed");
+        RideStore.Summary steady = signSequence(new double[]{none, 1, 1, 0}, 100, 100, 100, 100);
+        check(steady.directionConfirmed && steady.confirmedDirectionCoverageMs == 3000 && steady.drawWh != null, "A sign that arrives as 0 or 1 confirms the whole ride");
+        RideStore.Summary always = signSequence(new double[]{none, 254, 254, 254}, 100, 100, 100, 100);
+        check(!always.directionConfirmed && always.confirmedDirectionCoverageMs == 0 && always.unconfirmedDirectionCoverageMs == 3000 && always.drawWh == null,
+                "254 throughout stays unsigned, absent start included");
+        near(100 * 3 / 3600.0, always.unsignedDrawWh, "And keeps its magnitude for learned range");
+        RideStore.Summary negativeOnly = signSequence(new double[]{254, 254, 254}, -100, 100, 100);
+        check(negativeOnly.directionConfirmed && negativeOnly.confirmedDirectionCoverageMs == 2000 && negativeOnly.regeneratedWh != null,
+                "A negative with no 0 or 1 at all still means a signed ride");
     }
     private static void throughputIsNotInventedConsumption() throws Exception {
         RideStore store = new RideStore(directory());

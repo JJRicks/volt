@@ -231,6 +231,17 @@ public final class ChargeAlertPolicy {
         return CapabilityResolver.decide("charge_limit", d, StatusFields.NONE, null).support != CapabilityResolver.Support.KNOWN_ENCODING;
     }
 
+    /**
+     * The level the dashboard counts down to while charging: the charge alert's, on a model that offers alerts, until
+     * the battery reaches it (rounded as step() rounds). Null when alerts aren't offered, the alert is off or set to
+     * Full (the time to full already shows that), it's been reached, or the battery reading isn't usable.
+     */
+    public static Integer countdownLevel(boolean offered, Settings settings, Double percent) {
+        if (!offered || settings == null || !settings.charge || settings.chargeAt >= 100) return null;
+        if (percent == null || !Double.isFinite(percent) || percent < 0 || percent > 100) return null;
+        return Math.round(percent) >= settings.chargeAt ? null : Integer.valueOf(settings.chargeAt);
+    }
+
     // Notification wording, kept here so the formatting is unit-tested.
     public static String levelText(int level) { return level >= 100 ? T.chargingAlertLevelFull() : T.fmtPercent(Fmt.integer(level)); }
     public static String watchTitle(int target) { return target >= 100 ? T.chargingAlertWatchFull() : T.chargingAlertWatchTitle(Fmt.integer(target)); }

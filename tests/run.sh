@@ -6,6 +6,20 @@ TEST_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$TEST_DIR/../build.sh"
 navee_find_java
 TEST_BUILD_DIR="$NAVEE_BUILD_DIR/core-tests"
+# The suites' temporary folders (Files.createTempDirectory, File.createTempFile) go in one folder
+# for this run, which is removed when the run ends, pass or fail; otherwise each run leaves
+# thousands behind. VOLT_KEEP_TEST_TMP=1 keeps it, to look at after a failure.
+TEST_TMP="$(mktemp -d "${TMPDIR:-/tmp}/volt-core-tests.XXXXXX")"
+TEST_SHM_TMP=""
+remove_test_tmp() {
+    if [[ "${VOLT_KEEP_TEST_TMP:-}" == 1 ]]; then
+        echo "Kept the tests' temporary files: $TEST_TMP${TEST_SHM_TMP:+ and $TEST_SHM_TMP}" >&2
+    else
+        rm -rf -- "$TEST_TMP" ${TEST_SHM_TMP:+"$TEST_SHM_TMP"}
+    fi
+}
+trap remove_test_tmp EXIT
+java() { command java -Djava.io.tmpdir="$TEST_TMP" "$@"; }
 rm -rf -- "$TEST_BUILD_DIR/classes"
 mkdir -p "$TEST_BUILD_DIR/classes"
 sources=()
@@ -31,7 +45,7 @@ sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSl
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
 # Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
-for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
@@ -126,7 +140,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
-for name in RidingLayout RidingValues GaugeSmoother RidingConfig; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideSummaryStoreTest
@@ -138,7 +152,11 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.BackupRegistryTest "$APP_DIR
 # fsyncs fast. AppDataArchiveTest and RideArchiveTest still exercise the normal folder.
 # Bash 3.2 treats an empty array as unset under nounset. Keep the command array nonempty.
 backup_java=(java)
-[[ -d /dev/shm && -w /dev/shm ]] && backup_java+=(-Djava.io.tmpdir=/dev/shm)
+if [[ -d /dev/shm && -w /dev/shm ]]; then
+    TEST_SHM_TMP="$(mktemp -d /dev/shm/volt-core-tests.XXXXXX)"
+    # The java function puts its own -Djava.io.tmpdir first, and the later one on a command line wins.
+    backup_java+=(-Djava.io.tmpdir="$TEST_SHM_TMP")
+fi
 for name in BackupArchiveTest BackupPlanTest BackupTransactionTest; do
     (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name")
 done
