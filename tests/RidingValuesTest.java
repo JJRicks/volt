@@ -34,10 +34,11 @@ public final class RidingValuesTest {
         distanceSurvivesCounterChanges();
         distanceAcrossReportPrecision();
         distanceWhileRecording();
+        distanceWhileThePhoneLooksAway();
         reopenAndRecreate();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, reopen vs recreation, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -850,21 +851,123 @@ public final class RidingValuesTest {
         session.values.setRecordingStart(null);
         session.setRecordingKm(null);
         trip(session, 40.6, t + 2000);
-        check(near(session.trip().km, 0.5, 1e-9) && !session.trip().fromRecording, "the recording stopping banks it, without a jump to the trip's value");
+        check(near(session.trip().km, 0.6, 1e-9) && !session.trip().fromRecording, "the recording stopping banks it, plus the 0.1 ridden since the last refresh, without a jump to the trip's value: " + session.trip().km);
         trip(session, 41.0, t + 3000);
-        check(near(session.trip().km, 0.9, 1e-9), "and carries on from the trip: " + session.trip().km);
+        check(near(session.trip().km, 1.0, 1e-9), "and carries on from the trip: " + session.trip().km);
 
         session.values.setRecordingStart(t + 4000);
         session.setRecordingKm(0.0);
         feed(session, t + 4000);
-        check(near(session.trip().km, 0.9, 1e-9) && session.trip().fromRecording, "a recording starting mid-session doesn't snap back to its 0");
+        check(near(session.trip().km, 1.0, 1e-9) && session.trip().fromRecording, "a recording starting mid-session doesn't snap back to its 0");
         session.setRecordingKm(0.2);
         feed(session, t + 5000);
-        check(near(session.trip().km, 1.1, 1e-9), "and adds to the count: " + session.trip().km);
+        check(near(session.trip().km, 1.2, 1e-9), "and adds to the count: " + session.trip().km);
         session.setRecordingKm(Double.NaN);
         session.values.sample("trip_km", 41.2, 0x92, t + 6000);
         feed(session, t + 6000);
-        check(!session.trip().fromRecording && session.trip().km >= 1.1, "a recording without a usable distance falls back to the trip");
+        check(!session.trip().fromRecording && session.trip().km >= 1.2, "a recording without a usable distance falls back to the trip");
+    }
+
+    /** A rider who keeps going while riding mode isn't on screen: the session sees only what its last refresh saw. */
+    private static void distanceWhileThePhoneLooksAway() {
+        long t = 5_000_000;
+
+        // Backgrounded, rode on, stopped the recording from the notification, came back.
+        RidingSession away = recording(t, 5.0, 40.0);
+        step(away, 5.5, 40.5, t + 1000);
+        check(near(away.trip().km, 0.5, 1e-9), "the last refresh before the phone looks away: " + away.trip().km);
+        stopRecording(away);
+        trip(away, 41.5, t + 600_000);
+        check(near(away.trip().km, 1.5, 1e-9) && !away.trip().fromRecording, "the unseen stretch comes back when the recording has stopped: " + away.trip().km);
+        trip(away, 41.7, t + 601_000);
+        check(near(away.trip().km, 1.7, 1e-9), "and the trip counts on from there: " + away.trip().km);
+
+        // An ordinary stop on screen: nothing unseen, nothing added twice.
+        RidingSession onScreen = recording(t, 5.0, 40.0);
+        step(onScreen, 5.5, 40.5, t + 1000);
+        stopRecording(onScreen);
+        trip(onScreen, 40.5, t + 2000);
+        check(near(onScreen.trip().km, 0.5, 1e-9), "a stop with no riding since the last refresh adds nothing: " + onScreen.trip().km);
+        trip(onScreen, 40.7, t + 3000);
+        check(near(onScreen.trip().km, 0.7, 1e-9), "and then counts normally: " + onScreen.trip().km);
+        trip(onScreen, 40.7, t + 4000);
+        check(near(onScreen.trip().km, 0.7, 1e-9), "with no second helping: " + onScreen.trip().km);
+
+        // The scooter's trip restarted while nobody was looking: that stretch is lost, never invented.
+        RidingSession restarted = recording(t, 5.0, 40.0);
+        step(restarted, 5.5, 40.5, t + 1000);
+        stopRecording(restarted);
+        trip(restarted, 0.4, t + 600_000);
+        check(near(restarted.trip().km, 0.5, 1e-9), "a trip that restarted during the pause adds nothing: " + restarted.trip().km);
+        trip(restarted, 0.6, t + 601_000);
+        check(near(restarted.trip().km, 0.7, 1e-9), "and counts on from its new value: " + restarted.trip().km);
+
+        // No live trip beside the recording's last value: the two can't be paired, so nothing is added.
+        RidingSession unpaired = recording(t, 5.0, 40.0);
+        unpaired.setRecordingKm(8.0);
+        feed(unpaired, t + 600_000);
+        check(near(unpaired.trip().km, 3, 1e-9), "the recording kept counting while the trip went quiet: " + unpaired.trip().km);
+        stopRecording(unpaired);
+        trip(unpaired, 43.0, t + 601_000);
+        check(near(unpaired.trip().km, 3, 1e-9), "so the trip's catch-up isn't counted again on top: " + unpaired.trip().km);
+
+        // A whole-km trip could have meant anywhere in that km.
+        RidingSession whole = recording(t, 5.0, 40.0, 0x91);
+        step(whole, 5.5, 40.0, 0x91, t + 1000);
+        stopRecording(whole);
+        trip(whole, 40.7, t + 2000);
+        check(near(whole.trip().km, 0.5, 1e-9), "tenths arriving after a whole-km trip add no precision as distance: " + whole.trip().km);
+        RidingSession wholeFar = recording(t, 5.0, 40.0, 0x91);
+        step(wholeFar, 5.5, 40.0, 0x91, t + 1000);
+        stopRecording(wholeFar);
+        trip(wholeFar, 42.3, t + 600_000);
+        check(near(wholeFar.trip().km, 1.8, 1e-9), "only what must have been ridden counts: " + wholeFar.trip().km);
+
+        // A recording that started while the phone was away, and a recording replaced by another.
+        RidingSession started = open(t);
+        trip(started, 40.0, t);
+        trip(started, 40.5, t + 1000);
+        started.values.setRecordingStart(t + 300_000);
+        started.setRecordingKm(0.3);
+        started.values.sample("trip_km", 41.5, 0x92, t + 600_000);
+        feed(started, t + 600_000);
+        check(near(started.trip().km, 1.5, 1e-9) && started.trip().fromRecording, "riding before an unseen recording start still counts, once: " + started.trip().km);
+        step(started, 0.5, 41.7, t + 601_000);
+        check(near(started.trip().km, 1.7, 1e-9), "and the recording counts on from where it was first seen: " + started.trip().km);
+
+        RidingSession replaced = recording(t, 5.0, 40.0);
+        step(replaced, 5.5, 40.5, t + 1000);
+        replaced.setRecordingKm(0.2);
+        replaced.values.sample("trip_km", 41.5, 0x92, t + 600_000);
+        feed(replaced, t + 600_000);
+        check(near(replaced.trip().km, 1.5, 1e-9), "a recording stopped and started again while away keeps the stretch between: " + replaced.trip().km);
+
+        // The activity rebuilt while away: the pairing is saved with the rest.
+        RidingSession before = recording(t, 5.0, 40.0);
+        step(before, 5.5, 40.5, t + 1000);
+        RidingSession.Resume saved = RidingSession.Resume.of(before.resume().profileId(), before.resume().openedMs(), before.resume().distance());
+        check(saved != null, "the saved state is the one it wrote");
+        check(RidingSession.Resume.of(PROFILE, t, new double[5]) == null, "the older saved shape starts fresh");
+        RidingSession after = new RidingSession(PROFILE, null, t + 600_000, saved);
+        trip(after, 41.5, t + 600_000);
+        check(near(after.trip().km, 1.5, 1e-9), "recreated while away, the unseen stretch still comes back: " + after.trip().km);
+    }
+    private static RidingSession recording(long t, double recordingKm, double tripKm) { return recording(t, recordingKm, tripKm, 0x92); }
+    private static RidingSession recording(long t, double recordingKm, double tripKm, int type) {
+        RidingSession session = open(t);
+        session.values.setRecordingStart(t - 600_000);
+        step(session, recordingKm, tripKm, type, t);
+        return session;
+    }
+    /** One refresh of a running recording, with the trip counter reported beside it. */
+    private static void step(RidingSession session, double recordingKm, double tripKm, long nowMs) { step(session, recordingKm, tripKm, 0x92, nowMs); }
+    private static void step(RidingSession session, double recordingKm, double tripKm, int type, long nowMs) {
+        session.setRecordingKm(recordingKm);
+        trip(session, tripKm, type, nowMs);
+    }
+    private static void stopRecording(RidingSession session) {
+        session.values.setRecordingStart(null);
+        session.setRecordingKm(null);
     }
 
     private static void reopenAndRecreate() {
