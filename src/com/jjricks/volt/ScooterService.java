@@ -2775,7 +2775,7 @@ public final class ScooterService extends Service {
                         .setContentTitle(title)
                         .setContentText(text)
                         .setContentIntent(content)
-                        .setOngoing(reasons().ongoing(ble.connected()))
+                        .setOngoing(c1Preview != null || reasons().ongoing(ble.connected()))
                         .setOnlyAlertOnce(true)
                         .setCategory(Notification.CATEGORY_SERVICE)
                         .setVisibility(Notification.VISIBILITY_PRIVATE);
