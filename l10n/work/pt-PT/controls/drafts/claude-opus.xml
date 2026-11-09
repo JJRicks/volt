@@ -32,7 +32,7 @@
     <string name="controls_feature_charge_limit" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Limite de carga</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Carregamento programado</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Hora de início do carregamento</string>
-    <string name="controls_feature_charge_start_short" volt:src="03f1f88780620a29167bab73b48cd85097cfa5c8">Início carga</string>
+    <string name="controls_feature_charge_start_short" volt:src="03f1f88780620a29167bab73b48cd85097cfa5c8" volt:attempt="2">Início carreg.</string>
     <string name="controls_feature_lock_expiry" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Duração do bloqueio</string>
     <string name="controls_feature_lock_expiry_short" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Dur. bloqueio</string>
     <string name="controls_feature_low_power" volt:src="b8528f58a68d9d264698b24b3a94b85d9f6e5e4c">Modo de bateria fraca</string>

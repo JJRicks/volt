@@ -42,7 +42,7 @@
     <string name="controls_feature_hill_start_assist" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Schiebehilfe</string>
     <string name="controls_feature_hill_start_assist_short" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Schiebehilfe</string>
     <string name="controls_feature_parking_assist" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Motorunterstützung</string>
-    <string name="controls_feature_parking_assist_short" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Motorhilfe</string>
+    <string name="controls_feature_parking_assist_short" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882" volt:attempt="2">Motorunterst.</string>
     <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698">Bergabfahrhilfe</string>
     <string name="controls_feature_hill_descent_control_short" volt:src="ae8dde31911b96f4a313f7393f917525dcceb45b">Bergabhilfe</string>
     <string name="controls_feature_overspeed_control" volt:src="62129dd7be5c7491da7c0e3dd74368ed8b8bb65d">Aktive Tempobremse</string>
