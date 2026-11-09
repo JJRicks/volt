@@ -74,6 +74,7 @@ public final class LockStateTextTest {
         int variant = grid.indexOf(": decision != null && decision.oemText(value) != null ? decision.oemText(value).render()");
         int pending = grid.indexOf(": unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE");
         check(pending >= 0 && lock > pending && variant > lock, "pending and no-value come first, then the lock's state, then the variant's label");
+        check(grid.contains("if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);"), "a Quick access lock state never breaks mid-word");
     }
 
     private static CapabilityResolver.Decision decide(String key, DeviceDescriptor descriptor) {

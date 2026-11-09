@@ -85,6 +85,7 @@ final class QuickAccessGrid extends ViewGroup {
                     : DisplayUnits.lockStateText(feature, value) != null ? DisplayUnits.lockStateText(feature, value)
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
+            cell.lockState = feature != null && !unmapped && !pending && value != null && DisplayUnits.lockStateText(feature, value) != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
@@ -204,7 +205,7 @@ final class QuickAccessGrid extends ViewGroup {
         final QuickAccessActions.Entry entry;
         final View icon;
         final TextView label, value;
-        boolean highlighted, toggle;
+        boolean highlighted, toggle, lockState;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
@@ -341,6 +342,8 @@ final class QuickAccessGrid extends ViewGroup {
             if (rung == null) label.setVisibility(GONE);
             else if (TileRung.needsSet(rung, label.getText())) label.setText(rung);
             value.setTextSize((compact ? 10 : 11) * ui.textScale);
+            // A lock state too wide for whole words drops; the icon, selected fill and spoken state remain.
+            if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         }
