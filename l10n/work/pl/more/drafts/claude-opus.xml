@@ -14,7 +14,7 @@
     <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dane i historia</string>
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Informacje i uprawnienia</string>
     <string name="more_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="more_lab_badge_description" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Eksperymentalne</string>
+    <string name="more_lab_badge_description" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Eksperymentalne</string>
     <string name="more_footer" volt:src="d06f0aac50d58b82772eddce809be84213e31e5a">Volt %1$s · nie jest powiązany z NAVEE</string>
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Zgłoś problem</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Jednostki</string>
@@ -66,11 +66,15 @@
     <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Podczas nagrywania połączenie jest zawsze utrzymywane</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Utrzymuj włączony ekran</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Podczas nagrywania</string>
-    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Kończ przejazdy na postoju</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">Po zatrzymaniu: 10 s po utracie połączenia Bluetooth</string>
+    <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Automatyczne kończenie przejazdów</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="6e56a0cc615fb4a83f1668457fad39ee488252da">Gdy hulajnoga wyłączy się, pozostanie poza zasięgiem przez 5 min lub nie poruszy się przez 10 min</string>
+    <string name="more_prefs_auto_record" volt:src="e7146e4229442900123e435f2d3c7687d298fe63">Automatyczne nagrywanie przejazdów</string>
+    <string name="more_prefs_auto_record_sub" volt:src="8e1782e212b5017013c7c921e873e5f3031aad2c">Nagrywanie startuje, gdy połączona hulajnoga zacznie się poruszać. Po zatrzymaniu nagrywania aplikacja czeka na ponowne połączenie z hulajnogą</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Nagrywanie w tle</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Zużycie baterii bez ograniczeń</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Optymalizacja baterii włączona; długie nagrania mogą się zatrzymać. Otwiera ustawienia baterii</string>
+    <string name="more_prefs_battery_value_unrestricted" volt:src="d16106e031ab845bc6eaf37d7664c393c8552dbe">Bez ograniczeń ✓</string>
+    <string name="more_prefs_battery_value_optimized" volt:src="12c4694b62a8053f7d403d23c40c53baf0edf80d">Zoptymalizowane ⚠︎</string>
     <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Niestandardowa</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Należy wybrać aplikację Volt, aby zarządzać jej ustawieniami w Androidzie</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Należy otworzyć ustawienia aplikacji Volt w Androidzie</string>
@@ -88,12 +92,29 @@
     <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Domyślny język systemu (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Beta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Beta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Tłumaczenia w wersji beta powstają przy użyciu AI i są sprawdzane automatycznie. Raporty i diagnostyka pozostają w języku angielskim. Aby zgłosić problem ze sformułowaniem, należy użyć opcji „Zgłoś problem”.</string>
+    <string name="more_language_in_progress" volt:src="92a742d14aed5f09ecbe985c533b94a9fc10d212">W przygotowaniu</string>
+    <string name="more_language_in_progress_description" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, w przygotowaniu</string>
+    <string name="more_language_note" volt:src="a0c2f3248a33f7d983ce11eaea8f644b051def9c">Tłumaczenia w wersji beta są tworzone przez AI i sprawdzane automatycznie. Raporty i diagnostyka pozostają w języku angielskim. Aby zgłosić problem z tłumaczeniem lub poprosić o nowy język, można skorzystać z przycisków poniżej.</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">Można to też zmienić w Androidzie: Ustawienia › Aplikacje › Volt › Język.</string>
-    <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Historia odczytów</string>
-    <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Zapisuj historię odczytów</string>
+    <string name="more_language_report_error" volt:src="ad226a74c0bbd8a8b7d01446f1d6f7424d981e69">Zgłoś błąd w tłumaczeniu</string>
+    <string name="more_language_request" volt:src="5e33d167e97de78e9ac8b7c46db646ea0eca1135">Poproś o język</string>
+    <string name="more_history_connected" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Historia odczytów</string>
+    <string name="more_history_save" volt:src="c3a14cda2fdcecd7010e01072bf5f4025d7de152">Zapisuj historię odczytów</string>
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Podczas połączenia</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Wyłączone · ostatnie odczyty zachowane</string>
+    <string name="more_auto_save_heading" volt:src="3306dbdeccfc25335130c26851c550b072b30c74">Automatyczne zapisywanie przejazdów</string>
+    <string name="more_auto_save_json" volt:src="0bb6976a9b15466395c5fd52e70b89c3c868eeb1">Automatycznie zapisuj przejazdy</string>
+    <string name="more_auto_save_json_sub" volt:src="138d63b8c4aeef7d0317a12f15279642ed1628dc">Jeden plik na przejazd: „Wszystko w jednym pliku JSON”</string>
+    <string name="more_auto_save_folder" volt:src="8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec">Folder</string>
+    <string name="more_auto_save_no_folder" volt:src="bcbd72a20ff44510ee37859d1aa734922a772667">Nie wybrano jeszcze folderu</string>
+    <string name="more_auto_save_saving_to" volt:src="5ea59c4e03e3f7f022df7b407063f92eddb30038">Zapisywanie w folderze: %1$s</string>
+    <string name="more_auto_save_saving_chosen" volt:src="ff55a23ac539217318e71c439a29434f0f2a99b6">Zapisywanie w wybranym folderze</string>
+    <string name="more_auto_save_choose_folder" volt:src="45889ac0a0a14370b931f62a2dcbaf1babbdd885">Aby rozpocząć zapisywanie, należy wybrać folder</string>
+    <string name="more_auto_save_folder_problem" volt:src="f176d3419a1de75e4e51026691d4acf590f71fe6">Nie udało się zapisać ostatniego przejazdu. Należy ponownie wybrać folder.</string>
+    <string name="more_auto_save_save_problem" volt:src="453a5831b3d2239c1bf888fb5de37a55af9eedb2">Nie udało się zapisać ostatniego przejazdu. Aplikacja Volt spróbuje ponownie.</string>
+    <string name="more_auto_save_folder_note" volt:src="ddc0347732266eb3072ca7a138e61c4838bf0817">Nowy folder jest używany dla przejazdów zapisanych po zmianie. Już zapisane pliki pozostają na swoim miejscu.</string>
+    <string name="more_auto_save_no_picker" volt:src="caae18d56beb33900be826bbcf26d31f9efbbce6">Ten telefon nie może otworzyć okna wyboru folderu.</string>
+    <string name="more_auto_save_not_kept" volt:src="9b6a0cab625e227906ed84495873f035b311ada1">Aplikacja Volt nie mogła zachować dostępu do tego folderu. Należy wybrać inny.</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Pamięć lokalna</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Sprawdzanie…</string>
     <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Szczegółowe próbki</string>
@@ -104,13 +125,21 @@
     <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 lata</string>
     <string name="more_history_up_to" volt:src="10cda5c46f5a36c0a0491e2e19f9e09a824c2373">do %1$s</string>
     <string name="more_history_clear_scooter" volt:src="c8d4b5a4d55716b2bd7e7bf73acdf3707223028c">Wyczyść historię tej hulajnogi</string>
-    <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Wyczyść całą historię odczytów</string>
+    <string name="more_history_clear_all" volt:src="13f48a52cad20686562d3aa3afabd8a506617007">Wyczyść całą historię odczytów</string>
     <string name="more_unit_mib" volt:src="37b1b983a4924a010a635cc89ae29918eda8fd4b">MiB</string>
     <string name="more_history_used" volt:src="05f1554066a0dd490b41c2613a13422f35959676">%1$s / %2$s %3$s</string>
+    <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
+        <item quantity="one">Zapisano: %1$s</item>
+        <item quantity="few">Zapisano: %1$s</item>
+        <item quantity="many">Zapisano: %1$s</item>
+        <item quantity="other">Zapisano: %1$s</item>
+    </plurals>
+    <string name="more_history_storage_description" volt:src="368a9ccd675caf48fa9414bc33a6e309f0863242">Pamięć lokalna, użyto: %1$s. %2$s</string>
+    <string name="more_history_samples_description" volt:src="24417f4f329a26b3fc6be52a69fd54f123243261">Zapisane próbki – szczegółowe: %1$s, minutowe: %2$s, dzienne: %3$s.</string>
     <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Najpierw należy wybrać hulajnogę.</string>
     <string name="more_history_clear_title" volt:src="f3612e8159bace4f4e64bd69737306998f67567e">Wyczyścić historię?</string>
     <string name="more_history_clear_all_body" volt:src="b12ff163ffb1ab6b5064c3b54a0a413a08e1f3d0">Spowoduje to usunięcie historii wszystkich hulajnóg. Przejazdy pozostaną.</string>
-    <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">Spowoduje to usunięcie historii hulajnogi: %1$s. Przejazdy pozostaną.</string>
+    <string name="more_history_clear_one_body" volt:src="cd371ef2e917ffd79c8b72fa6252d5a8ca2804ea">Spowoduje to usunięcie historii hulajnogi: %1$s. Przejazdy pozostaną.</string>
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Wyczyść</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Wyczyszczono historię</string>
     <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Czytelne na złożonym i otwartym telefonie</string>
@@ -120,7 +149,7 @@
     <string name="more_refresh_5" volt:src="0e6a045ae2f37c0178ed90ba852ba1ffd14469e7">5 sekund</string>
     <string name="more_refresh_10" volt:src="3c632cab41da6766399180c27e4dc485caa1f963">10 sekund</string>
     <string name="more_pin_handlebar" volt:src="9ebceaa07ef3bbec8add681acdb6a2a6a780f643">PIN na kierownicy</string>
-    <string name="more_pin_fallback" volt:src="fe1fc79cac5fc4007fa1b76ca3d5832bc336f2d9">Odblokowanie PIN-em na kierownicy</string>
+    <string name="more_pin_fallback" volt:src="d14390b6831fb724fbb7a6fb2e1b8ad6af92bc42">Odblokowanie PIN-em</string>
     <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">Odczytaj stan PIN-u</string>
     <string name="more_pin_set_row" volt:src="603eff531215e4206165cd40552c3fbc3521366d">Ustaw lub zmień PIN</string>
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Odblokowanie zbliżeniowe</string>
@@ -151,7 +180,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Przy odblokowaniu zbliżeniowym: gdy sparowany telefon jest w pobliżu, należy nacisnąć dźwignię hamulca. Oba sposoby należy przetestować na postoju, zanim zacznie się na nich polegać.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Rozumiem</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Kierownica: 1 przycisk kierunkowskazu, 2 dźwignia hamulca, 3 przycisk zasilania</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Funkcje do wypróbowania</string>
+    <string name="more_lab_untested" volt:src="ccea9ff54e8269b640a7431056ad0bf00751d803">Funkcje do wypróbowania</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Pomoc w weryfikacji</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Brak funkcji do wypróbowania</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Odpowiedzi na polecenia</string>
@@ -174,6 +203,11 @@
     <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Oficjalna aplikacja oferuje te funkcje dla Twojego modelu, ale aplikacja Volt nie przetestowała ich w tym modelu. Twoja próba i odpowiedź trafią do następnego raportu zgodności.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Brak danych z tej hulajnogi</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Aplikacja Volt nie może odczytać ich wartości, więc ich nie oferuje.</string>
+    <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">modelu %1$s</string>
+    <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">Twojego modelu</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">Oficjalna aplikacja nie oferuje tych funkcji dla %1$s. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">Oficjalna aplikacja oferuje te funkcje dla %1$s, ale aplikacja Volt nie przetestowała ich w tym modelu. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
+    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Brak funkcji do wypróbowania dla %1$s: oficjalna aplikacja oferuje już funkcje, które aplikacja Volt mogłaby wypróbować. Są dostępne w sekcji „Ustawienia hulajnogi”.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Aplikacja Volt nie wysyła do tego produktu żadnych poleceń dla hulajnogi.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Brak funkcji do wypróbowania w modelu UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">Model ID tej hulajnogi nie zgadza się z jej numerem seryjnym, więc aplikacja Volt nie oferuje niczego do wypróbowania.</string>
@@ -199,7 +233,7 @@
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Oczekiwanie, aż hulajnoga poda, że jest zaparkowana.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Aby je wypróbować, należy usunąć przyczynę ostrzeżenia hulajnogi.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Aby je wypróbować, należy odblokować hulajnogę.</string>
-    <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Może je wypróbować tylko profil właściciela.</string>
+    <string name="more_lab_held_owner" volt:src="c8b4107bef41bd413e5f8cff598c8cccd2706ce9">Tylko właściciel hulajnogi może je wypróbować.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Należy poczekać na zakończenie sprawdzania zgodności.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Najpierw należy zakończyć bieżącą próbę.</string>
     <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Aby je wypróbować, należy zatrzymać nagrywanie.</string>
@@ -231,6 +265,8 @@
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Niepotwierdzona · aby sprawdzić, należy połączyć się ponownie</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Niepotwierdzona</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Sprawdzanie…</string>
+    <string name="more_lab_sheet_untested" volt:src="7974a1df65ed7d55cbff973224ff674a6f8684e1">Nieprzetestowana dla %1$s</string>
+    <string name="more_lab_sheet_unverified" volt:src="669d9b9dab9ea36291b4b2e1e7d88dee40a3b0a2">Niezweryfikowana dla %1$s</string>
     <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Oficjalna aplikacja oferuje tę funkcję dla Twojego modelu, ale aplikacja Volt nie przetestowała jej w tym modelu. Twoja próba i odpowiedź trafią do następnego raportu zgodności.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Teraz</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Ostatnia próba</string>
@@ -261,6 +297,7 @@
         <item quantity="other">Oficjalna aplikacja oferuje tę funkcję dla %1$d innego modelu, ale nie dla Twojego. Tutaj może nie przynieść żadnego efektu lub działać inaczej.</item>
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Oficjalna aplikacja nie oferuje tej funkcji dla Twojego modelu. Tutaj może nie przynieść żadnego efektu lub działać inaczej.</string>
+    <string name="more_lab_why_region_start" volt:src="27a5751edf081e457d330947d7cc554116e22499">Oficjalna aplikacja oferuje 3–5 km/h w regionie Twojej hulajnogi. Niższe prędkości mogą tu nic nie zmieniać lub działać inaczej.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN i bajty uwierzytelniania są ukryte</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Nie ma jeszcze zmian</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Synchronizacja lokalnego zegara\n%1$s</string>
@@ -290,7 +327,7 @@
     <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Sprawdzanie aktualizacji</string>
     <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Sprawdzanie najnowszego wydania w serwisie GitHub…</string>
     <string name="more_update_available" volt:src="7ffd9079e0f2563ea01c2ee25b063cb771a7be94">Dostępna jest nowa wersja: Volt %1$s</string>
-    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Masz wersję %1$s. Nową wersję można pobrać ze strony wydania i zainstalować na obecnej; Twoje dane pozostaną.</string>
+    <string name="more_update_available_body" volt:src="88265d97c6c301056c870ca165f1f36847a1c2c3">Masz wersję %1$s. Nową wersję należy pobrać ze strony wydania i zainstalować na obecnej; dane zostaną zachowane.</string>
     <string name="more_update_current" volt:src="0735317844597e79fefa950a5cf4011e9a40a532">Masz najnowszą wersję</string>
     <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s to wersja deweloperska. Najnowsze wydanie to %2$s.</string>
     <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s to najnowsze wydanie.</string>
@@ -299,6 +336,13 @@
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Aplikacja Volt nie mogła odczytać odpowiedzi serwisu GitHub. Można spróbować ponownie później lub otworzyć stronę wydań w przeglądarce.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Otwórz stronę wydania</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Nie znaleziono przeglądarki, która może otworzyć stronę wydania</string>
+    <string name="more_updates_title" volt:src="c8847f40145311a42aa65b74cc4e604a7cbf6d14">Aktualizacje</string>
+    <string name="more_updates_auto" volt:src="d9b247e5c640259079820708230c037ae72204e8">Automatycznie sprawdzaj aktualizacje</string>
+    <string name="more_updates_auto_short" volt:src="9bbc93db05aba581ec66fd1b8639210e2124cc2a">Sprawdzaj automatycznie</string>
+    <string name="more_updates_auto_sub" volt:src="9e7bd7b4503612b1df7c3892e06a0f9154c2af7e">Raz dziennie, w tle</string>
+    <string name="more_updates_channel" volt:src="ec54538250ba679453cc3c22679f27b537ea9d7a">Aktualizacje aplikacji</string>
+    <string name="more_updates_channel_description" volt:src="6a76ea70ecfeffa5a6265578ddf032482dd4ab57">Dyskretne powiadomienie, gdy codzienne sprawdzanie znajdzie nowszą wersję aplikacji Volt w serwisie GitHub</string>
+    <string name="more_updates_notice" volt:src="32676591b9dcbdf5fb2518fab3eec79b528aa1aa">Dotknij, aby zobaczyć nowości</string>
     <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">Opcje programisty są już włączone.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Włączono opcje programisty.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
@@ -357,6 +401,18 @@
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Zapisane krzywe ładowania nie są stosowane, dopóki ładowarka nie jest znana</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Zakwalifikowane zapisy ładowania standardową ładowarką: %1$s</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Zakwalifikowane zapisy ładowania szybką ładowarką: %1$s</string>
+    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">
+        <item quantity="one">%1$s kwalifikujący się zapis ładowania standardową ładowarką</item>
+        <item quantity="few">%1$s kwalifikujące się zapisy ładowania standardową ładowarką</item>
+        <item quantity="many">%1$s kwalifikujących się zapisów ładowania standardową ładowarką</item>
+        <item quantity="other">%1$s kwalifikującego się zapisu ładowania standardową ładowarką</item>
+    </plurals>
+    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e">
+        <item quantity="one">%1$s kwalifikujący się zapis ładowania szybką ładowarką</item>
+        <item quantity="few">%1$s kwalifikujące się zapisy ładowania szybką ładowarką</item>
+        <item quantity="many">%1$s kwalifikujących się zapisów ładowania szybką ładowarką</item>
+        <item quantity="other">%1$s kwalifikującego się zapisu ładowania szybką ładowarką</item>
+    </plurals>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Ukończone ładowanie może doprecyzować zakres, w którym się kończy. Pozostałe zakresy wymagają dwóch pasujących zapisów. Oszacowania zależą od pokrycia zakresów i bieżącej mocy; oszacowania dla standardowej i szybkiej ładowarki UT5 MAX działają też bez zapisów.</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Pokaż pełne informacje o licencjach</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Pełne informacje o licencjach</string>
@@ -364,7 +420,7 @@
     <string name="more_role_owner" volt:src="6a359e0c42ce31107b4e661ff169adf288b94a3d">Właściciel</string>
     <string name="more_role_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Współużytkownik</string>
     <string name="more_link_connected" volt:src="43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8">połączono</string>
-    <string name="more_link_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">rozłączono</string>
+    <string name="more_link_disconnected" volt:src="1b2dac54076ca87a6ee8f7c5d4abe3370fb44091">nie połączono</string>
     <string name="more_link_connecting" volt:src="5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa">łączenie</string>
     <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Nie ma jeszcze hulajnogi</string>
     <string name="more_index_add" volt:src="a57928c50bc55109a2723d8b20876d74073feeac">Aby rozpocząć, należy dodać hulajnogę</string>
@@ -374,7 +430,7 @@
     <string name="more_scooters_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Połączono</string>
     <string name="more_scooters_offline" volt:src="4f2fe96a65ce1006ebf27bee78efd89117a9a408">Bez połączenia</string>
     <string name="more_scooters_model_unknown" volt:src="6fedbc5bb2d906c46447405f68ddba4baeefbaee">Nie zidentyfikowano modelu</string>
-    <string name="more_scooters_shared_suffix" volt:src="649dfaf5acdfa3d19bf15761d0232b27af8f1712">" · Dostęp współużytkownika"</string>
+    <string name="more_scooters_shared_suffix" volt:src="43a2b76bdab924af12383ebffa4a48fc8eff96ea">" · Współużytkownik"</string>
     <string name="more_scooters_last_connected" volt:src="efdfc14b5d1d610e5756c3e8a2d6b81afad5bbb5">Ostatnie połączenie: %1$s</string>
     <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Edytuj: %1$s</string>
     <string name="more_scooters_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Rozłącz</string>
@@ -388,6 +444,10 @@
     <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Nie ustawiono</string>
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Wyłączony</string>
     <string name="more_pin_enabled" volt:src="d5a5252181dc44fe1192e2b23c52a00e573a8166">Włączony</string>
+    <string name="more_chip_pin_on_value" volt:src="ece10794b36e230a4d727c4e32831de82059b69e">PIN ✓</string>
+    <string name="more_chip_pin_off_value" volt:src="62f5872958f5c1079c17e084931ee349a97589a1">PIN —</string>
+    <string name="more_chip_paired_value" volt:src="8f8f35e3ef449cad6769502b0ce190e99d8bf67d">Sparowano ✓</string>
+    <string name="more_chip_not_paired_value" volt:src="38b50e2c9000a72fb2e60cbe353cfdf7e873b476">Sparowano —</string>
     <string name="more_chip_pin_on" volt:src="abed827991a4a0db764ea439d3b4bad3439a1f29">PIN włączony</string>
     <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2">PIN nie jest włączony</string>
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telefon sparowany</string>
@@ -397,7 +457,7 @@
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Najpierw należy połączyć się z hulajnogą</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Oczekiwanie na hulajnogę</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Brak danych z oprogramowania sprzętowego</string>
-    <string name="more_proximity_pin_first" volt:src="3f37e82484a6312eaf20b336cbbf6cdb1d805997">Najpierw należy włączyć PIN na kierownicy</string>
+    <string name="more_proximity_pin_first" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Najpierw należy włączyć PIN na kierownicy</string>
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Najpierw należy sparować ten telefon</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Sparowany</string>
