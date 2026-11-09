@@ -26,7 +26,8 @@ public final class QuickAccessActions {
         public Msg groupLabel() { return groupMsg; }
         /**
          * The short rung of the name (the narrow-label ladder), for a Setting tile's one-line label. A control's
-         * shortcut has none of its own and shows the control's name. In English both rungs are the same text.
+         * shortcut takes the control's own short rung ({@link #featureShort}) or, without one, the control's name.
+         * In English a Volt shortcut's two rungs are the same text.
          */
         public Msg shortLabel() {
             switch (labelMsg.id()) {
@@ -48,7 +49,43 @@ public final class QuickAccessActions {
                 case T.DASHBOARD_MODEL_QA_ABOUT_PERMISSIONS: return M.dashboardModelQaAboutPermissionsShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_BY: return M.dashboardModelQaChargeDoneByShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_TIME: return M.dashboardModelQaChargeDoneTimeShort();
-                default: return labelMsg;
+                default: break;
+            }
+            Msg rung = featureKey == null ? null : featureShort(featureKey);
+            return rung == null ? labelMsg : rung;
+        }
+        /** A scooter control's short tile rung by its feature key (data), or null where the name is short enough in every language so far. */
+        private static Msg featureShort(String key) {
+            switch (key) {
+                case "lock": return M.controlsFeatureLockShort();
+                case "cruise_control": return M.controlsFeatureCruiseControlShort();
+                case "energy_recovery": return M.controlsFeatureEnergyRecoveryShort();
+                case "acceleration": return M.controlsFeatureAccelerationShort();
+                case "auto_sensor": return M.controlsFeatureAutoSensorShort();
+                case "traction_control": return M.controlsFeatureTractionControlShort();
+                case "turn_sound": return M.controlsFeatureTurnSoundShort();
+                case "display_units": return M.controlsFeatureDisplayUnitsShort();
+                case "range_algorithm": return M.controlsFeatureRangeAlgorithmShort();
+                case "start_speed": return M.controlsFeatureStartSpeedShort();
+                case "speed_limit": return M.controlsFeatureSpeedLimitShort();
+                case "dual_drive": return M.controlsFeatureDualDriveShort();
+                case "drive_speed_limit": return M.controlsFeatureDriveSpeedLimitShort();
+                case "charge_start": return M.controlsFeatureChargeStartShort();
+                case "lock_expiry": return M.controlsFeatureLockExpiryShort();
+                case "low_power": return M.controlsFeatureLowPowerShort();
+                case "long_range_mode": return M.controlsFeatureLongRangeModeShort();
+                case "hill_start_assist": return M.controlsFeatureHillStartAssistShort();
+                case "parking_assist": return M.controlsFeatureParkingAssistShort();
+                case "hill_descent_control": return M.controlsFeatureHillDescentControlShort();
+                case "overspeed_control": return M.controlsFeatureOverspeedControlShort();
+                case "proximity_key": return M.controlsFeatureProximityKeyShort();
+                case "line_pattern": return M.controlsFeatureLightPatternShort(M.controlsFeatureLineLightsShort());
+                case "star_pattern": return M.controlsFeatureLightPatternShort(M.controlsFeatureStarLightsShort());
+                case "line_color": return M.controlsFeatureLightColorShort(M.controlsFeatureLineLightsShort());
+                case "star_color": return M.controlsFeatureLightColorShort(M.controlsFeatureStarLightsShort());
+                case "line_boost_color": return M.controlsFeatureLightBoostColorShort(M.controlsFeatureLineLightsShort());
+                case "star_boost_color": return M.controlsFeatureLightBoostColorShort(M.controlsFeatureStarLightsShort());
+                default: return null;
             }
         }
         public ScooterCommands.Feature feature() {

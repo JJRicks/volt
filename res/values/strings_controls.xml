@@ -19,62 +19,110 @@
     <!-- Control names (ScooterCommands.Feature.label()). label stays the English id. -->
     <!-- The scooter's electronic lock: locked, it will not ride. -->
     <string name="controls_feature_lock" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock">Electronic lock</string>
+    <!-- Short label of the electronic lock on a Home Setting tile (one line, about 90 dp). Locked, the scooter will not ride. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_lock_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="lock">Electronic lock</string>
     <!-- Holds the current speed without the throttle. -->
     <string name="controls_feature_cruise_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Cruise control</string>
+    <!-- Short label of cruise control on a Home Setting tile (one line, about 90 dp): holds the current speed without the throttle. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_cruise_control_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Cruise control</string>
     <!-- Regenerative braking when you let go of the throttle. -->
     <string name="controls_feature_energy_recovery" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Energy recovery</string>
+    <!-- Short label of energy recovery on a Home Setting tile (one line, about 90 dp): regenerative braking when you let go of the throttle. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_energy_recovery_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Energy recovery</string>
     <!-- How hard the motor pulls away; the choices are the scooter's Eco and Turbo. -->
     <string name="controls_feature_acceleration" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Acceleration profile</string>
+    <!-- Short label of the Acceleration profile control on a Home Setting tile (one line, about 90 dp): how hard the motor pulls away (Eco or Turbo). -->
+    <string name="controls_feature_acceleration_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Acceleration</string>
     <!-- Turns the rear light on or off. -->
     <string name="controls_feature_headlight" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Tail light</string>
     <!-- Lights that switch on by themselves in the dark. -->
     <string name="controls_feature_auto_sensor" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Automatic lights</string>
+    <!-- Short label of Automatic lights on a Home Setting tile (one line, about 90 dp): lights that switch on by themselves in the dark. -->
+    <string name="controls_feature_auto_sensor_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Auto lights</string>
     <!-- Limits wheel spin on slippery ground. -->
     <string name="controls_feature_traction_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Traction control</string>
+    <!-- Short label of traction control on a Home Setting tile (one line, about 90 dp): limits wheel spin on slippery ground. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_traction_control_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Traction control</string>
     <!-- The beep while a turn signal is on. -->
     <string name="controls_feature_turn_sound" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Turn signal sound</string>
+    <!-- Short label of Turn signal sound on a Home Setting tile (one line, about 90 dp): the beep while a turn signal is on. -->
+    <string name="controls_feature_turn_sound_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Turn sound</string>
     <!-- Whether the scooter's own dashboard shows miles or kilometres. -->
     <string name="controls_feature_display_units" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Scooter display units</string>
+    <!-- Short label of Scooter display units on a Home Setting tile (one line, about 90 dp): whether the scooter's own dashboard shows miles or kilometres. -->
+    <string name="controls_feature_display_units_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Display units</string>
     <!-- How the scooter estimates its remaining range. -->
     <string name="controls_feature_range_algorithm" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Range estimate</string>
+    <!-- Short label of the Range estimate control on a Home Setting tile (one line, about 90 dp): how the scooter estimates its remaining range. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_range_algorithm_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Range estimate</string>
     <!-- The speed you must push to before the motor starts helping. -->
     <string name="controls_feature_start_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Kick-start speed</string>
+    <!-- Short label of Kick-start speed on a Home Setting tile (one line, about 90 dp): the speed you must push to before the motor starts helping. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_start_speed_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Kick-start speed</string>
     <!-- A top speed the owner sets below the scooter's maximum. -->
     <string name="controls_feature_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Custom speed limit</string>
+    <!-- Short label of Custom speed limit on a Home Setting tile (one line, about 90 dp): a top speed the owner sets below the scooter's maximum. -->
+    <string name="controls_feature_speed_limit_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Speed limit</string>
     <!-- The scooter's top speed setting. -->
     <string name="controls_feature_maximum_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Maximum speed</string>
     <!-- Whether one or both motors drive. -->
     <string name="controls_feature_dual_drive" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Dual motor drive</string>
+    <!-- Short label of Dual motor drive on a Home Setting tile (one line, about 90 dp): whether one or both motors drive. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_dual_drive_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Dual motor drive</string>
     <!-- A speed cap for the scooter's Drive mode (a mode name: keep it as the scooter shows it). -->
     <string name="controls_feature_drive_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride" volt:dnt="Drive">Drive mode speed limit</string>
+    <!-- Short label of Drive mode speed limit on a Home Setting tile (one line, about 90 dp): a speed cap for the scooter's Drive mode (a mode name: keep it as the scooter shows it). -->
+    <string name="controls_feature_drive_speed_limit_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride" volt:dnt="Drive">Drive limit</string>
     <!-- The battery level charging stops at. -->
     <string name="controls_feature_charge_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charge limit</string>
     <!-- Charging that waits for a start time. -->
     <string name="controls_feature_timed_charging" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Scheduled charging</string>
     <!-- When scheduled charging begins. -->
     <string name="controls_feature_charge_start" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charging start time</string>
+    <!-- Short label of Charging start time on a Home Setting tile (one line, about 90 dp): when scheduled charging begins. -->
+    <string name="controls_feature_charge_start_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge start</string>
     <!-- How long the electronic lock stays on. -->
     <string name="controls_feature_lock_expiry" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock">Lock duration</string>
+    <!-- Short label of Lock duration on a Home Setting tile (one line, about 90 dp): how long the electronic lock stays on. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_lock_expiry_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="lock">Lock duration</string>
     <!-- The scooter's mode that saves power when the battery is low. -->
     <string name="controls_feature_low_power" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Low Battery Mode</string>
+    <!-- Short label of Low Battery Mode on a Home Setting tile (one line, about 90 dp): the scooter's mode that saves power when the battery is low. -->
+    <string name="controls_feature_low_power_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Low Battery</string>
     <!-- A mode that trades speed for range. -->
     <string name="controls_feature_long_range_mode" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Long range mode</string>
+    <!-- Short label of Long range mode on a Home Setting tile (one line, about 90 dp): a mode that trades speed for range. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_long_range_mode_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Long range mode</string>
     <!-- The scooter's feature that moves it slowly while you push it. -->
     <string name="controls_feature_hill_start_assist" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Walk Assist</string>
+    <!-- Short label of Walk Assist on a Home Setting tile (one line, about 90 dp): the scooter's feature that moves it slowly while you push it. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_hill_start_assist_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Walk Assist</string>
     <!-- Extra help from the motor on hills. -->
     <string name="controls_feature_parking_assist" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Power Assist</string>
+    <!-- Short label of Power Assist on a Home Setting tile (one line, about 90 dp): extra help from the motor on hills. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_parking_assist_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Power Assist</string>
     <!-- Holds the speed down steep slopes. -->
     <string name="controls_feature_hill_descent_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Hill descent control</string>
+    <!-- Short label of Hill descent control on a Home Setting tile (one line, about 90 dp): holds the speed down steep slopes. -->
+    <string name="controls_feature_hill_descent_control_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Hill descent</string>
     <!-- The scooter slows itself above its speed limit. -->
     <string name="controls_feature_overspeed_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Overspeed active control</string>
+    <!-- Short label of Overspeed active control on a Home Setting tile (one line, about 90 dp): the scooter slows itself above its speed limit. "ctrl." abbreviates control. -->
+    <string name="controls_feature_overspeed_control_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="ride">Overspeed ctrl.</string>
     <!-- Which sound the scooter plays for prompts. -->
     <string name="controls_feature_prompt_tone" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Prompt sound</string>
     <!-- The scooter's light strips along the deck (a light zone). -->
     <string name="controls_feature_line_lights" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Line lights</string>
+    <!-- Short form of the Line lights zone, used only as %1$s in the short tile labels of that zone's pattern and colour settings (see controls_feature_light_pattern_short): the scooter's light strips along the deck. -->
+    <string name="controls_feature_line_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Line</string>
     <!-- The scooter's small decorative lights (a light zone). -->
     <string name="controls_feature_star_lights" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Star lights</string>
+    <!-- Short form of the Star lights zone, used only as %1$s in the short tile labels of that zone's pattern and colour settings (see controls_feature_light_pattern_short): the scooter's small decorative lights. -->
+    <string name="controls_feature_star_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Star</string>
     <!-- Unlocks the scooter when the paired phone comes near. -->
     <string name="controls_feature_proximity_key" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock,owner-key">Proximity unlock</string>
+    <!-- Short label of Proximity unlock on a Home Setting tile (one line, about 90 dp): unlocks the scooter when the paired phone comes near. Make it shorter than the full name if it does not fit. -->
+    <string name="controls_feature_proximity_key_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="lock,owner-key">Proximity unlock</string>
     <!-- The four-digit code typed on the scooter's handlebar to unlock it. -->
     <string name="controls_feature_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="pin" volt:dnt="PIN">Handlebar PIN</string>
     <!-- A light zone on some NAVEE models. -->
@@ -85,10 +133,16 @@
     <string name="controls_feature_daytime_light" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Daytime running light</string>
     <!-- The light pattern setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: pattern". -->
     <string name="controls_feature_light_pattern" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s pattern</string>
+    <!-- Short label of a light zone's pattern setting on a Home Setting tile (one line, about 90 dp): %1$s is the short zone name (controls_feature_line_lights_short or controls_feature_star_lights_short). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: pattern". -->
+    <string name="controls_feature_light_pattern_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">%1$s pattern</string>
     <!-- The colour setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: color". -->
     <string name="controls_feature_light_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s color</string>
+    <!-- Short label of a light zone's colour setting on a Home Setting tile (one line, about 90 dp): %1$s is the short zone name (controls_feature_line_lights_short or controls_feature_star_lights_short). -->
+    <string name="controls_feature_light_color_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">%1$s color</string>
     <!-- The colour a light zone shows in Boost (a mode name, kept as the scooter shows it): %1$s is the zone. If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: Boost color". -->
     <string name="controls_feature_light_boost_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:dnt="Boost">%1$s Boost color</string>
+    <!-- Short label of a light zone's Boost colour setting on a Home Setting tile (one line, about 90 dp): the colour the zone shows in Boost (a mode name, kept as the scooter shows it). %1$s is the short zone name (controls_feature_line_lights_short or controls_feature_star_lights_short). -->
+    <string name="controls_feature_light_boost_color_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:dnt="Boost">%1$s Boost</string>
 
     <!-- Control captions (ScooterCommands.Feature.description()): short notes under a control. -->
     <!-- Explains that this control is what other NAVEE models call Eco/Turbo (the scooter's own mode names). -->

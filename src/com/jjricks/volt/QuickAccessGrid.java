@@ -433,7 +433,7 @@ final class QuickAccessGrid extends ViewGroup {
     /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
-        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeScheduleShort();
         return entry.shortLabel().render();
     }
     /** A Setting tile is announced by the full name (the label's room does not limit speech): Maximum speed in full, or Charge schedule. */
