@@ -32,7 +32,8 @@ NEW IN 1.12.1
   current stay muted, except that a reading from about 1,200 W up shows as
   draw, inferred rather than measured. Draw and Input on their saved rides are
   unconfirmed.
-- Riding mode's Ride time and distance start from zero each time it opens. Its
+- Riding mode's Ride time, distance, Max and Average speed start from zero each
+  time it opens. It closes itself when a recording ends automatically. Its
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
   screen, and it has Lock and Record buttons while the scooter is stopped.
 - Start automatically, off by default: Record rides automatically and Riding
@@ -691,8 +692,10 @@ ring with max and average) and Trace (the last minute of speed, draw and regen)
 show speed, Range at this pace (from recent energy per km at cruising speed,
 falling back to Volt's or the scooter's range), battery, trip, ride time,
 battery temperature and power; the layout picker shows only while stopped.
-Ride time and trip distance start from zero each time riding mode opens and
-keep counting through rotation; Back and reopening starts them over.
+Ride time, trip distance, Max and Average speed start from zero each time riding
+mode opens and keep counting through rotation; Back and reopening starts them
+over. Average counts only time spent moving. A recording that ends automatically
+closes riding mode, even in the background; the rider's own stop leaves it open.
 Stale values dim, and speed shows a dash after 6 s without a reading.
 More > App preferences > Riding mode sets brightness (Phone by default, Volt
 auto from the light sensor with learned per-band offsets, or Fixed), rotation

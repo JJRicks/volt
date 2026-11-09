@@ -90,7 +90,7 @@ public final class ScooterService extends Service {
     private static final int AUTO_EXPORT_NOTICE = 78;
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -1834,6 +1834,12 @@ public final class ScooterService extends Service {
             rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);}
 
     public void stopRide(){stopRide("");}
+    /**
+     * How many recordings have ended by themselves. A count rather than a time, so it means the same
+     * across a reboot or a clock change: a riding mode that remembers a different count is over. Saved
+     * with commit so a process death right after the stop can't lose it.
+     */
+    public long rideAutoEnds(){return settings==null?0:settings.getLong(RIDE_AUTO_ENDS,0);}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
@@ -1888,6 +1894,7 @@ public final class ScooterService extends Service {
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
         // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved).
         RideAutoExportFolder.queue(settings,stopping);
+        if(!reason.isEmpty())settings.edit().putLong(RIDE_AUTO_ENDS,rideAutoEnds()+1).commit();
         stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /**
      * Feeds the forgotten-ride policy from the current authenticated transport, never from cached

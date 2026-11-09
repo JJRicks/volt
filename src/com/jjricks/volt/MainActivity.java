@@ -385,6 +385,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
+        if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
@@ -446,7 +447,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;openRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(ridingResume!=null&&ridingResume.autoEnded(scooterService.rideAutoEnds())){ridingResume=null;selectedPage="home";}else openRidingSession();}
+        dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
@@ -531,7 +533,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Creates the session, makes it the open one, then asks for its prior: a cached answer arrives at once. */
     private void openRidingSession(){
         String id=ridingProfileId();
-        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume);
+        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume,scooterService.rideAutoEnds());
         ridingResume=null;
         riding=session;
         if(scooterService.simulating()){
@@ -562,6 +564,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void closeRiding(){
         if(riding==null)return;
         riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
+    }
+    /** A recording that ended by itself closes the riding mode that was open for it, with no auto-open hold. True when it did. */
+    private boolean dropAutoEndedRiding(){
+        if(riding==null||scooterService==null||!riding.autoEnded(scooterService.rideAutoEnds()))return false;
+        riding.close();riding=null;ridingRestore=false;ridingResume=null;selectedPage="home";return true;
     }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){
