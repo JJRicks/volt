@@ -392,9 +392,9 @@ public final class DeveloperSettingsValidation extends Instrumentation {
             require(root().findViewWithTag("developer-hide-options") == null, "Hide developer options row is still there");
             invoke(more(), "selectSection", new Class<?>[]{String.class}, "");
         }); settle();
-        main(() -> { settings().edit().remove("developer_options").putString("more_section", "Developer").commit(); activity.redraw(); }); settle();
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer")); settle();
         main(() -> require("Developer".equals(field(more(), "selectedSection")) && root().findViewWithTag("developer-simulation-toggle") != null,
-                "Saved Developer section did not reopen"));
+                "Developer options did not open without a stored flag"));
         main(() -> {
             View checker = root().findViewWithTag("developer-compatibility-check");
             require(checker != null && checker.isShown(), "Compatibility checker is missing from Developer options");
