@@ -7,89 +7,55 @@
   condition picks are checked against the original chain by tests/l10n/DashboardScreenTextTest.java,
   and the numbers and names by tests/l10n/characterization/DashboardScreenEnglishTest.java).
 
-  Stored values stay English: a widget's saved title and note, a saved slot's name, an export and an
-  import keep the English text. The title, note and slot name editors start at the text as shown;
-  saved unchanged, they keep what was saved. A slot name of Volt's is kept only where the save
-  leaves it Volt's (the example's name needs the example's own widgets); otherwise the field's text
-  is saved, the name as it was shown (DashboardConfig.slotNameToSave). Widget type names, default
-  titles and slot names come from strings_dashboard_model.xml.
+  Stored values stay English: a widget's saved title and note, and the shipped example's slot name
+  while it is Volt's. A slot name the owner saved stays as saved, and a slot name that does not stay
+  Volt's is saved as it was shown (DashboardConfig.slotNameToSave). Exports and imports carry what
+  was saved, so an export holds these English values, and anything the owner typed, as saved. The
+  title, note and slot name editors start at the text as shown; saved unchanged, they keep what was
+  saved. Widget type names, default titles and slot names come from strings_dashboard_model.xml.
 
-  What this screen still shows or speaks in English, and why (DashboardScreen.java lines):
-  - the header status line and its spoken form ("Connected · Sport", "Disconnected · last seen
-    14:05", "Connected, Sport mode. Connection details", :792-813): the state word is picked on the
-    line above, and G1 has no row for a choice set on an earlier line (l10n/README.md, "Still
-    blocked"); see the comment at :787;
-  - text with a mark the Saira font has no glyph for: GlyphCoverageTest refuses it in the catalog,
-    and keeping the mark in Java beside a key would be a new literal, which G1 refuses. It waits for
-    the font check, not for the G1 tooling round. The owner chose a reviewed GlyphCoverageTest
-    allow-list, not icons; the glyph tooling branch (claude/l10n-glyph-symbols) allows U+2713,
-    U+26A0 with U+FE0E, U+2606 and U+2605, as B16's star and B18's battery row need:
-    - the three "✓ Save" buttons (U+2713, on that list): widget options :5295, quick settings
-      :5382, Choose readings :6035. The widget options and Choose readings buttons have translated
-      spoken names (dashboard_save_widget_options, dashboard_save_readings); the quick settings one
-      is read as shown;
-    - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in
-      U+FFFC, the place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is
-      not on that list, so the allow-list does not move it: it waits for a change that keeps only
-      "Connecting…" in the catalog and appends the placeholder in code where the span is set;
-  - count phrases whose plural ending shares an expression with a choice: a choice row's branches
-    cannot be plural rows, and a choice of fixed whole templates would keep English's two forms in
-    every language:
-    - the estimate details sheet's Window value ("7 days · live", :3803-3804);
-    - the column choices' spoken text ("2 columns, needs a wider screen", :6245-6246);
-    - a saved slot's summary line ("Empty", "Unreadable", "1 widget · 14:05", "3 widgets · 03 NOV ·
-      14:05", :6558-6562), one expression for all four. hardcoded_lint does not flag it (single
-      words and a count reach ui.caption through a String local), so
-      l10n/baseline/DashboardScreen.txt does not list it either;
-  - text inside String.format, which a format row cannot cover with a plural or a choice:
-    - the Charging check value ("12.4 Ah · 3 charges", :3795): the plural ending is a format
-      argument (a plural cannot replace a String.format line);
-    - the advertised capacity row's value ("716.04 Wh · model", ratingLabel :5726): " · model" is
-      a ternary passed to the format's %s;
-  - a window's long name in the chart and sample captions ("10 minutes", windowName :6055-6058):
-    the unit word is picked on the line above its plural ending ("a choice set on an earlier
-    line");
-  - the recording button's spoken text ("Recording 0:42, 1.2 mi, 15 Wh. Stop & save", :3560-3561):
-    the list separator of TextUtils.join sits inside the optional part, so a choice row would own
-    a literal that one of its holes needs;
-  - two literals beside a line this batch changes that is not a ledger row, so converting them
-    would put text and that change in one hunk, which G1 refuses in an extraction batch ("around
-    text"):
-    - the reported range's chart caption "Scooter range" (:3913-3914), beside the caption's title
-      test (:3912, now englishLabel(key));
-    - "Close widget options", spoken for the widget options sheet's close button (:5314), beside
-      the sheet title (:5313, now DashboardConfig.typeName);
-  - the scale rows' values and the scale dialog's spoken input ("25 mph", scaleSummary :6061;
-    "Scale maximum in mph", :6081-6082) and the chart's unit: chartUnit is a data unit that
-    Ui.ChartView matches against UnitCode data codes (see chartUnit's javadoc, :955), and the
-    number keeps US digits;
-  - the note widget's options row value, widget.note as saved, so the shipped example's note shows
-    its English there (:5216), and the quick settings search, which matches English shortcut names
-    and groups only (:5432): each statement holds text, and around text an extraction batch may
-    only replace a ledger row's expression (G1), so these wait for an ordinary change;
+  What this screen still shows or speaks in English, and why (DashboardScreen.java lines drift; find
+  the code by the words quoted):
+  - the Charging check value ("12.4 Ah · 3 charges"): the plural ending is an argument of a
+    String.format, so a whole plural cannot replace it where it stands (G1: no row form), and the row
+    cannot move away from the statement around it without changing the rows' order. It waits for the
+    gate tooling;
+  - the header's "Connecting…" while it connects (connectingLabel): the text ends in U+FFFC, the
+    place of the inline spinner's ImageSpan, which the font never draws. GlyphCoverageTest refuses
+    U+FFFC in the catalog (it is not on the allow-list merged as #187), and G1 cannot follow the
+    word alone out of a literal that also holds the placeholder. It waits for an ordinary pull
+    request that splits the literal, so a batch can then move "Connecting…" and leave the
+    placeholder appended in code where the span is set;
+  - the scale dialog's own number field (GaugeScaleInput) keeps US digits, so what is typed parses;
+  - the chart's unit: chartUnit is a data unit that Ui.ChartView matches against UnitCode data codes
+    and also draws and speaks (see chartUnit's javadoc), so it waits for ChartView to take a data
+    unit and a shown symbol apart;
   - two big percents that put the sign after the digits in Java, as English does, with US digits:
-    the charging hero's (:1716, number + "%") and the Overview widget's (:2916, amount + "%"). A
-    language's percent order (Fmt.percent) does not reach them yet; the battery cell's does
-    (36e1eb6), and these wait for the same change, which also places the sign's smaller span;
+    the charging hero's (number + "%") and the Overview widget's (amount + "%"). A language's percent
+    order (Fmt.percent) does not reach them yet; the battery cell's does (36e1eb6), and these wait for
+    the same change, which also places the sign's smaller span;
   - text other files still build in English, shown as it is wherever the screen shows or speaks it:
-    ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
-    (:1729-1735) and in the Charging and Battery widgets' time cell, spoken and as the tile's
-    tooltip (describeCharging, :3400-3402, :3420); BatteryCapacityEstimate.Result's label and
-    rejection reason (the capacity widget's chip, summary and bar description, the details caveat
-    and the Rejected value, :3704-3719, :3807-3809); ScooterService's unavailable reason (:3673,
-    and the details caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE,
+    ChargeScheduleController's status (State.status, and a failed Charge start restore's answer,
+    which is that status) and the Context's reasons from ScooterService (toggleReason, timeReason):
+    both stay English where the controller holds them, and a screen maps them when it shows them
+    (batch B19); ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
+    and in the Charging and Battery widgets' time cell, spoken and as the tile's tooltip
+    (describeCharging); BatteryCapacityEstimate.Result's label (the capacity widget's chip, summary
+    and bar description, and the details caveat); ScooterService's unavailable reason (the capacity
+    widget, and the details caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE,
     SPORT) wherever a reading shows it, e.g. the drive mode card, the header, and the reading tiles
     of the Scooter and Overview cards, which have driving_mode among their default readings
     (DashboardConfig.Widget); DisplayTime.recent's English month ("03 NOV · 14:05") wherever a last
-    seen time shows, through when() (:871) or directly: the header's last seen time (:800), the
-    card footers' "Last seen" description and tooltip (:3517-3518), the spoken last seen of the
-    reading cells and the gauge (:3452, :3466, :3469, :4232), the Overview's spoken text
-    (:2930-2934) and a saved slot's summary (:6561); and reading values from format()
+    seen time shows, through when() or directly: the header's last seen time, the card footers'
+    "Last seen" description and tooltip, the spoken last seen of the reading cells and the gauge, the
+    Overview's spoken text and a saved slot's summary; and reading values from format()
     (DisplayUnits.metricText's canonical English: US digits and Telemetry's unit symbols), which
-    withUnit and Gauge.set split at the last space (:923).
-  Translated with a limit: dashboard_rides_range and dashboard_rides_points are not plurals (a
-  plural cannot replace a String.format line, and rides_points holds two counts); their notes ask
-  for a form whose noun does not change with the number.
+    withUnit and Gauge.set read through ReadingUnits: speed and temperature by their number and unit
+    parts (Formatted), others by their space, a no-break space included.
+  The whole-sentence plurals of F6 (dashboard_capacity_rides, dashboard_capacity_points_used,
+  dashboard_selected_of_most) replaced dashboard_rides_range, dashboard_rides_points and
+  dashboard_count_of_selected. Those three stay in this file, unused, because B13's ledger rows name
+  them; a translator need not fill them.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
@@ -205,12 +171,32 @@
     <string name="dashboard_hero_time_tag_status" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s, %3$s. %4$s</string>
     <!-- Spoken for the charging hero's photo stage when the level is not reported. -->
     <string name="dashboard_hero_charge_not_reported" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge not reported</string>
-    <!-- The same with a charge limit: %1$s is the limit, a whole number of percent. -->
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_hero_charge_not_reported_limit" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge not reported, charge limit %1$s percent</string>
-    <!-- Spoken for the photo stage: %1$s is the battery level, a whole number of percent. -->
+    <!-- Spoken for the photo stage with a charge limit when the level is not reported: %1$s is the limit, a whole number of percent, and picks the plural form. -->
+    <plurals name="dashboard_hero_charge_not_reported_limit_count" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Charge not reported, charge limit %1$s percent</item>
+        <item quantity="other">Charge not reported, charge limit %1$s percent</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_hero_charge" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge %1$s percent</string>
-    <!-- The same with a charge limit: %1$s is the level, %2$s the limit, whole numbers of percent. -->
+    <!-- Spoken for the photo stage: %1$s is the battery level, a whole number of percent, and picks the plural form. -->
+    <plurals name="dashboard_hero_charge_count" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Charge %1$s percent</item>
+        <item quantity="other">Charge %1$s percent</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_hero_charge_limit" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge %1$s percent, charge limit %2$s percent</string>
+    <!-- The same with a charge limit: %1$s is the level, a whole number of percent, and picks the plural form; %2$s is dashboard_hero_limit_percent, which follows the limit. -->
+    <plurals name="dashboard_hero_charge_limit_count" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Charge %1$s percent, %2$s</item>
+        <item quantity="other">Charge %1$s percent, %2$s</item>
+    </plurals>
+    <!-- The charge limit in dashboard_hero_charge_limit_count: %1$s is the limit, a whole number of percent, and picks the plural form. -->
+    <plurals name="dashboard_hero_limit_percent" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">charge limit %1$s percent</item>
+        <item quantity="other">charge limit %1$s percent</item>
+    </plurals>
     <!-- Name of the battery temperature on the charging cards. -->
     <string name="dashboard_battery_temperature" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Battery temperature</string>
     <!-- Spoken after the charging power: the power is measured on the battery side. -->
@@ -266,6 +252,10 @@
     <string name="dashboard_note" volt:screen="Note widget options" volt:purpose="title">Note</string>
     <!-- The ride recorder widget's title and button. -->
     <string name="dashboard_record_ride" volt:screen="Home ride recorder widget" volt:purpose="button">Record ride</string>
+    <!-- The ride recorder's button on a one-row card too narrow for "Record ride" (or for
+         "Starting…" right after a tap): the shorter rung of that label. Where even this does not
+         fit, the card shows the red disc alone. Spoken text stays the full "Start recording". -->
+    <string name="dashboard_record_short" volt:screen="Narrow Home ride recorder widget" volt:purpose="button" volt:max="60dp@15sp">Record</string>
     <!-- Spoken for the recorder's arrow, which opens the ride list. -->
     <string name="dashboard_view_rides" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">View rides</string>
     <!-- Spoken for a reading the scooter has not sent: %1$s is the reading's name. -->
@@ -281,10 +271,34 @@
     <string name="dashboard_overview_not_reported_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, last seen %1$s</string>
     <string name="dashboard_overview_not_reported_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s</string>
     <string name="dashboard_overview_not_reported_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, last seen %2$s</string>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_overview_percent" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_overview_percent_count" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent</item>
+        <item quantity="other">Battery %1$s percent</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_overview_percent_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen %2$s</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_overview_percent_seen_count" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, last seen %2$s</item>
+        <item quantity="other">Battery %1$s percent, last seen %2$s</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_overview_percent_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_overview_percent_line_count" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s</item>
+        <item quantity="other">Battery %1$s percent, %2$s</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_overview_percent_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen %3$s</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_overview_percent_line_seen_count" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s, last seen %3$s</item>
+        <item quantity="other">Battery %1$s percent, %2$s, last seen %3$s</item>
+    </plurals>
     <!-- Spoken for the battery widget's level cell, one whole sentence per state (safety: charge).
          %1$s in the _percent forms is the level, a whole number of percent; the _line forms add the
          range or status line under it (%2$s, or %1$s when the level is not reported); _charging says
@@ -297,14 +311,62 @@
     <string name="dashboard_cell_not_reported_line_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, charging, last seen reading</string>
     <string name="dashboard_cell_not_reported_line" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s</string>
     <string name="dashboard_cell_not_reported_line_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, last seen reading</string>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, charging</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_charging_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, charging</item>
+        <item quantity="other">Battery %1$s percent, charging</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, charging, last seen reading</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_charging_stale_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, charging, last seen reading</item>
+        <item quantity="other">Battery %1$s percent, charging, last seen reading</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent</item>
+        <item quantity="other">Battery %1$s percent</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen reading</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_stale_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, last seen reading</item>
+        <item quantity="other">Battery %1$s percent, last seen reading</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_line_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, charging</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_line_charging_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s, charging</item>
+        <item quantity="other">Battery %1$s percent, %2$s, charging</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_line_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, charging, last seen reading</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_line_charging_stale_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s, charging, last seen reading</item>
+        <item quantity="other">Battery %1$s percent, %2$s, charging, last seen reading</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_line" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_line_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s</item>
+        <item quantity="other">Battery %1$s percent, %2$s</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_cell_percent_line_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen reading</string>
+    <!-- %1$s is the battery level, a whole number from 0 to 100, and picks the plural form. -->
+    <plurals name="dashboard_cell_percent_line_stale_count" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$s percent, %2$s, last seen reading</item>
+        <item quantity="other">Battery %1$s percent, %2$s, last seen reading</item>
+    </plurals>
     <!-- Widget bodies -->
     <!-- Spoken for a reading on a card: %1$s is the reading's name, %2$s its value with unit; the
          _seen form adds when it was read (%3$s: a date and time) when it is not live. -->
@@ -329,6 +391,14 @@
     <string name="dashboard_measuring" volt:screen="Home ride recorder widget" volt:purpose="status">Measuring…</string>
     <string name="dashboard_saving_ride" volt:screen="Home ride recorder widget" volt:purpose="status">Saving the last ride…</string>
     <string name="dashboard_connecting" volt:screen="Home ride recorder widget" volt:purpose="status">Connecting…</string>
+    <!-- Shown on the ride recorder for a moment right after a tap, until Rides opens and the ride
+         is recording. It replaces "Record ride" on the same line; a card too narrow for it keeps
+         the short "Record". Also spoken. -->
+    <string name="dashboard_recorder_starting" volt:screen="Home ride recorder widget" volt:purpose="state word" volt:max="80dp@15sp">Starting…</string>
+    <!-- Brief message after a Home "Start recording" tap that could not run because Volt closed
+         or restarted its window in the same moment. Nothing was recorded; the rider can start
+         again from Home or Rides. -->
+    <string name="dashboard_recorder_not_started" volt:screen="Home ride recorder widget" volt:purpose="error">Recording didn\'t start. Try again.</string>
     <!-- Spoken for the recorder's button when not recording. -->
     <string name="dashboard_record_saving" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Saving the last ride</string>
     <string name="dashboard_start_recording" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Start recording</string>
@@ -346,13 +416,9 @@
     <string name="dashboard_refresh_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Last estimate · refresh unavailable</string>
     <string name="dashboard_estimate_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Estimate unavailable</string>
     <string name="dashboard_not_enough_data" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">Not enough ride data</string>
-    <!-- The summary: %1$s is how many rides were used (English keeps "rides" for every number), %2$s and %3$s the low and high energy, %4$s the unit ("Wh").
-         Not a plural yet (a tooling round must let a plural replace a String.format line): where the
-         noun must agree with the number, use a form that does not, such as "rides: %1$s". -->
+    <!-- Unused since F6 (dashboard_capacity_summary): kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_rides_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s–%3$s %4$s</string>
-    <!-- The summary without a range: %1$s rides, %2$s battery percentage points (two counts, so not a
-         plural): where a noun must agree with its number, use a form that does not, such as
-         "rides: %1$s · points used: %2$s". -->
+    <!-- Unused since F6 (dashboard_capacity_summary): kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_rides_points" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s points used</string>
     <!-- How the estimate compares with the reference: %1$s is a whole percent, %2$s the reference energy, %3$s the unit ("Wh"). -->
     <string name="dashboard_percent_of" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s%% of %2$s %3$s</string>
@@ -366,7 +432,7 @@
     <string name="dashboard_charging_check" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Charging check</string>
     <string name="dashboard_coverage" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Coverage</string>
     <string name="dashboard_pack_temp" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Pack temp</string>
-    <string name="dashboard_rejected" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Rejected</string>
+    <string name="dashboard_rejected" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Excluded rides</string>
     <!-- Charge per gauge with its range: %1$s is the value, %2$s the unit ("Ah"), %3$s and %4$s the low and high values. -->
     <string name="dashboard_ah_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:screen="Home capacity widget" volt:purpose="caveat" volt:safety="experimental">Proxy: may overstate; not health.</string>
@@ -454,14 +520,16 @@
     <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
     <!-- A dialog's or slot's Save button. -->
     <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>
+    <!-- The Save button of the widget options, quick settings and Choose readings sheets: keep the check mark. Read as shown in quick settings; the other two have their own spoken names. -->
+    <string name="dashboard_save_checked" volt:screen="Widget options, quick settings, Choose readings sheet" volt:purpose="button" volt:dnt="✓">✓ Save</string>
     <!-- A time window chip: %1$s is a whole number of minutes or hours; one day, one year and two years have their own. -->
     <string name="dashboard_window_minutes" volt:screen="Widget options" volt:purpose="choice">%1$s min</string>
     <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>
     <string name="dashboard_window_one_day" volt:screen="Widget options" volt:purpose="choice">1 day</string>
     <!-- A time window chip of more than one day: %1$d is the number of days (7, 30, 90 or 180); a plural so a
-         language can inflect "days" by the number. One day has its own key, so English says "days" in both items. -->
+         language can inflect "days" by the number. One day has its own key (dashboard_window_one_day). -->
     <plurals name="dashboard_window_days" volt:screen="Widget options" volt:purpose="choice">
-        <item quantity="one">%1$d days</item>
+        <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
     <string name="dashboard_window_one_year" volt:screen="Widget options" volt:purpose="choice">1 year</string>
@@ -477,7 +545,7 @@
     <string name="dashboard_search_parameters" volt:screen="Choose parameter sheet" volt:purpose="hint">Search parameters</string>
     <string name="dashboard_choose_parameter" volt:screen="Choose parameter sheet" volt:purpose="title">Choose parameter</string>
     <string name="dashboard_search_readings" volt:screen="Choose readings sheet" volt:purpose="hint">Search readings</string>
-    <!-- How many readings are chosen: %1$s of at most %2$s (whole numbers). -->
+    <!-- Unused since F6 (dashboard_selected_of_most): kept for B13's ledger rows, no need to translate. -->
     <string name="dashboard_count_of_selected" volt:screen="Choose readings sheet" volt:purpose="value">%1$s of %2$s selected</string>
     <string name="dashboard_all_readings" volt:screen="Choose readings sheet" volt:purpose="section label">All readings</string>
     <!-- %1$s is a reading's name. -->
@@ -525,13 +593,106 @@
     <string name="dashboard_replace_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Replace slot %1$s?</string>
     <string name="dashboard_save_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Save to slot %1$s?</string>
     <string name="dashboard_replace" volt:screen="Dashboard layout slots" volt:purpose="button">Replace</string>
-    <string name="dashboard_save_layout_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t save the layout. Please try again.</string>
+    <string name="dashboard_save_layout_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn\'t save the layout. Please try again.</string>
     <!-- %1$s is the slot number. -->
     <string name="dashboard_saved_to_slot" volt:screen="Dashboard layout slots" volt:purpose="toast">Saved to slot %1$s</string>
     <!-- %1$s is the slot's name. -->
     <string name="dashboard_restore_title" volt:screen="Dashboard layout slots" volt:purpose="title">Restore “%1$s”?</string>
     <string name="dashboard_restore_message" volt:screen="Dashboard layout slots" volt:purpose="message">Replaces your layout and the column setting on all scooters.</string>
-    <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t restore. Nothing changed.</string>
+    <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn\'t restore. Nothing changed.</string>
     <!-- %1$s is the slot's name. -->
     <string name="dashboard_restored" volt:screen="Dashboard layout slots" volt:purpose="toast">Restored “%1$s”</string>
+
+    <!-- Follow-ups after B13 (batch F6) -->
+    <!-- The status line under the scooter's name. -->
+    <string name="dashboard_status_connected" volt:screen="Home header" volt:purpose="status">Connected</string>
+    <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
+    <string name="dashboard_status_connected_mode" volt:screen="Home header" volt:purpose="status">Connected · %1$s</string>
+    <string name="dashboard_status_disconnected" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Disconnected</string>
+    <!-- The narrow-label ladder's short rung of Disconnected, when the full word does not fit the line at the readable size. -->
+    <string name="dashboard_status_disconnected_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Disconnected</string>
+    <!-- %1$s is when the scooter was last connected ("14:05", "03 NOV · 14:05"). -->
+    <string name="dashboard_status_disconnected_seen" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Disconnected · last seen %1$s</string>
+    <!-- The short rung of the line above, when it does not fit: %1$s is the same time. Narrower still, the line shows Disconnected. -->
+    <string name="dashboard_status_disconnected_seen_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Disconnected · %1$s</string>
+    <!-- The status line as a screen reader says it; a tap opens the connection details. -->
+    <string name="dashboard_status_spoken_connected" volt:screen="Home header" volt:purpose="accessibility description">Connected. Connection details</string>
+    <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
+    <string name="dashboard_status_spoken_connected_mode" volt:screen="Home header" volt:purpose="accessibility description">Connected, %1$s mode. Connection details</string>
+    <string name="dashboard_status_spoken_connecting" volt:screen="Home header" volt:purpose="accessibility description">Connecting. Connection details</string>
+    <string name="dashboard_status_spoken_disconnected" volt:screen="Home header" volt:purpose="accessibility description">Disconnected. Connection details</string>
+    <!-- %1$s is the date and time the scooter was last connected. -->
+    <string name="dashboard_status_spoken_disconnected_seen" volt:screen="Home header" volt:purpose="accessibility description">Disconnected, last seen %1$s. Connection details</string>
+    <!-- The estimate details' Window value: how many days of rides it reads. -->
+    <plurals name="dashboard_estimate_window_days" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- The same, with the ride being recorded now included: %1$s is dashboard_estimate_window_days. -->
+    <string name="dashboard_estimate_window_live" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · live</string>
+    <!-- Spoken for a column choice in the widget size dialog. -->
+    <plurals name="dashboard_column_count" volt:screen="Widget size dialog" volt:purpose="accessibility description">
+        <item quantity="one">%1$d column</item>
+        <item quantity="other">%1$d columns</item>
+    </plurals>
+    <!-- Spoken for a column choice this screen is too narrow for: %1$s is dashboard_column_count. -->
+    <string name="dashboard_column_count_needs_wider" volt:screen="Widget size dialog" volt:purpose="accessibility description">%1$s, needs a wider screen</string>
+    <!-- A saved slot's summary line. -->
+    <string name="dashboard_slot_unreadable" volt:screen="Dashboard layout slots" volt:purpose="status">Unreadable</string>
+    <string name="dashboard_slot_empty" volt:screen="Dashboard layout slots" volt:purpose="status">Empty</string>
+    <!-- A saved layout slot: how many widgets it holds (%1$d), then when it was saved (%2$s). English's one item
+         writes its 1 out; where a language's one item covers other numbers (21), use %1$d there. -->
+    <plurals name="dashboard_slot_summary" volt:screen="Dashboard layout slots" volt:purpose="value">
+        <item quantity="one">1 widget · %2$s</item>
+        <item quantity="other">%1$d widgets · %2$s</item>
+    </plurals>
+    <!-- The advertised capacity row's value: %1$s the energy, %2$s the unit ("Wh"), %3$s dashboard_rating_model or nothing. -->
+    <string name="dashboard_rating_value" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">%1$s %2$s%3$s</string>
+    <!-- Said after the rating when it is the model's documented one rather than the owner's: keep the separator and its leading space. -->
+    <string name="dashboard_rating_model" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">" · model"</string>
+    <!-- The capacity widget's summary: how many rides were used. -->
+    <plurals name="dashboard_capacity_rides" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$s ride</item>
+        <item quantity="other">%1$s rides</item>
+    </plurals>
+    <!-- How many battery percentage points those rides used. -->
+    <plurals name="dashboard_capacity_points_used" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$s point used</item>
+        <item quantity="other">%1$s points used</item>
+    </plurals>
+    <!-- %1$s is dashboard_capacity_rides, %2$s the energy range or dashboard_capacity_points_used. -->
+    <string name="dashboard_capacity_summary" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · %2$s</string>
+    <!-- The Choose readings count: %1$s readings chosen, %2$s the most this widget takes. The plural follows the number chosen. -->
+    <plurals name="dashboard_selected_of_most" volt:screen="Choose readings sheet" volt:purpose="value">
+        <item quantity="one">%1$s of %2$s selected</item>
+        <item quantity="other">%1$s of %2$s selected</item>
+    </plurals>
+    <!-- The estimate details' Rejected value: %1$s rides left out, %2$s the most common reason. -->
+    <string name="dashboard_rejected_reason" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · %2$s</string>
+    <!-- Spoken for the widget options sheet's close button. -->
+    <string name="dashboard_close_widget_options" volt:screen="Widget options" volt:purpose="accessibility description">Close widget options</string>
+    <!-- The reported range's chart caption: the range the scooter itself reports. -->
+    <string name="dashboard_scooter_range" volt:screen="Home chart widgets" volt:purpose="caption">Scooter range</string>
+    <string name="dashboard_scooter_range_compact" volt:screen="Narrow Home chart widgets" volt:purpose="caption" volt:ladder="compact">Scooter range</string>
+    <!-- A chart window's long name, in the chart and sample captions. -->
+    <plurals name="dashboard_window_name_minutes" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="dashboard_window_name_hours" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <plurals name="dashboard_window_name_days" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- Spoken for the recording button: %1$s is the elapsed time; a tap stops and saves the ride. -->
+    <string name="dashboard_recording_spoken" volt:screen="Home ride recorder widget" volt:purpose="accessibility description" volt:safety="ride">Recording %1$s. Stop &amp; save</string>
+    <!-- The same with what it has measured: %2$s is a list ("1.2 mi, 15 Wh") joined by dashboard_recording_spoken_separator. -->
+    <string name="dashboard_recording_spoken_parts" volt:screen="Home ride recorder widget" volt:purpose="accessibility description" volt:safety="ride">Recording %1$s, %2$s. Stop &amp; save</string>
+    <string name="dashboard_recording_spoken_separator" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">", "</string>
+    <!-- Spoken for the scale dialog's input: %1$s is the unit ("mph"). -->
+    <string name="dashboard_scale_maximum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale maximum in %1$s</string>
+    <string name="dashboard_scale_minimum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale minimum in %1$s</string>
 </resources>

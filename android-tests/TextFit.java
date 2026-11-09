@@ -33,14 +33,16 @@ final class TextFit {
     }
 
     /**
-     * Single lines that ellipsize by design: the Lock bar's "Last verified" detail, and the Lock
-     * bar's title once Connect has already collapsed to its 48 dp icon. Every other line must fit.
+     * Lines that ellipsize by design: the Lock bar's one-line "Last verified" detail, and the Lock
+     * bar's title, which wraps onto two lines first, once Connect has already collapsed to its 48 dp
+     * icon (a cell too narrow for two lines; a phone's full-width bar is budgeted to fit). Every other
+     * line must fit.
      */
     static boolean ellipsizedByDesign(Object activity, TextView text) {
-        if (text.getEllipsize() == null || text.getMaxLines() != 1) return false;
+        if (text.getEllipsize() == null || text.getMaxLines() > 2) return false;
         for (Object lock : (List<?>)field(activity, "dashboardLocks")) {
             if (!Boolean.TRUE.equals(field(lock, "compact"))) continue;
-            if (text == field(lock, "offlineDetail")) return true;
+            if (text == field(lock, "offlineDetail")) return text.getMaxLines() == 1;
             if (text == field(lock, "offlineTitle") && iconOnlyAction((TextView)field(lock, "connectionAction"))) return true;
         }
         return false;

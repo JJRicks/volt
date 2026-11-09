@@ -96,6 +96,24 @@ SPANISH = collections.OrderedDict([
 ])
 
 
+# The real Responses API refuses text.format json_object unless the input itself mentions JSON; the
+# instructions don't count. The fakes refuse the same way, so a prompt that says JSON only there fails here too.
+OPENAI_JSON_INPUT_ERROR = (400, json.dumps({"error": {"message": "Response input messages must contain the word "
+                                                      "'json' in some form to use 'text.format' of type "
+                                                      "'json_object'."}}).encode("utf-8"))
+
+
+def json_mode_without_json(payload):
+    return ((payload.get("text") or {}).get("format") or {}).get("type") == "json_object" and \
+        "json" not in str(payload.get("input", "")).lower()
+
+
+# The token counts every fake reply reports, in each provider's shape.
+OPENAI_USAGE = {"input_tokens": 100, "input_tokens_details": {"cached_tokens": 40}, "output_tokens": 20,
+                "output_tokens_details": {"reasoning_tokens": 5}, "total_tokens": 120}
+GOOGLE_USAGE = {"promptTokenCount": 90, "candidatesTokenCount": 15, "thoughtsTokenCount": 7, "totalTokenCount": 112}
+
+
 class FakeTransport(object):
     """Answers provider requests from a table; records each request (headers included, for assertions)."""
 
@@ -105,6 +123,7 @@ class FakeTransport(object):
         self.replies = replies or {}      # model id -> function(prompt text) -> dict reply
         self.errors = errors or {}        # url fragment -> (status, body bytes)
         self.requests = []
+        self.openai_versions = []         # the version each next OpenAI response reports (default 2026-10-01)
 
     def send(self, method, url, headers, body):
         payload = json.loads(body.decode("utf-8")) if body else None
@@ -120,15 +139,20 @@ class FakeTransport(object):
             models.append({"name": "models/text-embedding-9", "supportedGenerationMethods": ["embedContent"]})
             return 200, json.dumps({"models": models}).encode("utf-8")
         if url == "https://api.openai.com/v1/responses":
+            if json_mode_without_json(payload):
+                return OPENAI_JSON_INPUT_ERROR
             model = payload["model"]
             reply = self.replies[model](payload["input"])
-            return 200, json.dumps({"model": model + "-2026-10-01", "status": "completed", "output": [
-                {"type": "message", "content": [{"type": "output_text", "text": json.dumps(reply)}]}]}).encode("utf-8")
+            version = self.openai_versions.pop(0) if self.openai_versions else "2026-10-01"
+            return 200, json.dumps({"model": model + "-" + version, "status": "completed", "output": [
+                {"type": "message", "content": [{"type": "output_text", "text": json.dumps(reply)}]}],
+                "usage": OPENAI_USAGE}).encode("utf-8")
         if ":generateContent" in url:
             model = url.split("/models/")[1].split(":")[0]
             reply = self.replies[model](payload["contents"][0]["parts"][0]["text"])
             return 200, json.dumps({"modelVersion": model + "-001", "candidates": [
-                {"content": {"parts": [{"text": "```json\n%s\n```" % json.dumps(reply)}]}}]}).encode("utf-8")
+                {"content": {"parts": [{"text": "```json\n%s\n```" % json.dumps(reply)}]}}],
+                "usageMetadata": GOOGLE_USAGE}).encode("utf-8")
         return 404, b'{"error": {"message": "no such endpoint"}}'
 
 

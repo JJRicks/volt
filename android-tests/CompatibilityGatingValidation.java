@@ -283,8 +283,11 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 String status = String.valueOf(((View)field(row, "status")).getContentDescription());
                 if (tried.experimental()) {
                     listed.add(feature.key);
-                    // Anything the official app offers for this model keeps its Scooter row and never appears as an experiment.
-                    require(!(usual.support == CapabilityResolver.Support.KNOWN_ENCODING && !usual.variant.lab), label + ": offered " + feature.key + " listed as experimental");
+                    // Anything the official app offers for this model keeps its Scooter row and never appears as an experiment, except
+                    // kick-start held to 3–5 km/h by region (registry 19), which keeps its row and is also tried lower here.
+                    boolean lowStart = feature.key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(ble.descriptor());
+                    require(lowStart || !(usual.support == CapabilityResolver.Support.KNOWN_ENCODING && !usual.variant.lab), label + ": offered " + feature.key + " listed as experimental");
+                    if (lowStart) require(usual.available() && !usual.allows(2) && usual.allows(3) && java.util.Arrays.equals(tried.values(), new int[]{0, 1, 2, 3}), label + ": kick-start 3–5 km/h in Scooter settings, 0–3 km/h tried here");
                     require(status.equals("Untested on your model"), label + ": " + feature.key + " status " + status);
                 } else {
                     // Help verify: the official app offers it here and Volt hasn't verified it; its Scooter row is unchanged.
@@ -300,7 +303,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             View group = root().findViewWithTag("lab-verify");
             require((group != null && group.isShown()) == !verify.isEmpty(), label + ": Help verify group shown=" + (group != null && group.isShown()));
             String title = String.valueOf(((TextView)field(more(), "labTitle")).getText());
-            require(title.equals(pid.equals("39991") ? "Help verify" : "Untested controls"), label + ": section title \"" + title + "\"");
+            require(title.equals(pid.equals("39991") ? "Help verify" : "Controls to try"), label + ": section title \"" + title + "\"");
             require(pid.equals("39991") == listed.isEmpty(), label + ": unknown model lists no experiments, the others list their controls");
             if (pid.equals("39991")) require(verifying.equals(Arrays.asList("display_units")), "Unknown model: dashboard units to verify, as the guided tests offered " + verifying);
             if (pid.isEmpty()) require(verifying.isEmpty(), "UT5 MAX: everything is verified " + verifying);
@@ -308,8 +311,9 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             if (pid.isEmpty()) require(new java.util.HashSet<>(listed).equals(new java.util.HashSet<>(Arrays.asList("acceleration", "speed_limit", "dual_drive",
                     "drive_speed_limit", "long_range_mode", "overspeed_control", "prompt_tone"))), "UT5 MAX Lab rows changed: " + listed);
             // The custom speed cap ranks first: the official app offers it on more other models than the assists. Traction control is
-            // an ordinary Group S row since registry version 18, so it is not listed.
-            if (pid.equals("24431")) require(listed.equals(Arrays.asList("speed_limit", "hill_start_assist", "parking_assist", "hill_descent_control", "prompt_tone")), "Mapped model rows " + listed);
+            // an ordinary Group S row since registry version 18, so it is not listed. The simulator has no serial region, so since
+            // registry version 19 kick-start (3–5 km/h in Scooter settings) also gets the lower try, first by TRY_PRIORITY.
+            if (pid.equals("24431")) require(listed.equals(Arrays.asList("start_speed", "speed_limit", "hill_start_assist", "parking_assist", "hill_descent_control", "prompt_tone")), "Mapped model rows " + listed);
         });
         screenshot(label + "-more-lab");
         if (!verifying.isEmpty()) { reveal("lab-verify"); screenshot(label + "-more-lab-verify"); }

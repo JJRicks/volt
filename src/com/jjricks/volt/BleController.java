@@ -63,7 +63,10 @@ public final class BleController {
     /** Handshake responses stay private until the transport's hardware belongs to this profile. */
     private Protocol.Frame pendingStatusFrame,pendingSerialFrame;private long pendingStatusMs;
     private long savedProfileMs,lastBatteryPollMs,scanSequence,backgroundDeadlineMs,batteryWatchUntilMs;private ScanCallback scanCallback;private Runnable scanTimeout;
-    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
+    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;
+        /** Until the frame goes out, the condition the caller accepted it under (holdUnsent); null for every other change. */
+        LatchedCondition sendCondition;Runnable conditionClosed;
+        Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
     /** A proximity change whose link dropped before it was confirmed (ProximityFollowUp): checked on the reconnect's first status read. */
     private ProximityFollowUp.Recheck recheck;private long recheckSequence;
     /** The scooter this phone last asked to pair with, and one whose pairing ended without a bond while proximity read on. */
@@ -109,12 +112,25 @@ public final class BleController {
         simulationRegion=next;tickSimulation();changed();
     }
     public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
+    /**
+     * Riding-mode screenshot scripts (ScooterSimulation ids; "" for none). Memory only; no command exists.
+     * The dropout script holds the link in Connecting, so readings go stale as on a real dropout.
+     */
+    public void setSimulationScript(String id){if(simulation==null)return;simulation.setScript(id);state=ScooterSimulation.DROPOUT.equals(simulation.script())?State.CONNECTING:State.READY;if(state==State.READY)updateSimulation();changed();}
     public void setSimulationCharging(boolean charging){if(simulation==null)return;simulation.setCharging(charging);tickSimulation();changed();}
     private void connectSimulation(){if(simulation==null)return;state=State.READY;updateSimulation();notice(M.bleSimulatedConnection());}
     /** Simulation changes need no caption or toast: the persistent banner already says the data is simulated. */
     private void quiet(){message="";changed();}
     private void simulationUnavailable(String action){notice(action+" is unavailable in simulation. No scooter command was sent.");}
     public State state(){return state;}public String message(){return ConnectionText.english(message);}public boolean ready(){if(simulating())return simulation!=null&&state==State.READY;return workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&statusMs>0&&now()-statusMs<=7000&&!serial.isEmpty();}
+    /**
+     * The link is up and answering on the cadence it is on (StatusCadence): with Volt open or recording, exactly ready();
+     * out of sight, where status is asked for every 15 s, a status read up to the background silence limit still counts.
+     * For background facts (the live charging card, charge alerts, the charge reference gate), never for controls.
+     */
+    public boolean linked(){if(simulating()||visible||recording)return ready();return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),false);}
+    /** How old a reading with this own rule (TelemetryHistory.freshnessMs, say) may be on the cadence the link is on (StatusCadence.readingFreshMs). */
+    public long readingFreshMs(long baseMs){return StatusCadence.readingFreshMs(baseMs,simulating()||visible||recording);}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
@@ -518,6 +534,8 @@ public final class BleController {
         if(pending==null||pending.sent)return false;
         CapabilityResolver.Runtime rt=runtime(pending.key);rt.busy=false;
         CapabilityResolver.Decision d=duringDiscovery(MutationGate.check(pending.request,descriptor(),status(),rt));
+        boolean stillHeld=pending.sendCondition==null||pending.sendCondition.holds();
+        if(d.available()&&!stillHeld)d=CapabilityResolver.withReason(d,CapabilityResolver.Reason.MOVING);
         boolean unchanged=pending.variant==null||d.variant!=null&&pending.variant.id.equals(d.variant.id);
         if(guided(pending))unchanged&=test!=null&&!test.terminal()&&test.awaitingWrite()
                 &&test.feature.equals(pending.key)&&profile()!=null&&test.profileId.equals(profile().id)
@@ -534,10 +552,12 @@ public final class BleController {
         if(d.available()&&unchanged)return true;
         if(guided(pending)&&test!=null&&!test.terminal())test.onWriteRefused(now());
         clearMutation();result(pending.key,RESULT_CANCELLED);
+        if(!stillHeld&&pending.conditionClosed!=null)pending.conditionClosed.run();
         if(!d.available())refused(pending.request,d);else{logMutation(pending,CommandLog.Outcome.CANCELLED,-1,null);notice(M.bleSettingChangedWaiting());}
         if(guided(pending))stepTest();
         return false;
     }
+    private void lookAtHeldChange(){if(mutation!=null&&!mutation.sent&&mutation.sendCondition!=null)mutation.sendCondition.holds();}
     private void incoming(byte[] bytes){
         if(simulating())return;
         if(!workAllowed())return;
@@ -566,7 +586,11 @@ public final class BleController {
                 if(statusRead(f)){confirmRecheck();confirmMutation(f);checkStatus(f);}
                 if(f.cmd==0x70&&test!=null&&!test.terminal()){boolean sane=statusRead(f);test.onStatus(sane?StatusFields.of(f,now()):StatusFields.NONE,now());stepTest();}
                 if(f.cmd==0x90&&f.error()==0&&f.data.length>=9){warning=f.data[1]&255;warningMs=now();}
+                // Before the new reading: a sample that went stale since the last report closed the gate too, and this report would refresh it.
+                if(f.cmd==0x91||f.cmd==0x92)lookAtHeldChange();
                 if((f.cmd==0x91||f.cmd==0x92)&&f.error()==0&&f.data.length>=(f.cmd==0x91?4:5)){driving=f.data[2]&255;speedRaw=(f.data[3]&255)*(f.cmd==0x91?10:1)+(f.cmd==0x92?(f.data[4]&255)<<8:0);motionMs=now();}
+                // Motion while a held change is still unsent closes it for good: stopping again before its frame goes out does not reopen it.
+                if(f.cmd==0x91||f.cmd==0x92)lookAtHeldChange();
                 if(f.cmd==0x7a&&profile.role==0){pinReadPending=false;try{pinState=ScooterCommands.parsePin(f,true);pinStateMs=now();logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.ACK,-1,null,null,-1);}
                     catch(Exception e){pinState=null;pinStateMs=0;logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.REJECTED,f.error()&255,null,null,-1);notice(M.blePinStateUnavailable());}
                     if(mutation!=null&&mutation.key.equals("pin")&&mutation.sent&&mutation.ack&&pinReadToken==mutation.token&&ScooterCommands.pinReadbackMatches(f,mutation.target==1,mutation.desiredPin,true)){
@@ -622,7 +646,7 @@ public final class BleController {
         if(readPolicy==null)readPolicy=identified?ReadPolicy.forLayer(layer):ReadPolicy.legacy();else readPolicy.layer(layer,identified);
         return readPolicy;
     }
-    private void poll(int session){if(simulating())return;handler.postDelayed(()->{if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long silentLimit=visible||recording?12000:35000;if((lastFrameMs>0&&now()-lastFrameMs>silentLimit)||(statusMs>0&&now()-statusMs>silentLimit)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();poll(session);},visible||recording?2000:15000);}
+    private void poll(int session){if(simulating())return;handler.postDelayed(()->{if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long silentLimit=StatusCadence.silenceMs(visible||recording);if((lastFrameMs>0&&now()-lastFrameMs>silentLimit)||(statusMs>0&&now()-statusMs>silentLimit)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();poll(session);},StatusCadence.pollMs(visible||recording));}
     /** Every write's admission: the resolver decision for this request, on this session's fresh state. */
     private CapabilityResolver.Decision check(MutationGate.Request r){return duringDiscovery(MutationGate.check(r,descriptor(),status(),runtime(r.feature)));}
     private boolean gate(MutationGate.Request r){CapabilityResolver.Decision d=check(r);if(d.available())return true;refused(r,d);return false;}
@@ -653,6 +677,14 @@ public final class BleController {
     public void setChargeSchedule(boolean enabled,Consumer<Boolean> completion){
         set("timed_charging",enabled?1:0,MutationGate.Origin.USER,true,completion);
     }
+    /**
+     * Holds the change set() just accepted to a condition until its frame actually goes out. Accepted while stopped, riding
+     * mode's unlock must not go out once moving, but a read still in flight can leave it queued: the check at the radio
+     * boundary lets a USER unlock through while moving, on purpose for Home's recovery. A change that went out, or any other
+     * mutation, is left alone. Every motion report looks at the condition, so once motion closes it a later stop can't reopen
+     * it before the frame goes out. closed runs if the condition is what cancels it, before the refusal's notice redraws anything.
+     */
+    public void holdUnsent(String key,java.util.function.BooleanSupplier condition,Runnable closed){if(mutation!=null&&!mutation.sent&&mutation.key.equals(key)){mutation.sendCondition=new LatchedCondition(condition);mutation.conditionClosed=closed;}}
     private boolean completed(Consumer<Boolean> completion,boolean success){if(completion!=null)handler.post(()->completion.accept(success));return success;}
     private boolean set(String key,int value,MutationGate.Origin origin,boolean force,Consumer<Boolean> completion){ScooterCommands.Feature f=ScooterCommands.find(key);
         if(discovering&&key.equals("lock")&&origin==MutationGate.Origin.USER)stopDiscovery();

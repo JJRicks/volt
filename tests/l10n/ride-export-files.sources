@@ -1,0 +1,8 @@
+# Ride details' Export ride data files (RideExportFiles, docs/user-guide.md). tests/run.sh compiles every path listed
+# in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# Every format's name, MIME type and bytes against the old Export CSV, Export JSON and Export phone data buttons,
+# for a scooter, a phone and a combined ride, also under a throwing text source; availability, the remembered
+# choice and staging. RideStore, PhoneRideStore and BackupRegistry are in tests/run.sh's own list.
+src/com/jjricks/volt/RideExportFiles.java
+src/com/jjricks/volt/RideAutoExport.java
+tests/l10n/RideExportFilesTest.java

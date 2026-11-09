@@ -159,10 +159,10 @@ public final class RideMapsTextTest {
             PhoneRideStore store = new PhoneRideStore(dir);
             List<PhoneRideStore.Track> built = new ArrayList<>();
             built.add(store.load("missing"));
-            store.start("one", 1700000000000L, 1000, "pocket");
+            store.start("one", 1700000000000L, 1000);
             store.appendBatch("one", gps(1000, 43.82, 3, 5, 1500.0), "");
             built.add(store.load("one"));
-            store.start("quality", 1700000000000L, 1000, "mounted");
+            store.start("quality", 1700000000000L, 1000);
             StringBuilder b = new StringBuilder();
             b.append(gps(1000, 43.82, 2, 0, 1500.0)).append(gps(2000, 43.82005, 2, 0, 1550.0))
                     .append(gps(3000, 43.8201, 90, 5, 1600.0)).append(gps(4000, 43.8202, 2, 5, 1600.0))
@@ -170,7 +170,7 @@ public final class RideMapsTextTest {
                     .append(gps(20000, 45.001, 2, 5, 1600.0));
             store.appendBatch("quality", b.toString(), "");
             built.add(store.load("quality"));
-            store.start("spike", 1700000000000L, 1000, "pocket");
+            store.start("spike", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i <= 30; i++) {
                 double altitude = i >= 5 && i <= 25 ? 1500 + 76.2 * (1 - Math.abs(i - 15) / 10.0) : 1500;
@@ -179,9 +179,11 @@ public final class RideMapsTextTest {
             store.appendBatch("spike", b.toString(), "");
             built.add(store.load("spike"));
             for (PhoneRideStore.Track track : built) {
-                eq(track.status, track.statusText().english(), "statusText English, " + track.id);
-                eq(track.status, track.statusText().render(), "statusText rendered, " + track.id);
-                eq(RideMapsEnglishTest.trackStatus(track.locationCount, track.rejectedLocationCount, track.rejectedElevationCount),
+                String shown = singular(track.status, track.locationCount, track.rejectedLocationCount, track.rejectedElevationCount);
+                eq(shown, track.statusText().english(), "statusText English, " + track.id);
+                eq(shown, track.statusText().render(), "statusText rendered, " + track.id);
+                eq(singular(RideMapsEnglishTest.trackStatus(track.locationCount, track.rejectedLocationCount, track.rejectedElevationCount),
+                        track.locationCount, track.rejectedLocationCount, track.rejectedElevationCount),
                         track.statusText(), "statusText against the base formula, " + track.id);
                 eq(statusText(track.locationCount, track.rejectedLocationCount, track.rejectedElevationCount).english(),
                         track.statusText().english(), "the suite's copy of statusText, " + track.id);
@@ -209,11 +211,19 @@ public final class RideMapsTextTest {
 
     // ----- English parity with the base copies -----
 
+    /** The base's track status with the English "one" forms the catalog now has (l10n/english-changes.tsv). */
+    private static String singular(String base, int fixes, int rejected, int outliers) {
+        String s = fixes == 1 ? base.replaceFirst("^1 GPS fixes", "1 GPS fix") : base;
+        if (rejected == 1) s = s.replace(" · 1 low-quality fixes excluded", " · 1 low-quality fix excluded");
+        if (outliers == 1) s = s.replace(" · 1 elevation outliers excluded", " · 1 elevation outlier excluded");
+        return s;
+    }
+
     private static void parity() {
         for (int fixes : new int[] {0, 1, 2, 31, 1200})
             for (int rejected : new int[] {0, 1, 3})
                 for (int outliers : new int[] {0, 1, 12})
-                    eq(RideMapsEnglishTest.trackStatus(fixes, rejected, outliers), statusText(fixes, rejected, outliers).render(),
+                    eq(singular(RideMapsEnglishTest.trackStatus(fixes, rejected, outliers), fixes, rejected, outliers), statusText(fixes, rejected, outliers).render(),
                             "track status " + fixes + "/" + rejected + "/" + outliers);
         Double[] watts = {null, 0.0, 999.0, 999.6, 1000.0, 1500.0, -1200.0, 12345.0};
         for (Double w : watts) eq(RideMapsEnglishTest.power(w), power(w), "power " + w);

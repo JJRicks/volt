@@ -19,11 +19,14 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 
 | Feature | What you get |
 | :--- | :--- |
-| 🔒 **Local controls** | Lock/unlock and supported riding, lighting and charging settings. |
+| 🔒 **Local controls** | Lock/unlock and supported riding, lighting and charging settings, in a Scooter tab you can arrange. |
 | 🧩 **Your dashboard** | Movable, resizable widgets, quick controls and saved layouts for folded and unfolded screens. |
 | 📊 **Live insights** | Searchable readings, charts, favourites and last-seen values. |
 | 🗺️ **Ride recordings** | Optional GPS routes, phone sensors, energy readings and complete ride backups. |
-| 🔋 **Battery insights** | Optional range learned from your rides, charging estimates and experimental usable ride energy. |
+| 🛴 **Riding mode** | A full-screen ride view with big speed, range at this pace and power, in three layouts you can edit, with night vision after sunset. |
+| 🔋 **Battery insights** | Optional range learned from your rides, charging estimates, a live charging card on the lock screen and experimental usable ride energy. |
+| 🔧 **Maintenance** | Distance and time reminders, with a quiet notification when a check is due. |
+| 🌐 **Languages** | English, plus Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French and Italian (all beta), with more in progress. |
 
 ## Install & connect
 

@@ -1,0 +1,3 @@
+# The promoted live card's dial (ChargeLiveState). tests/run.sh compiles every path listed in tests/l10n/*.sources and
+# runs each tests/l10n/**Test.java. ChargeLiveState comes from charge-live.sources.
+tests/l10n/ChargeLiveDialTest.java

@@ -22,10 +22,15 @@ public final class VoltApp extends Application {
     @Override public void onCreate() {
         super.onCreate();
         AppLanguage.migrate(this);
+        // Ride auto-save's retired Route CSV switch becomes the one switch before anything reads or backs it up.
+        RideAutoExportFolder.migrate(getSharedPreferences("app_settings", MODE_PRIVATE));
+        // The opt-in daily update check is not a persisted job; each process start puts it back (UpdateCheckJob).
+        UpdateCheckJob.sync(this);
     }
 
     @Override public void onConfigurationChanged(Configuration configuration) {
         super.onConfigurationChanged(configuration);
         AppLanguage.configurationChanged(this);
+        UpdateCheckJob.relabel(this);
     }
 }

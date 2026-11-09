@@ -284,6 +284,17 @@ public final class ChargingEstimate {
                 shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,shown.stockVoltageMatch,limit,full,shown.stockPackModel);
     }
 
+    /**
+     * Minutes to a charge alert's level, from alert (the same estimate run with that level as its target), never
+     * longer than the time to 100% shown beside it. Null when there is no alert time; an unknown time to 100%
+     * bounds nothing.
+     */
+    public static Double minutesToAlert(Result alert,Result shown) {
+        if(alert==null||alert.remainingMinutesToLimit==null)return null;
+        return shown==null||shown.remainingMinutesToFull==null?alert.remainingMinutesToLimit
+                :Double.valueOf(Math.min(alert.remainingMinutesToLimit,shown.remainingMinutesToFull));
+    }
+
     /** planned, or personal where both exist and personal is longer; an unavailable plan stays unavailable. */
     private static Double atLeast(Double planned,Double personal) {
         return planned==null||personal==null?planned:Double.valueOf(Math.max(planned,personal));

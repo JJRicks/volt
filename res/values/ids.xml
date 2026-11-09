@@ -3,4 +3,5 @@
     <!-- Custom accessibility actions need app-owned ids so they never collide with Android's. -->
     <item name="reorder_move_up" type="id" />
     <item name="reorder_move_down" type="id" />
+    <item name="menu_hide" type="id" />
 </resources>

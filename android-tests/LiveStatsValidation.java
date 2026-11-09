@@ -71,7 +71,7 @@ public final class LiveStatsValidation extends Instrumentation {
                     require(title.getCurrentTextColor() == activity.ui().text && title.getCompoundDrawablesRelative()[2] != null,
                             "Category heading lacks readable disclosure");
                 }
-                require(findText((View)field(stats(), "readingsSection"), "Favourites") == null, "Redundant favourites filter remains on Readings");
+                require(findText((View)field(stats(), "readingsSection"), "Favorites") == null, "Redundant favourites filter remains on Readings");
                 TextView count = (TextView)field(stats(), "resultCount");
                 require(count.getText().toString().matches("[0-9]+ readings"), "Reading count missing");
                 require(((View)count.getParent()).getHeight() >= activity.ui().dp(48), "Count row lost its spacing");

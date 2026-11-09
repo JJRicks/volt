@@ -34,19 +34,15 @@ public final class PhoneRideStore {
         return file(id, "-motion.csv");
     }
 
-    public synchronized void start(String id, long wall, long mono, String placement)
-            throws IOException {
+    /**
+     * START keeps its fourth column, empty now. Volt used to record the phone placement there
+     * ("mounted" or "pocket"); the choice is gone, so new journals leave it blank and keep the CSV
+     * shape, and load() still reads the old values.
+     */
+    public synchronized void start(String id, long wall, long mono) throws IOException {
         File f = rawCsv(id);
         if (f.exists()) repairTail(f);
-        if (!f.exists() || f.length() == 0)
-            append(
-                    f,
-                    HEADER
-                            + row(
-                                    "START",
-                                    wall,
-                                    mono,
-                                    placement.equals("mounted") ? "mounted" : "pocket"));
+        if (!f.exists() || f.length() == 0) append(f, HEADER + row("START", wall, mono, ""));
         else append(f, row("GAP", wall, mono));
         File motion = motionCsv(id);
         if (motion.exists()) repairTail(motion);
@@ -94,6 +90,13 @@ public final class PhoneRideStore {
                         new OutputStreamWriter(new FileOutputStream(f, true), "UTF-8"))) {
             out.write(text);
         }
+    }
+
+    /** START's fourth column as Track.placement: an old value, or null for an empty column. */
+    static String legacyPlacement(String[] start) {
+        if (start.length <= 3) return "pocket";
+        if (start[3].isEmpty()) return null;
+        return start[3].equals("mounted") ? "mounted" : "pocket";
     }
 
     public static String row(String event, long wall, long mono, Object... values) {
@@ -158,6 +161,11 @@ public final class PhoneRideStore {
     }
 
     public static final class Track {
+        /**
+         * placement is what an older Volt recorded in START: "mounted" or "pocket" (also "pocket"
+         * for a START row without the column). It is null for a journal that leaves the column
+         * empty, which every new recording does. No screen shows it; the JSON export keeps it.
+         */
         public final String id, placement, status;
         public final List<Point> points;
         private final List<Point> allPoints;
@@ -165,9 +173,9 @@ public final class PhoneRideStore {
         public List<Point> fullPoints() { return allPoints; }
         /**
          * The fix counts as display text, in the current language; in English it equals status.
-         * status stays the base English sentence only because RidesScreen still shows it (the fix
-         * counts' content description) until B15 switches that to statusText(); nothing else reads
-         * it, so it can then be removed with its literals.
+         * status is the base English sentence. No screen shows it now, and saved files do not hold it
+         * (the constructor works it out); it stays only because tests/l10n/RideMapsTextTest and the
+         * frozen RideMapsEnglishTest read it, so an ordinary tooling PR can remove all three together.
          */
         public Msg statusText() {
             if (locationCount == 0) return M.mapsTrackNoFixes();
@@ -277,9 +285,9 @@ public final class PhoneRideStore {
             StringBuilder b =
                     new StringBuilder("{\"schemaVersion\":1,\"id\":\"")
                             .append(id)
-                            .append("\",\"placement\":\"")
-                            .append(placement)
-                            .append("\",\"distanceMeters\":")
+                            .append("\",\"placement\":")
+                            .append(placement == null ? "null" : "\"" + placement + "\"")
+                            .append(",\"distanceMeters\":")
                             .append(distanceMeters)
                             .append(",\"ascentMeters\":")
                             .append(ascentMeters)
@@ -480,8 +488,7 @@ public final class PhoneRideStore {
                         String event = v[0];
                         if (event.equals("START")) {
                             start = mono;
-                            placement =
-                                    v.length > 3 && v[3].equals("mounted") ? "mounted" : "pocket";
+                            placement = legacyPlacement(v);
                         } else if (event.equals("GAP")) {
                             gap = true;
                             epoch++;

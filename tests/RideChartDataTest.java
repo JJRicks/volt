@@ -40,7 +40,7 @@ public final class RideChartDataTest {
         check(metric.get(0).max > metric.get(0).min, "Constant data still has valid scale");
         check(points.get(0).speedKmh == 20, "Display conversion does not mutate canonical readings");
         PhoneRideStore phoneStore = new PhoneRideStore(Files.createTempDirectory("ride-chart-phone").toFile());
-        phoneStore.start("delayed", 1000500, 1500, "pocket");
+        phoneStore.start("delayed", 1000500, 1500);
         phoneStore.appendBatch("delayed", PhoneRideStore.row("GPS", 1001000, 2000, 43.82, -111.78, 3, 5, .2, 1500, 4), "");
         PhoneRideStore.Track track = phoneStore.load("delayed");
         List<RideChartData.Series> together = RideChartData.build(points, track, false);
@@ -101,10 +101,10 @@ public final class RideChartDataTest {
         bootRow.put("speed_kmh",new RideStore.Sample(20d,2000));store.sample(601000,2000,bootRow);
         bootRow.put("speed_kmh",new RideStore.Sample(20d,1000));store.sample(700000,1000,bootRow);store.stop(701000,2000);
         List<RideStore.Point> bootPoints=store.fullTrend(bootId);
-        phoneStore.start("boot",700000,1000,"pocket");phoneStore.appendBatch("boot",PhoneRideStore.row("GPS",700500,1500,43.82,-111.78,2,5,.1,1500,2),"");
+        phoneStore.start("boot",700000,1000);phoneStore.appendBatch("boot",PhoneRideStore.row("GPS",700500,1500,43.82,-111.78,2,5,.1,1500,2),"");
         List<RideChartData.Value> bootPhone=RideChartData.build(bootPoints,phoneStore.loadSnapshot("boot"),false,true).get(2).values;
         check(bootPhone.size()==1&&bootPhone.get(0).time==bootPoints.get(2).elapsedMs+500,"Indexed alignment disambiguates repeated monotonic clocks by matching the correct boot's wall offset");
-        phoneStore.start("unmatched",900000,1000,"pocket");phoneStore.appendBatch("unmatched",PhoneRideStore.row("GPS",900500,1500,43.82,-111.78,2,5,.1,1500,2),"");
+        phoneStore.start("unmatched",900000,1000);phoneStore.appendBatch("unmatched",PhoneRideStore.row("GPS",900500,1500,43.82,-111.78,2,5,.1,1500,2),"");
         check(RideChartData.build(bootPoints,phoneStore.loadSnapshot("unmatched"),false,true).get(2).values.isEmpty(),"Unmatched phone clock epoch is excluded instead of assigned a fabricated elapsed timestamp");
         List<RideChartData.Value> slow = Arrays.asList(
                 new RideChartData.Value(0, 1d, 0), new RideChartData.Value(1000, 2d, 0),

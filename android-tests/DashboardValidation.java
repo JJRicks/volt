@@ -199,7 +199,7 @@ public final class DashboardValidation extends Instrumentation {
                 TextView footer = (TextView)field(tile, "footer");
                 require(footer.getVisibility() == View.VISIBLE
                                 ? String.valueOf(footer.getContentDescription()).startsWith("Last seen")
-                                : ((TextView)field(dashboard(), "status")).getText().toString().contains("last seen"),
+                                : headerShowsSeen(),
                         "Cached widget lacks its stale-reading age");
             });
             int columns = ((Number)field(grid(), "columns")).intValue();
@@ -757,11 +757,13 @@ public final class DashboardValidation extends Instrumentation {
             require(readings.contains("98"), "Reading tiles did not render the cached health value: " + readings);
 
             String settings = bodyText(tile("shortcuts")).toLowerCase(Locale.ROOT);
-            require(settings.contains("top speed") && settings.contains("charge schedule"),
-                    "Setting tiles lack their default Top speed and Charge schedule tiles: " + settings);
+            require(settings.contains("max. speed") && settings.contains("charge sched."),
+                    "Setting tiles lack their default Max. speed and Charge sched. tiles: " + settings);
             View schedule = ((View)tile("shortcuts")).findViewWithTag("setting-tile:feature:timed_charging");
             require(schedule != null && "setting-action:power".equals(((View)field(schedule, "icon")).getTag()),
                     "Charge schedule toggles directly but lacks its power-button cue");
+            require(String.valueOf(schedule.getContentDescription()).startsWith("Charge schedule"),
+                    "Charge schedule tile is not announced by its full name: " + schedule.getContentDescription());
             View powerCue = (View)field(schedule, "icon");
             require(!powerCue.isEnabled() && powerCue.getAlpha() < 1f
                             && ((Integer)field(powerCue, "color")) == activity.ui().muted,
@@ -1502,17 +1504,17 @@ public final class DashboardValidation extends Instrumentation {
                 context + ": value extends outside the card's scrollable content width: " + text);
     }
     /**
-     * Single lines that ellipsize by design rather than wrap or overflow: the Lock bar's
-     * "Last verified" detail, the Lock bar's title once Connect has already become an icon,
-     * and Setting tile labels and values once their value reached its 12 sp floor.
+     * Lines that ellipsize by design rather than wrap or overflow: the Lock bar's one-line
+     * "Last verified" detail, the Lock bar's title (after two lines) once Connect has already become
+     * an icon, and Setting tile labels and values once their value reached its 12 sp floor.
      */
     private boolean ellipsizedByDesign(TextView text) {
-        if (text.getEllipsize() == null || text.getMaxLines() != 1) return false;
+        if (text.getEllipsize() == null || text.getMaxLines() > 2) return false;
         for (View view = text; view != null; view = view.getParent() instanceof View ? (View)view.getParent() : null)
-            if (view.getTag() instanceof String && ((String)view.getTag()).startsWith("setting-tile:")) return true;
+            if (view.getTag() instanceof String && ((String)view.getTag()).startsWith("setting-tile:")) return text.getMaxLines() == 1;
         for (Object lock : (List<?>)field(activity, "dashboardLocks")) {
             if (!Boolean.TRUE.equals(field(lock, "compact"))) continue;
-            if (text == field(lock, "offlineDetail")) return true;
+            if (text == field(lock, "offlineDetail")) return text.getMaxLines() == 1;
             if (text == field(lock, "offlineTitle") && iconOnlyAction((TextView)field(lock, "connectionAction"))) return true;
         }
         return false;
@@ -2148,6 +2150,23 @@ public final class DashboardValidation extends Instrumentation {
     private AlertDialog dialog() { AlertDialog dialog = (AlertDialog)field(dashboard(), "dialog"); require(dialog != null && dialog.isShowing(), "Dashboard dialog is missing"); return dialog; }
     private View dialogRoot() { return dialog().getWindow().getDecorView(); }
     private DashboardScreen dashboard() { return (DashboardScreen)field(activity, "screen"); }
+    /**
+     * The header shows the last seen age: its full rung ("Disconnected · last seen 10:06 AM") or, where that doesn't fit,
+     * the narrow-label ladder's short rung without the words last seen ("Disconnected · 10:06 AM", #211). Either must
+     * carry the header's own last seen time: "Disconnected · last seen" with no time, or a bare "Disconnected", fails.
+     * The same check as ResponsiveDashboardValidation's.
+     */
+    private boolean headerShowsSeen() {
+        String shown = ((TextView)field(dashboard(), "status")).getText().toString();
+        long seen = ((Number)field(dashboard(), "headerSeenMs")).longValue();
+        if (seen <= 0) return false;
+        String time = DisplayTime.recent(activity, (SharedPreferences)field(dashboard(), "preferences"), seen, System.currentTimeMillis());
+        require(!showsSeenTime("Disconnected · last seen", time) && !showsSeenTime("Disconnected", time)
+                        && showsSeenTime("Disconnected · last seen " + time, time) && showsSeenTime("Disconnected · " + time, time),
+                "Header last seen check accepts a header without its time");
+        return showsSeenTime(shown, time);
+    }
+    private static boolean showsSeenTime(String shown, String time) { return !time.isEmpty() && shown.contains(time); }
     private DashboardConfig config() { return (DashboardConfig)field(dashboard(), "config"); }
     private ViewGroup grid() { return (ViewGroup)field(dashboard(), "grid"); }
     private List<?> tiles() { return (List<?>)field(dashboard(), "tiles"); }

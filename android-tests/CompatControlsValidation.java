@@ -133,6 +133,8 @@ public final class CompatControlsValidation extends Instrumentation {
             require(visible == 6, "2585 line colour shows " + visible + " swatches");
         });
         // Experimental controls keep OEM-mapped controls out: 2585 offers every control Volt could try except the custom speed cap.
+        // Since registry version 19 its kick-start (3-5 km/h in Scooter settings, no serial region here) is also tried lower,
+        // Standing start to 3 km/h, first by TRY_PRIORITY. Nothing that can raise speed is ever an experiment.
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Lab")); settle();
         main(() -> {
@@ -144,14 +146,18 @@ public final class CompatControlsValidation extends Instrumentation {
                 String key = ((ScooterCommands.Feature)field(row, "feature")).key;
                 if (activity.service().ble.experimentalDecision(key).experimental()) experiments.add(key);
             }
-            require(experiments.equals(java.util.Arrays.asList("speed_limit")), "2585 lists only the custom speed cap as an experiment: " + experiments);
-            require(((List<?>)field(more(), "labRows")).size() == 6 && "Untested controls".contentEquals(((TextView)field(more(), "labTitle")).getText()),
-                    "2585 rows: the speed cap and five Help verify rows, titled " + ((TextView)field(more(), "labTitle")).getText());
+            require(experiments.equals(java.util.Arrays.asList("start_speed", "speed_limit")), "2585 lists the kick-start try and the custom speed cap as experiments: " + experiments);
+            for (String key : new String[]{"maximum_speed", "drive_speed_limit", "overspeed_control"})
+                require(!activity.service().ble.experimentalDecision(key).experimental() && !experiments.contains(key), "2585 lists " + key + " as an experiment");
+            require(Arrays.equals(activity.service().ble.experimentalDecision("start_speed").values(), new int[]{0, 1, 2, 3}), "2585 kick-start try offers "
+                    + Arrays.toString(activity.service().ble.experimentalDecision("start_speed").values()));
+            require(((List<?>)field(more(), "labRows")).size() == 7 && "Controls to try".contentEquals(((TextView)field(more(), "labTitle")).getText()),
+                    "2585 rows: the kick-start try, the speed cap and five Help verify rows, got " + ((List<?>)field(more(), "labRows")).size() + ", titled " + ((TextView)field(more(), "labTitle")).getText());
         });
         screenshot("q-lab");
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "")); settle();
         home("q-noregion");
-        checks.add("25851 without region: no Top speed (Not offered for this region), Untested here rows, TCS/single-motor confirm sheets (Cancel keeps, Continue sends to the simulator), 3-5 km/h kick-start, six-colour zones, only Help verify in Experimental controls");
+        checks.add("25851 without region: no Top speed (Not offered for this region), Untested here rows, TCS/single-motor confirm sheets (Cancel keeps, Continue sends to the simulator), 3-5 km/h kick-start, six-colour zones, Experimental controls tries kick-start 0-3 km/h and the speed cap (never Top speed, drive speed limit or overspeed control), the rest Help verify");
     }
 
     /** 2585: US offers its model-specific tables with high-speed and low-start cautions; DE follows the official app (no Top speed, 3-5 km/h kick-start). */

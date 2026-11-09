@@ -77,6 +77,9 @@ class Paths(object):
     def decisions(self, tag, area):
         return os.path.join(self.root, "l10n", "decisions", tag, area + ".jsonl")
 
+    def owner_decisions(self, tag):
+        return os.path.join(self.root, "l10n", "owner-decisions", tag + ".jsonl")
+
     def font(self):
         return self.res("font", "saira_medium.ttf")
 
@@ -176,11 +179,12 @@ def dnt_of(meta):
 
 
 def parse_max(value):
-    """(dp, sp) from a volt:max such as 96dp@14sp, or None."""
+    """(dp, sp, lines) from a volt:max such as 96dp@14sp (one line) or 64dp@12sp*2 (up to two lines of
+    whole words, each within 64dp), or None."""
     if not value:
         return None
-    m = re.match(r"^(\d+(?:\.\d+)?)dp@(\d+(?:\.\d+)?)sp$", value)
-    return (float(m.group(1)), float(m.group(2))) if m else None
+    m = re.match(r"^(\d+(?:\.\d+)?)dp@(\d+(?:\.\d+)?)sp(?:\*([2-9]))?$", value)
+    return (float(m.group(1)), float(m.group(2)), int(m.group(3) or 1)) if m else None
 
 
 def ladder_base(key, meta):
@@ -232,7 +236,7 @@ CLAUDE_ONLY_SOURCE = "claude-only"  # how a glossary row's source starts until t
 def _read_glossary(path):
     try:
         _, rows = l10nlib.read_tsv(l10nlib.read_text(path), GLOSSARY_HEADER)
-    except ValueError as error:
+    except ValueError as error:  # a bad header or row, or text that is not UTF-8
         raise L10nError("%s: %s (council.py glossary-check lists every problem)" % (path, error))
     return [fields for _, fields in rows]
 
@@ -472,12 +476,27 @@ def value_out_of_context(term, terms, text):
     return not term_pattern(parent.term).search(text)
 
 
+# Glossary terms whose words mean something else in some texts: "Stop to change" is stopping the
+# scooter on a row that can't change while riding, but in "Recording label · stop to change" the
+# recording is what stops. There the term is not used, and the Stop term (silence an alarm, end a
+# recording) applies to the text instead.
+OTHER_SENSE = {"stop to change": re.compile(r"(?<![^\W_])recordings?(?![^\W_])", re.IGNORECASE | re.UNICODE)}
+
+
+def used_in_another_sense(term, text):
+    """Whether a text that matches a glossary term uses its words in another sense (OTHER_SENSE)."""
+    rule = OTHER_SENSE.get(term.lower())
+    return bool(rule and rule.search(text))
+
+
 def glossary_hits(terms, text):
     """The terms a text uses: whole-word matches (lock verbs also in their -s and -ing forms, see
-    inflects), without a term found only inside a longer one (nested_in_longer) or a setting value
-    used in another sense (value_out_of_context)."""
+    inflects), without a term used in another sense (used_in_another_sense), a term found only
+    inside a longer one (nested_in_longer) or a setting value used in another sense
+    (value_out_of_context)."""
     terms = list(terms)
-    found = [t for t in terms if term_pattern(t.term, inflects(t)).search(text)]
+    found = [t for t in terms if term_pattern(t.term, inflects(t)).search(text) and
+             not used_in_another_sense(t.term, text)]
     names = [t.term for t in found]
     hits = [t for t in found if not nested_in_longer(t.term, names, text) and
             not value_out_of_context(t, terms, text)]
@@ -541,8 +560,27 @@ def xml_attr(value):
 # ---------------------------------------------------------------------------
 
 # src: the source hash (source_sha1) of the English the entry translated, from volt:src; None if absent.
-DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems src")
+# model_reported: the model the provider reported for this entry's call (volt:model-reported on the
+# element), when it differs from the draft's; None means the draft's model_reported.
+DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems src model_reported",
+                                    defaults=(None,))
 Draft = collections.namedtuple("Draft", "name provider model model_reported prompt entries path")
+
+
+def entry_reported(draft, key):
+    """The model the provider reported for the call that drafted draft.entries[key]."""
+    return draft.entries[key].model_reported or draft.model_reported
+
+
+def entry_reported_map(draft):
+    """{key: reported model} of every entry of draft (None: {}), for write_draft's entry_reported."""
+    return dict((k, entry_reported(draft, k)) for k in draft.entries) if draft is not None else {}
+
+
+def drafter_models(draft):
+    """Every model id the draft names: the model asked, the reported one, and each entry's own."""
+    return set([draft.model, draft.model_reported]) | set(
+        e.model_reported for e in draft.entries.values() if e.model_reported)
 
 
 def draft_provider(name):
@@ -552,8 +590,12 @@ def draft_provider(name):
     raise L10nError("draft %r must be named claude-<config>, openai[-<x>] or google[-<x>]" % name)
 
 
-def write_draft(path, name, model, entries, model_reported=None, prompt=None):
+def write_draft(path, name, model, entries, model_reported=None, prompt=None, entry_reported=None):
     """entries: [(key, kind, {quantity: text}, attempt, src)] in pack order.
+
+    entry_reported {key: model} names the model the provider reported for each entry's call; an entry
+    whose model differs from the draft's reported one (model_reported, else model) records it as
+    volt:model-reported, so a later top-up or redraft by a newer version never hides who drafted it.
 
     src is the source hash of the English the entry translated (volt:src); a draft entry without
     one, or with another than the current English's, is stale and never decides anything.
@@ -570,9 +612,12 @@ def write_draft(path, name, model, entries, model_reported=None, prompt=None):
     lines = ['<?xml version="1.0" encoding="utf-8"?>',
              "<!-- Draft %s: written by tools/l10n/council.py; staging only, never compiled. -->" % name,
              "<resources %s>" % " ".join(attrs)]
+    file_reported = model_reported or model
     for key, kind, items, attempt, src in entries:
         extra = ' volt:src="%s"' % xml_attr(src) if src else ""
         extra += ' volt:attempt="%d"' % attempt if attempt and attempt > 1 else ""
+        own = (entry_reported or {}).get(key)
+        extra += ' volt:model-reported="%s"' % xml_attr(own) if own and own != file_reported else ""
         if kind == "string":
             lines.append('    <string name="%s"%s>%s</string>' % (key, extra, xml_text(encode_resource_text(items["other"]))))
         else:
@@ -611,13 +656,15 @@ def read_draft(path):
         problems = []
         if kind not in ("string", "plurals"):
             raise L10nError("%s:%d: <%s> is not allowed in a draft" % (path, node.line, kind))
-        attempt, src = 1, None
+        attempt, src, own = 1, None, None
         for attr, value in node.attrs.items():
             local = gen_catalog._local(attr)
             if local == "attempt" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
                 attempt = int(value) if value.isdigit() else 1
             elif local == "src" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
                 src = value.strip() or None
+            elif local == "model-reported" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
+                own = value.strip() or None
             elif local != "name":
                 problems.append("attribute %s is not allowed in a draft" % local)
         items, raw = collections.OrderedDict(), collections.OrderedDict()
@@ -641,8 +688,12 @@ def read_draft(path):
         if key in entries:
             raise L10nError("%s:%d: %s appears twice" % (path, node.line, key))
         entries[key] = DraftEntry(key, "plural" if kind == "plurals" else "string", items, raw, attempt, problems,
-                                  src)
-    return Draft(name, provider, model, attrs.get("model-reported") or model, attrs.get("prompt"), entries, path)
+                                  src, own)
+    reported = attrs.get("model-reported") or model
+    for key, entry in entries.items():
+        if entry.model_reported == reported:
+            entries[key] = entry._replace(model_reported=None)
+    return Draft(name, provider, model, reported, attrs.get("prompt"), entries, path)
 
 
 def list_drafts(paths, tag, area):
@@ -701,6 +752,126 @@ def items_of(kind, value):
     if any(q not in QUANTITIES or not isinstance(t, str) for q, t in value.items()):
         return None
     return collections.OrderedDict((q, value[q]) for q in QUANTITIES if q in value)
+
+
+OWNER_DECIDED = "owner-decided"  # the owner chose the text (l10n/owner-decisions/<tag>.jsonl); no model did
+TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged", OWNER_DECIDED)
+OWNER_DECISION_FORMAT = "volt-l10n-owner-decision-v1"
+OWNER_DECISION_FIELDS = ("format", "area", "key", "source_sha1", "english", "text", "decided", "reason")
+
+
+def why_english(source, decision, categories):
+    """Why merge.py leaves this key to English (a short reason), or None when it writes the decision.
+
+    The one definition of a translated key: merge.py's render_file writes by it and the beta bar counts by it.
+    categories are the language's plural categories.
+    """
+    if decision is None:
+        return "no decision"
+    if decision.get("outcome") not in TRANSLATED:
+        return "falls back to English"
+    if decision.get("source_sha1") != source_sha1(source.kind, source.items):
+        return "the English changed since the decision"
+    items = items_of(source.kind, decision.get("text"))
+    if items is None:
+        return "the decision's text has the wrong shape"
+    needed = categories if source.kind == "plural" else ["other"]
+    missing = [q for q in needed if q not in items]
+    if missing:
+        return "missing plural forms %s" % ", ".join(missing)
+    blank = [q for q in needed if not items[q].strip() and source.items.get(q, source.items["other"]).strip()]
+    if blank:
+        return "the decision's text is blank"
+    return None
+
+
+def decided_areas(paths, tag):
+    """The areas with a decisions file for this language, sorted."""
+    directory = os.path.dirname(paths.decisions(tag, "x"))
+    return sorted(f[:-6] for f in os.listdir(directory) if f.endswith(".jsonl")) if os.path.isdir(directory) else []
+
+
+def load_owner_decisions(paths, tag):
+    """{key: row} of l10n/owner-decisions/<tag>.jsonl, the owner's texts that council.py decide must keep.
+
+    {} when the language has none. A malformed file stops the caller (L10nError): an owner decision is
+    never silently dropped."""
+    path = paths.owner_decisions(tag)
+    pins = collections.OrderedDict()
+    for row in read_jsonl(path):
+        where = "%s: %s" % (paths.rel(path), row.get("key"))
+        if row.get("format") != OWNER_DECISION_FORMAT:
+            raise L10nError("%s: format must be %s" % (where, OWNER_DECISION_FORMAT))
+        if sorted(row) != sorted(OWNER_DECISION_FIELDS):
+            raise L10nError("%s: the fields must be exactly %s" % (where, ", ".join(OWNER_DECISION_FIELDS)))
+        if not all(isinstance(row[f], str) and row[f] for f in OWNER_DECISION_FIELDS if f != "text"):
+            raise L10nError("%s: every field must be filled in" % where)
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", row["decided"]):
+            raise L10nError("%s: decided must be a date, YYYY-MM-DD" % where)
+        if row["key"] in pins:
+            raise L10nError("%s: listed twice" % where)
+        pins[row["key"]] = row
+    return pins
+
+
+def owner_pin_problems(paths, tag, sources, area=None):
+    """Why an owner decision of this language (of one area, if given) cannot be kept, one line each.
+
+    The owner chose a text for one English sentence, so a changed English stops here until the owner
+    has chosen again; lock and alarm keys keep the council's safety path, which ship_check requires."""
+    categories = plural_categories(load_language(paths, tag))
+    problems = []
+    for key, pin in load_owner_decisions(paths, tag).items():
+        if area is not None and pin["area"] != area:
+            continue
+        where = "%s: %s" % (paths.rel(paths.owner_decisions(tag)), key)
+        rows = [s for s in sources.get(pin["area"], []) if s.translatable]
+        source = next((s for s in rows if s.key == key), None)
+        if source is None:
+            problems.append("%s: no such translatable key in area %s" % (where, pin["area"]))
+            continue
+        why = why_english(source, dict(pin, outcome=OWNER_DECIDED), categories)
+        if why == "the English changed since the decision":
+            problems.append("%s: the English changed since the owner decided (now %r): ask the owner, then update this "
+                            "line, or remove it only if they withdraw the decision" % (where, source.items["other"]))
+        elif why:
+            problems.append("%s: %s" % (where, why))
+        hit = [x for x in effective_safety(rows).get(key, []) if x in SAFETY_BLOCKING]
+        if hit:
+            problems.append("%s: a %s key must keep the council's safety path" % (where, ", ".join(hit)))
+    return problems
+
+
+def owner_decision_problems(paths, tag, sources):
+    """owner_pin_problems, plus every decision row out of step with the owner's lines, in both directions.
+
+    A line needs its owner-decided row, with the owner's text, from the English the line was decided on; an
+    owner-decided row needs its line. merge.py checks this before it writes anything, and ship_check through
+    drift_problems. Empty for a language with neither owner lines nor owner-decided rows."""
+    problems = owner_pin_problems(paths, tag, sources)
+    pins = load_owner_decisions(paths, tag)
+    pin_file = paths.rel(paths.owner_decisions(tag))
+    rows = {}
+    for area in decided_areas(paths, tag):
+        for row in read_jsonl(paths.decisions(tag, area)):
+            rows[(area, row.get("key"))] = row
+    decide = "run council.py decide --tag %s --area %%s, then merge.py" % tag
+    for key, pin in pins.items():
+        row = rows.get((pin["area"], key))
+        if row is None or row.get("outcome") != OWNER_DECIDED or row.get("text") != pin["text"]:
+            problems.append("%s: %s has %s, not the owner's text: %s" % (
+                pin_file, key, "no decision" if row is None else "outcome %s, text %r" % (
+                    row.get("outcome"), row.get("text")), decide % pin["area"]))
+        elif row.get("source_sha1") != pin["source_sha1"]:
+            problems.append("%s: %s was decided from an older English than the owner's line, so merge.py would leave "
+                            "it out: %s" % (pin_file, key, decide % pin["area"]))
+    for (area, key), row in rows.items():
+        pin = pins.get(key)
+        if row.get("outcome") == OWNER_DECIDED and (pin is None or pin["area"] != area):
+            problems.append("%s: %s is owner-decided but %s has no line for it in area %s: restore the owner's line. "
+                            "Never remove one to get past this; if the owner has withdrawn the decision, %s" % (
+                                paths.rel(paths.decisions(tag, area)), key, pin_file, area, decide % area))
+    return problems
 
 
 QUOTES = {"“": '"', "”": '"', "„": '"', "«": '"', "»": '"', "‹": "'",

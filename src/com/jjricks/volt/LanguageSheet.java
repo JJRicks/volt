@@ -18,8 +18,10 @@ import java.util.Locale;
  * More › App preferences › Language (plan section 5): the row's value and the picker sheet.
  *
  * The row is offered only once a language other than English ships (beta or stable in
- * l10n/lang/*.tsv), or with the pseudo APK while Developer options are on, where the sheet also lists
- * en-XA and ar-XB for layout checks. Until then English builds show no row at all.
+ * l10n/lang/*.tsv), or with the pseudo APK, where the sheet also lists
+ * en-XA and ar-XB for layout checks. Until then English builds show no row at all. Below the choices,
+ * an In progress section lists the draft languages, which cannot be chosen (LanguagePicker). At the
+ * bottom, Report a translation error and Request a language open English email drafts (IssueReport).
  *
  * Choosing goes through AppLanguage.choose. On API 33 and later the platform's per-app language is the
  * source of truth: the framework recreates the activities, and the row mirrors getApplicationLocales()
@@ -33,11 +35,11 @@ final class LanguageSheet {
 
     private LanguageSheet() {}
 
-    /** Whether the Language row shows: a non-English language ships, or the pseudo APK in Developer options. */
-    static boolean offered(Context context, boolean developer) {
+    /** Whether the Language row shows: a non-English language ships, or the pseudo APK. */
+    static boolean offered(Context context) {
         for (int i = 0; i < AppLanguages.size(); i++)
             if (AppLanguages.shipped(i) && !AppLanguages.ENGLISH.equals(AppLanguages.tag(i))) return true;
-        return developer && pseudoBuild(context);
+        return pseudoBuild(context);
     }
 
     /** The row's value: "System default (Deutsch)", "English", "Español · Beta" or a pseudo locale's tag. */
@@ -53,7 +55,7 @@ final class LanguageSheet {
      * The picker. changed runs after a choice on API 33 and later, where the framework recreates the
      * activity only when the locale it resolves to changes, so the row's value can catch up.
      */
-    static void show(ScreenHost host, boolean developer, Runnable changed) {
+    static void show(ScreenHost host, Runnable changed) {
         Activity activity = host.activity();
         if (activity == null) return;
         Ui ui = host.ui();
@@ -61,11 +63,10 @@ final class LanguageSheet {
         List<String> tags = new ArrayList<>(), labels = new ArrayList<>();
         List<Boolean> betas = new ArrayList<>();
         tags.add(""); labels.add(T.moreLanguageSystem(systemName(activity))); betas.add(false);
-        for (int i = 0; i < AppLanguages.size(); i++) {
-            if (!AppLanguages.shipped(i)) continue;
+        for (int i : LanguagePicker.choices(AppLanguages.STATUSES)) {
             tags.add(AppLanguages.tag(i)); labels.add(AppLanguages.endonym(i)); betas.add(beta(i));
         }
-        if (developer && pseudoBuild(activity)) {
+        if (pseudoBuild(activity)) {
             for (Locale locale : pseudoLocales()) {
                 tags.add(locale.toLanguageTag()); labels.add(locale.toLanguageTag()); betas.add(false);
             }
@@ -105,6 +106,7 @@ final class LanguageSheet {
             options.addView(option, new LinearLayout.LayoutParams(-1, -2));
         }
         body.addView(options, new LinearLayout.LayoutParams(-1, -2));
+        inProgress(ui, body);
         TextView note = ui.caption(T.moreLanguageNote());
         note.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
         body.addView(note);
@@ -113,7 +115,73 @@ final class LanguageSheet {
             android.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), 0);
             body.addView(android);
         }
+        TextView report = ui.secondaryButton(T.moreLanguageReportError(), () -> email(host, self[0], true));
+        report.setTag("language_report_error");
+        LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(-1, -2);
+        first.topMargin = ui.dp(16); first.bottomMargin = ui.dp(6);
+        body.addView(report, first);
+        TextView request = ui.secondaryButton(T.moreLanguageRequest(), () -> email(host, self[0], false));
+        request.setTag("language_request");
+        body.addView(request);
         self[0] = host.showSheet(body);
+    }
+
+    /**
+     * Report a translation error (translation) or Request a language: an English draft to Volt's report
+     * address (IssueReport), straight to the email app with nothing attached. The sheet closes once the
+     * email app opens; with no email app it stays, under the report emails' toast.
+     */
+    private static void email(ScreenHost host, AlertDialog sheet, boolean translation) {
+        Activity activity = host.activity();
+        if (activity == null) return;
+        String version = AppVersion.name(activity);
+        String subject, text;
+        if (translation) {
+            String chosen = choice(activity);
+            String shown = chosen.isEmpty() ? T.language() : chosen;
+            int i = AppLanguages.indexOf(shown);
+            subject = IssueReport.translationSubject(shown);
+            text = IssueReport.translationBody(version, Build.VERSION.RELEASE, Build.VERSION.SDK_INT, shown, i >= 0 && beta(i), chosen.isEmpty());
+        } else {
+            LocaleList system = AppLanguage.systemLocales(activity);
+            Locale phone = system == null || system.isEmpty() ? Locale.getDefault() : system.get(0);
+            subject = IssueReport.languageRequestSubject();
+            text = IssueReport.languageRequestBody(version, phone.toLanguageTag());
+        }
+        if (!host.emailDraft(subject, text)) { host.toast(T.moreReportNoEmail()); return; }
+        if (sheet != null) sheet.dismiss();
+    }
+
+    /**
+     * The In progress section: each draft language in its own words, in the muted secondary-text colour,
+     * neither clickable nor focusable, and read as "Deutsch, in progress" rather than as a button. Absent
+     * when no language is in draft.
+     */
+    private static void inProgress(Ui ui, LinearLayout body) {
+        int[] drafts = LanguagePicker.inProgress(AppLanguages.STATUSES);
+        if (drafts.length == 0) return;
+        TextView heading = ui.sectionLabel(T.moreLanguageInProgress());
+        heading.setTag("language_in_progress_heading");
+        body.addView(heading);
+        LinearLayout pending = ui.groupCard();
+        pending.setTag("language_in_progress");
+        for (int k = 0; k < drafts.length; k++) {
+            String endonym = AppLanguages.endonym(drafts[k]);
+            LinearLayout row = new LinearLayout(ui.context);
+            row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setMinimumHeight(ui.dp(52)); row.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+            row.setTag("language_in_progress_option");
+            TextView name = ui.text(endonym, 15, false);
+            name.setTextColor(ui.muted);
+            name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setClickable(false); row.setFocusable(false);
+            row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            row.setContentDescription(T.moreLanguageInProgressDescription(endonym));
+            if (k > 0) ui.divider(pending);
+            pending.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        }
+        body.addView(pending, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private static void apply(ScreenHost host, String tag, Runnable changed) {

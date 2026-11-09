@@ -67,7 +67,8 @@ try:
     clear(); instrument('owner-another-profile', 'FullBackupJourneyValidation', '-e', 'mode', 'owner-another')
     clear(); instrument('adapter', 'AppDataBackupValidation')
     clear(); instrument('dashboard-transfer', 'DashboardTransferValidation')
-    for case in ('344x882:dark:1', '725x604:light:1.4'):
+    # 725x604 at 1x keeps the wide layout (rail, two columns); at 1.4x it is the phone layout (WideLayout: width over text scale).
+    for case in ('344x882:dark:1', '725x604:light:1', '725x604:light:1.4'):
         width, height = map(int, case.split(':')[0].split('x')); theme, font = case.split(':')[1:]
         run('shell', 'wm', 'density', '480'); run('shell', 'wm', 'size', f'{width * 3}x{height * 3}')
         run('shell', 'settings', 'put', 'system', 'font_scale', font)

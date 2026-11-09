@@ -90,6 +90,16 @@ public final class Ui {
     public Typeface semibold() { return SEMIBOLD; }
     public Typeface bold() { return BOLD; }
     public int dp(float value) { return Math.round(value * density); }
+
+    /**
+     * Whether this window gets Volt's wide layout: its width over the text scale (Text size times the
+     * system font scale) reaches 650 dp. Every wide-or-phone choice asks this, so the side rail, More's
+     * two columns, Rides, Stats, the dashboard and onboarding always agree. See {@link WideLayout}.
+     */
+    public boolean wideLayout() {
+        android.content.res.Configuration configuration = context.getResources().getConfiguration();
+        return WideLayout.wide(configuration.screenWidthDp, textScale * configuration.fontScale);
+    }
     public float sp(float value) { return value * context.getResources().getDisplayMetrics().scaledDensity * textScale; }
     /** Shared motion policy, including Android's accessibility/remove-animation setting. */
     public static boolean motionEnabled() { return android.animation.ValueAnimator.areAnimatorsEnabled(); }
@@ -125,7 +135,13 @@ public final class Ui {
         states.addState(new int[0], up); view.setStateListAnimator(states);
         states.jumpToCurrentState();
     }
-    /** Keep compact status timestamps on one line, shrinking only when their width requires it. */
+    /** The readable text floor in sp (times the app's text scale): compact labels never auto-size below it. */
+    public static final float READABLE_FLOOR_SP = 12;
+    /**
+     * Keep compact status lines on one line at a readable size. Auto-size may shrink a line only to the readable
+     * floor; a line wider than that falls to the next rung its caller gave {@link #statusRungs}, then to its start
+     * icon alone when it has one. Only the last rung of a line without an icon is ever ellipsized.
+     */
     public void fitStatusLine(TextView view) {
         int maximum = Math.round(view.getTextSize());
         // Keep the original line's height as auto-size settles, including across Edit rebuilds.
@@ -134,8 +150,32 @@ public final class Ui {
         view.setGravity((view.getGravity() & ~Gravity.VERTICAL_GRAVITY_MASK) | Gravity.CENTER_VERTICAL);
         view.setMaxLines(1);
         view.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        view.setAutoSizeTextTypeUniformWithConfiguration(
-                Math.min(maximum, Math.round(sp(7) / textScale)), maximum, 1, TypedValue.COMPLEX_UNIT_PX);
+        int floor = Math.round(sp(READABLE_FLOOR_SP));
+        // A line already at the floor keeps its size (auto-size needs a range).
+        if (floor < maximum) view.setAutoSizeTextTypeUniformWithConfiguration(
+                floor, maximum, 1, TypedValue.COMPLEX_UNIT_PX);
+        ladder(view, false);
+    }
+    /**
+     * Shows a status line's narrow-label ladder: rungs[0] is the full line, each next one shorter. The line shows
+     * the first rung that fits at the readable floor and picks again whenever its width changes. A view
+     * {@link #fitStatusLine} prepared also refits text set on it directly, as a ladder of that text alone.
+     */
+    public void statusRungs(TextView view, CharSequence... rungs) {
+        StatusRungs ladder = ladders.get(view);
+        if (ladder == null) ladder = ladder(view, false);
+        ladder.show(rungs);
+    }
+    /** Each line's ladder; the view holds it as its layout listener, the cache holds neither strongly. */
+    private final LadderCache<TextView, StatusRungs> ladders = new LadderCache<>();
+    private StatusRungs ladder(TextView view, boolean iconBeside) {
+        StatusRungs ladder = ladders.of(view, line -> {
+            StatusRungs made = new StatusRungs(line);
+            line.addOnLayoutChangeListener(made);
+            return made;
+        });
+        ladder.iconBeside = iconBeside;
+        return ladder;
     }
     public TextView text(String value, float sp, boolean bold) {
         TextView view = new TextView(context);
@@ -509,7 +549,8 @@ public final class Ui {
         View line = new View(context); line.setBackgroundColor(raised);
         parent.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
     }
-    public View nav(String label, String iconKey, boolean selected, Runnable action) {
+    /** A rail tab: its icon over one line of caption, the full name, else shortLabel, else the icon alone. */
+    public View nav(String label, String shortLabel, String iconKey, boolean selected, Runnable action) {
         LinearLayout item = new LinearLayout(context);
         item.setOrientation(LinearLayout.VERTICAL); item.setGravity(Gravity.CENTER);
         item.setPadding(dp(2), dp(8), dp(2), dp(8)); item.setMinimumHeight(dp(64));
@@ -517,7 +558,10 @@ public final class Ui {
                 shape(selected ? withAlpha(accent, dark ? 40 : 26) : Color.TRANSPARENT, 18, 0), null));
         item.addView(icon(iconKey, 24, selected ? text : muted), new LinearLayout.LayoutParams(dp(24), dp(24)));
         TextView caption = text(label, 10, selected); caption.setMaxLines(2); caption.setTextColor(selected ? text : muted);
-        caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption);
+        caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption, new LinearLayout.LayoutParams(-1, -2));
+        caption.setEllipsize(TextUtils.TruncateAt.END); caption.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        // Up to two lines of whole words: the name, then its short rung, then the icon alone.
+        StatusRungs rungs = ladder(caption, true); rungs.maxLines = 2; rungs.show(new CharSequence[]{label, shortLabel});
         item.setContentDescription(label); item.setSelected(selected); item.setFocusable(true);
         if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(selected ? T.commonSelected() : "");
         item.setOnClickListener(v -> { if (!selected) Haptics.tick(v); if (action != null) action.run(); });
@@ -603,6 +647,32 @@ public final class Ui {
     }
     /** Height the floating tab bar needs, so scrolling pages can pad their bottom edge. */
     public int floatingNavHeight() { return dp(72); }
+    /**
+     * The round pencil that opens an editor in a page header, or the red {@code done} pill that replaces it while
+     * editing (Home's dashboard, the Scooter tab's menu). {@code target} is the 48 dp touch target; its content
+     * description is the caller's.
+     */
+    public void editToggle(android.widget.FrameLayout target, boolean editing, String done) {
+        target.removeAllViews();
+        if (editing) {
+            TextView pill = text(done, 14, true);
+            pill.setTextColor(onAccent); pill.setGravity(Gravity.CENTER); pill.setMinHeight(dp(38));
+            pill.setPadding(dp(20), dp(6), dp(20), dp(6)); pill.setBackground(shape(accent, 100, 0));
+            target.addView(pill, new android.widget.FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+            target.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(Color.WHITE, 45)), null, shape(Color.WHITE, 100, 0)));
+        } else {
+            android.widget.FrameLayout disc = new android.widget.FrameLayout(context);
+            disc.setBackground(editDisc());
+            disc.addView(icon("pencil", 17, text), new android.widget.FrameLayout.LayoutParams(dp(17), dp(17), Gravity.CENTER));
+            target.addView(disc, new android.widget.FrameLayout.LayoutParams(dp(38), dp(38), Gravity.CENTER));
+            target.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 35)), null, editDisc()));
+        }
+    }
+    private GradientDrawable editDisc() {
+        GradientDrawable disc = new GradientDrawable();
+        disc.setShape(GradientDrawable.OVAL); disc.setColor(dark ? surface : raised);
+        return disc;
+    }
     public GradientDrawable shape(int fill, float radius, int border) {
         GradientDrawable drawable = new GradientDrawable(); drawable.setColor(fill); drawable.setCornerRadius(dp(radius));
         if (border != 0) drawable.setStroke(dp(1), border); return drawable;
@@ -1009,6 +1079,12 @@ public final class Ui {
             } else if (key.equals("ruler")) {
                 canvas.drawRoundRect(new RectF(2, 7, 22, 17), 2, 2, paint);
                 for (int i = 6; i < 22; i += 4) canvas.drawLine(i, 7, i, i % 8 == 2 ? 12 : 10, paint);
+            } else if (key.equals("globe")) {
+                // App language: a globe with its equator, two parallels and one meridian.
+                canvas.drawCircle(12, 12, 9, paint);
+                canvas.drawOval(new RectF(8, 3, 16, 21), paint);
+                p.moveTo(3, 12); p.lineTo(21, 12); p.moveTo(4.6f, 7.5f); p.lineTo(19.4f, 7.5f);
+                p.moveTo(4.6f, 16.5f); p.lineTo(19.4f, 16.5f); canvas.drawPath(p, paint);
             } else if (key.equals("text")) {
                 p.moveTo(3, 19); p.lineTo(8, 5); p.lineTo(13, 19); p.moveTo(5, 14); p.lineTo(11, 14);
                 p.moveTo(15, 12); p.lineTo(22, 12); p.moveTo(18.5f, 12); p.lineTo(18.5f, 19); canvas.drawPath(p, paint);
@@ -1128,6 +1204,13 @@ public final class Ui {
                 p.moveTo(key.equals("back") ? 15 : 9, 5); p.lineTo(key.equals("back") ? 8 : 16, 12); p.lineTo(key.equals("back") ? 15 : 9, 19); canvas.drawPath(p, paint);
             } else if (key.equals("search")) {
                 canvas.drawCircle(10.5f, 10.5f, 6.5f, paint); canvas.drawLine(15.5f, 15.5f, 20.5f, 20.5f, paint);
+            } else if (key.equals("eye") || key.equals("eye_off")) {
+                p.moveTo(2, 12); p.quadTo(12, 2.5f, 22, 12); p.quadTo(12, 21.5f, 2, 12); p.close(); canvas.drawPath(p, paint);
+                canvas.drawCircle(12, 12, 3.2f, paint);
+                if (key.equals("eye_off")) canvas.drawLine(4, 4, 20, 20, paint);
+            } else if (key.equals("restore")) {
+                canvas.drawArc(new RectF(4, 4, 20, 20), -150, 150, false, paint); canvas.drawArc(new RectF(4, 4, 20, 20), 30, 150, false, paint);
+                p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
             } else {

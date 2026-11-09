@@ -19,7 +19,7 @@ minutes after every boot, replacing their processes mid-step, and re-enabling it
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
 
-Localization (l10n/README.md). Every step runs Volt in English: the emulator's system language must be
+Localization (l10n/README.md). Every step but the locale-* ones runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
 that every screenshot helper writes (android-tests/TextCensus.java) into <out>/census/<step>/, for
 tools/l10n/census_diff.py, with census/sweep.json naming the app and test APKs (SHA-256). Run the same
@@ -28,9 +28,26 @@ test APK, then compare with census_diff.py --base A/census --base A2/census HEAD
 runs show which records change from run to run (volatile, reported but not compared). A screenshot
 without a census, and a step with no census at all, are reported, since G7 then covers nothing there. --pseudo-app adds the pseudo-locale APK (VOLT_PSEUDO_LOCALES=1 build.sh,
 build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
-(LocaleValidation under en-XA and ar-XB). Those steps report only: their findings never fail the sweep,
-and without --pseudo-app they are skipped. They never join the census, so run them as their own
-sweep (own --out, no --census) rather than adding --pseudo-app to a G7 run.
+(LocaleValidation under en-XA and ar-XB); without --pseudo-app they are skipped. Each language with status
+beta or stable in l10n/lang/*.tsv (English, the source, aside) also gets locale-<tag>-<size> steps at every
+size on the normal --app APK (LocaleValidation under that language, with its rtl field), and
+locale-<tag>-scooter-<size> steps (-e walk scooter: Home's shortcuts and Setting tiles on the simulator, the
+Maintenance row and page with seeded reminders, riding mode's recording, reconnecting, not connected and
+Ride saved pills, all of which the page walk never reaches without a scooter or a ride; en-XA gets them
+too, as locale-en-XA-scooter-<size>). All locale-* steps
+report only: their findings never fail the sweep. They never join the census, so run them as their own
+sweep (own --out, no --census) rather than in a G7 run.
+
+The closing summary counts the two kinds apart: gating steps passed and failed (only those set the exit code),
+then report-only steps ran, did not finish and skipped, none of which is a pass. summary.json gives each step a
+status (passed, failed, reported, did-not-finish, skipped); only gating steps have the passed field.
+
+Sizes. PHONE is the Fold5 cover (344x882 dp, dark, 1x text). WIDE is its open panel (725x604 dp, light) at
+1x text, so the wide layout (side rail, two columns) stays checked. WIDE_LARGE is the same panel at 1.4x
+Text size: Volt picks the wide layout from the width over the text scale (WideLayout, 650 dp), so 725 dp
+at 1.4x (518) is the phone layout (bottom bar, one column) there. Each my-scooters step asserts its layout
+(-e layout): phone at 344 and 725-large, wide at 725. The validations that
+take a text scale run at all three sizes; the size-only ones at PHONE and WIDE.
 """
 import argparse
 import hashlib
@@ -47,24 +64,48 @@ HERE = Path(__file__).resolve().parent
 PKG = 'com.jjricks.volt'
 ALL = ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT', 'POST_NOTIFICATIONS', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION')
 NEARBY = ALL[:3]
-PHONE, WIDE = ('344x882', 'dark', '1'), ('725x604', 'light', '1.4')
+PHONE, WIDE = ('344x882', 'dark', '1'), ('725x604', 'light', '1')
+# The open panel at large text: the phone layout on a wide window (WideLayout's rule, see above).
+WIDE_LARGE = ('725x604', 'light', '1.4')
+SIZES = (PHONE, WIDE, WIDE_LARGE)
+LAYOUT = {PHONE: 'phone', WIDE: 'wide', WIDE_LARGE: 'phone'}
+
+
+def size_name(size_case):
+    """Step-name suffix: the width, plus -large for WIDE_LARGE (charge-schedule-725-large)."""
+    return size_case[0].split('x')[0] + ('-large' if size_case is WIDE_LARGE else '')
+
 # Registered but deliberately not run here, with the reason; everything else must have a step.
-EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan'}
+EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan',
+            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator'}
 # Modes not run on their own because a step's mode already runs every check they make.
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
-            'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect'}
+            'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect',
+            'AutoStartValidation cadence and location': 'auto-start (the full pass)'}
 ANDROID = '{http://schemas.android.com/apk/res/android}'
+STATUS_LABEL = {'passed': 'PASS', 'failed': 'FAIL', 'reported': 'REPORT', 'did-not-finish': 'REPORT (did not finish)', 'skipped': 'SKIPPED'}
 
 
 def runner(name, script, covers, *extra):
     return dict(name=name, kind='runner', script=script, covers=covers, extra=list(extra))
 
 
-def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False, pseudo=False):
-    """pseudo: install --pseudo-app instead of --app, and report the result without failing the sweep."""
+def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False, pseudo=False, report_only=False):
+    """pseudo: install --pseudo-app instead of --app. pseudo or report_only: report the result without failing the sweep."""
     return dict(name=name, kind='inst', cls=cls, covers=[cls.rsplit('.', 1)[1]], extra=list(extra), grant=grant, size=size, hidden_api=hidden_api,
-                pseudo=pseudo)
+                pseudo=pseudo, report_only=pseudo or report_only)
+
+
+def shipped_languages():
+    """(tag, rtl) for each language with status beta or stable in l10n/lang/*.tsv, the source language aside."""
+    found = []
+    for path in sorted((HERE.parent / 'l10n' / 'lang').glob('*.tsv')):
+        fields = dict(line.split('\t', 1) for line in path.read_text(encoding='utf-8').splitlines()
+                      if '\t' in line and not line.startswith('#'))
+        if fields.get('status') in ('beta', 'stable') and fields.get('folder') != 'values':
+            found.append((fields['tag'], fields.get('rtl') == 'true'))
+    return found
 
 
 T = PKG + '.tests.'
@@ -79,6 +120,7 @@ STEPS = [
     runner('guided-queue', 'run-guided-tests.py', [], '--mode', 'queue'),
     runner('compat-gating', 'run-compat-gating.py', ['CompatibilityGatingValidation']),
     runner('compat-controls', 'run-compat-gating.py', ['CompatControlsValidation'], '--mode', 'controls'),
+    runner('compat-menu-edit', 'run-compat-gating.py', ['ScooterMenuEditValidation'], '--mode', 'menu-edit'),
     runner('compat-ut5-screens', 'run-compat-gating.py', ['Ut5SimulationScreens'], '--mode', 'ut5-screens'),
     runner('compat-import-name', 'run-compat-gating.py', [], '--mode', 'import-name'),
     runner('compat-owner-profiles', 'run-compat-gating.py', [], '--mode', 'owner-profiles'),
@@ -89,6 +131,11 @@ STEPS = [
     runner('ride-auto-stop', 'run-ride-auto-stop.py', ['RideAutoStopValidation']),
     runner('ride-backups', 'run-ride-backups.py', ['RideBackupValidation']),
     runner('rides', 'run-rides.py', ['RidesAnalysisValidation']),
+    # Seeds many rides, then times a cold launch and two Rides opens (#234, #240: "Volt launches instantly"). --release
+    # fails when the best of two cold starts per case misses a generous budget (run-rides-timing.py RELEASE_BUDGETS;
+    # every run must report every gated time, and the service start command stands in for connection start):
+    # a regression costs seconds, load noise tenths. The plan's tight budgets are still reported, not gated.
+    runner('rides-timing', 'run-rides-timing.py', ['RidesTimingValidation'], '--release'),
     runner('live-stats', 'run-live-stats.py', ['LiveStatsValidation']),
     runner('responsive', 'run-responsive.py', ['ResponsiveDashboardValidation']),
     # The default matrix leaves out the modes whose checks run nowhere else.
@@ -97,13 +144,15 @@ STEPS = [
     runner('motion-polish', 'run-motion-polish.py', ['MotionPolishValidation']),
     runner('haptics', 'run-haptics.py', ['QuickHapticsValidation', 'ConnectionHapticsValidation']),
 ]
-for size, theme, text in (PHONE, WIDE):
-    w = size.split('x')[0]
+for case in SIZES:
+    (size, theme, text), w = case, size_name(case)
     STEPS += [inst(f'charge-schedule-{w}', T + 'ChargeScheduleValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
-              inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
-              inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
-              inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
+              inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
+                   '-e', 'layout', LAYOUT[case], size=size)]
+    if case is not WIDE_LARGE:
+        STEPS += [inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
+                  inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
 STEPS += [
     inst('dashboard', T + 'DashboardValidation'),
     inst('dashboard-layout-slots', T + 'DashboardValidation', '-e', 'mode', 'layout-slots'),
@@ -111,12 +160,21 @@ STEPS += [
     inst('dashboard-slots', T + 'DashboardSlotsValidation'),
     inst('capacity-widget', T + 'CapacityWidgetValidation'),
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
+    inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
+    inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
+    inst('riding-from-zero', T + 'RidingFromZeroValidation'),
+    # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The restored-* steps are the
+    # restored-settings first launch. The harness's other -e only scenarios follow one permission across runs of one install, which
+    # a step's fresh install can't do (order in its class comment).
+    inst('auto-start', PKG + '.AutoStartValidation', grant=NEARBY, hidden_api=True),
+    *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
+      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline')],
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
@@ -124,6 +182,7 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (
@@ -132,10 +191,24 @@ STEPS += [inst(name, cls) for name, cls in (
     ('ui-organization', T + 'UiOrganizationValidation'), ('update-check', T + 'UpdateCheckValidation'))]
 # Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
 for locale in ('en-XA', 'ar-XB'):
-    for size, theme, text in (PHONE, WIDE):
-        w = size.split('x')[0]
+    for case in SIZES:
+        (size, theme, text), w = case, size_name(case)
         STEPS.append(inst(f'locale-{locale}-{w}', T + 'LocaleValidation', '-e', 'locale', locale, '-e', 'theme', theme, '-e', 'text_scale', text,
                           '-e', 'variant', f'{locale}-{w}', size=size, pseudo=True))
+        # The scooter walk's screens checked for unextracted text too; ar-XB's right-to-left checks are on hold (owner).
+        if locale == 'en-XA':
+            STEPS.append(inst(f'locale-{locale}-scooter-{w}', T + 'LocaleValidation', '-e', 'walk', 'scooter', '-e', 'locale', locale, '-e', 'theme', theme,
+                              '-e', 'text_scale', text, '-e', 'variant', f'{locale}-scooter-{w}', size=size, pseudo=True))
+# Each shipped language on the normal APK (plan 7.2 step 6), report only like the pseudo-locales.
+for tag, rtl in shipped_languages():
+    for case in SIZES:
+        (size, theme, text), w = case, size_name(case)
+        STEPS.append(inst(f'locale-{tag}-{w}', T + 'LocaleValidation', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(), '-e', 'theme', theme,
+                          '-e', 'text_scale', text, '-e', 'variant', f'{tag}-{w}', size=size, report_only=True))
+        # The states the page walk can't reach without a scooter or a ride: Home's shortcuts and Setting tiles on the
+        # simulator, the Maintenance row and page with seeded reminders, and riding mode's recording pill.
+        STEPS.append(inst(f'locale-{tag}-scooter-{w}', T + 'LocaleValidation', '-e', 'walk', 'scooter', '-e', 'locale', tag, '-e', 'rtl', str(rtl).lower(),
+                          '-e', 'theme', theme, '-e', 'text_scale', text, '-e', 'variant', f'{tag}-scooter-{w}', size=size, report_only=True))
 
 
 def registered():
@@ -156,7 +229,7 @@ parser.add_argument('--runner', type=Path)
 parser.add_argument('--out', type=Path)
 parser.add_argument('--only', action='append', help='step name (repeatable)')
 parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py (sweep the base APK twice, the head once)')
-parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the report-only locale-* steps; its classes.dex must equal --app\'s')
+parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the en-XA and ar-XB locale-* steps; its classes.dex must equal --app\'s')
 parser.add_argument('--list', action='store_true', help='print the steps and exit')
 args = parser.parse_args()
 missing = uncovered()
@@ -351,14 +424,17 @@ try:
             try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
             except Exception as error: output += f'\nANR log unavailable: {error}'
         (args.out / f'{step["name"]}.txt').write_text(output)
-        report_only = step.get('pseudo', False)
-        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems)=\d+', output)[:8])
+        report_only = step.get('report_only', False)
+        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems|truncated_tiles)=\d+', output)[:9])
         if output.startswith('skipped:'): detail = output
         error = re.search(r'error=(.{0,240})', output)
-        result = dict(step=step['name'], passed=passed or report_only, seconds=round(time.monotonic() - started))
-        label = ('REPORT' if passed else 'REPORT (did not finish)') if report_only else 'PASS' if passed else 'FAIL'
+        if report_only: status = 'skipped' if output.startswith('skipped:') else 'reported' if passed else 'did-not-finish'
+        else: status = 'passed' if passed else 'failed'
+        result = dict(step=step['name'], status=status, seconds=round(time.monotonic() - started))
+        label = STATUS_LABEL[status]
         if report_only: result['report_only'] = True
-        # Report-only pseudo-locale steps are not English, so they never join the G7 census.
+        else: result['passed'] = passed
+        # Report-only locale steps are not English, so they never join the G7 census.
         if args.census and not report_only:
             screens, census_errors = gather_census(step['name'])
             result['census_screens'], result['census_errors'] = screens, census_errors
@@ -375,8 +451,13 @@ finally:
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'hide_error_dialogs', hide_dialogs, check=False)
     (args.out / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
-failed = [r['step'] for r in results if not r['passed']]
-print(f'{len(results) - len(failed)}/{len(results)} steps passed' + (': failed ' + ', '.join(failed) if failed else ''))
+def with_status(status): return [r['step'] for r in results if r['status'] == status]
+
+
+failed, unfinished, skipped = with_status('failed'), with_status('did-not-finish'), with_status('skipped')
+print(f'Gating steps: {len(with_status("passed"))} passed, {len(failed)} failed' + (': ' + ', '.join(failed) if failed else ''))
+print(f'Report-only steps (never counted as passes): {len(with_status("reported"))} ran, {len(unfinished)} did not finish, {len(skipped)} skipped'
+      + ('; did not finish: ' + ', '.join(unfinished) if unfinished else '') + ('; skipped: ' + ', '.join(skipped) if skipped else ''))
 if args.census:
     census_errors = [f'{r["step"]}/{e}' for r in results for e in r.get('census_errors', [])]
     empty = [r['step'] for r in results if 'census_screens' in r and not r['census_screens']]

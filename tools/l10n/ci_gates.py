@@ -7,7 +7,13 @@ and add UI text. The kind comes from the paths changed since the merge base:
 
   english-change  l10n/english-changes.tsv changed: an owner-approved English change (plan part D).
                   G1 runs with the recorded changes; G4 and the golden diff only report. It may
-                  not also add ledger rows (an extraction goes in its own pull request).
+                  not also add ledger rows (an extraction goes in its own pull request). It updates
+                  the tests that assert the old English, so an edit to an existing top-level
+                  tests/l10n/<Name>Test.java is listed in a REPORT line for the reviewer, not failed,
+                  unless it is a gate test (GATE_TESTS). The rest of the proof tooling stays strict:
+                  gate tests, deleted tests, other tests/l10n files and everything else is_tooling
+                  names. G5 applies when CI passes --pr-head: characterization changes go in the
+                  first commit, which changes nothing under src/ or res/.
   batch           l10n/ledger/ or a res/values*/strings_*.xml changed, or a src/ file gained a
                   T.<name>, M.<name>, R.string or R.plurals reference (a conversion that forgot its
                   ledger): an extraction batch. Every gate is strict, and the proof tooling
@@ -27,7 +33,10 @@ tests/l10n/golden.sh (goldens equal head's output).
 
   ci_gates.py --base origin/main [--head HEAD] [--pr-head <sha>] [--mode auto|batch|english-change|ordinary]
   ci_gates.py --base origin/main --print-mode
-  ci_gates.py --base origin/main --print-tooling   the proof tooling files changed since the merge base
+  ci_gates.py --base origin/main --print-tooling   the changed proof tooling files the tooling gate counts
+                                                   for the change's kind (an English change's reported
+                                                   test edits are left out)
+  ci_gates.py --base origin/main --print-english-tests   an English change's reported test edits
 """
 
 import argparse
@@ -48,6 +57,10 @@ TOOLING_FILES = ("tests/run.sh", "build.sh", "android-tests/build.sh")
 NOT_TOOLING = ("tests/l10n/characterization/", "tests/l10n/golden/")
 GOLDEN_DIR = "tests/l10n/golden"
 LEDGER_DIR = "l10n/ledger/"
+# The tests/l10n tests that implement gates (l10n/README.md, "The gates"): G2, G9, G10, glyph coverage and the
+# catalog checks. They stay strict in every kind, an English change included.
+GATE_TESTS = frozenset(["LedgerTest.java", "FmtLegacyTest.java", "ReportsStayEnglishTest.java",
+                        "GlyphCoverageTest.java", "CatalogCheckTest.java", "CatalogUsageTest.java"])
 
 
 def is_tooling(path):
@@ -158,9 +171,25 @@ def new_test_file(path):
     return path.startswith("tests/l10n/") and path.count("/") == 2 and path.endswith(".java")
 
 
-def tooling_changes(changed, added=()):
-    """Changed proof tooling; added is the paths that did not exist at the merge base."""
-    return [p for p in changed if is_tooling(p) and not (p in added and new_test_file(p))]
+def english_test_file(path):
+    """A top-level tests/l10n/<Name>Test.java that is not a gate test: an English change may edit one."""
+    name = path[len("tests/l10n/"):]
+    return new_test_file(path) and name.endswith("Test.java") and name not in GATE_TESTS
+
+
+def tooling_changes(changed, added=(), reported=()):
+    """Changed proof tooling; added is the paths that did not exist at the merge base, reported the English
+    change's test edits (english_test_edits) that are listed for the reviewer instead."""
+    return [p for p in changed if is_tooling(p) and not (p in added and new_test_file(p)) and p not in reported]
+
+
+def english_test_edits(merge, head, changed, cwd=None):
+    """The english_test_file paths that exist both at the merge base and at head and differ: edits, not
+    additions or deletions."""
+    candidates = [p for p in changed if english_test_file(p)]
+    before = l10nlib.read_files(merge, candidates, cwd)
+    after = l10nlib.read_files(head, candidates, cwd)
+    return [p for p in candidates if before[p] is not None and after[p] is not None]
 
 
 def added_paths(merge, head, changed, cwd=None):
@@ -190,6 +219,7 @@ def plan(kind, base, head, pr_head, root):
     ]
     if kind == "english-change":
         steps.append(("no ledger rows in an English change", None, True))
+        steps.append(("tests/l10n edits follow l10n/english-changes.tsv", None, False))
     if pr_head:
         steps.insert(3, ("G5 characterization first", tool("char_first.py", "--base", base, "--head", pr_head), True))
     return steps
@@ -202,18 +232,22 @@ def main(argv=None):
     parser.add_argument("--pr-head", default="", help="the pull request's head commit, for G5")
     parser.add_argument("--mode", default="auto", choices=("auto", "batch", "english-change", "ordinary"))
     parser.add_argument("--print-mode", action="store_true", help="print the kind and exit")
-    parser.add_argument("--print-tooling", action="store_true", help="print the changed proof tooling files and exit")
+    parser.add_argument("--print-tooling", action="store_true",
+                        help="print the changed proof tooling files the tooling gate counts for this kind and exit")
+    parser.add_argument("--print-english-tests", action="store_true",
+                        help="print an English change's test edits, which are reported, not failed, and exit")
     args = parser.parse_args(argv)
     head = l10nlib.resolve(args.head)
     merge = l10nlib.merge_base(args.base, head)
     changed = l10nlib.changed_files(merge, head, ["."])
     added = added_paths(merge, head, changed)
-    if args.print_tooling:
-        for path in tooling_changes(changed, added):
-            print(path)
-        return 0
     gained = gained_catalog_references(merge, head, changed)
     kind = kind_of(changed, bool(gained)) if args.mode == "auto" else args.mode
+    reported = english_test_edits(merge, head, changed) if kind == "english-change" else []
+    if args.print_tooling or args.print_english_tests:
+        for path in tooling_changes(changed, added, reported) if args.print_tooling else reported:
+            print(path)
+        return 0
     if args.print_mode:
         print(kind)
         return 0
@@ -239,6 +273,10 @@ def main(argv=None):
             if ledgers:
                 print("ci_gates: %s: %s changed; an owner-approved English change must not also extract text, so "
                       "put the extraction in its own pull request" % (label, ", ".join(ledgers)), file=sys.stderr)
+        elif label.startswith("tests/l10n edits"):
+            ok = not reported
+            detail = "none" if ok else "%s; check that each edit only follows a row of %s" % (
+                ", ".join(reported), CHANGES_PATH)
         elif label.startswith("G9"):
             changes = golden_changes(merge, head)
             ok, detail = not changes, ", ".join(changes) or "unchanged"
@@ -248,7 +286,7 @@ def main(argv=None):
                     "; an extraction batch must not change report output" if strict else " (reported only)"),
                     file=sys.stderr)
         else:
-            changes = tooling_changes(changed, added)
+            changes = tooling_changes(changed, added, reported)
             ok, detail = not changes, ", ".join(changes) or "unchanged"
             if changes:
                 print("ci_gates: %s: %s changed; change the proof tools in their own pull request, not in a "

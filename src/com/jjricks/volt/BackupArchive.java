@@ -155,7 +155,10 @@ final class BackupArchive {
         for (String category : CATEGORIES) if (selected.contains(category)) categories.add(category);
         if (categories.isEmpty() || categories.size() != new HashSet<>(selected).size()) throw new BackupException(M.backupEngineChooseWhatBackUp());
         boolean complete = categories.size() == CATEGORIES.length;
-        Map<String, Map<String, Object>> live = storage.preferences();
+        Map<String, Map<String, Object>> live = copy(storage.preferences());
+        // A phone still holding the retired Route CSV switch backs it up as the one switch (the ride JSON key), so an
+        // older Volt restores auto-save as its ride JSON switch. Only the backup's copy changes.
+        RideAutoExport.normalize(live.get("app_settings"));
         LinkedHashMap<String, byte[]> prefs = new LinkedHashMap<>();
         try {
             for (String category : categories) { Map<String, Map<String, Object>> values = subset(live, category); if (count(values) > 0) prefs.put("prefs/" + category + ".bin", encode(values)); }
@@ -653,7 +656,9 @@ final class BackupArchive {
                     return rule != null && rule.perProfile && target.equals(rule.profile(key)) && (category.equals(rule.category) || (category.equals(BackupRegistry.DASHBOARDS) && rule.excluded() && rule.key.startsWith("dashboard_"))); });
                 for (Map.Entry<String, Object> entry : prepared.preferences.get(name).entrySet()) {
                     BackupRegistry.Rule rule = BackupRegistry.rule(name, entry.getKey());
-                    if (rule != null && category.equals(rule.category) && rule.perProfile && source.equals(rule.profile(entry.getKey()))) result.get(name).put(rule.rename(entry.getKey(), target), entry.getValue());
+                    if (rule != null && category.equals(rule.category) && rule.perProfile && source.equals(rule.profile(entry.getKey())))
+                        // Onto another profile, a maintenance document drops the other scooter's raw odometer baseline.
+                        result.get(name).put(rule.rename(entry.getKey(), target), source.equals(target) ? entry.getValue() : MaintenanceStore.movedToAnotherScooter(entry.getKey(), entry.getValue()));
                 }
             }
         }

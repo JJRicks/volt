@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Scooter tab's menu editor (scooter-menu-edit plan, PR 2): the pencil and Done in the page header, the
+  Add back and Reset tool row, the section cards with their eye buttons and grips, the notices and the Add
+  back sheet. Hiding only tidies the menu: the scooter keeps every setting as it was, and the text must never
+  suggest a setting is switched off or removed. Section and row names come from the Scooter tab's own keys.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- ===== Header ===== -->
+    <!-- The round pencil at the right of the "Scooter" title; it opens the editor. -->
+    <string name="menu_edit" volt:screen="Scooter tab header" volt:purpose="accessibility description">Edit menu</string>
+    <!-- The red Done pill that replaces the pencil while editing; the visible word is common_done. -->
+    <string name="menu_finish" volt:screen="Scooter tab header, editing menu" volt:purpose="accessibility description">Finish editing menu</string>
+
+    <!-- ===== Tool row ===== -->
+    <!-- Opens the sheet that lists hidden sections and settings. Each tool button is half the phone width,
+         beside a plus icon and a count badge; narrower, the short rung shows, then the icon alone. -->
+    <string name="menu_add_back" volt:screen="Scooter tab, editing menu" volt:purpose="button" volt:ladder="full" volt:max="72dp@13.5sp">Add back</string>
+    <string name="menu_add_back_short" volt:screen="Scooter tab, editing menu" volt:purpose="button" volt:ladder="short" volt:max="72dp@13.5sp">Add</string>
+    <!-- The Add back button for screen readers: %1$d is how many sections and settings are hidden. -->
+    <plurals name="menu_add_back_description" volt:screen="Scooter tab, editing menu" volt:purpose="accessibility description">
+        <item quantity="one">Add back, %1$d item hidden</item>
+        <item quantity="other">Add back, %1$d items hidden</item>
+    </plurals>
+    <!-- Puts the original menu back at once (an Undo follows). Narrower, the reset icon shows alone. -->
+    <string name="menu_reset" volt:screen="Scooter tab, editing menu" volt:purpose="button" volt:ladder="full" volt:max="96dp@13.5sp">Reset</string>
+    <string name="menu_reset_description" volt:screen="Scooter tab, editing menu" volt:purpose="accessibility description">Reset the menu to its original order and show everything</string>
+    <!-- One line under the tool row. -->
+    <string name="menu_hint" volt:screen="Scooter tab, editing menu" volt:purpose="caption">Drag to reorder. Hidden settings keep working on the scooter.</string>
+    <!-- Replaces menu_hint while a section is held: every section folds down to its name. -->
+    <string name="menu_hint_folded" volt:screen="Scooter tab, editing menu" volt:purpose="caption">Moving a section folds them all so they fit.</string>
+
+    <!-- ===== Sections and rows ===== -->
+    <!-- The Maximum speed card's own section, which can move and hide like the others. It holds the scooter's Maximum speed setting, not a measured top speed. -->
+    <string name="menu_top_speed" volt:screen="Scooter tab, editing menu" volt:purpose="group name" volt:safety="ride">Maximum speed</string>
+    <!-- How many settings a folded section holds. -->
+    <plurals name="menu_settings_count" volt:screen="Scooter tab, editing menu" volt:purpose="caption">
+        <item quantity="one">%1$d setting</item>
+        <item quantity="other">%1$d settings</item>
+    </plurals>
+    <!-- A section card's header for screen readers: %1$d is how many settings it shows, %2$s its name. -->
+    <plurals name="menu_section_said" volt:screen="Scooter tab, editing menu" volt:purpose="accessibility description">
+        <item quantity="one">%2$s section, %1$d setting</item>
+        <item quantity="other">%2$s section, %1$d settings</item>
+    </plurals>
+    <!-- Under Scheduled charging and Charge start: the "Done by" row moves and hides with it.
+         "Done by" is the row's own name (main_schedule_done_by); use the same words. -->
+    <string name="menu_with_done_by" volt:screen="Scooter tab, editing menu" volt:purpose="caption" volt:safety="charge">with Done by</string>
+    <!-- The eye button on a section or setting, and its screen-reader action: %1$s is its name. -->
+    <string name="menu_hide" volt:screen="Scooter tab, editing menu" volt:purpose="accessibility action">Hide %1$s</string>
+    <!-- Notice after hiding, with an Undo button: %1$s is the section or setting's name. -->
+    <string name="menu_hidden" volt:screen="Scooter tab, editing menu" volt:purpose="notice">%1$s hidden</string>
+    <!-- Notice after Reset, with an Undo button. -->
+    <string name="menu_reset_done" volt:screen="Scooter tab, editing menu" volt:purpose="notice">Menu reset</string>
+    <!-- The button in those notices. -->
+    <string name="menu_undo" volt:screen="Scooter tab, editing menu" volt:purpose="button">Undo</string>
+
+    <!-- ===== Add back sheet ===== -->
+    <string name="menu_sheet_title" volt:screen="Add back sheet" volt:purpose="title">Add back</string>
+    <string name="menu_sheet_explanation" volt:screen="Add back sheet" volt:purpose="caption">Hidden here only. The scooter keeps these settings.</string>
+    <!-- Label above the hidden sections; hidden settings follow under their own section's name. -->
+    <string name="menu_sheet_sections" volt:screen="Add back sheet" volt:purpose="group name">Sections</string>
+    <string name="menu_sheet_empty" volt:screen="Add back sheet" volt:purpose="message">Nothing is hidden.</string>
+    <!-- The red plus on a hidden section or setting: %1$s is its name. -->
+    <string name="menu_show" volt:screen="Add back sheet" volt:purpose="accessibility description">Add back %1$s</string>
+    <!-- A hidden setting with its current value, for screen readers: %1$s is the name, %2$s the value. -->
+    <string name="menu_sheet_value" volt:screen="Add back sheet" volt:purpose="accessibility description">%1$s, %2$s</string>
+
+    <!-- ===== Live page (PR 3) ===== -->
+    <!-- Under a hidden setting that search found (the setting still works there): hidden from the menu only. -->
+    <string name="menu_search_hidden" volt:screen="Scooter tab, search results" volt:purpose="caption">Hidden</string>
+    <!-- The quiet last line of the Scooter tab while settings are hidden: menu_footer joins these two,
+         and the Edit part shows in red. Tapping the line opens the menu editor. -->
+    <plurals name="menu_footer_hidden" volt:screen="Scooter tab" volt:purpose="caption">
+        <item quantity="one">%1$d setting hidden</item>
+        <item quantity="other">%1$d settings hidden</item>
+    </plurals>
+    <string name="menu_footer_edit" volt:screen="Scooter tab" volt:purpose="button">Edit</string>
+    <!-- %1$s is menu_footer_hidden, %2$s is menu_footer_edit. The line is centred and may wrap. -->
+    <string name="menu_footer" volt:screen="Scooter tab" volt:purpose="caption">%1$s · %2$s</string>
+    <!-- That line for screen readers: %1$d is how many settings are hidden. -->
+    <plurals name="menu_footer_description" volt:screen="Scooter tab" volt:purpose="accessibility description">
+        <item quantity="one">%1$d setting hidden. Edit menu</item>
+        <item quantity="other">%1$d settings hidden. Edit menu</item>
+    </plurals>
+</resources>

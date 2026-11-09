@@ -95,8 +95,8 @@ public final class CompatibilityTextTest {
     /** The distinct texts the walk shows, as the base printed them. */
     private static final String[] TEXTS = {
         "A related setting changed during the test.",
-        "A related setting changed since the test. Volt won't set it back.",
-        "A setting changed while the test was waiting. Review it before restoring.",
+        "A related setting changed since the test. Volt won't set the tested setting back.",
+        "A setting changed while the test was waiting. Review it before setting it back.",
         "Accepted, but no conclusive reading arrived.",
         "Actual riding isn't offered now.",
         "Already back to 10 km/h.",
@@ -689,13 +689,13 @@ public final class CompatibilityTextTest {
         "The scooter rejected setting it back (code 4).",
         "Theoretical isn't offered now.",
         "This scooter isn't reporting this setting.",
-        "Volt could not send the restore.",
+        "Volt could not send the command to set it back.",
         "Volt restarted during the test.",
         "Volt's rules for this setting changed. Volt won't change it.",
         "Waiting for a fresh reading."
     };
     /** SHA-256 of the whole walk's record (209177042 bytes of UTF-8) at the base. */
-    private static final String DIGEST = "8354ddf52ca0d5f4346f346896037cf8ce01959a1ba03d76fe6d76410a88c4f0";
+    private static final String DIGEST = "0933469d7feb44fa4c35b47437bcc8e49aab769e83e7099628ff99e1734dc846";
 
     static final class Memory implements TestJournal.Storage {
         String text; boolean failWrites;

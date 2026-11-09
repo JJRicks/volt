@@ -1,0 +1,18 @@
+# Brazilian Portuguese (pt-BR), shipped in values-pt-rBR. Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/pt-BR/); ships as beta.
+# percent_style has no space, as Brazilian usage and CLDR write it (85%). decimal_style is an example of the separators; pt-BR groups from four digits (1.234,5).
+field	value
+tag	pt-BR
+folder	values-pt-rBR
+endonym	Português (Brasil)
+wave	1
+status	beta
+formality	você
+plurals	one,many,other
+quote_style	“…” ‘…’
+percent_style	%1$s%%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

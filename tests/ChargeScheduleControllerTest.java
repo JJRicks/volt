@@ -37,8 +37,140 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
+    }
+    /** The start-sent listener hears only a start the scooter confirmed. */
+    private static void doneByConfirmation(){
+        List<Long> heard=new ArrayList<>();
+        Rig on=new Rig();on.controller.setDoneEnabled(true,on.results::add,heard::add);
+        check(heard.isEmpty(),"nothing heard before the clock write");on.reply(true);check(heard.isEmpty(),"nothing heard before the time write");
+        on.c.wireStart=on.sentTime/1000+on.sentOffset;on.reply(true);check(heard.isEmpty(),"time ack alone is not a confirmed enable");
+        on.c.enabled=1;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==on.sentTime&&on.results.get(0)==null,"confirmed enable heard once, with the saved start");
+        check(on.controller.view().doneByEnabled&&on.controller.view().startWallMs==heard.get(0),"the heard start is the plan the view shows");
+        heard.clear();
+        // A confirmed edit while active sends a new start.
+        on.controller.setDoneTime(9,0,on.results::add,heard::add);on.reply(true);on.c.wireStart=on.sentTime/1000+on.sentOffset;on.reply(true);check(heard.isEmpty(),"edit waits for confirmation");on.c.enabled=1;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==on.sentTime&&on.controller.view().doneByEnabled,"confirmed active edit heard once with the new start");
+        // Each step of a failed enable.
+        for(int fail=0;fail<3;fail++){Rig r=new Rig();heard.clear();r.controller.setDoneEnabled(true,r.results::add,heard::add);
+            for(int step=0;step<=fail;step++)r.reply(step!=fail);
+            check(heard.isEmpty()&&!r.controller.view().doneByEnabled&&r.results.get(0)!=null,"unconfirmed step "+fail+" is not heard");}
+        // A limit changed while the switch was being confirmed keeps the time but drops the plan: no claim.
+        Rig limit=new Rig();heard.clear();limit.controller.setDoneEnabled(true,limit.results::add,heard::add);limit.reply(true);limit.reply(true);limit.c.target=80d;limit.reply(true);
+        check(heard.isEmpty()&&limit.results.get(0)!=null,"changed limit after ACK is not heard");
+        // A dropped connection before the switch confirmed.
+        Rig dropped=new Rig();heard.clear();dropped.controller.setDoneEnabled(true,dropped.results::add,heard::add);dropped.reply(true);dropped.reply(true);dropped.c.generation++;dropped.controller.observe();
+        check(heard.isEmpty()&&!dropped.controller.view().doneByEnabled,"interrupted enable is not heard");
+        // Not enough time to wait: Volt turns the schedule off and charges now, so no start was saved.
+        Rig now=new Rig();now.c.now=time("2026-10-20T13:50:00Z");heard.clear();now.controller.setDoneEnabled(true,now.results::add,heard::add);now.reply(true);
+        check(heard.isEmpty()&&now.results.get(0)!=null&&!now.controller.view().doneByEnabled,"charging now is never heard");
+        // A saved preference while off and an edit while offline do not reach the scooter.
+        Rig pref=new Rig();heard.clear();pref.controller.setDoneTime(7,30,pref.results::add,heard::add);check(heard.isEmpty()&&pref.results.get(0)==null&&pref.writes.isEmpty(),"preference edit is not heard");
+        // Measuring arms through the listener-free call, which has nothing to hear it.
+        Rig measured=new Rig();heard.clear();measured.controller.setDoneEnabled(true,measured.results::add);measured.reply(true);measured.reply(true);measured.reply(true);
+        check(heard.isEmpty()&&measured.controller.view().doneByEnabled,"no listener, no message");
+        startPassedInFlight();manualConfirmation();reassuranceNeedsLiveOn();reassuranceRetires();
+    }
+    /** A start that passes while the ON confirmation is in flight proves nothing about the scooter having taken it in time. */
+    private static void startPassedInFlight(){
+        List<Long> heard=new ArrayList<>();
+        Rig late=new Rig();late.controller.setDoneEnabled(true,late.results::add,heard::add);late.reply(true);late.c.wireStart=late.sentTime/1000+late.sentOffset;late.reply(true);
+        check(late.writes.get(2).equals("on"),"the start was still ahead when ON was sent");
+        late.c.now=late.sentTime+2_000;late.c.enabled=1;late.reply(true);
+        check(heard.isEmpty(),"a start that passed during the ON confirmation is not reassured");
+        check(late.results.get(0)==null&&late.controller.view().doneByEnabled&&late.controller.view().startWallMs==late.sentTime,"the confirmed plan stays tracked so a missed start can still be caught");
+        Rig exact=new Rig();exact.controller.setDoneEnabled(true,exact.results::add,heard::add);exact.reply(true);exact.c.wireStart=exact.sentTime/1000+exact.sentOffset;exact.reply(true);
+        exact.c.now=exact.sentTime;exact.c.enabled=1;exact.reply(true);
+        check(heard.isEmpty(),"a confirmation landing on the start instant is not reassured");
+        Rig ontime=new Rig();ontime.controller.setDoneEnabled(true,ontime.results::add,heard::add);ontime.reply(true);ontime.c.wireStart=ontime.sentTime/1000+ontime.sentOffset;ontime.reply(true);
+        ontime.c.now=ontime.sentTime-1_000;ontime.c.enabled=1;ontime.reply(true);
+        check(heard.size()==1&&heard.get(0)==ontime.sentTime,"a confirmation arriving in time is reassured");
+    }
+    private static void confirmWrites(Rig r){r.reply(true);r.c.wireStart=r.sentTime/1000+r.sentOffset;r.reply(true);r.c.enabled=1;r.reply(true);}
+    /** Manual Scheduled charging hears the same confirmed start, never for a test, turning off, or a start that passed in flight. */
+    private static void manualConfirmation(){
+        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");
+        Rig r=new Rig();r.c.wireStart=first/1000-6*3600;r.controller.setManualEnabled(true,r.results::add,heard::add);
+        check(heard.isEmpty(),"manual enable waits for confirmation");
+        for(int fail=0;fail<3;fail++){Rig f=new Rig();f.c.wireStart=first/1000-6*3600;List<Long> none=new ArrayList<>();f.controller.setManualEnabled(true,f.results::add,none::add);
+            for(int step=0;step<=fail;step++)f.reply(step!=fail);
+            check(none.isEmpty()&&f.results.get(0)!=null,"unconfirmed manual step "+fail+" is not heard");}
+        confirmWrites(r);
+        check(heard.size()==1&&heard.get(0)==r.sentTime&&r.controller.view().manualEnabled&&r.results.get(0)==null,"confirmed manual enable heard with the saved start");
+        heard.clear();r.controller.setManualStart(second,r.results::add,heard::add);r.reply(true);check(heard.isEmpty(),"manual edit waits for the time confirmation");r.c.wireStart=second/1000-6*3600;r.reply(true);
+        check(heard.size()==1&&heard.get(0)==second,"confirmed manual edit heard with its start");
+        heard.clear();r.controller.setManualEnabled(false,r.results::add,heard::add);r.c.enabled=0;r.reply(true);
+        check(heard.isEmpty()&&!r.controller.view().manualEnabled,"turning manual off is never heard");
+        Rig off=new Rig();off.c.enabled=0;off.controller.setManualStart(second,off.results::add,heard::add);off.reply(true);off.c.wireStart=second/1000-6*3600;off.reply(true);
+        check(heard.isEmpty()&&!off.controller.view().manualEnabled&&off.results.get(0)==null,"a time edit while off is not heard: the scooter will not act on it");
+        Rig late=new Rig();late.c.wireStart=first/1000-6*3600;late.controller.setManualEnabled(true,late.results::add,heard::add);late.reply(true);late.c.wireStart=late.sentTime/1000+late.sentOffset;late.reply(true);
+        late.c.now=late.sentTime+2_000;late.c.enabled=1;late.reply(true);
+        check(heard.isEmpty()&&late.controller.view().manualEnabled,"a manual start that passed during the ON confirmation is not heard");
+        Rig test=new Rig();test.c.wireStart=first/1000-6*3600;check(test.controller.startTest(x->{})==null,"test starts");test.reply(true);test.c.wireStart=test.sentTime/1000+test.sentOffset;test.reply(true);test.c.enabled=1;test.reply(true);
+        check(heard.isEmpty()&&test.controller.testing(),"Test scheduled charging has no listener to hear");
+    }
+    /** A rig with confirmed manual Scheduled charging on, so the remembered plan says on whatever the scooter reads next. */
+    private static Rig manualOn(List<Long> heard,long first){Rig r=new Rig();r.c.wireStart=first/1000-6*3600;r.controller.setManualEnabled(true,r.results::add,heard::add);confirmWrites(r);check(heard.size()==1&&r.controller.view().manualEnabled,"manual armed");heard.clear();return r;}
+    /** A time edit writes no ON, so only a live reading of the switch can back the message; a reliable OFF retires one already out. */
+    private static void reassuranceNeedsLiveOn(){
+        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");long secondWire=second/1000-6*3600;
+        Rig before=manualOn(heard,first);before.c.enabled=0;check(before.controller.view().manualEnabled,"the remembered plan still says on over a zero");
+        before.controller.setManualStart(second,before.results::add,heard::add);before.reply(true);before.c.wireStart=secondWire;before.reply(true);
+        check(heard.isEmpty()&&before.results.get(1)==null,"OFF before the edit: saved, but no reassurance");
+        check(!before.controller.startStillPlanned("owner-A",second),"OFF before the edit: nothing claims the new start");
+        Rig during=manualOn(heard,first);during.controller.setManualStart(second,during.results::add,heard::add);during.reply(true);during.c.wireStart=secondWire;during.c.enabled=0;during.reply(true);
+        check(heard.isEmpty()&&!during.controller.startStillPlanned("owner-A",second),"OFF while the time was confirming: no reassurance");
+        Rig on=manualOn(heard,first);on.controller.setManualStart(second,on.results::add,heard::add);on.reply(true);on.c.wireStart=secondWire;on.reply(true);
+        check(heard.size()==1&&heard.get(0)==second&&on.controller.startStillPlanned("owner-A",second),"confirmed ON: the new start is heard and holds");heard.clear();
+        Rig unknown=manualOn(heard,first);unknown.controller.setManualStart(second,unknown.results::add,heard::add);unknown.reply(true);unknown.c.wireStart=secondWire;unknown.c.enabled=null;unknown.reply(true);
+        check(heard.isEmpty(),"no reading of the switch: silence");
+        Rig odd=manualOn(heard,first);odd.controller.setManualStart(second,odd.results::add,heard::add);odd.reply(true);odd.c.wireStart=secondWire;odd.c.enabled=2;odd.reply(true);
+        check(heard.isEmpty(),"an out-of-range switch reading: silence");
+        Rig unchanged=manualOn(heard,first);int writes=unchanged.writes.size();unchanged.c.enabled=0;unchanged.controller.setManualStart(second,unchanged.results::add,heard::add);unchanged.reply(true);unchanged.c.wireStart=secondWire;unchanged.reply(true);
+        check(unchanged.writes.subList(writes,unchanged.writes.size()).equals(java.util.Arrays.asList("clock","time")),"Volt never turns the schedule on for the rider");
+        // A claim already out: retired by a reliable OFF, kept through what a reboot can look like.
+        Rig posted=manualOn(heard,first);long start=first;posted.c.enabled=0;
+        check(!posted.controller.startStillPlanned("owner-A",start),"a reliable OFF beside the saved time retires a posted claim");
+        check(posted.controller.startStillPlanned("owner-B",start+1),"another scooter's OFF says nothing about this claim");
+        Rig zero=manualOn(heard,first);zero.c.enabled=0;zero.c.wireStart=0L;check(zero.controller.startStillPlanned("owner-A",first),"reboot zeros are ambiguous: the claim stands");
+        Rig absent=manualOn(heard,first);absent.c.enabled=0;absent.c.wireStart=null;check(absent.controller.startStillPlanned("owner-A",first),"a zero with no time reading is ambiguous: the claim stands");
+        Rig blank=manualOn(heard,first);blank.c.enabled=null;check(blank.controller.startStillPlanned("owner-A",first),"no reading of the switch: the claim stands");
+        heard.clear();Rig done=new Rig();done.controller.setDoneEnabled(true,done.results::add,heard::add);confirmWrites(done);start=heard.get(0);heard.clear();done.c.enabled=0;
+        check(!done.controller.startStillPlanned("owner-A",start),"a reliable OFF retires a Charge done by claim too");
+        // Charge done by rewrites ON with each edit, so that confirmation is the evidence.
+        Rig edited=new Rig();edited.controller.setDoneEnabled(true,edited.results::add,heard::add);confirmWrites(edited);heard.clear();edited.c.enabled=null;edited.controller.setDoneTime(9,0,edited.results::add,heard::add);edited.reply(true);edited.c.wireStart=edited.sentTime/1000+edited.sentOffset;edited.reply(true);edited.reply(true);
+        check(heard.size()==1,"a confirmed ON write is its own evidence");heard.clear();
+        Rig contradicted=new Rig();contradicted.controller.setDoneEnabled(true,contradicted.results::add,heard::add);contradicted.reply(true);contradicted.c.wireStart=contradicted.sentTime/1000+contradicted.sentOffset;contradicted.reply(true);contradicted.c.enabled=0;contradicted.reply(true);
+        check(heard.isEmpty()&&contradicted.results.get(0)==null,"a reliable OFF read right after the ON is not reassured over");
+    }
+    /** Whether a "safe to disconnect" notice still speaks for its plan, over every path that ends or replaces that plan. */
+    private static void reassuranceRetires(){
+        List<Long> heard=new ArrayList<>();
+        Rig off=new Rig();off.controller.setDoneEnabled(true,off.results::add,heard::add);confirmWrites(off);long start=heard.get(0);
+        check(off.controller.startStillPlanned("owner-A",start),"the notice holds while its plan stands");
+        check(off.controller.startStillPlanned("owner-B",start+1),"another scooter's view cannot retire this notice");
+        off.c.ready=false;check(off.controller.startStillPlanned("owner-A",start+1),"unknown while disconnected: the claim stands");off.c.ready=true;
+        off.controller.setDoneEnabled(false,off.results::add);check(off.controller.startStillPlanned("owner-A",start),"OFF not confirmed yet");
+        off.c.enabled=0;off.reply(true);check(!off.controller.startStillPlanned("owner-A",start),"a confirmed OFF retires the notice");
+        Rig failedOff=new Rig();failedOff.arm();long kept=failedOff.sentTime;failedOff.controller.setDoneEnabled(false,failedOff.results::add);failedOff.reply(false);
+        check(failedOff.controller.startStillPlanned("owner-A",kept),"a failed OFF leaves the plan and the notice");
+        heard.clear();Rig edit=new Rig();edit.controller.setDoneEnabled(true,edit.results::add,heard::add);confirmWrites(edit);start=heard.get(0);
+        edit.controller.setDoneTime(9,0,edit.results::add,heard::add);
+        check(edit.controller.startStillPlanned("owner-A",start),"an edit in flight has changed nothing yet");
+        confirmWrites(edit);long moved=heard.get(heard.size()-1);
+        check(moved!=start&&!edit.controller.startStillPlanned("owner-A",start)&&edit.controller.startStillPlanned("owner-A",moved),"a confirmed edit retires the old start and holds the new one");
+        heard.clear();Rig broken=new Rig();broken.controller.setDoneEnabled(true,broken.results::add,heard::add);confirmWrites(broken);start=heard.get(0);
+        broken.controller.setDoneTime(9,0,broken.results::add,heard::add);broken.reply(true);broken.c.wireStart=broken.sentTime/1000+broken.sentOffset;broken.reply(true);broken.reply(false);
+        check(!broken.controller.startStillPlanned("owner-A",start),"a time already rewritten retires the old claim even when the switch fails");
+        heard.clear();Rig outside=new Rig();outside.controller.setDoneEnabled(true,outside.results::add,heard::add);confirmWrites(outside);start=heard.get(0);
+        outside.c.wireStart=outside.sentTime/1000+outside.sentOffset+3600;check(!outside.controller.startStillPlanned("owner-A",start),"a time changed on the scooter retires the notice");
+        heard.clear();Rig manual=new Rig();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");manual.c.wireStart=first/1000-6*3600;manual.controller.setManualEnabled(true,manual.results::add,heard::add);confirmWrites(manual);
+        start=heard.get(0);check(manual.controller.startStillPlanned("owner-A",start),"the manual notice holds");
+        manual.controller.setManualStart(second,manual.results::add,heard::add);manual.reply(true);manual.c.wireStart=second/1000-6*3600;manual.reply(true);
+        check(!manual.controller.startStillPlanned("owner-A",start)&&manual.controller.startStillPlanned("owner-A",second),"a manual edit retires the old start");
+        manual.controller.setManualEnabled(false,manual.results::add);manual.c.enabled=0;manual.reply(true);check(!manual.controller.startStillPlanned("owner-A",second),"turning manual off retires its notice");
     }
     private static void planner(){
         TimeZone boise=TimeZone.getTimeZone("America/Boise");long now=time("2026-10-20T05:00:00Z");

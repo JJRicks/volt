@@ -108,7 +108,7 @@ final class BackupTestStore implements BackupArchive.Storage {
         for (int i = 0; i < 40; i++) { Map<String, RideStore.Sample> s = new LinkedHashMap<>(); s.put("speed_kmh", new RideStore.Sample(10 + i % 7, wall / 7 + i * 1000)); s.put("battery_percent", new RideStore.Sample(90 - i / 10d, wall / 7 + i * 1000)); rides.sample(wall + i * 1000, wall / 7 + i * 1000, s); }
         rides.stop(wall + 40000, wall / 7 + 40000);
         if (phone) {
-            PhoneRideStore sensors = new PhoneRideStore(new File(files(), "phone-rides")); sensors.start(id, wall, wall / 7, "mounted");
+            PhoneRideStore sensors = new PhoneRideStore(new File(files(), "phone-rides")); sensors.start(id, wall, wall / 7);
             sensors.appendBatch(id, PhoneRideStore.row("GPS", wall + 1000, wall / 7 + 1000, 40.1, -111.2, 3, 4, 5, 6, 7), (wall / 7 + 1000) + ",1,2,3,4,5,6,7,8,9,0,0,0,1,3\n");
             sensors.stop(id, wall + 40000, wall / 7 + 40000);
         }
@@ -129,6 +129,11 @@ final class BackupTestStore implements BackupArchive.Storage {
         app.put("theme", "light"); app.put("units", "km"); app.put("text_scale", 1.25f); app.put("poll_interval_ms", 1000); app.put("haptics_enabled", false);
         app.put("map_basemap_enabled", true); app.put("map_basemap_explained", true); app.put("stats_favourites", new LinkedHashSet<>(Arrays.asList("speed_kmh", "battery_percent")));
         app.put("stats_group_ride", true); app.put("ride_auto_stop", true); app.put("last_ride_label", "Commute 🛴");
+        // Automatic ride copies, as an older Volt with only the Route CSV copy on backed them up: both switches travel; this
+        // phone's folder grant, waiting rides and last problem never do.
+        app.put("ride_auto_export_route_csv", true); app.put("ride_auto_export_json", false);
+        app.put("ride_auto_export_folder", "content://com.android.externalstorage.documents/tree/primary%3ADownload%2FVoltRides");
+        app.put("ride_auto_export_pending", "1a2b3c4d-0000-4000-8000-000000000001"); app.put("ride_auto_export_problem", "folder");
         app.put("dashboard_columns", 4);
         for (String pid : new String[]{"a0000000-0000-4000-8000-00000000000a", "b0000000-0000-4000-8000-00000000000b"}) {
             app.put("dashboard_v1_" + pid, "[{\"id\":\"w-" + pid.charAt(0) + "\"}]"); app.put("dashboard_slot_v1_" + pid + "_0", "slot zero " + pid.charAt(0)); app.put("dashboard_slot_v1_" + pid + "_2", "slot two " + pid.charAt(0));
