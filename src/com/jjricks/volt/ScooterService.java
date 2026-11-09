@@ -1760,28 +1760,26 @@ public final class ScooterService extends Service {
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
         notices.cancel(71);stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
-    public void startRide(String label){startRide(label,false);}
-    /** quiet: auto-record, whose checks (AutoStartPolicy) already covered these refusals; a failed start stays silent too. */
-    private void startRide(String label,boolean quiet){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
+    public void startRide(String label){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
             android.widget.Toast.makeText(this, T.serviceRideExitSimulation(), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }if(phoneSaving()){
             android.widget.Toast.makeText(
                             this, T.serviceRideFinishing(), android.widget.Toast.LENGTH_SHORT)
                     .show();
-            return;}if(rides==null||!ble.ready()||isRecording())return;try{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+            return;}if(rides==null||!ble.ready()||isRecording())return;try{beginRide(label);}catch(IOException|IllegalStateException e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
+    /** Starts the recording; the caller has done every check. startRide and auto-record both come through here. */
+    private void beginRide(String label)throws IOException{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
             rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);
             // Re-evaluate START_STICKY after the user starts a ride, rather than retaining
             // the idle service's earlier START_NOT_STICKY result.
-            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){
-            if(quiet)return;
-            android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
+            startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}
 
     public void stopRide(){stopRide("");}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
-     * Auto-record, on every Bluetooth change and service tick, in the background too. The start goes through startRide
+     * Auto-record, on every Bluetooth change and service tick, in the background too. It starts a ride as startRide does
      * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
      */
     private void observeAutoStart(long mono){
@@ -1790,7 +1788,7 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
         boolean canStart=ble.ready()&&active!=null&&bound!=null&&active.id.equals(bound.id);
         if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
-        startRide(RidesScreen.defaultRideName(this),true);
+        try{beginRide(RidesScreen.defaultRideName(this));}catch(IOException|IllegalStateException ignored){/* said nothing, on purpose; held below */}
         if(!isRecording())autoStart.recordingStartFailed();
     }
     /** Auto ride mode's decision for the activity, which knows what is on screen; a true answer counts as this trigger's open. */
