@@ -43,7 +43,7 @@ final class RidingSession {
     private boolean tripSeenWhole;
     /** Top speed and the moving average since this riding mode opened. */
     private final RidingSpeed speed;
-    /** ScooterService.rideAutoEnds() when this riding mode opened: any change means its recording ended by itself. */
+    /** ScooterService.rideAutoEnds() when this riding mode opened: a higher count now means its recording ended by itself. */
     private final long autoEnds;
 
     /**
@@ -76,7 +76,7 @@ final class RidingSession {
         double[] speed() { return speed; }
         long autoEnds() { return autoEnds; }
         /** True when a recording ended by itself after this riding mode opened, so it must not come back. Unknown (a save from before this existed) never counts. */
-        boolean autoEnded(long autoEndsNow) { return autoEnds >= 0 && autoEnds != autoEndsNow; }
+        boolean autoEnded(long autoEndsNow) { return autoEnds >= 0 && autoEndsNow > autoEnds; }
         /** Rebuilds saved state, or null when the distance array isn't the one distance() wrote. */
         static Resume of(String profileId, long openedMs, double[] distance) { return of(profileId, openedMs, distance, null, -1); }
         /** As above, with Max and Avg (a speed array of any other shape starts them over) and the auto-end count, -1 when unknown. */
@@ -119,7 +119,7 @@ final class RidingSession {
     Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording, wholeKm, tripSeenKm, tripSeenWhole, speed.state(), autoEnds); }
 
     /** True when a recording ended by itself after this riding mode opened: riding mode closes with it. */
-    boolean autoEnded(long autoEndsNow) { return autoEnds != autoEndsNow; }
+    boolean autoEnded(long autoEndsNow) { return autoEndsNow > autoEnds; }
 
     /** Top speed since this riding mode opened: null before the first speed reading, then 0 until something has moved. */
     Double maxKmh() { return speed.maxKmh(); }

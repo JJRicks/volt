@@ -892,6 +892,7 @@ public final class RidingValuesTest {
         RidingSession session = new RidingSession(PROFILE, null, t, null, 3);
         check(!session.autoEnded(3), "no auto-end since it opened");
         check(session.autoEnded(4), "one auto-end since it opened closes it");
+        check(!session.autoEnded(2) && !session.resume().autoEnded(2), "a count that reads lower is no end");
         RidingSession.Resume saved = session.resume();
         check(saved.autoEnds() == 3 && !saved.autoEnded(3) && saved.autoEnded(4), "the saved state answers the same");
         RidingSession.Resume restored = RidingSession.Resume.of(saved.profileId(), saved.openedMs(), saved.distance(), saved.speed(), saved.autoEnds());

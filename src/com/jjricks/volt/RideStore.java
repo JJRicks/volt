@@ -386,14 +386,14 @@ public final class RideStore {
             journals.add(journalId(file));
             if (deferFinished) {
                 String[] stop = finishedStop(file);
-                if (stop != null) { noteStop(stop[14], Long.parseLong(stop[3])); deferred.add(file); continue; }
+                if (stop != null) { noteStop(journalId(file), stop[14]); deferred.add(file); continue; }
             }
             long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
             if (candidate == null) continue;
             // Keep this read: Rides opens from it instead of replaying every journal again.
             if (candidate.stopped) {
-                noteStop(candidate.stopReason, candidate.lastWall);
+                noteStop(candidate.id, candidate.stopReason);
                 if (file.length() == length && file.lastModified() == modified) cacheFinished(candidate.id, length, modified, candidate);
             } else if (active == null || candidate.startWall > active.startWall) active = candidate;
         }
@@ -408,17 +408,13 @@ public final class RideStore {
         }
     }
 
-    /** The STOP time of every journal found at this load whose STOP row names an automatic end. */
-    private final ArrayList<Long> automaticStops = new ArrayList<>();
-    private void noteStop(String details, long stopWall) {
-        if (STOP_AUTO_PARKED.equals(details) || STOP_AUTO_NO_MOTION.equals(details) || isQuietStop(details)) automaticStops.add(stopWall);
+    /** The id of every journal found at this load whose STOP row names an automatic end. */
+    private final ArrayList<String> automaticStops = new ArrayList<>();
+    private void noteStop(String rideId, String details) {
+        if (STOP_AUTO_PARKED.equals(details) || STOP_AUTO_NO_MOTION.equals(details) || isQuietStop(details)) automaticStops.add(rideId);
     }
     /** See {@link RideAutoEnds}: what the journals themselves recorded, as of this store's load. */
-    long[] automaticStopsAtLoad() {
-        long[] stops = new long[automaticStops.size()];
-        for (int i = 0; i < stops.length; i++) stops[i] = automaticStops.get(i);
-        return stops;
-    }
+    String[] automaticStopsAtLoad() { return automaticStops.toArray(new String[0]); }
 
     /** Seeds the cache from a deferred (finished-looking) journal's saved summary when it matches. */
     private void seedSaved(File file) {
