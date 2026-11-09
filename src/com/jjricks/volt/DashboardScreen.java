@@ -1538,7 +1538,8 @@ public final class DashboardScreen implements AppScreen {
                 for (int i = 0; i < shown.size(); i += inRow, inRow = columns) {
                     LinearLayout line = row(); line.setBaselineAligned(false);
                     for (int j = 0; j < inRow && i + j < shown.size(); j++) {
-                        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
+                        // loneFirst's pair stays even when only one label wraps to two lines.
+                        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, loneFirst ? -1 : -2, 1);
                         if (j > 0) p.setMarginStart(ui.dp(8));
                         line.addView(shown.get(i + j), p);
                     }
