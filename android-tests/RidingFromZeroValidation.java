@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
@@ -26,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Riding mode's ride time and distance start from zero at each open (owner, Nov 8), against the sample
@@ -155,26 +156,33 @@ public final class RidingFromZeroValidation extends Instrumentation {
         settle();
     }
 
-    /** The screen shows the session's numbers: a clock near the ride time and the distance to one decimal. */
+    /** The tiles speak the session's numbers: a clock near the ride time and the distance to one decimal. */
     private void requireScreen(long ms, double km, String label) {
         SystemClock.sleep(1200); // Let the once-a-second refresh draw them.
-        List<String> texts = new ArrayList<>();
-        main(() -> collect(activity.getWindow().getDecorView(), texts));
+        List<String> spoken = new ArrayList<>();
+        main(() -> collect(activity.getWindow().getDecorView(), spoken));
         long seconds = ms / 1000;
-        boolean clock = false;
-        for (String text : texts) {
-            String[] parts = text.split(":");
-            if (parts.length == 2 && parts[0].matches("[0-9]+") && parts[1].matches("[0-9]{2}")) {
-                long shown = Long.parseLong(parts[0]) * 60 + Long.parseLong(parts[1]);
-                clock |= shown >= seconds && shown <= seconds + 6;
+        boolean clock = false, distance = false;
+        for (String text : spoken) {
+            if (text.startsWith("Ride time")) {
+                Matcher m = Pattern.compile("([0-9]+):([0-9]{2})").matcher(text);
+                if (m.find()) {
+                    long shown = Long.parseLong(m.group(1)) * 60 + Long.parseLong(m.group(2));
+                    clock = shown >= seconds && shown <= seconds + 6;
+                }
+            } else if (text.startsWith("Trip")) {
+                Matcher m = Pattern.compile("([0-9]+[.][0-9])").matcher(text);
+                if (m.find()) distance = Math.abs(Double.parseDouble(m.group(1)) - km) < 0.25;
             }
         }
-        require(clock, label + ": no ride time on screen near " + seconds + " s, in " + texts);
-        note(label + " on screen: " + texts);
+        require(clock, label + ": no ride time near " + seconds + " s, in " + spoken);
+        require(distance, label + ": no trip distance near " + km + " km, in " + spoken);
+        note(label + " spoken: " + spoken);
     }
 
     private void collect(View view, List<String> out) {
-        if (view instanceof TextView && view.isShown() && ((TextView) view).getText().length() > 0) out.add(((TextView) view).getText().toString());
+        CharSequence said = view.isShown() ? view.getContentDescription() : null;
+        if (said != null && said.length() > 0) out.add(said.toString());
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collect(((ViewGroup) view).getChildAt(i), out);
     }
 
