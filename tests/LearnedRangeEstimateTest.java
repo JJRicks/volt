@@ -161,6 +161,12 @@ public final class LearnedRangeEstimateTest {
         distance.accept(0, 20d, 300d, 50d, 1000d, false);
         check(!distance.snapshot(0).energyModel, "Distance prior: no live energy model");
         near(legacy.remainingKm(50d), distance.snapshot(0).rawKm, "Distance prior: the learned figure as a fallback");
+        // Unsigned current (GT3 Max): the summary claims no direction, yet the energy model keeps its evidence.
+        Fixture unsignedCurrent = energy("A", 20, 60, 2.5, 600, "unsigned_current", NOW);
+        LearnedRangeEstimate.Evidence measured = unsignedCurrent.evidence();
+        check(!measured.summary.directionConfirmed && measured.summary.netConsumptionWh == null, "An unsigned-current ride has no confirmed direction");
+        check(measured.rejection == null && measured.rideWh != null && Math.abs(measured.rideWh - 100) < 1e-6 && measured.gaugePoints() == 19,
+                "And keeps the same energy evidence as a signed ride: " + measured.rideWh + " " + measured.gaugePoints());
         // Negative-is-draw scooters give the same evidence; regeneration counts against draw.
         LearnedRangeEstimate.Evidence negative = energy("A", 20, 60, 2.5, -600, "negative", NOW).evidence();
         check(negative.rideWh != null && Math.abs(negative.rideWh - 100) < 1e-6 && negative.gaugePoints() == 19, "Negative-is-draw convention");
@@ -249,6 +255,7 @@ public final class LearnedRangeEstimateTest {
                 values.put("voltage_v", new RideStore.Sample(50.0, "50V", "V", 0x72, mono));
                 values.put("current_a", new RideStore.Sample(current, "current", "A", 0x72, mono));
             }
+            if (mode.equals("unsigned_current")) values.put("current_sign_state", new RideStore.Sample(254.0, "254 (raw)", "", 0x79, mono));
             if (mode.equals("gap") && sec == 300) store.markGap(start + mono, mono, "Synthetic gap");
             store.sample(start + mono, mono, values);
         }
