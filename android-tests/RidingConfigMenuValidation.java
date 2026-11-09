@@ -50,6 +50,8 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         try {
             require(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Refusing physical device");
             require(prefs("profiles").getAll().isEmpty() && prefs("scooter").getAll().isEmpty(), "Refusing existing profiles; clear disposable app first");
+            // Android's one-time "viewing full screen" note would take the window focus these checks watch.
+            getUiAutomation().executeShellCommand("settings put secure immersive_mode_confirmations confirmed").close();
             evidence = new File(getTargetContext().getExternalFilesDir(null), "riding-config-menu");
             require(evidence.mkdirs() || evidence.isDirectory(), "Evidence directory");
             main(() -> {
