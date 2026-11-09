@@ -240,7 +240,7 @@ public final class ChargeScheduleValidation extends Instrumentation {
     /** The "safe to disconnect" toast: only for a start the scooter confirmed, in the owner's clock format. */
     private void verifyDoneByToast() throws Exception {
         List<String> toasts=Collections.synchronizedList(new ArrayList<>());
-        getUiAutomation().setOnAccessibilityEventListener(event->{if(event.getEventType()==android.view.accessibility.AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED&&String.valueOf(event.getClassName()).contains("Toast"))toasts.add(android.text.TextUtils.join("",event.getText()));});
+        getUiAutomation().setOnAccessibilityEventListener(event->{if(event.getEventType()==android.view.accessibility.AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED&&String.valueOf(event.getClassName()).contains("Toast"))toasts.add(event.getText().isEmpty()?"":String.valueOf(event.getText().get(0)));});
         try{
             int[] original={0};main(()->original[0]=service.chargeSchedule().doneByMinuteOfDay);
             for(boolean is24:new boolean[]{false,true}){String format=is24?"24h":"12h";
@@ -291,7 +291,8 @@ public final class ChargeScheduleValidation extends Instrumentation {
     }
     private void armDoneBy(){AtomicReference<String> response=new AtomicReference<>("pending");main(()->service.setChargeDoneByEnabled(true,response::set));
         await(()->!"pending".equals(response.get())&&!service.chargeSchedule().busy,"Enable did not finish");require(response.get()==null&&service.chargeSchedule().doneByEnabled,"Enable failed: "+response.get());}
-    private void drainToasts(List<String> toasts){SystemClock.sleep(4200);toasts.clear();}
+    /** Toasts queue: wait until the queue from earlier steps has gone quiet. */
+    private void drainToasts(List<String> toasts){long end=SystemClock.uptimeMillis()+40000,quiet=SystemClock.uptimeMillis();int seen=toasts.size();while(SystemClock.uptimeMillis()<end&&SystemClock.uptimeMillis()-quiet<5000){SystemClock.sleep(150);int now=toasts.size();if(now!=seen){seen=now;quiet=SystemClock.uptimeMillis();}}toasts.clear();}
     private void awaitToast(List<String> toasts,String expected){long end=SystemClock.uptimeMillis()+20000;while(SystemClock.uptimeMillis()<end){if(toasts.contains(expected)){int seen=Collections.frequency(toasts,expected);SystemClock.sleep(700);require(Collections.frequency(toasts,expected)==seen&&seen==1,"Toast fired more than once: "+toasts);assertions++;return;}SystemClock.sleep(50);}throw new IllegalStateException("Toast missing: wanted '"+expected+"', saw "+toasts);}
     private void assertNoToast(List<String> toasts,String when){SystemClock.sleep(1500);synchronized(toasts){for(String toast:toasts)require(!toast.contains("Safe to disconnect"),when+" announced a start: "+toast);}toasts.clear();assertions++;}
     /** Outside simulation, a measuring window with no recording must keep the CPU awake between ticks. */
