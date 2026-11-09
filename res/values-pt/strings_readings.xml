@@ -175,9 +175,9 @@
     <!-- src:7044b2710ffbc209d1839555476d7926bb179106 -->
     <string name="readings_lock_status_compact">Bloqueio</string>
     <!-- src:8b578c5ddfc1d5b18e54c314262241084e516636 -->
-    <string name="readings_cruise_control">Controlo de cruzeiro (em bruto)</string>
+    <string name="readings_cruise_control">Cruise Control (em bruto)</string>
     <!-- src:0973cc51c7bc8503f04b8931b476b6bdc7aaa1ce -->
-    <string name="readings_cruise_control_short">Cruzeiro (em bruto)</string>
+    <string name="readings_cruise_control_short">Cruise Control (em bruto)</string>
     <!-- src:d4418691acaabc73c387e5ebe1e5e26370bbc131 -->
     <string name="readings_tail_light">Definição da luz traseira (em bruto)</string>
     <!-- src:2c4d7eae913c11230c529a0c23d529432cc38e8d -->
