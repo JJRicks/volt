@@ -38,6 +38,10 @@ too, as locale-en-XA-scooter-<size>). All locale-* steps
 report only: their findings never fail the sweep. They never join the census, so run them as their own
 sweep (own --out, no --census) rather than in a G7 run.
 
+The closing summary counts the two kinds apart: gating steps passed and failed (only those set the exit code),
+then report-only steps ran, did not finish and skipped, none of which is a pass. summary.json gives each step a
+status (passed, failed, reported, did-not-finish, skipped); only gating steps have the passed field.
+
 Sizes. PHONE is the Fold5 cover (344x882 dp, dark, 1x text). WIDE is its open panel (725x604 dp, light) at
 1x text, so the wide layout (side rail, two columns) stays checked. WIDE_LARGE is the same panel at 1.4x
 Text size: Volt picks the wide layout from the width over the text scale (WideLayout, 650 dp), so 725 dp
@@ -79,6 +83,7 @@ SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
             'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect'}
 ANDROID = '{http://schemas.android.com/apk/res/android}'
+STATUS_LABEL = {'passed': 'PASS', 'failed': 'FAIL', 'reported': 'REPORT', 'did-not-finish': 'REPORT (did not finish)', 'skipped': 'SKIPPED'}
 
 
 def runner(name, script, covers, *extra):
@@ -412,9 +417,12 @@ try:
         detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems|truncated_tiles)=\d+', output)[:9])
         if output.startswith('skipped:'): detail = output
         error = re.search(r'error=(.{0,240})', output)
-        result = dict(step=step['name'], passed=passed or report_only, seconds=round(time.monotonic() - started))
-        label = ('REPORT' if passed else 'REPORT (did not finish)') if report_only else 'PASS' if passed else 'FAIL'
+        if report_only: status = 'skipped' if output.startswith('skipped:') else 'reported' if passed else 'did-not-finish'
+        else: status = 'passed' if passed else 'failed'
+        result = dict(step=step['name'], status=status, seconds=round(time.monotonic() - started))
+        label = STATUS_LABEL[status]
         if report_only: result['report_only'] = True
+        else: result['passed'] = passed
         # Report-only locale steps are not English, so they never join the G7 census.
         if args.census and not report_only:
             screens, census_errors = gather_census(step['name'])
@@ -432,8 +440,13 @@ finally:
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'hide_error_dialogs', hide_dialogs, check=False)
     (args.out / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
-failed = [r['step'] for r in results if not r['passed']]
-print(f'{len(results) - len(failed)}/{len(results)} steps passed' + (': failed ' + ', '.join(failed) if failed else ''))
+def with_status(status): return [r['step'] for r in results if r['status'] == status]
+
+
+failed, unfinished, skipped = with_status('failed'), with_status('did-not-finish'), with_status('skipped')
+print(f'Gating steps: {len(with_status("passed"))} passed, {len(failed)} failed' + (': ' + ', '.join(failed) if failed else ''))
+print(f'Report-only steps (never counted as passes): {len(with_status("reported"))} ran, {len(unfinished)} did not finish, {len(skipped)} skipped'
+      + ('; did not finish: ' + ', '.join(unfinished) if unfinished else '') + ('; skipped: ' + ', '.join(skipped) if skipped else ''))
 if args.census:
     census_errors = [f'{r["step"]}/{e}' for r in results for e in r.get('census_errors', [])]
     empty = [r['step'] for r in results if 'census_screens' in r and not r['census_screens']]

@@ -1057,6 +1057,12 @@ public final class DashboardScreen implements AppScreen {
                 r == null ? null : r.number, r != null && r.live, r == null ? 0 : r.capturedWallMs);
     }
 
+    /** Time to the charge alert's level for the charging hero, or null where there is none to show. */
+    private ChargingEstimate.Result chargeAlertEstimate(Map<String, TelemetryHistory.Reading> values) {
+        ScooterService service = host.service();
+        return service == null ? null : service.chargeAlertEstimate(values);
+    }
+
     private ChargingEstimate.Result chargingEstimate(Map<String, TelemetryHistory.Reading> values) {
         ScooterService service = host.service();
         if (service != null) return service.chargingEstimate(values);
@@ -1481,7 +1487,15 @@ public final class DashboardScreen implements AppScreen {
     private final class InfoTiles extends LinearLayout {
         final ArrayList<InfoCell> cells = new ArrayList<>();
         int columns;
+        /** An odd tile out sits alone on the first row rather than the last, keeping the later pair together. */
+        boolean loneFirst;
         InfoTiles() { super(host.activity()); setOrientation(VERTICAL); }
+        /** Shows or hides one tile; the rest close up. */
+        void show(InfoCell cell, boolean shown) {
+            int visibility = shown ? VISIBLE : GONE;
+            if (cell.getVisibility() == visibility) return;
+            cell.setVisibility(visibility); columns = 0; requestLayout();
+        }
         InfoCell add(String icon, String title) {
             InfoCell cell = new InfoCell(icon, title, title, title); cells.add(cell); columns = 0;
             requestLayout(); return cell;
@@ -1511,19 +1525,23 @@ public final class DashboardScreen implements AppScreen {
             }
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            ArrayList<InfoCell> shown = new ArrayList<>();
+            for (InfoCell cell : cells) if (cell.getVisibility() != GONE) shown.add(cell);
             int next = MeasureSpec.getSize(widthSpec) >= ui.dp(280 * ui.textScale) ? 2 : 1;
-            next = Math.min(next, Math.max(1, cells.size()));
+            next = Math.min(next, Math.max(1, shown.size()));
             if (next != columns) {
                 columns = next;
                 for (InfoCell cell : cells) if (cell.getParent() instanceof ViewGroup)
                     ((ViewGroup)cell.getParent()).removeView(cell);
                 removeAllViews();
-                for (int i = 0; i < cells.size(); i += columns) {
+                int inRow = loneFirst && shown.size() % columns == 1 ? 1 : columns;
+                for (int i = 0; i < shown.size(); i += inRow, inRow = columns) {
                     LinearLayout line = row(); line.setBaselineAligned(false);
-                    for (int j = 0; j < columns && i + j < cells.size(); j++) {
-                        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
+                    for (int j = 0; j < inRow && i + j < shown.size(); j++) {
+                        // loneFirst's pair stays even when only one label wraps to two lines.
+                        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, loneFirst ? -1 : -2, 1);
                         if (j > 0) p.setMarginStart(ui.dp(8));
-                        line.addView(cells.get(i + j), p);
+                        line.addView(shown.get(i + j), p);
                     }
                     LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
                     if (i > 0) p.topMargin = ui.dp(8);
@@ -1560,7 +1578,8 @@ public final class DashboardScreen implements AppScreen {
      */
     private final class ChargingHero extends LinearLayout {
         final TextView chip, percent, etaLabel, eta, etaTag, power;
-        final InfoCell timeCell;
+        final InfoCell timeCell, alertCell;
+        final InfoTiles tiles;
         final ImageView photo;
         final Stage stage;
         double level = Double.NaN, limit = 100;
@@ -1601,9 +1620,14 @@ public final class DashboardScreen implements AppScreen {
             stage.addView(photo, photoSize);
             addView(stage, new LinearLayout.LayoutParams(-1, -2));
             LinearLayout rows = column();
-            InfoTiles tiles = new InfoTiles();
+            tiles = new InfoTiles();
+            // With a charge alert to reach: power alone, then its time and the time to full side by side.
+            tiles.loneFirst = true;
             InfoCell powerCell = tiles.add("bolt", T.dashboardChargingPower());
-            InfoCell timeCell = tiles.add("clock", T.dashboardTimeToFull());
+            String timeToFull = T.dashboardTimeToFull();
+            alertCell = tiles.add("clock", timeToFull);
+            tiles.show(alertCell, false);
+            InfoCell timeCell = tiles.add("clock", timeToFull);
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             this.timeCell = timeCell;
@@ -1720,9 +1744,10 @@ public final class DashboardScreen implements AppScreen {
             // charge status stays English inside these templates (here and in describeCharging below).
             String time = etaTag.getVisibility() == View.VISIBLE
                     ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
-                    : (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTime(timeLabel[0], eta.getText()) : T.dashboardHeroTimeStatus(timeLabel[0], eta.getText(), estimate.status));
+                    : spokenTime(timeLabel[0], eta.getText(), estimate.status);
             eta.setContentDescription(time);
             timeCell.setTooltipText(time);
+            showAlertTime(chargeAlertEstimate(values), estimate);
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -1733,6 +1758,24 @@ public final class DashboardScreen implements AppScreen {
                             : (hasLimit ? T.dashboardHeroChargeLimitCount(Math.round(level), Fmt.integer(Math.round(level)), T.dashboardHeroLimitPercent(Math.round(limit), Fmt.integer(Math.round(limit)))) : T.dashboardHeroChargeCount(Math.round(level), Fmt.integer(Math.round(level)))));
             stage.invalidate();
             showAnimated(true);
+        }
+
+        private String spokenTime(String name, CharSequence value, String status) {
+            return status == null || status.isEmpty() ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
+        }
+
+        /** The tile counting down to a charge alert's level; it keeps its place with a dash while no time is known. */
+        private void showAlertTime(ChargingEstimate.Result alert, ChargingEstimate.Result estimate) {
+            tiles.show(alertCell, alert != null);
+            if (alert == null) return;
+            String[] labels = chargeTimeLabels(alert, false);
+            ((DashboardCaption) alertCell.label).setLabels(labels[0], labels[1], labels[2]);
+            Double minutes = ChargingEstimate.minutesToAlert(alert, estimate);
+            alertCell.value.setText(minutes == null ? "—" : duration(minutes));
+            alertCell.value.setTextColor(minutes == null ? ui.muted : ui.text);
+            String spoken = spokenTime(labels[0], alertCell.value.getText(), null);
+            alertCell.value.setContentDescription(spoken);
+            alertCell.setTooltipText(spoken);
         }
 
         /** Glow and floor line under the photo. */
