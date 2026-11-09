@@ -1,0 +1,12 @@
+shared-rider	medegebruiker | medegebruikers	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	Claude proposal; nothing official found; D3 new row
+owner-file	eigenaarsbestand | eigenaarsbestanden	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	Claude proposal; nothing official found; D3 new row
+pin-unlock	PIN-ontgrendeling | ontgrendelen met PIN	The toggle that enables the handlebar PIN.	noun phrase	no	pin	Claude proposal; nothing official found; D3 new row
+controls-to-try	Functies om te proberen | Om te proberen	The card of untried controls in Experimental controls.	noun phrase	no	experimental	Claude proposal; nothing official found; D3 new row
+lab-badge	LAB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	Claude proposal; nothing official found; D3 new row
+eco-estimate	Eco-schatting	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	Claude proposal; nothing official found; D3 new row
+maximum-speed-short	Max. snelheid	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	Claude proposal; nothing official found; D3 new row
+speed-limit	snelheidslimiet | snelheidslimieten	A limit below Maximum speed; the general word for the two rows above.	noun phrase	no	ride	Claude proposal; nothing official found; D3 new row
+scooter-display	display van de step | display	The screen on the scooter itself.	noun phrase	no	-	Claude proposal; nothing official found; D3 new row
+display-sound	Display & geluid | Display/geluid	The settings group for the scooter's display and sounds. Display here is the scooter's, not Volt's Dashboard.	noun phrase	no	-	Claude proposal; nothing official found; D3 new row
+custom-speed-limit	eigen snelheidslimiet | eigen snelheidslimieten	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	Claude proposal; nothing official found; D3 rename
+drive-mode-speed-limit	snelheidslimiet per rijmodus | snelheidslimiet van de rijmodus | snelheidslimieten per rijmodus	The speed limit of one drive mode.	noun phrase	no	ride	Claude proposal; nothing official found; D3 rename

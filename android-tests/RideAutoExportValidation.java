@@ -225,7 +225,14 @@ public final class RideAutoExportValidation extends Instrumentation {
         } catch (IOException e) { throw new IllegalStateException(e); }
     }
     private static String shortId(String id) { return id.substring(0, 8); }
-    private static String everythingName(String id) { return "ride-" + shortId(id) + "-everything.json"; }
+    /** The ride's name worked out here on its own: its start, in the phone's zone, then the id and Everything's ending. */
+    private String everythingName(String id) {
+        try {
+            RideStore.Summary s = activity.service().rides.get(id);
+            String when = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm", java.util.Locale.ROOT).format(new java.util.Date(s.startWallMs));
+            return "ride-" + when + "-" + shortId(id) + "-everything.json";
+        } catch (IOException e) { throw new IllegalStateException(e); }
+    }
     /**
      * The sheet's Everything in one JSON for the ride, as RidesScreen.exportSheet and saveLater make it: the analysis, the
      * phone recording when it has files (PhoneRideStore.load), RideExportFiles.payload into the cache, and Volt's
@@ -253,7 +260,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         String text = folderFile(everythingName(id));
         check(text.startsWith("{\"format\":\"volt-ride-everything\",\"formatVersion\":1,\"rideId\":\"" + id + "\""), what + ": the Everything format for this ride");
         check(text.equals(expectedEverything(id)), what + ": byte for byte the sheet's Everything in one JSON");
-        for (String name : listing()) check(!name.startsWith("ride-" + shortId(id)) || name.equals(everythingName(id)), what + ": only the Everything file, found " + name);
+        for (String name : listing()) check(!name.contains(shortId(id)) || name.equals(everythingName(id)), what + ": only the Everything file, found " + name);
     }
     /** A file the old switches would have left, written through Volt's folder grant (the shell can't redirect). */
     private void writeToFolder(String name, String text) {
@@ -815,7 +822,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         String all = shellText("ls -a " + FOLDER_PATH);
         for (String name : all.split("\n")) {
             name = name.trim(); if (name.isEmpty() || name.equals(".") || name.equals("..")) continue;
-            check(name.matches("ride-[0-9a-f]{8}-everything\\.json"), "Only finished Everything files in the folder, found: " + name);
+            check(name.matches("ride-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-[0-9a-f]{8}-everything\\.json"), "Only finished Everything files in the folder, found: " + name);
         }
         return true;
     }

@@ -74,6 +74,52 @@ public final class DisplayUnits {
         return new String[]{choose(metric, "dual".equals(units) ? T.fmtQuantity(imperial, T.unitsMph()) : imperial, units), high};
     }
 
+    /**
+     * The electronic lock's state word for a Setting tile or Quick access button in the shown language, or null where
+     * the tile keeps the shared On/Off. Display only.
+     */
+    public static String lockStateText(ScooterCommands.Feature feature, int value) {
+        return lockStateText(feature, value, AppLanguages.resolve(T.language()));
+    }
+
+    /**
+     * Only Turkish and Polish name the state: On and Off beside the lock's name read backwards in Turkish (Açık, Kapalı
+     * also mean open and closed) and leave the state unclear in Polish. Other languages, and any other feature or value, get null.
+     */
+    static String lockStateText(ScooterCommands.Feature feature, int value, String language) {
+        if (!"tr".equals(language) && !"pl".equals(language)) return null;
+        if (!feature.key.equals("lock") || (value != 0 && value != 1)) return null;
+        return value == 1 ? T.mainLockLocked() : T.mainLockUnlocked();
+    }
+
+    /**
+     * The icon of a Quick access button in every language: an open padlock while the electronic lock's last known state
+     * is unlocked, so the two states stay apart without relying on colour or a word that may not fit. Any other button,
+     * or no reading, keeps {@code icon}.
+     */
+    public static String quickAccessIcon(ScooterCommands.Feature feature, Integer value, String icon) {
+        return feature != null && feature.key.equals("lock") && value != null && value == 0 ? "unlock" : icon;
+    }
+
+    /**
+     * Whether a Setting tile's Turkish or Polish lock word drops for the padlock: it never ellipsizes, because cut words
+     * can read the same in both states. {@code width} is the word at the size it may not go below, {@code room} the
+     * tile's text width, both in pixels; anything that is not a lock word (Updating, no value) keeps its own text.
+     */
+    public static boolean lockWordDrops(boolean lockWord, float width, int room) {
+        return lockWord && width > room;
+    }
+
+    /** A dropped lock word's padlock: true when the padded text column is narrower than the glyph, so it takes the whole tile. */
+    public static boolean lockPadlockFillsTile(int room, int full) {
+        return room < full;
+    }
+
+    /** That padlock's side: full size, the tile's width when the tile is narrower, and never under the size that still tells open from closed. */
+    public static int lockPadlockSide(int tile, int full, int floor) {
+        return Math.max(floor, Math.min(full, tile));
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);

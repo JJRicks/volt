@@ -164,14 +164,19 @@ insufficient evidence, not zero.
 
 | Export ride data checkbox | File | Type |
 |---|---|---|
-| Everything in one JSON | `ride-<first 8 of id>-everything.json` | `application/json`: every recording below in one file ([format](ride-export-everything.md)) |
-| Sensor CSV | `ride-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
-| Analysis JSON | `ride-<first 8 of id>-analysis.json` | `application/json` |
-| Route CSV | `ride-<first 8 of id>-route.csv` | `text/csv` |
-| GPX | `ride-<first 8 of id>.gpx` | `application/gpx+xml` |
-| Phone raw CSV | `ride-<first 8 of id>-phone.csv` | `text/csv`, the phone journal as recorded |
-| Motion raw CSV | `ride-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
-| Scooter and phone JSON | `ride-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
+| Everything in one JSON | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-everything.json` | `application/json`: every recording below in one file ([format](ride-export-everything.md)) |
+| Sensor CSV | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-sensors.csv` | `text/csv`, the scooter journal as recorded |
+| Analysis JSON | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-analysis.json` | `application/json` |
+| Route CSV | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-route.csv` | `text/csv` |
+| GPX | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>.gpx` | `application/gpx+xml` |
+| Phone raw CSV | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-phone.csv` | `text/csv`, the phone journal as recorded |
+| Motion raw CSV | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-motion.csv` | `text/csv`, the motion file as recorded |
+| Scooter and phone JSON | `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-combined.json` | `application/json`: `{"scooter":<analysis JSON>,"phone":<route JSON>}` |
+
+The date and 24-hour time are the ride's start, from the ride's analysis, in the phone's time zone at export. They use
+ASCII digits and the Gregorian calendar in every language, for example
+`ride-2026-11-09_14-32-c5ba30b9-everything.json`, and every format of a ride shares that stem. With no usable start time
+the file is named `ride-<first 8 of id>` plus the same ending.
 
 Each file but Everything is byte for byte what the separate Export CSV, Export JSON and Export phone
 data buttons saved before (`RideExportFiles`, `RideExportFilesTest`). The remembered
@@ -195,7 +200,7 @@ default; `ride_auto_export_json`), that saves each ride you end into one folder,
 
 | File | Contents |
 |---|---|
-| `ride-<first 8 of id>-everything.json` | Byte for byte Export ride data → Everything in one JSON ([format](ride-export-everything.md)), made by the same code: the ride's analysis, frames, readings and events, and when the ride has them its phone journal, motion samples and route, plus the clock anchors. A ride with no phone recording gets `"phone":null` |
+| `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-everything.json` | Byte for byte Export ride data → Everything in one JSON ([format](ride-export-everything.md)), made by the same code: the ride's analysis, frames, readings and events, and when the ride has them its phone journal, motion samples and route, plus the clock anchors. A ride with no phone recording gets `"phone":null` |
 
 - **Folder.** Turning the switch on opens Android's folder picker; a cancelled pick
   leaves it off. Volt keeps a read and write grant for that folder only and asks for
