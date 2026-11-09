@@ -13,7 +13,7 @@
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
     <string name="controls_feature_energy_recovery">Enerji geri kazanımı</string>
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
-    <string name="controls_feature_energy_recovery_short">Enerji geri kazanımı</string>
+    <string name="controls_feature_energy_recovery_short">Geri kazanım</string>
     <!-- src:e85a5d0f3a6fd80c598896dc4d227e68c6fc0cb3 -->
     <string name="controls_feature_acceleration">Hızlanma profili</string>
     <!-- src:698e6ba4cfef83cc36e197154706cb78257f84b6 -->
@@ -107,7 +107,7 @@
     <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
     <string name="controls_feature_proximity_key">Yakınlıkla kilit açma</string>
     <!-- src:292206d743077769324ab3de968fcbd627c6bc24 -->
-    <string name="controls_feature_proximity_key_short">Yakınlıkla kilit açma</string>
+    <string name="controls_feature_proximity_key_short">Yakın kilit açma</string>
     <!-- src:9ebceaa07ef3bbec8add681acdb6a2a6a780f643 -->
     <string name="controls_feature_pin">Gidon PIN’i</string>
     <!-- src:b5d7c85febfcabf7d1d5c6761e480e10236fbd3b -->
