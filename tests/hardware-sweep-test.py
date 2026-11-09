@@ -126,6 +126,9 @@ class HardwareSweep(unittest.TestCase):
         smoke = source[source.index('private void backgroundSmoke'):]
         self.assertLess(smoke.index('allowForLiveChargingHold()'), smoke.index('First pause did not get a full 10s grace'),
                         'the hold is dealt with before the grace is timed')
+        hold = source[source.index('private String allowForLiveChargingHold'):source.index('private void backgroundSmoke')]
+        self.assertIn('LiveChargingHoldCheck.problem(', hold, 'judged from the effective hold, not ChargeLiveHold.active() alone')
+        self.assertNotIn('was not charging', source, 'evidence reports observed conditions')
 
     def test_only_the_parkedvalidation_runner_is_ever_installed(self):
         for kind in ('volt', 'other-target'):

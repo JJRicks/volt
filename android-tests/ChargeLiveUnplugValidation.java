@@ -18,10 +18,13 @@ import java.util.function.BooleanSupplier;
 /**
  * Disposable emulator only: the live charging card out of sight, on the real service, real tick and real poll cadence.
  * Every packet goes to an in-process GATT stand-in with a synthesized scooter; no radio, no phone. A run takes about
- * nine minutes: it waits out ChargeLiveHold.STOP_MS for real, because a short clock is what the unit tests are for.
+ * five minutes. The stand-in reports charging_state only in its reply to the background read (0x72) unless a scenario
+ * pushes a report, so an unplug shows up at the next 15 s poll, as on a scooter that pushes nothing.
  *
- * Unplug out of sight, Volt in the background the whole time: the card stays through the hold, then returns to plain Connected.
- * A dropout that ends inside the hold, and a replug during it, both keep the card.
+ * Unplug just after a poll (near the worst case) and just before one, Volt in the background: the card clears within one
+ * poll plus ChargeLiveHold.UNPLUG_MS and the measured times go in the timeline. A cut-out between two polls is never seen,
+ * a replug inside the window keeps the card, one after it doesn't re-arm, and a connected scooter that stops giving
+ * a reading (null, a gap) keeps the card. Finally the sweep's own hold check with the notification channel blocked.
  */
 public final class ChargeLiveUnplugValidation extends Instrumentation {
     private static final long S=1000L;
@@ -48,9 +51,12 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
             main(()->{link=new FakeLink();link.attach();});
             await(()->onMain(()->ble.ready()),10000,"Synthetic link never ready");
             log("link ready, charging");
-            dropoutInsideHold();
-            replugDuringHold();
-            unplugClearsAfterHold();
+            cutOutBetweenPollsKeepsTheCard();
+            replugInsideWindowKeepsTheCard();
+            unplugClears("just after a poll",0);
+            unplugClears("just before a poll",StatusCadence.POLL_SLOW_MS-1500);
+            noFreshReadingKeepsTheCard();
+            notificationsBlockedHasNoEffectiveHold();
             result.putString("result","PASS");
         }catch(Throwable error){result.putString("result","FAIL");result.putString("error",error.toString());error.printStackTrace();}
         finally{
@@ -87,49 +93,97 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         settle();
     }
 
-    /** A charger that cuts out for 40 s and resumes, inside the hold: the card never leaves, and the hold stays armed. */
-    private void dropoutInsideHold(){
-        leaveWhileCharging("dropout");
-        main(()->link.charging(OFF));log("dropout: charger off");
-        watch(40*S,"dropout: charger off");
-        main(()->link.charging(ON));log("dropout: charger back");
-        watch(40*S,"dropout: charger back");
-        require(isCard(),"The card left after a brief dropout: "+notice());
-        require(onMain(()->((ChargeLiveHold)field(service,"chargeLive")).active()),"The hold ended on a brief dropout");
-        log("dropout: card kept: "+notice());
+    /** The last background read sent, then a moment for its reply to be handled. */
+    private void awaitNextPoll(){
+        long before=onMainLong(()->link.lastBatteryRead);
+        await(()->onMainLong(()->link.lastBatteryRead)>before,StatusCadence.POLL_SLOW_MS+5*S,"No background battery read within one poll");
+        SystemClock.sleep(150);
     }
-    /** The charger off for most of the hold, then plugged back in before it ends: the card stays. */
-    private void replugDuringHold(){
-        leaveWhileCharging("replug");
-        main(()->link.charging(OFF));log("replug: unplugged");
-        watch(ChargeLiveHold.STOP_MS-45*S,"replug: unplugged");
-        main(()->link.charging(ON));log("replug: plugged back in");
-        watch(45*S,"replug: plugged back in");
-        require(isCard(),"The card left after a replug inside the hold: "+notice());
-        log("replug: card kept: "+notice());
+    private long onMainLong(java.util.function.LongSupplier query){final long[] result={0};main(()->result[0]=query.getAsLong());return result[0];}
+
+    /** A charger that cuts out and is back before the next poll reads it: no reading says off, so the card stays. */
+    private void cutOutBetweenPollsKeepsTheCard(){
+        leaveWhileCharging("cut-out");
+        awaitNextPoll();
+        main(()->link.charging(OFF));log("cut-out: off just after a poll");
+        SystemClock.sleep(5*S);
+        main(()->link.charging(ON));log("cut-out: back before the next poll");
+        watch(40*S,"cut-out: back on");
+        require(onMain(()->((ChargeLiveHold)field(service,"chargeLive")).active()),"The hold ended on a cut-out no reading saw");
+    }
+    /** The off reading arrives, then a report the scooter pushes says charging again inside the window. */
+    private void replugInsideWindowKeepsTheCard(){
+        leaveWhileCharging("replug inside");
+        main(()->link.charging(OFF));log("replug inside: unplugged");
+        await(()->onMain(()->Double.valueOf(0d).equals(ble.telemetry.number("charging_state"))),StatusCadence.POLL_SLOW_MS+5*S,"The off reading never arrived");
+        log("replug inside: off reading seen");
+        SystemClock.sleep(1500);
+        main(()->{link.charging(ON);link.home();});log("replug inside: plugged back, report pushed");
+        SystemClock.sleep(500);
+        require(isCard(),"The card left inside the window: "+notice());
+        watch(40*S,"replug inside: charging again");
+        require(onMain(()->((ChargeLiveHold)field(service,"chargeLive")).active()),"The hold ended although charging came back inside the window");
     }
     /**
-     * The reported bug: unplugged with Volt out of sight, the card must stay through the hold (ChargeLiveHold.STOP_MS)
-     * and then go back to the plain Connected notice, with nothing bringing Volt to the front.
+     * The reported bug: unplugged with Volt out of sight, the card goes back to the plain Connected notice within one
+     * poll plus the unplug window (about 20 s at worst), with nothing bringing Volt to the front. After that the card doesn't
+     * come back by itself on a replug: only leaving Volt again arms it.
      */
-    private void unplugClearsAfterHold(){
-        leaveWhileCharging("unplug");
+    private void unplugClears(String phase,long delayAfterPoll){
+        leaveWhileCharging("unplug "+phase);
+        awaitNextPoll();
+        SystemClock.sleep(delayAfterPoll);
         long unplugged=SystemClock.elapsedRealtime();
-        main(()->link.charging(OFF));log("unplug: unplugged");
-        watch(ChargeLiveHold.STOP_MS-30*S,"unplug: inside the hold");
-        require(isCard(),"The card left before the hold ended: "+notice());
-        long deadline=unplugged+ChargeLiveHold.STOP_MS+StatusCadence.POLL_SLOW_MS+10*S;long cleared=0;
+        main(()->link.charging(OFF));log("unplug "+phase+": unplugged");
+        long deadline=unplugged+StatusCadence.POLL_SLOW_MS+ChargeLiveHold.UNPLUG_MS+3*S;long cleared=0;
         while(SystemClock.elapsedRealtime()<deadline){
             if(!isCard()){cleared=SystemClock.elapsedRealtime();break;}
-            SystemClock.sleep(S);
+            SystemClock.sleep(100);
         }
-        log("unplug: end of wait: "+notice());
-        require(cleared!=0,"BUG REPRODUCED: the card still shows "+((deadline-unplugged)/1000)+" s after unplugging, with Volt in the background: "+notice());
-        log("unplug: card cleared "+((cleared-unplugged)/1000)+" s after unplugging: "+notice());
-        require(cleared-unplugged>ChargeLiveHold.STOP_MS-S,"The card cleared before the hold ended");
+        require(cleared!=0,"The card still shows "+((deadline-unplugged)/1000)+" s after unplugging, with Volt in the background: "+notice());
+        log("unplug "+phase+": card cleared "+(cleared-unplugged)+" ms after unplugging: "+notice());
+        require(cleared-unplugged>=ChargeLiveHold.UNPLUG_MS-S,"The card cleared before the window");
         SystemClock.sleep(3*S);
         require(!isCard()&&notice().contains("Synthetic"),"Expected the plain Connected notice, got: "+notice());
         require(onMain(()->!service.isVisible()),"Volt came to the front during the check");
+        main(()->{link.charging(ON);link.home();});log("unplug "+phase+": plugged back in");
+        SystemClock.sleep(20*S);
+        require(!isCard()&&onMain(()->!((ChargeLiveHold)field(service,"chargeLive")).active()),"The hold came back on a replug with Volt closed: "+notice());
+    }
+    /** Connected, but the battery reads stop (charging null after FRESH_MS): a gap in the readings, not an unplug. */
+    private void noFreshReadingKeepsTheCard(){
+        leaveWhileCharging("gap");
+        main(()->link.quiet=true);log("gap: readings stopped, status continues");
+        watch(ChargeAlertPolicy.FRESH_MS+20*S,"gap: no fresh reading");
+        require(onMain(()->((ChargeLiveHold)field(service,"chargeLive")).active()),"The hold ended during a reading gap");
+        main(()->link.quiet=false);
+    }
+    /**
+     * The sweep's own check (the same LiveChargingHoldCheck and Probe as ParkedValidation) with the notification channel
+     * blocked: the hold is armed internally but holds nothing, so the ordinary grace runs and the check doesn't fail the sweep.
+     */
+    private void notificationsBlockedHasNoEffectiveHold(){
+        ensureFront();
+        main(()->link.charging(ON));
+        settle();
+        SystemClock.sleep(6*S);
+        await(()->onMain(()->ble.ready()&&Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))),10000,"No fresh charging reading to arm on");
+        NotificationManager manager=getTargetContext().getSystemService(NotificationManager.class);
+        main(()->{android.app.NotificationChannel channel=new android.app.NotificationChannel("scooter","x",NotificationManager.IMPORTANCE_NONE);manager.createNotificationChannel(channel);});
+        android.app.NotificationChannel after=manager.getNotificationChannel("scooter");
+        require(after!=null&&after.getImportance()==NotificationManager.IMPORTANCE_NONE&&!onMain(()->service.chargeLiveAllowed()),"Could not block the notification channel on this emulator: importance "+(after==null?"null":String.valueOf(after.getImportance())));
+        log("blocked: channel importance NONE, chargeLiveAllowed false");
+        main(()->{
+            settings().edit().putBoolean("background_connection",false).commit();service.visible(true);service.visible(false);
+            LiveChargingHoldCheck.Observed observed;
+            try{observed=LiveChargingHoldProbe.observe(service);}catch(ReflectiveOperationException error){throw new IllegalStateException(error);}
+            String problem=LiveChargingHoldCheck.problem(observed);
+            require(problem==null,"The sweep check failed: "+problem);
+            require(observed.armed&&!observed.effective&&!observed.notificationsAllowed,"Expected armed, no effective hold, notifications blocked");
+            require(observed.graceDeadlineMs>observed.nowMs,"Expected the ordinary 10 s grace");
+            log("blocked evidence: "+LiveChargingHoldCheck.evidence(observed));
+            settings().edit().putBoolean("background_connection",true).commit();service.visible(true);
+        });
     }
 
     private void watch(long ms,String what){long end=SystemClock.elapsedRealtime()+ms,sample=0;while(SystemClock.elapsedRealtime()<end){require(isCard(),what+": the card left early: "+notice());if(SystemClock.elapsedRealtime()-sample>=30*S){sample=SystemClock.elapsedRealtime();log(what+": "+notice());}SystemClock.sleep(S);}}
@@ -143,7 +197,8 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         byte charging=ON;
         final Handler handler=new Handler(Looper.getMainLooper());
         BluetoothGatt gatt;BluetoothGattCharacteristic writer,notifier;BluetoothGattCallback callbacks;
-        void charging(byte value){charging=value;home();}
+        boolean quiet;long lastBatteryRead;
+        void charging(byte value){charging=value;}
         void attach(){try{
             BluetoothDevice device=getTargetContext().getSystemService(BluetoothManager.class).getAdapter().getRemoteDevice(profile.mac);
             Class<?> unsafeType=Class.forName("sun.misc.Unsafe");Field unsafe=unsafeType.getDeclaredField("theUnsafe");unsafe.setAccessible(true);
@@ -172,7 +227,7 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         void received(byte[] frame){
             callbacks.onCharacteristicWrite(gatt,writer,0);
             if(frame.length<4)return;
-            switch(frame[3]&255){case 0x70:status();break;case 0x72:battery();break;default:break;}
+            switch(frame[3]&255){case 0x70:status();break;case 0x72:lastBatteryRead=SystemClock.elapsedRealtime();if(!quiet)battery();break;default:break;}
         }
         void status(){byte[] state=new byte[44];state[1]=3;state[3]=1;state[6]=2;state[7]=1;state[19]=3;state[25]=50;state[31]=100;state[34]=3;packet(0x70,state);}
         void home(){byte[] data=new byte[12];data[1]=1;data[2]=62;data[4]=charging;packet(0x90,data);}

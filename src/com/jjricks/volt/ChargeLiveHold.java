@@ -11,8 +11,12 @@ package com.jjricks.volt;
  * afresh.
  *
  * It ends when the scooter stays disconnected for RECONNECT_MS, when charging finishes at the limit,
- * when charging stays off (with no schedule waiting) for more than STOP_MS, after HOLD_MS, when the
- * setting is turned off, or on Stop. Stop also keeps it from arming again for the rest of this charge, for that
+ * when a fresh reading says charging is off (with no schedule waiting) and it stays off for UNPLUG_MS
+ * (owner, 2026-11-08: about 15 seconds after unplugging, not 3 minutes), when a connected scooter gives
+ * no fresh charging reading for more than STOP_MS (a gap in the readings, not an unplug), after HOLD_MS,
+ * when the setting is turned off, or on Stop. Out of sight the battery read that reports charging_state
+ * arrives about every 15 seconds (StatusCadence.POLL_SLOW_MS), plus any report the scooter pushes on its own,
+ * so an unplug clears about UNPLUG_MS after the next reading; worst case about 15 s + UNPLUG_MS. Stop also keeps it from arming again for the rest of this charge, for that
  * scooter only (Facts.profile), and for HOLD_MS at most. Each scooter's Stop is its own (up to MAX_STOPS of them):
  * a Stop on one never replaces or ends another's. The service stores them (stopped()) on the device and hands
  * them back to a new service (restoreStopped), so a recreated service doesn't arm the same charge again.
@@ -24,7 +28,9 @@ public final class ChargeLiveHold {
     public static final long RECONNECT_MS = 18_000L;
     /** Owner: at most 12 hours. */
     public static final long HOLD_MS = 12 * 60 * 60_000L;
-    /** A charger that cuts out and resumes keeps the hold, as it keeps a battery alert's charge session. */
+    /** Owner: a charger that was unplugged, confirmed by a fresh off reading, ends the card about this soon after that reading. */
+    public static final long UNPLUG_MS = 5_000L;
+    /** No fresh reading while connected isn't an unplug: the longer tolerance, as for a battery alert's charge session. */
     public static final long STOP_MS = ChargeAlertPolicy.STOP_MS;
     /** Charging finished when it stops at the limit, allowing one point of reading noise; 99% counts as full. */
     public static final int FULL_FROM = ChargeAlertPolicy.FULL_FROM;
@@ -59,7 +65,8 @@ public final class ChargeLiveHold {
     private static final class Stop { int best;long at, offSince; }
 
     private boolean active, reconnecting;
-    private long since, lostSince, offSince;
+    /** offSince: since a fresh reading says charging is off. silentSince: since a connected scooter stopped giving a fresh reading. */
+    private long since, lostSince, offSince, silentSince;
     /** By profile id, oldest Stop first. */
     private final java.util.LinkedHashMap<String, Stop> stops = new java.util.LinkedHashMap<>();
 
@@ -74,8 +81,11 @@ public final class ChargeLiveHold {
         if (!active) return 0;
         long cap = since + HOLD_MS;
         if (reconnecting) return Math.min(cap, lostSince + RECONNECT_MS + 1);
-        // Out of sight a charger that stayed off must end the card when its window does, not on some later poll.
-        return offSince != 0 ? Math.min(cap, offSince + STOP_MS + 1) : cap;
+        // Out of sight a window that ran out must end the card then, not on some later poll.
+        long due = cap;
+        if (offSince != 0) due = Math.min(due, offSince + UNPLUG_MS + 1);
+        if (silentSince != 0) due = Math.min(due, silentSince + STOP_MS + 1);
+        return due;
     }
 
     /** The owner left Volt. Returns whether the hold armed. */
@@ -83,7 +93,7 @@ public final class ChargeLiveHold {
         observeStopped(nowMono, f);
         boolean stopped = stops.containsKey(f.profile);
         active = f.enabled && f.connected && !stopped && (Boolean.TRUE.equals(f.charging) || f.scheduled);
-        if (active) { since = nowMono;lostSince = offSince = 0;reconnecting = false; }
+        if (active) { since = nowMono;lostSince = offSince = silentSince = 0;reconnecting = false; }
         return active;
     }
     /** Volt is open again: nothing to hold. A Stop for this charge still counts. */
@@ -137,11 +147,19 @@ public final class ChargeLiveHold {
             return End.NONE;
         }
         reconnecting = false;lostSince = 0;
-        if (Boolean.TRUE.equals(f.charging) || f.scheduled) { offSince = 0;return End.NONE; }
+        if (Boolean.TRUE.equals(f.charging) || f.scheduled) { offSince = silentSince = 0;return End.NONE; }
         if (Boolean.FALSE.equals(f.charging) && f.percent != null && f.percent >= finishAt(f.limit)) return end(End.FINISHED);
-        // Off, or no fresh reading while connected: a charger that cuts out briefly keeps the hold.
-        if (offSince == 0 || nowMono < offSince) offSince = nowMono;
-        else if (nowMono - offSince > STOP_MS) return end(End.CHARGER_OFF);
+        if (Boolean.FALSE.equals(f.charging)) {
+            // A fresh reading: the charger really is off, so only the short unplug window is left.
+            silentSince = 0;
+            if (offSince == 0 || nowMono < offSince) offSince = nowMono;
+            else if (nowMono - offSince > UNPLUG_MS) return end(End.CHARGER_OFF);
+            return End.NONE;
+        }
+        // Connected with no fresh reading (a gap, not an unplug): the off count stops, the longer tolerance runs.
+        offSince = 0;
+        if (silentSince == 0 || nowMono < silentSince) silentSince = nowMono;
+        else if (nowMono - silentSince > STOP_MS) return end(End.CHARGER_OFF);
         return End.NONE;
     }
 
@@ -150,7 +168,7 @@ public final class ChargeLiveHold {
         return limit == null || limit >= 100 ? FULL_FROM : Math.max(0, limit - 1);
     }
 
-    private End end(End why) { active = reconnecting = false;offSince = lostSince = 0;return why; }
+    private End end(End why) { active = reconnecting = false;offSince = silentSince = lostSince = 0;return why; }
 
     /** A stopped charge is over once charging stays off (nothing scheduled) past STOP_MS, or the level drops two points. */
     private void observeStopped(long nowMono, Facts f) {

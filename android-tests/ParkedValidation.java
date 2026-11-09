@@ -331,21 +331,26 @@ public final class ParkedValidation extends Instrumentation {
     }
     /**
      * A charging scooter arms the live charging hold when Volt is left, and the hold skips the 10 s grace by design
-     * (the 1.12.0 sweep failed here while charging). Checks that, then turns Live charging off so the grace itself can be
-     * timed whether or not the scooter is plugged in. The switch is in SMOKE_PREFS, so cleanup restores it. Returns whether it armed.
+     * (the 1.12.0 sweep failed here while charging). active() is only its internal state: the service also needs
+     * notifications, so LiveChargingHoldCheck judges the effective hold from what it observed. Live charging then goes off so
+     * the grace itself can be timed whether or not the scooter is plugged in; the switch is in SMOKE_PREFS, so cleanup restores it.
+     * Returns the evidence line.
      */
-    private boolean allowForLiveChargingHold()throws Exception{
-        AtomicReference<Boolean> armed=new AtomicReference<>(false);
+    private String allowForLiveChargingHold()throws Exception{
+        AtomicReference<String> evidence=new AtomicReference<>();
         runMain(()->{assertNoUserRecording();service.settings.edit().putBoolean("background_connection",false).commit();service.visible(true);service.visible(false);
-            armed.set(((ChargeLiveHold)field(service,"chargeLive")).active());
-            if(armed.get())require(service.backgroundDeadlineMs()==0&&service.workAllowed(),"The live charging hold did not keep the connection in place of the 10 s grace");
+            LiveChargingHoldCheck.Observed observed;
+            try{observed=LiveChargingHoldProbe.observe(service);}catch(ReflectiveOperationException error){throw new IllegalStateException("Cannot read the live charging hold",error);}
+            String problem=LiveChargingHoldCheck.problem(observed);
+            require(problem==null,problem);
+            evidence.set(LiveChargingHoldCheck.evidence(observed));
             service.setChargeLiveEnabled(false);
             require(!((ChargeLiveHold)field(service,"chargeLive")).active(),"Turning Live charging off did not end the hold");
             service.visible(true);});
-        return armed.get();
+        return evidence.get();
     }
     private void backgroundSmoke()throws Exception{
-        boolean liveHold=allowForLiveChargingHold();
+        String liveHold=allowForLiveChargingHold();
         AtomicReference<Long> initial=new AtomicReference<>(),first=new AtomicReference<>(),second=new AtomicReference<>();
         runMain(()->{assertNoUserRecording();initial.set(mutations());reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.settings.edit().putBoolean("auto_connect",true).putBoolean("background_connection",false).commit();service.visible(true);long pause=SystemClock.elapsedRealtime();service.visible(false);first.set(service.backgroundDeadlineMs());require(first.get()>=pause+9950&&first.get()<=SystemClock.elapsedRealtime()+10050,"First pause did not get a full 10s grace");});
         status("Background smoke: first grace remains eligible before its deadline");sleepUntil(first.get()-8000);
@@ -369,7 +374,7 @@ public final class ParkedValidation extends Instrumentation {
         });
         if(connecting.get()){status("Background smoke: simulated transport failure/retries must stop at the original fixed deadline");sleepUntil(connectingDeadline.get()+500);assertHardOff("Connecting/failure grace deadline");Thread.sleep(2000);assertHardOff("Two seconds after simulated-failure cutoff");}
         runMain(()->require(mutations()==initial.get(),"Lifecycle smoke submitted a scooter setting mutation"));
-        JSONObject evidence=new JSONObject();evidence.put("mode","background");evidence.put("live_charging_hold",liveHold?"Armed on leaving and kept the connection instead of the 10 s grace; Live charging off for the grace checks, then restored":"Not armed: the scooter was not charging");evidence.put("grace_ms",10000);evidence.put("first_resume_cancelled",true);evidence.put("second_pause_full_grace",true);evidence.put("old_deadline_did_not_disconnect",true);evidence.put("hard_cutoff",true);evidence.put("late_hidden_start_no_new_grace",true);evidence.put("connecting_case",connecting.get()?"Started while CONNECTING/AUTHENTICATING, simulated transport-only failure entered retries, original fixed deadline retained, hard cutoff and no late retry/notification after 2s":"Skipped: no verified scooter address/Bluetooth permission or enabled adapter");evidence.put("scooter_mutations",0);evidence.put("recordings_created",0);results.put(evidence);
+        JSONObject evidence=new JSONObject();evidence.put("mode","background");evidence.put("live_charging_hold",liveHold);evidence.put("grace_ms",10000);evidence.put("first_resume_cancelled",true);evidence.put("second_pause_full_grace",true);evidence.put("old_deadline_did_not_disconnect",true);evidence.put("hard_cutoff",true);evidence.put("late_hidden_start_no_new_grace",true);evidence.put("connecting_case",connecting.get()?"Started while CONNECTING/AUTHENTICATING, simulated transport-only failure entered retries, original fixed deadline retained, hard cutoff and no late retry/notification after 2s":"Skipped: no verified scooter address/Bluetooth permission or enabled adapter");evidence.put("scooter_mutations",0);evidence.put("recordings_created",0);results.put(evidence);
     }
     /** Scheduled charging or Charge done by, Volt's own or set elsewhere and read back on: a plan the checks must leave alone. */
     private boolean planActive(){
