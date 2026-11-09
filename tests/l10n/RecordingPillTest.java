@@ -139,7 +139,9 @@ public final class RecordingPillTest {
         check(values.recordingTimeMs(10_000) == null, "no recording, no recording time");
         values.setRecordingStart(4_000L);
         check(values.recordingTimeMs(10_000) == 6_000L, "the recording's own time");
-        check(values.rideTimeMs(10_000) == null, "setting the recording start leaves ride time alone");
+        RidingSession session = new RidingSession("p1", null, 3_000);
+        session.values.setRecordingStart(4_000L);
+        check(session.rideTimeMs(10_000) == 7_000L, "ride time counts from riding mode's open, not the recording's start");
         values.setRecordingStart(null);
         check(values.recordingTimeMs(10_000) == null, "stopping clears only the recording time");
     }

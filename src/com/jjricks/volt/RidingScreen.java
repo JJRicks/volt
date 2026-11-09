@@ -572,14 +572,13 @@ final class RidingScreen implements AppScreen {
         long now = SystemClock.elapsedRealtime();
         String units = units();
         BleController ble = service == null ? null : service.ble;
-        Double recordingKm = null;
         RideStore.Summary ride = service != null && service.isRecording() ? service.rides.activeSummary() : null;
         long wallNow = System.currentTimeMillis();
         // Reboot-safe: a recovered recording's start belongs to the previous boot's monotonic clock (Codex #304).
         Long recordingMs = ride == null ? null : RecordingPill.elapsedMs(ride.elapsedMs, ride.startWallMs, wallNow);
         if (ble != null) {
             session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
-            recordingKm = ride == null ? null : ride.distanceKm;
+            session.setRecordingKm(ride == null ? null : ride.distanceKm);
             Double charging = ble.telemetry.number("charging_state");
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
@@ -589,8 +588,8 @@ final class RidingScreen implements AppScreen {
         long stoppedAt = service == null || service.rides == null ? -1 : service.rides.lastStopWallMs();
         showStatus(ble, now, recordingMs, stoppedAt < 0 ? null : wallNow - stoppedAt,
                 stoppedAt >= 0 && service.rides.lastStopAutomatic());
-        for (Cell cell : cells) cell.show(now, units, recordingKm);
-        for (Chip chip : chips) chip.show(now, units, recordingKm);
+        for (Cell cell : cells) cell.show(now, units);
+        for (Chip chip : chips) chip.show(now, units);
         noteFastest(now);
         showSpeedLast(now, units);
         showPower(now);
@@ -795,7 +794,7 @@ final class RidingScreen implements AppScreen {
         double percent = Double.NaN;
     }
 
-    private Shown shown(String content, long now, String units, Double recordingKm) {
+    private Shown shown(String content, long now, String units) {
         Shown s = new Shown();
         s.color = ui.text;
         s.unitColor = ui.muted;
@@ -861,7 +860,7 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.TRIP: {
-                RidingValues.Trip trip = v.trip(recordingKm, now);
+                RidingSession.Trip trip = session.trip();
                 s.rungs = new String[]{trip.fromRecording ? T.ridingLabelRideDistance() : T.ridingLabelTrip()};
                 s.icon = "route";
                 if (trip.km == null) { none(s); break; }
@@ -875,12 +874,10 @@ final class RidingScreen implements AppScreen {
                 s.rungs = ride ? new String[]{T.ridingLabelRideTime(), T.ridingLabelRideTimeShort()}
                         : new String[]{T.ridingLabelRecordingTime(), T.ridingLabelRecordingTimeShort()};
                 s.icon = "clock";
-                Long ms = ride ? v.rideTimeMs(now) : v.recordingTimeMs(now);
+                Long ms = ride ? session.rideTimeMs(now) : v.recordingTimeMs(now);
                 if (ms == null) { none(s); break; }
                 s.main = clock(ms);
                 s.spoken = s.main.toString();
-                RidingValues.Reading r = v.reading(RidingValues.TRIP_MINUTES_KEY, now);
-                if (ride && (r == null || r.stale)) dim(s);
                 break;
             }
             case RidingLayout.AVERAGE_SPEED: case RidingLayout.MAX_SPEED: {
@@ -1091,8 +1088,8 @@ final class RidingScreen implements AppScreen {
             number.setLayoutParams(p);
             number.middle = true;
         }
-        void show(long now, String units, Double recordingKm) {
-            Shown s = shown(content, now, units, recordingKm);
+        void show(long now, String units) {
+            Shown s = shown(content, now, units);
             label.set(s.icon, s.rungs);
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.rungs.length == 0 ? "" : s.rungs[0];
@@ -1536,8 +1533,8 @@ final class RidingScreen implements AppScreen {
             boolean tight = rung == RidingChipFit.TIGHT;
             setPaddingRelative(ui.dp(tight ? TIGHT_PADDING_DP : START_PADDING_DP), ui.dp(4), ui.dp(tight ? TIGHT_PADDING_DP : END_PADDING_DP), ui.dp(4));
         }
-        void show(long now, String units, Double recordingKm) {
-            Shown s = shown(content, now, units, recordingKm);
+        void show(long now, String units) {
+            Shown s = shown(content, now, units);
             // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48"), or the dash.
             String value = s.spoken != null ? s.spoken : s.main.toString();
             if (!TextUtils.equals(text.getText(), value)) text.setText(value);

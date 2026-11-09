@@ -102,9 +102,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private RidingSession riding;
     /** Riding mode was open when the activity was recreated; it reopens once the service is bound. */
     private boolean ridingRestore;
-    /** Ride time's anchor from the last riding session and its scooter, so reopening riding mode carries on (owner, Nov 7). */
-    private RidingValues.TripClock ridingTrip;
-    private String ridingTripProfile;
+    /** The open riding mode's ride time and distance when the activity was recreated; a reopen after Back starts from zero. */
+    private RidingSession.Resume ridingResume;
     private TextView simulationNotice;
     private boolean displayedSimulation;
     private TextView connectionTitle,connectionAction,lockTitle,profileTitle,offlineTitle,offlineDetail;
@@ -232,7 +231,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){selectedPage=saved.getString("page","home");for(String page:pages)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else selectedPage="home";
-        if(saved!=null&&saved.containsKey("riding_trip_start")){ridingTrip=new RidingValues.TripClock(saved.getLong("riding_trip_start"),saved.getDouble("riding_trip_minutes"),saved.getLong("riding_trip_seen"),saved.getDouble("riding_trip_km",Double.NaN),saved.getDouble("riding_trip_max",Double.NaN));ridingTripProfile=saved.getString("riding_trip_profile");}
+        if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"));
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
         // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
@@ -305,8 +304,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
         captureScroll();saved.putString("page",selectedPage);saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);
         saved.putBoolean("riding",riding!=null||ridingRestore);
-        keepRidingTrip();
-        if(ridingTrip!=null){saved.putLong("riding_trip_start",ridingTrip.startMs);saved.putDouble("riding_trip_minutes",ridingTrip.minutes);saved.putLong("riding_trip_seen",ridingTrip.seenMs);saved.putDouble("riding_trip_km",ridingTrip.kmMark);saved.putDouble("riding_trip_max",ridingTrip.maxSpeedMark);saved.putString("riding_trip_profile",ridingTripProfile);}
+        RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
+        if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());}
         for(String page:pages)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
         super.onSaveInstanceState(saved);
     }
@@ -530,19 +529,14 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Creates the session, makes it the open one, then asks for its prior: a cached answer arrives at once. */
     private void openRidingSession(){
         String id=ridingProfileId();
-        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime());
+        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume);
+        ridingResume=null;
         riding=session;
-        if(ridingTrip!=null&&id.equals(ridingTripProfile))session.values.resumeTrip(ridingTrip);
         if(scooterService.simulating()){
             // Sample data has no ride history: a synthetic battery model, so Range at this pace shows (never persisted).
             session.setPrior(LiveRangeEstimator.Prior.synthetic(18,1000,null));
         }else session.requestPrior(answer->scooterService.requestLearnedRangeEstimate(result->answer.accept(LiveRangeEstimator.Prior.of(result))),
                 ()->destroyed||scooterService==null||riding!=session?null:ridingProfileId());
-    }
-    /** Keeps the open session's ride-time anchor for the next one (monotonic, so only this boot's sessions use it). */
-    private void keepRidingTrip(){
-        RidingValues.TripClock clock=riding==null?null:riding.values.tripClock();
-        if(clock!=null){ridingTrip=clock;ridingTripProfile=riding.profileId;}
     }
     private String ridingProfileId(){
         ScooterProfiles.Profile profile=scooterService.profiles==null?null:scooterService.profiles.active();
@@ -550,7 +544,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void closeRiding(){
         if(riding==null)return;
-        keepRidingTrip();riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
     }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){
