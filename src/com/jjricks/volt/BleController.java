@@ -557,6 +557,7 @@ public final class BleController {
         if(guided(pending))stepTest();
         return false;
     }
+    private void lookAtHeldChange(){if(mutation!=null&&!mutation.sent&&mutation.sendCondition!=null)mutation.sendCondition.holds();}
     private void incoming(byte[] bytes){
         if(simulating())return;
         if(!workAllowed())return;
@@ -585,9 +586,11 @@ public final class BleController {
                 if(statusRead(f)){confirmRecheck();confirmMutation(f);checkStatus(f);}
                 if(f.cmd==0x70&&test!=null&&!test.terminal()){boolean sane=statusRead(f);test.onStatus(sane?StatusFields.of(f,now()):StatusFields.NONE,now());stepTest();}
                 if(f.cmd==0x90&&f.error()==0&&f.data.length>=9){warning=f.data[1]&255;warningMs=now();}
+                // Before the new reading: a sample that went stale since the last report closed the gate too, and this report would refresh it.
+                if(f.cmd==0x91||f.cmd==0x92)lookAtHeldChange();
                 if((f.cmd==0x91||f.cmd==0x92)&&f.error()==0&&f.data.length>=(f.cmd==0x91?4:5)){driving=f.data[2]&255;speedRaw=(f.data[3]&255)*(f.cmd==0x91?10:1)+(f.cmd==0x92?(f.data[4]&255)<<8:0);motionMs=now();}
                 // Motion while a held change is still unsent closes it for good: stopping again before its frame goes out does not reopen it.
-                if((f.cmd==0x91||f.cmd==0x92)&&mutation!=null&&!mutation.sent&&mutation.sendCondition!=null)mutation.sendCondition.holds();
+                if(f.cmd==0x91||f.cmd==0x92)lookAtHeldChange();
                 if(f.cmd==0x7a&&profile.role==0){pinReadPending=false;try{pinState=ScooterCommands.parsePin(f,true);pinStateMs=now();logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.ACK,-1,null,null,-1);}
                     catch(Exception e){pinState=null;pinStateMs=0;logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.REJECTED,f.error()&255,null,null,-1);notice(M.blePinStateUnavailable());}
                     if(mutation!=null&&mutation.key.equals("pin")&&mutation.sent&&mutation.ack&&pinReadToken==mutation.token&&ScooterCommands.pinReadbackMatches(f,mutation.target==1,mutation.desiredPin,true)){

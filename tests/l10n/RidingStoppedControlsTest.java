@@ -103,6 +103,15 @@ public final class RidingStoppedControlsTest {
         stopped[0] = false;
         check(!new LatchedCondition(() -> stopped[0]).holds(), "still moving at transmission: closed");
 
+        // Stale, then a fresh stationary report before the frame goes out: the look before the report closed it, and the fresh report can't reopen it.
+        stopped[0] = true;
+        LatchedCondition stale = new LatchedCondition(() -> stopped[0]);
+        check(stale.holds(), "accepted on a sample still fresh enough");
+        stopped[0] = false;
+        check(!stale.holds(), "the sample aged out: the look before the next report closes it");
+        stopped[0] = true;
+        check(!stale.holds(), "a fresh stationary report doesn't reopen it");
+
         // Never moved: nothing closes it.
         stopped[0] = true;
         LatchedCondition staysOpen = new LatchedCondition(() -> stopped[0]);
@@ -124,9 +133,12 @@ public final class RidingStoppedControlsTest {
         check(admit.indexOf("pending.conditionClosed.run()") > 0 && admit.indexOf("pending.conditionClosed.run()") < admit.indexOf("refused(pending.request,d)"), "the tap is settled before the refusal's redraw (no 'did not confirm')");
         check(ble.contains("!mutation.sent&&mutation.key.equals(key)"), "only a queued change is held to the condition, and it never applies to one that went out");
         String inc = ble.substring(ble.indexOf("private void incoming(byte[] bytes)"), ble.indexOf("private boolean remember()"));
-        int motion = inc.indexOf("motionMs=now();"), look = inc.indexOf("mutation.sendCondition.holds()");
-        check(motion > 0 && look > motion, "a motion report looks at the held condition after the new reading lands");
-        check(inc.lastIndexOf("!mutation.sent&&mutation.sendCondition!=null", look) >= motion, "motion doesn't touch a change that already went out");
+        int motion = inc.indexOf("motionMs=now();");
+        int before = inc.indexOf("lookAtHeldChange();");
+        int after = inc.indexOf("lookAtHeldChange();", motion);
+        check(before > 0 && before < motion, "a motion report looks at the held condition before refreshing the sample, so a stale gate is seen");
+        check(after > motion, "a motion report looks at the held condition after the new reading lands");
+        check(ble.contains("lookAtHeldChange(){if(mutation!=null&&!mutation.sent&&mutation.sendCondition!=null)mutation.sendCondition.holds();}"), "motion doesn't touch a change that already went out");
         check(ble.contains("mutation.sendCondition=new LatchedCondition(condition);"), "the carried condition latches");
     }
 }
