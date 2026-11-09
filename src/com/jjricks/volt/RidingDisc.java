@@ -53,4 +53,10 @@ final class RidingDisc {
 
     /** The disc's size: it matches its slot's width, so it's round at every step. */
     static float scale(float progress) { return width(progress); }
+
+    /**
+     * What's under riding mode's stopped buttons as they cross it: all of it with them gone, none by
+     * the halfway point, so the two never overlap at any strength.
+     */
+    static float readout(float progress) { return Math.max(0, 1 - 2 * Math.max(0, Math.min(1, progress))); }
 }
