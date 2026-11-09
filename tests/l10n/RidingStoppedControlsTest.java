@@ -18,8 +18,9 @@ public final class RidingStoppedControlsTest {
         gate();
         record();
         lockTaps();
+        latch();
         source();
-        System.out.println("RidingStoppedControlsTest: " + checks + " checks passed (the picker's gate, Record's taps, stopped-only lock taps, Home's lock path)");
+        System.out.println("RidingStoppedControlsTest: " + checks + " checks passed (the picker's gate, Record's taps, stopped-only lock taps, the latch, Home's lock path)");
     }
 
     private static void gate() {
@@ -85,6 +86,29 @@ public final class RidingStoppedControlsTest {
         check(q.step(3000, true, false, false, open) == revert && q.takeFailure().contains("didn't confirm"), "an unanswered send is still unconfirmed");
     }
 
+    /** A held change: the rider's stopped state as each motion report and then the radio boundary see it. */
+    private static void latch() {
+        final boolean[] stopped = {true};
+        LatchedCondition held = new LatchedCondition(() -> stopped[0]);
+        check(held.holds(), "stopped throughout: the change may go out");
+        check(held.holds(), "a look changes nothing while it holds");
+
+        // Stop, move, stop, all before the frame goes out: a later stop can't reopen it.
+        stopped[0] = false;
+        check(!held.holds(), "motion closes it");
+        stopped[0] = true;
+        check(!held.holds(), "stopped again before transmission: still closed");
+
+        // Moving at transmission: closed by the first look there is.
+        stopped[0] = false;
+        check(!new LatchedCondition(() -> stopped[0]).holds(), "still moving at transmission: closed");
+
+        // Never moved: nothing closes it.
+        stopped[0] = true;
+        LatchedCondition staysOpen = new LatchedCondition(() -> stopped[0]);
+        check(staysOpen.holds() && staysOpen.holds(), "no motion seen: it keeps holding");
+    }
+
     private static void source() throws IOException {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         String main = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8);
@@ -96,8 +120,13 @@ public final class RidingStoppedControlsTest {
         String ble = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/BleController.java")), StandardCharsets.UTF_8);
         check(main.contains("if(lockQueue.stoppedOnly())ble.holdUnsent(\"lock\",lockStoppedGate,"), "a riding tap's stopped gate is carried past the queue (a read in flight can leave it unsent)");
         String admit = ble.substring(ble.indexOf("private boolean admitQueuedMutation()"), ble.indexOf("private void incoming(byte[] bytes)"));
-        check(admit.indexOf("pending.sendCondition.getAsBoolean()") > 0 && admit.contains("withReason(d,CapabilityResolver.Reason.MOVING)"), "the radio boundary re-checks the carried condition");
+        check(admit.indexOf("pending.sendCondition.holds()") > 0 && admit.contains("withReason(d,CapabilityResolver.Reason.MOVING)"), "the radio boundary re-checks the carried condition");
         check(admit.indexOf("pending.conditionClosed.run()") > 0 && admit.indexOf("pending.conditionClosed.run()") < admit.indexOf("refused(pending.request,d)"), "the tap is settled before the refusal's redraw (no 'did not confirm')");
         check(ble.contains("!mutation.sent&&mutation.key.equals(key)"), "only a queued change is held to the condition, and it never applies to one that went out");
+        String inc = ble.substring(ble.indexOf("private void incoming(byte[] bytes)"), ble.indexOf("private boolean remember()"));
+        int motion = inc.indexOf("motionMs=now();"), look = inc.indexOf("mutation.sendCondition.holds()");
+        check(motion > 0 && look > motion, "a motion report looks at the held condition after the new reading lands");
+        check(inc.lastIndexOf("!mutation.sent&&mutation.sendCondition!=null", look) >= motion, "motion doesn't touch a change that already went out");
+        check(ble.contains("mutation.sendCondition=new LatchedCondition(condition);"), "the carried condition latches");
     }
 }
