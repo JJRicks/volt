@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.12.0 (versionCode 55)
+Current version: 1.12.1 (versionCode 56)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,7 +25,29 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.12.0
+NEW IN 1.12.1
+------------
+- Riding mode's power bar uses the same direction rule as ride recordings: a
+  UT5 MAX shows draw and regen right away. Scooters that report only unsigned
+  current stay muted, except that a reading from about 1,200 W up shows as
+  draw, inferred rather than measured. Draw and Input on their saved rides are
+  unconfirmed.
+- Riding mode's Ride time and distance start from zero each time it opens. Its
+  chip row tightens before SPORT or DRIVE can push the clock off a narrow
+  screen, and it has Lock and Record buttons while the scooter is stopped.
+- Start automatically, off by default: Record rides automatically and Riding
+  mode's Open automatically act when the connected scooter moves.
+- The live charging card clears about 15 s after unplugging and, on Android 16
+  and later, shows the level on a dial.
+- Charge done by and Scheduled charging say when the scooter has confirmed the
+  start time and Volt can safely disconnect. Keep the charger plugged in so
+  the charge can start. A charge alert shows the time to its level in the
+  charging hero on scooters with no charge limit of their own.
+- Developer options are always in More. Most Home Setting tiles use short
+  labels. Maintenance lists the UT5 Max's manual intervals.
+  Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 1.12.0
 ------------
 - Volt opens instantly: it starts connecting first and loads rides in the
   background (about 0.3 s to the first screen, from about 4 s with a long ride
@@ -658,12 +680,12 @@ local reminders by distance, time or either, counted from odometer readings the
 scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
 Scooter tab dot and an optional quiet notification once per due cycle (a daily
 JobScheduler check for time reminders; no push service). Where a NAVEE manual
-states a schedule (GT3, ST3, V25/V40/V50, S40/S60, S65C and K100 series; not
-the UT5 MAX, whose quick guide has none), the page lists each interval with
+states a schedule (UT5 MAX, from its printed manual; GT3, ST3, V25/V40/V50,
+S40/S60, S65C and K100 series), the page lists each interval with
 the manual and page, and Add prefills a reminder from it. Emulator- and JVM-tested; a reminder after a
 reboot or under battery saver is not yet checked on a real phone.
 
-Riding mode (Home's RIDE button) is a full-screen, read-only view that keeps the
+Riding mode (Home's RIDE button) is a full-screen view that keeps the
 screen on and hides the navigation bar. Focus (the default), Halo (a speedometer
 ring with max and average) and Trace (the last minute of speed, draw and regen)
 show speed, Range at this pace (from recent energy per km at cruising speed,
@@ -675,8 +697,9 @@ Stale values dim, and speed shows a dash after 6 s without a reading.
 More > App preferences > Riding mode sets brightness (Phone by default, Volt
 auto from the light sensor with learned per-band offsets, or Fixed), rotation
 (Lock on open or Follow phone) and Hide status bar (off by default). It never
-writes Android's brightness setting, sends no scooter command and has no lock
-control. The tune disc (shown while stopped, sliding in and out over 220 ms)
+writes Android's brightness setting. The only scooter command it can send is
+Lock or Unlock, from the Lock button that shows with Record while the scooter is
+stopped under 1 km/h and goes away as soon as it moves. The tune disc (shown while stopped, sliding in and out over 220 ms)
 opens the layout editor: drawn previews of the three frames, what each spot
 shows, and per-frame Power bar, Chips and Tenths switches, saved per scooter
 only on Done, with Reset for the frame on show. Volt's range there is the
@@ -688,6 +711,14 @@ to sunrise, computed on the phone from the last recorded ride's area (rounded
 to about 10 km, after asking) or the time zone, or custom times; a moon tap
 lasts until the next switch. Nothing is sent. Tested with simulated samples
 on emulators only.
+
+Auto-start (More > App preferences, both off by default): Record rides
+automatically starts a recording when the connected scooter reports a speed
+above zero, also in the background with Stay connected in background on (a
+ride started that way has no GPS route). Riding mode > Open automatically
+opens riding mode the same way, only while Volt is on screen and no dialog
+or sheet is open. A manual stop or backing out holds that switch until the
+scooter reconnects; a ride that ends by itself does not. Emulator-tested.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size
 (Volt's Text size times the system font scale), so a 725 dp unfolded phone uses
