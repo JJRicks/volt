@@ -52,5 +52,6 @@
   <instrumentation android:name="com.jjricks.volt.GuidedTestValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator guided setting test validation (synthetic link)" />
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MyScootersValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated multi-scooter management validation" />
-  <instrumentation android:name="com.jjricks.volt.tests.LocaleValidation" android:targetPackage="com.jjricks.volt" android:label="Pseudo-locale text and layout checks (report only during the migration)" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingFromZeroValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode ride time and distance start from zero at each open" />
+  <instrumentation android:name="com.jjricks.volt.tests.LocaleValidation"android:targetPackage="com.jjricks.volt" android:label="Pseudo-locale text and layout checks (report only during the migration)" />
 </manifest>

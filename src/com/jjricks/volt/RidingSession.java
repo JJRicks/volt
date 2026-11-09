@@ -16,6 +16,8 @@ final class RidingSession {
     final String profileId;
     final RidingValues values;
     final long openedMs;
+    /** A counter that falls by at least this much has restarted; a smaller fall is rounding. */
+    static final double COUNTER_RESET_KM = 1;
     private final LiveRangeEstimator estimator = new LiveRangeEstimator();
     private final RangeReadout readout = new RangeReadout();
     private RangeReadout.Value range;
@@ -23,11 +25,98 @@ final class RidingSession {
     private RidingValues.Band band;
     private boolean bandDropped, priorSet, closed;
     private LiveRangeEstimator.Prior prior;
+    /** The recording's distance so far, or null without a recording that has one. */
+    private Double recordingKm;
+    /** Distance banked from earlier stretches of this session. */
+    private double bankedKm;
+    /** The current stretch: its counter's first and highest value (NaN before the first reading), and which counter it follows. */
+    private double baseKm = Double.NaN, peakKm = Double.NaN;
+    private boolean fromRecording;
 
-    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs) {
+    /**
+     * The distance spot: how far since riding mode opened. km is null before the first usable reading.
+     * fromRecording labels it "Ride" rather than "Trip".
+     */
+    static final class Trip {
+        final Double km;
+        final boolean fromRecording;
+        private Trip(Double km, boolean fromRecording) { this.km = km; this.fromRecording = fromRecording; }
+    }
+
+    /** What a recreated activity needs to keep counting: this boot's open time and the distance so far. */
+    static final class Resume {
+        private final String profileId;
+        private final long openedMs;
+        private final double bankedKm, baseKm, peakKm;
+        private final boolean fromRecording;
+        private Resume(String profileId, long openedMs, double bankedKm, double baseKm, double peakKm, boolean fromRecording) {
+            this.profileId = profileId; this.openedMs = openedMs; this.bankedKm = bankedKm; this.baseKm = baseKm; this.peakKm = peakKm; this.fromRecording = fromRecording;
+        }
+        String profileId() { return profileId; }
+        long openedMs() { return openedMs; }
+        double[] distance() { return new double[]{bankedKm, baseKm, peakKm, fromRecording ? 1 : 0}; }
+        /** Rebuilds saved state, or null when the distance array isn't the one distance() wrote. */
+        static Resume of(String profileId, long openedMs, double[] distance) {
+            if (profileId == null || distance == null || distance.length != 4) return null;
+            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0);
+        }
+    }
+
+    /** A fresh riding mode: ride time and distance start from zero. */
+    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs) { this(profileId, scale, nowMs, null); }
+
+    /**
+     * @param resume this riding mode's own state when the activity was recreated, so rotation or a
+     *               fold never restarts the count; ignored for another scooter or a later open time
+     */
+    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs, Resume resume) {
         this.profileId = profileId == null ? "" : profileId;
         values = new RidingValues(scale == null ? new RidingValues.PowerScale() : scale);
-        openedMs = nowMs;
+        boolean resumes = resume != null && this.profileId.equals(resume.profileId) && resume.openedMs <= nowMs;
+        openedMs = resumes ? resume.openedMs : nowMs;
+        if (resumes) { bankedKm = resume.bankedKm; baseKm = resume.baseKm; peakKm = resume.peakKm; fromRecording = resume.fromRecording; }
+    }
+
+    /** Ride time: since this riding mode opened, counted on the phone's clock. */
+    Long rideTimeMs(long nowMs) { return Math.max(0, nowMs - openedMs); }
+
+    /** This riding mode's state, to hand to the session that replaces it when the activity is recreated. */
+    Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording); }
+
+    /** The recording's distance so far (null without one); the next feed folds it in. */
+    void setRecordingKm(Double km) { recordingKm = km == null || !Double.isFinite(km) ? null : km; }
+
+    /** How far since this riding mode opened. Never negative. */
+    Trip trip() { return new Trip(Double.isNaN(peakKm) ? null : bankedKm + peakKm - baseKm, fromRecording); }
+
+    /**
+     * Follows the counter the distance spot reads: the recording's while one is running (it may have
+     * started before this open), otherwise the scooter's trip. The first usable reading is the
+     * baseline, so the spot starts at 0 whatever the counter already says.
+     *
+     * The count is kept in stretches, so a counter that restarts or a recording that starts or stops
+     * banks what has been covered rather than snapping back. Only a fall of COUNTER_RESET_KM or more
+     * is a restart: a whole-unit (0x91) report rounds down what a tenths (0x92) report showed, and
+     * must neither subtract nor be counted twice when the tenths come back. The cost is a restart
+     * from under that distance, which is only counted once it passes the old value.
+     */
+    private void trackDistance(long nowMs) {
+        boolean recording = recordingKm != null && values.recordingTimeMs(nowMs) != null;
+        double km;
+        if (recording) km = recordingKm;
+        else {
+            RidingValues.Reading r = values.reading(RidingValues.TRIP_KM_KEY, nowMs);
+            // A leftover from before this open isn't a baseline: the scooter may have moved since.
+            if (r == null || r.stale && r.updatedMs < openedMs) return;
+            km = r.value;
+        }
+        if (km < 0) return;
+        if (Double.isNaN(peakKm)) { baseKm = peakKm = km; fromRecording = recording; }
+        else if (recording != fromRecording || peakKm - km >= COUNTER_RESET_KM) {
+            bankedKm += peakKm - baseKm;
+            baseKm = peakKm = km;
+            fromRecording = recording;
+        } else peakKm = Math.max(peakKm, km);
     }
 
     /** The learned model's battery table and starting energy per km; null leaves the live range without a model. */
@@ -62,6 +151,7 @@ final class RidingSession {
      */
     void feed(List<Telemetry.Metric> metrics, long nowMs, boolean charging, String units, boolean tenths) {
         values.update(metrics);
+        trackDistance(nowMs);
         long newest = -1;
         for (String key : new String[]{RidingValues.SPEED_KEY, RidingValues.POWER_KEY, RidingValues.BATTERY_KEY}) {
             RidingValues.Reading r = values.reading(key, nowMs);
