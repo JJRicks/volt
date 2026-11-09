@@ -67,7 +67,7 @@ SHORT_SHOWN = "the screen shows the short rung"
 # How a judge's reason says the problem was the width (its rulings quote dp figures and budgets).
 WIDTH_REASON = re.compile(r"\d(?:\.\d+)?\s?dp\b|\boverflow|\bbudget\b|\btruncat|\bdoes not fit\b|\bwider than\b|"
                           r"\btoo (?:long|wide)\b", re.IGNORECASE)
-TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged")
+TRANSLATED = translib.TRANSLATED
 EVIDENCE_KINDS = ("short-rung", "overflow", "merge-width", "fallback-width", "over-budget")
 # check.py's width message: "<width> at <sp>sp exceeds the <dp>dp budget[ in <n> lines of whole words]".
 CHECK_BUDGET = re.compile(r" at (\d+(?:\.\d+)?)sp exceeds the (\d+(?:\.\d+)?)dp budget(?: in ([2-9]) lines)?")

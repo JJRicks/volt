@@ -669,6 +669,8 @@ ring with max and average) and Trace (the last minute of speed, draw and regen)
 show speed, Range at this pace (from recent energy per km at cruising speed,
 falling back to Volt's or the scooter's range), battery, trip, ride time,
 battery temperature and power; the layout picker shows only while stopped.
+Ride time and trip distance start from zero each time riding mode opens and
+keep counting through rotation; Back and reopening starts them over.
 Stale values dim, and speed shows a dash after 6 s without a reading.
 More > App preferences > Riding mode sets brightness (Phone by default, Volt
 auto from the light sensor with learned per-band offsets, or Fixed), rotation
