@@ -195,6 +195,13 @@ public final class RideChartDataTest {
         check(negative >= 4, "the brake goes below zero: " + negative);
         double[] energy = RideChartData.inferredEnergyWh(points, s.measuredThroughputWh);
         check(energy != null && energy[1] > 0 && Math.abs(energy[0] + energy[1] - s.measuredThroughputWh) < 1e-6, "draw and regen split the throughput");
+        check(RideChartData.inferredEnergyWh(everyNth(points, 2), s.measuredThroughputWh) != null, "a preview thinned to every 2nd reading still estimates");
+        check(RideChartData.inferredEnergyWh(everyNth(points, 4), s.measuredThroughputWh) == null, "a preview thinned to every 4th reading claims no split");
+    }
+    private static List<RideStore.Point> everyNth(List<RideStore.Point> points, int n) {
+        List<RideStore.Point> kept = new java.util.ArrayList<>();
+        for (int i = 0; i < points.size(); i += n) kept.add(points.get(i));
+        return kept;
     }
     private static void unsigned(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
         long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();

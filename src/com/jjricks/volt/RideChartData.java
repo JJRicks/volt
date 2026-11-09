@@ -256,10 +256,11 @@ public final class RideChartData {
     }
     /**
      * Inferred regen in Wh for an unsigned ride's details, each reading held until the next.
-     * Draw is the ride's measured throughput less that regen. Null when there's nothing to measure.
+     * Draw is the ride's measured throughput less that regen. Null when there's nothing to measure, or when a
+     * long ride's saved preview is too thinned to infer from: there it would read as a confident 0 Wh of regen.
      */
     static double[] inferredEnergyWh(List<RideStore.Point> points, Double throughputWh) {
-        if (throughputWh == null || points.size() < 2) return null;
+        if (throughputWh == null || points.size() < 2 || medianGapMs(points) > INFERRED_ENERGY_MAX_SPACING_MS) return null;
         RegenInference.Label[] labels = regenLabels(points);
         double regenWh = 0;
         for (int i = 0; i + 1 < points.size(); i++) {
@@ -271,5 +272,12 @@ public final class RideChartData {
         return new double[]{Math.max(0, throughputWh - regenWh), regenWh};
     }
     private static final long INFERRED_ENERGY_MAX_GAP_MS = 5_000;
+    private static final long INFERRED_ENERGY_MAX_SPACING_MS = 3_000;
+    private static long medianGapMs(List<RideStore.Point> points) {
+        long[] gaps = new long[points.size() - 1];
+        for (int i = 0; i < gaps.length; i++) gaps[i] = points.get(i + 1).elapsedMs - points.get(i).elapsedMs;
+        Arrays.sort(gaps);
+        return gaps[gaps.length / 2];
+    }
     private static void checkCanceled() { if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Ride chart loading canceled"); }
 }
