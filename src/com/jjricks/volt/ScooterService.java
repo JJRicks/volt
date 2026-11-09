@@ -90,7 +90,7 @@ public final class ScooterService extends Service {
     private static final int AUTO_EXPORT_NOTICE = 78;
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends",LINK_LOSSES = "ride_link_losses";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -160,6 +160,7 @@ public final class ScooterService extends Service {
             guardedLifecycle = destroyed = true; stopSelf(); return;
         }
         settings = getSharedPreferences("app_settings", MODE_PRIVATE);
+        countLinkLoss();
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         maintenanceNotices = new MaintenanceNotices(this, profiles);
@@ -1840,6 +1841,16 @@ public final class ScooterService extends Service {
      * with commit so a process death right after the stop can't lose it.
      */
     public long rideAutoEnds(){return settings==null?0:settings.getLong(RIDE_AUTO_ENDS,0);}
+    /** The connection as last seen by changed(), to count each loss once. */
+    private boolean linkUp;
+    /**
+     * How many times a connection has ended: every fall from connected, and every new service, since the one
+     * before it can't still hold a link. Riding mode compares it across a leave (no clock), so a drop that has
+     * reconnected by the return still shows, including after the process died.
+     */
+    public long linkLosses(){return settings==null?0:settings.getLong(LINK_LOSSES,0);}
+    private void countLinkLoss(){if(settings!=null)settings.edit().putLong(LINK_LOSSES,linkLosses()+1).commit();}
+    private void observeLinkLoss(){boolean up=ble.connected();if(linkUp&&!up)countLinkLoss();linkUp=up;}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
@@ -2160,7 +2171,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;observeLinkLoss();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }

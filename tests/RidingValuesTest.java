@@ -39,6 +39,7 @@ public final class RidingValuesTest {
         speedFromOpen();
         speedResume();
         autoEnd();
+        linkLost();
         battery();
         ranges();
         System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
@@ -1112,6 +1113,86 @@ public final class RidingValuesTest {
         check(new RidingSession(PROFILE, null, t - 1, saved).rideTimeMs(t - 1) == 0, "nor does an open time from the future (a clock from another boot)");
         check(RidingSession.Resume.of(null, t, new double[4]) == null && RidingSession.Resume.of(PROFILE, t, new double[3]) == null, "unusable saved state is refused");
     }
+
+    private static void linkLost() {
+        long t = 1_000_000L;
+        // A leave and return with the connection untouched doesn't close it.
+        RidingSession session = connectedSession(t);
+        session.observeLink(false);
+        check(!session.away(), "a drop on screen isn't a leave");
+        session.left(true, 5);
+        check(session.away() && !session.lostOnReturn(true, 5, false), "gone and back with the connection untouched stays open");
+        check(!session.away(), "the return ends the leave");
+        session.left(false, 5);
+        check(session.lostOnReturn(false, 5, false), "already down when Volt left: lost");
+        session = connectedSession(t);
+        session.left(false, 5);
+        check(session.lostOnReturn(true, 5, false), "down at the leave counts even with the connection back by the return");
+        session = connectedSession(t);
+        session.left(true, 5);
+        check(session.lostOnReturn(false, 6, false), "dropped while away and still down: lost");
+        session = connectedSession(t);
+        session.left(true, 5);
+        check(session.lostOnReturn(true, 6, false), "dropped while away and back already: still lost");
+        session = connectedSession(t);
+        session.left(true, 5);
+        check(session.lostOnReturn(false, 5, false), "a connection that's simply gone with no counted drop is lost too");
+
+        // The count is taken when Volt leaves, so a drop on screen counts for nothing.
+        session = connectedSession(t);
+        session.observeLink(false);
+        session.observeLink(true);
+        session.left(true, 9);
+        check(!session.lostOnReturn(true, 9, false), "a drop and reconnect on screen counts for nothing");
+
+        // A recording holds it open at the return it's running at.
+        session = connectedSession(t);
+        session.left(true, 5);
+        check(!session.lostOnReturn(false, 6, true), "a recording still running keeps riding mode open");
+        check(!session.lostOnReturn(false, 7, false), "that return ended the leave: a later one is judged from a fresh leave");
+
+        // Opened with no scooter: nothing counts until one has been seen.
+        session = new RidingSession(PROFILE, null, t, null, 0);
+        session.observeLink(false);
+        session.left(false, 5);
+        check(!session.lostOnReturn(false, 8, false), "opened with no scooter connected stays through a leave and return");
+        session.left(false, 8);
+        session.observeLink(true);
+        check(!session.lostOnReturn(true, 8, false), "a connection made off screen wasn't seen by this riding mode");
+        session.observeLink(true);
+        check(!session.away() && session.resume().linkSeen(), "seen once it's on screen");
+        session.left(true, 8);
+        check(session.lostOnReturn(false, 9, false), "and from then on a loss counts");
+
+        // A permission dialog only pauses: no left() call, so there's nothing to lose.
+        session = connectedSession(t);
+        session.observeLink(false);
+        session.observeLink(true);
+        check(!session.lostOnReturn(true, 4, false), "a pause alone is no leave");
+
+        // Android may save state before stopping: the first left() of a leave wins.
+        session = connectedSession(t);
+        session.left(true, 5);
+        session.left(false, 6);
+        check(!session.lostOnReturn(true, 5, false), "a second left() in one leave changes nothing");
+
+        // Saved and read back, as across process death (the instrumentation can't die and report back).
+        session = connectedSession(t);
+        session.left(true, 5);
+        RidingSession.Resume saved = session.resume();
+        RidingSession.Resume restored = RidingSession.Resume.of(saved.profileId(), saved.openedMs(), saved.distance(), saved.speed(), saved.autoEnds(), saved.linkSeen(), saved.leftLosses(), saved.leftDown());
+        check(restored.lostOnReturn(false, 6, false), "process death: had seen a connection, none now, no recording: closes");
+        check(!restored.lostOnReturn(false, 6, true), "process death: unless a recording is running");
+        check(!restored.lostOnReturn(true, 5, false), "activity destroyed, connection untouched: it comes back");
+        check(restored.lostOnReturn(true, 6, false), "activity destroyed, a drop while away, reconnected since: closes");
+        check(!new RidingSession(PROFILE, null, t, null, 0).resume().lostOnReturn(false, 5, false), "a saved riding mode that never saw a connection comes back");
+        check(!connectedSession(t).resume().lostOnReturn(false, 6, false), "an on-screen recreation hasn't left: no leave to judge");
+        check(!RidingSession.Resume.of(PROFILE, t, saved.distance(), saved.speed(), 3).lostOnReturn(false, 9, false), "a save from before this existed counts as never connected");
+        RidingSession back = new RidingSession(PROFILE, null, t + 1000, saved, 0);
+        check(back.resume().linkSeen() && !back.away() && !back.lostOnReturn(false, 6, false), "a restored session keeps what it had seen, and starts on screen");
+    }
+
+    private static RidingSession connectedSession(long t) { RidingSession session = new RidingSession(PROFILE, null, t, null, 0); session.observeLink(true); return session; }
 
     private static void battery() {
         check(RidingValues.band(30) == RidingValues.Band.GREEN && RidingValues.band(29.9) == RidingValues.Band.AMBER, "amber below 30 % (owner)");
