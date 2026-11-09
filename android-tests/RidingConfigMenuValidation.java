@@ -232,8 +232,7 @@ public final class RidingConfigMenuValidation extends Instrumentation {
 
     private boolean takesTaps() { return (Boolean) call(disc(), "takesTaps", new Class<?>[0]); }
     private void tuneShows(String when) {
-        await(this::takesTaps, "The tune button should show: " + when);
-        require(picker().getVisibility() == View.VISIBLE, "Tune visible: " + when);
+        await(() -> takesTaps() && picker().getVisibility() == View.VISIBLE && picker().getScaleX() > .99f, "The tune button should show: " + when);
     }
     private void tuneHidden(String when) {
         await(() -> !takesTaps(), "The tune button should hide: " + when);
