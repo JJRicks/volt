@@ -1102,7 +1102,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void pumpLockQueue(BleController ble,boolean ready,Boolean shownLock,String pending){
         if(!lockQueue.waiting())return;
         // Before the gate below: it lets an unlock through while moving, for Home's recovery, which riding mode doesn't offer.
-        if(ready&&ble!=null&&lockQueue.stoppedGateClosed(lockStoppedGate!=null&&lockStoppedGate.getAsBoolean(),movingReason(ble))==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());return;}
+        if(ready&&ble!=null&&lockQueue.stoppedGateClosed(lockStoppedGate!=null&&lockStoppedGate.getAsBoolean(),movingReason())==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());return;}
         LockTapQueue.Gate gate=LockTapQueue.Gate.WAIT;
         if(ble!=null){CapabilityResolver.Decision d=ble.decisionOnceIdle("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
             boolean otherWrite=pending!=null&&!"lock".equals(pending);gate=LockTapQueue.gate(d.available(),d.reason,otherWrite);
@@ -1112,12 +1112,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(action==LockTapQueue.Action.SEND){
             boolean target=Boolean.TRUE.equals(lockQueue.target());
             // Marked first: a refused send redraws the header from inside set(), which must neither send again nor call it unconfirmed.
-            lockQueue.beginSend();boolean accepted=false;try{accepted=ble.set("lock",target?1:0);}finally{lockQueue.endSend();}
-            if(!accepted){lockQueue.refused();Haptics.reject(lockControl);toast(ble.displayMessage());}
+            lockQueue.sending(true);
+            lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+            lockQueue.sending(false);
+            if(!lockQueue.waiting())toast(ble.displayMessage());
         }else if(action==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());}
     }
-    /** Why a stopped-only tap went back: locking's own refusal, the one unlocking is excused from. Empty says nothing. */
-    private static CharSequence movingReason(BleController ble){return ble.decisionOnceIdle("lock",1).reasonMessage();}
+    /** Why a stopped-only tap went back: locking's own refusal, the one unlocking is excused from. */
+    private static CharSequence movingReason(){return CapabilityResolver.message(CapabilityResolver.Reason.MOVING);}
     /**
      * Whether the lock switch can be used in the shown direction on this model. Riding, a missing
      * motion report or a warning keep it tappable so the tap says why; the gate still refuses.
@@ -1185,7 +1187,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private Boolean drawn;
         private void apply(boolean target){
             if(!available||value==null||scooterService==null)return;
-            if(stoppedGate!=null&&!stoppedGate.getAsBoolean()){Haptics.reject(this);toast(movingReason(scooterService.ble));return;} // A tap that lands as the scooter starts moving.
+            if(stoppedGate!=null&&!stoppedGate.getAsBoolean()){Haptics.reject(this);toast(movingReason());return;} // A tap that lands as the scooter starts moving.
             if(lockQueue.request(value,target,SystemClock.elapsedRealtime(),stoppedGate!=null)){lockStoppedGate=stoppedGate;requestedAt=SystemClock.elapsedRealtime();redraw();}
         }
         void update(Boolean locked,boolean enabled){

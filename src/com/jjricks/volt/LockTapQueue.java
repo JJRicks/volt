@@ -38,9 +38,8 @@ final class LockTapQueue {
     /** Why the last request was put back, once; null when nothing to say. */
     String takeFailure() { CharSequence text = failure; failure = null; return ConnectionText.english(text); }
     void sent() { sent = true; }
-    /** Marks the send and holds step() until endSend(), so a redraw from inside the send can't judge it. */
-    void beginSend() { sent = true; sending = true; }
-    void endSend() { sending = false; }
+    /** Around the send: a redraw from inside it can't judge it. */
+    void sending(boolean inside) { sending = inside; }
     /** The send was refused before going out (the gate gives the reason itself). */
     void refused() { clear(); }
 
