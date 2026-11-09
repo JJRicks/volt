@@ -6,7 +6,9 @@ import java.util.Locale;
 /**
  * The electronic lock reads as its state on the Setting tile and Quick access button: DisplayUnits.lockStateText
  * gives both readback values, and QuickAccessGrid's chain puts it ahead of the shared variant's and the UT5 route's
- * generic On/Off. Other on/off features keep On/Off, and the English labels stay Off/On for logs and reports.
+ * generic On/Off. A reading that is not live says so (Last known: locked), and a Quick access button's padlock is open
+ * while the lock reads unlocked. Other on/off features keep On/Off, and the English labels stay Off/On for logs and reports.
+ * QuickAccessGrid and Ui are Android views, so their wiring is checked by reading the source; DisplayUnits runs for real.
  * Fixtures are synthesized.
  */
 public final class LockStateTextTest {
@@ -25,8 +27,11 @@ public final class LockStateTextTest {
             tileChain();
             T.install(null);
             lockReads("Locked", "Unlocked", "On", "Off");
+            lockStale("Last known: locked", "Last known: unlocked");
             T.install(ECHO);
             lockReads("⟦main_lock_locked⟧", "⟦main_lock_unlocked⟧", "⟦common_on⟧", "⟦common_off⟧");
+            lockStale("⟦main_lock_last_known_word_locked⟧", "⟦main_lock_last_known_word_unlocked⟧");
+            quickAccessIcons();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
@@ -67,13 +72,41 @@ public final class LockStateTextTest {
         equal(off, cruise.text(0).render(), "cruise_control's variant keeps Off");
     }
 
+    /** Both cached values are qualified when the reading is not live; a live reading and other features are not. */
+    private static void lockStale(String lastLocked, String lastUnlocked) {
+        ScooterCommands.Feature lock = ScooterCommands.find("lock");
+        equal(lastLocked, DisplayUnits.lockStateText(lock, 1, false), "cached lock 1");
+        equal(lastUnlocked, DisplayUnits.lockStateText(lock, 0, false), "cached lock 0");
+        equal(DisplayUnits.lockStateText(lock, 1), DisplayUnits.lockStateText(lock, 1, true), "live lock 1");
+        equal(DisplayUnits.lockStateText(lock, 0), DisplayUnits.lockStateText(lock, 0, true), "live lock 0");
+        check(DisplayUnits.lockStateText(lock, 2, false) == null, "a value the lock does not define is not a stale lock state");
+        check(DisplayUnits.lockStateText(ScooterCommands.find("headlight"), 1, false) == null, "headlight is not a stale lock state");
+    }
+
+    /** The padlock follows the reading whether it is live, stale or awaiting a change, because the value is always a readback. */
+    private static void quickAccessIcons() {
+        ScooterCommands.Feature lock = ScooterCommands.find("lock");
+        equal("unlock", DisplayUnits.quickAccessIcon(lock, 0, "lock"), "unlocked is the open padlock");
+        equal("lock", DisplayUnits.quickAccessIcon(lock, 1, "lock"), "locked is the closed padlock");
+        equal("lock", DisplayUnits.quickAccessIcon(lock, null, "lock"), "no reading keeps the shortcut's padlock");
+        equal("lock", DisplayUnits.quickAccessIcon(lock, 2, "lock"), "a value the lock does not define keeps the shortcut's padlock");
+        equal("lights", DisplayUnits.quickAccessIcon(ScooterCommands.find("headlight"), 0, "lights"), "another feature keeps its icon");
+        equal("home", DisplayUnits.quickAccessIcon(null, 0, "home"), "a shortcut with no feature keeps its icon");
+    }
+
     /** QuickAccessGrid is an Android view, so its chain is read: the lock's line has to come before the variant's label. */
     private static void tileChain() {
         String grid = L10nFiles.read(new File("src/com/jjricks/volt/QuickAccessGrid.java"));
-        int lock = grid.indexOf(": DisplayUnits.lockStateText(feature, value) != null ? DisplayUnits.lockStateText(feature, value)");
+        int lock = grid.indexOf(": lockState != null ? lockState");
         int variant = grid.indexOf(": decision != null && decision.oemText(value) != null ? decision.oemText(value).render()");
         int pending = grid.indexOf(": unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE");
         check(pending >= 0 && lock > pending && variant > lock, "pending and no-value come first, then the lock's state, then the variant's label");
+        check(grid.contains("String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value, featureLive);"), "the tile's lock state is qualified by whether its reading is live");
+        check(grid.indexOf("if (!state.contentEquals(cell.value.getText())) cell.value.setText(state);") < grid.indexOf("ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));"), "a Quick access button's padlock follows the reading");
+        check(grid.contains("cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);"), "a stale button stays muted, the part an icon cannot show");
+        check(grid.contains("T.dashboardModelTileDescPart(state)") && grid.contains("cell.setStateDescription(state);"), "TalkBack keeps the full state");
+        check(grid.contains("cell.lockState = !pending && lockState != null;"), "Updating is not a lock state");
+        check(L10nFiles.read(new File("src/com/jjricks/volt/Ui.java")).contains("key.equals(\"unlock\") ? 210 : 180"), "the open padlock is the shared icon set's");
         check(grid.contains("if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);"), "a Quick access lock state never breaks mid-word");
     }
 

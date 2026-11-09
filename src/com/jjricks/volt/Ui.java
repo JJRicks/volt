@@ -309,6 +309,8 @@ public final class Ui {
         return box;
     }
     public View icon(String key, int size, int color) { return new IconView(key, size, color); }
+    /** Repaints a view made by {@link #icon} as another glyph. */
+    public void setIcon(View icon, String key) { if (icon instanceof IconView) ((IconView) icon).key(key); }
     public RadioDot radioDot() { return new RadioDot(); }
     /** Radio indicator: a grey ring, or a thick red ring when selected. */
     public final class RadioDot extends View {
@@ -1037,12 +1039,16 @@ public final class Ui {
     }
 
     private final class IconView extends View {
-        final String key;
+        String key;
         final int size, color;
         final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         IconView(String key, int size, int color) {
             super(context); this.key = key == null ? "info" : key; this.size = size; this.color = color;
             setContentDescription(this.key.replace('_', ' ')); setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+        void key(String next) {
+            if (next == null || next.equals(key)) return;
+            key = next; setContentDescription(key.replace('_', ' ')); invalidate();
         }
         @Override protected void onMeasure(int width, int height) { setMeasuredDimension(resolveSize(dp(size), width), resolveSize(dp(size), height)); }
         @Override protected void onDraw(Canvas canvas) {

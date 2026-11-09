@@ -84,6 +84,20 @@ public final class DisplayUnits {
         return value == 1 ? T.mainLockLocked() : T.mainLockUnlocked();
     }
 
+    /** {@link #lockStateText(ScooterCommands.Feature, int)}, qualified as last known when the reading is not live. */
+    public static String lockStateText(ScooterCommands.Feature feature, int value, boolean live) {
+        String state = lockStateText(feature, value);
+        return state == null || live ? state : value == 1 ? T.mainLockLastKnownWordLocked() : T.mainLockLastKnownWordUnlocked();
+    }
+
+    /**
+     * The icon of a Quick access button: an open padlock while the electronic lock reads unlocked, so the two states
+     * stay apart where the state word does not fit. Any other button, or no reading, keeps {@code icon}.
+     */
+    public static String quickAccessIcon(ScooterCommands.Feature feature, Integer value, String icon) {
+        return feature != null && value != null && value == 0 && lockStateText(feature, value) != null ? "unlock" : icon;
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);

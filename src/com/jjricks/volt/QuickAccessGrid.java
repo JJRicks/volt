@@ -80,12 +80,13 @@ final class QuickAccessGrid extends ViewGroup {
             // whatever else holds the control right now (moving, locked).
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
+            String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value, featureLive);
             String state = feature == null || feature.sensitive && !unmapped ? ""
                     : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
-                    : DisplayUnits.lockStateText(feature, value) != null ? DisplayUnits.lockStateText(feature, value)
+                    : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
-            cell.lockState = feature != null && !unmapped && !pending && value != null && DisplayUnits.lockStateText(feature, value) != null;
+            cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
@@ -144,6 +145,7 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.label.setVisibility(tileLabels && !state.isEmpty() ? VISIBLE : GONE);
             } else {
                 if (!state.contentEquals(cell.value.getText())) cell.value.setText(state);
+                ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
                 cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
                 cell.value.setTag(state);
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
@@ -342,7 +344,7 @@ final class QuickAccessGrid extends ViewGroup {
             if (rung == null) label.setVisibility(GONE);
             else if (TileRung.needsSet(rung, label.getText())) label.setText(rung);
             value.setTextSize((compact ? 10 : 11) * ui.textScale);
-            // A lock state too wide for whole words drops; the icon, selected fill and spoken state remain.
+            // A lock state too wide for whole words drops; the open or closed padlock and the spoken state remain.
             if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
