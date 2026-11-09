@@ -1465,7 +1465,7 @@ final class RidingScreen implements AppScreen {
      */
     private final class Chip extends LinearLayout {
         private static final float MODE_SPACING = .06f;
-        private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 8;
+        private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 6;
         final String content;
         private final TextView text;
         /** Measures the text at each rung's letter spacing; off screen, so trying a rung never disturbs the layout. */
