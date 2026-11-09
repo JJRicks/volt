@@ -14,7 +14,7 @@
     <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Gegevens en geschiedenis</string>
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info en rechten</string>
     <string name="more_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="more_lab_badge_description" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Experimenteel</string>
+    <string name="more_lab_badge_description" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Experimenteel</string>
     <string name="more_footer" volt:src="d06f0aac50d58b82772eddce809be84213e31e5a">Volt %1$s · niet gelieerd aan NAVEE</string>
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Probleem melden</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Eenheden</string>
@@ -66,11 +66,15 @@
     <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Opnamen blijven altijd verbonden</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Scherm aan laten</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Tijdens het opnemen</string>
-    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Rit beëindigen bij stilstand</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s nadat Bluetooth wegvalt bij stilstand</string>
+    <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Ritten automatisch beëindigen</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="6e56a0cc615fb4a83f1668457fad39ee488252da">Als de step uitgaat, 5 min buiten bereik blijft of 10 min niet beweegt</string>
+    <string name="more_prefs_auto_record" volt:src="e7146e4229442900123e435f2d3c7687d298fe63">Ritten automatisch opnemen</string>
+    <string name="more_prefs_auto_record_sub" volt:src="8e1782e212b5017013c7c921e873e5f3031aad2c">Opname start zodra de verbonden step beweegt. Als je een opname stopt, wacht Volt tot de step opnieuw verbinding maakt</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Opname op de achtergrond</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Batterijgebruik onbeperkt</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batterijgebruik geoptimaliseerd; lange opnamen kunnen stoppen. Dit opent de batterij-instellingen</string>
+    <string name="more_prefs_battery_value_unrestricted" volt:src="d16106e031ab845bc6eaf37d7664c393c8552dbe">Onbeperkt ✓</string>
+    <string name="more_prefs_battery_value_optimized" volt:src="12c4694b62a8053f7d403d23c40c53baf0edf80d">Geoptimaliseerd ⚠︎</string>
     <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Eigen</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Kies Volt om de instellingen van de app in Android te beheren</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Open de instellingen van Volt in Android</string>
@@ -88,12 +92,29 @@
     <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Systeemstandaard (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Bèta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Bèta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Bètavertalingen zijn gemaakt met AI en automatisch gecontroleerd. Rapporten en diagnosegegevens blijven in het Engels. Wil je een probleem met de formulering melden? Gebruik dan ‘Probleem melden’.</string>
+    <string name="more_language_in_progress" volt:src="92a742d14aed5f09ecbe985c533b94a9fc10d212">In de maak</string>
+    <string name="more_language_in_progress_description" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, in de maak</string>
+    <string name="more_language_note" volt:src="a0c2f3248a33f7d983ce11eaea8f644b051def9c">Bètavertalingen worden met AI gemaakt en automatisch gecontroleerd. Rapporten en diagnosegegevens blijven in het Engels. Gebruik de knoppen hieronder om een fout in de tekst te melden of een taal aan te vragen.</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">Je kunt dit ook wijzigen in Android: Instellingen › Apps › Volt › Taal.</string>
-    <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Meetgeschiedenis</string>
-    <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Meetgeschiedenis opslaan</string>
+    <string name="more_language_report_error" volt:src="ad226a74c0bbd8a8b7d01446f1d6f7424d981e69">Vertaalfout melden</string>
+    <string name="more_language_request" volt:src="5e33d167e97de78e9ac8b7c46db646ea0eca1135">Taal aanvragen</string>
+    <string name="more_history_connected" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Meetgeschiedenis</string>
+    <string name="more_history_save" volt:src="c3a14cda2fdcecd7010e01072bf5f4025d7de152">Meetgeschiedenis opslaan</string>
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Zolang er verbinding is</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Uit · laatste metingen blijven bewaard</string>
+    <string name="more_auto_save_heading" volt:src="3306dbdeccfc25335130c26851c550b072b30c74">Automatisch opslaan van ritten</string>
+    <string name="more_auto_save_json" volt:src="0bb6976a9b15466395c5fd52e70b89c3c868eeb1">Ritten automatisch opslaan</string>
+    <string name="more_auto_save_json_sub" volt:src="138d63b8c4aeef7d0317a12f15279642ed1628dc">Eén bestand per rit: ‘Alles in één JSON’</string>
+    <string name="more_auto_save_folder" volt:src="8c7711adcfa5c40b9dc66f677f2a609ab74fb0ec">Map</string>
+    <string name="more_auto_save_no_folder" volt:src="bcbd72a20ff44510ee37859d1aa734922a772667">Nog geen map gekozen</string>
+    <string name="more_auto_save_saving_to" volt:src="5ea59c4e03e3f7f022df7b407063f92eddb30038">Wordt opgeslagen in %1$s</string>
+    <string name="more_auto_save_saving_chosen" volt:src="ff55a23ac539217318e71c439a29434f0f2a99b6">Wordt opgeslagen in je gekozen map</string>
+    <string name="more_auto_save_choose_folder" volt:src="45889ac0a0a14370b931f62a2dcbaf1babbdd885">Kies een map om het opslaan te starten</string>
+    <string name="more_auto_save_folder_problem" volt:src="f176d3419a1de75e4e51026691d4acf590f71fe6">De laatste rit kon niet worden opgeslagen. Kies de map opnieuw.</string>
+    <string name="more_auto_save_save_problem" volt:src="453a5831b3d2239c1bf888fb5de37a55af9eedb2">De laatste rit kon niet worden opgeslagen. Volt probeert het opnieuw.</string>
+    <string name="more_auto_save_folder_note" volt:src="ddc0347732266eb3072ca7a138e61c4838bf0817">Een nieuwe map wordt gebruikt voor ritten die na de wijziging worden opgeslagen. Bestanden die al zijn opgeslagen, blijven waar ze staan.</string>
+    <string name="more_auto_save_no_picker" volt:src="caae18d56beb33900be826bbcf26d31f9efbbce6">Op deze telefoon kan geen mapkiezer worden geopend.</string>
+    <string name="more_auto_save_not_kept" volt:src="9b6a0cab625e227906ed84495873f035b311ada1">Volt kon de toegang tot die map niet behouden. Kies een andere map.</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Lokale opslag</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Bezig met controleren…</string>
     <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Gedetailleerde meetpunten</string>
@@ -104,13 +125,19 @@
     <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 jaar</string>
     <string name="more_history_up_to" volt:src="10cda5c46f5a36c0a0491e2e19f9e09a824c2373">tot %1$s</string>
     <string name="more_history_clear_scooter" volt:src="c8d4b5a4d55716b2bd7e7bf73acdf3707223028c">Geschiedenis van deze step wissen</string>
-    <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Alle meetgeschiedenis wissen</string>
+    <string name="more_history_clear_all" volt:src="13f48a52cad20686562d3aa3afabd8a506617007">Alle meetgeschiedenis wissen</string>
     <string name="more_unit_mib" volt:src="37b1b983a4924a010a635cc89ae29918eda8fd4b">MiB</string>
     <string name="more_history_used" volt:src="05f1554066a0dd490b41c2613a13422f35959676">%1$s van %2$s %3$s</string>
+    <plurals name="more_history_samples_saved" volt:src="5950908ec3ecabd120be0952e2ef5d80dd4ceda7">
+        <item quantity="one">%1$s opgeslagen</item>
+        <item quantity="other">%1$s opgeslagen</item>
+    </plurals>
+    <string name="more_history_storage_description" volt:src="368a9ccd675caf48fa9414bc33a6e309f0863242">Lokale opslag, %1$s gebruikt. %2$s</string>
+    <string name="more_history_samples_description" volt:src="24417f4f329a26b3fc6be52a69fd54f123243261">Opgeslagen meetpunten – gedetailleerd: %1$s, per minuut: %2$s, per dag: %3$s.</string>
     <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Kies eerst een step.</string>
     <string name="more_history_clear_title" volt:src="f3612e8159bace4f4e64bd69737306998f67567e">Geschiedenis wissen?</string>
     <string name="more_history_clear_all_body" volt:src="b12ff163ffb1ab6b5064c3b54a0a413a08e1f3d0">Dit verwijdert de geschiedenis van alle steps. Ritten blijven bewaard.</string>
-    <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">Dit verwijdert de geschiedenis van %1$s. Ritten blijven bewaard.</string>
+    <string name="more_history_clear_one_body" volt:src="cd371ef2e917ffd79c8b72fa6252d5a8ca2804ea">Dit verwijdert de geschiedenis van %1$s. Ritten blijven bewaard.</string>
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Wissen</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Geschiedenis gewist</string>
     <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Goed leesbaar, ingeklapt of opengeklapt</string>
@@ -120,7 +147,7 @@
     <string name="more_refresh_5" volt:src="0e6a045ae2f37c0178ed90ba852ba1ffd14469e7">5 seconden</string>
     <string name="more_refresh_10" volt:src="3c632cab41da6766399180c27e4dc485caa1f963">10 seconden</string>
     <string name="more_pin_handlebar" volt:src="9ebceaa07ef3bbec8add681acdb6a2a6a780f643">Stuur-PIN</string>
-    <string name="more_pin_fallback" volt:src="fe1fc79cac5fc4007fa1b76ca3d5832bc336f2d9">PIN op het stuur</string>
+    <string name="more_pin_fallback" volt:src="d14390b6831fb724fbb7a6fb2e1b8ad6af92bc42">PIN-ontgrendeling</string>
     <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">PIN-status uitlezen</string>
     <string name="more_pin_set_row" volt:src="603eff531215e4206165cd40552c3fbc3521366d">PIN instellen of wijzigen</string>
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Ontgrendelen bij nabijheid</string>
@@ -151,7 +178,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Met ontgrendelen bij nabijheid: gekoppelde telefoon dichtbij, knijp in de rem. Test beide terwijl de step geparkeerd staat, voordat je erop vertrouwt.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Begrepen</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Stuur: 1 knop van de richtingaanwijzer, 2 remhendel, 3 aan-uitknop</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Niet-geteste functies</string>
+    <string name="more_lab_untested" volt:src="ccea9ff54e8269b640a7431056ad0bf00751d803">Functies om te proberen</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Help mee verifiëren</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Niets om te proberen</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Bewijs van commando’s</string>
@@ -172,6 +199,11 @@
     <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">De officiële app biedt deze functies aan voor je model, maar Volt heeft ze daarop niet getest. Je poging en je antwoord komen in je volgende compatibiliteitsrapport.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Niet gemeld door deze step</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kan deze functies niet teruglezen en biedt ze dus niet aan.</string>
+    <string name="more_lab_model_named" volt:src="4f219f1adf1eacedede400f8b6c77429e18aa747">de %1$s</string>
+    <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">je model</string>
+    <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">De officiële app biedt deze functies niet aan voor %1$s. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling daarna terug.</string>
+    <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">De officiële app biedt deze functies aan voor %1$s, maar Volt heeft ze daarop niet getest. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling daarna terug.</string>
+    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Niets te proberen op %1$s: de officiële app biedt de functies die Volt zou kunnen proberen al aan. Je vindt ze in ‘Stepinstellingen’.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt stuurt geen commando’s voor steps naar dit product.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Niets om te proberen op de UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">Het Model-ID van deze step komt niet overeen met het serienummer, dus biedt Volt niets aan om te proberen.</string>
@@ -197,7 +229,7 @@
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Wachten tot de step meldt dat hij geparkeerd staat.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Los de waarschuwing van de step op om deze functies te proberen.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Ontgrendel de step om deze functies te proberen.</string>
-    <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Alleen het eigenaarsprofiel kan deze functies proberen.</string>
+    <string name="more_lab_held_owner" volt:src="c8b4107bef41bd413e5f8cff598c8cccd2706ce9">Alleen de eigenaar van de step kan deze functies proberen.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Wacht tot de compatibiliteitscontrole klaar is.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Rond eerst de huidige poging af.</string>
     <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Stop de opname om deze functies te proberen.</string>
@@ -229,6 +261,8 @@
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Onbevestigd · maak opnieuw verbinding om te controleren</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Onbevestigd</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Bezig met controleren…</string>
+    <string name="more_lab_sheet_untested" volt:src="7974a1df65ed7d55cbff973224ff674a6f8684e1">Niet getest op %1$s</string>
+    <string name="more_lab_sheet_unverified" volt:src="669d9b9dab9ea36291b4b2e1e7d88dee40a3b0a2">Niet geverifieerd op %1$s</string>
     <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">De officiële app biedt dit aan voor je model, maar Volt heeft het daarop niet getest. Je poging en je antwoord komen in je volgende compatibiliteitsrapport.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Nu</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Laatste poging</string>
@@ -257,6 +291,7 @@
         <item quantity="other">De officiële app biedt dit aan op %1$d andere modellen, maar niet op jouw model. Het kan hier niets doen of anders werken.</item>
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">De officiële app biedt dit niet aan op je model. Het kan hier niets doen of anders werken.</string>
+    <string name="more_lab_why_region_start" volt:src="27a5751edf081e457d330947d7cc554116e22499">De officiële app biedt 3–5 km/h aan in de regio van je step. Lagere snelheden doen hier misschien niets of werken anders.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN en authenticatiebytes verborgen</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Nog geen wijzigingen</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Lokale kloksynchronisatie\n%1$s</string>
@@ -286,7 +321,7 @@
     <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Bezig met controleren op updates</string>
     <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Bezig met opvragen van de nieuwste release bij GitHub…</string>
     <string name="more_update_available" volt:src="7ffd9079e0f2563ea01c2ee25b063cb771a7be94">Volt %1$s is beschikbaar</string>
-    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Je hebt %1$s. Download de nieuwe versie via de releasepagina en installeer die over deze versie heen; je gegevens blijven bewaard.</string>
+    <string name="more_update_available_body" volt:src="88265d97c6c301056c870ca165f1f36847a1c2c3">Je hebt %1$s. Haal de nieuwe versie op via de releasepagina en installeer die over deze heen; je gegevens blijven bewaard.</string>
     <string name="more_update_current" volt:src="0735317844597e79fefa950a5cf4011e9a40a532">Je hebt de nieuwste versie</string>
     <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s is een ontwikkelversie. De nieuwste release is %2$s.</string>
     <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s is de nieuwste release.</string>
@@ -295,6 +330,13 @@
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Volt kon het antwoord van GitHub niet lezen. Probeer het later opnieuw of bekijk de releasepagina in je browser.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Releasepagina openen</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Er is geen browser gevonden om de releasepagina te openen</string>
+    <string name="more_updates_title" volt:src="c8847f40145311a42aa65b74cc4e604a7cbf6d14">Updates</string>
+    <string name="more_updates_auto" volt:src="d9b247e5c640259079820708230c037ae72204e8">Automatisch controleren op updates</string>
+    <string name="more_updates_auto_short" volt:src="9bbc93db05aba581ec66fd1b8639210e2124cc2a">Automatisch controleren</string>
+    <string name="more_updates_auto_sub" volt:src="9e7bd7b4503612b1df7c3892e06a0f9154c2af7e">Eén keer per dag, op de achtergrond</string>
+    <string name="more_updates_channel" volt:src="ec54538250ba679453cc3c22679f27b537ea9d7a">Updates van de app</string>
+    <string name="more_updates_channel_description" volt:src="6a76ea70ecfeffa5a6265578ddf032482dd4ab57">Een stille melding als de dagelijkse controle een nieuwere Volt-release op GitHub vindt</string>
+    <string name="more_updates_notice" volt:src="32676591b9dcbdf5fb2518fab3eec79b528aa1aa">Tik om te zien wat er nieuw is</string>
     <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">Ontwikkelaarsopties staan al aan.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Ontwikkelaarsopties aangezet.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
@@ -351,6 +393,14 @@
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Opgeslagen laadcurves niet toegepast zolang de oplader onbekend is</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Geschikte laadopnamen met originele oplader: %1$s</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Geschikte laadopnamen met snellader: %1$s</string>
+    <plurals name="more_dev_curves_stock_count" volt:src="1330fd7aee2810153c45f34fbc14a61b214930ee">
+        <item quantity="one">%1$s geschikte laadopname met originele oplader</item>
+        <item quantity="other">%1$s geschikte laadopnamen met originele oplader</item>
+    </plurals>
+    <plurals name="more_dev_curves_fast_count" volt:src="ce7a7ee380a8db0a09e9b337513b03e171480d5e">
+        <item quantity="one">%1$s geschikte laadopname met snellader</item>
+        <item quantity="other">%1$s geschikte laadopnamen met snellader</item>
+    </plurals>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Een voltooide laadsessie kan het traject verfijnen waarin die eindigt. Voor andere trajecten zijn twee overeenkomende opnamen nodig. Schattingen hangen af van de dekking en het actuele vermogen; schattingen voor de originele oplader en de snellader van de UT5 MAX werken ook zonder opnamen.</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Volledige licentieteksten bekijken</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Volledige licentieteksten</string>
@@ -358,7 +408,7 @@
     <string name="more_role_owner" volt:src="6a359e0c42ce31107b4e661ff169adf288b94a3d">Eigenaar</string>
     <string name="more_role_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Medegebruiker</string>
     <string name="more_link_connected" volt:src="43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8">verbonden</string>
-    <string name="more_link_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">niet verbonden</string>
+    <string name="more_link_disconnected" volt:src="1b2dac54076ca87a6ee8f7c5d4abe3370fb44091">niet verbonden</string>
     <string name="more_link_connecting" volt:src="5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa">verbinding maken</string>
     <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Nog geen step</string>
     <string name="more_index_add" volt:src="a57928c50bc55109a2723d8b20876d74073feeac">Voeg een step toe om te beginnen</string>
@@ -368,7 +418,7 @@
     <string name="more_scooters_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Verbonden</string>
     <string name="more_scooters_offline" volt:src="4f2fe96a65ce1006ebf27bee78efd89117a9a408">Offline</string>
     <string name="more_scooters_model_unknown" volt:src="6fedbc5bb2d906c46447405f68ddba4baeefbaee">Model niet herkend</string>
-    <string name="more_scooters_shared_suffix" volt:src="649dfaf5acdfa3d19bf15761d0232b27af8f1712">" · Medegebruiker"</string>
+    <string name="more_scooters_shared_suffix" volt:src="43a2b76bdab924af12383ebffa4a48fc8eff96ea">" · Medegebruiker"</string>
     <string name="more_scooters_last_connected" volt:src="efdfc14b5d1d610e5756c3e8a2d6b81afad5bbb5">Laatst verbonden: %1$s</string>
     <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">%1$s bewerken</string>
     <string name="more_scooters_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Verbinding verbreken</string>
@@ -382,6 +432,10 @@
     <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Niet ingesteld</string>
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Uit</string>
     <string name="more_pin_enabled" volt:src="d5a5252181dc44fe1192e2b23c52a00e573a8166">Aan</string>
+    <string name="more_chip_pin_on_value" volt:src="ece10794b36e230a4d727c4e32831de82059b69e">PIN ✓</string>
+    <string name="more_chip_pin_off_value" volt:src="62f5872958f5c1079c17e084931ee349a97589a1">PIN —</string>
+    <string name="more_chip_paired_value" volt:src="8f8f35e3ef449cad6769502b0ce190e99d8bf67d">Gekoppeld ✓</string>
+    <string name="more_chip_not_paired_value" volt:src="38b50e2c9000a72fb2e60cbe353cfdf7e873b476">Gekoppeld —</string>
     <string name="more_chip_pin_on" volt:src="abed827991a4a0db764ea439d3b4bad3439a1f29">PIN staat aan</string>
     <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2">PIN staat niet aan</string>
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telefoon gekoppeld</string>
@@ -391,7 +445,7 @@
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Maak eerst verbinding met de step</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Wachten op de step</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Niet gemeld door de firmware</string>
-    <string name="more_proximity_pin_first" volt:src="3f37e82484a6312eaf20b336cbbf6cdb1d805997">Zet eerst de stuur-PIN aan</string>
+    <string name="more_proximity_pin_first" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Zet eerst de stuur-PIN aan</string>
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Koppel eerst deze telefoon</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Gekoppeld</string>
