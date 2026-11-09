@@ -209,13 +209,15 @@ public final class ScooterSimulation {
         double speed = moving ? 24.3 + 5.5 * Math.sin(phase / 9) : 0;
         double watts = moving ? 540 + 720 * Math.sin(phase / 7) : 6;
         double battery = script.equals(LOW_RED) ? 11 : script.equals(LOW_AMBER) ? 24 : 72;
-        if (script.equals(LOW_RED) || script.equals(LOW_AMBER)) { speed *= .7; watts *= .7; }
+        // The trip grows at the ride's steady pace: multiplying the swinging speed by elapsed time would make it fall.
+        double pace = moving ? 24.3 : 0;
+        if (script.equals(LOW_RED) || script.equals(LOW_AMBER)) { speed *= .7; watts *= .7; pace *= .7; }
         reading(telemetry, "speed_kmh", speed, 1, Telemetry.SUFFIX_KMH, time);
         reading(telemetry, "power_w", watts, 1, Telemetry.SUFFIX_WATT, time);
         reading(telemetry, "current_a", watts / 50.4, 2, Telemetry.SUFFIX_AMP, time);
         reading(telemetry, "battery_percent", battery, 0, Telemetry.SUFFIX_PERCENT, time);
         reading(telemetry, "remaining_range_km", battery * .5, 1, Telemetry.SUFFIX_RANGE, time);
-        reading(telemetry, "trip_km", 6.84 + phase * speed / 3600, 2, Telemetry.SUFFIX_KM, time);
+        reading(telemetry, "trip_km", 6.84 + phase * pace / 3600, 2, Telemetry.SUFFIX_KM, time);
         reading(telemetry, "trip_minutes", 23.5 + phase / 60, 1, Telemetry.SUFFIX_MINUTE, time);
         reading(telemetry, "temperature_c", 31.2, 1, Telemetry.SUFFIX_CELSIUS, time);
         // This trip's top and average speed, for Halo's ring tick and dot (riding-mode plan PR 3).

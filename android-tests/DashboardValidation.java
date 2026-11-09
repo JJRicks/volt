@@ -757,11 +757,13 @@ public final class DashboardValidation extends Instrumentation {
             require(readings.contains("98"), "Reading tiles did not render the cached health value: " + readings);
 
             String settings = bodyText(tile("shortcuts")).toLowerCase(Locale.ROOT);
-            require(settings.contains("max. speed") && settings.contains("charge schedule"),
-                    "Setting tiles lack their default Max. speed and Charge schedule tiles: " + settings);
+            require(settings.contains("max. speed") && settings.contains("charge sched."),
+                    "Setting tiles lack their default Max. speed and Charge sched. tiles: " + settings);
             View schedule = ((View)tile("shortcuts")).findViewWithTag("setting-tile:feature:timed_charging");
             require(schedule != null && "setting-action:power".equals(((View)field(schedule, "icon")).getTag()),
                     "Charge schedule toggles directly but lacks its power-button cue");
+            require(String.valueOf(schedule.getContentDescription()).startsWith("Charge schedule"),
+                    "Charge schedule tile is not announced by its full name: " + schedule.getContentDescription());
             View powerCue = (View)field(schedule, "icon");
             require(!powerCue.isEnabled() && powerCue.getAlpha() < 1f
                             && ((Integer)field(powerCue, "color")) == activity.ui().muted,
