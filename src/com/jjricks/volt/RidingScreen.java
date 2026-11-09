@@ -720,7 +720,7 @@ final class RidingScreen implements AppScreen {
                 canvas.drawRoundRect(square, 2.5f, 2.5f, paint);
             } else {
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(2);
+                paint.setStrokeWidth(1.8f);
                 canvas.drawCircle(12, 12, 8, paint);
                 paint.setStyle(Paint.Style.FILL);
                 canvas.drawCircle(12, 12, 3.6f, paint);
