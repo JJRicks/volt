@@ -1175,6 +1175,36 @@ public final class ScooterService extends Service {
     // ---- C1 concepts only (never ships): a faked charge, every value synthetic, so the card can be photographed. ----
     private static ChargeLiveState c1Preview;
     private static int c1Variant;
+    /** Title without the percent, for the variants that show it elsewhere. */
+    private static String c1ShortTitle(ChargeLiveState live){
+        return live.kind!=ChargeLiveState.Kind.CHARGING?live.title:live.max<100?T.chargingAlertWatchTitle(Fmt.integer(live.max)):T.chargingAlertWatchFull();
+    }
+    private void c1ApplyVariant(Notification.Builder builder,ChargeLiveState live){
+        switch(c1Variant){
+            case 1:builder.setContentTitle(c1ShortTitle(live));
+                if(live.percent!=null)builder.setLargeIcon(c1Badge(live.percent,live.max));
+                break;
+            default:break;
+        }
+    }
+    /** Variant A: a self-contained dial (reads the same on a light or dark card) with the level in the card's right-hand slot. */
+    private android.graphics.drawable.Icon c1Badge(int percent,int max){
+        int size=288;float inset=22f;
+        android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(size,size,android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
+        android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(0xFF1E1F1C);canvas.drawCircle(size/2f,size/2f,size/2f,paint);
+        android.graphics.RectF ring=new android.graphics.RectF(inset,inset,size-inset,size-inset);
+        paint.setStyle(android.graphics.Paint.Style.STROKE);paint.setStrokeWidth(22f);paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        paint.setColor(0xFF4A4C46);canvas.drawArc(ring,-90,360,false,paint);
+        paint.setColor(android.graphics.Color.rgb(0xE3,0x2B,0x2F));canvas.drawArc(ring,-90,3.6f*percent,false,paint);
+        paint.setStyle(android.graphics.Paint.Style.FILL);paint.setColor(0xFFFFFFFF);paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+        String text=T.fmtPercent(Fmt.integer(percent));
+        paint.setTextSize(96f);float width=paint.measureText(text);float room=size-2*inset-44f;if(width>room)paint.setTextSize(96f*room/width);
+        android.graphics.Paint.FontMetrics metrics=paint.getFontMetrics();
+        canvas.drawText(text,size/2f,size/2f-(metrics.ascent+metrics.descent)/2f,paint);
+        return android.graphics.drawable.Icon.createWithBitmap(bitmap);
+    }
     private void c1StartPreview(Intent intent){
         c1Variant=intent.getIntExtra("variant",0);
         ChargeLiveState.Input in=new ChargeLiveState.Input();
@@ -1198,6 +1228,7 @@ public final class ScooterService extends Service {
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
         if(capture!=null)big.setSummaryText(capture);
         if(!promoted)builder.setStyle(big);
+        if(promoted&&c1Variant>0)c1ApplyVariant(builder,live);
         if(live.publicTitle==null)return;
         Notification.Builder lock=new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification).setColor(red)
                 .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
