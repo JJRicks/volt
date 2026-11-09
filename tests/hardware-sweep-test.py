@@ -120,6 +120,13 @@ class HardwareSweep(unittest.TestCase):
         report = (self.out / 'report.md').read_text()
         self.assertIn('| headlight | 0 | 1 | 1 | Change and restoration confirmed |', report); self.assertNotIn('NOT RESTORED', report)
 
+    def test_background_step_allows_for_the_live_charging_hold(self):
+        source = (SWEEP.parent / 'ParkedValidation.java').read_text()
+        self.assertIn('"charge_live_enabled"', source[:source.index('backupSmokePreferences')], 'cleanup restores the Live charging switch')
+        smoke = source[source.index('private void backgroundSmoke'):]
+        self.assertLess(smoke.index('allowForLiveChargingHold()'), smoke.index('First pause did not get a full 10s grace'),
+                        'the hold is dealt with before the grace is timed')
+
     def test_only_the_parkedvalidation_runner_is_ever_installed(self):
         for kind in ('volt', 'other-target'):
             self.setUp()

@@ -42,7 +42,7 @@ EXCLUDE = ('maximum_speed', 'speed_limit', 'drive_speed_limit', 'dual_drive', 't
 STEPS = [
     dict(name='snapshot', mode='snapshot', writes=False, what='connect and save every reading'),
     dict(name='navigation', mode='navigation', writes=False, what='every tab and section, no scooter writes'),
-    dict(name='background', mode='background', writes=False, what='10 s background grace and hard cutoff'),
+    dict(name='background', mode='background', writes=False, what='live charging hold if charging, then 10 s background grace and hard cutoff'),
     dict(name='clock', mode='clock', writes=True, what='scooter clock sync'),
     dict(name='settings', mode='sweep', writes=True, what='each mapped setting changed, read back, restored',
          extra=('-e', 'exclude', ','.join(EXCLUDE))),

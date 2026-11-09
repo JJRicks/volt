@@ -81,7 +81,8 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
     }
     private void ensureFront(){
         if(onMain(()->service.isVisible()))return;
-        activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP));
+        // Not startActivitySync: it waits for a new activity, and this brings the existing one back.
+        getTargetContext().startActivity(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP));
         await(()->onMain(()->service.isVisible()),10000,"Volt never returned to the foreground");
         settle();
     }
