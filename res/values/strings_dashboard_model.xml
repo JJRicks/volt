@@ -15,8 +15,7 @@
   _short rung (the single-line label of a Setting tile, about 90 dp wide at 12.5 sp). In English both
   rungs are the same text; translate both, and make the short one shorter where the full name would
   not fit. A scooter control's name works the same way: its Setting tile label is its own
-  controls_feature_*_short entry in strings_controls.xml (no volt:ladder attribute: a language can
-  translate the full name before the short label exists), and screen readers keep the full name.
+  controls_feature_*_short rung in strings_controls.xml, and screen readers keep the full name.
 
   A Quick access button is at least 72 dp wide with 4 dp padding on each side, so its name has 64 dp
   per line at 12 sp (volt:max="64dp@12sp*2" on every full name; at the smallest app text size the
@@ -107,7 +106,7 @@
     <!-- The tile for the scooter's own timed charging control. -->
     <string name="dashboard_model_tile_charge_schedule" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="charge">Charge schedule</string>
     <!-- Short label of the Charge schedule tile (one line, about 90 dp): the scooter's own timed charging. "sched." abbreviates schedule. -->
-    <string name="dashboard_model_tile_charge_schedule_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:max="90dp@12.5sp" volt:safety="charge">Charge sched.</string>
+    <string name="dashboard_model_tile_charge_schedule_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge sched.</string>
 
     <!-- What a tile shows as its value (QuickAccessGrid). -->
     <!-- A change was sent to the scooter and Volt waits for it to be confirmed. -->
