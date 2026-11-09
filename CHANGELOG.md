@@ -12,7 +12,7 @@
 - **Live charging card:** it now clears about 15 seconds after the charger is unplugged, without opening Volt. It used to be able to say **Charging** for up to 3 minutes.
 - **Charge done by** and **Scheduled charging** now tell you when the scooter has confirmed the start time and it's safe to disconnect, for example **6:10 AM charge start sent to scooter. Safe to disconnect.**
 - **Developer options** are now always in the **More** menu, so charge recording is easy to find; the seven taps on the version line are gone. The user guide has a new section on which charges help improve time estimates.
-- **Home Setting tiles:** at narrow widths, most now use a short label instead of ending in an ellipsis.
+- **Home Setting tiles:** most now use a short label instead of ending in an ellipsis.
 - **Maintenance:** the UT5 Max now lists its manual's service intervals (from its printed manual, pp. 14–15).
 - **Portuguese (Portugal):** "Cruise Control" stays in English, as riders there say it.
 

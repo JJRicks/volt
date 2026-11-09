@@ -40,8 +40,8 @@ NEW IN 1.12.1
 - Charge done by and Scheduled charging say when the scooter has confirmed the
   start time and it's safe to disconnect. A charge alert shows the time to its
   level in the charging hero on scooters with no charge limit of their own.
-- Developer options are always in More. Home Setting tiles use short labels at
-  narrow widths. Maintenance lists the UT5 Max's manual intervals.
+- Developer options are always in More. Most Home Setting tiles use short
+  labels. Maintenance lists the UT5 Max's manual intervals.
   Full list: CHANGELOG.md.
 
 PREVIOUSLY IN 1.12.0
