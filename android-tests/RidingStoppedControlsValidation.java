@@ -250,7 +250,7 @@ public final class RidingStoppedControlsValidation extends Instrumentation {
         } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable; relax hidden_api_policy on the disposable emulator", error); } }
         void received(byte[] frame) {
             callbacks.onCharacteristicWrite(gatt, writer, 0);
-            if (frame.length > 7 && (frame[3] & 255) == 0x51) { lockWrites.add(frame); state[2] = frame[6]; notifyPacket(0x51, 0, new byte[]{frame[6]}); status(); }
+            if (frame.length > 7 && (frame[3] & 255) == 0x51) { lockWrites.add(frame); state[2] = frame[5]; notifyPacket(0x51, 0, new byte[]{frame[5]}); status(); }
         }
         void status() { notifyPacket(0x70, 0, state); }
         void motion() { notifyPacket(0x91, 0, new byte[]{0, (byte) driving, (byte) (speedRaw / 10)}); }
