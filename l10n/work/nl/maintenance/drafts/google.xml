@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft google: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="google" volt:model="gemini-3.8-flash" volt:prompt="standard">
+    <string name="maintenance_title" volt:src="8d6f8673c2c45710c2150dde5b1f9ef58b220c5d">Onderhoud</string>
+    <string name="maintenance_row" volt:src="f388fd4b8b1fc8a8b205da3c5865f89adb1cb507">Herinneringen</string>
+    <string name="maintenance_search" volt:src="0d1a5cdb3a82fd3e86c3c2cd58312fc89f0a4529">onderhoud service beurt herinnering herinneringen controle inspectie band bandenspanning banden remmen bouten inklappen vouwmechanisme schoonmaken reinigen</string>
+    <plurals name="maintenance_row_count" volt:src="b9f3dae724fa44d9b5aa079b728013caf5e458ff" volt:attempt="2">
+        <item quantity="one">%1$d reminder</item>
+        <item quantity="other">%1$d reminders</item>
+    </plurals>
+    <plurals name="maintenance_row_due" volt:src="c74afe1f860be56a9885fd23d36973372e45e13e">
+        <item quantity="one">%1$d nodig</item>
+        <item quantity="other">%1$d nodig</item>
+    </plurals>
+    <string name="maintenance_tab_due" volt:src="6f3c512051b6d2f7fad34779ceb250f66eeea77b">%1$s, onderhoud nodig</string>
+    <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Onderhoudsherinneringen</string>
+    <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Ingestelde controles weergeven wanneer ze nodig zijn</string>
+    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">Zet dit aan om je eigen herinneringen toe te voegen, zoals elke 2 weken de bandenspanning controleren of elke 300 mi de remmen. Volt toont een controle hier en op het tabblad Step wanneer die nodig is.</string>
+    <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1" volt:attempt="2">Dit zijn herinneringen die je zelf instelt. Controleer je step wanneer er iets verkeerd aanvoelt, wat een herinnering ook zegt.</string>
+    <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">Nu nodig</string>
+    <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">Binnenkort</string>
+    <string name="maintenance_none" volt:src="0365bf97e53bf152034de616e65570283ccd3cff">Nog geen herinneringen.</string>
+    <string name="maintenance_add" volt:src="83223cd4e92d95228de16bd6dad9d17463f098d9">Herinnering toevoegen</string>
+    <string name="maintenance_manual_title" volt:src="f8a7800c1b2608a82f975b7e2f762214ca0ec5d8">Uit de handleiding van de %1$s</string>
+    <string name="maintenance_manual_title_unknown" volt:src="9c163ea2a1b2ad0475c71179b0ce2d2654b9da59">Uit de handleiding</string>
+    <string name="maintenance_manual_none" volt:src="03f659b8e00e9ca5fade2ab6775e480f34d36363">Er staan nog geen intervallen vermeld. Volt vermeldt intervallen uit een handleiding alleen met de pagina waar ze vandaan komen, dus voorlopig kies je zelf hoe vaak.</string>
+    <string name="maintenance_manual_listed" volt:src="6fe6759c5cdefa83eda8b55809fa7aaac4b2884d">Wat de handleiding aanbeveelt. Voeg er een toe om er een herinnering voor te krijgen.</string>
+    <string name="maintenance_manual_source" volt:src="536a37aa8fc0739fcb32c88ddb59b52a9e1380fc">%1$s (%2$s), p. %3$s</string>
+    <string name="maintenance_manual_add" volt:src="95d6e5a052d3fe877eab432a0687687067e5a545">Toevoegen</string>
+    <string name="maintenance_manual_added" volt:src="8cd3db4cf159ed1f6fbf53d2face254189c232ef">Toegevoegd</string>
+    <string name="maintenance_manual_unknown" volt:src="482974707753e3476207b7426e32b4f266abe3b3">Onbekend model. Volt kan de intervallen uit de handleiding tonen zodra bekend is welk model dit is.</string>
+    <string name="maintenance_history" volt:src="2deed1ef9f0ed4e22b4caa9f0fa01a841518d557">Geschiedenis</string>
+    <plurals name="maintenance_history_done" volt:src="a11b919e8001bc0f8d2c1bd600cc5b407c213078">
+        <item quantity="one">%1$d controle uitgevoerd</item>
+        <item quantity="other">%1$d controles uitgevoerd</item>
+    </plurals>
+    <string name="maintenance_history_none" volt:src="04cd9da553dfa69d35d68b98ebd7dbf4243ba18c">Nog geen controles uitgevoerd.</string>
+    <string name="maintenance_stale" volt:src="7d21a0a84f05a330d6fb0c2bcd4630a0da8caa78">De kilometerstand is voor het laatst uitgelezen op %1$s. Ritten van daarna tellen mee zodra Volt opnieuw verbinding maakt.</string>
+    <string name="maintenance_reset" volt:src="2112883eafe451e0996b7e081ceef0efcf31c01f">De kilometerstand is teruggelopen (een nieuw display of een nieuwe controller, of een reset?). Afstandsherinneringen tellen vanaf hier verder.</string>
+    <string name="maintenance_distance_next" volt:src="8b40298cfdfba790a58baf2f29eaf7876c2ca160">Afstand telt vanaf de volgende verbinding.</string>
+    <string name="maintenance_never_read" volt:src="c3c8bac70f46aa28046200ad44f68f67d68d51f1">Maak een keer verbinding zodat Volt de kilometerstand kan uitlezen.</string>
+    <string name="maintenance_whole_km" volt:src="feac7ec65a71dc220fc5c431fd1c4c2ea88836da">Deze step meldt hele kilometers. Als de step meer dan 255 km aflegt tussen verbindingen, kan de afstand te laag uitvallen.</string>
+    <string name="maintenance_badge_due" volt:src="13d916781834a30aebd921740d4e2b81b4d8d244">NODIG</string>
+    <string name="maintenance_badge_soon" volt:src="6e7162855bb9a0204e99ab62bf621cae55709fb0">BINNENKORT</string>
+    <string name="maintenance_badge_snoozed" volt:src="374219df3278d97cb2a40e6bed02f0314fbc320b">UITGESTELD</string>
+    <string name="maintenance_every_distance" volt:src="88bda2cceb10a8497f0a0dd9e70203ca6e3f6c20">Elke %1$s</string>
+    <string name="maintenance_every_day" volt:src="dda3995e113116f5a791955802494ac56675a37a">Elke dag</string>
+    <string name="maintenance_every_week" volt:src="7f51feecd9c4d2a421555ba0b228583dc71d8b05">Elke week</string>
+    <string name="maintenance_every_month" volt:src="978594b54f74a7fe34dbd36cc98b29d2c343fc9c">Elke maand</string>
+    <plurals name="maintenance_every_days" volt:src="c557bb34fac2a6e5fbc88b216f6cb6b0397cc648">
+        <item quantity="one">Elke %1$d dag</item>
+        <item quantity="other">Elke %1$d dagen</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks" volt:src="237695181c64878ec4ddbe75a792e2753795cc55">
+        <item quantity="one">Elke %1$d week</item>
+        <item quantity="other">Elke %1$d weken</item>
+    </plurals>
+    <plurals name="maintenance_every_months" volt:src="7b003f438a4f32af95702a44ae81f8cef6f4690a">
+        <item quantity="one">Elke %1$d maand</item>
+        <item quantity="other">Elke %1$d maanden</item>
+    </plurals>
+    <string name="maintenance_every_day_or" volt:src="87c9ca7476b01327ae3d1ab5ef55af1a663cd079">Elke dag of %1$s</string>
+    <string name="maintenance_every_week_or" volt:src="3c7eea0e95d1b59559e0598aa794f90e3ca42633">Elke week of %1$s</string>
+    <string name="maintenance_every_month_or" volt:src="4d071a1926999ead8057e93be325747f703d16af">Elke maand of %1$s</string>
+    <plurals name="maintenance_every_days_or" volt:src="9115209fa4ee936cc71d19db0c1f68350fc0715c">
+        <item quantity="one">Elke %1$d dag of %2$s</item>
+        <item quantity="other">Elke %1$d dagen of %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_weeks_or" volt:src="f89e60e5f755dd6e76599df6d6278b667148a9ca">
+        <item quantity="one">Elke %1$d week of %2$s</item>
+        <item quantity="other">Elke %1$d weken of %2$s</item>
+    </plurals>
+    <plurals name="maintenance_every_months_or" volt:src="15b54bacf09d2fcdd90f6dfcfa3bd75dd502da04">
+        <item quantity="one">Elke %1$d maand of %2$s</item>
+        <item quantity="other">Elke %1$d maanden of %2$s</item>
+    </plurals>
+    <string name="maintenance_distance_left" volt:src="8206a75d21118fc55fb4ff8545d2cbf4c953f973">Nog %1$s</string>
+    <string name="maintenance_distance_over" volt:src="8370856fdc3452791446cc7f434bc2bf85a918e0">%1$s overschreden</string>
+    <plurals name="maintenance_days_left" volt:src="f5e8e0c93faca820f7493d5aae55e409fab5fb65">
+        <item quantity="one">Nog %1$d dag</item>
+        <item quantity="other">Nog %1$d dagen</item>
+    </plurals>
+    <plurals name="maintenance_days_over" volt:src="45523d3e83e55d1d236ef85d677b6db5f7586c4c">
+        <item quantity="one">%1$d dag te laat</item>
+        <item quantity="other">%1$d dagen te laat</item>
+    </plurals>
+    <string name="maintenance_due_today" volt:src="4ee8c3b94d4e5daa38ce89bc9bb7622764e44644">Vervalt vandaag</string>
+    <string name="maintenance_waiting" volt:src="c968e86abfa83d6a4d273bcb806b791f9155aa7a">Wachten op de kilometerstand</string>
+    <string name="maintenance_snoozed_until" volt:src="d9e08a6881dbfb96ba2cc044a0d3375587748b57">Uitgesteld tot %1$s</string>
+    <string name="maintenance_pair" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="maintenance_mark_done" volt:src="0212e4820605a16867a5bda24019af6dee4b6ab7" volt:attempt="2">Als klaar markeren</string>
+    <string name="maintenance_mark_done_short" volt:src="a3226307b1168b09401e9231e2fe8a8ab6d0d8af">Voltooid</string>
+    <string name="maintenance_snooze" volt:src="d9a9f1cb2da1834c677d9c0cf93b05c704f90ac4">Uitstellen</string>
+    <string name="maintenance_edit" volt:src="39dce4e3cb7131455c9b2e9182552c9eb3fe432a">Bewerken</string>
+    <string name="maintenance_delete" volt:src="e80cb30249520a7386a84b9726dfb06735bca1d2">Herinnering verwijderen</string>
+    <string name="maintenance_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">%1$s verwijderen?</string>
+    <string name="maintenance_delete_body" volt:src="54d81d33b2d5fe02ce1a6f7bb79edc2e1e3baed7">De bijbehorende geschiedenis wordt ook verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="maintenance_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Verwijderen</string>
+    <string name="maintenance_snooze_explain" volt:src="52427401921f6bbeabd95435f2b22ef8a3b0e316">Dit verbergt ‘Vervallen’ tot die tijd. Dit telt niet als voltooid.</string>
+    <plurals name="maintenance_count_days" volt:src="8e0740162d51d699a03819781780072ee12a147f">
+        <item quantity="one">%1$d dag</item>
+        <item quantity="other">%1$d dagen</item>
+    </plurals>
+    <plurals name="maintenance_count_weeks" volt:src="9577d897ef793915980ee879d4143002f12cadaf">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weken</item>
+    </plurals>
+    <plurals name="maintenance_count_months" volt:src="3275fb707ae702cb5f4034651229331251bb3fac">
+        <item quantity="one">%1$d maand</item>
+        <item quantity="other">%1$d maanden</item>
+    </plurals>
+    <string name="maintenance_done_today_at" volt:src="4c8c3f43d1fcba0253933df8a6e944b2ae4851b6">Vandaag voltooid op %1$s</string>
+    <string name="maintenance_done_today" volt:src="fa59e45c679eec5d5b0f8b34fd9a9874aeef050f">Vandaag voltooid</string>
+    <string name="maintenance_change" volt:src="cd8a36e9e1b2c8078958818b0aa23695ec393ac9">Wijzigen</string>
+    <string name="maintenance_when_today" volt:src="d50a6e8a642cbf60877ed4850c400084b2eb7331">Vandaag</string>
+    <string name="maintenance_when_now" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Nu</string>
+    <string name="maintenance_when_earlier" volt:src="58a4c0be604643ff89848f32fdac8834900ad1f9">Eerder</string>
+    <string name="maintenance_date" volt:src="af4010b949b4542d0deef5f74ea3afd764409c7a">Datum</string>
+    <string name="maintenance_odometer_then" volt:src="23ffaa65cdea74e9d3ce9244c06b87d0eb03aead">Kilometerstand toen, in %1$s (optioneel)</string>
+    <string name="maintenance_odometer_then_note" volt:src="c3c11c26b22b3da27144d2a0ebfa09c7ff92b1aa">Laat dit leeg om de afstand te tellen vanaf de huidige kilometerstand.</string>
+    <string name="maintenance_odometer_ahead" volt:src="717a8989edec22604b76085eb1df7bcb516343f7">Dat is meer dan de kilometerstand nu aangeeft.</string>
+    <string name="maintenance_odometer_before_reset" volt:src="5a379201aeae7684ad046af22000fae1a4bf22f8">Dat is van vóór de kilometerstand terugliep. Laat dit in plaats daarvan leeg.</string>
+    <string name="maintenance_number_invalid" volt:src="4af55579966f5d483c52bd6e228fb61650456169">Voer een getal in.</string>
+    <string name="maintenance_add_title" volt:src="83223cd4e92d95228de16bd6dad9d17463f098d9">Herinnering toevoegen</string>
+    <string name="maintenance_edit_title" volt:src="6686c7e6eb3f84239d80c62edcb21f072459da21">Herinnering bewerken</string>
+    <string name="maintenance_what" volt:src="fbe4b7bbed273ed231496894e1f270295a45c8c6">Wat te controleren</string>
+    <string name="maintenance_name_hint" volt:src="d0d9cac759507466483efea80c4b1f01ed03b377">Typ een naam of kies er een</string>
+    <string name="maintenance_name_empty" volt:src="1d685e7b88d30570a2577163cd07f14ed2282049">Voer een naam in of kies er een.</string>
+    <string name="maintenance_task_tire_pressure" volt:src="9565b01a1f1ae7a5c09b7c6448331a60ede9b912">Bandenspanning</string>
+    <string name="maintenance_task_tire_tread" volt:src="c8816a6b3386c2dd9cb9fe115372bc6fdc157fb6">Bandenprofiel</string>
+    <string name="maintenance_task_brakes" volt:src="5bf9d3b57b098ef52f7d25ebc1f04c233cd1feff">Remmen</string>
+    <string name="maintenance_task_bolts_folding" volt:src="4262da6df44354aea9089ef1a1a0519bc0e0dfed">Bouten en inklapmechanisme</string>
+    <string name="maintenance_task_steering" volt:src="e98a0af8d76acc15916a240b98cff347f4184d81">Stuur</string>
+    <string name="maintenance_task_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Verlichting</string>
+    <string name="maintenance_task_clean_dry" volt:src="a06a0040875049932e540c01a1d941b790cdb5ab">Schoonmaken en drogen</string>
+    <string name="maintenance_task_battery_storage" volt:src="948167902527851b6ee6a93d4d96d69ec87c1237">Accuopslag</string>
+    <string name="maintenance_remind_after" volt:src="7e1ffc9eacdd43eaad9927effcd5816015244955">Herinner me na</string>
+    <string name="maintenance_by_distance" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Afstand</string>
+    <string name="maintenance_by_time" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Tijd</string>
+    <string name="maintenance_by_either" volt:src="ad43057e7f2e01296b87db27910a44073ee9a6c5">Een van beide</string>
+    <string name="maintenance_either_note" volt:src="5993cd0179ad9d9fb2cd30e4828600aa93f09667">Welke het eerst komt.</string>
+    <string name="maintenance_distance_field" volt:src="d8f191d6a8ab9146bfe59afa9ddc21188c8f191e">Afstand, in %1$s</string>
+    <string name="maintenance_time_field" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Tijd</string>
+    <string name="maintenance_unit_days" volt:src="aaf6eb9c21f629c1a70367a239dd235ac1be9c9c">Dagen</string>
+    <string name="maintenance_unit_weeks" volt:src="f7243f6187937041fc14345a809879a166b4a8b6">Weken</string>
+    <string name="maintenance_unit_months" volt:src="6390470865285b04d1468f2d4c77c3744a0a5b45">Maanden</string>
+    <string name="maintenance_counting_from" volt:src="a823553ba2d871cae288830b84f93f6afbc9f76e">Tellen vanaf</string>
+    <string name="maintenance_save" volt:src="85544c0c7a1fc4b6488d35fca424c3b7f7c1a7e9">Herinnering opslaan</string>
+    <string name="maintenance_full" volt:src="b255a4f4a98624f6c38a15d79670bbab333441ce">Een step kan maximaal %1$d herinneringen hebben.</string>
+    <string name="maintenance_detail_interval" volt:src="8636a3bbb45e14fcd55406c6c845cfa6d6356931">Hoe vaak</string>
+    <string name="maintenance_detail_from" volt:src="a823553ba2d871cae288830b84f93f6afbc9f76e">Tellen vanaf</string>
+    <string name="maintenance_detail_due" volt:src="937e31b4bf5437153d93fed921f8b8f8f65c126d">Vervalt</string>
+    <string name="maintenance_at_odometer" volt:src="5755a5832d73c7b5aa142ee94f71a003338a3fb9">bij %1$s</string>
+    <string name="maintenance_event_added" volt:src="8cd3db4cf159ed1f6fbf53d2face254189c232ef">Toegevoegd</string>
+    <string name="maintenance_event_done" volt:src="a3226307b1168b09401e9231e2fe8a8ab6d0d8af">Uitgevoerd</string>
+    <string name="maintenance_event_snoozed" volt:src="3cb237b94aa079721aeaa59797e7d46f75e91009">Uitgesteld</string>
+    <string name="maintenance_event_after" volt:src="dc534fa6e75b20b68005a71d9c70e19942935976">%1$s na de vorige</string>
+    <string name="maintenance_notify" volt:src="37cdc480a4aa94342fab06d7f6f17d9ff2efdf2a">Stuur me een melding</string>
+    <string name="maintenance_notify_detail" volt:src="a62173aa99122e968d3a6456c2864202b8576ce0">Eenmalig een melding wanneer het vervalt</string>
+    <string name="maintenance_channel" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Onderhoudsherinneringen</string>
+    <string name="maintenance_channel_detail" volt:src="aeef3c56adaeb985a0f9646ea7f0abf4daaaa3e0">Controles die je instelt in Step › Onderhoud, eenmalig wanneer ze vervallen</string>
+    <plurals name="maintenance_notice_title" volt:src="019e234eff3132c9cd55bac2fb8afb8733d192b4">
+        <item quantity="one">%1$d controle nodig voor %2$s</item>
+        <item quantity="other">%1$d controles nodig voor %2$s</item>
+    </plurals>
+    <plurals name="maintenance_notice_title_plain" volt:src="113abae86d6fd891755d3406240b33d408ea98b4">
+        <item quantity="one">%1$d controle nodig</item>
+        <item quantity="other">%1$d controles nodig</item>
+    </plurals>
+    <plurals name="maintenance_notice_more" volt:src="66bef6f9a9e140779e1606e6d44fceb57936e356">
+        <item quantity="one">%2$s en nog %1$d andere</item>
+        <item quantity="other">%2$s en nog %1$d andere</item>
+    </plurals>
+    <string name="maintenance_notice_other" volt:src="0a1eb2bfe94e181c95579ce682019ac1c4447e69">Onderhoud nodig voor %1$s. Selecteer de step in ‘Mijn steps’.</string>
+</resources>
