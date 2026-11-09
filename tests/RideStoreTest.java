@@ -34,6 +34,7 @@ public final class RideStoreTest {
         unfinishedJournalsAreNeverServedAsFinished();
         listReplayDoesNotBlockRecording();
         deferredStartReadsOnlyUnfinishedJournals();
+        unsignedCurrentIsDirectionUnconfirmed();
         System.out.println("RideStoreTest: " + assertions + " assertions passed");
     }
     private static File directory() throws Exception { return Files.createTempDirectory("navee-rides-test-").toFile(); }
@@ -47,6 +48,45 @@ public final class RideStoreTest {
         values.put("battery_percent", new RideStore.Sample(80, mono));
         values.put("temperature_c", new RideStore.Sample(21, mono));
         return values;
+    }
+    private static RideStore.Summary signRide(RideStore store, RideStore.Sample sign, double firstWatts) throws Exception {
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+        store.start("scooter", "Sign", WALL, 0);
+        for (int i = 0; i <= 2; i++) {
+            Map<String, RideStore.Sample> m = snapshot(i * 1000, i == 0 ? firstWatts : 360, 36, 10 + i * .1);
+            if (sign != null) m.put("current_sign_state", sign);
+            store.sample(WALL + i * 1000, i * 1000, m);
+        }
+        return store.stop(WALL + 2000, 2000);
+    }
+    /** A sign state that was never 0 or 1 and no negative current: no Draw/Input claim, however the ride was recorded. */
+    private static void unsignedCurrentIsDirectionUnconfirmed() throws Exception {
+        File dir = directory();
+        RideStore store = new RideStore(dir);
+        RideStore.Summary unsigned = signRide(store, new RideStore.Sample(254.0, "254 (raw)", "", 0x79, 0), 360);
+        check(!unsigned.directionConfirmed, "A 254 sign state without a negative current is unconfirmed");
+        check(unsigned.drawWh == null && unsigned.regeneratedWh == null && unsigned.returnedWh == null && unsigned.netConsumptionWh == null,
+                "It claims no draw, input or net");
+        check(unsigned.confirmedDirectionCoverageMs == 0 && unsigned.unconfirmedDirectionCoverageMs == 2000,
+                "And its whole coverage counts as unconfirmed, so no partial-direction row shows");
+        near(0.2, unsigned.measuredThroughputWh, "Throughput stays measured");
+        near(0.2, unsigned.unsignedDrawWh, "Learned range keeps the unsigned energy");
+        check(unsigned.netWhPerKm == null && unsigned.energyInterpretation.startsWith("Absolute measured"), "And per-km and the interpretation follow");
+        String id = unsigned.id;
+        RideStore reloaded = new RideStore(dir);
+        RideStore.Summary replayed = reloaded.get(id);
+        check(replayed != null && !replayed.directionConfirmed && replayed.drawWh == null && replayed.unsignedDrawWh != null,
+                "A saved ride is judged the same when read back");
+
+        RideStore.Summary negative = signRide(new RideStore(directory()), new RideStore.Sample(254.0, "254 (raw)", "", 0x79, 0), -360);
+        check(negative.directionConfirmed && negative.regeneratedWh != null && negative.unsignedDrawWh == null, "Any negative current means the ride was signed");
+        RideStore.Summary known = signRide(new RideStore(directory()), new RideStore.Sample(0.0, "0", "", 0x79, 0), 360);
+        check(known.directionConfirmed && known.drawWh != null, "A sign state of 0 is confirmed");
+        // UT5 MAX: the key exists in every frame but never has a value.
+        RideStore.Summary empty = signRide(new RideStore(directory()), new RideStore.Sample(null, "", "", -1, -1), 360);
+        check(empty.directionConfirmed && empty.drawWh != null && empty.unsignedDrawWh == null, "An empty sign state row is no sign state");
+        RideStore.Summary missing = signRide(new RideStore(directory()), null, 360);
+        check(missing.directionConfirmed && missing.drawWh != null, "No sign state at all is confirmed, as recordings always were");
     }
     private static void throughputIsNotInventedConsumption() throws Exception {
         RideStore store = new RideStore(directory());

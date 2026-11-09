@@ -34,7 +34,7 @@ import java.util.zip.CRC32;
  */
 final class RideSummaryStore {
     /** See the class comment: bump on any change to summary or preview maths. */
-    static final int ANALYSIS_VERSION = 2;
+    static final int ANALYSIS_VERSION = 3;
     /** The file layout below; bump when it changes. */
     static final int FORMAT = 1;
     private static final int MAGIC = 0x56525331; // "VRS1"

@@ -122,6 +122,12 @@ public final class RideStore {
                 throughputWhPerMile, netWhPerKm, netWhPerMile;
         public final double electricalCoverage, speedCoverage;
         public final long confirmedDirectionCoverageMs, unconfirmedDirectionCoverageMs;
+        /**
+         * For a ride whose current is unsigned (PowerSign), the energy as a magnitude, drawn the
+         * whole ride and with no regen ever measured; null otherwise. Not a confirmed Draw (the
+         * summary's drawWh and netConsumptionWh are null then), but what learned range can still use.
+         */
+        final Double unsignedDrawWh;
         public final long movingElectricalCoverageMs, stationaryElectricalCoverageMs,
                 unknownMotionElectricalCoverageMs;
         public final Double movingThroughputWh, stationaryThroughputWh, unknownMotionThroughputWh;
@@ -172,15 +178,18 @@ public final class RideStore {
             shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
             shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
             shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;
-            confirmedDirectionCoverageMs = a.confirmedMs;
-            unconfirmedDirectionCoverageMs = a.unconfirmedMs;
+            // An unsigned current (PowerSign) has no measured direction, whatever convention the ride was recorded under.
+            boolean unsignedCurrent = !a.currentSign.signedRide();
+            confirmedDirectionCoverageMs = unsignedCurrent ? 0 : a.confirmedMs;
+            unconfirmedDirectionCoverageMs = unsignedCurrent ? a.confirmedMs + a.unconfirmedMs : a.unconfirmedMs;
             movingElectricalCoverageMs = a.movingElectricalMs;
             stationaryElectricalCoverageMs = a.stationaryElectricalMs;
             unknownMotionElectricalCoverageMs = a.unknownMotionElectricalMs;
             movingThroughputWh = a.movingElectricalMs == 0 ? null : a.movingThroughputWh;
             stationaryThroughputWh = a.stationaryElectricalMs == 0 ? null : a.stationaryThroughputWh;
             unknownMotionThroughputWh = a.unknownMotionElectricalMs == 0 ? null : a.unknownMotionThroughputWh;
-            directionConfirmed = a.confirmedMs > 0 && a.unconfirmedMs == 0;
+            directionConfirmed = confirmedDirectionCoverageMs > 0 && unconfirmedDirectionCoverageMs == 0;
+            unsignedDrawWh = unsignedCurrent && a.confirmedMs > 0 && a.unconfirmedMs == 0 ? a.drawWh - a.regeneratedWh : null;
             startBatteryPercent = a.startSoc; endBatteryPercent = a.endSoc;
             batteryDropPercent = subtract(a.startSoc, a.endSoc);
             startVoltageV = a.startVoltage; minimumVoltageV = a.minVoltage;
@@ -199,8 +208,8 @@ public final class RideStore {
             averageAbsolutePowerW = a.electricalMs == 0 ? null : a.throughputWh * 3600000 / a.electricalMs;
             peakAbsolutePowerW = a.peakPower; maximumAbsoluteCurrentA = a.maxCurrent;
             measuredThroughputWh = a.electricalMs == 0 ? null : a.throughputWh;
-            drawWh = a.confirmedMs == 0 ? null : a.drawWh;
-            regeneratedWh = a.confirmedMs == 0 ? null : a.regeneratedWh;
+            drawWh = confirmedDirectionCoverageMs == 0 ? null : a.drawWh;
+            regeneratedWh = confirmedDirectionCoverageMs == 0 ? null : a.regeneratedWh;
             returnedWh = regeneratedWh;
             netConsumptionWh = directionConfirmed ? a.drawWh - a.regeneratedWh : null;
             energyInterpretation = !directionConfirmed
@@ -885,6 +894,7 @@ public final class RideStore {
         Double startSoc, endSoc, startVoltage, minVoltage, maxVoltage, minTemperature, maxTemperature;
         Double startOdo, endOdo, maxSpeed, peakPower, maxCurrent;
         Double previousPower, previousSpeed;
+        final PowerSign currentSign = new PowerSign();
         Point lastPoint;
         double throughputWh, drawWh, regeneratedWh, speedDistance, movingDistance;
         double movingThroughputWh, stationaryThroughputWh, unknownMotionThroughputWh;
@@ -914,6 +924,9 @@ public final class RideStore {
             Double voltage = number(m, "voltage_v", mono), current = number(m, "current_a", mono);
             if (voltage != null && (voltage <= 0 || voltage > 200)) voltage = null;
             if (current != null && Math.abs(current) > 500) current = null;
+            Sample signSample = m.get("current_sign_state");
+            if (signSample != null && finite(signSample.number)) currentSign.signState(signSample.number);
+            if (current != null) currentSign.current(current);
             Sample vs = m.get("voltage_v"), cs = m.get("current_a");
             Double power = voltage != null && current != null && vs.updatedMonoMs == cs.updatedMonoMs
                     && vs.sourceCmd == cs.sourceCmd ? voltage * current : null;
@@ -1013,6 +1026,7 @@ public final class RideStore {
         out.writeUTF(a.id); out.writeUTF(a.scooterId); out.writeUTF(a.label); out.writeUTF(a.notes);
         out.writeUTF(a.stopReason == null ? "" : a.stopReason); out.writeUTF(a.direction.name());
         out.writeBoolean(a.stopped); out.writeBoolean(a.recovered); out.writeBoolean(a.odometerReset);
+        out.writeByte(a.currentSign.state());
         for (long value : new long[] {a.startWall, a.startMono, a.lastWall, a.lastMono, a.elapsed, a.electricalMs, a.speedMs,
                 a.movingMs, a.stationaryMs, a.samples, a.gaps, a.clockDiscontinuities, a.directionChanges, a.confirmedMs,
                 a.unconfirmedMs, a.pointStride, a.movingElectricalMs, a.stationaryElectricalMs, a.unknownMotionElectricalMs,
@@ -1031,6 +1045,7 @@ public final class RideStore {
         String id = in.readUTF(), scooterId = in.readUTF(), label = in.readUTF(), notes = in.readUTF(), stopReason = in.readUTF();
         CurrentDirection direction = CurrentDirection.valueOf(in.readUTF());
         boolean stopped = in.readBoolean(), recovered = in.readBoolean(), odometerReset = in.readBoolean();
+        int currentSignState = in.readByte();
         long[] l = new long[23];
         for (int i = 0; i < l.length; i++) l[i] = in.readLong();
         Double[] d = new Double[12];
@@ -1042,7 +1057,7 @@ public final class RideStore {
         if (in.read() != -1) throw new IOException("trailing");
         if (!id.equals(expectedId) || !stopped) return null;
         Accumulator a = new Accumulator(id, scooterId, label, l[0], l[1]);
-        a.notes = notes; a.stopReason = stopReason; a.direction = direction;
+        a.notes = notes; a.stopReason = stopReason; a.direction = direction; a.currentSign.restore(currentSignState);
         a.stopped = true; a.recovered = recovered; a.odometerReset = odometerReset;
         a.lastWall = l[2]; a.lastMono = l[3]; a.elapsed = l[4]; a.electricalMs = l[5]; a.speedMs = l[6]; a.movingMs = l[7];
         a.stationaryMs = l[8]; a.samples = l[9]; a.gaps = l[10]; a.clockDiscontinuities = l[11]; a.directionChanges = l[12];

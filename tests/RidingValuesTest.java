@@ -20,6 +20,7 @@ public final class RidingValuesTest {
         trace();
         directionHistory();
         unknownAfterRegen();
+        unsignedCurrent();
         inferredDraw();
         inferredThreshold();
         inferredWindow();
@@ -76,8 +77,12 @@ public final class RidingValuesTest {
         telemetry.accept(0x72, batteryRead(72, 50000, 3600), 1000);
         values.update(telemetry.metrics());
         RidingValues.Power power = values.power(1100);
-        check(power.direction == RidingValues.Direction.UNKNOWN && power.watts != null && near(power.watts, 180, 0.01), "without 0x79 the direction is unknown and the bar shows magnitude");
-        check(power.peakRegenW == 0 && power.peakDrawW == 0, "no peak draw or regen is claimed without a sign");
+        check(power.direction == RidingValues.Direction.DRAW && power.watts != null && near(power.watts, 180, 0.01), "with no sign state (UT5 MAX) current is signed, as in recordings: draw");
+        check(power.peakRegenW == 0 && near(power.peakDrawW, 180, 0.01), "and it counts as draw in the peak");
+        RidingValues noSignState = new RidingValues();
+        noSignState.sample("power_w", -240, 0x90, 1000);
+        check(noSignState.power(1100).direction == RidingValues.Direction.REGEN && near(noSignState.power(1100).watts, -240, 0.01)
+                && near(noSignState.power(1100).peakRegenW, 240, 0.01), "and a negative reading is regen, not unknown");
         telemetry.accept(0x79, signs(0, 1), 1500);
         telemetry.accept(0x72, batteryRead(72, 50000, 3600), 3000);
         values.update(telemetry.metrics());
@@ -143,6 +148,7 @@ public final class RidingValuesTest {
         // A 10 s power dropout inside the window: coverage falls below 80 %.
         RidingValues gap = new RidingValues();
         gap.setNominalIntervals(1000, 2000);
+        gap.sample("current_sign_state", 254, 0x79, 0);
         for (long t = 0; t <= 40_000; t += 1000) {
             gap.sample("speed_kmh", 20, 0x92, t);
             if (t % 2000 == 0 && (t < 20_000 || t > 30_000)) gap.sample("power_w", 400, 0x72, t);
@@ -203,7 +209,8 @@ public final class RidingValuesTest {
         check(gaps == 1, "one gap, drawn as a gap and never as zero");
         for (RidingValues.TracePoint p : points) check(p.value != 0, "no invented zeros");
         check(values.speedTrace(150_000, 200_000).get(0).t >= 30_000, "the buffer keeps about 120 s");
-        values.sample("power_w", -200, 0x72, 150_000);
+        values.sample("current_sign_state", 254, 0x79, 149_000);
+        values.sample("power_w", 200, 0x72, 150_000);
         check(values.powerTrace(150_000, 60_000).get(0).value == 200, "power trace is unsigned while the direction is unknown");
         values.sample("current_sign_state", 1, 0x79, 150_500);
         check(values.powerTrace(150_000, 60_000).get(0).value == 200, "a later sign alone doesn't reinterpret it");
@@ -308,8 +315,9 @@ public final class RidingValuesTest {
     private static void directionHistory() {
         RidingValues late = new RidingValues();
         late.setNominalIntervals(1000, 2000);
+        late.sample("current_sign_state", 254, 0x79, 0);
         for (long t = 0; t <= 40_000; t += 1000) { late.sample("speed_kmh", 20, 0x92, t); if (t % 2000 == 0) late.sample("power_w", 400, 0x72, t); }
-        check(!late.efficiency(40_000).directionConfirmed, "no sign: unconfirmed");
+        check(!late.efficiency(40_000).directionConfirmed, "a sign state that isn't 0 or 1: unconfirmed");
         late.sample("current_sign_state", 0, 0x79, 40_001);
         check(!late.efficiency(40_001).directionConfirmed, "a late first sign doesn't confirm the window measured before it");
         for (long t = 41_000; t <= 80_000; t += 1000) { late.sample("speed_kmh", 20, 0x92, t); if (t % 2000 == 0) late.sample("power_w", 400, 0x72, t); }
@@ -379,11 +387,27 @@ public final class RidingValuesTest {
         check(values.powerTrace(60_500, 120_000).get(28).value == 400 && near(values.unconfirmedEnergyWh(), unconfirmedWh, 1e-9), "a later sign never reinterprets the unknown samples");
     }
 
+    /** The GT3 Max's unsigned current stays unknown; a negative reading proves a signed one (PowerSign). */
+    private static void unsignedCurrent() {
+        RidingValues gt3 = new RidingValues();
+        gt3.setNominalIntervals(1000, 2000);
+        gt3.sample("current_sign_state", 254, 0x79, 0);
+        gt3.sample("power_w", 400, 0x72, 1000);
+        check(gt3.power(1100).direction == RidingValues.Direction.UNKNOWN && gt3.power(1100).peakRegenW == 0, "254 with positive current stays unknown, no regen claimed");
+        gt3.sample("power_w", 1500, 0x72, 3000);
+        check(gt3.power(3100).direction == RidingValues.Direction.DRAW_INFERRED, "and strong readings are still inferred draw");
+        check(gt3.signState() == RidingValues.Direction.UNKNOWN, "the scooter stays unsigned");
+        gt3.sample("power_w", -300, 0x72, 5000);
+        check(gt3.power(5100).direction == RidingValues.Direction.REGEN && near(gt3.power(5100).peakRegenW, 300, 0.01), "a negative current proves the scooter signs it: regen");
+        check(gt3.signState() != RidingValues.Direction.UNKNOWN, "and from then on it is signed");
+    }
+
     /** A strong reading without a known sign is inferred draw; a weaker one stays unknown (owner, Nov 6). */
     private static void inferredDraw() {
         RidingValues values = new RidingValues();
         values.setNominalIntervals(1000, 2000);
         check(values.inferredDrawThresholdW() == 1200, "the threshold starts at 1,200 W");
+        values.sample("current_sign_state", 254, 0x79, 0);
         for (long t = 0; t <= 10_000; t += 2000) values.sample("power_w", 1500, 0x72, t);
         RidingValues.Power power = values.power(10_000);
         check(power.direction == RidingValues.Direction.DRAW_INFERRED && near(power.watts, 1500, 1e-9), "unknown at 1,500 W is inferred draw: " + power.direction);
@@ -394,6 +418,9 @@ public final class RidingValuesTest {
 
         RidingValues weak = new RidingValues();
         weak.setNominalIntervals(1000, 2000);
+        // A sign that went to 254: Telemetry keeps its stale sign, so negatives here are not evidence.
+        weak.sample("current_sign_state", 1, 0x79, 0);
+        weak.sample("current_sign_state", 254, 0x79, 1);
         for (long t = 0; t <= 10_000; t += 2000) weak.sample("power_w", 900, 0x72, t);
         power = weak.power(10_000);
         check(power.direction == RidingValues.Direction.UNKNOWN && power.peakDrawW == 0, "unknown at 900 W stays unknown");
@@ -412,6 +439,7 @@ public final class RidingValuesTest {
         check(points.get(0).value == 1500 && points.get(5).value == 1500 && points.get(6).value == -300, "a later regen sign never re-signs earlier inferred draw");
         // A same-time correction is the reading's own sign, so it still applies (round 2).
         RidingValues corrected = new RidingValues();
+        corrected.sample("current_sign_state", 254, 0x79, 0);
         corrected.sample("power_w", 1500, 0x72, 1000);
         corrected.sample("current_sign_state", 1, 0x79, 1500);
         corrected.sample("power_w", -1500, 0x72, 1000);
@@ -601,9 +629,9 @@ public final class RidingValuesTest {
     }
 
     /**
-     * No sign yet (riding mode opened before the first 0x79): the recording can't tell either, and
-     * keeps the unsigned magnitude; the meter shows that magnitude as unknown (grey), never as draw
-     * or regen. The first sign re-signs that same reading, and the meter and bar follow at once.
+     * No sign state yet (riding mode opened before the first 0x79, or a scooter like the UT5 MAX
+     * that never sends one): the recording treats positive as draw, and the meter now does the
+     * same (owner, Nov 8). A first sign re-signs that same reading, and meter and bar follow at once.
      */
     private static void unknownUntilSign() {
         Telemetry telemetry = new Telemetry();
@@ -615,9 +643,9 @@ public final class RidingValuesTest {
         values.update(telemetry.metrics());
         refreshBar(values, bar, 1010);
         RidingValues.Power p = values.power(1010);
-        check(near(recordingW(telemetry), 200, 1e-6), "the recording holds the magnitude before any sign");
-        check(p.direction == RidingValues.Direction.UNKNOWN && near(p.watts, 200, 1e-6) && p.peakDrawW == 0 && p.peakRegenW == 0,
-                "the meter shows it as unknown, claiming neither draw nor regen: " + p.direction);
+        check(near(recordingW(telemetry), 200, 1e-6), "the recording holds the positive reading before any sign");
+        check(p.direction == RidingValues.Direction.DRAW && near(p.watts, 200, 1e-6) && p.peakRegenW == 0,
+                "the meter shows it as the recording does, as draw: " + p.direction);
         telemetry.accept(0x79, signs(0, 1), 1080);
         values.update(telemetry.metrics());
         refreshBar(values, bar, 1090);
