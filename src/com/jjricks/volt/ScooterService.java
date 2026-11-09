@@ -89,7 +89,7 @@ public final class ScooterService extends Service {
     private static final int AUTO_EXPORT_NOTICE = 78;
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final String START_SENT_NOTICE = "charge_start_sent_notice";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -963,18 +963,16 @@ public final class ScooterService extends Service {
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelChargeDoneNotice(){noteStartSentNotice(0);cancelNotice(CHARGE_DONE_NOTICE);}
+    private void cancelChargeDoneNotice(){cancelNotice(CHARGE_DONE_NOTICE);}
     /** The start a posted or queued "safe to disconnect" notice speaks for, 0 for none. Saved: the notice outlives this service, whose connection it says can end. */
     private void noteStartSentNotice(long start){
-        if(start>0)settings.edit().putString(START_SENT_NOTICE,start+"|"+chargeScheduleContext().scope).apply();
-        else if(settings.contains(START_SENT_NOTICE))settings.edit().remove(START_SENT_NOTICE).apply();
+        if(start>0)settings.edit().putLong(START_SENT_NOTICE,start).putString(START_SENT_SCOPE,chargeScheduleContext().scope).apply();
+        else if(settings.contains(START_SENT_NOTICE))settings.edit().remove(START_SENT_NOTICE).remove(START_SENT_SCOPE).apply();
     }
     /** Takes back a "safe to disconnect" notice, posted or still queued, once its plan was turned off or replaced. */
     private void retireStartSentNotice(){
-        String noted=settings.getString(START_SENT_NOTICE,null);if(noted==null)return;
-        int bar=noted.indexOf('|');
-        try{if(bar>0&&chargeScheduleController.startStillPlanned(noted.substring(bar+1),Long.parseLong(noted.substring(0,bar))))return;}catch(NumberFormatException unreadable){}
-        cancelChargeDoneNotice();
+        long start=settings.getLong(START_SENT_NOTICE,0);if(start==0||chargeScheduleController.startStillPlanned(settings.getString(START_SENT_SCOPE,""),start))return;
+        noteStartSentNotice(0);cancelChargeDoneNotice();
     }
     // ---- Battery alerts (ChargeAlertPolicy) -------------------------------------------------------
 

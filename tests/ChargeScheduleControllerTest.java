@@ -91,7 +91,7 @@ public final class ChargeScheduleControllerTest {
     private static void confirmWrites(Rig r){r.reply(true);r.c.wireStart=r.sentTime/1000+r.sentOffset;r.reply(true);r.c.enabled=1;r.reply(true);}
     /** Manual Scheduled charging hears the same confirmed start, never for a test, turning off, or a start that passed in flight. */
     private static void manualConfirmation(){
-        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z"),second=time("2026-10-20T10:00:00Z");
+        List<Long> heard=new ArrayList<>();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");
         Rig r=new Rig();r.c.wireStart=first/1000-6*3600;r.controller.setManualEnabled(true,r.results::add,heard::add);
         check(heard.isEmpty(),"manual enable waits for confirmation");
         for(int fail=0;fail<3;fail++){Rig f=new Rig();f.c.wireStart=first/1000-6*3600;List<Long> none=new ArrayList<>();f.controller.setManualEnabled(true,f.results::add,none::add);
@@ -132,7 +132,7 @@ public final class ChargeScheduleControllerTest {
         check(!broken.controller.startStillPlanned("owner-A",start),"a time already rewritten retires the old claim even when the switch fails");
         heard.clear();Rig outside=new Rig();outside.controller.setDoneEnabled(true,outside.results::add,heard::add);confirmWrites(outside);start=heard.get(0);
         outside.c.wireStart=outside.sentTime/1000+outside.sentOffset+3600;check(!outside.controller.startStillPlanned("owner-A",start),"a time changed on the scooter retires the notice");
-        heard.clear();Rig manual=new Rig();long first=time("2026-10-20T09:00:00Z"),second=time("2026-10-20T10:00:00Z");manual.c.wireStart=first/1000-6*3600;manual.controller.setManualEnabled(true,manual.results::add,heard::add);confirmWrites(manual);
+        heard.clear();Rig manual=new Rig();long first=time("2026-10-20T09:00:00Z");long second=time("2026-10-20T10:00:00Z");manual.c.wireStart=first/1000-6*3600;manual.controller.setManualEnabled(true,manual.results::add,heard::add);confirmWrites(manual);
         start=heard.get(0);check(manual.controller.startStillPlanned("owner-A",start),"the manual notice holds");
         manual.controller.setManualStart(second,manual.results::add,heard::add);manual.reply(true);manual.c.wireStart=second/1000-6*3600;manual.reply(true);
         check(!manual.controller.startStillPlanned("owner-A",start)&&manual.controller.startStillPlanned("owner-A",second),"a manual edit retires the old start");
