@@ -48,7 +48,7 @@
     <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">REC</string>
     <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Gemiddeld</string>
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Gem.</string>
-    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Topsnelheid</string>
+    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Topsnelh.</string>
     <string name="riding_label_max_speed_short" volt:src="7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d">Top</string>
     <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df">Efficiëntie</string>
     <string name="riding_unit_wh_per" volt:src="0e85b741bc4a3623a94385147993516b603c8e43">Wh/%1$s</string>
@@ -85,7 +85,7 @@
     <string name="riding_layout_title" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Indeling</string>
     <string name="riding_layout_choose" volt:src="591ae6acf4038658c6088285dfd6803e19f36e9b">Indeling kiezen</string>
     <string name="riding_ring_max" volt:src="b12784bd1a78199af50601c39355d949c5494ee0">top %1$s</string>
-    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Terugwinning</string>
+    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Terugw.</string>
     <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">1 min geleden</string>
     <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">nu</string>
     <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Snelheid en vermogen in de laatste minuut</string>
