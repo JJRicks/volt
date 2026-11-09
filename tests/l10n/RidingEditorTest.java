@@ -194,6 +194,9 @@ public final class RidingEditorTest {
         check(near(RidingDisc.alpha(-1), 0) && near(RidingDisc.alpha(2), 1), "alpha is clamped");
         d.at(5);
         check(near(d.progress(), 1), "progress is clamped");
+        check(near(RidingDisc.readout(0), 1) && near(RidingDisc.readout(.25f), .5) && near(RidingDisc.readout(.5f), 0) && near(RidingDisc.readout(1), 0), "the power readout has gone by the halfway point");
+        check(near(RidingDisc.readout(-1), 1) && near(RidingDisc.readout(2), 0), "the readout's share is clamped");
+        for (float t = 0; t <= 1; t += .02f) check(RidingDisc.readout(t) * RidingDisc.alpha(t) <= .126 , "the readout and the buttons are never both strong at " + t);
     }
 
     private static void done() {
@@ -238,7 +241,7 @@ public final class RidingEditorTest {
         check(screen.contains("content.equals(RidingLayout.RANGE_VOLT)"), "Volt's range keeps its name with no reading");
         check(screen.contains("session.learnedKm(percent), percent,"), "the screen passes Volt's learned range");
         check(read("src/com/jjricks/volt/LiveRangeEstimator.java").contains("r::remainingKm"), "the learned range is the learned result's own remainingKm (Home's)");
-        check(motion.contains("Ui.motionEnabled()") && motion.contains("disc.setClickable(shown);"), "the motion honours animations off and stops taps");
+        check(read("src/com/jjricks/volt/RidingDiscAnimator.java").contains("Ui.motionEnabled()") && motion.contains("disc.setClickable(shown);"), "the motion honours animations off and stops taps");
         for (String s : new String[]{sheet, motion, read("src/com/jjricks/volt/RidingEditor.java")}) {
             check(!s.contains(".send(") && !s.contains("write("), "the editor sends nothing");
             check(!s.contains("\"lock\"") && !s.contains("\"unlock\""), "no lock in the editor");

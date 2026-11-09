@@ -1,0 +1,2 @@
+# The electronic lock's tile and Quick access button: state words in Turkish and Polish only; the padlock follows the last known state everywhere.
+tests/l10n/LockStateTextTest.java
