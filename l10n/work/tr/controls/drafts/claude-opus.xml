@@ -6,7 +6,7 @@
     <string name="controls_feature_cruise_control" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Hız sabitleyici</string>
     <string name="controls_feature_cruise_control_short" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Hız sabitleyici</string>
     <string name="controls_feature_energy_recovery" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Enerji geri kazanımı</string>
-    <string name="controls_feature_energy_recovery_short" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Enerji kazanımı</string>
+    <string name="controls_feature_energy_recovery_short" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Geri kazanım</string>
     <string name="controls_feature_acceleration" volt:src="e85a5d0f3a6fd80c598896dc4d227e68c6fc0cb3">Hızlanma profili</string>
     <string name="controls_feature_acceleration_short" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Hızlanma</string>
     <string name="controls_feature_headlight" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Arka lamba</string>
