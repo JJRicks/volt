@@ -1624,9 +1624,10 @@ public final class DashboardScreen implements AppScreen {
             // With a charge alert to reach: power alone, then its time and the time to full side by side.
             tiles.loneFirst = true;
             InfoCell powerCell = tiles.add("bolt", T.dashboardChargingPower());
-            alertCell = tiles.add("clock", T.dashboardTimeToFull());
+            String timeToFull = T.dashboardTimeToFull();
+            alertCell = tiles.add("clock", timeToFull);
             tiles.show(alertCell, false);
-            InfoCell timeCell = tiles.add("clock", T.dashboardTimeToFull());
+            InfoCell timeCell = tiles.add("clock", timeToFull);
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             this.timeCell = timeCell;
@@ -1743,7 +1744,7 @@ public final class DashboardScreen implements AppScreen {
             // charge status stays English inside these templates (here and in describeCharging below).
             String time = etaTag.getVisibility() == View.VISIBLE
                     ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
-                    : (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTime(timeLabel[0], eta.getText()) : T.dashboardHeroTimeStatus(timeLabel[0], eta.getText(), estimate.status));
+                    : spokenTime(timeLabel[0], eta.getText(), estimate.status);
             eta.setContentDescription(time);
             timeCell.setTooltipText(time);
             showAlertTime(chargeAlertEstimate(values), estimate);
@@ -1759,6 +1760,10 @@ public final class DashboardScreen implements AppScreen {
             showAnimated(true);
         }
 
+        private String spokenTime(String name, CharSequence value, String status) {
+            return status == null || status.isEmpty() ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
+        }
+
         /** The tile counting down to a charge alert's level; it keeps its place with a dash while no time is known. */
         private void showAlertTime(ChargingEstimate.Result alert, ChargingEstimate.Result estimate) {
             tiles.show(alertCell, alert != null);
@@ -1768,7 +1773,7 @@ public final class DashboardScreen implements AppScreen {
             Double minutes = ChargingEstimate.minutesToAlert(alert, estimate);
             alertCell.value.setText(minutes == null ? "—" : duration(minutes));
             alertCell.value.setTextColor(minutes == null ? ui.muted : ui.text);
-            String spoken = T.dashboardHeroTime(labels[0], alertCell.value.getText());
+            String spoken = spokenTime(labels[0], alertCell.value.getText(), null);
             alertCell.value.setContentDescription(spoken);
             alertCell.setTooltipText(spoken);
         }
