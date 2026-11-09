@@ -31,11 +31,12 @@ public final class RidingValuesTest {
         rideTimeFromOpen();
         distanceFromOpen();
         distanceSurvivesCounterChanges();
+        distanceAcrossReportPrecision();
         distanceWhileRecording();
         reopenAndRecreate();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, reopen vs recreation, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, reopen vs recreation, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -719,6 +720,91 @@ public final class RidingValuesTest {
         check(near(rounding.trip().km, 0.2, 1e-9), "a rounded report neither subtracts nor counts twice: " + rounding.trip().km);
         trip(rounding, 4.1, 0x92, t + 4000);
         check(near(rounding.trip().km, 0.4, 1e-9), "and the count carries on: " + rounding.trip().km);
+    }
+
+    /** A real report through Telemetry and into the session, as the screen's snapshot delivers it. */
+    private static void report(Telemetry telemetry, RidingSession session, int type, byte[] data, long nowMs) {
+        telemetry.accept(type, data, nowMs);
+        session.feed(telemetry.metrics(), nowMs, false, "km", true);
+    }
+
+    /**
+     * A whole-km report (0x91) says the trip is somewhere in that kilometre, so the tenths that follow it
+     * for the same trip aren't distance ridden (Codex #330), in either order, and riding afterwards counts.
+     */
+    private static void distanceAcrossReportPrecision() {
+        long t = 5_000_000;
+        Telemetry telemetry = new Telemetry();
+        RidingSession wholeFirst = open(t);
+        report(telemetry, wholeFirst, 0x91, whole(0, 3, 12), t);
+        check(wholeFirst.trip().km == 0, "a whole-km baseline shows 0: " + wholeFirst.trip().km);
+        report(telemetry, wholeFirst, 0x92, expanded(0, 37, 12), t + 1000);
+        check(wholeFirst.trip().km == 0, "the tenths of that same trip aren't ridden distance: " + wholeFirst.trip().km);
+        report(telemetry, wholeFirst, 0x92, expanded(180, 39, 12), t + 2000);
+        check(near(wholeFirst.trip().km, 0.2, 1e-9), "riding after them counts: " + wholeFirst.trip().km);
+        report(telemetry, wholeFirst, 0x91, whole(18, 3, 12), t + 3000);
+        report(telemetry, wholeFirst, 0x92, expanded(180, 39, 12), t + 4000);
+        check(near(wholeFirst.trip().km, 0.2, 1e-9), "and later rounding still neither subtracts nor counts twice: " + wholeFirst.trip().km);
+        report(telemetry, wholeFirst, 0x92, expanded(180, 41, 12), t + 5000);
+        check(near(wholeFirst.trip().km, 0.4, 1e-9), "then the count carries on: " + wholeFirst.trip().km);
+
+        Telemetry tenthsTelemetry = new Telemetry();
+        RidingSession tenthsFirst = open(t);
+        report(tenthsTelemetry, tenthsFirst, 0x92, expanded(0, 37, 12), t);
+        report(tenthsTelemetry, tenthsFirst, 0x91, whole(0, 3, 12), t + 1000);
+        report(tenthsTelemetry, tenthsFirst, 0x92, expanded(0, 37, 12), t + 2000);
+        check(tenthsFirst.trip().km == 0, "the other order adds nothing either: " + tenthsFirst.trip().km);
+        report(tenthsTelemetry, tenthsFirst, 0x92, expanded(180, 39, 12), t + 3000);
+        check(near(tenthsFirst.trip().km, 0.2, 1e-9), "and counts riding too: " + tenthsFirst.trip().km);
+
+        RidingSession ridden = open(t);
+        trip(ridden, 3, 0x91, t);
+        trip(ridden, 4, 0x91, t + 60_000);
+        check(near(ridden.trip().km, 1, 1e-9), "whole-km reports count as they climb: " + ridden.trip().km);
+        trip(ridden, 4.7, 0x92, t + 61_000);
+        check(near(ridden.trip().km, 1, 1e-9), "and the first tenths keep that count: " + ridden.trip().km);
+        trip(ridden, 5.0, 0x92, t + 90_000);
+        check(near(ridden.trip().km, 1.3, 1e-9), "then ride on from them: " + ridden.trip().km);
+
+        RidingSession jump = open(t);
+        trip(jump, 3, 0x91, t);
+        trip(jump, 5.4, 0x92, t + 300_000);
+        check(near(jump.trip().km, 1.4, 1e-9), "a first tenths report past that kilometre counts only what was certainly ridden: " + jump.trip().km);
+
+        // The restart and recording rules start a stretch that can be whole-km too.
+        RidingSession restarted = open(t);
+        trip(restarted, 10, 0x92, t);
+        trip(restarted, 12, 0x92, t + 1000);
+        trip(restarted, 0, 0x91, t + 2000);
+        check(near(restarted.trip().km, 2, 1e-9), "a restart banks: " + restarted.trip().km);
+        trip(restarted, 0.7, 0x92, t + 3000);
+        check(near(restarted.trip().km, 2, 1e-9), "and the restarted counter's first tenths add nothing: " + restarted.trip().km);
+        trip(restarted, 1.0, 0x92, t + 4000);
+        check(near(restarted.trip().km, 2.3, 1e-9), "then it counts: " + restarted.trip().km);
+
+        RidingSession stopped = open(t);
+        stopped.values.setRecordingStart(t - 1000);
+        stopped.setRecordingKm(5.0);
+        trip(stopped, 3, 0x91, t);
+        stopped.setRecordingKm(5.5);
+        trip(stopped, 3, 0x91, t + 1000);
+        check(near(stopped.trip().km, 0.5, 1e-9) && stopped.trip().fromRecording, "whole-km trip reports don't touch a recording's count");
+        stopped.values.setRecordingStart(null);
+        stopped.setRecordingKm(null);
+        trip(stopped, 3, 0x91, t + 2000);
+        trip(stopped, 3.7, 0x92, t + 3000);
+        check(near(stopped.trip().km, 0.5, 1e-9) && !stopped.trip().fromRecording, "and the trip it falls back to starts whole-km the same way: " + stopped.trip().km);
+
+        // Rotation between the two reports: the rebuilt session has an empty RidingValues.
+        RidingSession before = open(t);
+        trip(before, 3, 0x91, t);
+        RidingSession.Resume saved = RidingSession.Resume.of(before.resume().profileId(), before.resume().openedMs(), before.resume().distance());
+        check(saved != null, "the saved state is the one it wrote");
+        RidingSession after = new RidingSession(PROFILE, null, t + 1000, saved);
+        trip(after, 3.7, 0x92, t + 1000);
+        check(after.trip().km == 0, "a recreated session remembers its baseline was whole km: " + after.trip().km);
+        trip(after, 3.9, 0x92, t + 2000);
+        check(near(after.trip().km, 0.2, 1e-9), "and counts on from the tenths: " + after.trip().km);
     }
 
     /** While a recording runs the spot follows its distance, from its value at this open or at the switch. */

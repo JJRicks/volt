@@ -32,6 +32,8 @@ final class RidingSession {
     /** The current stretch: its counter's first and highest value (NaN before the first reading), and which counter it follows. */
     private double baseKm = Double.NaN, peakKm = Double.NaN;
     private boolean fromRecording;
+    /** The current stretch's counter has only reported whole km so far, so its true value is unknown within the km. */
+    private boolean wholeKm;
 
     /**
      * The distance spot: how far since riding mode opened. km is null before the first usable reading.
@@ -48,17 +50,17 @@ final class RidingSession {
         private final String profileId;
         private final long openedMs;
         private final double bankedKm, baseKm, peakKm;
-        private final boolean fromRecording;
-        private Resume(String profileId, long openedMs, double bankedKm, double baseKm, double peakKm, boolean fromRecording) {
-            this.profileId = profileId; this.openedMs = openedMs; this.bankedKm = bankedKm; this.baseKm = baseKm; this.peakKm = peakKm; this.fromRecording = fromRecording;
+        private final boolean fromRecording, wholeKm;
+        private Resume(String profileId, long openedMs, double bankedKm, double baseKm, double peakKm, boolean fromRecording, boolean wholeKm) {
+            this.profileId = profileId; this.openedMs = openedMs; this.bankedKm = bankedKm; this.baseKm = baseKm; this.peakKm = peakKm; this.fromRecording = fromRecording; this.wholeKm = wholeKm;
         }
         String profileId() { return profileId; }
         long openedMs() { return openedMs; }
-        double[] distance() { return new double[]{bankedKm, baseKm, peakKm, fromRecording ? 1 : 0}; }
+        double[] distance() { return new double[]{bankedKm, baseKm, peakKm, fromRecording ? 1 : 0, wholeKm ? 1 : 0}; }
         /** Rebuilds saved state, or null when the distance array isn't the one distance() wrote. */
         static Resume of(String profileId, long openedMs, double[] distance) {
-            if (profileId == null || distance == null || distance.length != 4) return null;
-            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0);
+            if (profileId == null || distance == null || distance.length != 5) return null;
+            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0, distance[4] != 0);
         }
     }
 
@@ -74,14 +76,14 @@ final class RidingSession {
         values = new RidingValues(scale == null ? new RidingValues.PowerScale() : scale);
         boolean resumes = resume != null && this.profileId.equals(resume.profileId) && resume.openedMs <= nowMs;
         openedMs = resumes ? resume.openedMs : nowMs;
-        if (resumes) { bankedKm = resume.bankedKm; baseKm = resume.baseKm; peakKm = resume.peakKm; fromRecording = resume.fromRecording; }
+        if (resumes) { bankedKm = resume.bankedKm; baseKm = resume.baseKm; peakKm = resume.peakKm; fromRecording = resume.fromRecording; wholeKm = resume.wholeKm; }
     }
 
     /** Ride time: since this riding mode opened, counted on the phone's clock. */
     Long rideTimeMs(long nowMs) { return Math.max(0, nowMs - openedMs); }
 
     /** This riding mode's state, to hand to the session that replaces it when the activity is recreated. */
-    Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording); }
+    Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording, wholeKm); }
 
     /** The recording's distance so far (null without one); the next feed folds it in. */
     void setRecordingKm(Double km) { recordingKm = km == null || !Double.isFinite(km) ? null : km; }
@@ -99,23 +101,34 @@ final class RidingSession {
      * is a restart: a whole-unit (0x91) report rounds down what a tenths (0x92) report showed, and
      * must neither subtract nor be counted twice when the tenths come back. The cost is a restart
      * from under that distance, which is only counted once it passes the old value.
+     *
+     * The other way round, a stretch that has only had whole-km reports may be anywhere in that km, so
+     * the first tenths report sets its precision rather than adding its fraction. It adds only what
+     * must have been ridden: anything beyond the km the last whole report could have meant.
      */
     private void trackDistance(long nowMs) {
         boolean recording = recordingKm != null && values.recordingTimeMs(nowMs) != null;
         double km;
+        boolean whole = false;
         if (recording) km = recordingKm;
         else {
             RidingValues.Reading r = values.reading(RidingValues.TRIP_KM_KEY, nowMs);
             // A leftover from before this open isn't a baseline: the scooter may have moved since.
             if (r == null || r.stale && r.updatedMs < openedMs) return;
             km = r.value;
+            whole = r.sourceCmd != RidingValues.EXPANDED_RIDE_REPORT;
         }
         if (km < 0) return;
-        if (Double.isNaN(peakKm)) { baseKm = peakKm = km; fromRecording = recording; }
+        if (Double.isNaN(peakKm)) { baseKm = peakKm = km; fromRecording = recording; wholeKm = whole; }
         else if (recording != fromRecording || peakKm - km >= COUNTER_RESET_KM) {
             bankedKm += peakKm - baseKm;
             baseKm = peakKm = km;
             fromRecording = recording;
+            wholeKm = whole;
+        } else if (wholeKm && !whole) {
+            bankedKm += peakKm - baseKm + Math.max(0, km - peakKm - 1);
+            baseKm = peakKm = km;
+            wholeKm = false;
         } else peakKm = Math.max(peakKm, km);
     }
 

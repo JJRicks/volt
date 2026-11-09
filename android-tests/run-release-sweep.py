@@ -165,6 +165,7 @@ STEPS += [
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
+    inst('riding-from-zero', T + 'RidingFromZeroValidation'),
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
