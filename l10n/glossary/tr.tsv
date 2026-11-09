@@ -3,10 +3,9 @@
 # Matching: Turkish is suffixing, so a form matches at the start of a word (kilit also matches kilitli). Forms hold no apostrophe where the stem alone matches (gidon PIN matches gidon PIN’i). A form that starts with i or ı is listed in both cases, because the tools lower-case İ and I without Turkish rules.
 # Forms may be bare stems where a word softens before an ending (yedeğ matches yedeği, yolculuğ matches yolculuğu).
 # kilidi is deliberately not a form of lock: it appears only inside the unlock phrases. Only that spelling separates the two by itself; tools/l10n/lexicon.py reads the words after kilit (Kilit açık, Kilit açma, Kilitsiz).
-# Rows D3 retires keep the chosen term's Turkish until their en.tsv row is dropped. D3's new rows wait in l10n/pending/glossary-d3/tr.tsv until en.tsv has their ids.
-# HOLD until D3 merges: en.tsv and the strings still use Top speed and Maximum speed in their old senses, while the top-speed and maximum-speed rows below already use D3's. Following those rows now would call the setting En yüksek hız and the measured value Maksimum hız, the swap section 7 of the style guide forbids.
-# So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3, or D3 only moves their English toward this meaning: rides_tile_max_speed says Max speed today, is the measured value and can be drafted now as En yüksek hız, never Maks. hız.
-# When D3 lands: acceleration-eco and acceleration-turbo become do-not-translate in en.tsv, so their two rows below are dropped (glossary-check refuses a row for a do-not-translate term).
+# D3 merged with the English fixes (#208, 2026-11-05): the rows it retired are gone, the Eco and Turbo rows went with them (do-not-translate now), and its new rows have Claude's proposal too.
+# The Top speed / Maximum speed hold is over: en.tsv and the strings now use D3's senses (Maximum speed is the setting, Top speed the measured value), matching the rows below.
+# Rows en.tsv gained in the English fixes (#208) and the stop-the-scooter split of 2026-11-07, proposed by Claude on 2026-11-09 after they merged.
 id	term	definition	pos	dnt	safety	source
 not-affiliated	NAVEE ile ilişkili değil | NAVEE ile ilişkisi yok	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	claude-only claude-opus-5-5; MoreScreen.java:184, 2360
 official-app	resmî uygulama | resmi uygulama	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	claude-only claude-opus-5-5; ModelRegistry.java:834; MoreScreen.java:1547
@@ -14,16 +13,11 @@ navee-app	NAVEE uygulaması	The official app named by its maker; keep "NAVEE".	n
 scooter	scooter	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	claude-only claude-opus-5-5; NAVEE EU manual heading Elektrikli Scooter, search snippet; NAVEE retail listings; throughout
 owner	sahip | sahib	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
 owner-profile	sahip profili	The saved profile of the owner role.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
-owner-role	sahip | sahib	D3 retired the English 'owner role' (owner is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
-shared-access	ortak kullanıcı	D3 retired the English 'shared access' (shared rider is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
-shared-user	ortak kullanıcı	D3 retired the English 'shared user' (shared rider is the role word; also an orphan). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
-shared-role	ortak kullanıcı	D3 retired the English 'shared role' (shared rider is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
-owner-identity	sahip anahtarı	D3 retired the English 'owner identity' (owner key chosen; no string keeps it after D3). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
+shared-rider	ortak kullanıcı	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Official app Shared Riders; MoreScreen.java
 owner-key	sahip anahtarı	The 12-hex-character credential Volt authenticates with. Older website text and docs may say owner identity or scooter key. Treat it as a secret.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
-setup-key	sahip anahtarı	D3 retired the English 'setup key' (owner key chosen; also an orphan). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
-scooter-key	sahip anahtarı	D3 retired the English 'scooter key' (owner key chosen). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
 owner-setup	sahip kurulumu	Getting the owner key from the NAVEE app.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
 owner-setup-file	sahip kurulum dosyası	The file that carries the owner key. Onboarding's buttons shorten it to owner file because the setup website names them. Its name, navee-owner-setup.json, stays as written.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
+owner-file	sahip dosyası	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java; setup/web/index.html
 capture	yakala | yakalama	Reading the owner key from the NAVEE app during owner setup.	noun	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
 capture-helper	yakalama aracı	The computer script that captures the owner key; setup/capture-owner.py stays as written.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
 usb-debugging	USB hata ayıklama	Android's setting. Use Android's own localized wording.	noun phrase	no	-	claude-only claude-opus-5-5; AOSP SettingsLib values-tr; OnboardingScreen.java
@@ -39,8 +33,7 @@ lock-state-unverified	Kilit durumu doğrulanmadı | kilit durumu doğrulanamadı
 lock-state-unknown	Kilit durumu bilinmiyor	Same meaning as Lock state unverified. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5; AOSP SettingsLib values-tr Bilinmiyor; MainActivity.java:448-1114
 lock-duration	Kilit süresi	How long the scooter stays locked when off.	noun phrase	no	lock	claude-only claude-opus-5-5; ScooterCommands.java:136
 handlebar-pin	gidon PIN	The 4-digit code entered on the handlebar. It is the rider's phone-free way to unlock. Keep distinct from a backup password.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
-fallback-pin	gidon PIN	D3 retired the English 'fallback PIN' (handlebar PIN chosen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
-dashboard-pin	gidon PIN	D3 retired the English 'dashboard PIN' (handlebar PIN chosen; dashboard means Volt's screen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
+pin-unlock	PIN ile kilit açma	The toggle that enables the handlebar PIN.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java more_pin_fallback
 proximity-unlock	yakınlıkla kilit açma	Unlocking when the paired phone is near.	noun phrase	no	pin	claude-only claude-opus-5-5; ScooterCommands.java:153
 pair	eşleştir | eşleştirme | eşleş	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	claude-only claude-opus-5-5; BleController.java:559
 connect	Bağlan | bağlantı | bağlı	Start the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
@@ -57,7 +50,8 @@ report-an-issue	Sorun bildir	Send an email to Volt with an English attachment.	v
 diagnostics	Tanılama	The section that collects the information a report sends.	noun	no	privacy	claude-only claude-opus-5-5; MainActivity.java:2719
 diagnostics-file	tanılama dosyası	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5; MainActivity.java:2719
 experimental-controls	Deneysel özellikler | deneysel özellik	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
-untested-controls	Denenecek özellikler	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
+controls-to-try	Denenecek özellikler	The card of untried controls in Experimental controls.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java more_lab_untested
+lab-badge	LAB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	claude-only claude-opus-5-5; MoreScreen.java more_lab_badge; RidesScreen.java rides_lab_badge
 try	Dene | deneme	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 set-back	Geri al	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 help-verify	Doğrulamaya yardım et | doğrulamaya yardım ed	Ask the rider to confirm what a try did.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
@@ -71,11 +65,8 @@ confirmed	onaylandı | onaylanmış | onaylı	The scooter read the new value bac
 not-confirmed	Onaylanmadı | onaylanmamış | onaylanamadı | onaylanmış değil	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
 rejected	Reddedildi | reddedilmiş	The scooter refused the value.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
 acceleration-profile	Hızlanma profili	How hard the motor accelerates.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
-acceleration-eco	Eco	The gentle acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
-acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
+eco-estimate	Eco tahmini	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java controls_option_eco_estimate
 energy-recovery	Enerji geri kazanımı	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	claude-only claude-opus-5-5; Xiaomi TR product pages, search summary; ScooterCommands.java:106; ModelRegistry.java:861
-regen	Enerji geri kazanımı	D3 retired the English 'regen' (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Use the term shown.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
-motor-braking	Enerji geri kazanımı	D3 retired the English 'motor braking' (energy recovery chosen). Use the term shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
 energy-recovery-off	Kapalı	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
 energy-recovery-low	Düşük	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
 energy-recovery-medium	Orta	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
@@ -88,9 +79,11 @@ dual-motor-drive	Çift motorlu sürüş | çift motor	Both motors drive.	noun ph
 single-motor	Tek motor	Only one motor drives.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
 kick-start-speed	Kalkış hızı	The speed before the motor engages from a push.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:120
 standing-start	Duruştan kalkış	The value 0 of Kick-start speed: the motor engages from a standstill. Not another name for the setting.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:120
-custom-speed-cap	Özel hız sınırı	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
-drive-mode-speed-cap	Sürüş modu hız sınırı	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+custom-speed-limit	Özel hız sınırı	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+drive-mode-speed-limit	Sürüş modu hız sınırı	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+speed-limit	hız sınırı	A limit below Maximum speed; the general word for the two rows above.	noun phrase	no	ride	claude-only claude-opus-5-5; more_lab_foot_oem; readings_speed_limit
 maximum-speed	Maksimum hız | Maks. hız	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+maximum-speed-short	Maks. hız	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	claude-only claude-opus-5-5; QuickAccessGrid.java; dashboard_model_tile_top_speed
 top-speed	En yüksek hız	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
 walk-assist	Yürüme desteği	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
 power-assist	Güç desteği	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
@@ -110,13 +103,12 @@ follow-headlight	Farla birlikte	A light setting that follows the headlight.	noun
 always-on	Her zaman açık	A light setting that never switches off.	adjective phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
 light-red	Kırmızı	A light colour.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
 light-ice-blue	Buz mavisi	A light colour.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
-dashboard-units	Scooter ekranı birimleri	D3 retired the English 'Dashboard units' (scooter display units chosen). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
 scooter-display-units	Scooter ekranı birimleri	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
 miles	Mil	A display unit choice.	noun	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
 kilometers	Kilometre	A display unit choice.	noun	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
 dashboard	Gösterge paneli | panel	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
+scooter-display	scooter ekranı	The screen on the scooter itself.	noun phrase	no	-	claude-only claude-opus-5-5; compat_question_units_mph
 widget	widget	A tile on the Dashboard.	noun	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
-quick-access	Hızlı erişim	The row of shortcut actions on the Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
 live-stats	Canlı veriler | canlı veri	The telemetry pages.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
 readings	değerler | değer	Telemetry values the scooter reports.	noun	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
 readings-history	Değer geçmişi	Stored telemetry.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
@@ -124,11 +116,9 @@ odometer	Kilometre sayacı	Total distance. The narrow-label ladder is full, then
 odometer-short	Km sayacı	The abbreviated rung of Odometer.	abbreviation	no	-	claude-only claude-opus-5-5; ScooterReadingLabels.java:30, 74
 trip	Yolculuk | yolculuğ	Distance since the last reset.	noun	no	-	claude-only claude-opus-5-5; ScooterReadingLabels.java:30, 74
 range-estimate	Menzil tahmini	Remaining-distance estimate.	noun phrase	no	-	claude-only claude-opus-5-5; NAVEE retail listings use menzil; ScooterCommands.java:118; LearnedRangeEstimate.java
-learned-range	öğrenilen menzil	A range estimate learned from this scooter's rides.	noun phrase	no	-	claude-only claude-opus-5-5; NAVEE retail listings use menzil; ScooterCommands.java:118; LearnedRangeEstimate.java
 theoretical	Teorik	A range basis: the maker's figure.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
 actual-riding	Gerçek sürüş	A range basis: how this scooter has really been ridden.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
 charge-limit	Şarj sınırı	The maximum charge percentage.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
-charge-ceiling	Şarj sınırı	D3 retired the English 'charge ceiling' (charge limit chosen; ceiling stays only as a search keyword). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
 scheduled-charging	Zamanlanmış şarj	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
 charge-start	Şarj başlangıcı	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
 charging-start-time	Şarj başlangıç saati	The setting for when scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
@@ -143,9 +133,11 @@ low-battery-alert	Düşük pil uyarısı	An alert when the battery falls to a le
 notify-me	Bana bildir	Choose a notification for an alert.	verb phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
 alarm-sound	Alarm sesi	Choose a sounding alarm for an alert.	noun phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
 stop	Durdur	Silence a sounding alarm.	verb	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+stop-scooter	Scooter’ı durdurun | scooter’ı durdur	Bring the scooter itself to a standstill before a control can change: the riding sense of Stop, not silencing an alarm or ending a recording.	verb phrase	no	ride	claude-only claude-opus-5-5; strings_more.xml more_lab_held_moving; split from stop on 2026-11-07 (Codex review of #320)
+bring-to-a-stop	Scooter’ı durdurun | scooter’ı durdur	The same as Stop the scooter (stop-scooter), in the wording of the moving-scooter reasons.	verb phrase	no	ride	claude-only claude-opus-5-5; strings_ble.xml ble_stop_scooter_first, strings_controls.xml controls_reason_moving; split from stop on 2026-11-07 (Codex review of #320)
+stop-to-change	Değiştirmek için durun | değiştirmek için scooter’ı durdur	Stop the scooter (stop-scooter) to change a row that can't change while riding. In a text that names a recording (Recording label · stop to change) it means stop the recording, and the Stop term applies instead.	verb phrase	no	ride	claude-only claude-opus-5-5; strings_main.xml main_row_stop_to_change, main_row_stop_part; split from stop on 2026-11-07 (Codex review of #320)
 stop-watching	İzlemeyi durdur | izlemeyi durdur	End an alert's watch.	verb phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
 charge-recording	Şarj kaydı	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
-charger-profile	şarj cihazı profili	What Volt has learned about a charger, for estimates.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
 time-to-full	Dolmasına kalan süre	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
 rides	Sürüşler | sürüş	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
 ride-recording	sürüş kaydı	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
@@ -160,3 +152,14 @@ replace-everything	Tümünü değiştir	A restore that replaces all of Volt's da
 owner-setup-file-scooter-access	Sahip kurulum dosyası · yalnızca scooter erişimi	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupActivity.java:176-414
 simulated-scooter	Simüle edilmiş scooter	Demo mode with no real scooter.	noun phrase	no	-	claude-only claude-opus-5-5; CompatibilityReport.java:246; IssueReport.java:18
 simulation	simülasyon	The demo mode itself.	noun	no	-	claude-only claude-opus-5-5; CompatibilityReport.java:246; IssueReport.java:18
+not-reported	veri yok | verisi yok	The scooter has not sent this value. Must never read as zero, off or a fault.	adjective phrase	no	-	claude-only claude-opus-5-5; common_not_reported; dashboard_battery_not_reported
+reported	bildirilen | bildirir | bildiriyor | bildirdiğ	Sent by the scooter itself, as opposed to estimated or measured by Volt.	adjective	no	-	claude-only claude-opus-5-5; controls_reason_no_choices; readings
+last-seen	Son okuma | son okunan	The latest value Volt received, which may be out of date now. Must not read as current.	adjective phrase	no	-	claude-only claude-opus-5-5; dashboard_overview_percent_seen; main_speed_value_seen
+raw	ham	Shown as the scooter sent it, without Volt's interpretation; marks a diagnostic reading.	adjective	no	-	claude-only claude-opus-5-5; readings_* (raw) names
+navee-logging	NAVEE etkinlik günlüğü | NAVEE etkinlik günlüğ	The NAVEE app's Bluetooth logging, which phone-only owner setup turns on and then back off. Keep NAVEE as written.	noun phrase	no	privacy	claude-only claude-opus-5-5; owner_shizuku_restore_logging; owner_shizuku_cleanup_message
+stock-charger	Orijinal şarj cihazı | orijinal şarj cihaz	The charger that came with the scooter; one of Volt's two charger choices for estimates.	noun phrase	no	charge	claude-only claude-opus-5-5; more_dev_record_stock; service_charge_stock_charger_paused
+high-speed-charger	Hızlı şarj cihazı | hızlı şarj cihaz	A faster charger than the stock one; Volt's second charger choice for estimates.	noun phrase	no	charge	claude-only claude-opus-5-5; more_dev_record_fast; service_charge_fast_charger_paused
+gap	veri boşluğu | veri boşluğ | veri boşluk	A stretch of a ride or charge recording with no samples.	noun	no	-	claude-only claude-opus-5-5; rides_recovered_gap; rides_gaps
+elevation	rakım	Height measured by GPS along a ride.	noun	no	-	claude-only claude-opus-5-5; maps_route_elevation_not_measured; maps_track_fixes_outliers
+add	Ekle	Put a new item in a list: a scooter, a widget, a favorite.	verb	no	-	claude-only claude-opus-5-5; backup_add_another_scooter; stats_favourite_add
+enter	Gir	Type a value in, such as a name, a PIN or an owner key.	verb	no	-	claude-only claude-opus-5-5; main_rename_empty; more_pin_enter
