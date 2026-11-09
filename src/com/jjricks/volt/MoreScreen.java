@@ -3012,7 +3012,7 @@ public final class MoreScreen implements AppScreen {
 
         /** The brief consent sheet: use the last ride's area (rounded, on the phone) or the time zone. */
         private void consent() {
-            if (closed) return;
+            if (!may()) return;
             android.app.AlertDialog[] self = new android.app.AlertDialog[1];
             LinearLayout body = host.sheetContent(T.ridingNightConsentTitle(), T.ridingNightConsentBody(), () -> { if (self[0] != null) self[0].dismiss(); });
             body.setTag("riding_night_consent");
@@ -3046,7 +3046,7 @@ public final class MoreScreen implements AppScreen {
 
         /** A custom time's picker, in the phone's 12 or 24 hour clock. */
         private void time(String key, int fallback, String title) {
-            if (closed) return;
+            if (!may()) return;
             int minutes = NightSchedule.minutes(preferences.getInt(key, fallback), fallback);
             android.app.TimePickerDialog picker = new android.app.TimePickerDialog(context, (view, hour, minute) -> {
                 if (!may()) return;

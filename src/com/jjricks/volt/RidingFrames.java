@@ -119,8 +119,8 @@ final class RidingFrames {
         return !connected || pickerShown(stationary, speedKmh);
     }
 
-    /** The speed the tune menu's close rule uses: a live reading from a connected scooter, or null. Settings going stale doesn't matter here. */
-    static Double menuKmh(boolean connected, RidingValues.Speed speed) { return connected && !speed.stale ? speed.kmh : null; }
+    /** The speed the tune menu's close rule uses: the peak of this connection's newest readings (Telemetry.takeSpeedPeak), or null with no scooter connected. */
+    static Double menuKmh(boolean connected, Double peakKmh) { return connected ? peakKmh : null; }
 
     /** The Record disc takes a tap as Home's does: connected or already recording, and no ride still saving. */
     static boolean recordEnabled(boolean recording, boolean ready, boolean saving) { return (recording || ready) && !saving; }

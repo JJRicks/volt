@@ -586,10 +586,10 @@ final class RidingScreen implements AppScreen {
         return RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary(), session.values.speed(now).kmh);
     }
 
-    /** The speed the menu's close rule looks at: only a live reading from a connected scooter, or null. */
-    private Double liveKmh(long now) {
+    /** The speed the menu's close rule looks at: the fastest reading from this connection since the last look, or null. */
+    private Double liveKmh() {
         BleController ble = service == null ? null : service.ble;
-        return RidingFrames.menuKmh(ble != null && ble.connected(), session.values.speed(now));
+        return ble == null ? null : RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak());
     }
 
     /**
@@ -598,10 +598,7 @@ final class RidingScreen implements AppScreen {
      */
     private boolean menuChangeAllowed() {
         if (closed) return false;
-        BleController ble = service == null ? null : service.ble;
-        // Readings already seen add nothing, so the next refresh is unaffected.
-        if (ble != null) session.values.update(ble.telemetry.metrics());
-        Double kmh = liveKmh(SystemClock.elapsedRealtime());
+        Double kmh = liveKmh();
         if (sheetState.update(kmh)) { dismissSheet(); return false; }
         return sheetState.accept(kmh);
     }
@@ -615,6 +612,7 @@ final class RidingScreen implements AppScreen {
     private void edit() {
         if (closed || host.activity() == null || sheet != null) return;
         if (!sheetState.open(tuneShown(SystemClock.elapsedRealtime()))) return;
+        liveKmh(); // Speeds from before the menu opened don't count against it.
         LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
         body.setTag("riding_layout_editor");
         new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
@@ -698,7 +696,7 @@ final class RidingScreen implements AppScreen {
         disc.show(tuneShown(now));
         showStopped(stoppedNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
         // Only real speed closes the tune menu, at 4 mph or more; losing the readings doesn't.
-        if (sheetState.update(liveKmh(now))) dismissSheet();
+        if (sheetState.update(liveKmh())) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
         float[] offset = RidingBurnIn.offsetDp(now - session.openedMs);
         frame.setTranslationX(ui.dp(offset[0]));

@@ -172,6 +172,30 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         main(() -> prefs("app_settings").edit().remove("riding_brightness").commit());
         tuneShows("after the brightness change");
 
+        // Rows that open a dialog check the newest speed first too: no dialog, and the menu closes.
+        schedule("custom");
+        tapAtSpeed(() -> findTag(root(), "preference_riding_night_starts"));
+        schedule("sun");
+        main(() -> prefs("app_settings").edit().remove("riding_night_ride_area").commit());
+        tapAtSpeed(() -> findTag(root(), "preference_riding_night_from"));
+        note("a time picker or consent row tapped straight after a 12 km/h update closed the menu and opened nothing");
+
+        // 0 then 12 then 0 km/h with no refresh between them: the screen's next refresh still closes the menu.
+        openMenu();
+        main(() -> { motion(0); motion(12); motion(0); });
+        await(() -> !menuOpen(), "A brief 12 km/h between refreshes closes the menu");
+        speed(0);
+        tuneShows("after a brief 12 km/h");
+        // The same brief speed before the menu opens doesn't count against it.
+        await(this::takesTaps, "The tune button takes taps");
+        main(() -> { motion(12); motion(0); picker().performClick(); });
+        await(this::menuFocused, "The menu opened after a brief 12 km/h");
+        settle();
+        require(menuOpen(), "A speed from before the menu opened doesn't close it");
+        close();
+        tuneShows("after the pre-open speed");
+        note("a brief 12 km/h between refreshes closed the menu; one before the menu opened did not");
+
         // Dialogs from the menu close with it at 4 mph: the time picker, and the consent sheet.
         schedule("custom");
         openMenu();

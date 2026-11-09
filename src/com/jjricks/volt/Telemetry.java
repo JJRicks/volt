@@ -116,6 +116,8 @@ public final class Telemetry {
         {"drive_mode_setting", "Drive mode setting (raw)"}
     };
     private final LinkedHashMap<String, Metric> readings = new LinkedHashMap<String, Metric>();
+    /** The fastest speed reading since takeSpeedPeak() last ran; clear() empties it for a new connection. */
+    private Double speedPeakKmh;
     private final LinkedHashMap<Integer, byte[]> rawFrames = new LinkedHashMap<Integer, byte[]>();
     private final LinkedHashMap<Integer, Integer> responseStatuses = new LinkedHashMap<Integer, Integer>();
     /**
@@ -367,6 +369,18 @@ public final class Telemetry {
         electricalBatch = 0;
         voltageBatch = currentBatch = -1;
         currentSignState = temperatureSignState = null;
+        speedPeakKmh = null;
+    }
+
+    /**
+     * The fastest speed reported since the last call, or null if none has arrived, and starts over.
+     * Unlike a metric it doesn't lose a brief peak to the next sample, and a new connection starts
+     * empty. Riding mode's tune menu is its only reader (RidingScreen).
+     */
+    synchronized Double takeSpeedPeak() {
+        Double peak = speedPeakKmh;
+        speedPeakKmh = null;
+        return peak;
     }
 
     private void settings(byte[] data, int cmd, long time) {
@@ -621,6 +635,7 @@ public final class Telemetry {
     }
 
     private void put(String key, String value, Double numeric, int cmd, long time) {
+        if (numeric != null && key.equals("speed_kmh")) speedPeakKmh = speedPeakKmh == null ? numeric : Math.max(speedPeakKmh, numeric);
         Metric previous = readings.get(key);
         if (previous == null || previous.updatedMs > time) return;
         readings.put(key, new Metric(previous.group, key, previous.label, value, numeric, cmd, time));
