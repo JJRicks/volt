@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.jjricks.volt.tests" android:versionCode="1" android:versionName="1">
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
   <application android:allowBackup="false" android:label="Navee local validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingChipRowValidation" android:targetPackage="com.jjricks.volt" android:label="Riding chip row validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ParkedValidation" android:targetPackage="com.jjricks.volt" android:label="Parked offline validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LaunchValidation" android:targetPackage="com.jjricks.volt" android:label="Fresh emulator launch validation" />
   <instrumentation android:name="com.jjricks.volt.tests.PhoneRideValidation" android:targetPackage="com.jjricks.volt" android:label="Emulator phone sensor recording validation" />
