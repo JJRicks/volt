@@ -20,6 +20,11 @@ public final class ChargeLiveBackgroundTest {
         backgroundStaysCharging();
         linkDownDrops();
         silentLinkDrops();
+        unplugClearsQuickly();
+        cutOutBetweenPollsIsNeverSeen();
+        replugInsideTheWindowKeepsTheCard();
+        replugAfterTheWindowDoesNotReArm();
+        noFreshReadingKeepsTheLongerTolerance();
         alertsKeepWatching();
         System.out.println("ChargeLiveBackgroundTest: " + checks + " checks passed");
     }
@@ -53,13 +58,17 @@ public final class ChargeLiveBackgroundTest {
     private static final class Service {
         final ChargeLiveHold hold = new ChargeLiveHold();
         Integer lastPercent;
+        /** The level read while fresh; below the finish level an unplug is CHARGER_OFF, not FINISHED. */
+        int level = 99;
         ChargeLiveHold.End end = ChargeLiveHold.End.NONE;
         ChargeLiveState card;
         boolean connected;
-        void step(long now, boolean up, long statusMs, long readingMs, boolean fast) {
+        void step(long now, boolean up, long statusMs, long readingMs, boolean fast) { step(now, up, statusMs, readingMs, fast, Boolean.TRUE); }
+        /** charging is the last reading's value; a stale or absent reading is null, as liveReading() makes it. */
+        void step(long now, boolean up, long statusMs, long readingMs, boolean fast, Boolean charging) {
             connected = StatusCadence.linked(up, statusMs, now, fast);
             boolean fresh = connected && readingMs > 0 && now >= readingMs && now - readingMs <= ChargeAlertPolicy.FRESH_MS;
-            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? Boolean.TRUE : null, false, fresh ? 99 : null, null, "ut5");
+            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? charging : null, false, fresh ? level : null, null, "ut5");
             if (f.percent != null) lastPercent = f.percent;
             ChargeLiveHold.End e = hold.step(now, f);
             if (e != ChargeLiveHold.End.NONE) end = e;
@@ -139,6 +148,136 @@ public final class ChargeLiveBackgroundTest {
         check(failedAt > lostAt && failedAt - lastStatus <= StatusCadence.silenceMs(false) + StatusCadence.POLL_SLOW_MS, "poll() ends the link on its next tick");
         check(endAt == lostAt + ChargeLiveHold.RECONNECT_MS + STEP, "the card ends 18 s after it started reconnecting");
         check(endAt - lastStatus <= 60 * S, "a silent scooter ends the card within a minute of its last answer");
+    }
+
+    /** Out of sight the owner's phone polls every 15 s: steps the service from now to end with this charging reading. */
+    private static long run(Service s, long from, long end, Boolean charging) {
+        for (long t = from; t <= end; t += STEP) {
+            long status = backgroundStatus(t, Long.MAX_VALUE);
+            s.step(t, true, status, status, false, charging);
+            if (s.end != ChargeLiveHold.End.NONE) return t;
+        }
+        return -1;
+    }
+
+    /**
+     * A reading out of sight says what was true when the scooter answered: the poll's status time, not the step's. The
+     * charger state as a function of time, so unplug and replug can land anywhere between two polls.
+     */
+    private static long runLive(Service s, long from, long end, java.util.function.LongPredicate charging) {
+        for (long t = from; t <= end; t += STEP) {
+            long status = backgroundStatus(t, Long.MAX_VALUE);
+            s.step(t, true, status, status, false, charging.test(status));
+            if (s.end != ChargeLiveHold.End.NONE) return t;
+        }
+        return -1;
+    }
+
+    /**
+     * Owner, 2026-11-08: unplugged with Volt out of sight, the card clears about 15 seconds later, not after 3 minutes, on
+     * the existing 15 s read, with no faster polling. Sweeps the unplug across a whole poll period for the real figures.
+     */
+    private static void unplugClearsQuickly() {
+        long worst = 0, total = 0;int runs = 0;
+        for (long unplug = T0 + 2 * 60 * S; unplug < T0 + 2 * 60 * S + StatusCadence.POLL_SLOW_MS; unplug += STEP) {
+            Service s = armed();
+            s.level = 62;
+            final long off = unplug;
+            long ended = runLive(s, T0, unplug + 40 * S, t -> t < off);
+            check(ended > 0 && s.end == ChargeLiveHold.End.CHARGER_OFF && !s.hold.active(), "the hold ended by itself, out of sight: " + s.end);
+            long took = ended - unplug;
+            check(took >= ChargeLiveHold.UNPLUG_MS, "never before the short window: " + took + " ms");
+            worst = Math.max(worst, took);total += took;runs++;
+        }
+        long typical = total / runs;
+        check(worst <= StatusCadence.POLL_SLOW_MS + REPLY + ChargeLiveHold.UNPLUG_MS + 2 * STEP, "worst case one poll plus the window: " + worst + " ms");
+        check(worst <= 20 * S + REPLY + 2 * STEP, "worst case about 20 seconds: " + worst + " ms");
+        check(typical >= 10 * S && typical <= 15 * S, "typically about 12.5 seconds: " + typical + " ms");
+        System.out.println("  unplug to clear, 15 s read: typical " + typical + " ms, worst " + worst + " ms");
+        // The service's timer: step() must run at the end of the window even when no reading or tick arrives then.
+        Service timed = armed();
+        timed.level = 62;
+        long unplug = T0 + 2 * 60 * S;
+        run(timed, T0, unplug - STEP, Boolean.TRUE);
+        check(timed.hold.nextCheck() == T0 + ChargeLiveHold.HOLD_MS, "charging: only the hold limit is due");
+        long reading = backgroundStatus(unplug + StatusCadence.POLL_SLOW_MS, Long.MAX_VALUE);
+        timed.step(reading, true, reading, reading, false, Boolean.FALSE);
+        check(timed.hold.nextCheck() == reading + ChargeLiveHold.UNPLUG_MS + 1, "the off reading: the check is due as the window ends");
+        long at = timed.hold.nextCheck();
+        timed.step(at, true, reading, reading, false, Boolean.FALSE);
+        check(!timed.hold.active() && timed.end == ChargeLiveHold.End.CHARGER_OFF, "and that one check ends the hold");
+    }
+
+    /** A charger that cuts out and is back before the next poll reads it: never seen, so nothing counts and the card stays. */
+    private static void cutOutBetweenPollsIsNeverSeen() {
+        Service s = armed();
+        s.level = 62;
+        long off = T0 + 2 * 60 * S + S, back = off + 10 * S;
+        check(runLive(s, T0, off + 5 * 60 * S, t -> t < off || t >= back) < 0 && s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "a 10 s cut-out between polls leaves the card");
+    }
+
+    /** The charger back before the off reading's window ends (a report the scooter pushes): the card stays. */
+    private static void replugInsideTheWindowKeepsTheCard() {
+        Service s = armed();
+        s.level = 62;
+        long unplug = T0 + 2 * 60 * S;
+        run(s, T0, unplug - STEP, Boolean.TRUE);
+        // The next poll's reply reads off; a report the scooter pushes reads charging again within the window.
+        long off = backgroundStatus(unplug + StatusCadence.POLL_SLOW_MS, Long.MAX_VALUE), pushed = off + ChargeLiveHold.UNPLUG_MS - STEP;
+        s.step(off, true, off, off, false, Boolean.FALSE);
+        check(s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "the off reading alone keeps the card through the window");
+        s.step(pushed, true, off, pushed, false, Boolean.TRUE);
+        check(s.hold.active() && s.end == ChargeLiveHold.End.NONE, "a charging report inside the window keeps the hold");
+        s.step(off + ChargeLiveHold.UNPLUG_MS + 2 * STEP, true, off, pushed, false, Boolean.TRUE);
+        check(s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "and the window it interrupted never ends the card");
+        // The cut-out's seconds don't carry over to a later unplug.
+        long later = off + 60 * S;
+        final long gone = later;
+        long ended = runLive(s, off + ChargeLiveHold.UNPLUG_MS + 3 * STEP, later + 40 * S, t -> t < gone);
+        check(ended - later >= ChargeLiveHold.UNPLUG_MS, "a later unplug waits its own full window: " + (ended - later));
+    }
+
+    /** Plugged back in after the window: the hold is over and it doesn't come back by itself (nothing re-arms but leaving Volt). */
+    private static void replugAfterTheWindowDoesNotReArm() {
+        Service s = armed();
+        s.level = 62;
+        long unplug = T0 + 2 * 60 * S;
+        final long off = unplug;
+        long ended = runLive(s, T0, unplug + 40 * S, t -> t < off);
+        check(ended > 0 && !s.hold.active(), "ended");
+        s.end = ChargeLiveHold.End.NONE;
+        check(runLive(s, ended + STEP, ended + 10 * 60 * S, t -> true) < 0 && !s.hold.active() && s.end == ChargeLiveHold.End.NONE, "charging again later never re-arms the hold");
+    }
+
+    /**
+     * Connected, but no fresh charging reading (charging null): a gap in the readings, not an unplug. The short window
+     * doesn't run, the longer tolerance does, and a reading that comes back cancels it.
+     */
+    private static void noFreshReadingKeepsTheLongerTolerance() {
+        Service s = armed();
+        s.level = 62;
+        long start = T0 + 2 * 60 * S, reading = backgroundStatus(start, Long.MAX_VALUE);
+        run(s, T0, start, Boolean.TRUE);
+        // No reading for more than 45 s, so charging reads null; the status link stays up.
+        long stale = reading + ChargeAlertPolicy.FRESH_MS + S;
+        s.step(stale, true, stale, reading, false, Boolean.TRUE);
+        check(s.hold.active() && s.hold.nextCheck() == stale + ChargeLiveHold.STOP_MS + 1, "a null reading is due at the end of the longer tolerance");
+        for (long t = stale; t <= stale + ChargeLiveHold.STOP_MS; t += STEP) {
+            s.step(t, true, t, reading, false, Boolean.TRUE);
+            check(s.hold.active() && s.end == ChargeLiveHold.End.NONE, "no reading " + (t - stale) + " ms: the longer tolerance holds");
+        }
+        s.step(stale + ChargeLiveHold.STOP_MS + STEP, true, stale + ChargeLiveHold.STOP_MS + STEP, reading, false, Boolean.TRUE);
+        check(!s.hold.active() && s.end == ChargeLiveHold.End.CHARGER_OFF, "the gap's limit ends it as before");
+        // A reading that comes back before that ends the gap.
+        Service back = armed();
+        back.level = 62;
+        run(back, T0, start, Boolean.TRUE);
+        back.step(stale, true, stale, reading, false, Boolean.TRUE);
+        long fresh = stale + 90 * S;
+        back.step(fresh, true, fresh, fresh, false, Boolean.TRUE);
+        check(back.hold.active() && back.hold.nextCheck() == T0 + ChargeLiveHold.HOLD_MS, "a fresh reading ends the gap: nothing is due");
+        back.step(fresh + S, true, fresh, fresh, false, Boolean.FALSE);
+        check(back.hold.active() && back.hold.nextCheck() == fresh + S + ChargeLiveHold.UNPLUG_MS + 1, "and an off reading after a gap gets the short window");
     }
 
     /**
