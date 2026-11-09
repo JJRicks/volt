@@ -1775,11 +1775,7 @@ public final class ScooterService extends Service {
             // the idle service's earlier START_NOT_STICKY result.
             startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){if(!quiet)android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
 
-    /**
-     * The rider's stop, from Volt or the notification. Only this one holds auto-record: automatic ride ends call the private stop.
-     * The hold comes first: the stop's own change notice would otherwise start a new recording while the scooter still moves.
-     */
-    public void stopRide(){if(isRecording())autoStart.riderStoppedRecording();stopRide("");}
+    public void stopRide(){stopRide("");}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
@@ -1802,6 +1798,9 @@ public final class ScooterService extends Service {
     }
     /** The one stop/save path: rider, notification and automatic stops share error handling, sensor drain and wake-lock release. */
     private boolean stopRide(String reason){if(!isRecording())return false;rideAutoStop=null;
+        // An empty reason is the rider's own stop, the only one that holds auto-record. Set before this stop's change
+        // notice, which would otherwise start a new recording while the scooter is still moving.
+        if(reason.isEmpty())autoStart.riderStoppedRecording();
         // rides.stop clears the active id: keep it for the automatic copy.
         String stopping=rides.activeId();
         try{rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
