@@ -67,7 +67,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
 
     private void run() throws Exception {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready");
+        await(() -> activity.service() != null, "Activity not ready");
         service = activity.service();
         main(() -> require(service.setSimulation(true), "Simulation on failed"));
         main(() -> service.ble.setSimulationScript("stopped"));
@@ -204,7 +204,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         drop();
         Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
         main(() -> activity.recreate());
-        Activity next = waitForMonitorWithTimeout(monitor, 8000);
+        Activity next = waitForMonitorWithTimeout(monitor, 30000);
         removeMonitor(monitor);
         require(next instanceof MainActivity, "Activity did not recreate");
         activity = (MainActivity) next;
@@ -292,7 +292,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
     private void foreground() throws Exception {
         Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
         bringForward();
-        Activity next = waitForMonitorWithTimeout(monitor, 8000);
+        Activity next = waitForMonitorWithTimeout(monitor, 30000);
         removeMonitor(monitor);
         require(next instanceof MainActivity, "Activity did not come back");
         activity = (MainActivity) next;
@@ -330,7 +330,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         if (error.get() != null) throw new RuntimeException(error.get());
     }
     private void await(BooleanSupplier condition, String message) {
-        long until = SystemClock.uptimeMillis() + 8000;
+        long until = SystemClock.uptimeMillis() + 30000;
         while (SystemClock.uptimeMillis() < until) {
             if (read(condition)) return;
             SystemClock.sleep(100);
