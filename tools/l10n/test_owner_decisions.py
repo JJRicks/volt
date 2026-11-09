@@ -167,6 +167,48 @@ class OwnerDecisionFlowTest(test_council.Base):
         code, out = self.merged("--check")
         self.assertEqual(code, 0, out)
 
+    def assert_withdrawal_falls_back(self, key, text, reason, withdraw):
+        """With key's line gone, decide writes its usual fallback and both merge forms pass, without the owner's text."""
+        resource = "res/values-es/strings_common.xml"
+        self.assertEqual(self.decisions()[key]["outcome"], translib.OWNER_DECIDED)
+        self.assertIn(text, self.repo.read(resource))
+        withdraw()
+        self.assertEqual(self.merged("--check")[0], 1)  # removing the line alone gets past nothing
+        self.repack()
+        code, out = self.decide()
+        self.assertEqual(code, 0, out)
+        row = self.decisions()[key]
+        self.assertEqual(row["outcome"], "fallback-english")
+        self.assertIsNone(row["text"])
+        self.assertTrue(row["reason"].startswith(reason), row["reason"])
+        code, out = self.merged()
+        self.assertEqual(code, 0, out)
+        code, out = self.merged("--check")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn(text, self.repo.read(resource))
+
+    def test_withdrawing_a_key_with_no_drafts_falls_back(self):
+        key, text = "common_owner_only", "Solo del dueño"
+        source = "res/values/strings_common.xml"
+        self.repo.write(source, self.repo.read(source).replace(
+            "</resources>", '    <string name="%s">Only the owner</string>\n</resources>' % key))
+        self.pin()  # KEY has no ruling, so it keeps its pin for decide to finish
+        self.pin(key, text, append=True)
+        self.repack()
+        self.assertEqual(self.decide()[0], 0)
+        code, out = self.merged()
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.decisions()[key]["alternatives"], [])
+        self.assertEqual(self.decisions()[key]["stale_drafts"], [])
+        self.assert_withdrawal_falls_back(key, text, "no drafts", self.pin)  # self.pin() rewrites the file without key
+
+    def test_withdrawing_a_key_with_only_stale_drafts_falls_back(self):
+        self.change_english()  # every draft of KEY now translates an older English
+        self.merged_with_pin()
+        self.assertTrue(self.decisions()[KEY]["stale_drafts"])
+        self.assert_withdrawal_falls_back(KEY, TEXT, "no current drafts", lambda: os.remove(
+            self.repo.path("l10n/owner-decisions/es.jsonl")))
+
     def test_updating_the_english_and_pin_before_decide_keeps_the_key(self):
         resource, before = self.merged_with_pin()
         self.change_english()

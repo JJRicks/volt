@@ -2601,7 +2601,8 @@ def decide(paths, tag, area, final=False, use_java=True):
             continue
         if not state.candidates:
             old = previous.get(key)
-            if old and old.get("source_sha1") == entry["source_sha1"]:
+            # Past the owner branch above, this key has no owner line, so an old owner-decided row must not return.
+            if old and old.get("source_sha1") == entry["source_sha1"] and old.get("outcome") != translib.OWNER_DECIDED:
                 rows[key] = old
             else:
                 rows[key] = row(entry, state, "fallback-english", "no current drafts" if state.stale else "no drafts")

@@ -1897,7 +1897,8 @@ change a check inside a language or batch pull request.
   the lines and the decision rows are out of step in either direction: a line whose row lacks its text or
   was decided from an older English than the line (run `decide`), or an `owner-decided` row with no line.
   Restore that line; never remove one to get past the check. A withdrawn decision is the line's removal and
-  then `decide`, which gives the key back to the council.
+  then `decide`, which gives the key back to the council; with no current drafts it falls back to English
+  until a top-up drafts it.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
   key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
   and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
