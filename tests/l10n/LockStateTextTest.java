@@ -36,6 +36,7 @@ public final class LockStateTextTest {
             shownLanguageGate();
             quickAccessIcons();
             narrowWordDrops();
+            padlockFits();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
@@ -137,6 +138,30 @@ public final class LockStateTextTest {
         check(!DisplayUnits.lockWordDrops(false, 90f, room), "On, Off and any other feature's value never drop");
     }
 
+    /**
+     * The padlock that replaces a dropped word has to fit: at 344 dp, five columns, a two-column one-row widget leaves 6.3 dp
+     * and then nothing of padded room for three and four shortcuts, so there it takes the whole tile, and shrinks only on a
+     * tile truly narrower than itself. Tile widths are the emulator's (px at xxhdpi); both states use the same size.
+     */
+    private static void padlockFits() {
+        int full = 60, floor = 48; // 20 dp and 16 dp at xxhdpi.
+        int[][] layouts = {{161, 83, 0, 60}, {97, 19, 1, 60}, {65, -13, 1, 60}, {58, -20, 1, 58}, {30, -48, 1, 48}};
+        // {tile, padded room, fills the tile?, side}: 2, 3, 4 shortcuts at 344 dp; 4 at 320 dp; a tile under the floor.
+        ScooterCommands.Feature lock = ScooterCommands.find("lock");
+        for (int state : new int[]{0, 1}) {
+            String glyph = DisplayUnits.quickAccessIcon(lock, state, "lock");
+            equal(state == 0 ? "unlock" : "lock", glyph, "state " + state + " keeps its own padlock");
+            for (int[] layout : layouts) {
+                String what = "state " + state + " tile " + layout[0] + " px";
+                check(DisplayUnits.lockPadlockFillsTile(layout[1], full) == (layout[2] == 1), what + ": whether the padlock takes the whole tile");
+                equal(String.valueOf(layout[3]), String.valueOf(DisplayUnits.lockPadlockSide(layout[0], full, floor)), what + ": padlock side");
+                if (layout[0] >= floor) check(DisplayUnits.lockPadlockSide(layout[0], full, floor) <= layout[0], what + ": fits the tile");
+            }
+        }
+        check(!DisplayUnits.lockPadlockFillsTile(60, 60), "padded room exactly the glyph's width keeps the padding");
+        check(DisplayUnits.lockPadlockFillsTile(59, 60), "one pixel less takes the whole tile");
+    }
+
     /** QuickAccessGrid is an Android view, so its chain is read: the lock's line has to come before the variant's label. */
     private static void tileChain() {
         String grid = L10nFiles.read(new File("src/com/jjricks/volt/QuickAccessGrid.java"));
@@ -150,6 +175,8 @@ public final class LockStateTextTest {
         check(grid.contains("if (cell.lockState) ui.setIcon(cell.padlock, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon), tone);"), "a Setting tile's padlock follows the last known state, in the word's tone");
         check(grid.contains("if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {\n                value.setVisibility(GONE); padlock.setVisibility(VISIBLE);"), "a tile's lock word that can't stay whole gives way to the padlock");
         check(grid.contains("value.setVisibility(VISIBLE); padlock.setVisibility(GONE);"), "each fit starts over with the word");
+        check(grid.contains("if (bleed) setPadding(0, vertical, 0, vertical);"), "only the padlock that would not fit gives up the padding");
+        check(grid.contains("padlockSize.width = padlockSize.height = DisplayUnits.lockPadlockSide(width, full, ui.dp(LOCK_PADLOCK_MIN_DP));") && grid.contains("padlockSize.gravity = bleed ? Gravity.CENTER_HORIZONTAL : Gravity.START;"), "the padlock is sized and centred with the tile's width");
         check(grid.contains("if (wasLockState || cell.lockState) cell.requestLayout();"), "a tile's word is measured again when it changes, even at the same height");
         check(grid.contains("value.setMaxLines(1); value.setEllipsize(android.text.TextUtils.TruncateAt.END);"), "other tile values keep the ellipsis (control)");
         check(grid.contains("if (cell.lockState) cell.requestLayout();"), "a new lock word is measured again, even at the same height");

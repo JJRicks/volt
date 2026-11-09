@@ -110,6 +110,16 @@ public final class DisplayUnits {
         return lockWord && width > room;
     }
 
+    /** A dropped lock word's padlock: true when the padded text column is narrower than the glyph, so it takes the whole tile. */
+    public static boolean lockPadlockFillsTile(int room, int full) {
+        return room < full;
+    }
+
+    /** That padlock's side: full size, the tile's width when the tile is narrower, and never under the size that still tells open from closed. */
+    public static int lockPadlockSide(int tile, int full, int floor) {
+        return Math.max(floor, Math.min(full, tile));
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);

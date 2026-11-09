@@ -23,6 +23,8 @@ final class QuickAccessGrid extends ViewGroup {
     private static final String NO_VALUE = "—";
     /** No state to announce after the name. */
     private static final String NO_STATE = "";
+    /** The smallest side at which the open padlock still reads differently from the closed one. */
+    private static final int LOCK_PADLOCK_MIN_DP = 16;
     /** Shortcut ids (data) whose tiles take the Scooter page's shorter names. */
     private static final String TOP_SPEED_ID = "feature:maximum_speed", CHARGE_SCHEDULE_ID = "feature:timed_charging";
 
@@ -342,6 +344,13 @@ final class QuickAccessGrid extends ViewGroup {
             // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
             if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
                 value.setVisibility(GONE); padlock.setVisibility(VISIBLE);
+                // The padded text column can be narrower than the glyph: the padlock then takes the whole tile, centred.
+                int full = ui.dp(20);
+                boolean bleed = DisplayUnits.lockPadlockFillsTile(text, full);
+                if (bleed) setPadding(0, vertical, 0, vertical);
+                LinearLayout.LayoutParams padlockSize = (LinearLayout.LayoutParams) padlock.getLayoutParams();
+                padlockSize.width = padlockSize.height = DisplayUnits.lockPadlockSide(width, full, ui.dp(LOCK_PADLOCK_MIN_DP));
+                padlockSize.gravity = bleed ? Gravity.CENTER_HORIZONTAL : Gravity.START;
             }
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
