@@ -1013,8 +1013,9 @@ Live charging (Scooter > Battery > Live charging, on by default) starts only
 when you leave Volt while the scooter is connected and charging, or a Charge
 done by or Scheduled charging start is set. Volt's connection notice becomes a
 card with the level, target, finish time and power; the lock screen shows
-Details, Level or Hidden. It ends at the limit (or 99%), after 3 minutes without
-charging or with stale readings, after 12 hours, about 18 s out of reach, or on
+Details, Level or Hidden. It ends at the limit (or 99%), about 15 s after the
+charger is unplugged, after 3 minutes with stale readings, after 12 hours, about
+18 s out of reach, or on
 Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for

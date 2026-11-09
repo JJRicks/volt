@@ -1,5 +1,5 @@
 # Glossary council round (tools/l10n/glossary_council.py decide): 153 rows judged by a council, 0 still claude-only.
-# Spanish glossary. Claude-only proposal, drafted 2026-11-05 alone by Claude, pending the three-vendor debate; not final.
+# Spanish glossary. Drafted 2026-11-05 by Claude, then every row judged through the translation council (tools/l10n/glossary_council.py; per-row models in the source column); shipped at beta status in Volt 1.12.0.
 # Same columns as en.tsv: term holds the Spanish, forms separated by " | ". Definitions are D3's where D3 changed them.
 # D3 merged with the English fixes (#208, 2026-11-05): the rows it retired are gone, and its new rows have Claude's proposal too.
 # The Top speed / Maximum speed hold is over: en.tsv and the strings now use D3's senses (Maximum speed is the setting, Top speed the measured value), matching the rows below.

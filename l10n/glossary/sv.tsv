@@ -1,5 +1,5 @@
 # Glossary council round (tools/l10n/glossary_council.py decide): 153 rows judged by a council, 0 still claude-only.
-# Swedish glossary. CLAUDE-ONLY PROPOSAL (2026-11-05): drafted by one model, not judged by the council; nothing here is final.
+# Swedish glossary. Drafted 2026-11-05 by Claude, then every row judged through the translation council (tools/l10n/glossary_council.py; per-row models in the source column); shipped at beta status in Volt 1.12.0.
 # Term column: Swedish forms separated by " | ", the first is canonical. Definitions are D3's where D3 changed them (scratch/english-fixes/d3-*).
 # D3 merged with the English fixes (#208, 2026-11-05): the rows it retired are gone, acceleration-eco and acceleration-turbo left as do-not-translate, and its new rows have Claude's proposal too.
 # The Top speed / Maximum speed hold is over: en.tsv and the strings now use D3's senses (Maximum speed is the setting, Top speed the measured value), matching the maximum-speed (Maxhastighet) and top-speed (Toppfart) rows below.

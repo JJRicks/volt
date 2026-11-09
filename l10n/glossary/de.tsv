@@ -1,5 +1,5 @@
 # Glossary council round (tools/l10n/glossary_council.py decide): 153 rows judged by a council, 0 still claude-only.
-# German glossary. CLAUDE-ONLY PROPOSAL (2026-11-05): drafted by one model, not judged by the council; nothing here is final.
+# German glossary. Drafted 2026-11-05 by Claude, then every row judged through the translation council (tools/l10n/glossary_council.py; per-row models in the source column); shipped at beta status in Volt 1.12.0.
 # Term column: approved German forms, separated by " | "; first form is the canonical one. Definitions carry D3's meanings (scratch/english-fixes/d3-*).
 # D3 merged with the English fixes (#208, 2026-11-05): the rows it retired are gone, the Eco and Turbo rows with them (now do-not-translate), and its new rows have Claude's proposal too.
 # Evidence, source wording and the reasons are in l10n/style/de.md. Definition text is English on purpose: it describes the en.tsv term.
