@@ -127,7 +127,7 @@ public final class RegenDisplayValidation extends Instrumentation {
         });
         note(name + ": " + rows.get());
         String joined = String.join(" | ", rows.get());
-        if (unsigned) require(joined.matches(".*Battery draw[^|]*\\| \u2014 \\| Battery input[^|]*\\| \u2014.*"), name + ": draw and input stay unavailable: " + joined);
+        if (unsigned) require(joined.contains("Battery draw | Not measured") && joined.contains("Battery input / charging | Not measured") && !joined.contains(" Wh"), name + ": draw and input stay unavailable: " + joined);
         else require(joined.matches(".*Battery draw[^|]*(\\| )?[^|]*[0-9.]+ Wh.*"), name + ": the draw row should show an amount: " + joined);
         if (unsigned) require(joined.contains("Direction ?"), name + ": the not-confirmed chip stays: " + joined);
         settle();
