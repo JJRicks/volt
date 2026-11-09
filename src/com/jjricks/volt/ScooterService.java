@@ -1175,6 +1175,7 @@ public final class ScooterService extends Service {
     // ---- C1 concepts only (never ships): a faked charge, every value synthetic, so the card can be photographed. ----
     private static ChargeLiveState c1Preview;
     private static int c1Variant;
+    private static boolean c1NoPromote;
     /** Title without the percent, for the variants that show it elsewhere. */
     private static String c1ShortTitle(ChargeLiveState live){
         return live.kind!=ChargeLiveState.Kind.CHARGING?live.title:live.max<100?T.chargingAlertWatchTitle(Fmt.integer(live.max)):T.chargingAlertWatchFull();
@@ -1237,6 +1238,7 @@ public final class ScooterService extends Service {
     }
     private void c1StartPreview(Intent intent){
         c1Variant=intent.getIntExtra("variant",0);
+        c1NoPromote=intent.getBooleanExtra("nopromote",false);
         ChargeLiveState.Input in=new ChargeLiveState.Input();
         in.percent=intent.getIntExtra("percent",72);int limit=intent.getIntExtra("limit",80);in.limit=limit<=0?null:limit;
         in.minutesLeft=(double)intent.getIntExtra("minutes",38);in.watts=(double)intent.getIntExtra("watts",412);
@@ -1326,6 +1328,7 @@ public final class ScooterService extends Service {
                 style.setProgressTrackerIcon(c1Pill(live.percent)).setProgressEndIcon(c1Flag());
             builder.setStyle(style);
             if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
+            if(c1NoPromote){liveUpdateAsked=false;return true;}// C1 concepts only: lets Android draw the collapsed look
             if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
             if(liveUpdateExtra!=null){Bundle request=new Bundle();request.putBoolean(liveUpdateExtra,true);builder.addExtras(request);}
             liveUpdateAsked=true;
