@@ -70,7 +70,8 @@ public final class RidingFromZeroValidation extends Instrumentation {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready");
         main(() -> require(activity.service().setSimulation(true), "Simulation on failed"));
-        await(() -> number("trip_km") != null && number("trip_minutes") != null, "No simulated trip readings");
+        main(() -> activity.service().ble.setSimulationScript("riding"));
+        await(() -> number("trip_km") != null && number("trip_km") > 6 && number("trip_minutes") != null, "No simulated trip readings");
         settle();
         double tripKm = number("trip_km"), tripMinutes = number("trip_minutes");
         require(tripKm >= 4 && tripMinutes >= 15, "The sample trip should already be well under way: " + tripKm + " km, " + tripMinutes + " min");
