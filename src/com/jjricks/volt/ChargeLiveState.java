@@ -65,7 +65,7 @@ public final class ChargeLiveState {
      * level isn't known right now (reconnecting, or no fresh reading): no dial then, and the card keeps its plain title.
      */
     public final Integer dialPercent;
-    /** The promoted card's title: the target alone when the dial shows the level ("Charging to 80%"), or the plain title. */
+    /** The promoted card's title, not the lock screen's: the target alone when the dial shows the level ("Charging to 80%"), or the plain title. */
     public final String dialTitle;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
