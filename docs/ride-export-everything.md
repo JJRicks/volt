@@ -5,7 +5,7 @@ phone journal (GPS fixes, pressure, telemetry, motion summaries, gaps), every mo
 current-direction setting and its changes, the time zone when the ride recorded one, and the clock pairs a reader needs
 to put all of it on one timeline. It is a superset of the other ride exports, not a replacement: they stay as they are.
 
-- File name: `ride-<first 8 of id>-everything.json`, type `application/json`.
+- File name: `ride-<yyyy-MM-dd>_<HH-mm>-<first 8 of id>-everything.json` (the ride's start in the phone's time zone; `ride-<first 8 of id>-everything.json` with no usable start time), type `application/json`.
 - Written by `RideExportFiles.payload` through `RideExportEverything.write`; tested by
   `tests/l10n/RideExportEverythingTest.java`.
 - The file holds GPS positions and notes, so Volt keeps no copy: it is written into a staging folder of its own in the
