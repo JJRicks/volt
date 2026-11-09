@@ -35,13 +35,16 @@ class OwnerDecisionFlowTest(test_council.Base):
             {"key": "common_disclaimer", "verdict": "fallback", "reason": "softened"},
         ])
 
-    def pin(self, key=KEY, text=TEXT, **changes):
+    def pin(self, key=KEY, text=TEXT, append=False, **changes):
         sources = dict((s.key, s) for s in translib.load_source(self.paths)[0]["common"])
         s = sources[key]
         row = dict(format=translib.OWNER_DECISION_FORMAT, area="common", key=key, text=text, decided="2026-11-08",
                    reason=REASON, english=s.items["other"], source_sha1=translib.source_sha1(s.kind, s.items))
         row.update(changes)
-        self.repo.write("l10n/owner-decisions/es.jsonl", json.dumps(row, ensure_ascii=False) + "\n")
+        path, old = "l10n/owner-decisions/es.jsonl", ""
+        if append:
+            old = self.repo.read(path)
+        self.repo.write(path, old + json.dumps(row, ensure_ascii=False) + "\n")
 
     def run_tool(self, tool, *args):
         out, err = io.StringIO(), io.StringIO()
@@ -101,6 +104,102 @@ class OwnerDecisionFlowTest(test_council.Base):
         code, out = self.merged("--check")
         self.assertEqual(code, 1, out)
         self.assertIn("not the owner's text", out)
+
+    def merged_with_pin(self, key=KEY, text=TEXT):
+        """Pin key, decide and merge, so a later change has a current resource to harm; (resource path, its bytes)."""
+        self.pin(key, text)
+        self.repack()
+        self.assertEqual(self.decide()[0], 0)
+        code, out = self.merged()
+        self.assertEqual(code, 0, out)
+        return "res/values-es/strings_common.xml", self.repo.read("res/values-es/strings_common.xml")
+
+    def edit_decision(self, key=KEY, **changes):
+        rows = translib.read_jsonl(self.paths.decisions("es", "common"))
+        for row in rows:
+            if row["key"] == key:
+                row.update(changes)
+        translib.write_jsonl(self.paths.decisions("es", "common"), rows)
+
+    def change_english(self):
+        source = "res/values/strings_common.xml"
+        self.repo.write(source, self.repo.read(source).replace(">Not reported<", ">Not given<"))
+
+    def assert_refused(self, resource, before, says, *merge_args):
+        """Both the merge and its --check fail saying so, and the merge left the resource as it was."""
+        code, out = self.merged(*merge_args)
+        self.assertEqual(code, 1, out)
+        self.assertIn(says, out)
+        self.assertIn("nothing was written", out)
+        self.assertEqual(self.repo.read(resource), before)
+        code, out = self.merged("--check")
+        self.assertEqual(code, 1, out)
+        self.assertIn(says, out)
+
+    def test_deleting_the_owner_file_leaves_a_row_that_fails_both_merges(self):
+        resource, before = self.merged_with_pin()
+        os.remove(self.repo.path("l10n/owner-decisions/es.jsonl"))
+        self.assert_refused(resource, before, "owner-decided but l10n/owner-decisions/es.jsonl has no line for it")
+
+    def test_removing_one_line_is_caught_while_the_file_stays(self):
+        self.pin("common_move_widget", "Mover %1$s al sitio %2$d")
+        self.pin(append=True)
+        self.repack()
+        self.assertEqual(self.decide()[0], 0)
+        self.assertEqual(self.merged()[0], 0)
+        before = self.repo.read("res/values-es/strings_common.xml")
+        self.pin()  # rewrites the file with KEY's line alone
+        self.assert_refused("res/values-es/strings_common.xml", before, "common_move_widget is owner-decided but")
+
+    def test_a_withdrawn_decision_goes_through_decide(self):
+        self.pin("common_move_widget", "Mover %1$s al sitio %2$d")
+        self.pin(append=True)  # KEY has no ruling, so it needs its pin for decide to finish
+        self.repack()
+        self.assertEqual(self.decide()[0], 0)
+        self.assertEqual(self.merged()[0], 0)
+        self.pin()  # the owner withdrew the other decision
+        self.assertEqual(self.merged("--check")[0], 1)
+        self.repack()
+        self.assertEqual(self.decide()[0], 0)
+        self.assertEqual(self.decisions()["common_move_widget"]["outcome"], "judged")
+        code, out = self.merged()
+        self.assertEqual(code, 0, out)
+        code, out = self.merged("--check")
+        self.assertEqual(code, 0, out)
+
+    def test_updating_the_english_and_pin_before_decide_keeps_the_key(self):
+        resource, before = self.merged_with_pin()
+        self.change_english()
+        self.pin()  # the owner kept their text for the new English; decide has not run yet
+        self.assert_refused(resource, before, "older English than the owner's line")
+        self.assertEqual(self.decisions()[KEY]["outcome"], translib.OWNER_DECIDED)
+        self.repack()
+        code, out = self.decide()
+        self.assertEqual(code, 0, out)
+        code, out = self.merged()
+        self.assertEqual(code, 0, out)
+        sha = translib.source_sha1("string", {"other": "Not given"})
+        self.assertIn('<!-- src:%s -->\n    <string name="%s">%s</string>' % (sha, KEY, TEXT), self.repo.read(resource))
+        code, out = self.merged("--check")
+        self.assertEqual(code, 0, out)
+
+    def test_a_failed_merge_leaves_the_files_unchanged(self):
+        resource, before = self.merged_with_pin()
+        self.edit_decision(text="Otro texto")
+        for args in (("--area", "common"), ("--all",)):
+            code, out = self.merged(*args)
+            self.assertEqual(code, 1, out)
+            self.assertIn("not the owner's text", out)
+            self.assertIn("nothing was written", out)
+            self.assertEqual(self.repo.read(resource), before)
+
+    def test_a_failed_merge_does_not_create_a_missing_file(self):
+        resource = self.merged_with_pin()[0]
+        os.remove(self.repo.path(resource))
+        self.edit_decision(outcome="agreed", text="No informado")
+        code, out = self.merged("--all")
+        self.assertEqual(code, 1, out)
+        self.assertFalse(os.path.exists(self.repo.path(resource)))
 
     def test_a_changed_english_stops_decide_and_keeps_the_old_decisions(self):
         self.pin()

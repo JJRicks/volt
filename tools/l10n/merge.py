@@ -18,6 +18,10 @@ with the same kind and is translatable; placeholders match; every plural categor
 needs is present; no text is blank unless the English is; every sha comment matches the current English; ladders are complete; l10n_tag
 names the language; the folder is listed in l10n/lang/; and aapt stores every text exactly as
 written (when the SDK's aapt is available; --aapt off skips it, --aapt required fails without it).
+
+Before writing anything, a merge checks the decisions against l10n/owner-decisions/<tag>.jsonl
+(translib.owner_decision_problems, in every area, whichever one is merged) and, if they do not hold,
+exits 1 and writes nothing.
 """
 
 import argparse
@@ -102,9 +106,7 @@ def merge_area(paths, tag, area, sources=None, tag_area=None):
 # Validation
 # ---------------------------------------------------------------------------
 
-def decided_areas(paths, tag):
-    directory = os.path.dirname(paths.decisions(tag, "x"))
-    return sorted(f[:-6] for f in os.listdir(directory) if f.endswith(".jsonl")) if os.path.isdir(directory) else []
+decided_areas = translib.decided_areas
 
 
 def drift_problems(paths, tag):
@@ -325,6 +327,13 @@ def main(argv=None):
         translib.check_tag_area(args.tag, args.area)
         if not args.check:
             sources, tag_area = translib.load_source(paths)
+            problems = translib.owner_decision_problems(paths, args.tag, sources)
+            if problems:  # before any area is written, so a refused merge leaves every resource as it was
+                for problem in problems:
+                    print("problem: %s" % problem)
+                print("merge.py: the owner's decisions do not hold, so nothing was written")
+                print("validation: FAIL")
+                return 1
             areas = decided_areas(paths, args.tag) if args.all else [args.area]
             for area in areas:
                 path, written, skipped, unknown = merge_area(paths, args.tag, area, sources, tag_area)
@@ -336,8 +345,6 @@ def main(argv=None):
         problems, notes = validate_folder(paths, args.tag, args.aapt)
         if args.check:
             problems = problems + drift_problems(paths, args.tag)
-        else:
-            problems = problems + translib.owner_decision_problems(paths, args.tag, translib.load_source(paths)[0])
     except (translib.L10nError, gen_catalog.CatalogError) as error:
         print("merge.py: %s" % error, file=sys.stderr)
         return 2
