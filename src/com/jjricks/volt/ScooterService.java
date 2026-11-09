@@ -91,7 +91,7 @@ public final class ScooterService extends Service {
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
     private RideAutoEnds autoEnds;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends",RIDE_AUTO_END_PENDING = "ride_auto_end_pending";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends",RIDE_AUTO_ENDS_THROUGH = "ride_auto_ends_through";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -163,8 +163,8 @@ public final class ScooterService extends Service {
         settings = getSharedPreferences("app_settings", MODE_PRIVATE);
         autoEnds = new RideAutoEnds(new RideAutoEnds.Store(){
             public long count(){return settings.getLong(RIDE_AUTO_ENDS,0);}
-            public String pending(){return settings.getString(RIDE_AUTO_END_PENDING,null);}
-            public void save(long count,String pending){settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_END_PENDING,pending).commit();}
+            public long through(){return settings.getLong(RIDE_AUTO_ENDS_THROUGH,0);}
+            public void save(long count,long through){settings.edit().putLong(RIDE_AUTO_ENDS,count).putLong(RIDE_AUTO_ENDS_THROUGH,through).commit();}
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
@@ -175,7 +175,7 @@ public final class ScooterService extends Service {
         ble.recoverTests();try{
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
             rides = new RideStore(new File(getFilesDir(), "rides"), true, new File(getNoBackupFilesDir(), "rides-index"));
-            autoEnds.reconcile(rides.activeId(),rides::finished);
+            autoEnds.reconcile(rides.automaticStopsAtLoad());
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
@@ -1895,15 +1895,13 @@ public final class ScooterService extends Service {
         if(reason.isEmpty())autoStart.riderStoppedRecording();
         // rides.stop clears the active id: keep it for the automatic copy.
         String stopping=rides.activeId();
-        if(!reason.isEmpty())autoEnds.stopping(stopping);
         try{rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
-            if(!reason.isEmpty())autoEnds.stopFailed();
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
         // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved).
         RideAutoExportFolder.queue(settings,stopping);
-        if(!reason.isEmpty())autoEnds.stopped();
+        if(rides.lastStopAutomatic())autoEnds.stopped(rides.lastStopWallMs());
         stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /**
      * Feeds the forgotten-ride policy from the current authenticated transport, never from cached
