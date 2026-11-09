@@ -1048,7 +1048,7 @@ public final class Ui {
         }
         void key(String next) {
             if (next == null || next.equals(key)) return;
-            key = next; setContentDescription(key.replace('_', ' ')); invalidate();
+            key = next; invalidate();
         }
         @Override protected void onMeasure(int width, int height) { setMeasuredDimension(resolveSize(dp(size), width), resolveSize(dp(size), height)); }
         @Override protected void onDraw(Canvas canvas) {
