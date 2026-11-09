@@ -14,23 +14,33 @@ final class LockTapQueue {
     private Boolean target;
     private long requestedAt;
     private boolean sent;
+    /** Inside BleController.set: its refusal notice redraws the header, which must not read the unanswered send as unconfirmed. */
+    private boolean sending;
+    /** A riding-mode tap: it goes out only while the scooter is still stopped (Home's unlock keeps its recovery path). */
+    private boolean stoppedOnly;
     private CharSequence failure;
 
     /** A tap toward target; a tap back to the confirmed side cancels a waiting one. False when nothing changes. */
-    boolean request(Boolean confirmed, boolean target, long now) {
+    boolean request(Boolean confirmed, boolean target, long now) { return request(confirmed, target, now, false); }
+    /** stoppedOnly: riding mode's switch, whose tap must not outlive the stopped gate (stoppedGateClosed). */
+    boolean request(Boolean confirmed, boolean target, long now, boolean stoppedOnly) {
         if (confirmed == null) return false;
         if (sent) return false; // One command at a time; the readback settles it.
         if (this.target == null && confirmed == target) return false;
         if (this.target != null && confirmed == target) { clear(); return true; }
-        this.target = target; requestedAt = now; failure = null; return true;
+        this.target = target; requestedAt = now; failure = null; this.stoppedOnly = stoppedOnly; return true;
     }
     /** The side the switch shows: a requested one until the scooter settles it. */
     Boolean shown(Boolean confirmed) { return target != null ? target : confirmed; }
     boolean waiting() { return target != null; }
+    boolean stoppedOnly() { return stoppedOnly; }
     Boolean target() { return target; }
     /** Why the last request was put back, once; null when nothing to say. */
     String takeFailure() { CharSequence text = failure; failure = null; return ConnectionText.english(text); }
     void sent() { sent = true; }
+    /** Marks the send and holds step() until endSend(), so a redraw from inside the send can't judge it. */
+    void beginSend() { sent = true; sending = true; }
+    void endSend() { sending = false; }
     /** The send was refused before going out (the gate gives the reason itself). */
     void refused() { clear(); }
 
@@ -45,9 +55,11 @@ final class LockTapQueue {
     }
     /** A hard refusal while another write is in flight: put the switch back now, with the gate's reason. */
     Action reject(CharSequence why) { return target == null || sent ? Action.NONE : revert(why); }
+    /** Riding mode's stopped gate, looked at before any send: a waiting stopped-only tap is put back the moment it closes. */
+    Action stoppedGateClosed(boolean stopped, CharSequence why) { return !stoppedOnly || stopped ? Action.NONE : reject(why); }
     /** One look at the connection: what to do with a waiting or sent tap. lockPending is this lock change in flight. */
     Action step(long now, boolean ready, Boolean confirmed, boolean lockPending, Gate gate) {
-        if (target == null) return Action.NONE;
+        if (target == null || sending) return Action.NONE;
         if (!ready) return revert(M.bleLockConnectionLost());
         if (target.equals(confirmed)) { clear(); return Action.NONE; }
         if (sent) return lockPending ? Action.NONE : revert(M.bleLockNotConfirmed());
@@ -56,7 +68,7 @@ final class LockTapQueue {
         return gate == Gate.WAIT ? Action.NONE : Action.SEND;
     }
     private Action revert(CharSequence why) { clear(); failure = why; return Action.REVERT; }
-    private void clear() { target = null; sent = false; requestedAt = 0; }
+    private void clear() { target = null; sent = false; sending = false; stoppedOnly = false; requestedAt = 0; }
 
     // ---- Display text (l10n batch B7): takeFailure() stays the English that MainActivity and the tests read. ----
 

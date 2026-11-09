@@ -114,6 +114,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LockControl lockControl;
     /** One rider lock tap shared by every lock switch: shown at once, sent when the scooter takes writes. */
     private final LockTapQueue lockQueue=new LockTapQueue();
+    /** The stopped gate of the riding-mode switch that made the waiting tap. */
+    private java.util.function.BooleanSupplier lockStoppedGate;
     private boolean showDashboardDisconnect=true,compactLock;
     /**
      * Every lock card on the current dashboard (normally one; the All widgets example and older
@@ -1020,10 +1022,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * The lock bar's switch alone for riding mode (RidingScreen), registered like any Home lock so updates and the queue
      * reach it. There is no offline card to swap to, so no lockReady: a dropped link greys the switch and it keeps its place.
+     * stopped is the screen's own gate: its taps are stopped-only, unlock included, unlike Home's unlock recovery.
      */
-    @Override public View ridingLock(){
+    @Override public View ridingLock(java.util.function.BooleanSupplier stopped){
         compactLock=true;lockTitle=design.text(T.mainLockTitle(),15,true);
-        lockControl=new LockControl();lockControl.compact=true;
+        lockControl=new LockControl();lockControl.compact=true;lockControl.stoppedGate=stopped;
         return registerDashboardLock(lockControl);
     }
     private void openMoreSection(String section){
@@ -1098,6 +1101,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private void pumpLockQueue(BleController ble,boolean ready,Boolean shownLock,String pending){
         if(!lockQueue.waiting())return;
+        // Before the gate below: it lets an unlock through while moving, for Home's recovery, which riding mode doesn't offer.
+        if(ready&&ble!=null&&lockQueue.stoppedGateClosed(lockStoppedGate!=null&&lockStoppedGate.getAsBoolean(),movingReason(ble))==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());return;}
         LockTapQueue.Gate gate=LockTapQueue.Gate.WAIT;
         if(ble!=null){CapabilityResolver.Decision d=ble.decisionOnceIdle("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
             boolean otherWrite=pending!=null&&!"lock".equals(pending);gate=LockTapQueue.gate(d.available(),d.reason,otherWrite);
@@ -1106,10 +1111,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         LockTapQueue.Action action=lockQueue.step(SystemClock.elapsedRealtime(),ready&&ble!=null,shownLock,"lock".equals(pending),gate);
         if(action==LockTapQueue.Action.SEND){
             boolean target=Boolean.TRUE.equals(lockQueue.target());
-            // Marked first: the send itself redraws the header, which must not send again.
-            lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+            // Marked first: a refused send redraws the header from inside set(), which must neither send again nor call it unconfirmed.
+            lockQueue.beginSend();boolean accepted=false;try{accepted=ble.set("lock",target?1:0);}finally{lockQueue.endSend();}
+            if(!accepted){lockQueue.refused();Haptics.reject(lockControl);toast(ble.displayMessage());}
         }else if(action==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());}
     }
+    /** Why a stopped-only tap went back: locking's own refusal, the one unlocking is excused from. Empty says nothing. */
+    private static CharSequence movingReason(BleController ble){return ble.decisionOnceIdle("lock",1).reasonMessage();}
     /**
      * Whether the lock switch can be used in the shown direction on this model. Riding, a missing
      * motion report or a warning keep it tappable so the tap says why; the gate still refuses.
@@ -1163,6 +1171,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private boolean available,dragging,dragSide;
         /** Lock bar: draw only the state word, vertically centred inside the switch. */
         boolean compact;
+        /** Riding mode's stopped gate; null on Home, where unlock stays available as recovery. */
+        java.util.function.BooleanSupplier stoppedGate;
         /** When the rider last asked for a lock change; the scooter's confirmation then gets a haptic. */
         private long requestedAt;
         private float downX,downY,previewX,position;
@@ -1173,7 +1183,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** The side drawn: a waiting tap's side until the scooter's readback settles it. Accessibility keeps the confirmed state. */
         private Boolean shown(){return lockQueue.shown(value);}
         private Boolean drawn;
-        private void apply(boolean target){if(available&&value!=null&&scooterService!=null&&lockQueue.request(value,target,SystemClock.elapsedRealtime())){requestedAt=SystemClock.elapsedRealtime();redraw();}}
+        private void apply(boolean target){
+            if(!available||value==null||scooterService==null)return;
+            if(stoppedGate!=null&&!stoppedGate.getAsBoolean()){Haptics.reject(this);toast(movingReason(scooterService.ble));return;} // A tap that lands as the scooter starts moving.
+            if(lockQueue.request(value,target,SystemClock.elapsedRealtime(),stoppedGate!=null)){lockStoppedGate=stoppedGate;requestedAt=SystemClock.elapsedRealtime();redraw();}
+        }
         void update(Boolean locked,boolean enabled){
             boolean changed=value==null?locked!=null:!value.equals(locked);
             boolean hadState=value!=null;

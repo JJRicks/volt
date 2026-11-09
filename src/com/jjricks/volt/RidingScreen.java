@@ -42,7 +42,8 @@ import java.util.Locale;
  * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped (the
  * layout picker's own gate, RidingFrames.pickerShown) riding mode also shows two 56 dp controls, Lock
  * and Record, which are Home's own: MainActivity's LockControl through its LockTapQueue, and
- * RideRecordingControl. They go the moment the scooter moves. Nothing else here sends a scooter
+ * RideRecordingControl. They go the moment the scooter moves, and a lock tap still waiting in the queue
+ * goes back then too. Nothing else here sends a scooter
  * command, changes a setting or starts a recording, and there is still no lock state in the readings
  * or the layout spots. Moving, the only control that acts on the scooter or the app is back, top
  * bar, 56 dp; the moon and the brightness slider stay live but change only this screen's look. The
@@ -230,7 +231,7 @@ final class RidingScreen implements AppScreen {
         power.addView(watts, new LinearLayout.LayoutParams(-1, 0, 1));
         power.addView(wattsCaption, new LinearLayout.LayoutParams(-1, -2));
         bar = new PowerBar();
-        stoppedLock = host.ridingLock();
+        stoppedLock = host.ridingLock(() -> stopped(SystemClock.elapsedRealtime()));
         recordDisc = new FrameLayout(context);
         recordDisc.setFocusable(true);
         recordDisc.setOnClickListener(v -> recordTap());
