@@ -593,7 +593,7 @@ final class RidingScreen implements AppScreen {
     /** The speed the menu's close rule looks at: the fastest reading from this connection since the last look, or null. */
     private Double liveKmh() {
         BleController ble = service == null ? null : service.ble;
-        return ble == null ? null : RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak());
+        return ble == null ? null : RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak(SystemClock.elapsedRealtime()));
     }
 
     /**

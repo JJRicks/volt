@@ -2932,19 +2932,22 @@ public final class MoreScreen implements AppScreen {
         private View toggle(String title, String detail, String key, String tag, boolean applies, Consumer<Runnable> beforeOn) {
             View[] row = new View[1];
             row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, preferences.getBoolean(key, false), true, enabled -> {
-                Runnable save = () -> {
-                    if (may()) {
-                        preferences.edit().putBoolean(key, enabled).apply();
-                        if (applies) changed.run();
-                    }
-                    // Whatever happened, the switch and TalkBack say what's now stored; the row outlives the save here.
+                // Whatever happened, the switch and TalkBack say what's now stored; the row outlives the save here.
+                Runnable showStored = () -> {
                     ViewGroup parent = (ViewGroup) row[0];
                     Switch toggle = (Switch) parent.getChildAt(parent.getChildCount() - 1);
                     boolean stored = preferences.getBoolean(key, false);
                     toggle.setChecked(stored);
                     describeSwitch(toggle, stored);
                 };
-                if (enabled && beforeOn != null) beforeOn.accept(save); else save.run();
+                Runnable save = () -> {
+                    if (may()) {
+                        preferences.edit().putBoolean(key, enabled).apply();
+                        if (applies) changed.run();
+                    }
+                    showStored.run();
+                };
+                if (enabled && beforeOn != null) RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored); else save.run();
             });
             row[0].setTag(tag);
             return row[0];

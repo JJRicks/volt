@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * The Halo and Trace frames' choices in riding mode (riding-mode plan PR 3), kept Android-free so
@@ -119,8 +121,16 @@ final class RidingFrames {
         return !connected || pickerShown(stationary, speedKmh);
     }
 
-    /** The speed the tune menu's close rule uses: the peak of this connection's newest readings (Telemetry.takeSpeedPeak), or null with no scooter connected. */
+    /** The speed the tune menu's close rule uses: the peak of this connection's newest fresh readings (Telemetry.takeSpeedPeak), or null with no scooter connected. */
     static Double menuKmh(boolean connected, Double peakKmh) { return connected ? peakKmh : null; }
+
+    /**
+     * A switch whose turn-on may ask something first: the speed check runs before the question opens, and
+     * again when the answer arrives (inside save). Refused, the switch shows what's stored and nothing opens.
+     */
+    static void askBeforeSave(BooleanSupplier may, Consumer<Runnable> ask, Runnable save, Runnable showStored) {
+        if (may.getAsBoolean()) ask.accept(save); else showStored.run();
+    }
 
     /** The Record disc takes a tap as Home's does: connected or already recording, and no ride still saving. */
     static boolean recordEnabled(boolean recording, boolean ready, boolean saving) { return (recording || ready) && !saving; }

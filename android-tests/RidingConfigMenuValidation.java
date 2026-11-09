@@ -218,6 +218,9 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         tuneShows("after the consent sheet");
         main(() -> prefs("app_settings").edit().remove("riding_night_vision").remove("riding_night_schedule").commit());
 
+        latchedCrossingBeforePrompt();
+        pausedWithConnectionUp();
+
         // Disconnected: the tune button shows, Lock and Record don't, and lost readings don't close the menu.
         openMenu();
         main(() -> { activity.service().ble.setSimulationScript("dropout"); activity.redraw(); });
@@ -332,10 +335,60 @@ public final class RidingConfigMenuValidation extends Instrumentation {
                 require(stored.getBoolean(key, false) && "On".equals(switchState(row)) && switchOf(row).isChecked(), "The answer below 4 mph saves and shows On");
                 row.performClick();
                 require(!stored.getBoolean(key, false) && "Off".equals(switchState(row)), "Turning off saves and shows Off");
+                answer.set(null);
+                may.set(false);
+                row.performClick();
+                require(answer.get() == null && !stored.getBoolean(key, false) && "Off".equals(switchState(row)) && !switchOf(row).isChecked(), "At speed the tap opens no prompt and the switch shows Off");
             } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
         });
         main(() -> stored.edit().remove(key).commit());
         note("a delayed permission answer is checked when it lands; TalkBack state followed the stored value both ways");
+    }
+
+    /** A 0, 12, 0 km/h crossing just before the tap: the real speed check closes the menu and no prompt opens. */
+    private void latchedCrossingBeforePrompt() throws Exception {
+        String key = "riding_config_validation_latched";
+        SharedPreferences stored = (SharedPreferences) field(screen(), "preferences");
+        AtomicBoolean asked = new AtomicBoolean();
+        Class<?> type = Class.forName("com.jjricks.volt.MoreScreen$RidingSettingsMenu");
+        Constructor<?> make = type.getDeclaredConstructor(Class.forName("com.jjricks.volt.ScreenHost"), Class.forName("com.jjricks.volt.Ui"), SharedPreferences.class, Runnable.class, BooleanSupplier.class);
+        make.setAccessible(true);
+        Method toggle = type.getDeclaredMethod("toggle", String.class, String.class, String.class, String.class, boolean.class, Consumer.class);
+        toggle.setAccessible(true);
+        Consumer<Runnable> prompt = save -> asked.set(true);
+        openMenu();
+        main(() -> {
+            try {
+                BooleanSupplier check = () -> (Boolean) call(screen(), "menuChangeAllowed", new Class<?>[0]);
+                Object menu = make.newInstance(field(screen(), "host"), field(screen(), "ui"), stored, (Runnable) () -> { }, check);
+                View row = (View) toggle.invoke(menu, "Synthetic", "", key, "synthetic_switch", false, prompt);
+                motion(0);
+                motion(12);
+                motion(0);
+                row.performClick();
+                require(!asked.get(), "A latched crossing opens no permission prompt");
+                require(!stored.getBoolean(key, false) && "Off".equals(switchState(row)) && !switchOf(row).isChecked(), "A latched crossing saves nothing and shows Off");
+            } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+        });
+        await(() -> !menuOpen(), "The latched crossing closes the menu");
+        speed(0);
+        tuneShows("after the latched crossing");
+        note("a 0, 12, 0 km/h crossing just before the switch closed the menu and opened no prompt");
+    }
+
+    /** Paused with the connection up: a peak older than the freshness limit is dropped on resume, a fresh one still closes the menu. */
+    private void pausedWithConnectionUp() {
+        openMenu();
+        main(() -> { callActivityOnPause(activity); motion(12); });
+        SystemClock.sleep(4_000);
+        main(() -> { motion(0); callActivityOnResume(activity); });
+        settle();
+        require(menuOpen(), "12 km/h from before the pause's freshness limit doesn't close the menu on resume");
+        main(() -> { callActivityOnPause(activity); motion(12); motion(0); callActivityOnResume(activity); });
+        await(() -> !menuOpen(), "A fresh crossing during the pause closes the menu on resume");
+        speed(0);
+        tuneShows("after the paused crossing");
+        note("while paused with the connection up, a stale 12 km/h was ignored on resume and a fresh one closed the menu");
     }
 
     private static Switch switchOf(View row) {

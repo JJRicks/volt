@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * Riding mode's Halo and Trace frames (riding-mode plan PR 3): the speed ring's scale and angles,
@@ -20,7 +22,7 @@ public final class RidingFramesTest {
 
     /** 0x91 with this whole-unit speed, on a scooter that reports km/h. */
     private static byte[] rideReport(int kmh) { return new byte[]{0, 72, 1, (byte) kmh, 38, 3, 12, 30, 15, 100}; }
-    private static Double menuKmh(Telemetry telemetry, boolean connected) { return RidingFrames.menuKmh(connected, telemetry.takeSpeedPeak()); }
+    private static Double menuKmh(Telemetry telemetry, boolean connected, long nowMs) { return RidingFrames.menuKmh(connected, telemetry.takeSpeedPeak(nowMs)); }
 
     /** The tune menu's close rule only hears this connection's own speeds; a new connection starts with none. */
     private static void menuSpeedAcrossConnections() {
@@ -28,16 +30,16 @@ public final class RidingFramesTest {
         RidingFrames.PickerSheet menu = new RidingFrames.PickerSheet();
         telemetry.accept(0x91, rideReport(12), 1_000);
         menu.open(true);
-        check(!menu.update(menuKmh(telemetry, false)) && menu.isOpen(), "the last connection's 12 km/h, disconnected: the menu stays");
+        check(!menu.update(menuKmh(telemetry, false, 1_100)) && menu.isOpen(), "the last connection's 12 km/h, disconnected: the menu stays");
         telemetry.accept(0x91, rideReport(12), 2_000);
         telemetry.clear();
-        check(!menu.update(menuKmh(telemetry, true)) && menu.isOpen(), "reconnected, no new speed: the previous connection's 12 km/h isn't reused");
+        check(!menu.update(menuKmh(telemetry, true, 2_100)) && menu.isOpen(), "reconnected, no new speed: the previous connection's 12 km/h isn't reused");
         telemetry.accept(0x91, rideReport(3), 3_000);
-        check(!menu.update(menuKmh(telemetry, true)) && menu.isOpen(), "the first new sample below 4 mph: the menu stays");
+        check(!menu.update(menuKmh(telemetry, true, 3_100)) && menu.isOpen(), "the first new sample below 4 mph: the menu stays");
         telemetry.clear();
-        check(!menu.update(menuKmh(telemetry, true)) && menu.isOpen(), "another reconnect, still no speed: the menu stays");
+        check(!menu.update(menuKmh(telemetry, true, 3_200)) && menu.isOpen(), "another reconnect, still no speed: the menu stays");
         telemetry.accept(0x91, rideReport(12), 4_000);
-        check(menu.update(menuKmh(telemetry, true)) && !menu.isOpen(), "the first new sample at 4 mph or more closes the menu");
+        check(menu.update(menuKmh(telemetry, true, 4_100)) && !menu.isOpen(), "the first new sample at 4 mph or more closes the menu");
     }
 
     /** A speed at 4 mph or more that a later sample replaced before the screen refreshed still counts, once. */
@@ -48,16 +50,107 @@ public final class RidingFramesTest {
         menu.open(true);
         telemetry.accept(0x91, rideReport(12), 1_300);
         telemetry.accept(0x91, rideReport(0), 1_600);
-        check(menu.update(menuKmh(telemetry, true)) && !menu.isOpen(), "0 then 12 then 0 km/h between refreshes closes the menu");
-        check(menuKmh(telemetry, true) == null, "a peak counts once");
+        check(menu.update(menuKmh(telemetry, true, 1_700)) && !menu.isOpen(), "0 then 12 then 0 km/h between refreshes closes the menu");
+        check(menuKmh(telemetry, true, 1_700) == null, "a peak counts once");
         RidingFrames.PickerSheet slow = new RidingFrames.PickerSheet();
         slow.open(true);
         telemetry.accept(0x91, rideReport(5), 2_000);
         telemetry.accept(0x91, rideReport(0), 2_300);
-        check(!slow.update(menuKmh(telemetry, true)) && slow.isOpen(), "walking pace between refreshes: the menu stays");
+        check(!slow.update(menuKmh(telemetry, true, 2_400)) && slow.isOpen(), "walking pace between refreshes: the menu stays");
         telemetry.accept(0x91, rideReport(12), 3_000);
-        check(!slow.update(menuKmh(telemetry, false)) && slow.isOpen(), "a peak unseen when the connection drops doesn't close the menu");
+        check(!slow.update(menuKmh(telemetry, false, 3_100)) && slow.isOpen(), "a peak unseen when the connection drops doesn't close the menu");
     }
+    /** A peak older than the freshness limit is no speed, however it got there; a fresh crossing still counts. */
+    private static void menuAgesThePeak() {
+        long limit = AutoStartPolicy.SPEED_FRESH_MS;
+        Telemetry telemetry = new Telemetry();
+        RidingFrames.PickerSheet menu = new RidingFrames.PickerSheet();
+        telemetry.accept(0x91, rideReport(0), 500);
+        menu.open(true);
+        menuKmh(telemetry, true, 600);
+        // Paused with the connection up: 12 km/h at 1 s, 0 km/h at 9 s, the screen looks at 10 s.
+        telemetry.accept(0x91, rideReport(12), 1_000);
+        telemetry.accept(0x91, rideReport(0), 9_000);
+        check(!menu.update(menuKmh(telemetry, true, 10_000)) && menu.isOpen(), "a 9 second old 12 km/h doesn't close the menu when the screen comes back");
+        // A crossing that arrived during the pause but within the limit does.
+        telemetry.accept(0x91, rideReport(12), 20_000);
+        telemetry.accept(0x91, rideReport(0), 20_500);
+        check(near(menuKmh(telemetry, true, 20_000 + limit), 12), "a peak exactly at the limit is fresh");
+        telemetry.accept(0x91, rideReport(12), 30_000);
+        check(menuKmh(telemetry, true, 30_001 + limit) == null, "a peak just past the limit is no speed");
+        // An expired peak doesn't hide a slower one that is still fresh.
+        telemetry.accept(0x91, rideReport(12), 40_000);
+        telemetry.accept(0x91, rideReport(8), 42_900);
+        telemetry.accept(0x91, rideReport(0), 43_500);
+        check(near(menuKmh(telemetry, true, 44_000), 8), "the fastest fresh reading, once the older 12 km/h has expired");
+        check(menuKmh(telemetry, true, 44_000) == null, "taken once");
+        // Readings that arrive after an expiry keep working, and only the max survives.
+        telemetry.accept(0x91, rideReport(5), 60_000);
+        telemetry.accept(0x91, rideReport(12), 61_000);
+        telemetry.accept(0x91, rideReport(3), 61_200);
+        check(near(menuKmh(telemetry, true, 61_500), 12), "the fastest of the fresh readings");
+        telemetry.accept(0x91, rideReport(12), 70_000);
+        telemetry.accept(0x91, rideReport(20), 65_000);
+        check(near(menuKmh(telemetry, true, 70_100), 12), "an out-of-order older reading isn't a new peak");
+        telemetry.accept(0x91, rideReport(12), 80_000);
+        check(menuKmh(telemetry, true, 79_000) == null, "a peak from the future isn't fresh");
+        telemetry.accept(0x91, rideReport(12), 90_000);
+        telemetry.clear();
+        check(menuKmh(telemetry, true, 90_100) == null, "a new connection starts with none");
+    }
+
+    /** The speed check that closes the menu runs before a switch's prompt opens, and again on the answer. */
+    private static void menuChecksBeforeAsking() {
+        Telemetry telemetry = new Telemetry();
+        RidingFrames.PickerSheet menu = new RidingFrames.PickerSheet();
+        long[] now = {1_000};
+        boolean[] stored = {false};
+        Runnable[] asked = {null};
+        int[] shown = {0};
+        BooleanSupplier may = () -> {
+            Double kmh = menuKmh(telemetry, true, now[0]);
+            return !menu.update(kmh) && menu.accept(kmh);
+        };
+        Consumer<Runnable> prompt = answer -> asked[0] = answer;
+        Runnable show = () -> shown[0]++;
+        Runnable save = () -> { if (may.getAsBoolean()) stored[0] = true; show.run(); };
+        // The permission-needed branch with a latched crossing: no ride yet, so the prompt would otherwise open.
+        telemetry.accept(0x91, rideReport(0), 900);
+        menu.open(true);
+        menuKmh(telemetry, true, 950);
+        telemetry.accept(0x91, rideReport(12), 960);
+        telemetry.accept(0x91, rideReport(0), 990);
+        RidingFrames.askBeforeSave(may, prompt, save, show);
+        check(asked[0] == null && !stored[0] && shown[0] == 1, "a latched 0, 12, 0 km/h crossing just before the tap opens no prompt and shows what's stored");
+        check(!menu.isOpen(), "and it closes the menu");
+        // Below 4 mph the prompt opens; the delayed answer is checked again when it lands.
+        RidingFrames.PickerSheet again = new RidingFrames.PickerSheet();
+        again.open(true);
+        BooleanSupplier mayAgain = () -> {
+            Double kmh = menuKmh(telemetry, true, now[0]);
+            return !again.update(kmh) && again.accept(kmh);
+        };
+        Runnable saveAgain = () -> { if (mayAgain.getAsBoolean()) stored[0] = true; show.run(); };
+        now[0] = 2_000;
+        RidingFrames.askBeforeSave(mayAgain, prompt, saveAgain, show);
+        check(asked[0] == saveAgain && !stored[0] && shown[0] == 1, "below 4 mph the prompt opens and nothing is saved yet");
+        telemetry.accept(0x91, rideReport(12), 2_500);
+        now[0] = 2_600;
+        asked[0].run();
+        check(!stored[0] && shown[0] == 2 && !again.isOpen(), "a crossing before the delayed answer saves nothing and closes the menu");
+        RidingFrames.PickerSheet calm = new RidingFrames.PickerSheet();
+        calm.open(true);
+        BooleanSupplier mayCalm = () -> {
+            Double kmh = menuKmh(telemetry, true, now[0]);
+            return !calm.update(kmh) && calm.accept(kmh);
+        };
+        Runnable saveCalm = () -> { if (mayCalm.getAsBoolean()) stored[0] = true; show.run(); };
+        asked[0] = null;
+        RidingFrames.askBeforeSave(mayCalm, prompt, saveCalm, show);
+        asked[0].run();
+        check(stored[0] && calm.isOpen(), "a calm answer saves and the menu stays open");
+    }
+
     private static boolean near(double a, double b) { return Math.abs(a - b) < 1e-6; }
 
     public static void main(String[] args) throws IOException {
@@ -183,6 +276,8 @@ public final class RidingFramesTest {
         check(RidingFrames.menuKmh(false, 12.0) == null && RidingFrames.menuKmh(true, null) == null, "no scooter connected, or no new reading: no speed");
         menuSpeedAcrossConnections();
         menuSeesCrossingBetweenRefreshes();
+        menuAgesThePeak();
+        menuChecksBeforeAsking();
         // The menu's close rule: only 4 mph (6.437 km/h) or more, in any display unit.
         check(RidingFrames.MENU_CLOSE_KMH == 6.437, "4 mph");
         RidingFrames.PickerSheet sheet = new RidingFrames.PickerSheet();
@@ -233,11 +328,12 @@ public final class RidingFramesTest {
         check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "Lock and Record follow the stopped state");
         check(screen.contains("RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary()"), "the tune button follows its own gate");
         check(screen.contains("if (sheetState.update(liveKmh())) dismissSheet();"), "live speed alone closes the menu");
-        check(screen.contains("RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak())"), "only this connection's readings count, peak included, and stale settings don't matter");
+        check(screen.contains("RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak(SystemClock.elapsedRealtime()))"), "only this connection's fresh readings count, peak included, on the clock they arrive on, and stale settings don't matter");
         check(screen.contains("if (!menuChangeAllowed()) return;"), "a menu change looks at the newest speed, not the last screen refresh");
         check(screen.contains("liveKmh(); // Speeds from before the menu opened"), "a menu starts with a clean peak");
         String more = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MoreScreen.java")), StandardCharsets.UTF_8);
         check(more.contains("private void consent() {\n            if (!may()) return;") && more.contains("private void time(String key, int fallback, String title) {\n            if (!may()) return;"), "the dialogs the menu opens check the newest speed first");
+        check(more.contains("RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored)"), "the switch checks the speed before asking");
         check(screen.contains("sheetState.close();") && screen.contains("return sheetState.accept(kmh);"), "the screen owns the menu on close and on a change");
         check(!screen.contains(".send(") && !screen.contains("write("), "riding mode sends nothing");
     }
