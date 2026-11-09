@@ -284,7 +284,7 @@ public final class GuidedTestValidation extends Instrumentation {
     }
     private void openCompatibility() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Compatibility")); settle();
+        main(() -> invoke(more(), "openCompatibility", new Class<?>[]{boolean.class}, false)); settle();
     }
 
     /** What Experimental controls lists: Help verify exactly where the official app offers and Volt hasn't verified. */
