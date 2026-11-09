@@ -41,6 +41,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
     private String profileId;
     private float scale;
     private int assertions;
+    private String immersivePrevious;
     private final ArrayList<String> notes = new ArrayList<>();
 
     private static final class Sample {
@@ -58,6 +59,9 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             require(hw.contains("ranchu") || hw.contains("goldfish"), "emulator only");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "riding-stopped-motion");
             require(evidence.mkdirs() || evidence.isDirectory(), "evidence directory");
+            // Android's one-time "Viewing full screen" notice would otherwise take the taps and cover the frames.
+            immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
+            shell("settings put secure immersive_mode_confirmations confirmed");
             run();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -66,6 +70,9 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         } finally {
             if (activity != null) try {
                 main(() -> { invoke(activity, "closeRiding"); activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
+            } catch (Throwable ignored) { }
+            if (immersivePrevious != null) try {
+                shell(immersivePrevious.isEmpty() || immersivePrevious.equals("null") ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
             } catch (Throwable ignored) { }
             result.putInt("assertions", assertions);
             result.putStringArrayList("notes", notes);
@@ -328,6 +335,14 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         File image = new File(evidence, name + ".png");
         try (FileOutputStream out = new FileOutputStream(image)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
         TextCensus.write(this, image);
+    }
+
+    private String shell(String command) throws Exception {
+        StringBuilder out = new StringBuilder();
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(new android.os.ParcelFileDescriptor.AutoCloseInputStream(getUiAutomation().executeShellCommand(command))))) {
+            for (String line; (line = reader.readLine()) != null; ) out.append(line).append('\n');
+        }
+        return out.toString();
     }
 
     private void note(String text) { notes.add(text); android.util.Log.i("VoltMotion", text); }
