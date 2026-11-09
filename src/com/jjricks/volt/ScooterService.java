@@ -1184,8 +1184,36 @@ public final class ScooterService extends Service {
             case 1:builder.setContentTitle(c1ShortTitle(live));
                 if(live.percent!=null)builder.setLargeIcon(c1Badge(live.percent,live.max));
                 break;
+            case 2:builder.setContentTitle(c1ShortTitle(live));
+                break;
             default:break;
         }
+    }
+    /** Variant B: the level as a pill that rides the bar at its real position (Android's tracker slot). */
+    private android.graphics.drawable.Icon c1Pill(int percent){
+        int width=320,height=160;
+        android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
+        android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(android.graphics.Color.rgb(0xE3,0x2B,0x2F));
+        canvas.drawRoundRect(new android.graphics.RectF(0,0,width,height),height/2f,height/2f,paint);
+        paint.setColor(0xFFFFFFFF);paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+        String text=T.fmtPercent(Fmt.integer(percent));
+        paint.setTextSize(104f);float room=width-40f,measured=paint.measureText(text);if(measured>room)paint.setTextSize(104f*room/measured);
+        android.graphics.Paint.FontMetrics metrics=paint.getFontMetrics();
+        canvas.drawText(text,width/2f,height/2f-(metrics.ascent+metrics.descent)/2f,paint);
+        return android.graphics.drawable.Icon.createWithBitmap(bitmap);
+    }
+    /** Variant B: a finish flag at the bar's right end, in the limit point's green. */
+    private android.graphics.drawable.Icon c1Flag(){
+        int size=144;
+        android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(size,size,android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
+        android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(android.graphics.Color.rgb(0x5F,0xCB,0x7E));
+        canvas.drawRoundRect(new android.graphics.RectF(30,14,44,132),7,7,paint);
+        android.graphics.Path flag=new android.graphics.Path();flag.moveTo(44,20);flag.lineTo(124,48);flag.lineTo(44,80);flag.close();canvas.drawPath(flag,paint);
+        return android.graphics.drawable.Icon.createWithBitmap(bitmap);
     }
     /** Variant A: a self-contained dial (reads the same on a light or dark card) with the level in the card's right-hand slot. */
     private android.graphics.drawable.Icon c1Badge(int percent,int max){
@@ -1292,6 +1320,8 @@ public final class ScooterService extends Service {
             Notification.ProgressStyle style=new Notification.ProgressStyle().setProgressSegments(segments).setProgressPoints(points)
                     .setProgress(bar.progress).setProgressIndeterminate(bar.indeterminate)
                     .setProgressTrackerIcon(android.graphics.drawable.Icon.createWithResource(this,R.drawable.ic_volt_notification));
+            if(c1Variant==2&&bar.progress>=0&&live.percent!=null)
+                style.setProgressTrackerIcon(c1Pill(live.percent)).setProgressEndIcon(c1Flag());
             builder.setStyle(style);
             if(bar.shortCritical!=null)builder.setShortCriticalText(bar.shortCritical);
             if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
