@@ -31,7 +31,8 @@ import java.util.function.BooleanSupplier;
  * Riding mode's stopped Lock and Record show and hide with the tune disc's motion (owner, Nov 9), on the simulator's stopped and
  * riding scripts in each frame. Every drawn frame of a show and a hide is sampled: the motion is monotonic, the readout under
  * the buttons keeps its place and never shows strongly with them, and taps are off from the moment the hide starts. Real touches
- * during a hide press nothing. Rotation and a change of mind mid-way end in the right state, and the long-ride dimming holds.
+ * during a hide press nothing, and a press or slide already down when the hide starts is over: its release after they return does
+ * nothing, and a fresh one works. Rotation and a change of mind mid-way end in the right state, and the long-ride dimming holds.
  * Follows the system's animator scale: at 0 they jump, at 5 or more the frames are also screenshotted and in-between frames are required.
  */
 public final class RidingStoppedMotionValidation extends Instrumentation {
@@ -105,6 +106,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         changeOfMind();
         rotation();
         dimming();
+        heldGestures();
     }
 
     private void open(String frame) throws Exception {
@@ -274,6 +276,110 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         }
     }
 
+    /**
+     * A press or a slide already down when the hide starts, across stopped, moving and stopped again (to rest, and reversed part-way),
+     * released once the controls are back: nothing fires, the slider is back on its side, and a fresh gesture then works.
+     * Every case runs before judging, so a failure names them all. Replaces Record's click with a counter: the simulator refuses a recording.
+     */
+    private void heldGestures() throws Exception {
+        awaitRest(true, "before held gestures");
+        View record = view("recordDisc"), lock = view("stoppedLock");
+        int[] clicks = {0};
+        main(() -> record.setOnClickListener(v -> clicks[0]++));
+        List<String> wrong = new ArrayList<>();
+        for (boolean reversed : new boolean[]{false, true}) {
+            String how = reversed ? "a reversed hide" : "a full hide";
+            heldRecord(record, clicks, reversed, how, wrong);
+            if (lock != null) heldLock(lock, reversed, how, wrong);
+        }
+        require(wrong.isEmpty(), "held gestures: " + String.join("; ", wrong));
+        note("held press and slide: cancelled when the hide starts, nothing on release, a fresh one works");
+    }
+
+    private void heldRecord(View record, int[] clicks, boolean reversed, String how, List<String> wrong) throws Exception {
+        int before = clicks[0];
+        long down = down(record);
+        await(record::isPressed, "Record should press before the hide");
+        boolean stillDown = awayAndBack(record, null, reversed);
+        sendPointerSync(event(down, MotionEvent.ACTION_UP, record));
+        waitForIdleSync();
+        SystemClock.sleep(150);
+        waitForIdleSync();
+        if (stillDown) wrong.add("Record stayed pressed through " + how);
+        if (clicks[0] != before) wrong.add("Record clicked on release after " + how);
+        int settled = clicks[0];
+        long fresh = down(record);
+        await(record::isPressed, "a fresh press after " + how);
+        sendPointerSync(event(fresh, MotionEvent.ACTION_UP, record));
+        waitForIdleSync();
+        SystemClock.sleep(150);
+        waitForIdleSync();
+        if (clicks[0] != settled + 1) wrong.add("a fresh tap on Record after " + how + " clicked " + (clicks[0] - settled) + " times");
+    }
+
+    private void heldLock(View lock, boolean reversed, String how, List<String> wrong) throws Exception {
+        Object queue = field(activity, "lockQueue");
+        Boolean was = locked();
+        require(was != null, "the simulator reports a lock state");
+        long down = down(lock);
+        await(lock::isPressed, "Lock should press before the hide");
+        slide(down, lock, .5f, was ? .15f : .85f);
+        await(() -> Boolean.TRUE.equals(field(lock, "dragging")), "the slide should be dragging before the hide");
+        boolean stillDown = awayAndBack(lock, "dragging", reversed);
+        // The move a held slide keeps sending: the slide's own disallow-intercept must not keep it alive.
+        sendPointerSync(dragEvent(down, MotionEvent.ACTION_MOVE, lock, was ? .1f : .9f));
+        sendPointerSync(dragEvent(down, MotionEvent.ACTION_UP, lock, was ? .1f : .9f));
+        waitForIdleSync();
+        boolean admitted = false;
+        for (long end = SystemClock.uptimeMillis() + 600; SystemClock.uptimeMillis() < end; SystemClock.sleep(20))
+            admitted |= waiting(queue) || !was.equals(locked());
+        if (stillDown) wrong.add("Lock's slide stayed live through " + how);
+        if (admitted) {
+            wrong.add("Lock acted on a slide from before " + how);
+            await(() -> !waiting(queue), "the admitted slide to settle");
+        }
+        Boolean now = locked();
+        await(() -> Math.abs(((Float) field(lock, "position")) - (Boolean.TRUE.equals(now) ? 1 : 0)) < .01f, "the slider should snap back after " + how);
+        boolean[] live = new boolean[1];
+        main(() -> live[0] = lock.isPressed() || Boolean.TRUE.equals(field(lock, "dragging")));
+        if (live[0]) wrong.add("Lock still looks held after " + how);
+        long fresh = down(lock);
+        await(lock::isPressed, "a fresh slide after " + how);
+        slide(fresh, lock, .5f, now ? .15f : .85f);
+        sendPointerSync(dragEvent(fresh, MotionEvent.ACTION_UP, lock, now ? .15f : .85f));
+        waitForIdleSync();
+        long end = SystemClock.uptimeMillis() + 8000;
+        while (SystemClock.uptimeMillis() < end && now.equals(locked())) SystemClock.sleep(30);
+        if (now.equals(locked())) wrong.add("a fresh slide on Lock after " + how + " did nothing");
+        await(() -> !waiting(queue), "the fresh slide to settle");
+    }
+
+    /**
+     * Stopped to moving and back with the finger still down: to rest, or reversed part-way (at once with animations off).
+     * True when the gesture was still live straight after the hide started: pressed, or the named flag.
+     */
+    private boolean awayAndBack(View target, String flag, boolean reversed) {
+        boolean[] live = new boolean[1];
+        main(() -> { script("riding"); live[0] = target.isPressed() || (flag != null && Boolean.TRUE.equals(field(target, flag))); });
+        if (reversed) SystemClock.sleep((long) (70 * scale));
+        else awaitRest(false, "held hide");
+        main(() -> script("stopped"));
+        awaitRest(true, "held show");
+        return live[0];
+    }
+
+    private void slide(long down, View lock, float from, float to) {
+        for (float at : new float[]{from + (to - from) * .25f, from + (to - from) * .6f, to}) sendPointerSync(dragEvent(down, MotionEvent.ACTION_MOVE, lock, at));
+    }
+
+    private Boolean locked() { Boolean[] v = new Boolean[1]; main(() -> v[0] = activity.service().ble.locked()); return v[0]; }
+
+    private boolean waiting(Object queue) {
+        boolean[] v = new boolean[1];
+        main(() -> { try { Method m = queue.getClass().getDeclaredMethod("waiting"); m.setAccessible(true); v[0] = (Boolean) m.invoke(queue); } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); } });
+        return v[0];
+    }
+
     private void script(String id) {
         activity.service().ble.setSimulationScript(id);
         activity.service().ble.tickSimulation();
@@ -323,6 +429,15 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         float[] c = new float[2];
         main(() -> { int[] p = new int[2]; target.getLocationOnScreen(p); c[0] = p[0] + target.getWidth() / 2f; c[1] = p[1] + target.getHeight() / 2f; });
         MotionEvent e = MotionEvent.obtain(down, time, action, c[0], c[1], 0);
+        e.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        return e;
+    }
+
+    /** A move or release at a fraction of the view's width. */
+    private MotionEvent dragEvent(long down, int action, View target, float fraction) {
+        float[] c = new float[2];
+        main(() -> { int[] p = new int[2]; target.getLocationOnScreen(p); c[0] = p[0] + target.getWidth() * fraction; c[1] = p[1] + target.getHeight() / 2f; });
+        MotionEvent e = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, c[0], c[1], 0);
         e.setSource(InputDevice.SOURCE_TOUCHSCREEN);
         return e;
     }
