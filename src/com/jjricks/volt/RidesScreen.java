@@ -1359,7 +1359,7 @@ public final class RidesScreen implements AppScreen {
     }
     /** GPS route turned on with auto-record already on: the next automatic ride would otherwise have no route and no way to ask. */
     private void offerAutoRecordLocation() {
-        if (AutoStartPolicy.asksLocationOnGpsOn(preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), service.simulating(), service.ridingNow())) host.requestRideLocation(service::autoRecordLocationAsked);
+        if (AutoStartPolicy.asksLocationOnGpsOn(preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), service.simulating(), service.ridingNow())) host.requestAutoRecordLocation(null);
     }
     private void infoRow(LinearLayout group, String glyph, String title, String sub, String value) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(60)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));

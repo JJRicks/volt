@@ -1418,7 +1418,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void offerRideLocation(Runnable save) {
         ScooterService service = service();
-        if (AutoStartPolicy.asksLocationFirst(service.settings.getBoolean("phone_gps", true), service.simulating(), service.ridingNow())) host.requestRideLocation(() -> { service.autoRecordLocationAsked(); save.run(); });
+        if (AutoStartPolicy.asksLocationFirst(service.settings.getBoolean("phone_gps", true), service.simulating(), service.ridingNow())) host.requestAutoRecordLocation(save);
         else save.run();
     }
 

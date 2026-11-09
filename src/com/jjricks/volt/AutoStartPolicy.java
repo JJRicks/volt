@@ -24,7 +24,7 @@ final class AutoStartPolicy {
     static final String AUTO_RECORD_KEY = "auto_record_rides", AUTO_RIDE_MODE_KEY = "riding_auto_open";
     /** The Rides GPS route switch, on by default. */
     static final String PHONE_GPS_KEY = "phone_gps";
-    /** Set once the rider has answered auto-record's location offer. Belongs to this phone's permission, so BackupRegistry leaves it out. */
+    /** Set while the rider's last answer to auto-record's location offer stands as a decline. A grant leaves it unset, so one that later ends can be offered again. Belongs to this phone's permission, so BackupRegistry leaves it out. */
     static final String LOCATION_ASKED_KEY = "auto_record_location_asked";
     /** The longest a speed reading may have been held. Each one is judged as it arrives, so this only guards stale reads. */
     static final long SPEED_FRESH_MS = 3000;
@@ -73,7 +73,7 @@ final class AutoStartPolicy {
 
     /**
      * Whether turning auto-record on should first offer the ride location prompt. Asked only from the rider's tap on
-     * the switch, never from an automatic start. The answer doesn't matter: declining still turns it on, without a route.
+     * the switch, never from an automatic start. Either answer turns it on; declining records without a route.
      * riding: a recording is running or the scooter is moving. No prompt then; {@link #offersLocationOnScreen} asks afterwards.
      */
     static boolean asksLocationFirst(boolean phoneGps, boolean simulating, boolean riding) { return phoneGps && !simulating && !riding; }
@@ -84,13 +84,25 @@ final class AutoStartPolicy {
     }
 
     /**
-     * Whether Volt, on screen, should offer the location prompt because auto-record and GPS route are on without the
-     * rider ever having answered it: both restore from a backup, Android's permission doesn't. Asked once, while
-     * stopped, never from the service or because of motion. Either answer ends it; declining records without a route.
+     * Whether Volt, on screen, should offer the location prompt because auto-record and GPS route are on and the
+     * permission is missing: both switches restore from a backup, Android's permission doesn't, and a one-time grant
+     * ends by itself. Asked while stopped, never from the service or because of motion. A decline ends it
+     * ({@link #declineNote}); declining records without a route.
      */
-    static boolean offersLocationOnScreen(boolean autoRecord, boolean phoneGps, boolean hasLocation, boolean asked,
+    static boolean offersLocationOnScreen(boolean autoRecord, boolean phoneGps, boolean hasLocation, boolean declined,
             boolean simulating, boolean riding, boolean screenClear) {
-        return autoRecord && phoneGps && !hasLocation && !asked && !simulating && !riding && screenClear;
+        return autoRecord && phoneGps && !hasLocation && !declined && !simulating && !riding && screenClear;
+    }
+
+    /**
+     * The decline note after a request or a look at the permission. Holding the permission clears it, whichever way it
+     * was granted. Without it, a rider's answer sets it, and Android refusing at once after "don't ask again" arrives as
+     * that same denied answer. A request Android cancelled with no answer leaves the note as it was.
+     *
+     * @param answered a permission result came back for this request
+     */
+    static boolean declineNote(boolean note, boolean answered, boolean hasLocation) {
+        return !hasLocation && (note || answered);
     }
 
     /** Whether to open riding mode now. screenClear: resumed on screen, with nothing open that it would cover. */

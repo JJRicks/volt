@@ -151,7 +151,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
     private final ArrayList<ChargeDoneRow> quickChargeRows = new ArrayList<>();
     private Runnable pendingRideLocation;
-    private boolean rideLocationResolved;
+    private boolean rideLocationResolved,rideLocationCancelled,autoRecordLocationCancelled;
     private android.window.OnBackInvokedCallback systemBack;
     private LinearLayout scanList;
     private TextView scanStatus,scanConnect;
@@ -547,7 +547,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
         boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
-        else if(scooterService.offersAutoRecordLocation(clear))requestRideLocation(scooterService::autoRecordLocationAsked);
+        else if(!autoRecordLocationCancelled&&scooterService.offersAutoRecordLocation(clear))requestAutoRecordLocation(null);
     }
     /** More holds Volt's setup flows, tests and text fields; Home and Scooter have editors. */
     private boolean inSetupOrEditor(){
@@ -1339,8 +1339,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
                 ||checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED){ready.run();return;}
         if(pendingRideLocation!=null)return;
-        pendingRideLocation=ready;rideLocationResolved=false;
+        pendingRideLocation=ready;rideLocationResolved=rideLocationCancelled=false;
         requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},RIDE_LOCATION_PERMISSION);
+    }
+    /** The ride location request on auto-record's behalf: notes a decline, and an Android cancellation (no answer) isn't one. This activity won't retry after a cancellation, so an empty result can't repeat on the refresh. */
+    @Override public void requestAutoRecordLocation(Runnable ready){
+        requestRideLocation(()->{
+            if(rideLocationCancelled)autoRecordLocationCancelled=true;
+            if(scooterService!=null)scooterService.autoRecordLocationResult(!rideLocationCancelled);
+            if(ready!=null)ready.run();
+        });
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){
         super.onRequestPermissionsResult(request,permissions,results);
@@ -1348,14 +1356,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             // A denied optional GPS permission still permits a scooter-only recording.
             // Android can deliver this before onResume. Wait until visible before
             // promoting the recorder to a location foreground service.
-            rideLocationResolved=true;finishRidePermission();
+            rideLocationResolved=true;rideLocationCancelled=results.length==0;finishRidePermission();
             return;
         }
         if(request==BLUETOOTH_PERMISSION){if(hasBluetoothPermission())requestBluetooth();else{pendingConnect=pendingScan=false;toast(T.bleNearbyNeeded());}redraw();}
     }
     private void finishRidePermission(){
         if(destroyed||!resumed||!rideLocationResolved||pendingRideLocation==null)return;
-        Runnable ready=pendingRideLocation;pendingRideLocation=null;rideLocationResolved=false;ready.run();
+        Runnable ready=pendingRideLocation;pendingRideLocation=null;rideLocationResolved=false;ready.run();rideLocationCancelled=false;
     }
 
     private void showScanner(boolean start){

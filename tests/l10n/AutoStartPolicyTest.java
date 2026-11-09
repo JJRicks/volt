@@ -155,10 +155,92 @@ public final class AutoStartPolicyTest {
         check(!offers(false, true, false, false, false, false, true), "auto-record off: no offer");
         check(!offers(true, false, false, false, false, false, true), "GPS route off: no offer");
         check(!offers(true, true, true, false, false, false, true), "permission already held: no offer");
-        check(!offers(true, true, false, true, false, false, true), "already answered: asked once only");
+        check(!offers(true, true, false, true, false, false, true), "already declined: not offered again");
         check(!offers(true, true, false, false, true, false, true), "simulation: no offer");
         check(!offers(true, true, false, false, false, true, true), "moving or recording: no offer");
         check(!offers(true, true, false, false, false, false, false), "a dialog, setup or typing on screen: no offer");
+        permissionHistory();
+    }
+
+    /** The decline note through the permission's whole life, driven the way the service and activity drive it. */
+    private static void permissionHistory() {
+        Offer o = new Offer();
+        check(o.refresh() && o.requests == 1, "Permission missing, nothing declined: one request");
+        check(!o.refresh() && o.requests == 1, "While the dialog is up the refresh cannot ask again");
+        o.answer(true);
+        check(!o.note && !o.refresh(), "A grant leaves the note unset, and nothing to offer while it holds");
+
+        o.hasLocation = false; // A one-time grant ended, or the rider revoked it in Android settings.
+        check(o.refresh() && o.requests == 2 && !o.note, "After a grant ends: offered once more");
+        check(!o.refresh() && o.requests == 2, "Still one dialog");
+        o.answer(true);
+        o.hasLocation = false;
+        check(o.refresh() && o.requests == 3, "Another grant that ends: offered again");
+        o.answer(false);
+        check(o.note && !o.refresh() && o.requests == 3, "A decline ends it");
+        for (int i = 0; i < 5; i++) check(!o.refresh() && o.requests == 3, "and the 1 Hz refresh never asks again");
+
+        o.hasLocation = true; // The rider allowed it in Android settings.
+        check(!o.refresh() && o.requests == 3 && !o.note, "Declined, then granted in Android settings: no offer, the decline is over");
+        o.hasLocation = false;
+        check(o.refresh() && o.requests == 4, "That grant ending: offered once more");
+        o.answer(false);
+        check(o.note && !o.refresh(), "Decline again: ended");
+
+        Offer dontAsk = new Offer();
+        check(dontAsk.refresh(), "Don't ask again: the request still goes out");
+        dontAsk.answer(false); // Android returns denied at once, with no dialog.
+        check(dontAsk.note && dontAsk.requests == 1, "It counts as a decline");
+        for (int i = 0; i < 5; i++) check(!dontAsk.refresh() && dontAsk.requests == 1, "One request only, no loop on the refresh");
+
+        Offer cancelled = new Offer();
+        check(cancelled.refresh(), "Requested");
+        cancelled.cancelled();
+        check(!cancelled.note, "A cancelled request records no answer");
+        for (int i = 0; i < 5; i++) check(!cancelled.refresh() && cancelled.requests == 1, "and that activity does not retry it on the refresh");
+        cancelled.recreated();
+        check(cancelled.refresh() && cancelled.requests == 2, "A new activity may ask once");
+        cancelled.answer(false);
+        check(cancelled.note && !cancelled.refresh(), "and its decline counts");
+
+        Offer recreated = new Offer();
+        check(recreated.refresh(), "Requested");
+        recreated.recreated(); // The old activity's pending request is dropped, and with it any answer to it.
+        check(!recreated.note && recreated.refresh() && recreated.requests == 2, "Recreated during the dialog: nothing recorded, may ask once more");
+        recreated.answer(true);
+        check(!recreated.note && !recreated.refresh(), "and the grant is not noted");
+        check(AutoStartPolicy.declineNote(true, true, true) == false, "A permission held at the answer is never a decline, even with an old note");
+    }
+
+    /** The service's note and the activity's request guards, around the real policy. */
+    private static final class Offer {
+        boolean note, hasLocation, pending, cancelledHere;
+        int requests;
+
+        boolean refresh() {
+            note = AutoStartPolicy.declineNote(note, false, hasLocation);
+            if (pending || cancelledHere || !offers(true, true, hasLocation, note, false, false, true)) return false;
+            pending = true;
+            requests++;
+            return true;
+        }
+
+        void answer(boolean grant) {
+            pending = false;
+            hasLocation = grant;
+            note = AutoStartPolicy.declineNote(note, true, hasLocation);
+        }
+
+        void cancelled() {
+            pending = false;
+            cancelledHere = true;
+            note = AutoStartPolicy.declineNote(note, false, hasLocation);
+        }
+
+        void recreated() {
+            pending = false;
+            cancelledHere = false;
+        }
     }
 
     private static boolean offers(boolean autoRecord, boolean phoneGps, boolean hasLocation, boolean asked, boolean simulating, boolean riding, boolean clear) {

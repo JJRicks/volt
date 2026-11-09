@@ -11,6 +11,8 @@ public interface ScreenHost {
     default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();
     void requestRideLocation(Runnable ready);
+    /** The same request, made for auto-record: it also keeps the note of a decline. */
+    void requestAutoRecordLocation(Runnable ready);
     void saveText(String name,String mime,String content);
     void saveFile(String name,String mime,File content);
     /**

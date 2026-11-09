@@ -1820,12 +1820,19 @@ public final class ScooterService extends Service {
     }
     /** Recording, or fresh motion from the real scooter: no moment for a location prompt. */
     boolean ridingNow(){return isRecording()||autoStartMoving(SystemClock.elapsedRealtime());}
-    /** Auto-record's one location offer for switches that never went through its own, for the activity to show while it is on screen. */
+    /** Auto-record's location offer when the permission is missing and the rider hasn't declined, for the activity to show while it is on screen. */
     boolean offersAutoRecordLocation(boolean screenClear){
-        return !destroyed&&!dataMaintenance&&AutoStartPolicy.offersLocationOnScreen(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.PHONE_GPS_KEY,true),PhoneRideRecorder.hasLocationPermission(this),settings.getBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,false),simulating(),ridingNow(),screenClear);
+        if(destroyed||dataMaintenance)return false;
+        boolean location=PhoneRideRecorder.hasLocationPermission(this);
+        updateLocationDecline(false,location); // A grant made in Android settings ends a decline too.
+        return AutoStartPolicy.offersLocationOnScreen(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.PHONE_GPS_KEY,true),location,settings.getBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,false),simulating(),ridingNow(),screenClear);
     }
-    /** The rider answered the location offer, whichever way. */
-    void autoRecordLocationAsked(){settings.edit().putBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,true).apply();}
+    /** A location request made for auto-record has finished. answered is false when Android cancelled it with no answer. */
+    void autoRecordLocationResult(boolean answered){updateLocationDecline(answered,PhoneRideRecorder.hasLocationPermission(this));}
+    private void updateLocationDecline(boolean answered,boolean location){
+        boolean note=settings.getBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,false),next=AutoStartPolicy.declineNote(note,answered,location);
+        if(next!=note)settings.edit().putBoolean(AutoStartPolicy.LOCATION_ASKED_KEY,next).apply();
+    }
     /** Auto ride mode's decision for the activity, which knows what is on screen; a true answer counts as this trigger's open. */
     boolean takeAutoRideMode(boolean screenClear){
         if(destroyed||!autoStart.shouldOpenRidingMode(settings.getBoolean(AutoStartPolicy.AUTO_RIDE_MODE_KEY,false),autoStartMoving(SystemClock.elapsedRealtime()),screenClear))return false;
