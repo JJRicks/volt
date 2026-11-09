@@ -639,7 +639,7 @@ final class RidingScreen implements AppScreen {
         if (ble != null) {
             session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             session.setRecordingKm(ride == null ? null : ride.distanceKm);
-            session.values.setLinkGeneration(ble.connectionGeneration(), now);
+            session.values.setLinkGeneration(ble.connectionGeneration(), ble.connectionStartMs());
             Double charging = ble.telemetry.number("charging_state");
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
@@ -889,14 +889,15 @@ final class RidingScreen implements AppScreen {
             bar.set(null, p.direction, scale, p.peakDrawW, 0, false, now);
             return;
         }
-        boolean regen = p.direction.regen() && p.watts < 0;
-        boolean unknown = p.direction == RidingValues.Direction.UNKNOWN;
+        // Confirmed regen only: inferred regen keeps its side of the bar, but its number and caption claim no direction.
+        boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
+        boolean unknown = p.direction == RidingValues.Direction.UNKNOWN || p.direction == RidingValues.Direction.REGEN_INFERRED;
         int color = regen ? ui.ok : unknown ? ui.muted : ui.text;
         Formatted shown = Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT));
         watts.set(shown, color, regen ? ui.ok : ui.muted);
         double peak = regen ? p.peakRegenW : p.peakDrawW;
         String peakText = T.fmtQuantity(Fmt.integer(Math.round(Math.abs(peak))), UnitCode.WATT.symbol());
-        String caption = unknown ? T.ridingPowerUnknown() : Math.abs(peak) < 1 ? null
+        String caption = unknown ? powerDirectionUnknown() : Math.abs(peak) < 1 ? null
                 : regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
         String brief = regen ? T.ridingPowerRegenPeakShort() : T.ridingPowerDrawPeakShort();
         fit(wattsCaption, caption == null ? brief : caption, brief);
@@ -905,6 +906,9 @@ final class RidingScreen implements AppScreen {
         if (sample != null) powerSampleMs = sample.updatedMs;
         bar.set(p.watts, p.direction, scale, p.peakDrawW, sample == null ? 1000 : sample.intervalMs, fresh, now);
     }
+
+    /** The caption for a power reading whose direction isn't confirmed (no catalog wording for an estimate yet). */
+    private static String powerDirectionUnknown() { return T.ridingPowerUnknown(); }
 
     /** A caption's ladder: the full text while it fits, else the brief one; never a broken word. */
     private void fit(TextView view, String full, String brief) {
@@ -923,6 +927,9 @@ final class RidingScreen implements AppScreen {
         CharSequence prefix = "", main = "", fraction = "", suffix = "";
         int color, unitColor;
         String spoken;
+        /** Heard after the reading only (a strip chip shows spoken as its text). */
+        String spokenNote;
+        String spokenFull() { return spokenNote == null ? spoken : spoken + ", " + spokenNote; }
         RidingValues.Band band;
         double percent = Double.NaN;
     }
@@ -1084,7 +1091,8 @@ final class RidingScreen implements AppScreen {
                 RidingValues.Power p = v.power(now);
                 if (p.watts == null) { none(s); break; }
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT)));
-                if (p.direction.regen() && p.watts < 0) s.color = ui.ok;
+                if (p.direction == RidingValues.Direction.REGEN && p.watts < 0) s.color = ui.ok;
+                if (p.direction == RidingValues.Direction.REGEN_INFERRED) s.spokenNote = powerDirectionUnknown();
                 break;
             }
             default: none(s); break;
@@ -1226,7 +1234,7 @@ final class RidingScreen implements AppScreen {
             label.set(s.icon, s.rungs);
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.rungs.length == 0 ? "" : s.rungs[0];
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
+            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spokenFull()));
             if (gauge != null) {
                 boolean battery = RidingLayout.BATTERY.equals(content);
                 ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
@@ -1681,7 +1689,7 @@ final class RidingScreen implements AppScreen {
                 if (getVisibility() != visible) setVisibility(visible);
             }
             String name = s.rungs.length > 0 ? s.rungs[0] : s.main.toString();
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
+            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spokenFull()));
         }
     }
 

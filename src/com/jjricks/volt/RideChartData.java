@@ -25,6 +25,10 @@ public final class RideChartData {
         /** The catalog id of the legend name, or -1 for a series whose label is already display text. */
         private final int labelId;
         private double drawnFrom = Double.NaN, drawnTo; private int drawnColumns; private int[] drawn;
+        /** Power on an unsigned ride where RegenInference moved points below zero: the plotted direction isn't measured. */
+        boolean directionInferred;
+        /** Set by the screen (catalog text can't be read while building off the main thread). */
+        public String directionNote;
         Series(int index, String unit, List<Value> values) { this(index, unit, values, false); }
         Series(int index, String unit, List<Value> values, boolean fullDetail) {
             this(KEYS[index], LABELS[index], LABEL_IDS[index], unit, COLORS[index], index, values, null, fullDetail, false);
@@ -71,6 +75,8 @@ public final class RideChartData {
         }
         /** The legend name in the current language; label stays the English name. */
         public String displayLabel() { return labelId < 0 ? label : T.render(labelId); }
+        /** The label to read out and name the series with: the legend name, plus directionNote when inferred regen is plotted. */
+        public String notedLabel() { return directionNote == null ? displayLabel() : displayLabel() + " · " + directionNote; }
         public boolean available() { return hasData; }
         public boolean connects(Value left, Value right) {
             return left != null && right != null && left.value != null && right.value != null
@@ -237,9 +243,17 @@ public final class RideChartData {
                 values.add(new Value(p.elapsedMs, v, p.segment));
             }
             String unit = index == 0 ? UnitCode.WATT.code : index == 1 || index == 2 ? miles ? UnitCode.MPH.code : UnitCode.KMH.code : index == 3 ? UnitCode.VOLT.code : index == 4 ? "%" : index == 5 ? miles ? "ft" : "m" : index == 6 ? "m/s²" : miles ? "Wh/mi" : "Wh/km";
-            result.add(new Series(index, unit, values, fullDetail));
+            Series series = new Series(index, unit, values, fullDetail);
+            series.directionInferred = index == 0 && plotsInferredRegen(scooter, regen);
+            result.add(series);
         }
         return Collections.unmodifiableList(result);
+    }
+    /** True when a stored power reading was labelled inferred regen, so the plot's sign isn't measured. */
+    private static boolean plotsInferredRegen(List<RideStore.Point> scooter, RegenInference.Label[] regen) {
+        if (regen == null) return false;
+        for (int i = 0; i < regen.length; i++) if (regen[i] == RegenInference.Label.REGEN && scooter.get(i).powerW != null) return true;
+        return false;
     }
     /** A plotted power value: inferred regen goes negative; every other reading stays as stored. */
     private static Double shownPower(RideStore.Point p, RegenInference.Label[] regen, int position) {

@@ -192,7 +192,7 @@ public final class RideChartView extends View {
             description.append(T.mapsChartDescAt()).append(sampleTime((long) inspectedTime));
             for (RideChartData.Series selected : series) {
                 RideChartData.Value value = selected.sampleAt(inspectedTime);
-                description.append(T.mapsChartDescReading(selected.displayLabel()));
+                description.append(T.mapsChartDescReading(selected.notedLabel()));
                 if (value == null || value.value == null || !Double.isFinite(value.value)) description.append(T.mapsChartDescNoReading());
                 else {
                     description.append(valueFormatter.sample(selected, value));

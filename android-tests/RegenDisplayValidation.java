@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.jjricks.volt.BleController;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.RideChartData;
@@ -99,6 +100,7 @@ public final class RegenDisplayValidation extends Instrumentation {
         note("unsigned ride negative power points: " + negative);
         require(negative >= 4, "An unsigned ride's power line should go below zero on the brake: " + negative);
         shot("rides-unsigned");
+        chartDirection("rides-unsigned-chart", true);
         energyRows("rides-unsigned-energy", true);
         main(() -> call(screen, "showDetails", new Class<?>[]{String.class}, signed));
         settle();
@@ -108,7 +110,42 @@ public final class RegenDisplayValidation extends Instrumentation {
         require(signedNegative >= 4, "A signed ride shows its own regen");
         require(signedNegative == 6, "A signed ride plots its stored values, no more: " + signedNegative);
         shot("rides-signed");
+        chartDirection("rides-signed-chart", false);
         energyRows("rides-signed-energy", false);
+    }
+
+    /** The Power toggle, the chart's description and the inspected value name an unconfirmed direction, and only on an unsigned ride. */
+    private void chartDirection(String name, boolean unsigned) throws Exception {
+        AtomicReference<List<String>> seen = new AtomicReference<>();
+        AtomicReference<String> described = new AtomicReference<>();
+        main(() -> {
+            List<String> all = new ArrayList<>();
+            collect(root(), all);
+            seen.set(all);
+            View chart = find(root(), RideChartView.class);
+            List<RideChartData.Value> values = powerValues();
+            double at = Double.NaN;
+            if (unsigned) for (RideChartData.Value v : values) if (v.value != null && v.value < 0) at = v.time;
+            if (unsigned) {
+                setFieldOn(chart, "inspectedTime", at);
+                call(chart, "notifyInspection", new Class<?>[0]);
+                collect(root(), seen.get());
+            }
+            described.set(String.valueOf(chart.getContentDescription()));
+        });
+        String joined = String.join(" | ", seen.get());
+        note(name + ": " + described.get() + " | cells: " + joined);
+        if (unsigned) {
+            require(joined.contains("Power · Direction ?"), name + ": the Power toggle should carry the chip: " + joined);
+            require(described.get().contains("Power · Direction ?: "), name + ": the chart's description should name it: " + described.get());
+            require(described.get().matches(".*Power · Direction \\?: [-−].*"), name + ": at a regen point the value stays below zero: " + described.get());
+            require(joined.contains("Power · Direction ?: "), name + ": the inspected cell's spoken text should name it: " + joined);
+        } else {
+            require(!joined.contains("Power · Direction"), name + ": a signed ride's power stays plain: " + joined);
+            require(!described.get().contains("Direction ?"), name + ": a signed chart has no direction note: " + described.get());
+        }
+        settle();
+        shot(name);
     }
 
     /** Scrolls the open details to the energy card, reads its rows and takes a picture. */
@@ -209,6 +246,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             require(watts != null && watts < 0, frame + ": inferred regen should read below zero: " + watts);
             require(peak > 0, frame + ": no regen peak");
             SystemClock.sleep(500);
+            caption(frame, true);
             shot("riding-inferred-" + frame);
             if (frame.equals("trace")) {
                 AtomicReference<Object> trace = new AtomicReference<>();
@@ -217,10 +255,50 @@ public final class RegenDisplayValidation extends Instrumentation {
                 for (Object point : (List<?>) trace.get()) below |= (double) fieldOn(point, "value") < 0;
                 require(below, "The trace should go below zero");
             }
+            if (frame.equals("focus")) connectionBoundary();
             main(() -> activity.onBackPressed());
             await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
             settle();
         }
+    }
+
+    /** The caption is the signal for inferred regen: the same wording as an unknown direction, never the regen one; confirmed regen keeps its own. */
+    private void caption(String frame, boolean inferred) {
+        AtomicReference<List<String>> seen = new AtomicReference<>();
+        main(() -> seen.set(texts()));
+        String joined = String.join(" | ", seen.get());
+        note(frame + " caption: " + joined);
+        if (inferred) {
+            require(seen.get().contains("power (direction unknown)") || seen.get().contains("power"), frame + ": inferred regen should use the unknown-direction caption: " + joined);
+            require(!joined.contains("regen · peak") && !seen.get().contains("regen"), frame + ": inferred regen must not read as confirmed regen: " + joined);
+        } else {
+            require(joined.contains("regen · peak") || seen.get().contains("regen"), frame + ": confirmed regen keeps its caption: " + joined);
+            require(!joined.contains("direction unknown"), frame + ": confirmed regen is not unknown: " + joined);
+        }
+    }
+
+    /**
+     * The real RidingScreen call: a connection boundary, seen by a later refresh, is recorded as the
+     * connection's own start, and inference carries on in the new run of readings.
+     */
+    private void connectionBoundary() throws Exception {
+        BleController ble = activity.service().ble;
+        AtomicReference<Long> start = new AtomicReference<>();
+        AtomicReference<Integer> segment = new AtomicReference<>();
+        main(() -> {
+            segment.set((Integer) fieldOn(values(), "inferenceSegment"));
+            call(ble, "close", new Class<?>[]{BleController.State.class}, BleController.State.DISCONNECTED);
+            setField(ble, "state", BleController.State.READY); // the simulation only ticks while ready
+            start.set(ble.connectionStartMs());
+        });
+        require(start.get() > 0 && start.get() <= SystemClock.elapsedRealtime(), "No connection start");
+        await(() -> (Integer) fieldOn(values(), "inferenceSegment") > segment.get(), "No refresh saw the new connection", 8000);
+        AtomicReference<Long> floor = new AtomicReference<>();
+        main(() -> floor.set((Long) fieldOn(values(), "inferenceFloorMs")));
+        note("connection boundary: start " + start.get() + " floor " + floor.get());
+        require(floor.get().equals(start.get()), "The floor must be the connection's own start, not the screen's refresh time: " + floor.get() + " vs " + start.get());
+        await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())), "Inference should keep working in the new run", 60000);
+        note("connection boundary: inference recovered after the new connection");
     }
 
     private void rideModeSigned() throws Exception {
@@ -233,6 +311,7 @@ public final class RegenDisplayValidation extends Instrumentation {
         note("signed: direction REGEN, watts=" + fieldOn(p.get(), "watts"));
         require(!"REGEN_INFERRED".equals(String.valueOf(fieldOn(p.get(), "direction"))), "A signed scooter never infers");
         SystemClock.sleep(500);
+        caption("signed", false);
         shot("riding-signed-regen");
         main(() -> activity.onBackPressed());
     }
@@ -319,6 +398,10 @@ public final class RegenDisplayValidation extends Instrumentation {
             }
             throw new NoSuchFieldException(name);
         } catch (Exception e) { throw new RuntimeException(e); }
+    }
+    private static void setFieldOn(Object target, String name, double value) {
+        try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); f.setDouble(target, value); }
+        catch (Exception e) { throw new RuntimeException(e); }
     }
     private static void setField(Object target, String name, Object value) {
         try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); f.set(target, value); }

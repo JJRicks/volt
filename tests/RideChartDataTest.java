@@ -195,6 +195,13 @@ public final class RideChartDataTest {
         for (int i = 0; i < shown.size(); i++) if (shown.get(i).value != null && shown.get(i).value < 0) {
             negative++; check(Math.abs(shown.get(i).value + raw.get(i).value) < 1e-9, "a flipped point is the same magnitude"); }
         check(negative >= 4, "the brake goes below zero: " + negative);
+        RideChartData.Series power = RideChartData.build(points, null, false, true, true).get(0);
+        check(power.directionInferred, "a plot with inferred regen says so");
+        check(!RideChartData.build(points, null, false, true, true).get(1).directionInferred, "only power's direction is inferred");
+        check(!RideChartData.build(points, null, false, true, false).get(0).directionInferred, "the raw plot isn't");
+        check(power.notedLabel().equals(power.displayLabel()), "no note until the screen sets one");
+        power.directionNote = "Direction ?";
+        check(power.notedLabel().equals(power.displayLabel() + " · Direction ?"), "the label carries the note: " + power.notedLabel());
         check(s.drawWh == null && s.returnedWh == null, "an unsigned ride's draw and input stay unavailable, inference or not");
         check(s.measuredThroughputWh != null, "its throughput is still measured");
     }
@@ -212,6 +219,7 @@ public final class RideChartDataTest {
         List<RideStore.Point> points = store.fullTrend(id);
         List<RideChartData.Value> shown = RideChartData.build(points, null, false, true, s.unsignedCurrent()).get(0).values;
         for (int i = 0; i < shown.size(); i++) check(Objects.equals(shown.get(i).value, points.get(i).powerW), "a signed point plots as stored");
+        check(!RideChartData.build(points, null, false, true, s.unsignedCurrent()).get(0).directionInferred, "a signed plot is never marked inferred");
     }
     /** Different speeds on the two sides of a marked gap don't make a slowing; the same readings without one do. */
     private static void noRegenAcrossARecordedGap() throws Exception {

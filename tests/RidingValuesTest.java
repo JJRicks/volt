@@ -21,6 +21,8 @@ public final class RidingValuesTest {
         directionHistory();
         unknownAfterRegen();
         unsignedCurrent();
+        inferenceKeepsANewConnectionsFirstReadings();
+        screenPassesTheConnectionsTrueStart();
         inferenceStopsAtANewConnection();
         inferredDraw();
         inferredThreshold();
@@ -425,6 +427,50 @@ public final class RidingValuesTest {
         first.sample("current_sign_state", 254, 0x79, 0);
         unsignedBrake(first, 1000);
         check(first.power(29_000).direction == RidingValues.Direction.REGEN_INFERRED, "learning the first connection, and seeing it again, is no interruption");
+    }
+
+    /**
+     * A snapshot can hold readings from a new connection before any screen refresh sees that
+     * connection: the floor is where the connection began, not when it was first noticed.
+     */
+    private static void inferenceKeepsANewConnectionsFirstReadings() {
+        for (boolean screenTime : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            v.setLinkGeneration(7, 0);
+            unsignedBrake(v, 0);
+            long reconnect = 30_000, firstReading = reconnect + 500, refresh = reconnect + 1000, brake = reconnect + 1500;
+            double volts = 50.64;
+            // The reconnect and its first reading both land before the screen's next refresh.
+            v.setLinkGeneration(8, screenTime ? refresh : reconnect);
+            v.sample("voltage_v", volts, 0x72, firstReading); v.sample("speed_kmh", 19, 0x92, firstReading); v.sample("power_w", 8 * volts, 0x72, firstReading);
+            v.sample("voltage_v", volts, 0x72, brake); v.sample("speed_kmh", 15.5, 0x92, brake); v.sample("power_w", 8 * volts, 0x72, brake);
+            RidingValues.Direction direction = v.power(brake + 100).direction;
+            if (screenTime) check(direction != RidingValues.Direction.REGEN_INFERRED, "a floor at the screen's refresh loses the new connection's first reading: " + direction);
+            else check(direction == RidingValues.Direction.REGEN_INFERRED, "the new connection's first reading counts toward the next one: " + direction);
+        }
+        // The old link's speed in that same snapshot still can't pair with a new power reading.
+        RidingValues old = new RidingValues();
+        old.setNominalIntervals(1000, 2000);
+        old.sample("current_sign_state", 254, 0x79, 0);
+        old.setLinkGeneration(7, 0);
+        unsignedBrake(old, 0);
+        long reconnect = 30_000, firstReading = reconnect + 500, brake = reconnect + 1500;
+        old.sample("speed_kmh", 19, 0x92, reconnect - 100);
+        old.setLinkGeneration(8, reconnect);
+        old.sample("voltage_v", 50.64, 0x72, firstReading); old.sample("power_w", 8 * 50.64, 0x72, firstReading);
+        old.sample("voltage_v", 50.64, 0x72, brake); old.sample("power_w", 8 * 50.64, 0x72, brake);
+        check(old.power(brake + 100).direction != RidingValues.Direction.REGEN_INFERRED, "the old connection's speed isn't compared with a new reading");
+    }
+    /** The floor above is only as good as the call: the screen must hand over the connection's own start. */
+    private static void screenPassesTheConnectionsTrueStart() {
+        try {
+            String screen = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/RidingScreen.java")), java.nio.charset.StandardCharsets.UTF_8);
+            check(screen.contains("setLinkGeneration(ble.connectionGeneration(), ble.connectionStartMs())"), "RidingScreen hands over the connection's own start");
+            String controller = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/BleController.java")), java.nio.charset.StandardCharsets.UTF_8);
+            check(controller.contains("++generation;generationStartMs=now();"), "BleController dates each new generation");
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
     }
 
     private static void unsignedCurrent() {

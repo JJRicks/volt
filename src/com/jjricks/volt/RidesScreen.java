@@ -432,6 +432,8 @@ public final class RidesScreen implements AppScreen {
         return new TextView[]{value, unit};
     }
     /** A small rounded status pill tinted with one colour, e.g. Disconnected or Direction ?. */
+    /** "Direction ?": also names a chart's power line while it plots a direction nobody measured. */
+    private static String directionUnconfirmedChip() { return T.ridesDirectionChipUnconfirmed(); }
     private TextView pill(String text, int color) {
         TextView pill = ui.text(text, 11.5f, false); pill.setTypeface(ui.semibold()); pill.setTextColor(color);
         pill.setGravity(Gravity.CENTER); pill.setMaxLines(1); pill.setPadding(ui.dp(9), ui.dp(3), ui.dp(9), ui.dp(3));
@@ -977,12 +979,12 @@ public final class RidesScreen implements AppScreen {
             for (RideChartData.Series s : selected) {
                 RideChartData.Value value = s.sampleAt(time);
                 LinearLayout cell = vertical(); cell.setMinimumWidth(ui.dp(124)); cell.setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6));
-                TextView label = ui.text((s.index % 3 == 0 ? MARK_SOLID : s.index % 3 == 1 ? MARK_DASH : MARK_DOT) + s.displayLabel(), 12, false);
+                TextView label = ui.text((s.index % 3 == 0 ? MARK_SOLID : s.index % 3 == 1 ? MARK_DASH : MARK_DOT) + s.notedLabel(), 12, false);
                 label.setSingleLine(true); cell.addView(label);
                 TextView reading = ui.text(RideChartView.sampleValue(s, value), 17, true); reading.setSingleLine(true); cell.addView(reading);
                 boolean available = value != null && value.value != null && Double.isFinite(value.value);
                 TextView stamp = ui.caption(available ? T.mapsChartCursorAt(RideChartView.sampleTime(value.time)) : "—"); stamp.setSingleLine(true); cell.addView(stamp);
-                cell.setContentDescription(T.ridesChartCellDescription(s.displayLabel(), (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample())));
+                cell.setContentDescription(T.ridesChartCellDescription(s.notedLabel(), (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample())));
                 inspection.addView(cell);
             }
         }
@@ -994,12 +996,13 @@ public final class RidesScreen implements AppScreen {
             data = prepared;
             choices.removeAllViews();
             for (RideChartData.Series series : data) {
+                series.directionNote = series.directionInferred ? directionUnconfirmedChip() : null;
                 CheckBox toggle = new CheckBox(host.activity()); toggle.setButtonDrawable(null); toggle.setMinHeight(ui.dp(48));
                 // Energy / distance exists only above walking pace; the chip says where, and the chart hatches the rest.
                 String limit = "wh_per_distance".equals(series.key) ? (miles() ? T.ridesChartChipFromMph() : T.ridesChartChipFromKmh()) : "";
-                toggle.setText((series.index % 3 == 0 ? MARK_SOLID : series.index % 3 == 1 ? MARK_DASH : MARK_DOT) + series.displayLabel() + limit + (series.available() ? "" : T.ridesChartChipNoData()));
+                toggle.setText((series.index % 3 == 0 ? MARK_SOLID : series.index % 3 == 1 ? MARK_DASH : MARK_DOT) + series.notedLabel() + limit + (series.available() ? "" : T.ridesChartChipNoData()));
                 toggle.setTextSize(12 * ui.textScale); toggle.setTypeface(ui.semibold()); toggle.setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8));
-                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription(WH_PER_DISTANCE.equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.displayLabel()) : T.ridesChartSeriesOnlyAtMphNoSamples(series.displayLabel())) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.displayLabel()) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.displayLabel()))) : (series.available() ? T.ridesChartSeries(series.displayLabel()) : T.ridesChartSeriesNoSamples(series.displayLabel())));
+                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription(WH_PER_DISTANCE.equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.displayLabel()) : T.ridesChartSeriesOnlyAtMphNoSamples(series.displayLabel())) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.displayLabel()) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.displayLabel()))) : (series.available() ? T.ridesChartSeries(series.notedLabel()) : T.ridesChartSeriesNoSamples(series.displayLabel())));
                 Runnable style = () -> { toggle.setTextColor(toggle.isChecked() ? ui.text : ui.muted); toggle.setBackground(ui.shape(toggle.isChecked() ? Ui.withAlpha(series.color, 50) : ui.raised, 12, toggle.isChecked() ? series.color : ui.outline)); };
                 style.run(); toggle.setOnCheckedChangeListener((button, checked) -> {
                     if (checked) chosen.add(series.key); else chosen.remove(series.key);
@@ -1082,7 +1085,7 @@ public final class RidesScreen implements AppScreen {
         // Section label with a Direction ✓ / ? chip that gives its reason on tap.
         LinearLayout energyHead = horizontal(); energyHead.setGravity(Gravity.CENTER_VERTICAL);
         energyHead.addView(ui.sectionLabel(T.ridesElectricalEnergy()));
-        TextView direction = pill(s.directionConfirmed ? T.ridesDirectionChipConfirmed() : T.ridesDirectionChipUnconfirmed(), s.directionConfirmed ? ui.ok : ui.orange);
+        TextView direction = pill(s.directionConfirmed ? T.ridesDirectionChipConfirmed() : directionUnconfirmedChip(), s.directionConfirmed ? ui.ok : ui.orange);
         // A 48dp touch target around a compact pill.
         direction.setBackground(new InsetDrawable(direction.getBackground(), 0, ui.dp(9), 0, ui.dp(9))); direction.setMinHeight(ui.dp(48));
         reasonOnTap(direction, s.directionConfirmed ? T.ridesDirectionConfirmed() : T.ridesDirectionUnconfirmed());

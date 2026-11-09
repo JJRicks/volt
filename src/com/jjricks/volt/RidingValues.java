@@ -262,11 +262,13 @@ final class RidingValues {
     Range range(String contentId, long nowMs) { RangeSource s = ranges.get(contentId); return s == null ? null : s.range(nowMs); }
 
     /**
-     * The connection the next snapshot comes from. A new one is an interruption the readings can't
-     * show when it is shorter than their gap rule, so the inference starts a new run of readings.
+     * The connection the next snapshot comes from, and when that connection began (not when a
+     * screen first saw it, because a snapshot can already hold readings from it). A new one is an
+     * interruption the readings can't show when it is shorter than their gap rule, so the
+     * inference starts a new run of readings; only readings measured by the start are the old link's.
      */
-    void setLinkGeneration(int generation, long nowMs) {
-        if (linkGeneration != NO_LINK_YET && generation != linkGeneration) { inferenceSegment++; inferenceFloorMs = Math.max(inferenceFloorMs, nowMs); }
+    void setLinkGeneration(int generation, long connectionStartMs) {
+        if (linkGeneration != NO_LINK_YET && generation != linkGeneration) { inferenceSegment++; inferenceFloorMs = Math.max(inferenceFloorMs, connectionStartMs); }
         linkGeneration = generation;
     }
 
