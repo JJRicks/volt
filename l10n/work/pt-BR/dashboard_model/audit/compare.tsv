@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN e proximidade	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	996eda6e86967aaabf5822e27a28b281b010b380
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN e proximidade	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	996eda6e86967aaabf5822e27a28b281b010b380
+dashboard_model_qa_experimental	Experimental controls	Experimental	Experimental	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	0b287d59e49a4c18b8a18807ccf247c114e06139
+dashboard_model_qa_experimental_short	Experimental controls	Experimental	Experimental	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	0b287d59e49a4c18b8a18807ccf247c114e06139
+dashboard_model_qa_charge_done_by	Charge done by	Pronta até	Ready by	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	ea9bb0b3a7f913cd35d5cd3adbe75023e94999b3
+dashboard_model_qa_charge_done_by_short	Charge done by	Pronta até	Ready by	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	ea9bb0b3a7f913cd35d5cd3adbe75023e94999b3
+dashboard_model_qa_charge_done_time	Charge done by time	Horário limite	Limit time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	474c14242d3367958d05e1c6a151d94ba0eb3f5b
+dashboard_model_qa_charge_done_time_short	Charge done by time	Horário limite	Limit time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	474c14242d3367958d05e1c6a151d94ba0eb3f5b
+dashboard_model_qa_group_experimental	Experimental controls	Controles experimentais	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	ce4f0158f6c464e031d649617885d82a5664d9f7
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Programação	Schedule	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	a85bc5c2f413989eb3039ad7ea4a345340838998
+dashboard_model_tile_measuring	Measuring	Medindo…	Measuring…	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	49dbb1ae4f20cb31fba5990d51eb857a2073f0ce
+dashboard_model_tile_on_at	On • %1$s	Ativado • %1$s	Activated • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	ad4fa841e974e745f1ec9549f77ff9d352072a54
+dashboard_model_tile_not_scheduled	Not scheduled	Não programado	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	34a6676048deac8902cf016887145addd5057551
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Selecione um patinete primeiro	Select a scooter first	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	a7708529a5c9ed1775d039a886eedafd0daf7e21
+dashboard_model_tile_connect_scooter	Connect your scooter first	Conecte o patinete primeiro	Connect the scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	52416809ac0d94dd46125ada26860705bf8b5f06
+dashboard_model_type_lock	Lock & connection	Bloqueio e conexão	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	204f06b96dc77ff4cf8b29b82414edefe2318d44
+dashboard_model_type_charging	Charging	Carregamento	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	6defe85d356714a4f283d7c90b01094d3c2ab453
+dashboard_model_type_lockbar	Lock bar	Barra de bloqueio	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	69e553725c65e9dfe1af68571a5427b7b84f44f3

@@ -47,7 +47,7 @@ public final class StatsScreen implements AppScreen {
     private final ScrollView scroll, sectionScroll, readingsScroll;
     /** True when the page shows two panes (sections left, Readings right) beside MainActivity's side rail. */
     private final boolean wide;
-    private static final int WIDE_DP = 650, RAIL_DP = 92;
+    private static final int RAIL_DP = 92;
     /** Pane scroll positions kept across a rebuild, as MainActivity keeps the phone page's scroll. */
     private static int savedSectionScroll, savedReadingsScroll;
     private final LinearLayout page, overviewSection, readingsSection, chartsSection, diagnosticsSection;
@@ -116,14 +116,14 @@ public final class StatsScreen implements AppScreen {
         chartFavourites = new LinkedHashSet<String>(preferences.getStringSet("stats_chart_favourites", new LinkedHashSet<String>()));
         query = preferences.getString("stats_query", "");
         int widthDp = host.activity().getResources().getConfiguration().screenWidthDp;
-        // Same trigger as MainActivity's side rail: the content area beside the rail is wide enough for two panes.
-        wide = widthDp >= WIDE_DP;
+        // Same rule as MainActivity's side rail (Ui.wideLayout: width over text scale), so panes appear exactly with it.
+        wide = ui.wideLayout();
         selectedSection = validSection(preferences.getString("stats_section", "Overview"));
         // Readings has its own pane when wide; a saved Readings tab opens Overview beside it (the saved choice is kept).
         if (wide && selectedSection.equals("Readings")) selectedSection = "Overview";
         overviewSection = vertical(); readingsSection = vertical(); chartsSection = vertical(); diagnosticsSection = vertical();
         String[] sections = wide ? WIDE_SECTIONS : SECTIONS;
-        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sections, choice -> selectSection(sections[choice]));
+        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sectionLabels(sections), choice -> selectSection(sections[choice]));
         sectionTabs.useCompactPadding();
         sectionTabs.setTag("live-stats-sections");
         sectionTabs.select(java.util.Arrays.asList(sections).indexOf(selectedSection), false);
@@ -191,7 +191,7 @@ public final class StatsScreen implements AppScreen {
         favouriteHeader.addView(reorderFavourites, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         overviewSection.addView(favouriteHeader);
         favouritesCard = ui.groupCard(); overviewSection.addView(favouritesCard);
-        favouritesHint = ui.text("☆ Star readings to pin here", 14, false);
+        favouritesHint = ui.text(T.statsFavouritesEmptyHint(), 14, false);
         favouritesHint.setTextColor(ui.muted); favouritesHint.setGravity(Gravity.CENTER);
         favouritesHint.setMinHeight(ui.dp(120)); favouritesHint.setPadding(ui.dp(20), ui.dp(22), ui.dp(20), ui.dp(22));
         GradientDrawable empty = new GradientDrawable(); empty.setColor(Ui.withAlpha(ui.surface, 140));
@@ -283,6 +283,15 @@ public final class StatsScreen implements AppScreen {
     }
     /** Whether the Readings section is on screen: always when wide, otherwise only as the selected tab. */
     private boolean readingsShown() { return wide || selectedSection.equals("Readings"); }
+    /** Each section's tab label, in SECTIONS order; the sections stay English ids (stored, compared). */
+    private static final int[] SECTION_LABELS = {T.STATS_TAB_OVERVIEW, T.STATS_TAB_READINGS, T.STATS_TAB_CHARTS, T.STATS_TAB_DIAGNOSTICS};
+    /** The tab labels for these section ids, rendered now in the current language. */
+    private static String[] sectionLabels(String[] sections) {
+        java.util.List<String> known = java.util.Arrays.asList(SECTIONS);
+        String[] labels = new String[sections.length];
+        for (int i = 0; i < sections.length; i++) labels[i] = T.render(SECTION_LABELS[known.indexOf(sections[i])]);
+        return labels;
+    }
     private static String validSection(String section) {
         for (String known : SECTIONS) if (known.equals(section)) return known;
         return "Overview";

@@ -1,0 +1,9 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+ui_battery_description_charging	Battery %1$s, charging	Batería %1$s, cargando	Battery %1$s, charging	claude-opus	claude-opus-5-5	530d0c75103c701c82bd48bec78a451d32dbe56c	62ea9752a913d963129ffaf4996aa30f2ae50d6d
+ui_battery_description_charging_caption	Battery %1$s, charging, %2$s	Batería %1$s, cargando, %2$s	Battery %1$s, charging, %2$s	claude-opus	claude-opus-5-5	98b1c731704dafa80704008a23689e08c2f4d6f5	1d2c57e497bf20045be8e29b004686b48e6b7c40
+ui_battery_description_charging_last_seen	Battery %1$s, charging, last seen reading	Batería %1$s, cargando, última lectura	Battery %1$s, charging, last reading	claude-opus	claude-opus-5-5	c740a9063867b32606120e2d2b8170ca1d9805fb	4f53385d6ac6d978c53ca59e020a1a647574df5b
+ui_battery_description_charging_last_seen_caption	Battery %1$s, charging, last seen reading, %2$s	Batería %1$s, cargando, última lectura, %2$s	Battery %1$s, charging, last reading, %2$s	claude-opus	claude-opus-5-5	26be04c989d1c479e778ac49bcf2f240cba47300	405e0a6620e4579308a74a6e9ce6437747e91671
+ui_battery_ring_charging	Charging	Cargando	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	1d3fabe6f0122a17ba48fb511abbdd628f17f433
+ui_battery_ring_charging_caption	Charging · %1$s	Cargando · %1$s	Charging · %1$s	claude-opus	claude-opus-5-5	af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa	88acc339ceeb7f5f8092de8b36aa4c0f56753970
+ui_drive_mode_walk	WALK	WALK	WALK	claude-opus	claude-opus-5-5	3d3deb53e35f87f97abfa11ce97215f57cb7b4ff	c15fa9990cb4a140eb21f1512dc60bd1be57e086

@@ -1,0 +1,18 @@
+# European Portuguese (pt-PT), shipped in values-pt, the base for every Portuguese phone that is not Brazilian. Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/pt-PT/); ships as beta.
+# percent_style takes no space (85%), as CLDR and NAVEE's Portuguese manual write it. decimal_style is an example of the separators: the group mark is a no-break space (U+00A0), and four-digit numbers take no separator in text (1234,5).
+field	value
+tag	pt-PT
+folder	values-pt
+endonym	Português (Portugal)
+wave	1
+status	beta
+formality	tu
+plurals	one,many,other
+quote_style	«…» “…”
+percent_style	%1$s%%
+decimal_style	12 345,6
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

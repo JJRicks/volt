@@ -115,7 +115,7 @@ public final class ChargingTest {
     private static void plurals() {
         for (long n : new long[]{0, 1, 2, 3, 11, 21, 100, 101}) {
             same("From " + n + " past charge" + (n == 1 ? "" : "s"), M.chargingEstimatePastCharges(n, n).english(), "past charges " + n);
-            same("Volt stopped watching after " + n + " hours. Open Volt to keep watching this charge.",
+            same("Volt stopped watching after " + n + (n == 1 ? " hour" : " hours") + ". Open Volt to keep watching this charge.",
                     M.chargingAlertTextTimeLimit(n, n).english(), "time limit " + n);
         }
     }

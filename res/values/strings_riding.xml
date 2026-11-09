@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riding mode (RidingScreen): the full-screen view for a phone mounted on the handlebars, and the RIDE
+  button on Home that opens it. Riding mode only reads from the scooter. It never locks, unlocks or
+  changes a setting, and it never shows the lock state (owner, Q16).
+
+  The numbers are large and fixed in size; the labels beside them follow the narrow-label ladder
+  (full, then short, then an icon where one is named), never a broken word or smaller text. Budgets
+  are for the label at its own size on a 344 dp wide phone.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Home's header button that opens riding mode, beside the edit pencil. Short and upper case like a
+         sign; on a narrow header only its speedometer icon shows. -->
+    <string name="riding_ride_button" volt:screen="Home header" volt:purpose="button" volt:ladder="full" volt:max="56dp@14sp">RIDE</string>
+    <!-- Spoken for the RIDE button. -->
+    <string name="riding_ride_description" volt:screen="Home header" volt:purpose="accessibility description">Open riding mode</string>
+    <!-- Spoken for riding mode's whole screen. -->
+    <string name="riding_screen_description" volt:screen="Riding mode" volt:purpose="accessibility description">Riding mode</string>
+    <!-- Spoken for the round back button at the top left that leaves riding mode. -->
+    <string name="riding_back" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Leave riding mode</string>
+
+    <!-- The status pill at the top while connected: %1$s is the drive mode as the scooter shows it ("ECO", "SPORT"). -->
+    <string name="riding_status_connected_mode" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">%1$s · Connected</string>
+    <string name="riding_status_connected_mode_short" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Connected</string>
+    <!-- The status pill (amber) while Volt reconnects to the scooter on its own. -->
+    <string name="riding_status_reconnecting" volt:screen="Riding mode status pill" volt:purpose="status" volt:max="210dp@17sp">Reconnecting…</string>
+    <!-- The status pill (amber) once the connection is gone: %1$s is how long ago the last reading came, "0:42" or "12:05". -->
+    <string name="riding_status_not_connected_seen" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">Not connected · last seen %1$s</string>
+    <string name="riding_status_not_connected_seen_short" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Last seen %1$s</string>
+    <string name="riding_status_not_connected_seen_compact" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="compact" volt:max="210dp@17sp">Not connected</string>
+    <!-- While a ride records, the status pill turns red with a recording dot and shows how long this
+         recording has run: %1$s is that time, "12:48" or "1:02:48". REC is the short form recorders show;
+         keep it short. Where it doesn't fit, the pill shows the time alone beside the dot. -->
+    <string name="riding_status_recording" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">REC %1$s</string>
+    <!-- The red recording pill while Volt reconnects to the scooter; the ride keeps recording. %1$s is the
+         recording's time, "12:48". Narrower rungs: riding_status_recording_reconnecting_short, then
+         riding_status_reconnecting alone. -->
+    <string name="riding_status_recording_reconnecting" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="210dp@17sp">REC %1$s · Reconnecting…</string>
+    <string name="riding_status_recording_reconnecting_short" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">%1$s · Reconnecting…</string>
+    <!-- The red recording pill once the connection is gone; the ride keeps recording until the auto-stop
+         saves it. %1$s is the recording's time, "12:48". Narrower rungs:
+         riding_status_recording_not_connected_short, then riding_status_not_connected_seen_compact alone. -->
+    <string name="riding_status_recording_not_connected" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="210dp@17sp">REC %1$s · Not connected</string>
+    <string name="riding_status_recording_not_connected_short" volt:screen="Riding mode status pill, recording" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">%1$s · Not connected</string>
+    <!-- After a recording stops, the status pill briefly confirms the ride was saved, then shows the
+         connection again. Narrower rung: riding_status_ride_saved_short. -->
+    <string name="riding_status_ride_saved" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">Ride saved</string>
+    <string name="riding_status_ride_saved_short" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Saved</string>
+    <!-- The same confirmation when Volt ended and saved the ride on its own (the scooter parked, went out
+         of reach, or stopped moving). Narrower rungs: riding_status_ride_saved_auto_short, then
+         riding_status_ride_saved_short. -->
+    <string name="riding_status_ride_saved_auto" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="210dp@17sp">Ride saved automatically</string>
+    <string name="riding_status_ride_saved_auto_short" volt:screen="Riding mode status pill, ride saved" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Ride saved</string>
+    <!-- Spoken for the recording pill in its first minute. %1$d is whole seconds. -->
+    <plurals name="riding_status_recording_spoken_seconds" volt:screen="Riding mode status pill, recording" volt:purpose="accessibility description">
+        <item quantity="one">Recording for %1$d second</item>
+        <item quantity="other">Recording for %1$d seconds</item>
+    </plurals>
+    <!-- Spoken for the recording pill after its first minute. %1$d is whole minutes in total, also past an
+         hour ("Recording for 72 minutes"). -->
+    <plurals name="riding_status_recording_spoken_minutes" volt:screen="Riding mode status pill, recording" volt:purpose="accessibility description">
+        <item quantity="one">Recording for %1$d minute</item>
+        <item quantity="other">Recording for %1$d minutes</item>
+    </plurals>
+    <!-- A red chip beside the status pill while the scooter reports a warning: %1$s is its number ("14"). -->
+    <string name="riding_warning_code" volt:screen="Riding mode status chip" volt:purpose="status" volt:ladder="full" volt:max="120dp@15sp">Scooter code %1$s</string>
+    <string name="riding_warning_code_short" volt:screen="Riding mode status chip" volt:purpose="status" volt:ladder="short" volt:max="120dp@15sp">Code %1$s</string>
+    <!-- Spoken for the warning chip: %1$s is the warning's number. -->
+    <string name="riding_warning_spoken" volt:screen="Riding mode status chip" volt:purpose="accessibility description">The scooter reports warning code %1$s</string>
+
+    <!-- Reading names above riding mode's big numbers. Each short rung is used when the full one does not fit. -->
+    <string name="riding_label_speed" volt:screen="Riding mode" volt:purpose="reading name" volt:max="140dp@15sp">Speed</string>
+    <string name="riding_label_power" volt:screen="Riding mode" volt:purpose="reading name" volt:max="140dp@15sp">Power</string>
+    <!-- Volt's live range: how far the battery lasts if the rider keeps riding as in the last half minute. -->
+    <string name="riding_label_range_at_pace" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="260dp@15sp">Range at this pace</string>
+    <string name="riding_label_range_at_pace_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Range</string>
+    <!-- Volt's learned range from the rider's past rides (not this ride's pace). -->
+    <string name="riding_label_range_volt" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="260dp@15sp">Volt\'s range</string>
+    <string name="riding_label_range_volt_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Range</string>
+    <!-- The range the scooter itself estimates and reports. -->
+    <string name="riding_label_range_scooter" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="260dp@15sp">Scooter\'s range</string>
+    <string name="riding_label_range_scooter_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Range</string>
+    <string name="riding_label_battery" volt:screen="Riding mode" volt:purpose="reading name" volt:max="140dp@15sp">Battery</string>
+    <!-- How far the scooter has gone since riding mode opened: this count starts from zero each time riding mode opens. -->
+    <string name="riding_label_trip" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:max="80dp@15sp">Trip</string>
+    <!-- The same distance spot while Volt is recording a ride, shown instead of Trip: how far since riding mode opened, counted from the recording, and also starting from zero each time riding mode opens. -->
+    <string name="riding_label_ride_distance" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:max="80dp@15sp">Ride</string>
+    <!-- Time since riding mode opened, on the phone's clock: it starts from zero each time riding mode opens. -->
+    <string name="riding_label_ride_time" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Ride time</string>
+    <string name="riding_label_ride_time_short" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Time</string>
+    <!-- Time since Volt started recording this ride; it can differ from the ride time. -->
+    <string name="riding_label_recording_time" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Recording</string>
+    <string name="riding_label_recording_time_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Rec.</string>
+    <string name="riding_label_average_speed" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Average speed</string>
+    <string name="riding_label_average_speed_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Avg</string>
+    <string name="riding_label_max_speed" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Max speed</string>
+    <string name="riding_label_max_speed_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Max</string>
+    <!-- Energy used per distance over the last 30 seconds; the short rung is the unit itself ("Wh/mi"). -->
+    <string name="riding_label_efficiency" volt:screen="Riding mode" volt:purpose="reading name" volt:max="80dp@15sp">Efficiency</string>
+    <!-- The unit of efficiency: %1$s is the distance unit ("mi" or "km"), "Wh/mi". -->
+    <string name="riding_unit_wh_per" volt:screen="Riding mode" volt:purpose="unit symbol">Wh/%1$s</string>
+    <!-- Battery energy used since riding mode opened. -->
+    <string name="riding_label_ride_energy" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Ride energy</string>
+    <string name="riding_label_ride_energy_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Energy</string>
+    <string name="riding_label_voltage" volt:screen="Riding mode" volt:purpose="reading name" volt:max="80dp@15sp">Voltage</string>
+    <string name="riding_label_current" volt:screen="Riding mode" volt:purpose="reading name" volt:max="80dp@15sp">Current</string>
+    <!-- The battery's temperature; on a narrow cell only a thermometer icon shows. -->
+    <string name="riding_label_battery_temperature" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Battery temperature</string>
+    <string name="riding_label_battery_temperature_short" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Batt. temp</string>
+    <string name="riding_label_drive_mode" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Drive mode</string>
+    <string name="riding_label_drive_mode_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Mode</string>
+    <!-- The phone's clock. -->
+    <string name="riding_label_clock" volt:screen="Riding mode" volt:purpose="reading name" volt:max="80dp@15sp">Clock</string>
+    <string name="riding_label_odometer" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Odometer</string>
+    <string name="riding_label_odometer_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Odo.</string>
+
+    <!-- Under the big speed when the speed is older than 6 seconds and shows as a dash: %1$s is the last speed with its unit, "18.4 mph". -->
+    <string name="riding_speed_last" volt:screen="Riding mode" volt:purpose="caption" volt:max="200dp@15sp">last %1$s</string>
+    <!-- Under the big watts while the scooter draws power: %1$s is this ride's highest draw, "780 W". -->
+    <string name="riding_power_draw_peak" volt:screen="Riding mode power readout" volt:purpose="caption" volt:ladder="full" volt:max="220dp@15sp">power · peak %1$s</string>
+    <string name="riding_power_draw_peak_short" volt:screen="Riding mode power readout" volt:purpose="caption" volt:ladder="short" volt:max="220dp@15sp">power</string>
+    <!-- Under the big watts while braking returns energy to the battery (regenerative braking): %1$s is this ride's strongest regen, "640 W". -->
+    <string name="riding_power_regen_peak" volt:screen="Riding mode power readout" volt:purpose="caption" volt:ladder="full" volt:max="220dp@15sp">regen · peak %1$s</string>
+    <string name="riding_power_regen_peak_short" volt:screen="Riding mode power readout" volt:purpose="caption" volt:ladder="short" volt:max="220dp@15sp">regen</string>
+    <!-- Under the big watts when the scooter does not say whether power flows out of or back into the battery. -->
+    <string name="riding_power_unknown" volt:screen="Riding mode power readout" volt:purpose="caption" volt:ladder="full" volt:max="220dp@15sp">power (direction unknown)</string>
+    <!-- Replaces the range number when the battery is nearly flat. -->
+    <string name="riding_range_almost_empty" volt:screen="Riding mode range" volt:purpose="value" volt:max="260dp@30sp">Almost empty</string>
+    <!-- Shown in place of a number that is missing, or a speed older than 6 seconds. -->
+    <string name="riding_no_value" volt:screen="Riding mode" volt:purpose="value">—</string>
+    <!-- An approximate number: %1$s is the number, "≈ 24". -->
+    <string name="riding_approx" volt:screen="Riding mode" volt:purpose="value">≈ %1$s</string>
+    <!-- A stopwatch time under an hour: %1$s is minutes, %2$s two-digit seconds, "12:48". -->
+    <string name="riding_clock_minutes" volt:screen="Riding mode" volt:purpose="value">%1$s:%2$s</string>
+    <!-- A stopwatch time of an hour or more: %1$s hours, %2$s two-digit minutes, %3$s two-digit seconds, "1:02:48". -->
+    <string name="riding_clock_hours" volt:screen="Riding mode" volt:purpose="value">%1$s:%2$s:%3$s</string>
+    <!-- Spoken for a reading: %1$s is its name, %2$s its value, "Speed, 18.4 mph". -->
+    <string name="riding_reading_spoken" volt:screen="Riding mode" volt:purpose="accessibility description">%1$s, %2$s</string>
+    <!-- Spoken for a reading that has no value yet: %1$s is its name. -->
+    <string name="riding_reading_spoken_none" volt:screen="Riding mode" volt:purpose="accessibility description">%1$s, no reading</string>
+    <!-- The layouts riding mode can show, by name (Focus, Halo, Trace). They describe the look, so translate them as words (owner, Q19 A). -->
+    <string name="riding_frame_focus" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Focus</string>
+    <string name="riding_frame_focus_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">Very large numbers in stacked rows</string>
+    <!-- Halo: the speed sits inside a ring like a speedometer's. -->
+    <string name="riding_frame_halo" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Halo</string>
+    <string name="riding_frame_halo_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">Speed inside a speedometer ring</string>
+    <!-- Trace: a live chart that traces speed and power. -->
+    <string name="riding_frame_trace" volt:screen="Riding mode layout picker" volt:purpose="option" volt:max="220dp@15sp">Trace</string>
+    <string name="riding_frame_trace_summary" volt:screen="Riding mode layout picker" volt:purpose="summary">A live chart of the last minute</string>
+    <!-- Title of the sheet that picks riding mode's layout. -->
+    <string name="riding_layout_title" volt:screen="Riding mode layout picker" volt:purpose="title">Layout</string>
+    <!-- Spoken for the round button in the top bar that opens the layout picker; it shows only while the scooter is stopped. -->
+    <string name="riding_layout_choose" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Choose a layout</string>
+
+    <!-- Under the speed in Halo's ring: %1$s is this ride's top speed with its unit, "22.1 mph". -->
+    <string name="riding_ring_max" volt:screen="Riding mode speed ring" volt:purpose="caption" volt:max="200dp@15sp">max %1$s</string>
+    <!-- Trace's chart key: the green area under the line, power flowing back into the battery while braking. -->
+    <string name="riding_trace_regen" volt:screen="Riding mode live chart" volt:purpose="legend" volt:max="80dp@14sp">Regen</string>
+    <!-- Trace's chart: the left end of the time axis, one minute ago. -->
+    <string name="riding_trace_start" volt:screen="Riding mode live chart" volt:purpose="label" volt:max="100dp@13sp">1 min ago</string>
+    <!-- Trace's chart: the right end of the time axis, the latest reading. -->
+    <string name="riding_trace_now" volt:screen="Riding mode live chart" volt:purpose="label" volt:max="60dp@13sp">now</string>
+    <!-- Spoken for Trace's chart. -->
+    <string name="riding_trace_description" volt:screen="Riding mode live chart" volt:purpose="accessibility description">Speed and power over the last minute</string>
+    <!-- The riding layout editor (opened from the tune button while stopped). Heading over the list of the frame's spots and what each one shows. -->
+    <string name="riding_editor_spots" volt:screen="Riding layout editor" volt:purpose="section heading">What each spot shows</string>
+    <!-- Heading over the frame's switches (power bar, chips, tenths). -->
+    <string name="riding_editor_options" volt:screen="Riding layout editor" volt:purpose="section heading">Options</string>
+    <!-- A button: puts the frame on show back to its shipped choices; %1$s is the frame's name, "Reset Halo to default". The other frames keep theirs. -->
+    <string name="riding_editor_reset" volt:screen="Riding layout editor" volt:purpose="button">Reset %1$s to default</string>
+    <!-- Spoken for a spot's row: %1$s is the spot, %2$s what it shows, "Big number, shows Speed". -->
+    <string name="riding_editor_spot_spoken" volt:screen="Riding layout editor" volt:purpose="accessibility description">%1$s, shows %2$s</string>
+    <!-- Spots: the places in a frame. The one huge number. -->
+    <string name="riding_spot_big" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Big number</string>
+    <!-- Halo's arc around the big number. -->
+    <string name="riding_spot_ring" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Ring</string>
+    <!-- The wide reading under the big number (Range at this pace by default). -->
+    <string name="riding_spot_highlight" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Highlight</string>
+    <!-- A regular reading cell; %1$s is its number, "Tile 2". -->
+    <string name="riding_spot_tile" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Tile %1$s</string>
+    <!-- One of Halo's small readings side by side in a strip; %1$s is its number, "Small reading 1". -->
+    <string name="riding_spot_strip" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Small reading %1$s</string>
+    <!-- A small rounded chip beside the gauges (drive mode, battery temperature, clock); %1$s is its number, "Chip 2". -->
+    <string name="riding_spot_chip" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Chip %1$s</string>
+    <!-- Trace's live chart across the screen. -->
+    <string name="riding_spot_chart" volt:screen="Riding layout editor" volt:purpose="label" volt:max="170dp@16sp">Chart</string>
+    <!-- What the ring can show: speed, with a tick at this ride's top speed. -->
+    <string name="riding_content_ring_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed + max</string>
+    <!-- What the chart can show: both lines, power only, or speed only. -->
+    <string name="riding_content_trace_speed_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed and power</string>
+    <string name="riding_content_trace_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Power only</string>
+    <string name="riding_content_trace_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed only</string>
+    <!-- A switch: the tall bar at the left edge that shows power. -->
+    <string name="riding_switch_power_bar" volt:screen="Riding layout editor" volt:purpose="switch">Power bar</string>
+    <string name="riding_switch_power_bar_summary" volt:screen="Riding layout editor" volt:purpose="summary">Left edge: red for power, green for regen</string>
+    <!-- A switch: the small chips (drive mode, battery temperature, clock). -->
+    <string name="riding_switch_chips" volt:screen="Riding layout editor" volt:purpose="switch">Chips</string>
+    <string name="riding_switch_chips_summary" volt:screen="Riding layout editor" volt:purpose="summary">Drive mode, battery temperature and the clock</string>
+    <!-- A switch: show speed and range to one decimal place (18.4 rather than 18). On by default (owner). -->
+    <string name="riding_switch_tenths" volt:screen="Riding layout editor" volt:purpose="switch">Tenths</string>
+    <string name="riding_switch_tenths_summary" volt:screen="Riding layout editor" volt:purpose="summary">Speed and range to one decimal place</string>
+</resources>

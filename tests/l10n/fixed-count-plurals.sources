@@ -1,0 +1,6 @@
+# The fixed-count strings turned into plurals (Home, the service, Rides and the More screen's
+# saved charge curves), English unchanged except the owner-approved singulars in
+# l10n/english-changes.tsv (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root. It reuses the
+# B8, B15 and B18 characterization copies, which their own .sources files list.
+tests/l10n/FixedCountPluralsTest.java

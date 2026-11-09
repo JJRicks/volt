@@ -88,8 +88,8 @@ final class QuickAccessGrid extends ViewGroup {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
             }
-            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : doneTime ? charge.timeBlockedReason
-                    : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason;
+            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : ChargeScheduleController.reasonText(doneTime ? charge.timeBlockedReason
+                    : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason);
             // An armed plan deliberately pauses charging; its own off action remains available.
             if (doneBy && charge != null && charge.doneByEnabled)
                 chargeBlocked = !live ? T.dashboardModelTileConnectScooter() : charge.busy ? T.commonWaitCurrentChange() : null;
@@ -333,15 +333,15 @@ final class QuickAccessGrid extends ViewGroup {
             ((LinearLayout.LayoutParams)label.getLayoutParams()).topMargin = ui.dp(compact ? 2 : 4);
             ((LinearLayout.LayoutParams)value.getLayoutParams()).topMargin = ui.dp(2);
             label.setTextSize((compact ? 11 : 12) * ui.textScale);
+            // Up to two lines of whole words, never a smaller size: the name, then its short rung, then the icon alone.
+            int room = width - getPaddingLeft() - getPaddingRight();
+            String full = entry.label().render(), brief = entry.shortLabel().render();
+            CharSequence rung = StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null;
+            if (rung == null) label.setVisibility(GONE);
+            else if (TileRung.needsSet(rung, label.getText())) label.setText(rung);
             value.setTextSize((compact ? 10 : 11) * ui.textScale);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-            // Two lines are preferred; long labels may grow instead of being truncated.
-            if (label.getLineCount() > 2) {
-                label.setTextSize(10 * ui.textScale);
-                measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-                        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-            }
         }
     }
 
@@ -430,15 +430,16 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles show short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
+    /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
-        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeScheduleShort();
+        Msg rung = TileShortLabels.forFeature(entry.featureKey);
+        if (rung != null) return rung.render();
         return entry.shortLabel().render();
     }
-    /** A Setting tile is announced by the full name (the label's room does not limit speech), or the two Scooter-page names. */
+    /** A Setting tile is announced by the full name (the label's room does not limit speech): Maximum speed in full, or Charge schedule. */
     private static String tileSpokenName(QuickAccessActions.Entry entry) {
-        if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.label().render();
     }

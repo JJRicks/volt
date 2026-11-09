@@ -54,6 +54,7 @@ public final class MoreMenuValidation extends Instrumentation {
             require((Boolean) field(more, "wide") == wide, "Expected the " + (wide ? "wide" : "phone") + " More layout at this size");
             screenshot(wide ? "wide-menu" : "phone-menu");
             aligned((LinearLayout) field(more, "sectionMenu"));
+            if (wide) longTitles(more);
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -88,6 +89,68 @@ public final class MoreMenuValidation extends Instrumentation {
         });
         require(rows.get() >= 4, "Menu card shows " + rows.get() + " rows");
         require(problem.get() == null, String.valueOf(problem.get()));
+    }
+    /**
+     * Wide only. The 20 dp gutter between the panes stays centred on the window, where a book-posture fold
+     * falls, even for a menu title with a long word. A word that fits only without the row's icon keeps two
+     * panes with the icon stepped aside; a word too long even then turns More into one pane. Neither breaks
+     * the word or moves the menu across the centre.
+     */
+    private void longTitles(Object more) throws Exception {
+        gutterCentred(more, "English titles");
+        Object row = labRow(more);
+        TextView title = (TextView) field(row, "title");
+        View icon = (View) field(row, "icon");
+        Object line = field(row, "view");
+        int[] room = new int[2];
+        main(() -> { room[0] = (Integer) invoke(line, "titleRoomWithIcon", new Class<?>[0]); room[1] = (Integer) invoke(line, "titleRoomAtMost", new Class<?>[0]); });
+        require(room[1] > room[0], "Lab row icon cannot step aside: room " + room[0] + " / " + room[1]);
+        String aside = word(title, (room[0] + room[1]) / 2);
+        main(() -> title.setText("Long " + aside)); settle();
+        require(more() == more && (Boolean) field(more, "wide"), "A word that fits without the icon must keep two panes");
+        main(() -> require(icon.getWidth() == 0, "The Lab row's icon did not step aside for " + aside.length() + " letters"));
+        wholeWords(title);
+        gutterCentred(more, "a word that fits only without the icon");
+        screenshot("wide-long-title");
+        String huge = word(title, room[1] + activity.ui().dp(40));
+        main(() -> title.setText("Long " + huge));
+        await(() -> more() != more, "A word too long even without the icon did not rebuild More"); settle();
+        Object onePane = more();
+        require(!(Boolean) field(onePane, "wide"), "A word too long even without the icon must give More one pane");
+        screenshot("wide-long-title-one-pane");
+    }
+    /** The Lab section's menu row, which has a plain (not numbered) icon. */
+    private Object labRow(Object more) {
+        String[] sections = (String[]) field(more, "SECTIONS"); Object[] rows = (Object[]) field(more, "menuRows");
+        for (int i = 0; i < sections.length; i++) if ("Lab".equals(sections[i]) && rows[i] != null) return rows[i];
+        throw new IllegalStateException("No Lab menu row");
+    }
+    /** A single word of repeated letters as wide as px in the title's paint. */
+    private String word(TextView title, int px) {
+        StringBuilder text = new StringBuilder("W");
+        while (title.getPaint().measureText(text.toString() + "m") <= px) text.append('m');
+        return text.toString();
+    }
+    private void wholeWords(TextView title) {
+        main(() -> {
+            android.text.Layout layout = title.getLayout(); CharSequence text = title.getText();
+            require(layout != null, "Title not laid out");
+            for (int lineIndex = 0; lineIndex + 1 < layout.getLineCount(); lineIndex++) {
+                int end = layout.getLineEnd(lineIndex);
+                require(end > 0 && Character.isWhitespace(text.charAt(end - 1)), "Title breaks a word: " + text);
+            }
+        });
+    }
+    /** The menu ends at least half the gutter before the window's centre and the submenu starts as far after it. */
+    private void gutterCentred(Object more, String label) {
+        View menu = (View) field(more, "menuScroll"), section = (View) field(more, "sectionScroll");
+        main(() -> {
+            int centre = activity.getWindow().getDecorView().getWidth() / 2, half = activity.ui().dp(10);
+            int[] at = new int[2]; menu.getLocationInWindow(at); int menuRight = at[0] + menu.getWidth();
+            section.getLocationInWindow(at); int sectionLeft = at[0];
+            require(menuRight <= centre - half + 1, "With " + label + " the menu ends at " + menuRight + ", past the centre " + centre + " minus half the gutter");
+            require(sectionLeft >= centre + half - 1, "With " + label + " the submenu starts at " + sectionLeft + ", before the centre " + centre + " plus half the gutter");
+        });
     }
     private TextView firstText(View view) {
         if (view instanceof TextView && ((TextView) view).getText().length() > 0) return (TextView) view;

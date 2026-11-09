@@ -252,18 +252,18 @@ class AuditTest(AuditBase):
         first = self.sidecar()["id"]
         rows = self.repo.read("l10n/work/es/common/audit/compare.tsv")
         # The same set under another model: refused.
-        self.assertEqual(self.compare(model="gpt-5.1"), 2)
+        self.assertEqual(self.compare(model="gpt-6.1-terra"), 2)
         self.assertIn("filed only under the model that wrote it", self.err.getvalue())
         # A new audit-prompt has its own reply folder, so nothing is there to adopt.
         paths = self.audit_prompts()
         self.assertNotEqual(self.sidecar()["id"], first)
-        self.assertEqual(self.compare(model="gpt-5.1"), 2)
+        self.assertEqual(self.compare(model="gpt-6.1-terra"), 2)
         self.assertIn("no usable reply", self.err.getvalue())
         self.assertEqual(self.repo.read("l10n/work/es/common/audit/compare.tsv"), rows)
         self.back(paths[0], {"common_alarm_on": "Alarm on, says the second reader"})
-        self.assertEqual(self.compare(model="gpt-5.1"), 0)
+        self.assertEqual(self.compare(model="gpt-6.1-terra"), 0)
         row = self.compared()[("claude-opus", "common_alarm_on")]
-        self.assertEqual((row["model"], row["back-translation"]), ("gpt-5.1", "Alarm on, says the second reader"))
+        self.assertEqual((row["model"], row["back-translation"]), ("gpt-6.1-terra", "Alarm on, says the second reader"))
 
     def test_rewriting_an_unanswered_audit_prompt_keeps_the_set(self):
         self.drafted()
@@ -290,9 +290,9 @@ class AuditTest(AuditBase):
         self.drafted()
         for path in self.audit_prompts():
             self.back(path)
-        self.assertEqual(self.compare(model="gpt-5.1"), 0)
+        self.assertEqual(self.compare(model="gpt-6.1-terra"), 0)
         last = translib.read_jsonl(self.paths.work("es", "common", "runs.jsonl"))[-1]
-        self.assertEqual((last["stage"], last["provider"], last["model"]), ("audit-compare", "other", "gpt-5.1"))
+        self.assertEqual((last["stage"], last["provider"], last["model"]), ("audit-compare", "other", "gpt-6.1-terra"))
 
     def test_a_lone_surrogate_leaves_the_record_whole(self):
         self.drafted()
@@ -365,10 +365,10 @@ class AuditTest(AuditBase):
         self.assertEqual(sorted(k for _, k in self.compared()), sorted(set(SAFETY) - {"common_lock_waiting"}))
 
     def test_never_the_councils_back_translation(self):
-        self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})
+        self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH), "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})
         self.drafted()
-        self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-5.1")
-        self.main("draft", "google", "--tag", "es", "--area", "common", "--model", "gemini-3-pro")
+        self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-6.1-terra")
+        self.main("draft", "google", "--tag", "es", "--area", "common", "--model", "gemini-3.8-flash")
 
         def outcomes():
             rows, pending, _ = council.decide(self.paths, "es", "common", use_java=False)
@@ -442,7 +442,7 @@ class DraftsStatusTest(AuditBase):
         self.drafted()
         self.assertEqual(self.status("--name", "other")["areas"]["common"]["drafted"], 0)
         self.assertEqual(self.status("--name", "opus")["areas"]["common"]["drafted"], 11)
-        translib.write_draft(self.paths.work("es", "ble", "drafts", "openai.xml"), "openai", "gpt-5.1", [])
+        translib.write_draft(self.paths.work("es", "ble", "drafts", "openai.xml"), "openai", "gpt-6.1-terra", [])
         self.assertEqual(self.status()["areas"]["ble"]["drafted"], 0)
 
     def test_it_never_writes(self):

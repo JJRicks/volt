@@ -13,7 +13,8 @@ import java.util.Random;
  *  - CompatibilityLabels.field prints CompatibilityReport.fieldLabel for every offset and layer, and follows the
  *    source, while fieldLabel stays English;
  *  - the panel's journal note is TestJournal.UNAVAILABLE_NOTE in English;
- *  - the "in English" lines stay empty while Volt is English (so English screens are unchanged);
+ *  - the "in English" lines stay empty while Volt is English or the language isn't shipped (so English screens
+ *    are unchanged), and show in every shipped language;
  *  - the counts and the plural print what the source printed at every quantity.
  * "Follows the source" is checked with a key-echo source that answers every id with its marked key.
  */
@@ -23,11 +24,16 @@ public final class CompatibilityDisplayTest {
     private static final long SEEN = 100000, NOW = SEEN + 1000, WALL = 1700000000000L;
 
     /** Answers every id with its key between marks, and says the text is Spanish. */
-    private static final T.Source ECHO = new T.Source() {
-        @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
-        @Override public String plural(int id, long quantity) { return "⟦" + T.key(id) + "⟧"; }
-        @Override public String language() { return "es"; }
-    };
+    private static final T.Source ECHO = echo("es");
+
+    /** A key-echo source that says its text is in the given language. */
+    private static T.Source echo(String language) {
+        return new T.Source() {
+            @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
+            @Override public String plural(int id, long quantity) { return "⟦" + T.key(id) + "⟧"; }
+            @Override public String language() { return language; }
+        };
+    }
 
     public static void main(String[] args) throws Exception {
         T.install(null);
@@ -42,9 +48,18 @@ public final class CompatibilityDisplayTest {
                     "the in-English lines' English");
             plurals();
             walks();
-            T.install(ECHO);
-            // An unshipped language (Spanish is not beta or stable yet) keeps every screen English, these lines too.
-            check(UpdateCheck.notesLanguageNote().isEmpty() && Fmt.legacy(), "no release-notes language line while no language ships");
+            // A language Volt doesn't ship (no l10n/lang file, or one still draft) keeps every screen English, these
+            // lines too. "zz" never has a lang file.
+            T.install(echo("zz"));
+            check(UpdateCheck.notesLanguageNote().isEmpty() && Fmt.legacy(), "no release-notes language line for a language Volt doesn't ship");
+            // A shipped language (beta or stable) formats as itself and says the release notes stay English.
+            for (int i = 0; i < AppLanguages.size(); i++) {
+                String tag = AppLanguages.tag(i);
+                if (!AppLanguages.shipped(i) || AppLanguages.ENGLISH.equals(tag)) continue;
+                T.install(echo(tag));
+                check(!Fmt.legacy() && UpdateCheck.notesLanguageNote().equals(T.compatUpdateNotesInEnglish()),
+                        "the release-notes language line in " + tag);
+            }
         } finally {
             T.install(null);
         }
@@ -68,12 +83,25 @@ public final class CompatibilityDisplayTest {
         for (String token : new String[]{null, "", "ok", "REJECTED", "rejected_256", "readback_different"}) equal("", GuidedTest.Outcome.label(token), "label(" + token + ")");
     }
 
+    /**
+     * Panel names the owner-approved D3 terms renamed (l10n/english-changes.tsv), from the report's English
+     * fieldLabel, which stays as it was. Every other panel name is its fieldLabel.
+     */
+    private static final String[][] RENAMED = {{"Ambient light", "Line pattern"}, {"Auto lock time", "Lock duration"}, {"Auto sensor", "Automatic lights"}, {"Drive light", "Star pattern"}, {"Drive speed limit", "Drive mode speed limit"}, {"Driving mode", "Drive mode"}, {"Eco light", "Line colors"}, {"Low power", "Low Battery Mode"}, {"Overspeed control", "Overspeed active control"}, {"Proximity key", "Proximity unlock"}, {"Slope assist", "Assist settings"}, {"Sport light", "Star colors"}, {"Start speed", "Kick-start speed"}, {"Timed charging", "Scheduled charging"}, {"Turn sound", "Turn signal sound"}, {"Tyre reminder", "Tire reminder"}, {"Volume", "Audio"}};
+
+    private static String shownName(String english) {
+        for (String[] r : RENAMED) if (r[0].equals(english)) return r[1];
+        return english;
+    }
+
     private static void fields() {
+        java.util.Set<String> renamed = new java.util.HashSet<>();
         for (ModelRegistry.Layer layer : ModelRegistry.Layer.values()) {
             for (int offset = -3; offset <= 70; offset++) {
                 T.install(null);
                 String english = CompatibilityReport.fieldLabel(offset, layer);
-                equal(english, CompatibilityLabels.field(offset, layer), "field(" + offset + ", " + layer + ")");
+                if (!shownName(english).equals(english)) renamed.add(english);
+                equal(shownName(english), CompatibilityLabels.field(offset, layer), "field(" + offset + ", " + layer + ")");
                 T.install(ECHO);
                 equal(english, CompatibilityReport.fieldLabel(offset, layer), "fieldLabel(" + offset + ", " + layer + ") stays English");
                 String shown = CompatibilityLabels.field(offset, layer);
@@ -81,14 +109,15 @@ public final class CompatibilityDisplayTest {
             }
         }
         T.install(null);
+        check(renamed.size() == RENAMED.length, "every renamed panel name is a report field: " + renamed.size() + " of " + RENAMED.length);
     }
 
     /** The English plurals print what the code before B9 printed, at every quantity English and the tests use. */
     private static void plurals() {
         for (long n : new long[]{0, 1, 2, 3, 4, 5, 11, 12, 21, 22, 25, 100, 101, 111, 1000000}) {
-            equal(n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
-            equal(n + " minutes ago", T.compatAgeMinutes(n, n), "minutes ago at " + n);
-            equal("Too short (" + n + " bytes)", T.compatReadTooShort(n, n), "too short at " + n);
+            equal(n == 1 ? "1 unfinished test on another scooter. Select it to review." : n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
+            equal(n + (n == 1 ? " minute ago" : " minutes ago"), T.compatAgeMinutes(n, n), "minutes ago at " + n);
+            equal("Too short (" + n + (n == 1 ? " byte)" : " bytes)"), T.compatReadTooShort(n, n), "too short at " + n);
         }
     }
 

@@ -16,11 +16,12 @@ Checks, per key (a plural is checked per quantity):
   source        the entry's volt:src is the hash of the current English (check_draft only; the
                 council drops such entries before every other step)
   kind          the draft has a string where English has a string, plurals where it has plurals
-  empty         no empty text where English has text
+  empty         no empty text where English has text; spaces and invisible characters alone are empty
   placeholders  the same %n$ placeholders with the same conversions, and %% where English has it;
                 only positional forms and %%; a plural category that covers more than one number
                 (every one but n=1-only "one" and the like) keeps the count
-  numbers       every number written in the English appears in the target (any script's digits)
+  numbers       every number written in the English appears in the target (any script's digits;
+                "1,024" in the English may be 1024, 1.024, 1,024 or 1 024 with a space, U+00A0 or U+202F)
   plurals       every CLDR category the language needs is present
   escapes       the draft's spelling is one aapt stores exactly (apostrophes, quotes, escapes), and
                 there are no control characters
@@ -33,16 +34,21 @@ Checks, per key (a plural is checked per quantity):
                 next to words that make it unlock or remove the lock is not found (warn; error for a
                 safety term in a safety key). A term found only inside a longer term ("Lock" in "Lock
                 duration") is not required on its own, and a setting value ("Off", an Energy recovery
-                level) only where it has that sense (translib.glossary_hits)
+                level) or "Stop to change" only where it has that sense (translib.glossary_hits)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
-  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
+  width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py); a
+                budget with *N lines fits when a greedy whole-word wrap takes at most N lines. A full
+                rung marked volt:overflow="short" that does not fit only warns when its group's _short
+                rung, which the screen shows there instead, fits the full's budget (check_targets)
   polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
                 added where the English has none (on -> "no activada"); per-language lexicons in
                 lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-"); and
                 an English on or off state not drafted as only the other state's words
-                (lexicon.STATE_WORDS, first-wave languages: "Lock: on" -> "Sperre: aus")
+                (lexicon.STATE_WORDS, first-wave languages and nb, hu, ro, hr, tr, ru: "Lock: on" ->
+                "Sperre: aus"); in tr a lock key that calls the lock open or closed ("Kilit: açık",
+                lexicon.LOCK_STATE_TRAP)
   script        no letters from another script, except words copied from the English (any case,
                 hyphen-aware); a Latin acronym or a loan in LATIN_LOANS (App, Wi-Fi) only warns
   untranslated  the target is not just the English (warn)
@@ -52,14 +58,16 @@ Limits. These checks are a first filter, not the guarantee. They catch the mecha
 common meaning faults by word lists: a missing glossary term (Unlock has its own term, so an unlock
 key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
-removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
-ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
-as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
+removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, ro, de, nl, pl, sv, nb, fi, hu,
+hr, tr, id, ru, uk, el, ja, zh), negation dropped or added where the language has a list, an
+English "never" drafted as always (lexicon.NEVER_WORDS: pl), and an on or off state drafted as the
+other in the first-wave languages and nb, hu, ro, hr, tr, ru (lexicon.STATE_WORDS). Known gaps: a
+removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
 text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
 where polarity only warns; English that itself says off or remove (the removal context is skipped);
-on or off said with a word not in STATE_WORDS, in a later-wave language (no state list), or in a
+on or off said with a word not in STATE_WORDS, in a later-wave language with no state list, or in a
 target that has both states' words; a negation further from the state word than the word right
 before it or one copula or particle between (lexicon.STATE_NEGATION_GAP: "no se encuentra activa");
 an -s or -ing lock verb inside a longer term ("Lock duration: time before locking"), where only the
@@ -110,10 +118,11 @@ EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|u
 # Glossary terms that are the lock itself (Lock, Locked, Lock bar, electronic lock; not unlock): only
 # these get the opposite-term and lock-removed contexts (lexicon.OPPOSITE_CONTEXT, REMOVAL_CONTEXT).
 LOCK_TERM = re.compile(r"(?<![a-z])lock", re.IGNORECASE)
-# English that itself turns something off or removes it: then "Desactivar el bloqueo" may be right,
-# so the lock-removed context is not applied.
+NAMES_LOCK = re.compile(r"(?<![a-z])(?:un)?lock", re.IGNORECASE)
+# English that itself turns something off, removes it or unlocks: then "Desactivar el bloqueo" or
+# "Odblokuj zablokowaną hulajnogę" may be right, so the lock-removed context is not applied.
 EN_REMOVAL = re.compile(r"(?<![a-z])(?:off|disabl\w*|remov\w*|releas\w*|lift\w*|clear\w*|cancel\w*|"
-                        r"deactivat\w*|delet\w*|open\w*|end|ends|ended|ending|turn\w*\s+off|switch\w*\s+off)"
+                        r"deactivat\w*|delet\w*|open\w*|unlock\w*|end|ends|ended|ending|turn\w*\s+off|switch\w*\s+off)"
                         r"(?![a-z])", re.IGNORECASE)
 
 # English words whose translation often carries a negating prefix ("off" -> "desactivada").
@@ -131,6 +140,7 @@ EN_SAYS_OFF = re.compile(r"(?<![a-z])(?:off|disabl(?:e|ed|es)|inactive|deactivat
                           r"(?![a-z])", re.IGNORECASE)
 # Negation words that are also ordinary words (French "personne" is "person", Arabic "دون" is also
 # "below", Urdu "بنا" is also "made"): not counted as added.
+BLANK_LETTERS = "\u115f\u1160\u2800\u3164\uffa0"  # Hangul fillers and the blank Braille pattern
 AMBIGUOUS_NEGATION = {"fr": {"personne"}, "ar": {"دون"}, "ur": {"بنا"}}
 
 NEGATION = lexicon.NEGATION
@@ -181,6 +191,33 @@ def placeholder_specs(text):
 
 def strip_placeholders(text):
     return gen_catalog.PLACEHOLDER.sub(" ", text)
+
+
+# An English number with comma thousands groups ("1,024", "12,345.6"): one number, not 1 and 024.
+ENGLISH_GROUPED = re.compile(r"(?<![0-9])(?<![0-9],)[0-9]{1,3}(?:,[0-9]{3})+(?![0-9])(?!,[0-9])")
+# The same number in a translation, grouped by one separator throughout: . , space, U+00A0 or U+202F.
+TARGET_GROUPED = re.compile(r"(?<!\d)(?<!\d[., \u00a0\u202f])\d{1,3}([., \u00a0\u202f])\d{3}(?:\1\d{3})*(?!\d)(?!\1\d)")
+
+
+def ascii_digits(text):
+    return "".join(str(unicodedata.digit(ch)) for ch in text if unicodedata.category(ch) == "Nd")
+
+
+def compare_numbers(reference, text):
+    """(lost, added): Counters of the English's numbers missing from text, and of text's not in it.
+
+    A number the English writes with comma thousands groups counts as one number, and the target may
+    write the same value with no separator or grouped by . , space, U+00A0 or U+202F (Spanish style
+    wants "1024"). Only such values are read whole in the target; any other digits are compared run by
+    run as before, so a decimal comma still matches an English decimal point.
+    """
+    grouped = set(m.group(0).replace(",", "") for m in ENGLISH_GROUPED.finditer(reference))
+    source = collections.Counter(numbers(ENGLISH_GROUPED.sub(lambda m: m.group(0).replace(",", ""), reference)))
+    if grouped:
+        text = TARGET_GROUPED.sub(
+            lambda m: ascii_digits(m.group(0)) if ascii_digits(m.group(0)) in grouped else m.group(0), text)
+    target = collections.Counter(numbers(text))
+    return source - target, target - source
 
 
 def numbers(text):
@@ -240,12 +277,13 @@ def target_negation(primary, text, stems=()):
     return found, prefixed, native
 
 
-def glossary_targets(entry):
-    """Every approved target form of the entry's glossary hits, lower case, whole words only."""
+def glossary_targets(entry, primary=None):
+    """Every approved target form of the entry's glossary hits, in the language's lower case
+    (lexicon.lower_for), whole words only."""
     out = set()
     for hit in entry.get("glossary") or []:
         for target in hit.get("target") or []:
-            out.update(w.lower() for w in WORD.findall(target))
+            out.update(lexicon.lower_for(primary, w) for w in WORD.findall(target))
     return out
 
 
@@ -264,6 +302,11 @@ def fixed_tokens(text):
         for m in pattern.finditer(text):
             counts[m.group(0)] += 1
     return counts
+
+
+def is_blank(text):
+    """Nothing a person could read: only spaces, invisible format characters ("\\u200b") and blank letters."""
+    return all(ch.isspace() or unicodedata.category(ch)[0] in "ZC" or ch in BLANK_LETTERS for ch in text)
 
 
 def _items(kind, value):
@@ -307,7 +350,7 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
     for quantity, text in items.items():
         q = quantity if kind == "plural" else None
         reference = source.get(quantity, english_other)
-        if not text.strip() and reference.strip():
+        if is_blank(text) and reference.strip():
             out.append(finding("empty", ERROR, "empty text", q))
             continue
         for ch in text:
@@ -339,12 +382,20 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
         elif text.count("%") != reference.count("%"):
             out.append(finding("placeholders", WARN, "a different number of % signs (formatted=\"false\")", q))
         # numbers
-        source_numbers = collections.Counter(numbers(strip_placeholders(reference) if formatted else reference))
-        target_numbers = collections.Counter(numbers(strip_placeholders(text) if formatted else text))
-        lost = source_numbers - target_numbers
+        lost, added = compare_numbers(strip_placeholders(reference) if formatted else reference,
+                                      strip_placeholders(text) if formatted else text)
+        if lost["1"] and kind == "plural" and formatted and quantity not in single_number_categories(language["tag"]):
+            count = set(placeholder_specs(english_other))
+            # Only a 1 that stands where the English other form has its count is the spelled-out count: a 1
+            # both forms share ("after 1 minute") is a fixed value and must still appear.
+            spelled = compare_numbers(strip_placeholders(reference), strip_placeholders(english_other))[0]
+            if spelled["1"] and count - set(placeholder_specs(reference)) and count <= set(placeholder_specs(text)):
+                # The English spells this form's count as 1 ("1 widget"). Here the form covers more than one
+                # number, so it must keep the count placeholder (above), and that placeholder stands for the 1.
+                lost.subtract({"1": 1})
+                lost = +lost
         if lost:
             out.append(finding("numbers", ERROR, "numbers %s from the English are missing" % _list(lost.elements()), q))
-        added = target_numbers - source_numbers
         if added:
             out.append(finding("numbers", WARN, "numbers %s are not in the English" % _list(added.elements()), q))
         # dnt and markup
@@ -372,8 +423,14 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
             out.append(finding("whitespace", WARN, "%d line breaks in the English, %d in the target" % (
                 reference.count("\n"), text.count("\n")), q))
         # glyphs
+        for problem in fallback_symbol_problems(text):
+            out.append(finding("glyphs", ERROR, problem, q))
+        for ch in sorted(FALLBACK_ALLOWED):
+            if text.count(ch) != reference.count(ch):
+                out.append(finding("glyphs", ERROR, "%d of %s in the English, %d in the target; keep each mark as the "
+                                   "English has it" % (reference.count(ch), _chars([ch]), text.count(ch)), q))
         if language.get("font") == "saira" and font is not None:
-            missing = [ch for ch in font.missing(text) if ch != "\ufffc"]
+            missing = [ch for ch in font.missing(text) if ch != "\ufffc" and ch not in FALLBACK_ALLOWED]
             spaces = [ch for ch in missing if unicodedata.category(ch) in ("Zs", "Cf")]
             hard = [ch for ch in missing if ch not in spaces]
             if hard:
@@ -407,13 +464,59 @@ def _list(values):
     return ", ".join(values) if values else "none"
 
 
+# tests/l10n/GlyphCoverageTest.FALLBACK_SYMBOLS, the reviewed list of symbols no Saira weight has that
+# Android's fallback font draws as plain text (l10n/README, "Glyph coverage"); test_check.py keeps the two
+# lists equal. True marks an emoji-capable symbol, which U+FE0E must follow directly.
+FALLBACK_SYMBOLS = {"\u2713": False, "\u26a0": True, "\u2606": False, "\u2605": False}
+TEXT_STYLE = "\ufe0e"
+FALLBACK_ALLOWED = frozenset(FALLBACK_SYMBOLS) | {TEXT_STYLE}
+
+
+def fallback_symbol_problems(text):
+    """The rules GlyphCoverageTest holds the catalog to, in every language, for one draft: an emoji-capable
+    fallback symbol needs U+FE0E directly after it, and U+FE0E goes nowhere else."""
+    problems = []
+    for i, ch in enumerate(text):
+        following = text[i + 1] if i + 1 < len(text) else ""
+        if FALLBACK_SYMBOLS.get(ch) and following != TEXT_STYLE:
+            problems.append("%s needs U+FE0E directly after it, or a phone may draw it as a colour emoji" % _chars([ch]))
+        elif ch == TEXT_STYLE and not (i > 0 and FALLBACK_SYMBOLS.get(text[i - 1])):
+            problems.append("U+FE0E belongs only directly after an emoji-capable symbol (%s)" % _chars(
+                [c for c, emoji in FALLBACK_SYMBOLS.items() if emoji]))
+    return problems
+
+
 def _chars(chars):
     return ", ".join("%r (U+%04X)" % (ch, ord(ch)) for ch in chars)
 
 
 def _polarity(language, reference, text, safety, q, entry=None):
     """Negation kept or not added (_negation), and an on or off state not inverted (_state)."""
-    return _negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q)
+    return (_negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q) +
+            _lock_state_trap(language, text, q, entry))
+
+
+def _lock_state_trap(language, text, q, entry):
+    """The lock word next to a bare open or closed in a lock key (lexicon.LOCK_STATE_TRAP): "Kilit: açık"
+    reads as unlocked whatever the English says, so it is an error also when the English says "on"."""
+    primary = language["tag"].split("-")[0]
+    trap = lexicon.LOCK_STATE_TRAP.get(primary)
+    if not trap or "lock" not in ((entry or {}).get("safety") or []):
+        return []
+    m = trap.search(lexicon.normalize(text, primary))
+    if not m:
+        return []
+    return [finding("polarity", ERROR, "%r says the lock is open or closed, not that a setting is on or off" %
+                    m.group(0), q)]
+
+
+def _english_state(reference):
+    """(on match, off match) of an English that says just one of them with no negation, or None."""
+    plain, un = english_negation(reference)
+    english_on, english_off = EN_SAYS_ON.search(reference), EN_SAYS_OFF.search(reference)
+    if plain or un or bool(english_on) == bool(english_off):
+        return None
+    return english_on, english_off
 
 
 def _state(language, reference, text, safety, q):
@@ -423,10 +526,10 @@ def _state(language, reference, text, safety, q):
     found = lexicon.state_words(language["tag"].split("-")[0], text)
     if found is None:
         return []
-    plain, un = english_negation(reference)
-    english_on, english_off = EN_SAYS_ON.search(reference), EN_SAYS_OFF.search(reference)
-    if plain or un or bool(english_on) == bool(english_off):
+    stated = _english_state(reference)
+    if stated is None:
         return []
+    english_on, english_off = stated
     on, off = found
     english, wrong, right = (english_on, off, on) if english_on else (english_off, on, off)
     if wrong and not right:
@@ -451,12 +554,19 @@ def _negation(language, reference, text, safety, q, entry=None):
         if plain or un:
             return [finding("polarity", WARN, "no negation word list for %s; the judge checks polarity" % primary, q)]
         return []
-    stems = glossary_targets(entry)
+    stems = glossary_targets(entry, primary)
     found, prefixed, native = target_negation(primary, text, stems)
     if plain or un:
-        if plain and not found:
+        # cs and sk join "ne" to the verb ("nepotvrdila"): there a native negated word keeps the
+        # English "not" too. A ne- word the English lacks still only warns: "neplatný" (invalid) and
+        # "nesprávné" (wrong) are ordinary adjectives, as in the other languages.
+        joined = primary in lexicon.JOINED_VERB_NEGATION and native
+        if plain and not found and not joined:
             return [finding("polarity", severity, "the English says %s; the target has no negation word" %
                             ", ".join(repr(w) for w in plain[:3]), q)]
+        inverted = _never_inverted(primary, reference, plain, text)
+        if inverted:
+            return [finding("polarity", severity, inverted, q)]
         if un and not plain and not found:
             approved = [w for w in prefixed if w in stems] + native
             if safety and not approved:
@@ -490,6 +600,20 @@ def _negation(language, reference, text, safety, q, entry=None):
         return [finding("polarity", WARN, "the English says %s; check the target is not the opposite" % ", ".join(
             repr(w) for w in sorted(opposite & EN_STATE_OFF)), q)]
     return []
+
+
+def _never_inverted(primary, reference, plain, text):
+    """Why a target does not keep an English "never" (lexicon.NEVER_WORDS), or None."""
+    if "never" not in plain or primary not in lexicon.NEVER_WORDS:
+        return None
+    needed, opposite = lexicon.NEVER_WORDS[primary]
+    tokens = set(lexicon.tokens(lexicon.negation_text(primary, text)))
+    always = [w for w in tokens & opposite if not re.search(r"(?<![a-z])always(?![a-z])", reference, re.IGNORECASE)]
+    if always:
+        return "the English says 'never'; the target says %s" % ", ".join(repr(w) for w in sorted(always))
+    if not tokens & needed:
+        return "the English says 'never'; the target has neither %s" % " nor ".join(repr(w) for w in sorted(needed))
+    return None
 
 
 def english_opposite_words(text):
@@ -531,19 +655,101 @@ def _script(language, english, entry, text, q):
     return out
 
 
+# English phrases that use a glossary term's word in another sense: "Try" is the experimental
+# action ("Try this control"), while "try again" is an ordinary retry ("Tap Read PIN status to try
+# again"). Where every use of the word is such a phrase, the term's target is not required.
+NOT_THE_TERM = {"try": re.compile(r"(?<![a-z])(?:try|tries|tried|trying)\s+again(?![a-z])", re.IGNORECASE)}
+
+
+def _terms_in(entry, reference):
+    """The entry's glossary hits this English needs translated, in order."""
+    hits = [h for h in entry.get("glossary") or [] if not translib.used_in_another_sense(h["term"], reference)]
+    names = [h["term"] for h in hits]
+    for hit in hits:
+        other_sense = NOT_THE_TERM.get(hit["term"].lower())
+        text = other_sense.sub(" ", reference) if other_sense else reference
+        if hit.get("dnt") or not translib.term_pattern(hit["term"], hit.get("safety") == "lock").search(text):
+            continue
+        if translib.nested_in_longer(hit["term"], names, reference):
+            continue  # "Lock" in "Lock duration": the longer term's translation is required
+        yield hit
+
+
+def safety_terms_without_target(entry):
+    """Safety terms of a safety key with no approved target, for which _glossary can check nothing.
+
+    The council has a judge behind that gap. A caller with no judge must not trust such a text.
+    """
+    if not entry.get("safety"):
+        return []
+    found = []
+    for reference in _items(entry["kind"], entry["english"]).values():
+        for hit in _terms_in(entry, reference):
+            if hit.get("safety") and not hit.get("target") and hit["term"] not in found:
+                found.append(hit["term"])
+    return found
+
+
+def word_lists_missing(primary):
+    """The word lists a safety key's meaning checks need that this language does not have."""
+    missing = []
+    if not has_negation_list(primary):
+        missing.append("NEGATION")
+    if primary not in lexicon.REMOVAL_CONTEXT and primary not in lexicon.REMOVAL_AROUND:
+        missing.append("REMOVAL_CONTEXT")
+    if primary not in lexicon.STATE_WORDS:
+        missing.append("STATE_WORDS")
+    return missing
+
+
+def safety_checks_without_list(entry, language):
+    """Word lists this safety key would be checked against, which the language lacks.
+
+    Without NEGATION any added or dropped negation only warns ("No bloquejat" for "Locked"). Without
+    REMOVAL_CONTEXT a glossary target is found in "Odstranit zámek" ("remove lock") for "Lock status".
+    Without STATE_WORDS an English on or off state is not compared at all. The council has a judge
+    behind these gaps; a caller with no judge must not trust such a text.
+    """
+    if not entry.get("safety"):
+        return []
+    missing = word_lists_missing(language["tag"].split("-")[0])
+    references = list(_items(entry["kind"], entry["english"]).values())
+    needed = []
+    if "NEGATION" in missing:
+        needed.append("NEGATION")
+    if "REMOVAL_CONTEXT" in missing and any(
+            hit.get("safety") and LOCK_TERM.search(hit["term"]) and not EN_REMOVAL.search(reference)
+            for reference in references for hit in _terms_in(entry, reference)):
+        needed.append("REMOVAL_CONTEXT")
+    if "STATE_WORDS" in missing and any(_english_state(reference) for reference in references):
+        needed.append("STATE_WORDS")
+    return needed
+
+
+def meaning_unverified(entry):
+    """Why check_key cannot catch an antonym in this key even when it passes, or None.
+
+    A safety term with an approved target is the only check on what a text says. So a safety key whose
+    English has none ("Full" for a charge alarm) rests on the drafter alone, and so does a key that
+    names a lock word with no volt:safety, where a missing target only warns.
+    """
+    references = list(_items(entry["kind"], entry["english"]).values())
+    if entry.get("safety"):
+        if any(hit.get("safety") and hit.get("target") for r in references for hit in _terms_in(entry, r)):
+            return None
+        return "safety key with no glossary safety term that has a target: nothing checks its meaning"
+    if any(NAMES_LOCK.search(r) for r in references):
+        return "names a lock word but has no volt:safety: a wrong term only warns"
+    return None
+
+
 def _glossary(language, entry, reference, text, safety, q):
     """Approved targets used: whole words in spaced scripts, anywhere (but not as part of the
     opposite term) in scripts without word spaces; see lexicon.term_found."""
     out = []
     primary = language["tag"].split("-")[0]
     script = language.get("script") or "Latn"
-    hits = entry.get("glossary") or []
-    names = [h["term"] for h in hits]
-    for hit in hits:
-        if hit.get("dnt") or not translib.term_pattern(hit["term"], hit.get("safety") == "lock").search(reference):
-            continue
-        if translib.nested_in_longer(hit["term"], names, reference):
-            continue  # "Lock" in "Lock duration": the longer term's translation is required
+    for hit in _terms_in(entry, reference):
         targets = hit.get("target")
         if not targets:
             continue
@@ -563,10 +769,33 @@ def _glossary(language, entry, reference, text, safety, q):
 # A set of targets: ladders and widths
 # ---------------------------------------------------------------------------
 
-def check_targets(pack, targets, font=None, measurer=None, ladders=True):
+def overflow_rung(entries, key):
+    """The _short key the screen shows where key's full rung does not fit (volt:overflow="short"), or None.
+
+    entries is {key: pack entry}. gen_catalog.py refuses volt:overflow anywhere but on a full rung with
+    a volt:max and a _short sibling, so this is None only for an unmarked key (or a hand-made pack)."""
+    entry = entries.get(key)
+    if not entry or entry.get("overflow") != "short":
+        return None
+    short = key + "_short"
+    return short if short in (entry.get("ladder_group") or []) and short in entries else None
+
+
+def check_targets(pack, targets, font=None, measurer=None, ladders=True, short_checked_later=False):
     """{key: findings} for {key: (kind, {quantity: text}, raw_problems)} against a pack.
 
     Adds the ladder check (every rung of a group drafted together) and the width check.
+
+    A full rung marked volt:overflow="short" (pack "overflow") whose text exceeds its budget is
+    judged by the screen's ladder: the view shows the group's _short rung where the full does not
+    fit, measured the same way (QuickAccessGrid.measureContent). So the short rung's text from the
+    same targets is measured at the full's budget (its sp, its lines, whole words), quantity by
+    quantity like the full. If it fits, the full's width finding is only a warning naming the short
+    rung shown instead; if not, the finding is what it is for an unmarked key (an error where the
+    English fits), saying the short does not fit either. With no short rung in targets the finding
+    stays an error as well, unless short_checked_later: council.py's per-key checks of a judge's merged
+    text pass it, and council.decide then checks the decided full and short together. An unmarked key,
+    or a marked one that fits, is checked exactly as before.
     """
     entries = dict((e["key"], e) for e in pack["entries"])
     language = pack["language"]
@@ -595,21 +824,58 @@ def check_targets(pack, targets, font=None, measurer=None, ladders=True):
             results[key].append(finding("width", INFO, "%s uses the system font; fit is checked on a device" %
                                         language["tag"]))
             continue
+        lines = entry.get("budget_lines") or 1
+        short = overflow_rung(entries, key)
+        short_items = None
+        if short and short in targets and targets[short][0] == entries[short]["kind"]:
+            short_items = targets[short][1]
         for quantity, text in items.items():
-            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry))))
-            owners.append((key, quantity if kind == "plural" else None))
+            q = quantity if kind == "plural" else None
+            requests.append((entry["budget_sp"], packlib.sample_text(text, _formatted(entry)), lines))
+            owners.append((key, q, None))
+            if short_items is not None and quantity in short_items:
+                # The short rung at the full's budget: the size, lines and room the full rung had.
+                requests.append((entry["budget_sp"], packlib.sample_text(short_items[quantity],
+                                                                         _formatted(entries[short])), lines))
+                owners.append((key, q, short_items[quantity]))
     if requests and measurer is not None:
-        widths = measurer.measure(requests)
-        for (key, quantity), width in zip(owners, widths):
+        # With budget_lines above 1 a width is the narrowest that holds the text in that many lines of
+        # whole words (fontmetrics.measure_lines), and english_width_dp is the English measured the same way.
+        widths = fontmetrics.measure_lines(measurer, requests)
+        measured = collections.OrderedDict()
+        for (key, quantity, short_text), width in zip(owners, widths):
+            slot = measured.setdefault((key, quantity), [None, None])
+            if short_text is None:
+                slot[0] = width
+            else:
+                slot[1] = (short_text, width)
+        for (key, quantity), (width, short) in measured.items():
             entry = entries[key]
             budget = entry["budget_dp"]
+            lines = entry.get("budget_lines") or 1
             if width > budget + 0.01:
                 english_fits = entry["english_width_dp"] <= budget + 0.01
-                out = finding("width", ERROR if english_fits else WARN,
-                              "%.1fdp at %gsp exceeds the %gdp budget (English %.1fdp; %s)" % (
-                                  width, entry["budget_sp"], budget, entry["english_width_dp"], measurer.method),
-                              quantity)
-                results[key].append(out)
+                severity = ERROR if english_fits else WARN
+                shown = "no width" if width >= fontmetrics.NO_FIT else "%.1fdp" % width
+                where = "" if lines == 1 else " in %d lines of whole words" % lines
+                message = "%s at %gsp exceeds the %gdp budget%s (English %.1fdp; %s)" % (
+                    shown, entry["budget_sp"], budget, where, entry["english_width_dp"], measurer.method)
+                if overflow_rung(entries, key):
+                    if short is not None and short[1] <= budget + 0.01:
+                        severity = WARN
+                        message += "; the screen shows the short rung \u00ab%s\u00bb where the full does not fit, " \
+                                   "and it fits (%.1fdp)" % (short[0], short[1])
+                    elif short is not None:
+                        short_shown = "no width" if short[1] >= fontmetrics.NO_FIT else "%.1fdp" % short[1]
+                        message += "; the short rung \u00ab%s\u00bb, shown where the full does not fit, does not " \
+                                   "fit either (%s)" % (short[0], short_shown)
+                    elif short_checked_later:
+                        severity = WARN
+                        message += "; the screen shows the short rung where the full does not fit, and the " \
+                                   "decided short rung is checked with it (council.decide)"
+                    else:
+                        message += "; no short rung was drafted with it to show where the full does not fit"
+                results[key].append(finding("width", severity, message, quantity))
     return results
 
 

@@ -136,22 +136,26 @@ public final class OwnerSetupTest {
             check(T.render(msg.id()).equals(refused.getMessage()), "English getMessage is the key's English");
         }
         check("Import failed. Pick file again.".equals(new SetupException(M.ownerSetupImportFailed()).getMessage()), "import refusal English");
-        check("Enter a 12-character owner identity.".equals(new SetupException(M.ownerSetupEnterIdentity()).getMessage()), "identity refusal English");
+        check("Enter a 12-character owner key.".equals(new SetupException(M.ownerSetupEnterIdentity()).getMessage()), "identity refusal English");
         check("Owner import profile already exists".equals(SetupException.shown(new IllegalStateException("Owner import profile already exists")).toString()),
                 "other errors pass through");
         check("".equals(SetupException.shown(new IllegalArgumentException()).toString()), "no message shows nothing");
     }
 
     private static void parserRefusals() {
-        refusal("", OwnerIdentityParser.EMPTY_OR_TOO_LARGE, "owner_setup_empty_or_large", false);
-        refusal("identity: zz", OwnerIdentityParser.NEED_HEX, "owner_setup_need_hex", false);
-        refusal("hello", OwnerIdentityParser.NO_IDENTITY, "owner_setup_no_identity", false);
-        refusal("identity: 010203040506\nrole: 2", OwnerIdentityParser.UNSUPPORTED_ROLE, "owner_setup_unsupported_role", false);
-        refusal("identity: 010203040506\nidentity: 0A0B0C0D0E0F", OwnerIdentityParser.CONFLICTING, "owner_setup_conflicting", true);
-        refusal("identity: 010203040506\nrole: 0\nrole: 1", OwnerIdentityParser.CONFLICTING, "owner_setup_conflicting", true);
+        refusal("", OwnerIdentityParser.EMPTY_OR_TOO_LARGE, M.ownerSetupEmptyOrLarge(), "owner_setup_empty_or_large", false);
+        refusal("identity: zz", OwnerIdentityParser.NEED_HEX, M.ownerSetupNeedHex(), "owner_setup_need_hex", false);
+        refusal("hello", OwnerIdentityParser.NO_IDENTITY, M.ownerSetupNoIdentity(), "owner_setup_no_identity", false);
+        refusal("identity: 010203040506\nrole: 2", OwnerIdentityParser.UNSUPPORTED_ROLE, M.ownerSetupUnsupportedRole(), "owner_setup_unsupported_role", false);
+        refusal("identity: 010203040506\nidentity: 0A0B0C0D0E0F", OwnerIdentityParser.CONFLICTING, M.ownerSetupConflicting(), "owner_setup_conflicting", true);
+        refusal("identity: 010203040506\nrole: 0\nrole: 1", OwnerIdentityParser.CONFLICTING, M.ownerSetupConflicting(), "owner_setup_conflicting", true);
     }
 
-    private static void refusal(String input, String english, String key, boolean conflict) {
+    /**
+     * english: the parser's getMessage(), which stays as it was (logs and the Shizuku shell read it); shown: the
+     * catalog text the screen shows, whose English the owner-approved D3 terms changed (l10n/english-changes.tsv).
+     */
+    private static void refusal(String input, String english, Msg shownMsg, String key, boolean conflict) {
         for (boolean other : new boolean[]{false, true}) {
             T.install(other ? keys() : null);
             try {
@@ -161,7 +165,7 @@ public final class OwnerSetupTest {
                 check(english.equals(refused.getMessage()), "refusal stays English: " + refused.getMessage());
                 check(conflict == (refused instanceof OwnerIdentityParser.ConflictingIdentityException), "conflict type for " + input);
                 String shown = SetupException.shown(refused).toString();
-                check((other ? key : english).equals(shown), "refusal of " + input + " shows " + shown);
+                check((other ? key : shownMsg.english()).equals(shown), "refusal of " + input + " shows " + shown);
             }
         }
         T.install(null);

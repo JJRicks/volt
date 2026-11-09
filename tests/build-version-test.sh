@@ -89,4 +89,18 @@ expect "$(GIT_CEILING_DIRECTORIES="$WORK" name "$WORK/plain")" "$VERSION-dev" "N
 ln -s "$WORK/own" "$WORK/link"
 expect "$(name "$WORK/link")" "$VERSION-dev+$sha" "A symlinked checkout"
 
+# A release build runs ship_check.py --release on its own tree and refuses when it fails. A stand-in
+# ship_check.py records its arguments and exits with STUB_RC.
+tree "$WORK/l10n"; mkdir -p "$WORK/l10n/tools/l10n"
+cat > "$WORK/l10n/tools/l10n/ship_check.py" <<'PYSTUB'
+import os, sys
+open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "args"), "w").write(
+    " ".join(sys.argv[1:]) + " sdk=" + os.environ.get("ANDROID_SDK_ROOT", ""))
+sys.exit(int(os.environ["STUB_RC"]))
+PYSTUB
+translations() { env "$@" SDK_DIR=/sdk bash -c 'source "$1/build.sh"; navee_release_translations' _ "$WORK/l10n" >/dev/null 2>&1 && echo OK || echo FAIL; }
+expect "$(translations STUB_RC=0)" "OK" "A release build with every language translated"
+expect "$(cat "$WORK/l10n/tools/l10n/args")" "--root $WORK/l10n --release --aapt required sdk=/sdk" "The strict check, on the tree it builds"
+expect "$(translations STUB_RC=1)" "FAIL" "A release build refuses English fallback"
+
 echo "build.sh versionName tests passed: $checks checks"

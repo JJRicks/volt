@@ -61,7 +61,8 @@ public final class LedgerTest {
                         for (int i = 0; i < keys.length; i++) {
                             Integer branch = ids.get(keys[i]);
                             check(branch != null, where + ": key " + keys[i] + " is in the catalog");
-                            List<String> problems = compare(branch, "template", leaves.get(i), changes);
+                            List<String> problems = leaves.get(i) instanceof Map ? compareBranch(branch, (Map<?, ?>) leaves.get(i), plurals, changes)
+                                    : compare(branch, "template", leaves.get(i), changes);
                             check(problems.isEmpty(), where + ": branch " + keys[i] + ": " + problems);
                         }
                         rows++;
@@ -127,6 +128,19 @@ public final class LedgerTest {
         check(comparePlural("t", true, "%1$d minutes", "%1$d minutes", same, false, true, none).isEmpty(),
                 "an english-fix=pending plural with identical forms passes");
         check(!comparePlural("t", true, "%1$d minutes", "%1$d minute", otherOnly, false, false, none).isEmpty(), "a changed \"other\" item fails");
+        // A manual plural whose one form spells the count, as n == 1 ? "Cleared 1 try" : "Cleared " + n + " tries" did.
+        String tries = "[\"Cleared \", {\"hole\": \"n\", \"arg\": 1, \"type\": \"d\", \"quantity\": true}, \" tries\"]";
+        Object spelled = L10nFiles.json("{\"one\": [\"Cleared 1 try\"], \"other\": " + tries + "}");
+        check(comparePlural("t", true, "Cleared %1$d try", "Cleared %1$d tries", spelled, true, false, none).isEmpty(),
+                "a one item that prints its count passes where the row's one form spells that count");
+        check(!comparePlural("t", true, "Cleared %1$d tries", "Cleared %1$d tries", spelled, true, false, none).isEmpty(),
+                "a one item with other words than the spelled form fails");
+        check(!comparePlural("t", true, "Cleared %1$d try", "Cleared %1$d tries", spelled, false, false, none).isEmpty(),
+                "only a manual row may differ from the \"other\" pieces at 1");
+        boolean thrown = false;
+        try { comparePlural("t", true, "Cleared %2$d try", "Cleared %1$d tries", spelled, true, false, none); }
+        catch (java.util.IllegalFormatException expected) { thrown = true; }
+        check(thrown, "a placeholder that is not the quantity keeps the text sentinel, so a number conversion there still fails");
     }
 
     /** Plurals of res/values: key -> {quantities the entry has, "pending" when tagged volt:english-fix="pending"}. */
@@ -186,7 +200,7 @@ public final class LedgerTest {
             for (long q : form.getKey().equals("one") ? new long[]{1} : form.getKey().equals("other") ? QUANTITIES : new long[0]) {
                 if (form.getKey().equals("other") && q == 1) continue;
                 String expected = evaluate(form.getValue(), q);
-                String actual = formatted ? render(item, arguments(form.getValue(), q)) : item;
+                String actual = formatted ? render(item, arguments(form.getValue(), forms.get("other"), q)) : item;
                 if (!actual.equals(expected)) problems.add(form.getKey() + " q=" + q + " renders " + quote(actual) + ", the original " + quote(expected));
             }
         }
@@ -197,7 +211,7 @@ public final class LedgerTest {
             String expected = evaluate(original, q);
             // The form EnglishText (and, through AndroidText, the phone while Volt shows English) serves for q.
             String served = q == 1 && items.containsKey("one") ? "one" : "other";
-            String actual = formatted ? render(items.get(served), arguments(original, q)) : items.get(served);
+            String actual = formatted ? render(items.get(served), arguments(original, base, q)) : items.get(served);
             if (!actual.equals(expected))
                 problems.add("q=" + q + " shows the " + served + " item " + quote(actual) + ", but the base printed " + quote(expected)
                         + (manual ? "" : " (only a manual row, for a base with its own branch for 1, may differ from the \"other\" pieces)"));
@@ -211,6 +225,15 @@ public final class LedgerTest {
             }
         }
         return problems;
+    }
+
+    /**
+     * A plural branch of a choice row. G1 proved each form is the base with the conditions forced, so forms that differ
+     * are the base's own branch for 1, the case a manual plural row states by hand.
+     */
+    static List<String> compareBranch(int id, Map<?, ?> forms, Map<String, String[]> plurals, Map<String, List<String[]>> changes) {
+        if (!T.isPlural(id)) return new ArrayList<>(Arrays.asList(T.key(id) + " is one string, but this branch has plural forms"));
+        return comparePlural(id, forms, forms.containsKey("one") && !forms.get("one").equals(forms.get("other")), plurals, changes);
     }
 
     /** A choice row's branches, then before else, depth first: {"if": ..., "then": ..., "else": ...} or pieces. */
@@ -293,6 +316,25 @@ public final class LedgerTest {
         // Placeholders the original never filled (a plural's "one" form may drop the number) still get a value.
         Object[] args = new Object[Math.max(max, 9)];
         for (int i = 0; i < args.length; i++) args[i] = byArg.containsKey(i + 1) ? byArg.get(i + 1) : "\u0001" + (char) ('A' + i);
+        return args;
+    }
+
+    /**
+     * The arguments for one plural form. A manual one form can spell its count ("Cleared 1 try") while the item prints it
+     * ("Cleared %1$d try"), and it runs at that count: only a quantity hole of the row's other form is filled that way,
+     * every other missing placeholder keeps the text sentinel, so %1$d with no quantity behind it still throws.
+     */
+    private static Object[] arguments(Object form, Object base, long quantity) {
+        Object[] args = arguments(form, quantity);
+        if (base == null) return args;
+        Set<Integer> own = new HashSet<>();
+        for (Object piece : holes(form)) if (((Map<?, ?>) piece).containsKey("arg")) own.add(((Long) ((Map<?, ?>) piece).get("arg")).intValue());
+        for (Object piece : holes(base)) {
+            Map<?, ?> hole = (Map<?, ?>) piece;
+            if (!Boolean.TRUE.equals(hole.get("quantity")) || !hole.containsKey("arg")) continue;
+            int arg = ((Long) hole.get("arg")).intValue();
+            if (!own.contains(arg)) args[arg - 1] = quantity;
+        }
         return args;
     }
 

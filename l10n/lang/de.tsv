@@ -1,0 +1,17 @@
+# German (de). Drafted 2026-11-05 and decided through the three-vendor debate (l10n/decisions/de/); ships as beta. See l10n/README.md for each field.
+field	value
+tag	de
+folder	values-de
+endonym	Deutsch
+wave	1
+status	beta
+formality	du
+plurals	one,other
+quote_style	„…“ ‚…‘
+percent_style	%1$s %%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

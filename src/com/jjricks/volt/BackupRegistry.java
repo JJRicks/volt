@@ -49,10 +49,39 @@ final class BackupRegistry {
             PERMISSION = "Tied to this installation's Android permission prompts", WIZARD = "Setup wizard in progress on this installation";
     static {
         String app = "app_settings";
+        // phone_placement is retired (no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "theme units temperature_unit time_format stats_density phone_placement map_tile_url map_tile_attribution map_tile_attribution_url stats_favourite_order ride_chart_key last_ride_label".split(" ")) add(app, key, String.class, PREFERENCES);
+        // developer_options is retired (Developer options are always visible; no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
+        // Automatic ride copies (RideAutoExport): the switch (ride_auto_export_json, the old ride JSON switch's key) and
+        // the retired Route CSV switch travel, so an older backup with either on restores auto-save on, and an older Volt
+        // restores a newer backup's switch as its ride JSON copy. The folder grant, the waiting rides and the last
+        // problem belong to this phone.
+        add(app, "auto_record_rides", Boolean.class, PREFERENCES);
+        add(app, "riding_auto_open", Boolean.class, PREFERENCES);
+        exclude(app, AutoStartPolicy.LOCATION_ASKED_KEY, Boolean.class, PERMISSION);
+        add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
+        add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
+        exclude(app, "ride_auto_export_folder", String.class, PERMISSION);
+        exclude(app, "ride_auto_export_pending", String.class, PENDING);
+        exclude(app, "ride_auto_export_problem", String.class, PENDING);
+        // Ride details' Export ride data sheet (RideExportFiles): the remembered formats travel; the last folder is only
+        // the picker's starting place on this phone.
+        add(app, "ride_export_choice", String.class, PREFERENCES);
+        exclude(app, "ride_export_folder_hint", String.class, PERMISSION);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
+        // The automatic update check (UpdateCheckJob): the switch travels; when it last ran and what it announced stay here.
+        add(app, "update_auto_check", Boolean.class, PREFERENCES);
+        exclude(app, "update_auto_last", Long.class, DEVICE);
+        exclude(app, "update_auto_told", String.class, DEVICE);
+        // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
+        add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
+        add(app, "charge_live_lock_detail", String.class, PREFERENCES);
+        // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
+        exclude(app, "charge_live_stopped", String.class, DEVICE);
+        // The last live card's Live Update verdict (Developer options) describes this phone's Android only.
+        exclude(app, "charge_live_update_last", String.class, DEVICE);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
         for (String key : "stats_favourites stats_chart_favourites ride_chart_series charge_chart_series".split(" ")) add(app, key, Set.class, PREFERENCES);
         prefix(app, "stats_group_", Boolean.class, PREFERENCES, false);prefix(app, "stats_chart_group_", Boolean.class, PREFERENCES, false);
@@ -63,15 +92,42 @@ final class BackupRegistry {
         prefix(app, "dashboard_v1_", String.class, DASHBOARDS, true);
         RULES.add(new Rule(app, "dashboard_slot_v1_", true, String.class, DASHBOARDS, null, true, true, false));
         prefix(app, "dashboard_empty_example_v1_", Boolean.class, DASHBOARDS, true);
+        // Riding mode's layout and its power bar's observed scale go with the dashboards (RidingConfig).
+        prefix(app, "riding_layout_v1_", String.class, DASHBOARDS, true);
+        prefix(app, "riding_power_scale_v1_", String.class, DASHBOARDS, true);
+        // Riding mode's screen choices (RidingBrightness, RidingRotation) are app preferences.
+        add(app, RidingBrightness.MODE_KEY, String.class, PREFERENCES);
+        add(app, RidingBrightness.FIXED_KEY, Float.class, PREFERENCES);
+        add(app, RidingRotation.KEY, String.class, PREFERENCES);
+        add(app, RidingBars.HIDE_STATUS_BAR_KEY, Boolean.class, PREFERENCES);
+        // Volt auto's learned levels belong to this phone's light sensor and screen.
+        for (String key : RidingBrightness.BAND_KEYS) exclude(app, key, Float.class, DEVICE);
+        // Night vision's choices (NightSchedule) are app preferences. The answer about using the last
+        // ride's area for sunset stays with this phone: a restored phone asks again.
+        add(app, NightSchedule.MODE_KEY, String.class, PREFERENCES);
+        add(app, NightSchedule.SCHEDULE_KEY, String.class, PREFERENCES);
+        add(app, NightSchedule.START_KEY, Integer.class, PREFERENCES);
+        add(app, NightSchedule.END_KEY, Integer.class, PREFERENCES);
+        exclude(app, NightSchedule.AREA_KEY, String.class, DEVICE);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);
         prefix(app, "charge_charger_", String.class, SCOOTER_PREFERENCES, true);
         // Displayed one-shot intentions only; restoration never sends charging commands.
         prefix(app, "charge_schedule_owned_", String.class, SCOOTER_PREFERENCES, true);
+        // Which notification is on this phone's shade right now: nothing a restored copy should inherit.
+        exclude(app, "charge_start_sent_notice", Long.class, DEVICE);
+        exclude(app, "charge_start_sent_scope", String.class, DEVICE);
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
+        // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
+        prefix(app, "scooter_menu_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "charge_alert_state_", true, String.class, null, "Charge in progress on this installation; a restored copy could silence the next alert", true, false, false));
+        // Maintenance reminders travel with the scooter (MaintenanceStore); a merge onto another scooter drops the raw
+        // odometer baseline (BackupArchive.perScooter). Which due reminders this phone already notified stays here:
+        // a restored copy could repeat or silence the next reminder.
+        prefix(app, "maintenance_v1_", String.class, SCOOTER_PREFERENCES, true);
+        RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);
@@ -79,6 +135,7 @@ final class BackupRegistry {
         for (String key : "more_wide_menu_scroll more_away_boot stats_away_boot".split(" ")) exclude(app, key, Integer.class, DEVICE);
         exclude(app, "more_away_elapsed", Long.class, DEVICE);exclude(app, "stats_away_elapsed", Long.class, DEVICE);
         exclude(app, "dashboard_editing", Boolean.class, DEVICE);
+        exclude(app, ScooterMenuLayout.EDITING, Boolean.class, DEVICE);
         // The language choice belongs to this phone; on Android 13 and later the system owns it (AppLanguage).
         exclude(app, "app_language", String.class, DEVICE);exclude(app, "app_language_migrated", Boolean.class, DEVICE);
         add("profiles", "items", String.class, SCOOTERS);add("profiles", "active", String.class, SCOOTERS);add("profiles", "legacy_migrated", Boolean.class, SCOOTERS);
@@ -125,6 +182,8 @@ final class BackupRegistry {
         // Guided setting test records stay on this phone (decision D4): never exported, cleared or replaced.
         {"no_backup/compat-tests", null, "Guided-test records of this installation"}, {"no_backup/compat-tests.tmp", null, "Guided-test records of this installation"},
         {"no_backup/app-data-transfer", null, PENDING}, {"no_backup/ride-transfer", null, PENDING},
+        // Saved ride summaries (RideSummaryStore): a rebuildable cache of this installation's journals, never exported or restored.
+        {"no_backup/rides-index", null, DEVICE},
         {"cache/", null, "Disposable cache"}, {"shared_prefs/", null, "Preferences are classified key by key"},
     };
     /** Category of a storage root, null for an excluded root, or IllegalArgumentException if unclassified. */

@@ -104,7 +104,7 @@ public final class RouteSpeedScaleTest {
         File dir = Files.createTempDirectory("route-speed-test").toFile();
         try {
             PhoneRideStore store = new PhoneRideStore(dir);
-            store.start("ride", 1700000000000L, 1000, "mounted");
+            store.start("ride", 1700000000000L, 1000);
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < 20; i++) {
                 long mono = 1000 + i * 1000, wall = 1700000000000L + mono;
@@ -123,7 +123,7 @@ public final class RouteSpeedScaleTest {
             check(loaded.kmh(4) == 16.0, "Matched scooter speed kept in km/h");
             check(track.points.get(10).gapBefore && track.points.get(10).segment != track.points.get(9).segment, "Gap separates route segments");
 
-            store.start("gps", 1700000000000L, 1000, "mounted");
+            store.start("gps", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i < 10; i++) {
                 long mono = 1000 + i * 1000;
@@ -137,7 +137,7 @@ public final class RouteSpeedScaleTest {
             check(RouteSpeedScale.powerTopWatts(store.load("gps").points) == RouteSpeedScale.MIN_TOP_W, "No power: the minimum power scale");
 
             // Route power: a 2–3.4 kW dual-motor ride with braking and one 9 kW spike scales to its own 3,500 W, not 2,000 W.
-            store.start("power", 1700000000000L, 1000, "mounted");
+            store.start("power", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i < 40; i++) {
                 long mono = 1000 + i * 1000, wall = 1700000000000L + mono;
@@ -150,7 +150,7 @@ public final class RouteSpeedScaleTest {
             double powerTop = RouteSpeedScale.powerTopWatts(store.load("power").points);
             check(powerTop == 3500, "Route power scales to the ride's robust peak: " + powerTop);
             check("3,500 W".equals(RouteSpeedScale.wattsLabel(powerTop)), "Power legend label");
-            store.start("gentle", 1700000000000L, 1000, "mounted");
+            store.start("gentle", 1700000000000L, 1000);
             b.setLength(0);
             for (int i = 0; i < 10; i++) {
                 long mono = 1000 + i * 1000, wall = 1700000000000L + mono;

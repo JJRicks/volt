@@ -100,6 +100,14 @@ public final class Fmt {
     }
 
     /**
+     * A whole number with grouping separators: exactly String.format(legacy, "%,d", value) while
+     * {@link #legacy()}. It takes a long, not a double, so counts past 2^53 stay exact.
+     */
+    public static String groupedInteger(Locale legacy, long value) {
+        return String.format(locale(legacy), "%,d", value);
+    }
+
+    /**
      * A whole number without grouping, as Java's string concatenation writes it. With Latin digits
      * forced for every shipped language (waves 1-3), that is the same text in every locale; the RTL wave
      * decides whether Arabic and Urdu use their own digits here.

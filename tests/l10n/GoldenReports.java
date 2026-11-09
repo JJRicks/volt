@@ -154,7 +154,7 @@ public final class GoldenReports {
     static PhoneRideStore.Track phoneTrack(File dir) throws IOException {
         PhoneRideStore store = new PhoneRideStore(dir);
         String id = "golden-ride-1";
-        store.start(id, WALL, 1000, "mounted");
+        store.start(id, WALL, 1000);
         StringBuilder j = new StringBuilder();
         // Coordinates are written as fixed decimal text, as the recorder's journal would hold them.
         String[] lats = {"43.61500", "43.61505", "43.61510", "43.61515", "43.61520"};

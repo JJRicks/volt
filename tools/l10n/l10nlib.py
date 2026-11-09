@@ -4,10 +4,14 @@ Standard library only. Every tool in tools/l10n imports this module from its own
 """
 
 import collections
+import fcntl
 import json
 import os
 import re
+import stat
+import secrets
 import subprocess
+import unicodedata
 
 # ---------------------------------------------------------------------------
 # Java lexing
@@ -212,15 +216,22 @@ def has_letters(value):
     return any(ch.isalpha() for ch in without_format_specs(value))
 
 
+def _is_symbol_chunk(chunk):
+    """True for a whitespace-separated chunk holding a non-ASCII symbol ("✓", "☆", "⚠\ufe0e"). ASCII
+    symbols do not count: "x = " and "a + " are code and log shapes, not a word and a mark."""
+    return any(ord(ch) > 0x7f and unicodedata.category(ch).startswith("S") for ch in chunk)
+
+
 def is_multiword(value):
-    """Two or more words of letters separated by whitespace, for example "Turn off"."""
-    words = 0
+    """Two or more words of letters separated by whitespace ("Turn off"), or a word and a symbol set
+    apart by whitespace ("Unrestricted ✓", "☆ Star"): a shown label with a mark, not a key."""
+    words = symbols = 0
     for chunk in re.split(r"\s+", without_format_specs(value).strip()):
         if _WORDS.search(chunk):
             words += 1
-            if words >= 2:
-                return True
-    return False
+        elif _is_symbol_chunk(chunk):
+            symbols += 1
+    return words >= 2 or (words == 1 and symbols >= 1)
 
 
 def is_english_looking(value):
@@ -431,9 +442,62 @@ def read_text(path):
 
 
 def write_text(path, text):
+    """Replace the file at path with text, atomically: the bytes go to a temporary file in the same directory,
+    which then takes the file's place with os.replace, so a reader (or a second process) sees the whole old
+    file or the whole new one, never a truncated or half-written one. A symlink keeps pointing where it did
+    (its target is replaced), and an existing file keeps its permission bits."""
+    path = os.path.realpath(path) if os.path.islink(path) else path
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
     data = text.encode("utf-8")  # before opening: text that cannot be encoded leaves the file as it was
-    with open(path, "wb") as handle:
-        handle.write(data)
+    try:
+        mode = stat.S_IMODE(os.stat(path).st_mode)
+    except FileNotFoundError:
+        mode = None  # a new file: the OS applies the umask, as open() would; os.umask is process-wide, never set it
+    while True:
+        temporary = os.path.join(directory or ".", ".%s.%s.tmp" % (os.path.basename(path), secrets.token_hex(6)))
+        try:
+            handle = os.open(temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+            break
+        except FileExistsError:
+            continue
+    try:
+        with os.fdopen(handle, "wb") as out:
+            if mode is not None:
+                os.fchmod(out.fileno(), mode)
+            out.write(data)
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+
+
+def append_line(path, line):
+    """Append one line (a newline is added) to the file at path as a single write, holding an exclusive
+    fcntl.flock on the file meanwhile, so several processes logging to one file never lose or interleave a
+    row. A file whose last line has no newline gets one first, so the new line never joins it."""
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    data = (line + "\n").encode("utf-8")
+    descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        try:
+            size = os.fstat(descriptor).st_size
+            if size:
+                with open(path, "rb") as reader:
+                    reader.seek(size - 1)
+                    if reader.read(1) != b"\n":
+                        data = b"\n" + data
+            written = 0
+            while written < len(data):
+                written += os.write(descriptor, data[written:])
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)

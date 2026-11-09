@@ -1,0 +1,1 @@
+{"key": "units_route_source_scooter", "source_sha1": "9d37d4169ea9c724e1c91df5b4afcaa6c89c0e93", "model": "claude-opus-5-5", "verdict": "pick", "reason": "Definite elsparkcykeln reads as the scooter's own speedometer in the legend title, beside GPS.", "pick": "claude-opus", "text": "elsparkcykeln"}

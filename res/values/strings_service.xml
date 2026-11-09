@@ -29,11 +29,13 @@
     <string name="service_maintenance_in_progress" volt:screen="Backup" volt:purpose="reason">App data maintenance is already in progress</string>
     <!-- The phone sensors of a ride are still being saved. -->
     <string name="service_wait_phone_saving" volt:screen="Backup" volt:purpose="reason">Wait for the phone recording to finish saving</string>
+    <!-- A finished ride is being copied to the rider's auto-save folder. -->
+    <string name="service_wait_auto_save" volt:screen="Backup" volt:purpose="reason">Wait for the ride copy to finish saving</string>
     <!-- A charge recording export is being prepared. -->
     <string name="service_finish_charge_export" volt:screen="Backup" volt:purpose="reason">Finish the current charge export first</string>
     <!-- Volt is still writing a charging schedule to the scooter. -->
     <string name="service_wait_charging_schedule" volt:screen="Backup" volt:purpose="reason"
-        volt:safety="charge">Wait for the charging schedule to finish</string>
+        volt:safety="charge">Wait for Volt to finish setting the charging schedule</string>
     <!-- Charge done by is measuring the charge for up to ten minutes. "Charge done by" is the feature's name. -->
     <string name="service_wait_measuring" volt:screen="Backup, simulation, schedule test" volt:purpose="reason"
         volt:safety="charge">Wait for Charge done by to finish measuring</string>
@@ -75,23 +77,52 @@
     <string name="service_charge_stock_charger_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · charger stopped · waiting for it to resume</string>
     <!-- Volt's own charging schedule holds the current off until its start. -->
     <string name="service_charge_stock_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · paused until the scheduled start</string>
-    <!-- %1$s is the number of readings saved so far. English says "1 local samples" too; a later
-         English fix will change that, so any plural form is fine here. -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_stock_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · %1$s local samples</string>
+    <!-- %1$s is the number of readings saved so far, and picks the plural form. -->
+    <plurals name="service_charge_stock_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">
+        <item quantity="one">Stock charger · %1$s local sample</item>
+        <item quantity="other">Stock charger · %1$s local samples</item>
+    </plurals>
     <string name="service_charge_fast_charger_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · charger stopped · waiting for it to resume</string>
     <string name="service_charge_fast_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · paused until the scheduled start</string>
-    <!-- %1$s is the number of readings saved so far (English says "1 local samples" too). -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_fast_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · %1$s local samples</string>
-    <!-- Which charges the estimates learn from. %1$s is the number of recordings stored for every scooter and charger. -->
+    <!-- %1$s is the number of readings saved so far, and picks the plural form. -->
+    <plurals name="service_charge_fast_samples_count" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">
+        <item quantity="one">High-speed charger · %1$s local sample</item>
+        <item quantity="other">High-speed charger · %1$s local samples</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_unknown" volt:screen="More › Developer › Charge recording" volt:purpose="summary">Not applied until the charger is known · %1$s recordings stored</string>
-    <!-- %1$s is always 1 here: one recorded charge with the high-speed charger qualifies. %2$s is the number of recordings stored. -->
+    <!-- Which charges the estimates learn from. %1$s is the number of recordings stored for every scooter and charger, and picks the plural form. -->
+    <plurals name="service_charge_learning_unknown_count" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">Not applied until the charger is known · %1$s recording stored</item>
+        <item quantity="other">Not applied until the charger is known · %1$s recordings stored</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_fast_one" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified high-speed charge · %2$s recordings stored</string>
-    <!-- %1$s is any number but 1 (0, 2, 21, ...) of qualified charges with the high-speed charger; %2$s the recordings stored. -->
+    <!-- How many charge recordings are stored (%2$s of service_charge_learning_fast_count and _stock_count): %1$s is the number, and picks the plural form. -->
+    <plurals name="service_charge_recordings_stored" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">%1$s recording stored</item>
+        <item quantity="other">%1$s recordings stored</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_fast_other" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified high-speed charges · %2$s recordings stored</string>
-    <!-- %1$s is always 1 here: one recorded charge with the stock charger qualifies. -->
+    <!-- %1$s is how many recorded charges with the high-speed charger qualify, and picks the plural form; %2$s is service_charge_recordings_stored, which follows its own number. -->
+    <plurals name="service_charge_learning_fast_count" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">%1$s qualified high-speed charge · %2$s</item>
+        <item quantity="other">%1$s qualified high-speed charges · %2$s</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_stock_one" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified stock charge · %2$s recordings stored</string>
-    <!-- %1$s is any number but 1 (0, 2, 21, ...) of qualified charges with the stock charger. -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_charge_learning_stock_other" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified stock charges · %2$s recordings stored</string>
+    <!-- %1$s is how many recorded charges with the stock charger qualify, and picks the plural form; %2$s is service_charge_recordings_stored, which follows its own number. -->
+    <plurals name="service_charge_learning_stock_count" volt:screen="More › Developer › Charge recording" volt:purpose="summary">
+        <item quantity="one">%1$s qualified stock charge · %2$s</item>
+        <item quantity="other">%1$s qualified stock charges · %2$s</item>
+    </plurals>
     <string name="service_charge_cleared" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recordings cleared</string>
     <string name="service_charge_clear_failed" volt:screen="More › Developer › Charge recording" volt:purpose="error">Charge recordings could not be cleared</string>
     <string name="service_charge_export_empty" volt:screen="More › Developer › Charge recording" volt:purpose="error">No saved charge recordings for this scooter</string>
@@ -121,7 +152,7 @@
     <!-- Volt lost its Bluetooth permission. -->
     <string name="service_charge_stop_permission_lost" volt:screen="More › Developer › Charge recording" volt:purpose="status part">permission lost</string>
     <!-- The scooter answered with another identity than the one recorded. -->
-    <string name="service_charge_stop_identity_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">identity changed</string>
+    <string name="service_charge_stop_identity_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">different scooter</string>
     <string name="service_charge_not_finalized" volt:screen="More › Developer › Charge recording" volt:purpose="error">Recording stopped; charge file could not be finalized</string>
     <!-- Charge done by waits until Volt knows which charger is attached. -->
     <string name="service_charger_detection" volt:screen="Scooter › Battery › Charge done by" volt:purpose="reason"
@@ -179,6 +210,12 @@
     <!-- Toast in Volt: %1$s is the message above (measured, planned or why not). -->
     <string name="service_done_toast_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by is set. %1$s</string>
     <string name="service_done_toast_not_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by wasn\'t set. %1$s</string>
+    <!-- %1$s is the clock time charging will start on the scooter. Shown only after the scooter has confirmed that start; a text toast shows at most two lines. -->
+    <string name="service_done_start_sent" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:max="260dp@14sp*2" volt:safety="charge">%1$s charge start sent to scooter. Safe to disconnect.</string>
+    <!-- %1$s is a complete sentence saying when charging resumes and when it finishes. -->
+    <string name="service_done_safe_to_disconnect" volt:screen="Charge done by notification" volt:purpose="message"
+        volt:safety="charge">%1$s Safe to disconnect.</string>
     <string name="service_done_title_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by is set</string>
     <string name="service_done_title_not_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by wasn\'t set</string>
 
@@ -202,14 +239,24 @@
     <string name="service_test_title_cancelled" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Test cancelled</string>
     <string name="service_test_title_failed" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Test didn\'t finish</string>
     <string name="service_test_passed_on_time" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed at the start.</string>
-    <!-- %1$s is always 1 here. -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_test_passed_second_before" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s second before the start.</string>
-    <!-- %1$s is always 1 here. -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_test_passed_second_after" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s second after the start.</string>
-    <!-- %1$s is a number of seconds other than 0 and 1. -->
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_test_passed_seconds_before" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s seconds before the start.</string>
-    <!-- %1$s is a number of seconds other than 0 and 1. -->
+    <!-- %1$s is how many seconds before the start charging resumed (1 or more), and picks the plural form. -->
+    <plurals name="service_test_passed_before_count" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">
+        <item quantity="one">The scooter\'s clock and schedule work. Charging resumed %1$s second before the start.</item>
+        <item quantity="other">The scooter\'s clock and schedule work. Charging resumed %1$s seconds before the start.</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B8's ledger row, no need to translate. -->
     <string name="service_test_passed_seconds_after" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s seconds after the start.</string>
+    <!-- %1$s is how many seconds after the start charging resumed (1 or more), and picks the plural form. -->
+    <plurals name="service_test_passed_after_count" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">
+        <item quantity="one">The scooter\'s clock and schedule work. Charging resumed %1$s second after the start.</item>
+        <item quantity="other">The scooter\'s clock and schedule work. Charging resumed %1$s seconds after the start.</item>
+    </plurals>
     <!-- How far off the scooter's clock seems, used twice in each of the next two sentences: after
          "resumed" and after "ahead by" or "behind by". Choose a form that reads right in both places. -->
     <plurals name="service_test_about" volt:screen="Scheduled charging test result" volt:purpose="message part" volt:safety="charge">
@@ -256,9 +303,33 @@
     <string name="service_ride_finishing" volt:screen="Home" volt:purpose="toast">Finishing the previous ride</string>
     <!-- Volt ended a ride on its own after the scooter stayed out of reach while parked. -->
     <string name="service_ride_saved_auto" volt:screen="Toast and notification" volt:purpose="title" volt:safety="ride">Ride saved automatically</string>
+    <!-- Notification title: an automatic copy of a finished ride to the rider's folder failed. The ride itself is saved in Volt. -->
+    <string name="service_auto_save_failed" volt:screen="Auto-save notification" volt:purpose="title">Ride copy not saved</string>
+    <!-- Notification text: the auto-save folder was deleted or Volt lost access to it. -->
+    <string name="service_auto_save_folder" volt:screen="Auto-save notification" volt:purpose="message">Volt can\'t reach your auto-save folder. Open Volt and choose the folder again. Your rides are safe in Volt.</string>
+    <!-- Notification text: writing to the auto-save folder failed (storage full, for example). -->
+    <string name="service_auto_save_write" volt:screen="Auto-save notification" volt:purpose="message">Volt couldn\'t write to your auto-save folder. It will try again after your next ride. Your rides are safe in Volt.</string>
     <string name="service_ride_bluetooth_lost" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Bluetooth lost while parked</string>
     <!-- %1$s is the ride's name. -->
     <string name="service_ride_bluetooth_lost_label" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Bluetooth lost while parked</string>
+    <!-- Volt ended a ride on its own: the scooter stopped answering (switched off or carried out of range) and stayed silent for 1 minute at walking pace, or 5 minutes otherwise. Used when the ride or its last reading is unknown. -->
+    <string name="service_ride_quiet_lost" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter turned off or out of range</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last reading (for example 4:12 PM), which the saved ride shows as its end. -->
+    <string name="service_ride_quiet_lost_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter turned off or out of range. Ended at %1$s, its last reading.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_quiet_lost_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Scooter turned off or out of range. Ended at %2$s, its last reading.</string>
+    <!-- Volt ended a ride on its own because the phone's own Bluetooth was switched off and stayed off for 5 minutes. Used when the ride or its last reading is unknown. -->
+    <string name="service_ride_phone_bluetooth_off" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">Phone Bluetooth stayed off</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_phone_bluetooth_off_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">Phone Bluetooth stayed off. Ended at %1$s, its last reading.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last reading. -->
+    <string name="service_ride_phone_bluetooth_off_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride" volt:dnt="Bluetooth">%1$s · Phone Bluetooth stayed off. Ended at %2$s, its last reading.</string>
+    <!-- Volt ended a ride on its own: the scooter stayed connected but showed no movement (no speed, no distance) for 10 minutes, for example after the rider parked with the phone still nearby. Used when the ride or its last movement is unknown. The 10 matches the rule in the app; the notice wraps, so no width budget. -->
+    <string name="service_ride_no_motion" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">No movement for 10 minutes</string>
+    <!-- Same notice with the end time. %1$s is the clock time of the scooter's last movement (for example 4:12 PM), which the saved ride shows as its end. -->
+    <string name="service_ride_no_motion_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">No movement for 10 minutes. Ended at %1$s, its last movement.</string>
+    <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last movement. -->
+    <string name="service_ride_no_motion_label_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · No movement for 10 minutes. Ended at %2$s, its last movement.</string>
 
     <!-- ===== The connection notice (always shown while the service runs) ===== -->
 

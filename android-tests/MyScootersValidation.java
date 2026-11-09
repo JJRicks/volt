@@ -40,7 +40,11 @@ import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 
-/** Fresh emulator only. Real menu actions and local stores; Bluetooth stays disabled. */
+/**
+ * Fresh emulator only. Real menu actions and local stores; Bluetooth stays disabled.
+ *   -e theme dark|light   -e text_scale 1|1.4   -e layout wide|phone (optional: the side rail and More's two
+ *   columns must be shown, or the bottom bar and one column; the release sweep's 725 dp steps set it)
+ */
 public final class MyScootersValidation extends Instrumentation {
     private MainActivity activity;
     private ScooterProfiles.Profile a, b;
@@ -49,11 +53,12 @@ public final class MyScootersValidation extends Instrumentation {
     private boolean admitted;
     private String theme = "dark";
     private float textScale = 1f;
+    private String layout = "";
     private File rideSentinel;
     private final byte[] durable = "Synthetic saved ride must survive forgetting its scooter\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
     @Override public void onCreate(Bundle args) {
-        if (args != null) { theme = args.getString("theme", "dark"); textScale = Float.parseFloat(args.getString("text_scale", "1")); }
+        if (args != null) { theme = args.getString("theme", "dark"); textScale = Float.parseFloat(args.getString("text_scale", "1")); layout = args.getString("layout", ""); }
         start();
     }
     @Override public void onStart() {
@@ -84,6 +89,7 @@ public final class MyScootersValidation extends Instrumentation {
             // explicit activity intent and block startActivitySync before it can return.
             bluetoothPrompt = addMonitor(new IntentFilter(BluetoothAdapter.ACTION_REQUEST_ENABLE), new ActivityResult(Activity.RESULT_CANCELED, null), true);
             openMenu();
+            expectedLayout();
             visibleCards(); offlineSelectionAndConnection(); savedScannerLabels(); guards(); simulationSwitches(); forgetWithConfirmation(); onboardingCancellation();
             shizukuSetup();
             result.putString("result", "PASS");
@@ -122,6 +128,17 @@ public final class MyScootersValidation extends Instrumentation {
     private void openMenu() {
         main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(more(), "selectSection", new Class<?>[]{String.class}, "Scooters"); more().refresh(); });
         await(() -> tag("scooters-add") != null && tag("scooters-add").isShown(), "My scooters menu did not open");
+    }
+    /** -e layout: the activity's window class and More's columns both match it (Ui.wideLayout's rule). */
+    private void expectedLayout() throws Exception {
+        if (layout.isEmpty()) return;
+        require(layout.equals("wide") || layout.equals("phone"), "layout must be wide or phone");
+        final boolean wide = layout.equals("wide");
+        main(() -> {
+            require(Boolean.TRUE.equals(field(activity, "expanded")) == wide, "Expected the " + layout + " window layout (side rail or bottom bar) at "
+                    + activity.getResources().getConfiguration().screenWidthDp + " dp and " + textScale + "x text");
+            require(Boolean.TRUE.equals(field(more(), "wide")) == wide, "Expected the " + layout + " More layout");
+        });
     }
     private void visibleCards() throws Exception {
         main(() -> {
@@ -429,9 +446,9 @@ public final class MyScootersValidation extends Instrumentation {
                 set(capture, "message", ""); set(capture, "owner", identity.newInstance("000000000000", 0));
                 invoke(screen, "render", new Class<?>[]{});
             });
-            setupShot(screen, "ready-owner", null, "Ready to import", "Owner identity found", "NAVEE restored", "Import owner setup", "Discard");
+            setupShot(screen, "ready-owner", null, "Ready to import", "Owner key found", "NAVEE restored", "Import owner setup", "Discard");
             main(() -> { set(capture, "owner", identity.newInstance("000000000000", 1)); invoke(screen, "render", new Class<?>[]{}); });
-            setupShot(screen, "ready-shared", null, "Ready to import", "Shared-user identity found", "NAVEE restored", "Import owner setup", "Discard");
+            setupShot(screen, "ready-shared", null, "Ready to import", "Shared-rider key found", "NAVEE restored", "Import owner setup", "Discard");
             main(() -> {
                 require(text(setupRoot(screen), "000000000000") == null, "Shizuku setup showed the captured identity");
                 TextView discard = text(setupRoot(screen), "Discard");

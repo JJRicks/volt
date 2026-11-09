@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.jjricks.volt.tests" android:versionCode="1" android:versionName="1">
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
   <application android:allowBackup="false" android:label="Navee local validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingChipRowValidation" android:targetPackage="com.jjricks.volt" android:label="Riding chip row validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ParkedValidation" android:targetPackage="com.jjricks.volt" android:label="Parked offline validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LaunchValidation" android:targetPackage="com.jjricks.volt" android:label="Fresh emulator launch validation" />
   <instrumentation android:name="com.jjricks.volt.tests.PhoneRideValidation" android:targetPackage="com.jjricks.volt" android:label="Emulator phone sensor recording validation" />
@@ -18,11 +19,13 @@
   <instrumentation android:name="com.jjricks.volt.tests.DeveloperSettingsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated developer preview and preferences validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LiveStatsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Live Stats validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidesAnalysisValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated unified ride analysis validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidesTimingValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator launch and Rides open timing" />
   <instrumentation android:name="com.jjricks.volt.tests.BatteryWidgetValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery widget presentation validation" />
   <instrumentation android:name="com.jjricks.volt.tests.CapacityWidgetValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated capacity widget loading validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MotionPolishValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator Battery cell, charging glow and lock trail rendering validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeCaptureValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge capture validation" />
   <instrumentation android:name="com.jjricks.volt.ChargeScheduleWireValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated schedule command callback validation" />
+  <instrumentation android:name="com.jjricks.volt.ChargeLiveUnplugValidation" android:targetPackage="com.jjricks.volt" android:label="Live charging card out of sight, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeScheduleValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge scheduling UI validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeAlertValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery alert rows, sheet and delivery validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
@@ -36,6 +39,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.LearnedRangeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated learned range validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RideBackupValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator ride archive and restore UI validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RideAutoStopValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated automatic ride end presentation validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RideAutoExportValidation" android:targetPackage="com.jjricks.volt" android:label="Automatic ride copies to a chosen folder, end to end on a disposable emulator" />
   <instrumentation android:name="com.jjricks.volt.tests.ReportInviteValidation" android:targetPackage="com.jjricks.volt" android:label="Compatibility report invite on the simulator" />
   <instrumentation android:name="com.jjricks.volt.tests.UpdateCheckValidation" android:targetPackage="com.jjricks.volt" android:label="Check for updates with GitHub stubbed" />
   <instrumentation android:name="com.jjricks.volt.tests.OwnerModelValidation" android:targetPackage="com.jjricks.volt" android:label="The owner's model answer names and pictures a scooter" />
@@ -45,9 +49,12 @@
   <instrumentation android:name="com.jjricks.volt.tests.MoreMenuValidation" android:targetPackage="com.jjricks.volt" android:label="More menu rows line up on phone and wide layouts" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatibilityGatingValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated model compatibility gating validation" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatControlsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated OEM control families validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.ScooterMenuEditValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated Scooter menu editor validation" />
   <instrumentation android:name="com.jjricks.volt.tests.Ut5SimulationScreens" android:targetPackage="com.jjricks.volt" android:label="Isolated UT5 MAX simulator screen capture" />
   <instrumentation android:name="com.jjricks.volt.GuidedTestValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator guided setting test validation (synthetic link)" />
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MyScootersValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated multi-scooter management validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingFromZeroValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode ride time and distance start from zero at each open" />
   <instrumentation android:name="com.jjricks.volt.tests.LocaleValidation" android:targetPackage="com.jjricks.volt" android:label="Pseudo-locale text and layout checks (report only during the migration)" />
+  <instrumentation android:name="com.jjricks.volt.AutoStartValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator auto-record and auto ride mode validation (synthetic link)" />
 </manifest>

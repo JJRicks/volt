@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.jjricks.volt"
-    android:versionCode="54"
-    android:versionName="1.11.1">
+    android:versionCode="56"
+    android:versionName="1.12.1">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Install-time, no prompt: JobScheduler requires it for the automatic update check's network constraint (UpdateCheckJob). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -17,8 +19,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Lets Android keep the daily maintenance check planned after a restart (MaintenanceJobService); no prompt. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <queries><package android:name="moe.shizuku.privileged.api" /><package android:name="com.navee.ucaret" /></queries>
     <application
@@ -26,6 +31,7 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:localeConfig="@xml/locales_config"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -42,9 +48,22 @@
         <activity android:name=".BackupActivity" android:exported="false" android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
+        <!-- The folder picker for automatic ride copies (RideAutoExport); no views of its own. -->
+        <activity android:name=".RideAutoExportPickerActivity" android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
+        <!-- Saves several of one ride's export files into one picked folder (Rides, Export ride data); no views of its own. -->
+        <activity android:name=".RideExportFolderActivity" android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
         <uses-library android:name="androidx.window.extensions" android:required="false" />
+        <!-- The opt-in daily update check (More › Updates); only JobScheduler may bind it. Not persisted, so no boot permission. -->
+        <service android:name=".UpdateCheckJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
         <service android:name=".ScooterService" android:exported="false" android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|location" />
+        <!-- The daily maintenance check, planned only while a reminder needs it (MaintenanceNotices.plan). -->
+        <service android:name=".MaintenanceJobService" android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
         <activity android:name=".MainActivity" android:exported="true" android:resizeableActivity="true" android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden">
             <intent-filter>

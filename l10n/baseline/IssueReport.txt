@@ -1,4 +1,11 @@
 # Hard-coded English in src/com/jjricks/volt/IssueReport.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	" (System default)"
+multiword	"App language: "
 multiword	"Volt issue report · Volt "
+multiword	"Volt language request"
+multiword	"Volt translation error ("
 multiword	"What happened, and what did you expect instead?\n\n\n\n"
+multiword	"\nPhone language: "
+multiword	"\n\nWhich language would you like Volt in?\n\n\nCould you help check a translation into it?\n\n"
+multiword	"\n\nWhich screen?\n\n\nWhat does it say now?\n\n\nWhat should it say?\n\n"
