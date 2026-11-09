@@ -9,6 +9,8 @@
     <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Rotation de l’écran</string>
     <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba" volt:attempt="2">Verrouiller à l’ouverture</string>
     <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Suivre le téléphone</string>
+    <string name="riding_display_auto_open" volt:src="9fc232331f6b9f94acb5da04f95eb4272e54b1b9">Ouverture automatique</string>
+    <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Le mode de conduite s’ouvre lorsque la trottinette connectée se met en mouvement et que Volt est à l’écran. Après avoir quitté le mode de conduite, l’ouverture automatique attend la reconnexion de la trottinette</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Masquer la barre d’état</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Horloge et batterie masquées pendant la conduite</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Avec « Volt auto », les boutons − et + en bas du mode de conduite permettent à Volt d’apprendre le niveau que vous préférez selon la lumière ambiante. La luminosité du téléphone est rétablie lorsque vous quittez le mode de conduite.</string>

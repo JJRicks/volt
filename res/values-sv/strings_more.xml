@@ -136,6 +136,10 @@
     <string name="more_prefs_auto_stop">Avsluta turer automatiskt</string>
     <!-- src:6e56a0cc615fb4a83f1668457fad39ee488252da -->
     <string name="more_prefs_auto_stop_sub">När elsparkcykeln stängs av, är utom räckhåll i 5 min eller inte rör sig på 10 min</string>
+    <!-- src:e7146e4229442900123e435f2d3c7687d298fe63 -->
+    <string name="more_prefs_auto_record">Spela in turer automatiskt</string>
+    <!-- src:8e1782e212b5017013c7c921e873e5f3031aad2c -->
+    <string name="more_prefs_auto_record_sub">Inspelningen startar när den anslutna elsparkcykeln rör sig. Efter att du har stoppat en inspelning väntar appen tills elsparkcykeln ansluter igen.</string>
     <!-- src:de937287934ead27c1cf8140ec073b47e06707fd -->
     <string name="more_prefs_battery">Bakgrundsinspelning</string>
     <!-- src:47890c2c2c12e6af1e4a730e464b6788e7c17cd8 -->

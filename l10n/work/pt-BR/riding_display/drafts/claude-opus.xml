@@ -9,6 +9,8 @@
     <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Rotação da tela</string>
     <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba">Bloquear ao abrir</string>
     <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Seguir o telefone</string>
+    <string name="riding_display_auto_open" volt:src="9fc232331f6b9f94acb5da04f95eb4272e54b1b9">Abrir automaticamente</string>
+    <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Abre quando o patinete conectado se move e o Volt está na tela. Depois que você sair da tela de condução, aguarda o patinete conectar novamente</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Ocultar barra de status</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Relógio e bateria ocultos durante a condução</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Em “Auto do Volt”, o − e o + na parte de baixo da tela de condução ensinam ao Volt o nível que você prefere para a luz do ambiente. O brilho do telefone volta ao normal quando você sai da tela de condução.</string>

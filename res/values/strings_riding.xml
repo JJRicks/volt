@@ -82,11 +82,11 @@
     <string name="riding_label_range_scooter" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="260dp@15sp">Scooter\'s range</string>
     <string name="riding_label_range_scooter_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Range</string>
     <string name="riding_label_battery" volt:screen="Riding mode" volt:purpose="reading name" volt:max="140dp@15sp">Battery</string>
-    <!-- The scooter's trip distance since it was switched on. -->
+    <!-- How far the scooter has gone since riding mode opened: this count starts from zero each time riding mode opens. -->
     <string name="riding_label_trip" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:max="80dp@15sp">Trip</string>
-    <!-- The distance of the ride Volt is recording, shown instead of the scooter's trip while recording. -->
+    <!-- The same distance spot while Volt is recording a ride, shown instead of Trip: how far since riding mode opened, counted from the recording, and also starting from zero each time riding mode opens. -->
     <string name="riding_label_ride_distance" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:max="80dp@15sp">Ride</string>
-    <!-- Time since the scooter's trip started. -->
+    <!-- Time since riding mode opened, on the phone's clock: it starts from zero each time riding mode opens. -->
     <string name="riding_label_ride_time" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Ride time</string>
     <string name="riding_label_ride_time_short" volt:screen="Riding mode bottom row" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Time</string>
     <!-- Time since Volt started recording this ride; it can differ from the ride time. -->

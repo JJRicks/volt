@@ -202,6 +202,10 @@
     <string name="service_done_toast_set">„Fertig geladen bis“ ist eingestellt. %1$s</string>
     <!-- src:517320e1cc539bd56bda110ccef090c3753f9696 -->
     <string name="service_done_toast_not_set">„Fertig geladen bis“ wurde nicht eingestellt. %1$s</string>
+    <!-- src:be03d1d959bcab58892410b7a62f52b0ede8e456 -->
+    <string name="service_done_start_sent">Ladestart an den Scooter gesendet: %1$s. Verbindung trennen ist sicher.</string>
+    <!-- src:c4cb42903ef51f1db0f2cdda1172ed0f4e631d20 -->
+    <string name="service_done_safe_to_disconnect">%1$s Du kannst die Verbindung sicher trennen.</string>
     <!-- src:5e0b4a55528deef11f9b4665d56dfba452a6adec -->
     <string name="service_done_title_set">„Fertig geladen bis“ ist eingestellt</string>
     <!-- src:c2036cdbcdd740f5d6907d4c57d65a7db56efbcc -->

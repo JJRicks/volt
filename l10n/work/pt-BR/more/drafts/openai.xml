@@ -68,6 +68,8 @@
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Durante a gravação</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Encerrar viagens automaticamente</string>
     <string name="more_prefs_auto_stop_sub" volt:src="6e56a0cc615fb4a83f1668457fad39ee488252da">Quando o patinete desliga, fica fora de alcance por 5 min ou não se move por 10 min</string>
+    <string name="more_prefs_auto_record" volt:src="e7146e4229442900123e435f2d3c7687d298fe63">Gravar viagens automaticamente</string>
+    <string name="more_prefs_auto_record_sub" volt:src="8e1782e212b5017013c7c921e873e5f3031aad2c" volt:attempt="2">Começa quando o patinete conectado se move. Depois que você parar uma gravação, aguarda até o patinete se reconectar</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Gravação em segundo plano</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Uso da bateria sem restrições</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Uso da bateria otimizado; gravações longas podem parar. As configurações de bateria serão abertas</string>

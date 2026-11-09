@@ -18,3 +18,4 @@
 {"back":"PIN, proximity","key":"dashboard_model_qa_pin_proximity_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e609bc77142913722bef73d1892af098967f960d","target":"PIN, proximité"}
 {"back":"Enabled • %1$s","key":"dashboard_model_tile_on_at","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"36bb83c10ec32db86dc71f331a909921f5587794","target":"Activé • %1$s"}
 {"back":"Connect the scooter first","key":"dashboard_model_tile_connect_scooter","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fbc9bb6baff246c2834f064cbd71cbe77243f7c0","target":"Connectez d’abord la trottinette"}
+{"back":"Charging prog.","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Prog. recharge"}

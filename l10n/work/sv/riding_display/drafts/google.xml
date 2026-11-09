@@ -9,6 +9,8 @@
     <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Skärmrotation</string>
     <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba">Lås vid öppning</string>
     <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Följ telefonen</string>
+    <string name="riding_display_auto_open" volt:src="9fc232331f6b9f94acb5da04f95eb4272e54b1b9">Öppna automatiskt</string>
+    <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Öppnas när den anslutna elsparkcykeln rör sig och Volt visas på skärmen. När du har lämnat körläget väntar Volt tills elsparkcykeln ansluter igen</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Dölj statusfältet</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Klocka och batteri döljs under körning</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">I Volt auto lär − och + längst ned i körläget Volt din nivå för det ljus du befinner dig i. Telefonens ljusstyrka återställs när du lämnar körläget.</string>

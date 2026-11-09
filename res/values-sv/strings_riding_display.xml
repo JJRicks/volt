@@ -18,6 +18,10 @@
     <string name="riding_display_rotation_lock">Lås vid öppning</string>
     <!-- src:a779aa8e6b27f65452f99238aaabfa9665867a50 -->
     <string name="riding_display_rotation_follow">Följ telefonen</string>
+    <!-- src:9fc232331f6b9f94acb5da04f95eb4272e54b1b9 -->
+    <string name="riding_display_auto_open">Öppna automatiskt</string>
+    <!-- src:784e409a507105dede02d3c26109037b242d03d1 -->
+    <string name="riding_display_auto_open_sub">Öppnas när den anslutna elsparkcykeln rör sig och Volt visas på skärmen. När du har lämnat körvyn väntar funktionen tills elsparkcykeln ansluter igen</string>
     <!-- src:ec32d55ab521369ba11a51480764fd3f2549b19a -->
     <string name="riding_display_hide_status_bar">Dölj statusfältet</string>
     <!-- src:03db3298afb18d03c892194dbf078cf840626b15 -->
