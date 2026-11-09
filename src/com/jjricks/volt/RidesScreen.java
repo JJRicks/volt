@@ -914,8 +914,8 @@ public final class RidesScreen implements AppScreen {
         int loadGeneration; boolean fullDataLoaded;
         int overlayLimit = ui.dp(112); ScrollView overlayScroll;
         ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen) {
-            this.inferRegen = inferRegen;
             super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
+            this.inferRegen = inferRegen;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
             LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
             loadStatus = ui.text(T.ridesLoading(), 12, false); loadStatus.setMinHeight(ui.dp(48)); loadStatus.setGravity(Gravity.CENTER); loadStatus.setPadding(ui.dp(6), 0, ui.dp(6), 0);
