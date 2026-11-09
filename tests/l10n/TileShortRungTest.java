@@ -25,7 +25,7 @@ public final class TileShortRungTest {
         {"speed_limit", "Custom speed limit", "Speed limit"},
         {"drive_speed_limit", "Drive mode speed limit", "Drive limit"},
         {"charge_start", "Charging start time", "Charge start"},
-        {"low_power", "Low Battery Mode", "Low Battery"},
+        {"low_power", "Low Battery Mode", "Low batt. mode"},
         {"hill_descent_control", "Hill descent control", "Hill descent"},
         {"overspeed_control", "Overspeed active control", "Overspeed ctrl."},
         {"line_pattern", "Line lights pattern", "Line pattern"},

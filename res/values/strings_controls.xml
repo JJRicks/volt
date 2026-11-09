@@ -87,8 +87,8 @@
     <string name="controls_feature_lock_expiry_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:max="90dp@12.5sp" volt:safety="lock">Lock duration</string>
     <!-- The scooter's mode that saves power when the battery is low. -->
     <string name="controls_feature_low_power" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Low Battery Mode</string>
-    <!-- Short label of Low Battery Mode on a Home Setting tile (one line, about 90 dp): the scooter's mode that saves power when the battery is low. -->
-    <string name="controls_feature_low_power_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:max="90dp@12.5sp">Low Battery</string>
+    <!-- Short label of Low Battery Mode on a Home Setting tile (one line, about 90 dp): the scooter's mode that saves power when the battery is low. Keep it clearly a mode the rider can switch, so it isn't read as a low-battery warning. -->
+    <string name="controls_feature_low_power_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:max="90dp@12.5sp">Low batt. mode</string>
     <!-- A mode that trades speed for range. -->
     <string name="controls_feature_long_range_mode" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Long range mode</string>
     <!-- Short label of Long range mode on a Home Setting tile (one line, about 90 dp): a mode that trades speed for range. Make it shorter than the full name if it does not fit. -->
