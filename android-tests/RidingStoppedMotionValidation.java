@@ -139,8 +139,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             int i = 0;
             long end = SystemClock.uptimeMillis() + (long) (CHANGE_MS * scale) - 200;
             while (SystemClock.uptimeMillis() < end) {
-                Bitmap bitmap = getUiAutomation().takeScreenshot();
-                if (bitmap != null) try (FileOutputStream out = new FileOutputStream(new File(evidence, shots + "-" + (i++) + ".png"))) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
+                shot(shots + "-" + (i++));
             }
             SystemClock.sleep(600);
         } else SystemClock.sleep(window);
@@ -326,7 +325,9 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         waitForIdleSync();
         Bitmap bitmap = getUiAutomation().takeScreenshot();
         require(bitmap != null, "screenshot");
-        try (FileOutputStream out = new FileOutputStream(new File(evidence, name + ".png"))) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        File image = new File(evidence, name + ".png");
+        try (FileOutputStream out = new FileOutputStream(image)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
+        TextCensus.write(this, image);
     }
 
     private void note(String text) { notes.add(text); android.util.Log.i("VoltMotion", text); }
