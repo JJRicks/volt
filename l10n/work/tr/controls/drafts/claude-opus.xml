@@ -40,7 +40,7 @@
     <string name="controls_feature_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Uzun menzil modu</string>
     <string name="controls_feature_long_range_mode_short" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Uzun menzil</string>
     <string name="controls_feature_hill_start_assist" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Yürüme desteği</string>
-    <string name="controls_feature_hill_start_assist_short" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Yürüme desteği</string>
+    <string name="controls_feature_hill_start_assist_short" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Yürüme dest.</string>
     <string name="controls_feature_parking_assist" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Güç desteği</string>
     <string name="controls_feature_parking_assist_short" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Güç desteği</string>
     <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698">Yokuş iniş kontrolü</string>
