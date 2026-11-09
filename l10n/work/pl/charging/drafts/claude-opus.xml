@@ -9,11 +9,11 @@
     <string name="charging_alert_title_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">Naładowano do %1$s%%</string>
     <string name="charging_alert_title_paused" volt:src="c0f5087cc1f2f76881eb4df511f993c66f34f372">Alert ładowania wstrzymany</string>
     <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">Aplikacja Volt utraciła połączenie z hulajnogą %1$s. Aby nadal monitorować to ładowanie, należy otworzyć aplikację Volt.</string>
-    <plurals name="charging_alert_text_time_limit" volt:src="5169df0edfed2dda16e37a24f58c081c7a92fb95">
-        <item quantity="one">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinie. Aby nadal monitorować to ładowanie, należy otworzyć aplikację Volt.</item>
-        <item quantity="few">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinach. Aby nadal monitorować to ładowanie, należy otworzyć aplikację Volt.</item>
-        <item quantity="many">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinach. Aby nadal monitorować to ładowanie, należy otworzyć aplikację Volt.</item>
-        <item quantity="other">Aplikacja Volt przestała monitorować ładowanie po %1$d godziny. Aby nadal monitorować to ładowanie, należy otworzyć aplikację Volt.</item>
+    <plurals name="charging_alert_text_time_limit" volt:src="32b9b982b24bca33971b9665cb271e5a54340f1a">
+        <item quantity="one">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinie. Aby dalej je monitorować, należy otworzyć aplikację Volt.</item>
+        <item quantity="few">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinach. Aby dalej je monitorować, należy otworzyć aplikację Volt.</item>
+        <item quantity="many">Aplikacja Volt przestała monitorować ładowanie po %1$d godzinach. Aby dalej je monitorować, należy otworzyć aplikację Volt.</item>
+        <item quantity="other">Aplikacja Volt przestała monitorować ładowanie po %1$d godziny. Aby dalej je monitorować, należy otworzyć aplikację Volt.</item>
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: poziom baterii %2$s%%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Oczekiwanie na dane</string>
@@ -64,4 +64,24 @@
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Należy wybrać start ładowania w ciągu najbliższych 48 godzin</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Należy wybrać pełną godzinę w ciągu najbliższych 48 godzin</string>
     <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Należy poczekać na zakończenie testu harmonogramu</string>
+    <string name="charging_schedule_disable_done_by" volt:src="a197560e1fef7930b9170fdeb68a078ad5036d90">Najpierw należy wyłączyć funkcję „Termin końca ładowania”</string>
+    <string name="charging_schedule_choose_scooter" volt:src="e1b0e0a597ae31db97ba169a3c3740e9ac855524">Najpierw należy wybrać hulajnogę</string>
+    <string name="charging_schedule_connect_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Najpierw należy połączyć się z hulajnogą</string>
+    <string name="charging_schedule_not_on_model" volt:src="0518e1140e1f916f793160a631b6265d02a55883">Niedostępne w tym modelu</string>
+    <string name="charging_schedule_turn_off_done_by" volt:src="96cca66872e859bcf1616978b7cb0fe8a74b8abf">Najpierw należy wyłączyć funkcję „Termin końca ładowania”</string>
+    <string name="charging_schedule_turn_off_scheduled" volt:src="5f0067adf313562c67b074bc33608e1853cab5f4">Najpierw należy wyłączyć zaplanowane ładowanie</string>
+    <string name="charging_schedule_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Należy poczekać na aktualne odczyty ładowania</string>
+    <string name="charging_schedule_cancel_not_confirmed" volt:src="63289e8a5cc58aeab6d1d0e0f4f8e7634446bac4">Nie potwierdzono, czy harmonogram anulowano; należy połączyć się jeszcze raz i spróbować ponownie</string>
+    <string name="charging_schedule_clock_failed" volt:src="c4b495c877ca869fae6c108aadfc74766637a6c4">Nie udało się ustawić zegara hulajnogi; harmonogram bez zmian</string>
+    <string name="charging_schedule_battery_changed" volt:src="0a27c043c120c8ba089de42d53565c25b9b20bab">Zmienił się poziom baterii; potrzebne jest nowe oszacowanie ładowania</string>
+    <string name="charging_schedule_start_not_confirmed" volt:src="a91441dba7b7dea111b3393eeba4acf83ef82629">Nie potwierdzono startu ładowania; należy sprawdzić harmonogram hulajnogi</string>
+    <string name="charging_schedule_limit_changed" volt:src="a51efe59592d08bd0aec88843bd4cc04680feb96">Zmienił się limit ładowania; należy sprawdzić harmonogram i spróbować ponownie</string>
+    <string name="charging_schedule_start_changed_estimate" volt:src="27db30fb4a095e46706d219c2044a55c9fbb7a22">Zmieniono start ładowania, ale potrzebne jest nowe oszacowanie ładowania</string>
+    <string name="charging_schedule_start_passed" volt:src="35da343e6ca1933a8d187632b5b5673a990a003c">Trwa ładowanie – obliczona godzina startu już minęła</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5">Godzina startu minęła, ale nie potwierdzono, czy harmonogram anulowano</string>
+    <string name="charging_schedule_limit_saved_no_estimate" volt:src="2cc8005ea08f3fc5617ad39055e67924ba7c253a">Zmienił się limit ładowania; start ładowania zapisano bez oszacowania końca</string>
+    <string name="charging_schedule_battery_saved_no_estimate" volt:src="40f4b80d5c3e565325127cddf97c07970a1d0936">Zmienił się poziom baterii; start ładowania zapisano bez oszacowania końca</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d">Zmieniono start ładowania, ale nie potwierdzono, czy harmonogram włączono</string>
+    <string name="charging_schedule_connection_changed" volt:src="25fe61147b8404efb684ce3a9bfda49efc2c7207">Zmieniło się połączenie; należy sprawdzić harmonogram hulajnogi, a dopiero potem spróbować ponownie</string>
+    <string name="charging_schedule_stopped_before_finish" volt:src="7bc9b4b59362f543f1dda93235a136bf1848b91b">Aplikacja Volt zatrzymała się przed zakończeniem; należy sprawdzić, czy zaplanowane ładowanie jest wyłączone</string>
 </resources>
