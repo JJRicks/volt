@@ -204,7 +204,7 @@ A word that is normal in Brazil can read as a mistake here. A Brazilian word in 
 - **Carga pronta até** for Charge done by, which has no fixed Portuguese form. *Pronta* can suggest a charge that has finished, and on a tile with no time after it the phrase dangles. A verb can't read as a finished state: *Terminar carga até* or *Concluir carga até*. All three wrap to fit the 64dp@12sp shortcut in two lines (widest line 51 to 58dp). None fits the one-line 90dp@12.5sp tile (96, 108 and 103dp), so the tile says *Carga até* for now.
 - **Autorizado** for the role label `more_role_shared`. Alone it can read as a status ("authorized: yes") rather than a role beside *Proprietário*. *Convidado* (61dp at 12.5sp, against 64dp) and *utilizador convidado* are the alternatives.
 - **Vincular** for NAVEE account binding. It's the manual's word, so a rider can match it to the official app, but it leans Brazilian; pt-PT usually says *associar* (*associar a conta*).
-- **Controlo de cruzeiro** for Cruise control. Portuguese retailers often write *Cruise control* in English.
+- **Cruise Control** stays in English (owner decision, 2026-11-08, on a GT3 Max rider's note that riders in Portugal use the English term; retailers write it that way too). The council's earlier term was *controlo de cruzeiro*.
 
 ## 9. Android's own wording
 

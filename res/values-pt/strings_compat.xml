@@ -305,7 +305,7 @@
     <!-- src:f16962b0731f9264d6905c0e6b91618783edcb37 -->
     <string name="compat_field_lock_status">Estado do bloqueio</string>
     <!-- src:55d5ad4d42f35a8380452ba88c11f2c8cb818411 -->
-    <string name="compat_field_cruise_control">Controlo de cruzeiro</string>
+    <string name="compat_field_cruise_control">Cruise Control</string>
     <!-- src:632a9e5e7f963924206336e0422b05c2dcf14b04 -->
     <string name="compat_field_tail_light">Luz traseira</string>
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->

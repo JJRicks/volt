@@ -1,0 +1,3 @@
+# The hardware sweep's live charging hold rule (android-tests/LiveChargingHoldCheck.java, Android-free).
+android-tests/LiveChargingHoldCheck.java
+tests/l10n/LiveChargingHoldCheckTest.java

@@ -152,18 +152,27 @@ public final class ChargeLiveTest {
         check(h.step(MIN, facts(true, true, false, false, 99, null)) == ChargeLiveHold.End.FINISHED, "no limit, stopped at 99%: finished");
         check(ChargeLiveHold.finishAt(80) == 79 && ChargeLiveHold.finishAt(null) == 99 && ChargeLiveHold.finishAt(100) == 99, "finish levels");
 
-        // The charger off below the target: a short cut-out keeps the hold, more than 3 minutes ends it.
+        // The charger off below the target: a fresh off reading ends it UNPLUG_MS later, unless charging comes back first.
         h.leave(0, charging(50));
         ChargeLiveHold.Facts off = facts(true, true, false, false, 50, 80);
         check(h.step(MIN, off) == ChargeLiveHold.End.NONE, "charger just went off");
-        check(h.step(3 * MIN, charging(50)) == ChargeLiveHold.End.NONE, "it came back inside 3 minutes");
-        check(h.step(4 * MIN, off) == ChargeLiveHold.End.NONE, "off again: a new 3 minutes");
-        check(h.step(4 * MIN + ChargeLiveHold.STOP_MS, off) == ChargeLiveHold.End.NONE, "exactly 3 minutes still holds");
-        check(h.step(4 * MIN + ChargeLiveHold.STOP_MS + S, off) == ChargeLiveHold.End.CHARGER_OFF && !h.active(), "more than 3 minutes off ends it");
+        check(h.step(MIN + ChargeLiveHold.UNPLUG_MS, off) == ChargeLiveHold.End.NONE, "exactly the unplug window still holds");
+        check(h.step(MIN + ChargeLiveHold.UNPLUG_MS, charging(50)) == ChargeLiveHold.End.NONE, "charging again at the end of the window keeps it");
+        check(h.step(4 * MIN, off) == ChargeLiveHold.End.NONE, "off again: a new window");
+        check(h.nextCheck() == 4 * MIN + ChargeLiveHold.UNPLUG_MS + 1, "the window's end is due");
+        check(h.step(4 * MIN + ChargeLiveHold.UNPLUG_MS + S, off) == ChargeLiveHold.End.CHARGER_OFF && !h.active(), "off past the window ends it");
+        check(ChargeLiveHold.UNPLUG_MS < ChargeLiveHold.STOP_MS && ChargeLiveHold.STOP_MS == ChargeAlertPolicy.STOP_MS && ChargeAlertPolicy.STOP_MS == 3 * MIN, "the short window is the hold's own; alerts keep 3 minutes");
         h.leave(0, charging(50));
         ChargeLiveHold.Facts stale = facts(true, true, null, false, null, 80);
         h.step(MIN, stale);
+        check(h.step(MIN + ChargeLiveHold.STOP_MS, stale) == ChargeLiveHold.End.NONE, "no fresh reading is a gap, not an unplug: the longer tolerance");
         check(h.step(MIN + ChargeLiveHold.STOP_MS + S, stale) == ChargeLiveHold.End.CHARGER_OFF, "connected but no fresh reading for 3 minutes ends it too");
+        h.leave(0, charging(50));
+        h.step(MIN, off);
+        h.step(MIN + S, stale);
+        check(h.active() && h.nextCheck() == MIN + S + ChargeLiveHold.STOP_MS + 1, "an off reading then a gap: the longer tolerance");
+        h.step(MIN + 2 * S, off);
+        check(h.active() && h.nextCheck() == MIN + 2 * S + ChargeLiveHold.UNPLUG_MS + 1, "and the next off reading starts a full short window");
 
         h.leave(0, charging(50));
         check(h.step(MIN, facts(false, true, true, false, 51, 80)) == ChargeLiveHold.End.OFF && !h.active(), "turning the switch off ends it");
