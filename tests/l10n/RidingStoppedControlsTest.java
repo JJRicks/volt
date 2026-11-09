@@ -121,6 +121,12 @@ public final class RidingStoppedControlsTest {
     private static void source() throws IOException {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         String main = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8);
+        String motion = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingStoppedMotion.java")), StandardCharsets.UTF_8);
+        check(screen.contains("new RidingStoppedMotion(stoppedControls, power, stoppedLock, recordDisc)") && screen.contains("stoppedMotion.stop();"), "Lock and Record share the motion, and it stops with the screen");
+        check(motion.contains("new RidingDiscAnimator(this::apply)") && motion.contains("RidingDisc.scale(at)") && motion.contains("RidingDisc.alpha(at)"), "the tune disc's own numbers, not a copy");
+        check(motion.contains("View.INVISIBLE") && !motion.contains("readout.setVisibility(View.GONE)"), "the readout keeps its place for the power bar's zero line");
+        check(screen.contains("if (stoppedMotion.takesTaps()) recordTap();") && screen.contains("onInterceptTouchEvent(MotionEvent event) { return !stoppedMotion.takesTaps()"), "taps stop the moment they start to hide");
+        check(screen.indexOf("stoppedMotion.dim(alpha);") < screen.indexOf("if (!shown) return;", screen.indexOf("stoppedMotion.dim(alpha);")), "the long-ride dim keeps up while they hide");
         check(screen.contains("stoppedLock = host.ridingLock(() -> stopped(") && screen.contains("showStopped(stoppedNow,"), "Lock and Record follow the stopped gate");
         check(main.contains("lockQueue.stoppedGateClosed(") && main.indexOf("lockQueue.stoppedGateClosed(") < main.indexOf("decisionOnceIdle(\"lock\",Boolean.TRUE"), "a waiting tap meets the stopped gate before the lock's own gate");
         check(main.contains("stoppedGate!=null&&!stoppedGate.getAsBoolean()") && main.contains("lockQueue.sending(true);"), "a tap as motion starts is refused, and a send is held from redraws");
