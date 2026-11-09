@@ -46,7 +46,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Opslaan mislukt. Probeer het opnieuw op een andere locatie.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Back-up opgeslagen.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Herstel</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Kies een back-up van Volt om je opgeslagen appgegevens te herstellen. Oudere bestanden met eigenaarsconfiguratie, ritten of indeling werken ook; voordat je herstelt, zie je precies wat erin staat.</string>
+    <string name="backup_restore_intro" volt:src="3edbbca81c00f0869ecd161d0877696640456cf8">Kies een Volt-back-up om je opgeslagen appgegevens te herstellen. Oudere bestanden met eigenaarsconfiguratie, ritten of indeling werken ook; je ziet precies wat ze bevatten voordat je herstelt.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Rechten en Bluetooth-koppeling zijn niet inbegrepen.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Bestand kiezen</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Er kon geen bestandskiezer worden geopend.</string>
@@ -78,7 +78,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Voor welke step is dit eigenaarsbestand?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Indeling gaat naar:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Gegevens van ‘%1$s’ gaan naar:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Meer dan één step kan dit eigenaarsbestand gebruiken. Kies een bestaande step of voeg er nog een toe.</string>
+    <string name="backup_owner_choice" volt:src="deece19b3157d087723c77b3e5938e54cf6160d0">Meer dan één step kan dit configuratiebestand van de eigenaar gebruiken. Kies een bestaande step of voeg er nog een toe.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Kies een step…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Nog een step toevoegen</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Toevoegen vanuit back-up</string>
