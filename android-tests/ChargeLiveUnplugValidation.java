@@ -24,7 +24,7 @@ import java.util.function.BooleanSupplier;
  * Unplug just after a poll (near the worst case) and just before one, Volt in the background: the card clears within one
  * poll plus ChargeLiveHold.UNPLUG_MS and the measured times go in the timeline. A cut-out between two polls is never seen,
  * a replug inside the window keeps the card, one after it doesn't re-arm, and a connected scooter that stops giving
- * a reading (null, a gap) keeps the card. Finally the sweep's own hold check with the notification channel blocked.
+ * a reading (null, a gap) keeps the card. Mode notifications-off runs the sweep's own hold check with notifications off.
  */
 public final class ChargeLiveUnplugValidation extends Instrumentation {
     private static final long S=1000L;
@@ -36,7 +36,9 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
     private FakeLink link;
     private int checks;
     private final StringBuilder timeline=new StringBuilder();
-    @Override public void onCreate(Bundle args){start();}
+    /** "notifications-off": POST_NOTIFICATIONS withheld, the sweep's hold check only. */
+    private String mode="";
+    @Override public void onCreate(Bundle args){if(args!=null)mode=args.getString("mode","");start();}
     @Override public void onStart(){
         Bundle result=new Bundle();
         try{
@@ -51,12 +53,14 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
             main(()->{link=new FakeLink();link.attach();});
             await(()->onMain(()->ble.ready()),10000,"Synthetic link never ready");
             log("link ready, charging");
-            cutOutBetweenPollsKeepsTheCard();
-            replugInsideWindowKeepsTheCard();
-            unplugClears("just after a poll",0);
-            unplugClears("just before a poll",StatusCadence.POLL_SLOW_MS-1500);
-            noFreshReadingKeepsTheCard();
-            notificationsBlockedHasNoEffectiveHold();
+            if("notifications-off".equals(mode)){notificationsBlockedHasNoEffectiveHold();}
+            else{
+                cutOutBetweenPollsKeepsTheCard();
+                replugInsideWindowKeepsTheCard();
+                unplugClears("just after a poll",0);
+                unplugClears("just before a poll",StatusCadence.POLL_SLOW_MS-1500);
+                noFreshReadingKeepsTheCard();
+            }
             result.putString("result","PASS");
         }catch(Throwable error){result.putString("result","FAIL");result.putString("error",error.toString());error.printStackTrace();}
         finally{
@@ -67,8 +71,10 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
     private void admit(){
         String hardware=Build.HARDWARE.toLowerCase(Locale.ROOT);
         require(hardware.contains("ranchu")||hardware.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"Physical device refused");
-        for(String permission:new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT,Manifest.permission.POST_NOTIFICATIONS})
+        for(String permission:new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT})
             require(getTargetContext().checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED,"Grant emulator permissions first");
+        boolean notifications=getTargetContext().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;
+        require("notifications-off".equals(mode)!=notifications,"notifications-off runs without POST_NOTIFICATIONS, the default mode with it");
         require(getTargetContext().getSystemService(BluetoothManager.class).getAdapter()!=null,"The emulator has no Bluetooth adapter object");
     }
 
@@ -163,17 +169,15 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         main(()->link.quiet=false);
     }
     /**
-     * The sweep's own check (the same LiveChargingHoldCheck and Probe as ParkedValidation) with the notification channel
-     * blocked: the hold is armed internally but holds nothing, so the ordinary grace runs and the check doesn't fail the sweep.
+     * The sweep's own check (the same LiveChargingHoldCheck and Probe as ParkedValidation) with notifications off (the
+     * permission withheld: a channel the app itself turned off comes straight back, because notification() recreates it):
+     * the hold is armed internally but holds nothing, so the ordinary grace runs and the check doesn't fail the sweep.
      */
     private void notificationsBlockedHasNoEffectiveHold(){
         ensureFront();
         readChargingInFront();
-        NotificationManager manager=getTargetContext().getSystemService(NotificationManager.class);
-        main(()->{android.app.NotificationChannel channel=new android.app.NotificationChannel("scooter","x",NotificationManager.IMPORTANCE_NONE);manager.createNotificationChannel(channel);});
-        android.app.NotificationChannel after=manager.getNotificationChannel("scooter");
-        require(after!=null&&after.getImportance()==NotificationManager.IMPORTANCE_NONE&&!onMain(()->service.chargeLiveAllowed()),"Could not block the notification channel on this emulator: importance "+(after==null?"null":String.valueOf(after.getImportance())));
-        log("blocked: channel importance NONE, chargeLiveAllowed false");
+        require(!onMain(()->service.chargeLiveAllowed()),"Notifications must be off for this mode");
+        log("notifications off: chargeLiveAllowed false, leaving Volt");
         main(()->{
             settings().edit().putBoolean("background_connection",false).commit();service.visible(true);service.visible(false);
             LiveChargingHoldCheck.Observed observed;
