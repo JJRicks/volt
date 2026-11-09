@@ -48,7 +48,9 @@
     <string name="rides_show_more" volt:src="92997935cc07211589521ca0fd4e90e08418cb28">Daha fazla kayıt göster</string>
     <string name="rides_no_rides_yet" volt:src="baddce1cfb732fa0b4903ce739fcbe19a136cbfc">Henüz sürüş yok</string>
     <string name="rides_history_unreadable" volt:src="bcf3000514915f3e10197d95080678471ab36ada">Kayıtlı sürüşler okunamadı</string>
+    <string name="rides_history_loading" volt:src="bada6acd13bc715a28fc41af65a143559cf9bb7b">Sürüşler yükleniyor…</string>
     <string name="rides_compare_two_selected" volt:src="98613115f1c523bc7cede0c0bf60d3145806bf34">İki sürüşü karşılaştır, 2 sürüş seçildi</string>
+    <string name="rides_compare_two_selected_value" volt:src="8bd0903eb8267c637eb1809a01c474510dd90783">2 ✓</string>
     <string name="rides_toast_compare_needs_two" volt:src="037abcb59e7daef3ab37b93571ed3312d127037f">Karşılaştırmak için iki sürüş kaydedin.</string>
     <string name="rides_compare_title" volt:src="0df381d5eb5cd0760c64ea4b8efa882388dc7b9b">Sürüş karşılaştırması</string>
     <string name="rides_compare_action" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Karşılaştır</string>
@@ -64,7 +66,7 @@
     <string name="rides_tile_distance" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Mesafe</string>
     <string name="rides_tile_duration" volt:src="1746de74250a7b81835e2d91c032e099fca5d223">Süre</string>
     <string name="rides_tile_avg_speed" volt:src="f5318811729e6b04a5d4ef166cf9a1b7342d6e03">Ort. hız</string>
-    <string name="rides_tile_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">En yüksek hız</string>
+    <string name="rides_tile_max_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">En yüksek hız</string>
     <string name="rides_reason_odometer_reset" volt:src="d0627952bee838eaf46325575b5a50830674b41f">Kilometre sayacı sıfırlandı</string>
     <string name="rides_battery_energy" volt:src="212c96ac43105bc54ba5d9f1e4c48ae8c60f9722">Pil ve enerji</string>
     <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Pil artışı</string>
@@ -93,6 +95,8 @@
     <string name="rides_electrical_energy" volt:src="c25cbe0cc36ce2c248cbfc7818933e13e17add77">Elektrik enerjisi</string>
     <string name="rides_direction_confirmed" volt:src="3517b661574c4c41efd4351cc06b903953465adc">Akım yönü onaylandı</string>
     <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Akım yönü sürüşün tamamı için onaylanmadı · değerler mutlak enerji akışıdır</string>
+    <string name="rides_direction_chip_confirmed" volt:src="d6e0a0a5e88f65233f8c01b01ac043404f2d64c2">Akım yönü ✓</string>
+    <string name="rides_direction_chip_unconfirmed" volt:src="1bca2702ee00baf0318930a4d3de43b4208f633e">Akım yönü ?</string>
     <string name="rides_draw_short" volt:src="c14d7827ed8152cbec42ccd4357e84c0b3c3e01d">Tüketim</string>
     <string name="rides_draw" volt:src="157e4062a6580d8571728fd66d3971f3fe44e7f4">Pil tüketimi</string>
     <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Giriş</string>
@@ -115,11 +119,10 @@
     <string name="rides_temperature" volt:src="f15eba24737081c7101a88db3658b99a0bd52861">Sıcaklık</string>
     <string name="rides_saved_automatically" volt:src="58efd69f1a809c6adad917d9ec4f95fce547b039">Otomatik kaydedildi</string>
     <string name="rides_saved_automatically_description" volt:src="fc285e70968c98ae9e5245737cd96d6e66cefd8c">Park hâlindeyken Bluetooth bağlantısı kesildikten sonra otomatik kaydedildi</string>
+    <string name="rides_saved_automatically_quiet_description" volt:src="05090afb40fa980984bb7b031148edabeb5e4a23">Scooter kapandıktan veya kapsama alanı dışına çıktıktan sonra otomatik kaydedildi</string>
+    <string name="rides_saved_automatically_phone_bluetooth_description" volt:src="ad859897ef96351dc8830672be0eaeb67013805b">Telefonun Bluetooth’u kapalı kaldıktan sonra otomatik kaydedildi</string>
+    <string name="rides_saved_automatically_no_motion_description" volt:src="7da5aa62ad1bb6a167706c771898fc1aa1bfe109">10 dakika hareket algılanmadı, otomatik kaydedildi</string>
     <string name="rides_notes_section" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Notlar</string>
-    <string name="rides_export_csv" volt:src="d11e223da3b707ad21fcabeb43502f16260c8142">CSV dışa aktar</string>
-    <string name="rides_export_csv_description" volt:src="41efa95d00ab88bdc5d139c323e6b399b00289da">Sürüşün tüm sensör CSV dosyasını dışa aktar</string>
-    <string name="rides_export_json" volt:src="782c3f0f4a26c5cfc777a87550276e88022a3940">JSON dışa aktar</string>
-    <string name="rides_export_json_description" volt:src="bb1027bd9d54d872e004a096f0081f569c2fb996">Sürüş analizi JSON dosyasını dışa aktar</string>
     <string name="rides_delete_ride" volt:src="751d2b3a49d9b5b28452341742e96f8841ccbdaf">Sürüşü sil</string>
     <string name="rides_reason_no_odometer" volt:src="d3f039e9f5a1e9deb5f3016da541a4c4e1f48622">Kilometre sayacı mesafesi yok</string>
     <string name="rides_reason_too_short" volt:src="2d1cab3cec98af1473368e4b9024e7f52af96406">Çok kısa</string>
@@ -135,26 +138,28 @@
     <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Otomatik</string>
     <string name="rides_barometer_gps" volt:src="37769f8228e7f6c822e91abf1b56a49cd1dce43a">GPS rakımı</string>
     <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Hareket sensörleri</string>
-    <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Telefonun yeri</string>
-    <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">Gidonda</string>
-    <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">Cepte</string>
     <string name="rides_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">LAB, deneysel</string>
+    <string name="rides_lab_description" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Deneysel</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Değişiklikler sonraki sürüşte geçerli olur</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Kullanılabilir tarayıcı yok.</string>
-    <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Ham dosyaları dışa aktar</string>
-    <string name="rides_export_phone_journal" volt:src="3b542151a42402437727af6eab7139fb0c617406">Telefon günlüğü CSV</string>
-    <string name="rides_export_motion_csv" volt:src="f02bca6d002344576307241dcafef54b0c6daddb">Hareket CSV</string>
     <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">Bu sürüş için telefon verisi kaydedilmedi.</string>
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Rota</string>
     <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Telefon ve rota</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">GPS mesafesi</string>
+    <string name="rides_gps_no_fixes" volt:src="a46667ac4335a821606c9ce1cffd8bbfaaca8ae1">GPS konumu yok</string>
+    <plurals name="rides_gps_fixes" volt:src="614e7ac3cce3d02b4c5fefcc641a4107299875a2">
+        <item quantity="one">%1$s konum</item>
+        <item quantity="other">%1$s konum</item>
+    </plurals>
+    <plurals name="rides_gps_dropped" volt:src="c3b24f910e7a641b3186cec3c2fc1e0c157aebc0">
+        <item quantity="one">" · %1$s çıkarıldı"</item>
+        <item quantity="other">" · %1$s çıkarıldı"</item>
+    </plurals>
     <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Tırmanış / iniş</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">İvme</string>
     <string name="rides_gps_speed_change" volt:src="a15e78f916dd0aff03e2124b76da4f735b3a4a34">GPS hız değişimi · min. / maks.</string>
     <string name="rides_scooter_speed_change" volt:src="28ea9845136590f144c491f3926ec406ec0040a0">Scooter hız değişimi · min. / maks.</string>
     <string name="rides_linear_peak" volt:src="69912967151ad953dd89cfaf6427e93ea3cb1ff3">Telefon doğrusal ivmesi · tepe</string>
-    <string name="rides_export_phone" volt:src="9e1363e135ccbb85288c142fc222390c63b9f295">Telefon verilerini dışa aktar</string>
     <string name="rides_route_selection_description" volt:src="a7a6c14588fe5086be5ffeebe8ca303336177f75">Seçilen rota ölçümleri</string>
     <string name="rides_route_color" volt:src="0b726408683056cce3577e33e4c8057931631a12">Rota rengi</string>
     <string name="rides_route_color_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Güç</string>
@@ -184,10 +189,36 @@
     <string name="rides_export_gpx" volt:src="b22dd3b2c7f3f9586f3d38170d49539dd3c1ee76">GPX</string>
     <string name="rides_export_phone_raw" volt:src="3e861b036037534411fafc599c8341a177e26391">Telefon ham CSV</string>
     <string name="rides_export_motion_raw" volt:src="144093e0848dfc41d9dd7dd6a7d2eefb9e9d31c5">Hareket ham CSV</string>
-    <string name="rides_export_all_json" volt:src="d591c3ad2a9ac82a4d446003594007fff087aee0">Tümü (JSON)</string>
     <string name="rides_toast_export_failed" volt:src="aaa225c9739810f61b99b35a0b8b53c36d6870ed">Bu sürüş dışa aktarılamadı.</string>
     <string name="rides_toast_export_csv_failed" volt:src="48d4ac38add95f760e03cd66b350736f1068401f">Sürüş CSV dosyası dışa aktarılamadı.</string>
-    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Rota ve sensör verileri. Geri alınamaz.</string>
+    <string name="rides_export_data" volt:src="f6ca25b10cad1df610b2b818273c3f9b9cac758e">Sürüş verilerini dışa aktar</string>
+    <string name="rides_export_data_short" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Dışa aktar</string>
+    <string name="rides_export_section_scooter" volt:src="3d295d070d3e6a261f48f10d6fed643567fd224d">Scooter kaydı</string>
+    <string name="rides_export_section_phone" volt:src="3ce3ab3d858a3fe0e14b1cf0ba2b3157e7561aa8">Telefon kaydı</string>
+    <string name="rides_export_everything_json" volt:src="4e6e7e93e1cd473a54539cf513ab94f06d104824">Her şey tek JSON’da</string>
+    <string name="rides_export_sensor_csv" volt:src="066a64584be317e2fe220b5f0e7cf2e9c6b66a0c">Sensör CSV’si</string>
+    <string name="rides_export_analysis_json" volt:src="4720a921addf5df717b5a485480f93bc6f6a379f">Analiz JSON’u</string>
+    <string name="rides_export_combined_json" volt:src="cabbadd1f3d041c7be57fa7cc8c165457ef9e8f0">Scooter ve telefon JSON’u</string>
+    <string name="rides_export_reason_saving" volt:src="6f92cd2421210e27477c12730f6d86fc18ed61d4">Hâlâ kaydediliyor</string>
+    <string name="rides_export_reason_no_fixes" volt:src="bf44c691a26de70e504c6d7db0953e425f36c8de">Bu sürüşte GPS konumu yok</string>
+    <string name="rides_export_reason_unreadable" volt:src="db494efbcdf014ad52348a867e289652f1aa3971">Telefon kaydı okunamadı</string>
+    <string name="rides_export_reason_not_recorded" volt:src="de3dc7f6f58664d660d10ce5ab5144da25f629fa">Bu sürüş için kaydedilmedi</string>
+    <string name="rides_export_unavailable_description" volt:src="750a68a79a98884a2808d7a6fd555256480588f4">%1$s, kullanılamıyor: %2$s</string>
+    <string name="rides_export_hint_one" volt:src="b5ae4fa92876738dd43bc27f72a6e8c71b4176e9">Android, dosyanın nereye kaydedileceğini soracak.</string>
+    <string name="rides_export_hint_several" volt:src="f4a759f38a0abf7854826db120977dc306d20a6d">Android bir klasör soracak ve Volt her dosyayı oraya kaydedecek.</string>
+    <string name="rides_export_hint_none" volt:src="04b6cfdb4eba3d64c9727d16a867e00c3e8c772e">En az bir dosya seçin.</string>
+    <string name="rides_export_action" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Dışa aktar</string>
+    <plurals name="rides_toast_export_saved" volt:src="200815756a8fce8d208691d149ea36a38e26ed21">
+        <item quantity="one">%1$d dosya kaydedildi.</item>
+        <item quantity="other">%1$d dosya kaydedildi.</item>
+    </plurals>
+    <plurals name="rides_toast_export_partial" volt:src="c539b8ca716ac0a4014cd7b90db029295f77c6ee">
+        <item quantity="one">%2$d dosyadan %1$d tanesi kaydedildi. Kalanlar için yeniden deneyin.</item>
+        <item quantity="other">%2$d dosyadan %1$d tanesi kaydedildi. Kalanlar için yeniden deneyin.</item>
+    </plurals>
+    <string name="rides_toast_export_folder_failed" volt:src="e71b254470f31e8493ecc6709e1331fb6ead9b7f">Bu klasöre kaydedilemedi.</string>
+    <string name="rides_toast_export_no_picker" volt:src="183113e7f36bc861510f2be57d50b2f40a434f10">Bu telefonda klasör seçici yok.</string>
+    <string name="rides_delete_message" volt:src="c028e74aac859c05b50dfec82297d5317577fd29">Rotası ve sensör verileri silinecek. Geri alınamaz.</string>
     <string name="rides_delete_keep" volt:src="4d20ae693afdbf19356702263c029117d66d8cbc">Sürüşü sakla</string>
     <string name="rides_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Sil</string>
     <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Kaydediliyor… yeniden deneyin</string>
@@ -216,7 +247,7 @@
     <string name="rides_live_title_attention" volt:src="ddb3e602cdb20c062cb128b14f2671224643e13b">Kayıt dikkat gerektiriyor · %1$s</string>
     <string name="rides_elapsed_description" volt:src="30184002ffb4f49f13f9d807303a7b0ef1b5c0b7">Geçen süre: %1$s</string>
     <string name="rides_gap_one" volt:src="a7eb56fd187ab8e4968d308f1afc084988247c0d">1 veri boşluğu</string>
-    <plurals name="rides_gaps" volt:src="26b01d84ddac3fbd76a20c39ee9b6ed20eafa39b">
+    <plurals name="rides_gaps" volt:src="a188cad11d090f165cac1ddfbc0eaca7eacd5e2b">
         <item quantity="one">%1$d veri boşluğu</item>
         <item quantity="other">%1$d veri boşluğu</item>
     </plurals>
@@ -235,13 +266,23 @@
     <string name="rides_compare_two_saved" volt:src="b3e7e0eb46a4aebaad05254b195a312a2ec1a68c">İki sürüşü karşılaştır, kayıtlı sürüş: %1$d / 2</string>
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">Seçilen sürüş: %1$d / 2</string>
     <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Pil artışı: %1$d yüzde puan</string>
+    <plurals name="rides_battery_gain_description_count" volt:src="5dc5ceca7de82e548da35c2040a15638c76284cc">
+        <item quantity="one">Pil artışı, %1$d yüzde puanı</item>
+        <item quantity="other">Pil artışı, %1$d yüzde puanı</item>
+    </plurals>
     <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Pil düşüşü: %1$d yüzde puan</string>
+    <plurals name="rides_battery_drop_description_count" volt:src="bf48bffa26436a38fa16d2e7931011baa20ea33f">
+        <item quantity="one">Pil düşüşü, %1$d yüzde puanı</item>
+        <item quantity="other">Pil düşüşü, %1$d yüzde puanı</item>
+    </plurals>
     <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Onaylandı: %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Onaylanmadı: %1$s</string>
     <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Akım yönü onaylandı: %1$s, onaylanmadı: %2$s</string>
     <string name="rides_switch_experimental" volt:src="550602e28c6658e848285df423a96bb5370f3597">%1$s, deneysel</string>
-    <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">Gidonda · %1$s örnek</string>
-    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">Cepte · %1$s örnek</string>
+    <plurals name="rides_motion_samples" volt:src="c3795e1f802c644da14384a55d4a688cca840e80">
+        <item quantity="one">%1$s hareket örneği</item>
+        <item quantity="other">%1$s hareket örneği</item>
+    </plurals>
     <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Güç büyüklüğü · mavi 0 → sarı %1$s · gri: veri yok</string>
     <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Göreli rakım · mavi %1$s → sarı %2$s · gri: veri yok</string>
     <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Scooter hızı · mavi 0 → sarı %1$s veya üstü · gri kesikli: veri yok</string>
@@ -285,4 +326,20 @@
     <string name="rides_chart_series" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, kayıtlı örnek yok</string>
     <string name="rides_chart_cell_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
+    <string name="rides_sensors_motion_start" volt:src="4d5561e0dd7a4f6aafba37e91cffd9c9bcde1863">Hareket</string>
+    <string name="rides_point_gps_accuracy" volt:src="a696d9b94eb77565a3a22e6decf3e6b5eac21d61">%1$s, %2$s, doğruluk: ±%3$s</string>
+    <plurals name="rides_compare_two_saved_count" volt:src="a5c8bfea46662300c9e201e4816631eb2f5663c3">
+        <item quantity="one">İki sürüşü karşılaştır, gereken 2 sürüşten %1$d tanesi kayıtlı</item>
+        <item quantity="other">İki sürüşü karşılaştır, gereken 2 sürüşten %1$d tanesi kayıtlı</item>
+    </plurals>
+    <plurals name="rides_compare_chosen_count" volt:src="68b232dc16f4262307f0a833ab888cfd2dc4b3e2">
+        <item quantity="one">2 sürüşten %1$d tanesi seçildi</item>
+        <item quantity="other">2 sürüşten %1$d tanesi seçildi</item>
+    </plurals>
+    <string name="rides_legend_title_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Hız</string>
+    <string name="rides_legend_title_grade" volt:src="e54e37f023694e37242ae6f32c3d858abb02a52f">Eğim</string>
+    <string name="rides_legend_title_accel" volt:src="c6476e8be4f1072761cb19b029e95dbc9be48c5b">İvme</string>
+    <string name="rides_legend_title_elev" volt:src="23c8fabf225c50ef434ce0aa8b6ad6dd9525ce40">Rakım</string>
+    <string name="rides_legend_title_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Güç</string>
+    <string name="rides_legend_missing" volt:src="48d6198cb83aca404e8811732aec1c6262781f84">eksik</string>
 </resources>

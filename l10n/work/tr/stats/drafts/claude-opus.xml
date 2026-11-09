@@ -2,6 +2,10 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="stats_sections_description" volt:src="9e0367dcba3b84d2dce9f7397b7050551ffb5b8c">Canlı veriler bölümü</string>
+    <string name="stats_tab_overview" volt:src="ad5db4edb299a9ca622aa7b531d7e30f1216f17c">Özet</string>
+    <string name="stats_tab_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Okumalar</string>
+    <string name="stats_tab_charts" volt:src="e70c83922397efd17a9ff999248dd873c7cc2019">Grafikler</string>
+    <string name="stats_tab_diagnostics" volt:src="1a6b5eb30d87b7a41c7f72b3a94300e46fcf920f">Tanılama</string>
     <string name="stats_overview_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Değerler bekleniyor</string>
     <string name="stats_battery_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Değer yok</string>
     <string name="stats_battery_last_seen" volt:src="a0e42ea848425633bedcf0672916de65f04613e0">Son okuma</string>
@@ -14,9 +18,10 @@
     <string name="stats_health_after" volt:src="bc7007e92b79ce515dcba705f8acf4dafc22ec9f">" · Sağlık "</string>
     <string name="stats_health_chip" volt:src="e5330657ca46d0337bca7f1ed58500e45222aeb4">tahmini</string>
     <string name="stats_health_chip_said" volt:src="44ab1cf14452bf9ba80cfa2a8194beda700d1c57">" tahmini"</string>
-    <string name="stats_favourites_title" volt:src="d4adb3c8ac0b45970de22039d41968711bf538b8">Favoriler</string>
-    <string name="stats_favourites_reorder_description" volt:src="dcff5ff66b1bd4e3fa31449d4dbbae56fd9db84a">Favori değerleri ve grafikleri yeniden sırala</string>
-    <string name="stats_favourites_reorder" volt:src="5c51479fcc41fc0f37144c9baffa7f900ef2c69b">Favorileri yeniden sırala</string>
+    <string name="stats_favourites_title" volt:src="91b868ff34eb152a2fbe1819c04a8ffe2ddb5f88">Favoriler</string>
+    <string name="stats_favourites_empty_hint" volt:src="899f78540d787eb99f5cbaae33a49d8307beecd6">☆ Okumaları buraya sabitlemek için yıldızlayın</string>
+    <string name="stats_favourites_reorder_description" volt:src="d2234518a6ed0019ab31744d1058305093d75800">Favori okumaları ve grafikleri yeniden sırala</string>
+    <string name="stats_favourites_reorder" volt:src="0ed8c589cdba0529ce1ecf5df404f7ba43d89297">Favorileri yeniden sırala</string>
     <string name="stats_order_chart" volt:src="6292f1f9deb066cc6806366a337b86406679e9df">%1$s · Grafik</string>
     <string name="stats_order_chart_said" volt:src="136d9d61982c0357d07adaa693c5d11fcbfb79da">%1$s grafiği</string>
     <string name="stats_order_reading_said" volt:src="21a658c09b0c763af5a494add8feefc603190eb2">%1$s değeri</string>
@@ -33,10 +38,10 @@
     <string name="stats_group_readings_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">daraltıldı</string>
     <string name="stats_state_expanded" volt:src="1538c46aada1cbb42e96f9595b253badd8683dd2">Genişletildi</string>
     <string name="stats_state_collapsed" volt:src="0be1811727168032f500c3cabd9714064a08cf45">Daraltıldı</string>
-    <string name="stats_favourite_add" volt:src="94f4c17ecba994a1fd3aac2d9716cf3121126880">%1$s değerini favorilere ekle</string>
-    <string name="stats_favourite_remove" volt:src="b5db5b30dd7ea826038d1735ebefa4261baa0d2e">%1$s değerini favorilerden kaldır</string>
-    <string name="stats_favourite_on" volt:src="3f0a2f8ba6bf5164f8ca8011bf300f2b02a65780">Favori</string>
-    <string name="stats_favourite_off" volt:src="bee33f8cfc2c504b0f0a5a54a29b8a852711f6ad">Favori değil</string>
+    <string name="stats_favourite_add" volt:src="b020afbc4cf7defe3823e9844f6695dc9f0b3111">%1$s okumasını favorilere ekle</string>
+    <string name="stats_favourite_remove" volt:src="d985e24c39fae8a0b52bb4a13bc4146a488bce68">%1$s okumasını favorilerden kaldır</string>
+    <string name="stats_favourite_on" volt:src="630aab5bfddb08e40e8b208763385c693717f5a7">Favori</string>
+    <string name="stats_favourite_off" volt:src="c40ebe8035304ad1741a60799507d27de204a473">Favori değil</string>
     <string name="stats_age_not_supplied" volt:src="d64ae9acf06e0be181c78fd79264a96b9ff2a7b5">Veri yok</string>
     <string name="stats_age_live" volt:src="b1fced280353b87b11fee1e32b9e59db69af9d98">Canlı</string>
     <string name="stats_last_seen" volt:src="a0e42ea848425633bedcf0672916de65f04613e0">Son okuma</string>
@@ -58,8 +63,8 @@
     <string name="stats_detail_seen_when" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Son okuma: %2$s</string>
     <string name="stats_detail_health_note" volt:src="74b89e1881f6649a499984abec613ac9d52bf1f8">\n\nBildirilen sağlık değeri denetleyicinin bir tahminidir, ölçülmüş bir kapasite testi değildir.</string>
     <string name="stats_detail_energy_note" volt:src="e47d7bc5280e2ff4869940b23642e710043f6eb1">\n\nSürüş enerjisi için kullanılmaz.</string>
-    <string name="stats_detail_add_favourite" volt:src="c87285177a18c7761e41ade416b0ff60ec43e6f1">Favorilere ekle</string>
-    <string name="stats_detail_remove_favourite" volt:src="ee946f85949bd5ec3d77fd9bced2bc8ff4617f55">Favorilerden kaldır</string>
+    <string name="stats_detail_add_favourite" volt:src="6a0d55568513256d4760559f43bfae770a237bae">Favorilere ekle</string>
+    <string name="stats_detail_remove_favourite" volt:src="98b140e7ac5d36d9cef208d3405b4aaa0b0942bb">Favorilerden kaldır</string>
     <string name="stats_charts_search_description" volt:src="92bfab0769d5a09dd6b8ca7551e32e13ab15edac">Kaydedilen grafiklerde ara</string>
     <string name="stats_charts_empty" volt:src="25b6dac3482b72fcaea28e69c6fe04ecd85515cf">Henüz grafik verisi yok</string>
     <string name="stats_charts_no_matches" volt:src="25e54026bfde6f1148cf65603d6118fa49ed6edd">Eşleşen grafik yok</string>
@@ -71,8 +76,8 @@
     <string name="stats_chart_group_expanded_said" volt:src="6d384e154d2b379f6c806080adbbda34f490a667">genişletildi</string>
     <string name="stats_chart_group_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">daraltıldı</string>
     <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">%1$s grafiğini genişlet</string>
-    <string name="stats_chart_favourite_add" volt:src="38dd597256a1bdd3203b5d1ecef1a07389cce896">%1$s grafiğini favorilere ekle</string>
-    <string name="stats_chart_favourite_remove" volt:src="4799f63275652c76f2428845c9b77a6b2748f643">%1$s grafiğini favorilerden kaldır</string>
+    <string name="stats_chart_favourite_add" volt:src="d94e1cf679b1a504a9585f96ed39b3d892e555e2">%1$s grafiğini favorilere ekle</string>
+    <string name="stats_chart_favourite_remove" volt:src="742ec2bd95cf11eca26f4d23813022c4a9a97f7f">%1$s grafiğini favorilerden kaldır</string>
     <string name="stats_chart_live" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="stats_chart_sample" volt:src="a5b35279430d09a040e5014d4041977af7a7e0c4">%1$s · Örnek</string>
     <string name="stats_chart_last_seen" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Son okuma: %2$s</string>
@@ -128,9 +133,9 @@
     <string name="stats_charge_source_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Güncel şarj hızı</string>
     <string name="stats_charge_source_unavailable" volt:src="ec778bdbd8e41fbe8f6966056c6546961946e622">Kullanılamıyor</string>
     <string name="stats_charge_estimator" volt:src="1d89b5e601c65937e36c6775a88876095024716c">%1$s · Tahmin aracı %2$s</string>
-    <plurals name="stats_charge_learned" volt:src="6f84cbfc1ada5579147cf522206db07a3fbc93e1">
-        <item quantity="one">" · %1$d öğrenilmiş şarj"</item>
-        <item quantity="other">" · %1$d öğrenilmiş şarj"</item>
+    <plurals name="stats_charge_learned" volt:src="5420cbcc443bf439de193528c604c46a6192feb3">
+        <item quantity="one">" · %1$d öğrenilen şarj"</item>
+        <item quantity="other">" · %1$d öğrenilen şarj"</item>
     </plurals>
     <string name="stats_charge_target" volt:src="a9ba98b28af45920a796015628f44bf908888201">" · Hedef: %%%1$s"</string>
     <string name="stats_charge_readings" volt:src="661404f9cae10402c0e471e5795d2c3cdfd5172e">Şarj değerleri</string>
@@ -160,15 +165,15 @@
     <string name="stats_row_energy_recovery" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Geri kazanım</string>
     <string name="stats_row_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Menzil algoritması</string>
     <string name="stats_row_auto_sensor" volt:src="5d9da02544ef2daf50ce56ae1ff0aec08451c828">Otomatik ışık</string>
-    <string name="stats_row_tyre_reminder" volt:src="830d3b729d73aaae184b90a147c9f09e190d76fb">Lastik hatırlatıcısı</string>
+    <string name="stats_row_tyre_reminder" volt:src="5ad54b23bcf0ecea5e915116d253099f5813bbf3">Lastik hatırlatıcısı</string>
     <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Çizgi ışığı</string>
     <string name="stats_row_traction_control" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Çekiş kontrolü</string>
     <string name="stats_row_turn_sound" volt:src="cb472220793ecbbd5ab3c9e044deb8a692a60bb6">Dönüş sinyali sesi</string>
-    <string name="stats_row_proximity_key" volt:src="26c08fb26f6c8c9701f66cba1618708b452cbd1a">Yakınlık anahtarı</string>
+    <string name="stats_row_proximity_key" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Yakınlıkla kilit açma</string>
     <string name="stats_row_night_mode" volt:src="a9897a7a21973a1cc8d2995438da457dee70256a">Gece modu</string>
     <string name="stats_row_range_algorithm_mode" volt:src="6fd161e587c50069b067077e5112373b3adb58c4">Menzil modu</string>
     <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Yıldız ışığı</string>
-    <string name="stats_row_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Kalkış hızı</string>
+    <string name="stats_row_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Kalkış hızı</string>
     <string name="stats_row_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Hız sınırı</string>
     <string name="stats_row_volume" volt:src="49c26a1170a87fab1c4d8970b76c3666329b250e">Ses</string>
     <string name="stats_row_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Ses dili</string>
@@ -178,12 +183,12 @@
     <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Mod ayarı</string>
     <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Ayar modu baytı</string>
     <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Şarj zamanlaması</string>
-    <string name="stats_row_low_power" volt:src="0c6b1c731decb0322088608a6ed7366fb16d6e56">Düşük pil modu</string>
-    <string name="stats_row_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Zamanlanmış şarj</string>
+    <string name="stats_row_low_power" volt:src="b8528f58a68d9d264698b24b3a94b85d9f6e5e4c">Düşük pil modu</string>
+    <string name="stats_row_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Zamanlanmış şarj</string>
     <string name="stats_row_auto_lock_time" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Kilit süresi</string>
     <string name="stats_row_speed_limit_eligibility" volt:src="7ea8f13a990927f7319388066003782d95afae12">Hız sınırı uygunluğu</string>
     <string name="stats_row_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Hava durumu</string>
-    <string name="stats_row_slope_assist" volt:src="43d7ae0b1a79c51fd217f63bb2f66ece663f8bfb">Yokuş desteği</string>
+    <string name="stats_row_slope_assist" volt:src="40df7d5e809b5d5f4d2b7142e582bdbf1428792a">Destek ayarları</string>
     <string name="stats_row_long_range_mode" volt:src="e01f9a5d1d632caa90d9a99ee75ad2af33253600">Uzun menzil</string>
     <string name="stats_row_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Aşırı hız kontrolü</string>
     <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Aşırı hız uyarısı</string>
