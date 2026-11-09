@@ -179,9 +179,11 @@ public final class RideStore {
             shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
             shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;
             // An unsigned current (PowerSign) has no measured direction, whatever convention the ride was recorded under.
-            boolean unsignedCurrent = !a.currentSign.signedRide();
-            confirmedDirectionCoverageMs = unsignedCurrent ? 0 : a.confirmedMs;
-            unconfirmedDirectionCoverageMs = unsignedCurrent ? a.confirmedMs + a.unconfirmedMs : a.unconfirmedMs;
+            // Time recorded while the sign state wasn't 0 or 1, and never settled by a 0 or 1 (see Accumulator.heldMs):
+            // the whole-ride rule decides it. A negative current means a real sign bit; otherwise it is unsigned.
+            boolean signedHeld = a.currentSign.signedRide();
+            confirmedDirectionCoverageMs = a.confirmedMs + (signedHeld ? a.heldMs : 0);
+            unconfirmedDirectionCoverageMs = a.unconfirmedMs + (signedHeld ? 0 : a.heldMs);
             movingElectricalCoverageMs = a.movingElectricalMs;
             stationaryElectricalCoverageMs = a.stationaryElectricalMs;
             unknownMotionElectricalCoverageMs = a.unknownMotionElectricalMs;
@@ -189,7 +191,7 @@ public final class RideStore {
             stationaryThroughputWh = a.stationaryElectricalMs == 0 ? null : a.stationaryThroughputWh;
             unknownMotionThroughputWh = a.unknownMotionElectricalMs == 0 ? null : a.unknownMotionThroughputWh;
             directionConfirmed = confirmedDirectionCoverageMs > 0 && unconfirmedDirectionCoverageMs == 0;
-            unsignedDrawWh = unsignedCurrent && a.confirmedMs > 0 && a.unconfirmedMs == 0 ? a.drawWh - a.regeneratedWh : null;
+            unsignedDrawWh = !signedHeld && a.heldMs > 0 && a.unconfirmedMs == 0 ? a.heldDrawWh - a.heldRegeneratedWh : null;
             startBatteryPercent = a.startSoc; endBatteryPercent = a.endSoc;
             batteryDropPercent = subtract(a.startSoc, a.endSoc);
             startVoltageV = a.startVoltage; minimumVoltageV = a.minVoltage;
@@ -208,10 +210,11 @@ public final class RideStore {
             averageAbsolutePowerW = a.electricalMs == 0 ? null : a.throughputWh * 3600000 / a.electricalMs;
             peakAbsolutePowerW = a.peakPower; maximumAbsoluteCurrentA = a.maxCurrent;
             measuredThroughputWh = a.electricalMs == 0 ? null : a.throughputWh;
-            drawWh = confirmedDirectionCoverageMs == 0 ? null : a.drawWh;
-            regeneratedWh = confirmedDirectionCoverageMs == 0 ? null : a.regeneratedWh;
+            double confirmedDrawWh = a.drawWh + (signedHeld ? a.heldDrawWh : 0), confirmedRegenWh = a.regeneratedWh + (signedHeld ? a.heldRegeneratedWh : 0);
+            drawWh = confirmedDirectionCoverageMs == 0 ? null : confirmedDrawWh;
+            regeneratedWh = confirmedDirectionCoverageMs == 0 ? null : confirmedRegenWh;
             returnedWh = regeneratedWh;
-            netConsumptionWh = directionConfirmed ? a.drawWh - a.regeneratedWh : null;
+            netConsumptionWh = directionConfirmed ? confirmedDrawWh - confirmedRegenWh : null;
             energyInterpretation = !directionConfirmed
                     ? "Absolute measured electrical throughput. Current direction is not confirmed for the full recording."
                     : "Configured current direction. Battery input can include charger input; it is not proof of regenerative braking.";
@@ -895,6 +898,14 @@ public final class RideStore {
         Double startOdo, endOdo, maxSpeed, peakPower, maxCurrent;
         Double previousPower, previousSpeed;
         final PowerSign currentSign = new PowerSign();
+        /**
+         * Configured-direction time and energy recorded while the sign state wasn't 0 or 1 (either end of the interval)
+         * and before any 0 or 1: unsettled until a first 0 or 1 arrives or the ride ends. Intervals like that after a
+         * 0 or 1 had been read carry Telemetry's stale sign, so they count unconfirmed at once and add no energy.
+         */
+        long heldMs;
+        double heldDrawWh, heldRegeneratedWh;
+        boolean previousSignUnknown;
         Point lastPoint;
         double throughputWh, drawWh, regeneratedWh, speedDistance, movingDistance;
         double movingThroughputWh, stationaryThroughputWh, unknownMotionThroughputWh;
@@ -924,9 +935,16 @@ public final class RideStore {
             Double voltage = number(m, "voltage_v", mono), current = number(m, "current_a", mono);
             if (voltage != null && (voltage <= 0 || voltage > 200)) voltage = null;
             if (current != null && Math.abs(current) > 500) current = null;
+            boolean signPresentBefore = currentSign.present(), signKnownBefore = currentSign.everKnown();
             Sample signSample = m.get("current_sign_state");
             if (signSample != null && finite(signSample.number)) currentSign.signState(signSample.number);
             if (current != null) currentSign.current(current);
+            // Time before a first sign state belongs to it: a scooter that starts answering 254 was never confirmed.
+            if (!signPresentBefore && currentSign.latestUnknown()) {
+                heldMs += confirmedMs; heldDrawWh += drawWh; heldRegeneratedWh += regeneratedWh;
+                confirmedMs = 0; drawWh = regeneratedWh = 0;
+            }
+            boolean signUnknown = currentSign.latestUnknown();
             Sample vs = m.get("voltage_v"), cs = m.get("current_a");
             Double power = voltage != null && current != null && vs.updatedMonoMs == cs.updatedMonoMs
                     && vs.sourceCmd == cs.sourceCmd ? voltage * current : null;
@@ -958,11 +976,22 @@ public final class RideStore {
                 } else if ((previousSpeed + speed) / 2 > 0.5) {
                     movingThroughputWh += throughput; movingElectricalMs += dt;
                 } else { stationaryThroughputWh += throughput; stationaryElectricalMs += dt; }
+                double draw = direction == CurrentDirection.POSITIVE_IS_DRAW ? energy[0] : energy[1];
+                double regen = direction == CurrentDirection.POSITIVE_IS_DRAW ? energy[1] : energy[0];
                 if (direction == CurrentDirection.UNCONFIRMED) unconfirmedMs += dt;
-                else { confirmedMs += dt;
-                    drawWh += direction == CurrentDirection.POSITIVE_IS_DRAW ? energy[0] : energy[1];
-                    regeneratedWh += direction == CurrentDirection.POSITIVE_IS_DRAW ? energy[1] : energy[0]; }
+                else if (previousSignUnknown || signUnknown) {
+                    // Into or out of an unknown state: the interval's energy mixes readings from it.
+                    if (signKnownBefore) unconfirmedMs += dt;
+                    else { heldMs += dt; heldDrawWh += draw; heldRegeneratedWh += regen; }
+                } else { confirmedMs += dt; drawWh += draw; regeneratedWh += regen; }
             }
+            // A first 0 or 1 settles what was held: confirmed only if the value's own sign bit had shown a negative.
+            if (!signKnownBefore && currentSign.everKnown() && heldMs > 0) {
+                if (currentSign.sawNegative()) { confirmedMs += heldMs; drawWh += heldDrawWh; regeneratedWh += heldRegeneratedWh; }
+                else unconfirmedMs += heldMs;
+                heldMs = 0; heldDrawWh = heldRegeneratedWh = 0;
+            }
+            previousSignUnknown = signUnknown;
             if (shortInterval && previousSpeed != null && speed != null) {
                 double distance = (previousSpeed + speed) / 2 * dt / 3600000.0;
                 speedDistance += distance; speedMs += dt;
@@ -1030,11 +1059,11 @@ public final class RideStore {
         for (long value : new long[] {a.startWall, a.startMono, a.lastWall, a.lastMono, a.elapsed, a.electricalMs, a.speedMs,
                 a.movingMs, a.stationaryMs, a.samples, a.gaps, a.clockDiscontinuities, a.directionChanges, a.confirmedMs,
                 a.unconfirmedMs, a.pointStride, a.movingElectricalMs, a.stationaryElectricalMs, a.unknownMotionElectricalMs,
-                a.readingWall, a.readingMono, a.readingElapsed, a.readingGaps}) out.writeLong(value);
+                a.readingWall, a.readingMono, a.readingElapsed, a.readingGaps, a.heldMs}) out.writeLong(value);
         for (Double value : new Double[] {a.startSoc, a.endSoc, a.startVoltage, a.minVoltage, a.maxVoltage, a.minTemperature,
                 a.maxTemperature, a.startOdo, a.endOdo, a.maxSpeed, a.peakPower, a.maxCurrent}) writeOptional(out, value);
         for (double value : new double[] {a.throughputWh, a.drawWh, a.regeneratedWh, a.speedDistance, a.movingDistance,
-                a.movingThroughputWh, a.stationaryThroughputWh, a.unknownMotionThroughputWh}) out.writeDouble(value);
+                a.movingThroughputWh, a.stationaryThroughputWh, a.unknownMotionThroughputWh, a.heldDrawWh, a.heldRegeneratedWh}) out.writeDouble(value);
         // Rule 3's last motion (the no-motion stop's shown end); a finished journal needs no other motion state.
         for (long value : new long[] {a.motionWall, a.motionElapsed, a.motionGaps}) out.writeLong(value);
         out.flush(); return bytes.toByteArray();
@@ -1046,11 +1075,11 @@ public final class RideStore {
         CurrentDirection direction = CurrentDirection.valueOf(in.readUTF());
         boolean stopped = in.readBoolean(), recovered = in.readBoolean(), odometerReset = in.readBoolean();
         int currentSignState = in.readByte();
-        long[] l = new long[23];
+        long[] l = new long[24];
         for (int i = 0; i < l.length; i++) l[i] = in.readLong();
         Double[] d = new Double[12];
         for (int i = 0; i < d.length; i++) d[i] = readOptional(in);
-        double[] e = new double[8];
+        double[] e = new double[10];
         for (int i = 0; i < e.length; i++) e[i] = in.readDouble();
         long[] still = new long[3];
         for (int i = 0; i < still.length; i++) still[i] = in.readLong();
@@ -1063,12 +1092,12 @@ public final class RideStore {
         a.stationaryMs = l[8]; a.samples = l[9]; a.gaps = l[10]; a.clockDiscontinuities = l[11]; a.directionChanges = l[12];
         a.confirmedMs = l[13]; a.unconfirmedMs = l[14]; a.pointStride = l[15]; a.movingElectricalMs = l[16];
         a.stationaryElectricalMs = l[17]; a.unknownMotionElectricalMs = l[18]; a.readingWall = l[19]; a.readingMono = l[20];
-        a.readingElapsed = l[21]; a.readingGaps = l[22];
+        a.readingElapsed = l[21]; a.readingGaps = l[22]; a.heldMs = l[23];
         a.startSoc = d[0]; a.endSoc = d[1]; a.startVoltage = d[2]; a.minVoltage = d[3]; a.maxVoltage = d[4];
         a.minTemperature = d[5]; a.maxTemperature = d[6]; a.startOdo = d[7]; a.endOdo = d[8]; a.maxSpeed = d[9];
         a.peakPower = d[10]; a.maxCurrent = d[11];
         a.throughputWh = e[0]; a.drawWh = e[1]; a.regeneratedWh = e[2]; a.speedDistance = e[3]; a.movingDistance = e[4];
-        a.movingThroughputWh = e[5]; a.stationaryThroughputWh = e[6]; a.unknownMotionThroughputWh = e[7];
+        a.movingThroughputWh = e[5]; a.stationaryThroughputWh = e[6]; a.unknownMotionThroughputWh = e[7]; a.heldDrawWh = e[8]; a.heldRegeneratedWh = e[9];
         a.motionWall = still[0]; a.motionElapsed = still[1]; a.motionGaps = still[2];
         return a;
     }

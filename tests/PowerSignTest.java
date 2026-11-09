@@ -36,6 +36,17 @@ public final class PowerSignTest {
         invalid.current(-9); check(!invalid.signedNow(), "a negative under a stale sign is no evidence");
         invalid.signState(0); check(invalid.signedNow(), "a known sign returning is signed again");
 
+        // A negative after a known sign is no sign-bit evidence for anything recorded while unknown.
+        PowerSign afterKnown = new PowerSign(); afterKnown.signState(254); afterKnown.signState(1); afterKnown.current(-4);
+        check(!afterKnown.sawNegative(), "a negative once a 0 or 1 has been read is Telemetry's sign, not the value's");
+        PowerSign beforeKnown = new PowerSign(); beforeKnown.signState(254); beforeKnown.current(-4); beforeKnown.signState(1);
+        check(beforeKnown.sawNegative(), "a negative before any 0 or 1 is the value's own sign bit");
+
+        // The interval helpers a ride's coverage uses.
+        check(!none.present() && !none.latestUnknown() && !none.everKnown(), "no sign state: nothing to hold");
+        check(gt3.present() && gt3.latestUnknown() && !gt3.everKnown(), "254: unknown");
+        check(invalid.everKnown() && !invalid.latestUnknown(), "a known sign returning clears the unknown state");
+
         // A summary's saved state restores the same answers.
         for (PowerSign original : new PowerSign[]{gt3, later, invalid, none}) {
             PowerSign restored = new PowerSign(); restored.restore(original.state());
