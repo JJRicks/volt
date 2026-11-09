@@ -23,6 +23,8 @@ final class QuickAccessGrid extends ViewGroup {
     private static final String NO_VALUE = "—";
     /** No state to announce after the name. */
     private static final String NO_STATE = "";
+    /** The smallest side at which the open padlock still reads differently from the closed one. */
+    private static final int LOCK_PADLOCK_MIN_DP = 16;
     /** Shortcut ids (data) whose tiles take the Scooter page's shorter names. */
     private static final String TOP_SPEED_ID = "feature:maximum_speed", CHARGE_SCHEDULE_ID = "feature:timed_charging";
 
@@ -80,10 +82,14 @@ final class QuickAccessGrid extends ViewGroup {
             // whatever else holds the control right now (moving, locked).
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
+            String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);
             String state = feature == null || feature.sensitive && !unmapped ? ""
                     : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
+                    : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
+            boolean wasLockState = cell.lockState;
+            cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
@@ -123,13 +129,17 @@ final class QuickAccessGrid extends ViewGroup {
                 if (!shownValue.contentEquals(cell.value.getText())) {
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
+                    // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
+                    if (wasLockState || cell.lockState) cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
                 boolean highlight = index == 0 && (live || doneTime) && !editing && !unmapped && (!chargeControl || chargeBlocked == null);
                 boolean muted = (feature != null || chargeControl) && !featureLive;
                 cell.label.setTextColor(highlight ? Ui.withAlpha(ui.onAccent, 220) : ui.muted);
-                cell.value.setTextColor(highlight ? ui.onAccent : muted ? ui.muted : ui.text);
+                int tone = highlight ? ui.onAccent : muted ? ui.muted : ui.text;
+                cell.value.setTextColor(tone);
+                if (cell.lockState) ui.setIcon(cell.padlock, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon), tone);
                 if (toggle) {
                     boolean available = !editing && featureLive && value != null && (chargeControl
                             ? charge != null && !charge.busy : ble.featureValue(feature.key) != null
@@ -141,7 +151,12 @@ final class QuickAccessGrid extends ViewGroup {
                 }
                 cell.label.setVisibility(tileLabels && !state.isEmpty() ? VISIBLE : GONE);
             } else {
-                if (!state.contentEquals(cell.value.getText())) cell.value.setText(state);
+                if (!state.contentEquals(cell.value.getText())) {
+                    cell.value.setText(state);
+                    // A lock word's fit is decided while measuring, and a text of the same height requests no layout.
+                    if (cell.lockState) cell.requestLayout();
+                }
+                ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
                 cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
                 cell.value.setTag(state);
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
@@ -202,8 +217,10 @@ final class QuickAccessGrid extends ViewGroup {
     private final class Cell extends LinearLayout {
         final QuickAccessActions.Entry entry;
         final View icon;
+        /** Setting tiles only: stands in for a lock word too wide to stay whole. */
+        View padlock;
         final TextView label, value;
-        boolean highlighted, toggle;
+        boolean highlighted, toggle, lockState;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
@@ -230,6 +247,9 @@ final class QuickAccessGrid extends ViewGroup {
                 value.setMaxLines(1); value.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 value.setLineSpacing(0, 1);
                 words.addView(value, new LinearLayout.LayoutParams(-1, -2));
+                padlock = ui.icon(entry.icon, 20, ui.text);
+                padlock.setVisibility(GONE);
+                words.addView(padlock, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
                 addView(words, new LinearLayout.LayoutParams(0, -2, 1));
                 icon = new TileAction(toggle);
                 int side = ui.dp(toggle ? 28 : 16);
@@ -297,6 +317,7 @@ final class QuickAccessGrid extends ViewGroup {
                 return;
             }
             float factor = Math.max(1, ui.textScale * getResources().getConfiguration().fontScale);
+            value.setVisibility(VISIBLE); padlock.setVisibility(GONE);
             icon.setVisibility(width >= ui.dp(110 * factor) ? VISIBLE : GONE);
             label.setVisibility(tileLabels && !"".equals(label.getTag()) ? VISIBLE : GONE);
             int vertical = ui.dp(tileCompact ? 3 : 8);
@@ -320,6 +341,17 @@ final class QuickAccessGrid extends ViewGroup {
                 size -= .5f;
                 value.setTextSize(size);
             }
+            // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
+            if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
+                value.setVisibility(GONE); padlock.setVisibility(VISIBLE);
+                // The padded text column can be narrower than the glyph: the padlock then takes the whole tile, centred.
+                int full = ui.dp(20);
+                boolean bleed = DisplayUnits.lockPadlockFillsTile(text, full);
+                if (bleed) setPadding(0, vertical, 0, vertical);
+                LinearLayout.LayoutParams padlockSize = (LinearLayout.LayoutParams) padlock.getLayoutParams();
+                padlockSize.width = padlockSize.height = DisplayUnits.lockPadlockSide(width, full, ui.dp(LOCK_PADLOCK_MIN_DP));
+                padlockSize.gravity = bleed ? Gravity.CENTER_HORIZONTAL : Gravity.START;
+            }
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         }
@@ -340,6 +372,8 @@ final class QuickAccessGrid extends ViewGroup {
             if (rung == null) label.setVisibility(GONE);
             else if (TileRung.needsSet(rung, label.getText())) label.setText(rung);
             value.setTextSize((compact ? 10 : 11) * ui.textScale);
+            // A lock state too wide for whole words drops; the open or closed padlock and the spoken state remain.
+            if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         }
