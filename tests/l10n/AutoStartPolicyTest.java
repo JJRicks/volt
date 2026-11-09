@@ -11,6 +11,8 @@ public final class AutoStartPolicyTest {
         rideModeGates();
         rideModeHolds();
         backgroundPrerequisite();
+        backgroundCadence();
+        locationPrompt();
         System.out.println("AutoStartPolicyTest: " + checks + " checks");
     }
 
@@ -120,6 +122,30 @@ public final class AutoStartPolicyTest {
         check(idle.keepsServiceUp(false, true) && idle.skipsTenSecondStop(true, true), "background connection on: no ten-second stop, so auto-record can see motion");
         WorkReasons recording = new WorkReasons(true, false, false, false, false, false);
         check(recording.keepsServiceUp(false, false) && recording.skipsTenSecondStop(true, false), "a recording already running stays connected with background off");
+    }
+
+    /**
+     * A healthy background link polls status every 15 s, so at most fresh-motion moments its status is past ready()'s
+     * 7 s. The service gates on the cadence-aware link; the speed sample's own freshness is unchanged.
+     */
+    private static void backgroundCadence() {
+        long status = 1000, sample = 9000;
+        boolean background = StatusCadence.linked(true, status, sample, false);
+        check(background && !StatusCadence.linked(true, status, sample, true), "9 s into the poll cycle the link is up on its cadence, past the foreground window");
+        AutoStartPolicy p = new AutoStartPolicy();
+        p.observeLink(true, 1);
+        check(p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, sample), false, false, false, false, background), "a fresh moving sample between polls starts");
+        long nextStatus = status + StatusCadence.POLL_SLOW_MS;
+        check(!p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, nextStatus), false, false, false, false, StatusCadence.linked(true, nextStatus, nextStatus, false)), "the same sample at the next poll has expired: still no stale start");
+        check(!p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, sample), false, false, false, false, false), "a link past its cadence, or bound to another scooter, never starts");
+        check(!StatusCadence.linked(true, status, status + StatusCadence.SILENCE_SLOW_MS + 1, false), "past the background silence limit the link is gone");
+        check(!StatusCadence.linked(false, status, sample, false), "an unauthenticated or unbound link is never up");
+    }
+
+    private static void locationPrompt() {
+        check(AutoStartPolicy.asksLocationFirst(true, false), "Phone GPS on (the default): turning it on offers the prompt");
+        check(!AutoStartPolicy.asksLocationFirst(false, false), "GPS recording off: nothing to offer");
+        check(!AutoStartPolicy.asksLocationFirst(true, true), "simulation: the request would only refuse with a toast");
     }
 
     private static void check(boolean ok, String message) {

@@ -1799,7 +1799,9 @@ public final class ScooterService extends Service {
         autoStart.observeLink(ble.connected()&&!simulating(),ble.connectionGeneration());
         if(dataMaintenance||rides==null)return;
         ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
-        boolean canStart=ble.ready()&&active!=null&&bound!=null&&active.id.equals(bound.id);
+        // linked(), not ready(): out of sight the status poll runs every 15 s, so a healthy authenticated link is past
+        // ready()'s 7 s window for half of each cycle. The speed sample's own freshness is checked by autoStartMoving.
+        boolean canStart=ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
         if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
         try{
             beginRide(RidesScreen.defaultRideName(this));

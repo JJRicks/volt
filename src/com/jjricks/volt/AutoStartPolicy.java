@@ -67,6 +67,12 @@ final class AutoStartPolicy {
         return enabled && moving && !recordHeld && !recording && !chargeRecording && !simulating && !phoneSaving && canStart;
     }
 
+    /**
+     * Whether turning auto-record on should first offer the ride location prompt. Asked only from the rider's tap on
+     * the switch, never from an automatic start. The answer doesn't matter: declining still turns it on, without a route.
+     */
+    static boolean asksLocationFirst(boolean phoneGps, boolean simulating) { return phoneGps && !simulating; }
+
     /** Whether to open riding mode now. screenClear: resumed on screen, with nothing open that it would cover. */
     boolean shouldOpenRidingMode(boolean enabled, boolean moving, boolean screenClear) {
         return enabled && moving && !rideModeHeld && screenClear;

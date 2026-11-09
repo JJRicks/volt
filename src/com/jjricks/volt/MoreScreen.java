@@ -1126,8 +1126,8 @@ public final class MoreScreen implements AppScreen {
         preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
-        // Off by default. ScooterService/AutoStartPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", T.morePrefsAutoRecord(), T.morePrefsAutoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false);
+        // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
+        preferenceToggle(connection, "walk", T.morePrefsAutoRecord(), T.morePrefsAutoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
@@ -1404,11 +1404,27 @@ public final class MoreScreen implements AppScreen {
         restyle.run(); valueRefreshers.add(restyle);
     }
     private Row preferenceToggle(LinearLayout box, String icon, String title, String detail, String key, boolean fallback) {
+        return preferenceToggle(box, icon, title, detail, key, fallback, null);
+    }
+
+    /** beforeOn runs ahead of saving a turn-on, and is given the save to run; turning off saves at once. */
+    private Row preferenceToggle(LinearLayout box, String icon, String title, String detail, String key, boolean fallback, Consumer<Runnable> beforeOn) {
         Row row = toggleRow(box, icon, title, detail, enabled -> {
-            settings().edit().putBoolean(key, enabled).apply(); host.redraw();
+            Runnable save = () -> { settings().edit().putBoolean(key, enabled).apply(); host.redraw(); };
+            if (enabled && beforeOn != null) beforeOn.accept(save); else save.run();
         });
         valueRefreshers.add(() -> refreshSwitch(row, settings().getBoolean(key, fallback), true));
         return row;
+    }
+
+    /**
+     * The same optional prompt a manual recording uses, answered before the switch saves, so a ride can't start
+     * behind the prompt. Either answer turns it on; a restored switch never comes through here.
+     */
+    private void offerRideLocation(Runnable save) {
+        ScooterService service = service();
+        if (AutoStartPolicy.asksLocationFirst(service.settings.getBoolean("phone_gps", true), service.simulating())) host.requestRideLocation(save);
+        else save.run();
     }
 
     // ---- Data & history -----------------------------------------------------------------
