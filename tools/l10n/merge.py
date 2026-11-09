@@ -6,7 +6,7 @@
   merge.py --tag es --check                validate res/<folder>/ and compare it with what the
                                            decisions would write; write nothing
 
-For each key whose decision is translated (agreed, judged, safety-agreed or safety-judged) and whose source_sha1
+For each key whose decision is translated (agreed, judged, safety-agreed, safety-judged or owner-decided) and whose source_sha1
 still matches the English, it writes the string with a <!-- src:<sha1> --> comment (translib's
 source hash). Keys that fall back, whose English changed since the decision, or whose text is blank,
 the wrong shape or missing a plural form (translib.why_english) are left out, so Android shows
@@ -111,7 +111,7 @@ def drift_problems(paths, tag):
     """Problems: res/<folder>/ is not byte for byte what merging every decided area writes (merge_area's rule)."""
     lang = translib.load_language(paths, tag)
     sources, tag_area = translib.load_source(paths)
-    problems, expected = [], {}
+    problems, expected = translib.owner_decision_problems(paths, tag, sources), {}
     for area in decided_areas(paths, tag):
         if area not in sources:
             problems.append("%s: no res/values/strings_%s.xml any more" % (paths.rel(paths.decisions(tag, area)), area))
@@ -336,6 +336,8 @@ def main(argv=None):
         problems, notes = validate_folder(paths, args.tag, args.aapt)
         if args.check:
             problems = problems + drift_problems(paths, args.tag)
+        else:
+            problems = problems + translib.owner_decision_problems(paths, args.tag, translib.load_source(paths)[0])
     except (translib.L10nError, gen_catalog.CatalogError) as error:
         print("merge.py: %s" % error, file=sys.stderr)
         return 2

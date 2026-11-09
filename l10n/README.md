@@ -28,6 +28,7 @@ the working manual.
 | `l10n/work/<tag>/<area>/` | Translation staging: drafts, checks, back-translations, judge requests and rulings |
 | `l10n/work/<tag>/<area>/audit/` | The safety audit of a Claude-only draft, a QA record only (see Drafting a whole language with Claude alone) |
 | `l10n/decisions/<tag>/<area>.jsonl` | The audit trail of every translated or fallen-back key |
+| `l10n/owner-decisions/<tag>.jsonl` | Texts the owner chose over the council's; `decide` keeps them (see the decisions format below) |
 | `res/values-<qual>/strings_<area>.xml` | A language's text, written only by `merge.py` |
 
 Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `AppLanguages.java`,
@@ -1877,13 +1878,22 @@ change a check inside a language or batch pull request.
   so rewriting the requests while a judge works cannot rebind an earlier ruling.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
-  (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
-  translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
+  (`agreed`, `judged`, `safety-agreed`, `safety-judged`, `owner-decided` or `fallback-english`; all but
+  the last are translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
   ignored entry: `draft`, `provider`, `model`, `src`, `why`), `excused` (for a safety key whose drafts
   are not unanimous: `{<provider>: <why>}` for each provider excused after both attempts, else `{}`),
   `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
+- **`owner-decisions/<tag>.jsonl`** (committed, beside `decisions/`, not inside it): one line per key
+  whose text the owner chose: `format` (`volt-l10n-owner-decision-v1`), `area`, `key`, `source_sha1`,
+  `english`, `text`, `decided` (a date), `reason`. `decide` writes that text and reason as `owner-decided`,
+  whatever the drafts and rulings say, with no model as judge or back-translator. To change a shipped text
+  this way, add the line here, then `decide` and `merge.py`; editing a decisions file alone is undone by the
+  next `decide`. The run stops and writes nothing when the English has changed since the owner decided (ask
+  the owner, then update or remove the line), when the text fails the checks, when a ladder or overflow rule
+  would drop it, and for a lock or alarm key, which keeps the safety path. `merge.py` and `ship_check.py`
+  fail when a decision row does not carry its owner line, so a regeneration that lost one cannot ship.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
   key). A `redraft` row also carries `failed` and `lacking` (how many failed and missing keys it sent)
   and `missing` (`{<key>: <source_sha1>}`, the keys it got no usable text of: they have had both
