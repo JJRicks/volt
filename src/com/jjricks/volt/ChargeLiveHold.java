@@ -69,11 +69,13 @@ public final class ChargeLiveHold {
     public boolean reconnecting() { return active && reconnecting; }
     /** When the hold must end at the latest, on the monotonic clock; 0 when not holding. */
     public long deadline() { return active ? since + HOLD_MS : 0; }
-    /** The next moment step() must run even without a new reading (reconnect window or hold limit); 0 for none. */
+    /** The next moment step() must run even without a new reading (reconnect window, charger-off window or hold limit); 0 for none. */
     public long nextCheck() {
         if (!active) return 0;
         long cap = since + HOLD_MS;
-        return reconnecting ? Math.min(cap, lostSince + RECONNECT_MS + 1) : cap;
+        if (reconnecting) return Math.min(cap, lostSince + RECONNECT_MS + 1);
+        // Out of sight a charger that stayed off must end the card when its window does, not on some later poll.
+        return offSince != 0 ? Math.min(cap, offSince + STOP_MS + 1) : cap;
     }
 
     /** The owner left Volt. Returns whether the hold armed. */

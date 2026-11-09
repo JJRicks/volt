@@ -56,6 +56,8 @@ public final class ChargeLiveBackgroundTest {
     private static final class Service {
         final ChargeLiveHold hold = new ChargeLiveHold();
         Integer lastPercent;
+        /** The level read while fresh; below the finish level an unplug is CHARGER_OFF, not FINISHED. */
+        int level = 99;
         ChargeLiveHold.End end = ChargeLiveHold.End.NONE;
         ChargeLiveState card;
         boolean connected;
@@ -64,7 +66,7 @@ public final class ChargeLiveBackgroundTest {
         void step(long now, boolean up, long statusMs, long readingMs, boolean fast, Boolean charging) {
             connected = StatusCadence.linked(up, statusMs, now, fast);
             boolean fresh = connected && readingMs > 0 && now >= readingMs && now - readingMs <= ChargeAlertPolicy.FRESH_MS;
-            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? charging : null, false, fresh ? 62 : null, null, "ut5");
+            ChargeLiveHold.Facts f = new ChargeLiveHold.Facts(true, connected, fresh ? charging : null, false, fresh ? level : null, null, "ut5");
             if (f.percent != null) lastPercent = f.percent;
             ChargeLiveHold.End e = hold.step(now, f);
             if (e != ChargeLiveHold.End.NONE) end = e;
@@ -163,17 +165,29 @@ public final class ChargeLiveBackgroundTest {
      */
     private static void unplugClearsAfterTheHold() {
         Service s = armed();
+        s.level = 62;
         long unplug = T0 + 2 * 60 * S;
         check(run(s, T0, unplug - STEP, Boolean.TRUE) < 0 && s.hold.active(), "still held until the unplug");
         long ended = run(s, unplug, unplug + ChargeLiveHold.STOP_MS + 2 * StatusCadence.POLL_SLOW_MS, Boolean.FALSE);
         check(ended > 0 && s.end == ChargeLiveHold.End.CHARGER_OFF, "the hold ended by itself, out of sight: " + s.end);
         check(ended - unplug > ChargeLiveHold.STOP_MS && !s.hold.active(), "and not before the 3 minute hold");
+        // The service's timer: step() must run at the end of the window even when no reading or tick arrives then.
+        Service timed = armed();
+        timed.level = 62;
+        run(timed, T0, unplug - STEP, Boolean.TRUE);
+        check(timed.hold.nextCheck() == T0 + ChargeLiveHold.HOLD_MS, "charging: only the hold limit is due");
+        timed.step(unplug, true, backgroundStatus(unplug, Long.MAX_VALUE), backgroundStatus(unplug, Long.MAX_VALUE), false, Boolean.FALSE);
+        check(timed.hold.nextCheck() == unplug + ChargeLiveHold.STOP_MS + 1, "unplugged: the check is due as the charger-off window ends");
+        long at = timed.hold.nextCheck();
+        timed.step(at, true, at, at, false, Boolean.FALSE);
+        check(!timed.hold.active() && timed.end == ChargeLiveHold.End.CHARGER_OFF, "and that one check ends the hold");
         check(ended - unplug <= ChargeLiveHold.STOP_MS + StatusCadence.POLL_SLOW_MS + STEP, "within one poll of the hold's end: " + (ended - unplug) + " ms");
     }
 
     /** A charger that cuts out for 40 s and resumes keeps the hold, and a later unplug counts its full 3 minutes from scratch. */
     private static void briefDropoutKeepsTheCard() {
         Service s = armed();
+        s.level = 62;
         long off = T0 + 30 * S, back = off + 40 * S;
         check(run(s, T0, off - STEP, Boolean.TRUE) < 0, "held before the dropout");
         check(run(s, off, back - STEP, Boolean.FALSE) < 0 && s.hold.active() && s.card.kind == ChargeLiveState.Kind.CHARGING, "a 40 s dropout never ends the hold or the card");
@@ -186,6 +200,7 @@ public final class ChargeLiveBackgroundTest {
     /** Plugged back in just before the hold would have ended: the card stays, and nothing has started counting. */
     private static void replugDuringTheHoldKeepsTheCard() {
         Service s = armed();
+        s.level = 62;
         long off = T0 + 15 * S, back = off + ChargeLiveHold.STOP_MS - 15 * S;
         check(run(s, T0, off - STEP, Boolean.TRUE) < 0, "held before the unplug");
         check(run(s, off, back - STEP, Boolean.FALSE) < 0 && s.hold.active(), "off for most of the hold: still held");

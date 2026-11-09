@@ -18,7 +18,7 @@ import java.util.function.BooleanSupplier;
 /**
  * Disposable emulator only: the live charging card out of sight, on the real service, real tick and real poll cadence.
  * Every packet goes to an in-process GATT stand-in with a synthesized scooter; no radio, no phone. A run takes about
- * six minutes: it waits out ChargeLiveHold.STOP_MS for real, because a short clock is what the unit tests are for.
+ * nine minutes: it waits out ChargeLiveHold.STOP_MS for real, because a short clock is what the unit tests are for.
  *
  * Unplug out of sight, Volt in the background the whole time: the card stays through the hold, then returns to plain Connected.
  * A dropout that ends inside the hold, and a replug during it, both keep the card.
@@ -176,7 +176,7 @@ public final class ChargeLiveUnplugValidation extends Instrumentation {
         }
         void status(){byte[] state=new byte[44];state[1]=3;state[3]=1;state[6]=2;state[7]=1;state[19]=3;state[25]=50;state[31]=100;state[34]=3;packet(0x70,state);}
         void home(){byte[] data=new byte[12];data[1]=1;data[2]=62;data[4]=charging;packet(0x90,data);}
-        void battery(){byte[] data=new byte[24];data[12]=charging;packet(0x72,data);}
+        void battery(){byte[] data=new byte[24];data[1]=62;data[12]=charging;packet(0x72,data);}
         void packet(int cmd,byte[] payload){
             byte[] packet=new byte[payload.length+9];packet[0]=0x55;packet[1]=(byte)0xaa;packet[3]=(byte)cmd;packet[4]=(byte)(payload.length+1);
             System.arraycopy(payload,0,packet,6,payload.length);int sum=0;for(int i=0;i<packet.length-3;i++)sum+=packet[i]&255;
