@@ -1,0 +1,2 @@
+# The electronic lock's Setting tile and Quick access button read as its state (Locked/Unlocked), not On/Off.
+tests/l10n/LockStateTextTest.java

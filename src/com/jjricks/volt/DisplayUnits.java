@@ -74,6 +74,16 @@ public final class DisplayUnits {
         return new String[]{choose(metric, "dual".equals(units) ? T.fmtQuantity(imperial, T.unitsMph()) : imperial, units), high};
     }
 
+    /**
+     * The electronic lock's two states as a Setting tile or Quick access button shows and speaks them, or null for
+     * any other feature or value. On and Off beside the lock's name read backwards where those words also mean open
+     * and closed (Turkish Açık, Kapalı). Display only.
+     */
+    public static String lockStateText(ScooterCommands.Feature feature, int value) {
+        if (!feature.key.equals("lock") || (value != 0 && value != 1)) return null;
+        return value == 1 ? T.mainLockLocked() : T.mainLockUnlocked();
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);
