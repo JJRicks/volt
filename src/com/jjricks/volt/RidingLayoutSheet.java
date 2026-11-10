@@ -16,26 +16,27 @@ import java.util.List;
  * The riding layout editor (riding-mode plan PR 4, edit-mode.png; the owner: it "looks great"). It
  * fills the sheet that riding mode's tune disc opens while stopped: the three frames as drawn
  * thumbnails, one row per spot with what it shows, the frame's switches (power bar, chips, tenths)
- * and Reset. Choices stay in a working copy ({@link RidingEditor}); only Done hands it back to be
- * saved, and the screen that owns the sheet decides whether a late Done still counts.
+ * and Reset. Every change goes straight back to be saved ({@link Changed}), with no Done button; the
+ * screen that owns the sheet decides whether a late change still counts, and applies the layout when
+ * the menu closes.
  */
 final class RidingLayoutSheet {
-    /** Done, with the edited layout. */
-    interface Done { void save(RidingLayout edited); }
+    /** Every change, with the edited layout. */
+    interface Changed { void save(RidingLayout edited); }
 
     private final Context context;
     private final Ui ui;
     private final RidingEditor editor;
-    private final Done done;
+    private final Changed changed;
     private LinearLayout content;
     /** The spot whose choices are open under its row, or null. */
     private String open;
 
-    RidingLayoutSheet(Context context, Ui ui, RidingLayout saved, Done done) {
+    RidingLayoutSheet(Context context, Ui ui, RidingLayout saved, Changed changed) {
         this.context = context;
         this.ui = ui;
         this.editor = new RidingEditor(saved);
-        this.done = done;
+        this.changed = changed;
     }
 
     /** Builds the editor into the sheet's body. */
@@ -63,6 +64,7 @@ final class RidingLayoutSheet {
         TextView reset = ui.secondaryButton(T.ridingEditorReset(frameName(frame)), () -> {
             editor.reset();
             open = null;
+            changed.save(editor.working());
             render();
         });
         reset.setEnabled(editor.canReset());
@@ -72,6 +74,7 @@ final class RidingLayoutSheet {
         for (String id : switches) {
             content.addView(ui.toggleRow(switchName(id), Ui.NO_ICON, switchSummary(id), editor.on(id), true, on -> {
                 editor.set(id, on);
+                changed.save(editor.working());
                 // Every switch can make the frame differ from its defaults, or match them again.
                 reset.setEnabled(editor.canReset());
                 // Chips switched off take their rows away; the rest of the editor stays as it is.
@@ -79,7 +82,6 @@ final class RidingLayoutSheet {
             }));
         }
         content.addView(reset);
-        content.addView(ui.button(T.commonDone(), () -> done.save(editor.working())));
     }
 
     /** The three frames side by side, the one on show outlined in red. */
@@ -111,6 +113,7 @@ final class RidingLayoutSheet {
             option.setOnClickListener(v -> {
                 if (!editor.showFrame(id)) return;
                 open = null;
+                changed.save(editor.working());
                 render();
             });
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
@@ -187,6 +190,7 @@ final class RidingLayoutSheet {
             option.setOnClickListener(v -> {
                 editor.choose(spot.id, choice);
                 open = null;
+                changed.save(editor.working());
                 render();
             });
             group.addView(option, new LinearLayout.LayoutParams(-1, -2));

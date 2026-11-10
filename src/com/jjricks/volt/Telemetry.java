@@ -1,6 +1,7 @@
 package com.jjricks.volt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -116,6 +117,8 @@ public final class Telemetry {
         {"drive_mode_setting", "Drive mode setting (raw)"}
     };
     private final LinkedHashMap<String, Metric> readings = new LinkedHashMap<String, Metric>();
+    /** Speeds that may still be the fastest fresh one when takeSpeedPeak() next runs, oldest and fastest first; clear() empties it for a new connection. */
+    private final ArrayDeque<SpeedPeak> speedPeaks = new ArrayDeque<>();
     private final LinkedHashMap<Integer, byte[]> rawFrames = new LinkedHashMap<Integer, byte[]>();
     private final LinkedHashMap<Integer, Integer> responseStatuses = new LinkedHashMap<Integer, Integer>();
     /**
@@ -373,7 +376,42 @@ public final class Telemetry {
         electricalBatch = 0;
         voltageBatch = currentBatch = -1;
         currentSignState = temperatureSignState = null;
+        speedPeaks.clear();
         if (speedFollower != null) speedFollower.connectionReset();
+    }
+
+    /**
+     * The fastest fresh speed reported since the last call, or null if there is none, and starts over.
+     * Unlike a metric it doesn't lose a brief peak to the next sample; a reading older than
+     * {@link AutoStartPolicy#SPEED_FRESH_MS} counts as no speed, so readings that piled up with the
+     * screen paused don't reach it. A new connection starts empty. Riding mode's tune menu is its only
+     * reader (RidingScreen).
+     *
+     * @param nowMs the time on the clock {@link #accept} is given (elapsedRealtime)
+     */
+    synchronized Double takeSpeedPeak(long nowMs) {
+        dropExpiredSpeedPeaks(nowMs);
+        SpeedPeak peak = speedPeaks.peekFirst();
+        speedPeaks.clear();
+        return peak == null ? null : peak.kmh;
+    }
+
+    private void noteSpeedPeak(double kmh, long time) {
+        // A faster or equal reading that's also newer outlasts every slower one before it.
+        while (!speedPeaks.isEmpty() && speedPeaks.peekLast().kmh <= kmh) speedPeaks.pollLast();
+        speedPeaks.addLast(new SpeedPeak(kmh, time));
+        dropExpiredSpeedPeaks(time);
+    }
+
+    private void dropExpiredSpeedPeaks(long nowMs) {
+        while (!speedPeaks.isEmpty() && (nowMs < speedPeaks.peekFirst().arrivedMs
+                || nowMs - speedPeaks.peekFirst().arrivedMs > AutoStartPolicy.SPEED_FRESH_MS)) speedPeaks.pollFirst();
+    }
+
+    private static final class SpeedPeak {
+        final double kmh;
+        final long arrivedMs;
+        SpeedPeak(double kmh, long arrivedMs) { this.kmh = kmh; this.arrivedMs = arrivedMs; }
     }
 
     private void settings(byte[] data, int cmd, long time) {
@@ -630,6 +668,7 @@ public final class Telemetry {
     private void put(String key, String value, Double numeric, int cmd, long time) {
         Metric previous = readings.get(key);
         if (previous == null || previous.updatedMs > time) return;
+        if (numeric != null && key.equals("speed_kmh")) noteSpeedPeak(numeric, time);
         readings.put(key, new Metric(previous.group, key, previous.label, value, numeric, cmd, time));
         if (speedFollower != null && numeric != null && key.equals(RidingValues.SPEED_KEY)) speedFollower.accept(numeric, time);
     }

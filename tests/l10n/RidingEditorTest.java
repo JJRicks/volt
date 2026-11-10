@@ -200,16 +200,16 @@ public final class RidingEditorTest {
     }
 
     private static void done() {
-        // The editor's Done follows #265's sheet rules: only on an open screen's sheet while still stopped.
+        // Auto-save: every change on an open menu of an open screen saves, and the menu stays open (owner, Nov 9).
         RidingFrames.PickerSheet sheet = new RidingFrames.PickerSheet();
-        check(sheet.open(true) && sheet.accept(true), "Done while stopped saves");
+        check(sheet.open(true) && sheet.accept(0.0) && sheet.isOpen(), "a change saves and the menu stays open");
         RidingFrames.PickerSheet moving = new RidingFrames.PickerSheet();
         moving.open(true);
-        check(moving.update(false) && !moving.accept(true), "riding resumed: the editor closed, a late Done saves nothing");
+        check(moving.update(RidingFrames.MENU_CLOSE_KMH) && !moving.accept(0.0), "at 4 mph the menu closed, a late change saves nothing");
         RidingFrames.PickerSheet rebuilt = new RidingFrames.PickerSheet();
         rebuilt.open(true);
         rebuilt.close();
-        check(!rebuilt.accept(true), "after a rebuild the old editor's Done saves nothing");
+        check(!rebuilt.accept(0.0), "after a rebuild the old menu saves nothing");
     }
 
     private static void english() {
@@ -229,9 +229,10 @@ public final class RidingEditorTest {
     private static void source() throws IOException {
         String screen = read("src/com/jjricks/volt/RidingScreen.java"), sheet = read("src/com/jjricks/volt/RidingLayoutSheet.java"),
                 motion = read("src/com/jjricks/volt/RidingDiscMotion.java");
-        check(screen.contains("disc.show(stoppedNow);"), "the disc follows the stopped state");
+        check(screen.contains("disc.show(tuneShown(now));"), "the disc follows the tune gate");
         check(screen.contains("if (disc != null && disc.takesTaps()) edit();"), "a tap while the disc hides opens nothing");
-        check(screen.contains("new RidingLayoutSheet(") && screen.contains("sheetState.accept(stopped("), "the tune disc opens the editor; Done follows the sheet rules");
+        check(screen.contains("new RidingLayoutSheet(") && screen.contains("return sheetState.accept(kmh);"), "the tune disc opens the editor; changes follow the sheet rules");
+        check(!sheet.contains("commonDone") && sheet.contains("changed.save(editor.working())"), "no Done button: every change saves");
         check(screen.contains("layout.on(RidingLayout.TENTHS) && (speed.tenths"), "speed tenths follow the switch");
         check(screen.contains("units, layout.on(RidingLayout.TENTHS));"), "range tenths follow the switch");
         int toggle = sheet.indexOf("editor.set(id, on);");

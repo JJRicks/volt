@@ -313,12 +313,12 @@ final class RidingDisplay {
         };
     }
 
-    /** More → Riding mode: whether this phone has a light sensor, so Volt auto can be offered. */
+    /** The tune menu (MoreScreen.RidingSettingsMenu): whether this phone has a light sensor, so Volt auto can be offered. */
     static boolean hasLightSensor(Context context) {
         SensorManager manager = context.getSystemService(SensorManager.class);
         return manager != null && manager.getDefaultSensor(Sensor.TYPE_LIGHT) != null;
     }
 
-    /** More → Riding mode's settings store, for the reset row. */
+    /** The tune menu's settings store, for the reset row. */
     static RidingBrightness.Store settings(SharedPreferences preferences) { return store(preferences); }
 }
