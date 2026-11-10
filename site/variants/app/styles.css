@@ -262,7 +262,6 @@ h1 {
 .record:hover { background: var(--accent-deep); }
 .record svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .record .fill, .rec-ic .fill { fill: currentColor; stroke: none; }
-.caption { margin-top: 10px; color: var(--muted); font-size: .8125rem; line-height: 1.45; max-width: 46em; }
 
 /* ---------- Sections ---------- */
 .section { padding: 72px 0 0; }
@@ -272,8 +271,7 @@ h2 sup { color: var(--accent-ink); font-size: .6em; margin-left: .05em; }
 .head p { margin-top: 10px; color: var(--muted); max-width: 33rem; line-height: 1.5; }
 .t-caption { font-size: .8125rem; color: var(--muted); }
 
-/* Home screen, rebuilt: one dashboard in the app's order, notes beside it. */
-.home { display: grid; gap: 24px; }
+/* Home screen, rebuilt: one dashboard in the app's order, beside the section heading on wide screens. */
 .dash { display: grid; gap: 10px; align-content: start; }
 .dash-head { display: flex; align-items: center; gap: 10px; padding: 0 2px 4px; }
 .dash-head > div { flex: 1; }
@@ -292,10 +290,6 @@ h2 sup { color: var(--accent-ink); font-size: .6em; margin-left: .05em; }
 .tile.read .t-value { font-size: 1.25rem; }
 .tile.read .unit { font-size: max(.52em, 11px); }
 .s-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.notes { display: grid; gap: 0; align-content: start; color: var(--muted); font-size: .875rem; line-height: 1.5; max-width: 34rem; }
-.notes li { padding: 12px 0; }
-.notes li + li { border-top: 1px solid var(--raised); }
-.notes b { color: var(--text); font-weight: 600; margin-right: .35em; }
 
 /* Rides and charging */
 .rides-grid { display: grid; gap: 10px; align-items: start; }
@@ -447,8 +441,6 @@ html.nv .legend i { background: linear-gradient(90deg, #4A0300, #FF1400); }
   box-shadow: 0 0 0 5px var(--bg), 0 8px 16px -4px rgb(0 0 0 / .45);
 }
 .dock .dock-ride svg { width: 25px; height: 25px; }
-.js-only { display: none; }
-.js .js-only { display: inline; }
 .js .dock { opacity: 0; visibility: hidden; transform: translate(-50%, 24px); transition: opacity 220ms var(--ease), transform 260ms var(--ease), visibility 0s linear 260ms; }
 .js .dock.show { opacity: 1; visibility: visible; transform: translateX(-50%); transition: opacity 220ms var(--ease), transform 260ms var(--ease), visibility 0s; }
 .dock-dot { position: absolute; bottom: 5px; left: 0; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; transition: transform 260ms var(--ease), opacity 150ms var(--ease); }
@@ -481,7 +473,6 @@ html.nv .legend i { background: linear-gradient(90deg, #4A0300, #FF1400); }
   .speed .unit { display: inline; font-size: .26em; margin-left: .2em; }
   .ride-side .r-value { font-size: clamp(3.25rem, 4.6vw, 4.25rem); }
   .ride-side { padding-top: 56px; }
-  .home { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 0 48px; align-items: start; }
   .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 0 48px; align-items: start; }
   .split .head { margin-bottom: 0; position: sticky; top: 96px; }
   .get { grid-template-columns: 1fr auto; align-items: end; padding: 28px 32px; }
