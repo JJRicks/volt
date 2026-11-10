@@ -2,6 +2,7 @@
 """Checks homepage pages against the variant contract (site/README.md, "Variants").
 
   python3 site/tools/check-variants.py [folder ...]
+  python3 site/tools/check-variants.py --collect-cards <dist>     (site/build.sh: copies cards to dist/cards/)
 
 With no folders, checks site/src (original) and every site/variants/<name>/. A folder can also be a built
 dist/variants/<name>/. Prints one line per problem and exits 1 when there are any.
@@ -16,13 +17,13 @@ Every page must work at / and at /preview/<name>/, and under the production CSP
   - in JavaScript, no network calls (fetch, XMLHttpRequest, WebSocket, EventSource, sendBeacon), eval or
     new Function, and no http(s) URLs other than XML namespaces;
   - social preview images (og:image, twitter:image and their :url/:secure_url/:src forms) in a variant
-    other than original must not depend on which variant is live, and must change URL when the image
-    changes (link previews are cached by URL for a long time). So each is exactly
-      https://volt.jjricks.com/preview/<name>/<path>?v=<first 12 hex digits of the SHA-256 of that file>
-    where the file is the variant's own <path>, or the shared site/src/<path> when it ships none. nginx
-    serves /preview/<name>/ from the current release whatever is live. The problem line gives the exact
-    URL. <name> must be one nginx serves under /preview/. Original keeps https://volt.jjricks.com/og.png,
-    which shows whichever variant is live (site/README.md, "Variants");
+    other than original are content-addressed cards, so a URL's bytes never change, whatever is live or
+    deployed later (link previews are cached by URL for a long time). Each is exactly
+      https://volt.jjricks.com/cards/<SHA-256 of the image, 64 hex digits>.<png|jpg|jpeg|webp>
+    of a file the variant serves (its own, or the shared site/src/ one). site/build.sh copies each such
+    file to dist/cards/, and deploy-release.sh adds it to an append-only store. The problem line gives
+    the exact URL. Original keeps https://volt.jjricks.com/og.png, which shows whichever variant is live
+    (site/README.md, "Variants");
   - robots: a variant may not ship robots.txt (site/build.sh copies the shared one, which this checks
     against site/src/robots.txt), the shared robots.txt has no Disallow (a crawler that may not fetch a
     preview never sees its X-Robots-Tag: noindex), and no page has a robots or crawler <meta> (name
@@ -177,38 +178,72 @@ def check_js(name, text, problems):
             problems.append('%s: contains %s (no external URLs in scripts)' % (name, m.group(0)))
 
 
-def preview_names():
-    """The variant names nginx serves under /preview/ (site/nginx/volt-homepage.conf)."""
-    conf = (Path(__file__).resolve().parent.parent / 'nginx' / 'volt-homepage.conf').read_text()
-    m = re.search(r'\^/preview/\(([a-z0-9|-]+)\)/\(\.\+\)\$', conf)
-    return set(m.group(1).split('|')) if m else set()
+CARD_URL = re.compile(re.escape(SITE) + r'cards/([0-9a-f]{64})\.(png|jpg|jpeg|webp)')
+CARD_SUFFIXES = ('.png', '.jpg', '.jpeg', '.webp')
+
+
+def page_files(folder, reference):
+    """{sha256: path} of every image the page serves: its own files, then the shared ones it doesn't replace."""
+    out = {}
+    for root in (folder, reference):
+        for path in sorted(p for p in Path(root).rglob('*') if p.is_file() and p.suffix.lower() in CARD_SUFFIXES):
+            out.setdefault(hashlib.sha256(path.read_bytes()).hexdigest() + path.suffix.lower(), path)
+    return out
+
+
+def card_url(path):
+    return '%scards/%s%s' % (SITE, hashlib.sha256(Path(path).read_bytes()).hexdigest(), Path(path).suffix.lower())
 
 
 def social_image_problems(folder, page, images, reference):
-    """A variant's link-preview images: /preview/<name>/<path>?v=<hash of that file>, whatever is live."""
+    """A variant's link-preview images: content-addressed /cards/<sha256>.<ext> URLs of files it serves."""
     problems = []
-    name = folder.name
-    prefix = SITE + 'preview/' + name + '/'
-    if images and name not in preview_names():
-        problems.append('%s: nginx serves no /preview/%s/, so its link-preview image would not load; add %s to the '
-                        '/preview/ locations in site/nginx/volt-homepage.conf' % (page, name, name))
+    files = None
     for line, key, url in images:
-        base, _, query = url.partition('?')
-        # The image path, wherever the URL points now, so the problem line can give the right URL.
+        m = CARD_URL.fullmatch(url)
+        if m:
+            files = files if files is not None else page_files(folder, reference)
+            if m.group(1) + '.' + m.group(2) not in files:
+                problems.append('%s:%d: <meta %s> names card %s.%s, but no image this page serves has that SHA-256 '
+                                '(shasum -a 256 <image>)' % (page, line, key, m.group(1)[:12], m.group(2)))
+            continue
+        # Not a card URL: find the image it means, so the problem line can give the exact card URL.
+        base = url.partition('?')[0]
         path = re.sub(r'^preview/[^/]*/', '', (base[len(SITE):] if base.startswith(SITE) else base).lstrip('/'))
-        if not path or path.endswith('/') or '..' in path.split('/') or relative_problem(path):
-            problems.append('%s:%d: <meta %s> must be %s<image path>?v=<hash>' % (page, line, key, prefix))
-            continue
-        mine, theirs = folder / path, reference / path
-        data = mine.read_bytes() if mine.is_file() else theirs.read_bytes() if theirs.is_file() else None
-        if data is None:
-            problems.append('%s:%d: <meta %s> names %s, which this page does not have' % (page, line, key, path))
-            continue
-        want = '%s%s?v=%s' % (prefix, path, hashlib.sha256(data).hexdigest()[:12])
-        if url != want:
-            problems.append('%s:%d: <meta %s> must not depend on which variant is live and must change with the '
-                            'image: use %s' % (page, line, key, want))
+        found = None
+        if path and '..' not in path.split('/') and not relative_problem(path):
+            found = next((p for p in (folder / path, reference / path) if p.is_file()), None)
+        if found is None:
+            problems.append('%s:%d: <meta %s> must be %scards/<sha256 of the image>.<png|jpg|jpeg|webp>, and %s is not '
+                            'an image this page serves' % (page, line, key, SITE, path or url))
+        elif found.suffix.lower() not in CARD_SUFFIXES:
+            problems.append('%s:%d: <meta %s> card must be a .png, .jpg, .jpeg or .webp file' % (page, line, key))
+        else:
+            problems.append('%s:%d: <meta %s> must be a content-addressed card that never changes its bytes: use %s'
+                            % (page, line, key, card_url(found)))
     return problems
+
+
+def collect_cards(dist, reference=None):
+    """Copies every card a built variant names to dist/cards/<sha256>.<ext>. Returns the names."""
+    dist = Path(dist)
+    reference = Path(reference) if reference else Path(__file__).resolve().parent.parent / 'src'
+    names = set()
+    for folder in sorted(p for p in (dist / 'variants').iterdir() if p.is_dir() and p.name not in ORIGINAL_FOLDERS):
+        files = page_files(folder, reference)
+        for page in sorted(folder.rglob('*.htm*')):
+            images = []
+            checker = PageCheck(page.name, [], images)
+            checker.feed(page.read_text(encoding='utf-8'))
+            checker.close()
+            for _, _, url in images:
+                m = CARD_URL.fullmatch(url)
+                name = m and m.group(1) + '.' + m.group(2)
+                if name in files:
+                    (dist / 'cards').mkdir(exist_ok=True)
+                    (dist / 'cards' / name).write_bytes(files[name].read_bytes())
+                    names.add(name)
+    return sorted(names)
 
 
 def robots_problems(name, text, shared=None):
@@ -269,6 +304,10 @@ def check_folder(folder, reference=None, source=False):
 
 def main(argv):
     site = Path(__file__).resolve().parent.parent
+    if argv[:1] == ['--collect-cards'] and len(argv) == 2:
+        for name in collect_cards(argv[1]):
+            print('card', name)
+        return 0
     sources = [] if argv else sorted(str(p) for p in (site / 'variants').glob('*') if p.is_dir())
     folders = argv or [str(site / 'src')] + sources
     problems = []

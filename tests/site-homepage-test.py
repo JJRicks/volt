@@ -40,6 +40,11 @@ def make_tree(root, real_variants=True):
     return root / 'site'
 
 
+def card(data, ext='.png'):
+    """The content-addressed card URL of an image (site/README.md, "Variants")."""
+    return 'https://volt.jjricks.com/cards/' + hashlib.sha256(data).hexdigest() + ext
+
+
 def build(site):
     return subprocess.run(['bash', str(site / 'build.sh')], capture_output=True, text=True)
 
@@ -188,11 +193,11 @@ class BuildFailures(unittest.TestCase):
     def test_markup_problems_stop_the_build(self):
         self.failing(lambda s, v: (v / 'index.html').write_text('<p style="x">@VERSION@</p>'), 'style=""')
 
-    def test_own_social_image_needs_a_preview_url(self):
+    def test_own_social_image_needs_a_card_url(self):
         def setup(s, v):
             (v / 'og.png').write_bytes(b'a new card')
             (v / 'index.html').write_text('<meta property="og:image" content="https://volt.jjricks.com/og.png"><p>@VERSION@</p>')
-        want = 'https://volt.jjricks.com/preview/refined/og.png?v=' + hashlib.sha256(b'a new card').hexdigest()[:12]
+        want = card(b'a new card')
         self.failing(setup, want, 'refined')
         with tempfile.TemporaryDirectory() as temp:
             site = make_tree(temp, real_variants=False)
@@ -202,6 +207,10 @@ class BuildFailures(unittest.TestCase):
             (v / 'index.html').write_text('<meta property="og:image" content="%s"><p>@VERSION@</p>' % want)
             result = build(site)
             self.assertEqual(result.returncode, 0, result.stderr)
+            # The build puts the card in dist/cards/ under its hash, and lists it in the manifest.
+            name = want.rsplit('/', 1)[1]
+            self.assertEqual((site / 'dist' / 'cards' / name).read_bytes(), b'a new card')
+            self.assertIn('cards/' + name, (site / 'dist.sha256').read_text())
 
     def test_variant_robots_txt_stops_the_build(self):
         # Even a copy of the shared file: there is one robots.txt for the site.
@@ -228,38 +237,33 @@ class VariantMarkup(unittest.TestCase):
             folder.mkdir()
             (folder / 'index.html').write_text('<!doctype html><html><head><title>t</title>%s</head><body></body></html>' % body)
             for name, text in (extra or {}).items():
+                (folder / name).parent.mkdir(parents=True, exist_ok=True)
                 if isinstance(text, bytes):
                     (folder / name).write_bytes(text)
                 else:
                     (folder / name).write_text(text)
             return checker.check_folder(folder)
 
-    def test_social_images_name_the_variant_and_its_content(self):
+    def test_social_images_are_content_addressed_cards(self):
         today = (SITE / 'src' / 'og.png').read_bytes()
         mine = b'refined card'
-        url = lambda path, data, name='refined': 'https://volt.jjricks.com/preview/%s/%s?v=%s' % (
-            name, path, hashlib.sha256(data).hexdigest()[:12])
         meta = '<meta property="og:image" content="%s"><meta name="twitter:image" content="%s">'
-        # Its own image, or the shared one when it ships none, at /preview/<name>/ with that file's hash.
-        self.assertEqual(self.page(meta % ((url('og.png', mine),) * 2), {'og.png': mine}), [])
-        self.assertEqual(self.page(meta % ((url('og.png', today),) * 2)), [])
-        self.assertEqual(self.page(meta % ((url('og.png', today, 'hybrid'),) * 2), name='hybrid'), [])
-        # Anything whose bytes depend on which variant is live, or that keeps its URL when the image changes,
-        # is refused, with the URL to use, for both tags and any image path.
+        # The card of its own image, or of the shared one when it ships none, in any variant.
+        self.assertEqual(self.page(meta % ((card(mine),) * 2), {'og.png': mine}), [])
+        self.assertEqual(self.page(meta % ((card(today),) * 2)), [])
+        self.assertEqual(self.page(meta % ((card(mine, '.webp'),) * 2), {'img/card.webp': mine}, name='other'), [])
+        # Any URL whose bytes could change (root, preview, ?v=) is refused with the exact card URL.
         for own in (None, mine):
-            want = url('og.png', own or today)
-            for bad in ('https://volt.jjricks.com/og.png', 'og.png', 'https://volt.jjricks.com/og.png?' + want.split('?')[1],
-                        'https://volt.jjricks.com/preview/refined/og.png', 'https://volt.jjricks.com/preview/refined/og.png?v=000000000000',
-                        'https://volt.jjricks.com/preview/hybrid/og.png?' + want.split('?')[1], 'preview/refined/og.png?' + want.split('?')[1]):
+            want = card(own or today)
+            for bad in ('https://volt.jjricks.com/og.png', 'og.png', 'https://volt.jjricks.com/og.png?v=' + want[-68:-56],
+                        'https://volt.jjricks.com/preview/refined/og.png?v=' + want[-68:-56], 'preview/refined/og.png'):
                 problems = self.page(meta % (bad, bad), {'og.png': own} if own else None)
                 self.assertEqual(len(problems), 2, (bad, problems))
                 self.assertTrue(all(want in p for p in problems), (bad, problems))
-        problems = self.page('<meta property="og:image:secure_url" content="https://volt.jjricks.com/card-2.png">', {'card-2.png': mine})
-        self.assertTrue(problems and url('card-2.png', mine) in problems[0], problems)
-        self.assertTrue(any('does not have' in p for p in self.page('<meta property="og:image" content="%s">' % url('missing.png', b''))))
-        # A name nginx does not serve under /preview/ would give an image that never loads.
-        problems = self.page(meta % ((url('og.png', today, 'other'),) * 2), name='other')
-        self.assertTrue(any('nginx serves no /preview/other/' in p for p in problems), problems)
+        # A card hash that matches nothing the page serves, or the right hash with the wrong extension.
+        for bad in (card(b'something else'), card(mine, '.webp'), card(mine).upper()):
+            self.assertTrue(self.page(meta % (bad, bad), {'og.png': mine}), bad)
+        self.assertTrue(any('not an image this page serves' in p for p in self.page('<meta property="og:image" content="missing.png">')))
         # Original (src/) is today's page byte for byte and is left as it is: /og.png (README, "Variants").
         self.assertEqual(checker.check_folder(SITE / 'src'), [])
 
@@ -293,10 +297,10 @@ class VariantMarkup(unittest.TestCase):
         self.assertEqual(self.page('<meta name="description" content="bottom bot-free text">'), [])
 
     def test_allowed(self):
-        card = 'https://volt.jjricks.com/preview/refined/og.png?v=' + hashlib.sha256((SITE / 'src' / 'og.png').read_bytes()).hexdigest()[:12]
+        shared = card((SITE / 'src' / 'og.png').read_bytes())
         ok = ['<link rel="canonical" href="https://volt.jjricks.com/">',
-              '<meta property="og:image" content="%s">' % card,
-              '<meta name="twitter:image" content="%s">' % card,
+              '<meta property="og:image" content="%s">' % shared,
+              '<meta name="twitter:image" content="%s">' % shared,
               '<meta property="og:title" content="Volt: total control">',
               '<link rel="stylesheet" href="styles.css?v=abc"><script src="main.js?v=1" defer></script>',
               '<img src="img/a.webp" srcset="img/a.webp 1x, img/b.webp 2x" alt="">',
@@ -424,13 +428,26 @@ class NginxConfig(unittest.TestCase):
     def test_every_file_is_revalidated(self):
         # A return visit after a switch must not reuse another variant's file at the same URL: every location
         # serving homepage files says no-cache ("expires epoch"), and nothing turns validators off.
-        found = list(self.file_locations(self.https))
+        # The one exception is /cards/, whose URLs never change their bytes (test below).
+        found = [(p, c) for p, c in self.file_locations(self.https) if p[0] != '^~ /cards/']
         self.assertGreaterEqual(len(found), 4)
         for path, children in found:
             self.assertIn(['expires', 'epoch'], [w for w, c in children if c is None], ' > '.join(path))
         text = re.sub(r'(?m)#.*$', '', (SITE / 'nginx' / 'volt-homepage.conf').read_text())
         self.assertEqual(sorted(set(re.findall(r'expires\s+([^;]+);', text))), ['epoch'])
-        self.assertNotRegex(text, r'etag\s+off|if_modified_since\s+off|add_header\s+(Cache-Control|ETag|Last-Modified)')
+        self.assertNotRegex(text, r'etag\s+off|if_modified_since\s+off|add_header\s+(ETag|Last-Modified)')
+        self.assertEqual(len(re.findall(r'add_header\s+Cache-Control', text)), 1)
+
+    def test_cards_are_immutable_and_errors_are_not_cached(self):
+        cards = [c for w, c in self.https if w[:2] == ['location', '^~'] and w[2:] == ['/cards/']]
+        self.assertEqual(len(cards), 1)
+        directives = [w for w, c in cards[0] if c is None]
+        self.assertIn(['root', '/var/www/volt-home'], directives)
+        # No "always": a 404 from a scraper that came early must not be cached for a year.
+        self.assertIn(['add_header', 'Cache-Control', '"public, max-age=31536000, immutable"'], directives)
+        nested = [w for w, c in cards[0] if c is not None]
+        self.assertEqual(nested, [['location', '~', '"^/cards/[0-9a-f]{64}\\.(png|jpg|jpeg|webp)$"']])
+        self.assertEqual(directives[-1], ['return', '404'])
 
 
 class Switch(unittest.TestCase):
@@ -670,6 +687,8 @@ class DeployRelease(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
         os.symlink(str(self.home / 'releases' / self.PREV), self.home / 'current')
+        # The card store as the previous deploy left it.
+        shutil.copytree(self.home / 'releases' / self.PREV / 'cards', self.home / 'cards')
         self.request.write_text('refined\n')
         self.assertEqual(switch.apply(str(self.home), str(self.request), str(self.state))[0]['live'], 'refined')
 
@@ -677,32 +696,37 @@ class DeployRelease(unittest.TestCase):
         os.chmod(self.home, 0o755)
         self.temp.cleanup()
 
-    def contents(self, tag):
+    def contents(self, tag, refined=True):
+        """A release as site/build.sh makes it, with refined's card in cards/ under its hash."""
         page = lambda name: ('<!doctype html><title>%s %s</title><link rel="stylesheet" href="styles.css">' % (name, tag)).encode()
         out = {'index.html': page('original'), 'variants.json': b'{}'}
         # Same size, different content: the case where an mtime+size validator could collide.
-        for name, css in (('original', b'body{color:red}'), ('refined', b'body{color:tan}')):
+        for name, css in (('original', b'body{color:red}'), ('refined', b'body{color:tan}'))[:2 if refined else 1]:
             out['variants/%s/index.html' % name] = page(name)
             out['variants/%s/styles.css' % name] = css
             out['variants/%s/fonts/saira.ttf' % name] = b'the same font in both'
             out['variants/%s/og.png' % name] = ('%s card %s' % (name, tag)).encode()
-        out['variants/refined/index.html'] += ('<meta property="og:image" content="%s">' % self.card_url(tag)).encode()
+        if refined:
+            out['variants/refined/index.html'] += ('<meta property="og:image" content="%s">' % self.card_url(tag)).encode()
+            out['cards/' + self.card_url(tag).rsplit('/', 1)[1]] = ('refined card %s' % tag).encode()
         return out
 
     @staticmethod
     def card_url(tag):
-        return 'https://volt.jjricks.com/preview/refined/og.png?v=' + hashlib.sha256(('refined card %s' % tag).encode()).hexdigest()[:12]
+        return card(('refined card %s' % tag).encode())
 
     def fetch(self, url):
-        """What nginx (site/nginx/volt-homepage.conf) answers: /preview/<name>/ from the current release's
-        variants, everything else from the live variant."""
+        """What nginx (site/nginx/volt-homepage.conf) answers: /cards/ from the card store, /preview/<name>/
+        from the current release's variants, everything else from the live variant."""
         path = url.split('https://volt.jjricks.com', 1)[1].split('?')[0]
+        if path.startswith('/cards/'):
+            return (self.home / path.lstrip('/')).read_bytes()
         m = re.fullmatch(r'/preview/([a-z]+)/(.+)', path)
         folder = self.home / 'current' / 'variants' / m.group(1) if m else self.home / 'live'
         return (folder / (m.group(2) if m else path.lstrip('/'))).read_bytes()
 
-    def deploy(self, switch_installed=True):
-        contents = self.contents('new')
+    def deploy(self, switch_installed=True, contents=None):
+        contents = contents or self.contents('new')
         tar_path = self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
         with tarfile.open(tar_path, 'w:gz') as tar:
             for name, data in sorted(contents.items()):
@@ -751,23 +775,59 @@ class DeployRelease(unittest.TestCase):
         digest = hashlib.sha256(b'body{color:red}').hexdigest()
         self.assertEqual(self.validator('styles.css')[1], 1_000_000_000 + int(digest[:15], 16) % 600_000_000)
 
-    def test_link_preview_image_does_not_depend_on_what_is_live(self):
-        url = self.card_url('old')
+    def test_card_urls_keep_their_bytes_across_deploys(self):
+        old = self.card_url('old')
         refined = self.home / 'releases' / self.PREV / 'variants' / 'refined'
-        self.assertEqual(checker.check_folder(refined), [], 'the page follows the og rule')
+        self.assertEqual(checker.check_folder(refined), [], 'the page follows the card rule')
         for live in ('original', 'refined', 'original'):
             # Before refined goes live (an unfurl of its preview), while it is live, and after it stops being.
             self.request.write_text(live + '\n')
             self.assertEqual(switch.apply(str(self.home), str(self.request), str(self.state))[0]['live'], live)
-            self.assertEqual(self.fetch(url), b'refined card old', live)
-            self.assertEqual(hashlib.sha256(self.fetch(url)).hexdigest()[:12], url.rsplit('=', 1)[1])
+            self.assertEqual(self.fetch(old), b'refined card old', live)
         # Original keeps /og.png, which shows whichever variant is live: the documented limit.
         self.assertEqual(self.fetch('https://volt.jjricks.com/og.png'), b'original card old')
-        # After a deploy, the new card has a new URL, served while either variant is live.
+        # A deploy with a changed card: the new card gets a new URL, and the old URL keeps the old bytes.
         self.request.write_text('refined\n')
-        self.assertEqual(self.deploy().returncode, 0)
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('cards_added=1', out.stdout)
         self.assertEqual(self.fetch(self.card_url('new')), b'refined card new')
-        self.assertNotEqual(self.card_url('new'), url)
+        self.assertEqual(self.fetch(old), b'refined card old')
+        for url in (old, self.card_url('new')):
+            self.assertEqual(hashlib.sha256(self.fetch(url)).hexdigest(), url.rsplit('/', 1)[1].split('.')[0])
+
+    def test_card_urls_keep_their_bytes_after_a_rollback(self):
+        self.mode.write_text('movefail')
+        out = self.deploy()
+        self.assertIn('DEPLOY_FAILED', out.stderr)
+        self.assertEqual(self.current(), self.PREV)
+        # The rollback removed nothing: both URLs still answer with their own bytes.
+        self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
+        self.assertEqual(self.fetch(self.card_url('new')), b'refined card new')
+
+    def test_card_conflict_refuses_the_deploy(self):
+        taken = self.home / 'cards' / self.card_url('new').rsplit('/', 1)[1]
+        taken.write_bytes(b'other bytes under that name')
+        out = self.deploy()
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn('CARD_CONFLICT', out.stderr)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.assertEqual(taken.read_bytes(), b'other bytes under that name', 'the store never replaces a card')
+        self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
+
+    def test_failure_after_status_and_links_moved_is_undone(self):
+        # The new release has no refined: the real switch falls back to original in it, writes that status,
+        # and the service then fails. The links come back; the status file keeps describing that last run,
+        # which is why the Workbench reads "Live now" and the release from the links, not from it.
+        self.mode.write_text('movefail')
+        out = self.deploy(contents=self.contents('new', refined=False))
+        self.assertEqual(out.returncode, 1, out.stderr)
+        self.assertIn('DEPLOY_FAILED', out.stderr)
+        status = json.loads((self.state / 'status.json').read_text())
+        self.assertEqual((status['live'], status['current_release']), ('original', self.NEW))
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.assertEqual(self.starts.read_text(), 'start\n')
 
     def test_failed_switch_with_a_stale_status_fails_and_restores(self):
         # A status claiming success for the new release, left by someone else, must not be believed.
