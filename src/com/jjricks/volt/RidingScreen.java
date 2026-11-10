@@ -223,9 +223,14 @@ final class RidingScreen implements AppScreen {
         highlight = new Cell(layout.content(RidingLayout.FOCUS, "highlight"), 84, false);
         // Focus's cells; Halo and Trace build their own in place of these.
         battery = new Cell(layout.content(RidingLayout.FOCUS, RidingFocus.BATTERY_ROW), 84, false);
-        battery.addBeside(new Segments(), new LinearLayout.LayoutParams(0, ui.dp(34), 1.15f));
-        for (String spot : RidingFocus.bottomRow(large))
-            bottom.add(new Cell(layout.content(RidingLayout.FOCUS, spot), 60, false));
+        for (String spot : RidingFocus.bottomRow(large)) {
+            Cell tile = new Cell(layout.content(RidingLayout.FOCUS, spot), 60, false);
+            tile.fitGauge(RidingFocus.gaugeFor(spot));
+            bottom.add(tile);
+        }
+        big.fitGauge(RidingFocus.gaugeFor("big"));
+        highlight.fitGauge(RidingFocus.gaugeFor("highlight"));
+        battery.fitGauge(RidingFocus.gaugeFor(RidingFocus.BATTERY_ROW));
         watts = new NumberView(64, false);
         wattsCaption = ui.text("", labelSp(LABEL_SP), false);
         wattsCaption.setTextColor(ui.muted);
@@ -328,6 +333,7 @@ final class RidingScreen implements AppScreen {
         ring = new Ring(layout.content("ring"), big, speedLast);
         Cell range = cell(layout.content("highlight"), !side ? 76 : shortWindow ? 64 : 96, false);
         if (side) range.card();
+        range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84, false);
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
@@ -410,6 +416,7 @@ final class RidingScreen implements AppScreen {
         trace = new TraceView(layout.content("trace"));
         Cell range = cell(layout.content("highlight"), !side ? 72 : shortWindow ? 60 : 96, false);
         range.card();
+        range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         // A short window held sideways leaves the tiles too little height for a name above the number.
         LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 48 : 84, side && shortWindow);
         if (side) {
@@ -1280,6 +1287,9 @@ final class RidingScreen implements AppScreen {
         private LinearLayout line;
         /** A battery gauge beside or under the number, shown while the cell shows the battery. */
         private BatteryGauge gauge;
+        /** How a moved battery's gauge sits here, when it comes and goes with the room; null for Halo's and Trace's tiles. */
+        private RidingFocus.Gauge fit;
+        private float[] referenceEms;
         Cell(String content, float maxSp, boolean unitBelow) {
             super(host.activity());
             this.content = content;
@@ -1294,7 +1304,37 @@ final class RidingScreen implements AppScreen {
             p.topMargin = ui.dp(2);
             addView(number, p);
         }
-        /** A battery gauge beside the number (Focus's segments, Trace's ring). */
+        /**
+         * The battery's gauge for this spot, only while this cell shows the battery, so another reading
+         * keeps the cell's full size. It starts gone and onMeasure shows it where the number can spare the room.
+         */
+        void fitGauge(RidingFocus.Gauge kind) {
+            if (!RidingLayout.BATTERY.equals(content)) return;
+            fit = kind;
+            if (kind == RidingFocus.Gauge.BESIDE)
+                addBeside(new Segments(), new LayoutParams(0, ui.dp(RidingFocus.SEGMENTS_HEIGHT_DP), RidingFocus.SEGMENTS_WEIGHT));
+            else if (kind == RidingFocus.Gauge.STRIP_BELOW) addBelow(new Segments(), RidingFocus.STRIP_HEIGHT_DP);
+            else addBelow(new Meter(), RidingFocus.BAR_HEIGHT_DP);
+            ((View) gauge).setVisibility(GONE);
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            super.onMeasure(widthSpec, heightSpec);
+            // Only the exact pass decides: a provisional pass mustn't flip the gauge and ask for another layout.
+            if (fit == null || MeasureSpec.getMode(widthSpec) != MeasureSpec.EXACTLY || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) return;
+            View view = (View) gauge;
+            boolean shown = view.getVisibility() == VISIBLE;
+            float density = getResources().getDisplayMetrics().density;
+            // Beside, read the row's own size: a row answered from its measure cache leaves the number's size from an earlier, shorter pass.
+            int boxWidth = line != null ? line.getMeasuredWidth() : number.getMeasuredWidth();
+            int boxHeight = line != null ? line.getMeasuredHeight() : number.getMeasuredHeight();
+            if (shown && fit != RidingFocus.Gauge.BESIDE) boxHeight += view.getMeasuredHeight() + ui.dp(RidingFocus.BELOW_GAP_DP);
+            if (referenceEms == null) referenceEms = number.referenceEms();
+            boolean wanted = RidingFocus.gaugeFits(fit, boxWidth / density, boxHeight / density, number.maxPx / density, referenceEms[0], referenceEms[1]);
+            if (wanted == shown) return;
+            view.setVisibility(wanted ? VISIBLE : GONE);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+        /** A battery gauge beside the number (Focus's segments). */
         void addBeside(BatteryGauge extra, LayoutParams size) {
             removeView(number);
             line = new LinearLayout(host.activity());
@@ -1309,10 +1349,12 @@ final class RidingScreen implements AppScreen {
             gauge = extra;
         }
         /** A battery gauge under the number (Halo's bar). */
-        void addBelow(BatteryGauge extra) {
-            LayoutParams p = new LayoutParams(-1, ui.dp(8));
-            p.topMargin = ui.dp(6);
-            addView((View) extra, p);
+        void addBelow(BatteryGauge extra) { addBelow(extra, RidingFocus.BAR_HEIGHT_DP); }
+        /** A gauge straight under the number, above whatever else the cell holds. */
+        void addBelow(BatteryGauge extra, int heightDp) {
+            LayoutParams p = new LayoutParams(-1, ui.dp(heightDp));
+            p.topMargin = ui.dp(RidingFocus.BELOW_GAP_DP);
+            addView((View) extra, indexOfChild(number) + 1, p);
             gauge = extra;
         }
         /** A rounded card behind the cell (Halo's and Trace's tiles). */
@@ -1346,7 +1388,7 @@ final class RidingScreen implements AppScreen {
             setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
             if (gauge != null) {
                 boolean battery = RidingLayout.BATTERY.equals(content);
-                ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
+                if (fit == null) ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
                 if (battery) gauge.set(s.percent, s.band, s.color == ui.dim);
             }
         }
@@ -1427,7 +1469,7 @@ final class RidingScreen implements AppScreen {
      * the unit under the number. Labels are separate views; nothing here is a tap target.
      */
     private final class NumberView extends View {
-        private final float maxPx;
+        final float maxPx;
         private final boolean unitBelow;
         private final Paint big = new Paint(Paint.ANTI_ALIAS_FLAG), small = new Paint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence prefix = "", main = "", fraction = "", suffix = "";
@@ -1509,6 +1551,23 @@ final class RidingScreen implements AppScreen {
                 if (unitBelow) canvas.drawText(suffix, 0, suffix.length(), unitX, baseline + capHeight(small) * 1.9f, small);
                 else canvas.drawText(suffix, 0, suffix.length(), x + gap(), baseline, small);
             }
+        }
+        /**
+         * A fixed two-digit reading's width and height per pixel of number size, measured as onDraw does.
+         * Fit decisions use this rather than the current digits, so a gauge never comes and goes as the battery drains.
+         */
+        float[] referenceEms() {
+            Shown s = new Shown();
+            split(s, Fmt.percent(Fmt.integerNumber(88)));
+            float unitShare = unitBelow ? .30f : .42f;
+            Paint b = new Paint(big), u = new Paint(small);
+            b.setTextSize(100);
+            u.setTextSize(100 * unitShare);
+            float unit = u.measureText(s.suffix, 0, s.suffix.length());
+            float width = u.measureText(s.prefix, 0, s.prefix.length()) + b.measureText(s.main, 0, s.main.length()) + (unitBelow ? 0 : unit);
+            float height = capHeight(b);
+            if (unitBelow) { width = Math.max(width, unit); height += capHeight(u) * 1.9f; }
+            return new float[]{width / 100, height / 100};
         }
         /** A unit symbol set straight after the number (speed's "mph") gets a thin space; formatted text brings its own. */
         private float gap() {
