@@ -186,8 +186,8 @@
     });
   }
 
-  /* The charged-particle field with occasional lightning arcs, kept from today's page and calmed to the app's
-     palette: fewer, dimmer particles in Volt red, slower drift and rarer arcs. Capped at 60 fps and paused when
+  /* The charged-particle field with lightning arcs, kept from today's page and calmed to the app's palette:
+     the same density and links in Volt red, slower drift, slightly rarer arcs. Capped at 60 fps and paused when
      the page is hidden, unfocused or motion is reduced (a still frame stays). */
   function field() {
     const canvas = document.getElementById('field');
@@ -202,9 +202,9 @@
     sprite.width = sprite.height = 64;
     const spriteContext = sprite.getContext('2d');
     const glow = spriteContext.createRadialGradient(32, 32, 0, 32, 32, 32);
-    glow.addColorStop(0, 'rgba(255, 214, 208, .9)');
-    glow.addColorStop(0.2, 'rgba(227, 43, 47, .7)');
-    glow.addColorStop(0.55, 'rgba(227, 43, 47, .14)');
+    glow.addColorStop(0, 'rgba(255, 214, 208, 1)');
+    glow.addColorStop(0.2, 'rgba(227, 43, 47, .85)');
+    glow.addColorStop(0.55, 'rgba(227, 43, 47, .2)');
     glow.addColorStop(1, 'rgba(227, 43, 47, 0)');
     spriteContext.fillStyle = glow;
     spriteContext.fillRect(0, 0, 64, 64);
@@ -214,8 +214,8 @@
       y: anywhere ? Math.random() * height : height + 12,
       vx: (Math.random() - 0.5) * 0.08,
       vy: -(0.05 + Math.random() * 0.18),
-      size: 4 + Math.random() * 8,
-      alpha: 0.18 + Math.random() * 0.4,
+      size: 5 + Math.random() * 10,
+      alpha: 0.3 + Math.random() * 0.5,
       phase: Math.random() * Math.PI * 2,
     });
     const resize = () => {
@@ -225,7 +225,7 @@
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      const count = Math.round(Math.min(64, Math.max(22, (width * height) / 24000)));
+      const count = Math.round(Math.min(88, Math.max(34, (width * height) / 16000)));
       particles = Array.from({ length: count }, () => spawn(true));
     };
     const bolt = (x1, y1, x2, y2) => {
@@ -244,7 +244,7 @@
       }
       return points;
     };
-    const strike = (from, to, life = 280) => {
+    const strike = (from, to, life = 340) => {
       const path = new Path2D();
       bolt(from.x, from.y, to.x, to.y).forEach(([x, y], index) => (index ? path.lineTo(x, y) : path.moveTo(x, y)));
       arcs.push({ path, born: performance.now(), life });
@@ -282,9 +282,9 @@
         for (let j = i + 1; j < particles.length; j++) {
           const a = particles[i], b = particles[j], dx = a.x - b.x, dy = a.y - b.y;
           const squared = dx * dx + dy * dy;
-          if (squared > 12100) continue;
+          if (squared > 14400) continue;
           const distance = Math.sqrt(squared);
-          context.strokeStyle = `rgba(227, 43, 47, ${((1 - distance / 110) * 0.12).toFixed(3)})`;
+          context.strokeStyle = `rgba(227, 43, 47, ${((1 - distance / 120) * 0.22).toFixed(3)})`;
           context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(b.x, b.y); context.stroke();
         }
       }
@@ -294,21 +294,21 @@
       }
       context.globalAlpha = 1;
       if (!still && !reduceMotion.matches && now > nextArc && particles.length > 1) {
-        nextArc = now + 3200 + Math.random() * 4200;
+        nextArc = now + 1800 + Math.random() * 2600;
         const origin = pointerFresh ? { x: pointer.x, y: pointer.y } : particles[Math.floor(Math.random() * particles.length)];
-        const targets = nearest(origin.x, origin.y, 240).filter(entry => entry.distance > 40);
+        const targets = nearest(origin.x, origin.y, 280).filter(entry => entry.distance > 40);
         if (targets.length) strike(origin, targets[Math.floor(Math.random() * Math.min(3, targets.length))].particle);
       }
       arcs = arcs.filter(arc => now - arc.born < arc.life);
       for (const arc of arcs) {
         const fade = 1 - (now - arc.born) / arc.life;
         context.shadowColor = 'rgba(227, 43, 47, .8)';
-        context.shadowBlur = 10;
-        context.strokeStyle = `rgba(227, 43, 47, ${(0.4 * fade).toFixed(3)})`;
-        context.lineWidth = 3.5;
+        context.shadowBlur = 14;
+        context.strokeStyle = `rgba(227, 43, 47, ${(0.5 * fade).toFixed(3)})`;
+        context.lineWidth = 4;
         context.stroke(arc.path);
         context.shadowBlur = 4;
-        context.strokeStyle = `rgba(244, 245, 240, ${(0.75 * fade).toFixed(3)})`;
+        context.strokeStyle = `rgba(244, 245, 240, ${(0.9 * fade).toFixed(3)})`;
         context.lineWidth = 1.1;
         context.stroke(arc.path);
         context.shadowBlur = 0;

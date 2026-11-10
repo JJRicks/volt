@@ -15,7 +15,7 @@
   <meta property="og:url" content="https://volt.jjricks.com/">
   <meta property="og:title" content="Volt · Your scooter. Your connection.">
   <meta property="og:description" content="An independent Android app for NAVEE scooters. Lock, change settings, read live data and record rides over Bluetooth. No account, and it works offline.">
-  <meta property="og:image" content="https://volt.jjricks.com/og.png">
+  <meta property="og:image" content="https://volt.jjricks.com/og.png?v=18d4fa11d652">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Volt · Your scooter. Your connection.">
   <meta name="twitter:description" content="An independent Android app for NAVEE scooters. Lock, change settings, read live data and record rides over Bluetooth. No account, and it works offline.">
-  <meta name="twitter:image" content="https://volt.jjricks.com/og.png">
+  <meta name="twitter:image" content="https://volt.jjricks.com/og.png?v=18d4fa11d652">
   <meta name="twitter:image:alt" content="The words Your scooter. Your connection. beside the Volt home dashboard on a phone.">
 
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -31,8 +31,8 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <link rel="preload" href="fonts/saira-bold.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=9995be5348b9">
-  <script src="main.js?v=cdb8d5154e36"></script>
+  <link rel="stylesheet" href="styles.css?v=3c76351f2a9d">
+  <script src="main.js?v=48c180590a25"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -72,28 +72,18 @@
           </a>
           <a class="btn" href="#setup">How to set up</a>
         </div>
-        <ul class="chips" aria-label="At a glance">
-          <li>Android 8.0+</li><li>Works offline</li><li>No sign-up</li><li>Free</li>
-        </ul>
       </div>
 
       <div class="hero-stage">
+        <div class="float-status" aria-hidden="true"><span class="live-dot"></span>SPORT · Connected</div>
         <div class="phone">
           <img src="img/home.webp" width="720" height="1516" alt="Volt home dashboard, connected in Sport: battery at 78 percent with about 24 miles left, 154.32 miles on the odometer, the Lock bar unlocked, readings tiles, a Max. speed tile at 31.1 mph and Record ride.">
         </div>
-        <div class="float float-status" aria-hidden="true"><span class="live-dot"></span>SPORT · Connected</div>
-        <div class="float float-tile" aria-hidden="true">
-          <span class="tile-title">Max. speed</span>
-          <span class="tile-value">31.1 mph</span>
-          <svg class="icon tile-cue" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
-        </div>
-        <div class="float float-battery" aria-hidden="true">
-          <span class="tile-caption">Battery</span>
-          <span class="metric">78<span class="unit">%</span></span>
-          <span class="bar"><span class="bar-fill"></span></span>
-          <span class="tile-caption">about 24 mi left</span>
-        </div>
       </div>
+
+      <ul class="chips hero-chips" aria-label="At a glance">
+        <li>Android 8.0+</li><li>Works offline</li><li>No sign-up</li><li>Free</li>
+      </ul>
     </section>
 
     <section class="section" id="features" aria-labelledby="features-title">
@@ -168,8 +158,8 @@
 
     <section class="section rides" id="rides" aria-labelledby="rides-title">
       <div class="section-head">
-        <h2 id="rides-title">Every ride, mapped in color.</h2>
-        <p class="sub">Record a ride and see the route colored by power or grade. Rides end on their own when you switch the scooter off. While it charges, a live card on your lock screen shows the level, power and finish time.</p>
+        <h2 id="rides-title">Routes, colored by power or grade.</h2>
+        <p class="sub">Record with Volt open and location on, and the ride's route can be colored by power or grade. Rides end on their own when you switch the scooter off. While it charges, a live card on your lock screen shows the level, power and finish time.</p>
       </div>
       <div class="rides-grid">
         <figure class="card route-card" aria-label="Ride map demo">
@@ -197,6 +187,10 @@
           </div>
         </figure>
         <figure class="charge-card">
+          <div class="route-top">
+            <span class="card-label">Charging</span>
+            <span class="sample-chip">Sample</span>
+          </div>
           <img src="img/charging.webp" width="720" height="860" loading="lazy" alt="Volt charging card: Charging at 78 percent, the scooter standing on a red glow, charging power 146 watts and about 1 hour 30 minutes to full.">
         </figure>
       </div>
@@ -215,7 +209,7 @@
     <section class="section privacy" id="privacy" aria-labelledby="privacy-title">
       <div class="privacy-copy">
         <h2 id="privacy-title" aria-describedby="map-data-note">Nothing leaves your phone.<sup aria-hidden="true">*</sup></h2>
-        <p class="map-data-note" id="map-data-note">* Map backgrounds are off by default. When enabled, the provider sees your IP address and the map area you view.</p>
+        <p class="map-data-note" id="map-data-note">* Two optional extras go online. Map backgrounds are off by default; when on, the map provider sees your IP address and the map area you view. Update checks run only when you tap Check for updates or turn on automatic checks; GitHub then sees your IP address and Volt version.</p>
       </div>
       <ul class="group-card">
         <li class="row">
@@ -256,7 +250,7 @@
       <div class="group-card faq-list">
         <details><summary>Is Volt made by NAVEE?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Volt is an independent project and isn't affiliated with NAVEE or its app vendor.</p></details>
         <details id="compat"><summary>Which scooters does it work with?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>Volt is built for NAVEE scooters, with controls tailored to the connected model. Features vary by model and firmware. The US UT5 MAX has been tested on hardware; other mapped models are still being verified.</p></details>
-        <details><summary>Does Volt need the internet?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Locking, controls, readings and ride recording work offline. Map backgrounds are optional and only load after you turn them on.</p></details>
+        <details><summary>Does Volt need the internet?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Locking, controls, readings and ride recording work offline. Map backgrounds are optional and only load after you turn them on, and update checks only run when you ask for them.</p></details>
         <details><summary>Which languages does Volt speak?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>English, plus Spanish, Portuguese (Portugal and Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish, all in beta. Volt follows your phone's language. On Android 13 and newer, More › App preferences › Language can switch Volt alone back to English.</p></details>
         <details><summary>Is there an iPhone version?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>Not right now. Volt runs on Android 8.0 and newer, including foldables.</p></details>
         <details><summary>Where is my data stored?<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>On your phone. You can export rides or make a password-protected backup whenever you like.</p></details>
@@ -277,7 +271,7 @@
             GitHub repository
           </a>
         </div>
-        <p class="caption">Downloads come from GitHub Releases, with SHA-256 checksums.</p>
+        <p class="caption">Downloads come from GitHub Releases, with <span class="nowrap">SHA-256</span> checksums.</p>
       </div>
       <div class="cta-phone">
         <img src="img/riding.webp" width="720" height="1552" loading="lazy" alt="Volt riding mode: SPORT and Connected at the top, a huge 0.0 mph, range at this pace about 27 miles, battery 78 percent with green segments, and the Lock bar with a red record button.">
