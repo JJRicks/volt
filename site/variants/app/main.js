@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (dock && dot && 'IntersectionObserver' in window) {
     var links = {};
     dock.querySelectorAll('a[data-spy]').forEach(function (a) { links[a.getAttribute('data-spy')] = a; });
-    var map = { top: 'top', features: 'features', screens: 'features', models: 'features', setup: 'setup', privacy: 'setup', faq: 'faq', get: 'faq' };
+    var map = { top: 'top', features: 'features', rides: 'features', screens: 'features', models: 'features', setup: 'setup', privacy: 'setup', faq: 'faq', get: 'faq' };
     var show = function (key) {
       var a = links[key];
       Object.keys(links).forEach(function (k) { links[k].classList.toggle('on', k === key); });
