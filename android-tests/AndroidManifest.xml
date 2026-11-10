@@ -3,6 +3,7 @@
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
   <application android:allowBackup="false" android:label="Navee local validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingChipRowValidation" android:targetPackage="com.jjricks.volt" android:label="Riding chip row validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingBatteryGaugeValidation" android:targetPackage="com.jjricks.volt" android:label="Riding battery gauge validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingStoppedMotionValidation" android:targetPackage="com.jjricks.volt" android:label="Riding stopped buttons motion validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ParkedValidation" android:targetPackage="com.jjricks.volt" android:label="Parked offline validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LaunchValidation" android:targetPackage="com.jjricks.volt" android:label="Fresh emulator launch validation" />

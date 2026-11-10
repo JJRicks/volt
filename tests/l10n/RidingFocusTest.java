@@ -20,6 +20,7 @@ public final class RidingFocusTest {
             arrangement();
             link();
             segments();
+            gauges();
             digits();
             rideButton();
             range();
@@ -74,6 +75,29 @@ public final class RidingFocusTest {
         check(!RidingFocus.droppedBand(RidingValues.Band.RED, RidingValues.Band.AMBER), "charging up never ticks");
         check(!RidingFocus.droppedBand(null, RidingValues.Band.RED), "opening at red never ticks");
         check(!RidingFocus.droppedBand(RidingValues.Band.AMBER, null), "a lost reading never ticks");
+    }
+
+    /** The battery gauge's fit rule, on synthesized box sizes and text metrics. */
+    private static void gauges() {
+        check(RidingFocus.gaugeFor("highlight") == RidingFocus.Gauge.BESIDE && RidingFocus.gaugeFor("tile_1") == RidingFocus.Gauge.BESIDE, "the wide rows get segments beside the number");
+        check(RidingFocus.gaugeFor("big") == RidingFocus.Gauge.STRIP_BELOW, "the big number gets a strip under it");
+        for (String spot : RidingFocus.BOTTOM_ROW) check(RidingFocus.gaugeFor(spot) == RidingFocus.Gauge.BAR_BELOW, spot + " gets the thin bar");
+        float em = 1.6f, tall = .72f;
+        // Beside: the number's share is (w - 14) / 2.15, and it must keep 60 dp at this reference width.
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 60, 84, em, tall), "a phone row keeps the segments");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 220.5f, 60, 84, em, tall), "just wide enough");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 219.5f, 60, 84, em, tall), "just too narrow: the segments go, the number stays");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 26, 84, em, tall), "just tall enough beside the number");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 25.9f, 84, em, tall), "shorter drops the segments");
+        // Below: a tall tile costs the number nothing; at most a tenth of its size is the limit.
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 90, 60, em, tall), "a tall tile has room for the bar");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 56.5f, 60, em, tall), "the bar costs just under a tenth");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 56, 60, em, tall), "more than a tenth drops the bar");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 47, 200, 60, em, tall), "too narrow to read as a bar");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.STRIP_BELOW, 300, 300, 200, em, tall), "the big number's strip fits when width limits the number");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.STRIP_BELOW, 300, 140, 200, em, tall), "a short big number keeps its height");
+        // A window with no size yet never shows one.
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 0, 100, 60, em, tall) && !RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 0, 84, em, tall), "no room, no gauge");
     }
 
     private static void digits() {

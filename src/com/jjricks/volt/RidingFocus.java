@@ -57,6 +57,53 @@ final class RidingFocus {
         return out;
     }
 
+    /**
+     * How a battery reading's gauge sits in a spot: segments beside the number in the wide reading rows,
+     * a strip of segments under the big number, a thin bar under a small tile's number.
+     */
+    enum Gauge { BESIDE, STRIP_BELOW, BAR_BELOW }
+
+    static final int BESIDE_GAP_DP = 14, SEGMENTS_HEIGHT_DP = 34, STRIP_HEIGHT_DP = 18, BAR_HEIGHT_DP = 8, BELOW_GAP_DP = 6;
+    /** The segments' share of a row beside the number, whose own weight is 1. */
+    static final float SEGMENTS_WEIGHT = 1.15f;
+    /** Beside the segments the number keeps at least this size; narrower than that the segments go. */
+    static final float BESIDE_MIN_NUMBER_DP = 60;
+    /** The number beside the segments needs at least this height; shorter than the segments' own 34 dp they clip a little, as they always have. */
+    static final float BESIDE_MIN_HEIGHT_DP = 26;
+    /** A bar or strip under the number may cost it at most this share of its size. */
+    static final float BELOW_KEEP_SHARE = .9f;
+    /** A bar or strip under the number needs at least this much width to read as one. */
+    static final float BELOW_MIN_WIDTH_DP = 48;
+
+    /** The gauge for a spot: the two wide rows get segments beside, the big number a strip, the others a bar. */
+    static Gauge gaugeFor(String spot) {
+        if ("highlight".equals(spot) || BATTERY_ROW.equals(spot)) return Gauge.BESIDE;
+        return "big".equals(spot) ? Gauge.STRIP_BELOW : Gauge.BAR_BELOW;
+    }
+
+    /** A number's largest size in dp for a box, by the widths and heights it needs per dp of size. */
+    private static float numberSize(float boxWidth, float boxHeight, float maxDp, float widthEm, float heightEm) {
+        return Math.max(0, Math.min(maxDp, Math.min(boxWidth / widthEm, (boxHeight - 4) / heightEm)));
+    }
+
+    /**
+     * Whether a battery gauge fits beside or under the number in the space the number would have alone.
+     * The number wins: the gauge goes rather than cost the number more than a tenth of its size (under), or leave it small (beside). Widths and heights are in dp.
+     *
+     * @param widthEm the reference reading's width per dp of number size
+     * @param heightEm its height per dp of number size
+     */
+    static boolean gaugeFits(Gauge gauge, float boxWidth, float boxHeight, float maxDp, float widthEm, float heightEm) {
+        if (boxWidth <= 0 || boxHeight <= 0 || widthEm <= 0 || heightEm <= 0) return false;
+        if (gauge == Gauge.BESIDE) {
+            float number = (boxWidth - BESIDE_GAP_DP) / (1 + SEGMENTS_WEIGHT);
+            return boxHeight >= BESIDE_MIN_HEIGHT_DP && number / widthEm >= BESIDE_MIN_NUMBER_DP;
+        }
+        if (boxWidth < BELOW_MIN_WIDTH_DP) return false;
+        float below = (gauge == Gauge.STRIP_BELOW ? STRIP_HEIGHT_DP : BAR_HEIGHT_DP) + BELOW_GAP_DP;
+        return numberSize(boxWidth, boxHeight - below, maxDp, widthEm, heightEm) >= BELOW_KEEP_SHARE * numberSize(boxWidth, boxHeight, maxDp, widthEm, heightEm);
+    }
+
     /** The status pill's connection state. */
     enum Link { CONNECTED, RECONNECTING, NOT_CONNECTED }
 
