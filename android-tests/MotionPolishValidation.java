@@ -596,7 +596,7 @@ public final class MotionPolishValidation extends Instrumentation {
         int index = 0;
         for (View slider : sliders) {
             String name = "slider" + index++ + ((Boolean)field(slider, "compact") ? "-bar" : "-classic");
-            main(() -> { invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, false, true); invoke(slider, "stopMotion"); });
+            main(() -> { invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null); invoke(slider, "stopMotion"); });
             settle();
             String a11y = accessibility(slider);
             AtomicReference<Bitmap> base = new AtomicReference<>();
@@ -650,20 +650,20 @@ public final class MotionPolishValidation extends Instrumentation {
                 require(Boolean.FALSE.equals(field(slider, "value")), name + ": refused release changed the confirmed value");
             });
             settled(slider, base.get(), name + " rejected release");
-            main(() -> invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, false, true));
+            main(() -> invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null));
             settled(slider, base.get(), name + " rejection report");
             // 4. Fast reversal, then disconnect mid-drag: unavailable immediately, no trail ghost.
             long when3 = SystemClock.uptimeMillis();
             main(() -> { touch(slider, MotionEvent.ACTION_DOWN, pos(slider, 0), y[0], when3); for (float p : new float[] {.3f, .7f, .95f, .6f, .2f}) { touch(slider, MotionEvent.ACTION_MOVE, pos(slider, p), y[0], when3); SystemClock.sleep(10); } });
             AtomicReference<Bitmap> offline = new AtomicReference<>();
             main(() -> {
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, null, false);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, null, false, null);
                 require(((LockSliderTrail)field(slider, "trail")).isEmpty() && !(Boolean)field(slider, "dragging"), name + ": disconnect kept a trail or drag");
                 offline.set(draw(slider));
             });
             SystemClock.sleep(250);
             main(() -> { require(changed(offline.get(), draw(slider)) == 0, name + ": disconnected slider kept changing"); invoke(slider, "stopMotion"); require(changed(offline.get(), draw(slider)) == 0, name + ": disconnect left a ghost"); });
-            main(() -> { invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, false, true); invoke(slider, "stopMotion"); });
+            main(() -> { invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null); invoke(slider, "stopMotion"); });
             settled(slider, base.get(), name + " reconnect");
             // 5. A real hardware-rendered drag: injected touches move continuously while screencap runs.
             hardwareDrag(slider, name);

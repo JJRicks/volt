@@ -724,7 +724,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                     invoke(activity, "updateConnectionAction", new Class<?>[] {boolean.class, boolean.class}, true, false);
                     TextView title = (TextView)field(activity, "lockTitle"); title.setText(state.equals("locked") ? "Locked" : "Unlocked");
                     // Preserve the production glyph size installed by updateHeader; only the text/state changes.
-                    invoke(field(activity, "lockControl"), "update", new Class<?>[] {Boolean.class, boolean.class}, state.equals("locked"), true);
+                    invoke(field(activity, "lockControl"), "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, state.equals("locked"), true, null);
                 }
                 card.requestLayout();
             };
@@ -808,7 +808,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 setVisibilityIfPresent("lockOffline",View.GONE);
                 setVisibilityIfPresent("lockReady",View.VISIBLE);
                 ((View)field(activity,"connectionAction")).setVisibility(View.GONE);
-                invoke(slider,"update",new Class<?>[]{Boolean.class,boolean.class},false,true);
+                invoke(slider,"update",new Class<?>[]{Boolean.class,boolean.class,String.class},false,true,null);
                 for(int[] size:new int[][]{{117,182},{150,182},{312,374},{312,54}}) {
                     measureCard(lockCard,activity.ui().dp(size[0]),activity.ui().dp(size[1]));
                     com.jjricks.volt.LockSliderGeometry geometry=
@@ -907,14 +907,14 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 }
                 setVisibilityIfPresent("lockOffline", View.GONE);
                 setVisibilityIfPresent("lockReady", View.VISIBLE);
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, false, true);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null);
                 // GONE children retain no current dimensions. Lay out the parent after
                 // exposing the connected view, as Android does before a user's gesture.
                 View lockCard = (View)lockTile();
                 measureCard(lockCard, lockCard.getWidth(), lockCard.getHeight());
                 invoke(slider, "stopMotion");
                 require(((Number)field(slider, "position")).floatValue() == 0, "Unlocked thumb did not settle left");
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, true, true);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, true, true, null);
                 android.view.accessibility.AccessibilityNodeInfo checked = slider.createAccessibilityNodeInfo();
                 try { require(checked.isCheckable() && checked.isChecked(), "Animation delayed the confirmed accessible lock state"); }
                 finally { checked.recycle(); }
@@ -925,7 +925,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 invoke(slider, "stopMotion");
                 require(field(slider, "motion") == null && ((Number)field(slider, "position")).floatValue() == 1, "Stopping motion left an intermediate thumb position");
 
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, false, true);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null);
                 invoke(slider, "stopMotion");
                 long when = SystemClock.uptimeMillis();
                 com.jjricks.volt.LockSliderGeometry geometry =
@@ -941,9 +941,9 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 require(!(Boolean)field(slider, "dragging") && Boolean.FALSE.equals(field(slider, "value"))
                         && ((Number)field(slider, "position")).floatValue() == 0, "Cancelled drag retained a proposed lock state");
                 setField(activity, "resumed", false);
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, true, false);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, true, false, null);
                 require(field(slider, "motion") == null && ((Number)field(slider, "position")).floatValue() == 1, "Background update kept animating");
-                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class}, null, false);
+                invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, null, false, null);
                 require(field(slider, "motion") == null && !slider.isEnabled() && ((Number)field(slider, "position")).floatValue() == 0, "Unavailable state retained a moving/interactive control");
             } finally {
                 setField(activity, "resumed", resumed);

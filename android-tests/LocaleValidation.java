@@ -59,8 +59,8 @@ import com.jjricks.volt.ScooterService;
  * AppDataMaintenanceValidation does), the same pill reconnecting and not connected after the simulator
  * stops (reconnecting is BleController's recoverable-loss flag set by reflection: the emulator has no
  * scooter to lose), each at both halves of the pill's time/problem alternation, the plain pill's
- * Not connected and Reconnecting, and Ride saved after the rider's stop and after an automatic one
- * (the service's own stop path). Each riding screen is asserted to show its state (the pill's look and text), and
+ * Not connected and Reconnecting, and Ride saved after the rider's stop; an automatic stop (the service's own
+ * stop path) must close riding mode (#349). Each riding screen is asserted to show its state (the pill's look and text), and
  * Android's one-time "Viewing full screen" notice is marked confirmed first and must not cover any riding screen.
  * Setting tile text that ends in an ellipsis is reported as truncated_tiles (TextFit skips ellipsized lines).
  * Never connects Bluetooth.
@@ -314,8 +314,10 @@ public final class LocaleValidation extends Instrumentation {
         startRide(service);
         main(() -> { invoke(service, "stopRide", new Class<?>[]{String.class}, RideStore.STOP_AUTO_PARKED); activity.redraw(); });
         require(!service.isRecording() && service.rides.lastStopAutomatic(), "The automatic stop did not end the recording");
-        settle(); requirePill("saved-auto"); check("riding-saved-auto");
-        main(() -> invoke(activity, "closeRiding", new Class<?>[0])); settle();
+        // An automatic end closes riding mode at once (#349), so its pill never shows Ride saved there now.
+        await(() -> { Object now = field(activity, "screen"); return now == null || !"RidingScreen".equals(now.getClass().getSimpleName()); },
+                "An automatic end should close riding mode");
+        settle();
     }
 
     private void requireRiding() {
