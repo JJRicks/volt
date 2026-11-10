@@ -12,6 +12,7 @@ public final class RidingPowerCueTest {
         labelRungs();
         watts();
         signedScootersUntouched();
+        spoken();
         System.out.println("RidingPowerCueTest: " + checks + " checks passed");
     }
 
@@ -50,5 +51,39 @@ public final class RidingPowerCueTest {
                 check(RidingPowerCue.shownWatts(151, d, rung) == 151, d + " keeps its value at rung " + rung);
             }
         }
+    }
+    static final String UNKNOWN = "power (direction unknown)", DRAW_PEAK = "power · peak 450 W", REGEN_PEAK = "regen · peak 600 W";
+
+    /** The shown number as the readout and a tile print it (a plain stand-in for Fmt.quantity). */
+    private static String shown(double watts, RidingValues.Direction d, int rung) {
+        return Math.round(RidingPowerCue.shownWatts(watts, d, rung)) + " W";
+    }
+
+    /** One description carries the watts as shown and the whole note, at every rung, a signed scooter's included. */
+    private static void spoken() {
+        RidingValues.Direction inferred = RidingValues.Direction.REGEN_INFERRED;
+        String[] expected = {"-151 W, " + UNKNOWN, "-151 W, " + UNKNOWN, "151 W, " + UNKNOWN};
+        int[] rungs = {RidingPowerCue.FULL, RidingPowerCue.CUE, RidingPowerCue.NONE};
+        for (int i = 0; i < rungs.length; i++) {
+            // The readout passes its fitted-rung caption's full form; inferred regen always hears the unknown note.
+            String said = RidingPowerCue.spokenValue(shown(-151, inferred, rungs[i]), RidingPowerCue.readoutNote(inferred, UNKNOWN, "power"));
+            check(said.equals(expected[i]), "readout at rung " + rungs[i] + ": " + said);
+            check(said.contains("151 W") && said.contains(UNKNOWN), "the value and the note together at rung " + rungs[i]);
+            // A tile: its note is the unknown caption whichever label rung it landed on (its icon alone included).
+            String tile = RidingPowerCue.spokenValue(shown(-151, inferred, RidingPowerCue.rungOfLabel(i == 2 ? -1 : i)), UNKNOWN);
+            check(tile.equals(expected[i]), "tile at label rung " + i + ": " + tile);
+        }
+        check(RidingPowerCue.readoutNote(RidingValues.Direction.UNKNOWN, UNKNOWN, "power").equals(UNKNOWN), "an unsigned scooter's unknown direction says so");
+        // Signed scooters: the value and the caption they mean (the peak once there is one), never the unknown note.
+        check(RidingPowerCue.spokenValue(shown(320, RidingValues.Direction.DRAW, RidingPowerCue.FULL),
+                RidingPowerCue.readoutNote(RidingValues.Direction.DRAW, UNKNOWN, DRAW_PEAK)).equals("320 W, " + DRAW_PEAK), "signed draw");
+        check(RidingPowerCue.spokenValue(shown(-210, RidingValues.Direction.REGEN, RidingPowerCue.FULL),
+                RidingPowerCue.readoutNote(RidingValues.Direction.REGEN, UNKNOWN, REGEN_PEAK)).equals("-210 W, " + REGEN_PEAK), "signed regen keeps its sign and its peak");
+        check(RidingPowerCue.spokenValue(shown(-210, RidingValues.Direction.REGEN, RidingPowerCue.NONE),
+                RidingPowerCue.readoutNote(RidingValues.Direction.REGEN, UNKNOWN, "regen")).equals("-210 W, regen"), "signed regen before a peak: the brief word");
+        check(RidingPowerCue.readoutNote(RidingValues.Direction.DRAW_INFERRED, UNKNOWN, DRAW_PEAK).equals(DRAW_PEAK), "inferred draw keeps its draw caption");
+        // A reading with no note (a tile on a signed scooter) is its value alone.
+        check(RidingPowerCue.spokenValue("320 W", null).equals("320 W"), "no note, the value alone");
+        check(RidingPowerCue.spokenValue("320 W", "").equals("320 W"), "an empty note adds nothing");
     }
 }

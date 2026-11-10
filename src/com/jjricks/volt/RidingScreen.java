@@ -231,8 +231,13 @@ final class RidingScreen implements AppScreen {
         wattsCaption.setTextColor(ui.muted);
         wattsCaption.setMaxLines(1);
         wattsCaption.setEllipsize(TextUtils.TruncateAt.END);
+        // The number draws itself and the caption may be cut to a rung, so neither speaks: the column holds one
+        // description with the watts and the caption's whole meaning (showPower).
+        wattsCaption.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         chrome.add(wattsCaption);
         power = column();
+        power.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        power.setFocusable(true);
         power.addView(watts, new LinearLayout.LayoutParams(-1, 0, 1));
         power.addView(wattsCaption, new LinearLayout.LayoutParams(-1, -2));
         bar = new PowerBar();
@@ -937,7 +942,7 @@ final class RidingScreen implements AppScreen {
         if (p.watts == null) {
             watts.set("", T.ridingNoValue(), "", "", ui.dim, ui.dim);
             wattsCaption.setText(T.ridingPowerDrawPeakShort());
-            wattsCaption.setContentDescription(null);
+            power.setContentDescription(spokenReading(powerName(), null));
             bar.set(null, p.direction, scale, p.peakDrawW, 0, false, now);
             return;
         }
@@ -955,10 +960,10 @@ final class RidingScreen implements AppScreen {
                 : regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
         String brief = regen ? T.ridingPowerRegenPeakShort() : T.ridingPowerDrawPeakShort();
         if (inferred) showInferredCaption(rung, brief);
-        else {
-            wattsCaption.setContentDescription(null);
-            fit(wattsCaption, caption == null ? brief : caption, brief);
-        }
+        else fit(wattsCaption, caption == null ? brief : caption, brief);
+        // Heard as one: the watts as shown and the caption in full, at every rung (an unknown direction always says so).
+        power.setContentDescription(spokenReading(powerName(), RidingPowerCue.spokenValue(shown.toString(),
+                RidingPowerCue.readoutNote(p.direction, powerDirectionUnknown(), caption == null ? brief : caption))));
         // A same-time sign correction (after 0x79) moves the bar too, not only the number.
         boolean fresh = sample != null && sample.updatedMs != powerSampleMs;
         if (sample != null) powerSampleMs = sample.updatedMs;
@@ -976,11 +981,18 @@ final class RidingScreen implements AppScreen {
                 wattsCaption.getPaint().measureText(RidesScreen.directionUnconfirmedChip()), room);
     }
 
-    /** The caption at its rung; what's spoken says the direction is unknown at every one of them. */
+    /** The caption at its rung; the power column's description says the direction is unknown at every one of them. */
     private void showInferredCaption(int rung, String plain) {
         String pick = rung == RidingPowerCue.FULL ? powerDirectionUnknown() : rung == RidingPowerCue.CUE ? RidesScreen.directionUnconfirmedChip() : plain;
         if (TileRung.needsSet(pick, wattsCaption.getText())) wattsCaption.setText(pick);
-        wattsCaption.setContentDescription(powerDirectionUnknown());
+    }
+
+    /** A power reading's name, as a tile's label and the trace's key show it. */
+    private static String powerName() { return T.ridingLabelPower(); }
+
+    /** What a reading says to a screen reader: its name and value, or its name and that there's no reading. */
+    private static String spokenReading(String name, String spoken) {
+        return spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, spoken);
     }
 
     /** A caption's ladder: the full text while it fits, else the brief one; never a broken word. */
@@ -1002,7 +1014,7 @@ final class RidingScreen implements AppScreen {
         String spoken;
         /** Heard after the reading only (a strip chip shows spoken as its text). */
         String spokenNote;
-        String spokenFull() { return spokenNote == null ? spoken : spoken + ", " + spokenNote; }
+        String spokenFull() { return RidingPowerCue.spokenValue(spoken, spokenNote); }
         /** The name heard for this reading, when it isn't the first rung shown. */
         String spokenName;
         String name() { return spokenName != null ? spokenName : rungs.length == 0 ? "" : rungs[0]; }
@@ -1163,7 +1175,7 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.POWER: {
-                String name = T.ridingLabelPower();
+                String name = powerName();
                 s.rungs = new String[]{name};
                 s.icon = "power";
                 RidingValues.Power p = v.power(now);
@@ -1324,7 +1336,7 @@ final class RidingScreen implements AppScreen {
             }
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.name();
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spokenFull()));
+            setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
             if (gauge != null) {
                 boolean battery = RidingLayout.BATTERY.equals(content);
                 ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
@@ -1790,7 +1802,7 @@ final class RidingScreen implements AppScreen {
                 if (getVisibility() != visible) setVisibility(visible);
             }
             String name = s.rungs.length > 0 ? s.name() : s.main.toString();
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spokenFull()));
+            setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
         }
     }
 
@@ -1998,7 +2010,7 @@ final class RidingScreen implements AppScreen {
             float x = pad, keyY = pad - fm.ascent;
             List<Object[]> key = new ArrayList<>();
             if (showsSpeed()) key.add(new Object[]{T.ridingLabelSpeed(), ui.text});
-            if (showsPower()) { key.add(new Object[]{T.ridingLabelPower(), ui.accent}); key.add(new Object[]{T.ridingTraceRegen(), ui.ok}); }
+            if (showsPower()) { key.add(new Object[]{powerName(), ui.accent}); key.add(new Object[]{T.ridingTraceRegen(), ui.ok}); }
             for (Object[] k : key) {
                 String name = (String) k[0];
                 float need = ui.dp(22) + label.measureText(name);

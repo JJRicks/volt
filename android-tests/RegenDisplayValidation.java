@@ -1,17 +1,21 @@
 package com.jjricks.volt.tests;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Instrumentation;
+import android.app.UiAutomation;
 import android.content.pm.ActivityInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.TextView;
 
 import com.jjricks.volt.BleController;
@@ -251,6 +255,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             require(peak > 0, frame + ": no regen peak");
             SystemClock.sleep(500);
             caption(frame, true);
+            spokenPower(frame, true);
             shot("riding-inferred-" + frame);
             if (frame.equals("focus")) barColor(false);
             if (frame.equals("trace")) {
@@ -314,6 +319,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), name + ": no inferred reading on screen", 45000);
             main(() -> { caption.set(checkDrawn(name, problem)); });
             if (problem.get() != null) throw new AssertionError(problem.get());
+            if (attempt == 0) spokenPower(name, true);
             SystemClock.sleep(250); // Let the checked frame reach the screen: idle isn't drawn.
             shot("riding-cue-" + name);
             // The direction can change between readings: only a frame still inferred after the shot counts as this rung's picture.
@@ -348,6 +354,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             require(unsignedMain(cell), "A power number with its label hidden must not show a minus sign: " + cellState(cell));
             require(said(cell).contains("direction unknown"), "The hidden-label cell still speaks the uncertainty: " + said(cell));
         });
+        spokenPower("hidden-label", true);
         shot("riding-cue-hidden-label");
         main(() -> activity.onBackPressed());
         await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
@@ -369,13 +376,14 @@ public final class RegenDisplayValidation extends Instrumentation {
         main(() -> {
             TextView caption = (TextView) fieldOn(screen(), "wattsCaption");
             require(unsigned(numberMain(fieldOn(screen(), "watts"))), "No cue fits: the readout must drop its minus sign: " + numberMain(fieldOn(screen(), "watts")));
-            require(FULL.equals(String.valueOf(caption.getContentDescription())), "Spoken text keeps the uncertainty: " + caption.getContentDescription());
+            require(said(readout()).contains(FULL), "Spoken text keeps the uncertainty: " + said(readout()));
             require(caption.getCurrentTextColor() == captionMuted(), "The bare caption keeps its muted colour");
             require((Integer) fieldOn(fieldOn(screen(), "watts"), "color") == captionMuted(), "The unsigned number is in the muted colour");
             View cell = powerCell(false);
             require(unsignedMain(cell), "No cue fits: the tile must drop its minus sign: " + cellState(cell));
             require(said(cell).contains("direction unknown"), "The tile still speaks the uncertainty: " + said(cell));
         });
+        spokenPower("no-room", true);
         shot("riding-cue-no-room");
         main(() -> activity.onBackPressed());
         await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
@@ -385,10 +393,101 @@ public final class RegenDisplayValidation extends Instrumentation {
 
     private static final String FULL = "power (direction unknown)", CUE = "Direction ?", PLAIN = "power";
 
-    private Object screen() { return fieldOn(activity, "screen"); }
-    private boolean inferredDrawn() {
-        return ((TextView) fieldOn(screen(), "wattsCaption")).getContentDescription() != null;
+    /**
+     * Reads the accessibility node tree as a screen reader gets it (views not important for accessibility left
+     * out), and for the power readout and every power cell on screen finds the node at that view's bounds:
+     * one node must carry the watts exactly as drawn and the note (the unknown direction when inferred, the
+     * regen caption when signed), and nothing inside the readout may speak on its own. Readings move about once
+     * a second, so a pass counts only when the drawn values were the same before and after the tree was read.
+     */
+    private void spokenPower(String name, boolean inferred) throws Exception {
+        UiAutomation automation = getUiAutomation();
+        AccessibilityServiceInfo info = automation.getServiceInfo();
+        if ((info.flags & AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS) != 0) {
+            info.flags &= ~AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;
+            automation.setServiceInfo(info);
+        }
+        String failure = null;
+        for (int attempt = 0; attempt < 150; attempt++) {
+            AtomicReference<List<Object[]>> before = new AtomicReference<>(), after = new AtomicReference<>();
+            AtomicReference<String> direction = new AtomicReference<>();
+            main(() -> { before.set(powerSurfaces()); direction.set(String.valueOf(direction())); });
+            List<Object[]> nodes = new ArrayList<>();
+            AccessibilityNodeInfo root = automation.getRootInActiveWindow();
+            if (root != null) nodes(root, nodes);
+            main(() -> after.set(powerSurfaces()));
+            // Only a frame in the direction under test counts: signed regen, or inferred regen.
+            if (!sameSurfaces(before.get(), after.get()) || root == null || !direction.get().equals(inferred ? "REGEN_INFERRED" : "REGEN")) {
+                SystemClock.sleep(150);
+                continue;
+            }
+            failure = null;
+            boolean readoutSeen = false;
+            for (Object[] surface : before.get()) {
+                Rect bounds = (Rect) surface[0];
+                String shown = (String) surface[1], kind = (String) surface[2];
+                readoutSeen |= kind.equals("readout");
+                String spoken = null;
+                int inside = 0;
+                for (Object[] node : nodes) {
+                    Rect at = (Rect) node[0];
+                    if (at.equals(bounds) && node[1] != null) spoken = (String) node[1];
+                    else if (kind.equals("readout") && bounds.contains(at) && !at.equals(bounds) && node[1] != null) inside++;
+                }
+                if (spoken == null) { failure = name + ": no accessibility node for the " + kind + " at " + bounds; break; }
+                boolean hasValue = spoken.contains(shown), hasNote = inferred ? spoken.contains(FULL) : spoken.contains("regen") && !spoken.contains("direction unknown");
+                if (!hasValue || !hasNote) { failure = name + ": the " + kind + " node says \"" + spoken + "\" for the drawn \"" + shown + "\""; break; }
+                if (inside > 0) { failure = name + ": " + inside + " node(s) inside the readout speak apart from it"; break; }
+                note(name + " " + kind + " node: \"" + spoken + "\"");
+            }
+            if (failure == null && !readoutSeen) failure = name + ": the power readout wasn't on screen";
+            if (failure == null) { assertions++; return; }
+            SystemClock.sleep(200);
+        }
+        throw new AssertionError(failure == null ? name + ": the drawn values never held still for the node read" : failure);
     }
+    /** Each power surface on screen: its bounds, the watts as drawn (prefix, number, unit), and which it is. */
+    private List<Object[]> powerSurfaces() {
+        List<Object[]> out = new ArrayList<>();
+        View readout = readout();
+        if (readout.isShown()) out.add(new Object[]{screenRect(readout), drawn(fieldOn(screen(), "watts")), "readout"});
+        for (Object cell : (List<?>) fieldOn(screen(), "cells")) {
+            if (!"power".equals(fieldOn(cell, "content")) || !((View) cell).isShown()) continue;
+            out.add(new Object[]{screenRect((View) cell), drawn(fieldOn(cell, "number")), "cell"});
+        }
+        return out;
+    }
+    private static boolean sameSurfaces(List<Object[]> a, List<Object[]> b) {
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) if (!Arrays.equals(a.get(i), b.get(i))) return false;
+        return true;
+    }
+    private static String drawn(Object number) {
+        return String.valueOf(fieldOn(number, "prefix")) + fieldOn(number, "main") + fieldOn(number, "fraction") + fieldOn(number, "suffix");
+    }
+    private static Rect screenRect(View view) {
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        return new Rect(at[0], at[1], at[0] + view.getWidth(), at[1] + view.getHeight());
+    }
+    /** Every node a screen reader can reach: its screen bounds and what it says (description, else text). */
+    private static void nodes(AccessibilityNodeInfo node, List<Object[]> out) {
+        node.refresh();
+        if (node.isVisibleToUser()) {
+            Rect bounds = new Rect();
+            node.getBoundsInScreen(bounds);
+            CharSequence said = node.getContentDescription() != null ? node.getContentDescription() : node.getText();
+            out.add(new Object[]{bounds, said == null || said.length() == 0 ? null : said.toString()});
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) nodes(child, out);
+        }
+    }
+
+    private Object screen() { return fieldOn(activity, "screen"); }
+    private View readout() { return (View) fieldOn(screen(), "power"); }
+    private boolean inferredDrawn() { return said(readout()).contains(FULL); }
     private String captionText() {
         return ((TextView) fieldOn(screen(), "wattsCaption")).getText().toString();
     }
@@ -402,7 +501,7 @@ public final class RegenDisplayValidation extends Instrumentation {
         boolean cued = FULL.equals(text) || CUE.equals(text);
         if (!cued && !PLAIN.equals(text)) problem.set(name + ": unexpected caption " + text);
         if (cued == unsigned(numberMain(watts))) problem.set(name + ": caption \"" + text + "\" with number " + numberMain(watts));
-        if (!FULL.equals(String.valueOf(caption.getContentDescription()))) problem.set(name + ": spoken caption " + caption.getContentDescription());
+        if (!said(readout()).contains(FULL)) problem.set(name + ": spoken readout " + said(readout()));
         // Measured, not assumed: a caption that shows must fit whole, never ellipsized.
         if (caption.getLayout() != null && caption.getLayout().getEllipsisCount(0) > 0) problem.set(name + ": caption ellipsized: " + text);
         for (Object cell : (List<?>) fieldOn(screen(), "cells")) {
@@ -549,10 +648,11 @@ public final class RegenDisplayValidation extends Instrumentation {
         caption("signed", false);
         shot("riding-signed-regen");
         main(() -> {
-            TextView c = (TextView) fieldOn(screen(), "wattsCaption");
-            require(c.getContentDescription() == null, "A signed reading gets no uncertainty note");
+            require(!said(readout()).contains("direction unknown"), "A signed reading gets no uncertainty note: " + said(readout()));
             require(!unsigned(numberMain(fieldOn(screen(), "watts"))), "Signed regen keeps its minus sign");
         });
+        await(() -> "REGEN".equals(String.valueOf(direction())), "A signed ride should reach confirmed regen for the spoken check", 60000);
+        spokenPower("signed", false);
         await(() -> "REGEN".equals(String.valueOf(direction())), "A signed ride should reach confirmed regen for the bar", 60000);
         barColor(true);
         main(() -> activity.onBackPressed());

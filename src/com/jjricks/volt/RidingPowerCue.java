@@ -33,4 +33,23 @@ final class RidingPowerCue {
     static double shownWatts(double watts, RidingValues.Direction direction, int rung) {
         return applies(direction) && rung == NONE ? Math.abs(watts) : watts;
     }
+
+    /**
+     * What a screen reader hears after a power reading's name: the watts exactly as shown, then the note.
+     * One description holds both, so the value is never heard without what it means, nor the meaning
+     * without the value. The note is whole at every rung: a screen reader has room for the full caption
+     * even when the screen shows the cue or nothing.
+     */
+    static String spokenValue(String shownWatts, String note) {
+        return note == null || note.isEmpty() ? shownWatts : shownWatts + ", " + note;
+    }
+
+    /**
+     * The power readout's note: the unknown-direction caption for a reading whose direction isn't
+     * confirmed (inferred regen, or a scooter that doesn't sign it), else the caption the readout
+     * means in full (draw or regen, with its peak once there is one), never the rung it was cut to.
+     */
+    static String readoutNote(RidingValues.Direction direction, String unknown, String caption) {
+        return applies(direction) || direction == RidingValues.Direction.UNKNOWN ? unknown : caption;
+    }
 }
