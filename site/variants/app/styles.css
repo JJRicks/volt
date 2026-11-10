@@ -291,7 +291,7 @@ h2 sup { color: var(--accent-ink); font-size: .6em; margin-left: .05em; }
 .notes b { color: var(--text); font-weight: 600; margin-right: .35em; }
 
 /* Rides and charging */
-.rides-grid { display: grid; gap: 10px; }
+.rides-grid { display: grid; gap: 10px; align-items: start; }
 .route-top { display: flex; align-items: center; justify-content: space-between; }
 .street { fill: none; stroke: var(--raised); stroke-width: 5; stroke-linecap: round; }
 .ride-stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 2px 28px; padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--raised); }
