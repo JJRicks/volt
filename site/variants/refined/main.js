@@ -149,8 +149,7 @@
     update();
   }
 
-  /* An ambient field of charged particles with occasional lightning arcs. The arcs are the point: no network lines
-     between particles, so each strike reads as an event. */
+  /* An ambient field of charged particles with faint links and occasional lightning arcs, some of which fork. */
   function field() {
     const canvas = document.getElementById('field');
     const context = canvas && canvas.getContext ? canvas.getContext('2d') : null;
@@ -249,6 +248,18 @@
           if (distance < 180 && distance > 1) { particle.x += (dx / distance) * 0.35 * delta * 0.06; particle.y += (dy / distance) * 0.35 * delta * 0.06; }
         }
         if (particle.y < -20 || particle.x < -30 || particle.x > width + 30) Object.assign(particle, spawn(false));
+      }
+      // Faint charge lines between nearby particles (within 120px), kept quiet so the arcs still read as events.
+      context.lineWidth = 1;
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i], b = particles[j], dx = a.x - b.x, dy = a.y - b.y;
+          const squared = dx * dx + dy * dy;
+          if (squared > 14400) continue;
+          const distance = Math.sqrt(squared);
+          context.strokeStyle = `rgba(234, 37, 43, ${((1 - distance / 120) * 0.1).toFixed(3)})`;
+          context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(b.x, b.y); context.stroke();
+        }
       }
       for (const particle of particles) {
         context.globalAlpha = particle.alpha * (0.75 + Math.sin(particle.phase * 2) * 0.25);

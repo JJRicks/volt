@@ -133,6 +133,10 @@ h3 { margin: 0 0 var(--s-2); font-weight: 600; font-size: 21px; line-height: 1.2
 .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-7) clamp(32px, 5vw, 72px); }
 .feature { padding-top: var(--s-5); border-top: 1px solid var(--edge-strong); }
 .feature p { margin: 0; max-width: 34em; color: var(--muted); }
+/* The lock demo gets its own full-width row under the first pair, like the app's full-width lock bar on the unfolded screen. */
+.feature-lock { grid-column: 1; grid-row: 1; }
+.feature-dash { grid-column: 2; grid-row: 1; }
+.features > .lock-demo { grid-column: 1 / -1; grid-row: 2; margin-top: calc(var(--s-5) - var(--s-7)); }
 .shot {
   margin-top: var(--s-6); height: 440px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: var(--surface); border: 1px solid var(--edge); border-bottom: 0;
@@ -145,7 +149,7 @@ h3 { margin: 0 0 var(--s-2); font-weight: 600; font-size: 21px; line-height: 1.2
    what reduced motion and no-JavaScript visitors see. */
 .lock-demo {
   --lock-cycle: 6s;
-  position: relative; isolation: isolate; overflow: hidden; height: 60px; margin-top: var(--s-5); max-width: 420px; border-radius: 999px;
+  position: relative; isolation: isolate; overflow: hidden; height: 60px; border-radius: 999px;
   background: var(--red-tint); border: 1px solid var(--red-line);
 }
 .lock-demo::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; background: rgba(234, 37, 43, .3); }
@@ -235,6 +239,9 @@ details p { margin: 0 0 var(--s-5); max-width: 40em; color: var(--muted); line-h
 /* Download */
 .cta { border-top: 1px solid var(--edge); }
 .cta h2 { font-size: clamp(40px, 5vw, 68px); }
+/* The close: the bolt mark at display scale, in its own two-tone ink and red. No glow. */
+.get-title { display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); }
+.get-mark { flex: none; width: clamp(46px, 5.4vw, 80px); height: auto; }
 .cta-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-6) 0 var(--s-5); }
 .note { margin: 0; color: var(--muted); font-size: 15px; }
 
@@ -300,6 +307,7 @@ details p { margin: 0 0 var(--s-5); max-width: 40em; color: var(--muted); line-h
   .js .nav-links.open { opacity: 1; visibility: visible; transform: none; }
   .js .nav-links a { padding: 14px 0; font-size: 18px; border-bottom: 1px solid var(--edge); }
   .features { grid-template-columns: 1fr; gap: var(--s-7); }
+  .feature-lock, .feature-dash, .features > .lock-demo { grid-column: auto; grid-row: auto; }
   .step-list, .promises { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {

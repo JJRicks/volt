@@ -25,7 +25,8 @@ related_targets: []
 ## Changed, and why
 - Removed the template moves that read as AI-made: pill badge with pinging dot, six uppercase eyebrows, four glowing icon tiles, gradient text on every heading, bento hover spotlights and lifts, gradient 01/02/03 numerals, the radial-glow CTA card, nested promise cards.
 - Removed every colored glow (15 on the original) and the blurred aura blobs; depth is now offset neutral shadows only. The canvas is the one source of light.
-- Motion cut from ten loops to the lightning field, one hero entrance, the lock demo and the route demo. Plexus lines between particles removed (the generic "network" look); arcs now sometimes fork, so each strike reads as an event.
+- Motion cut from ten loops to the lightning field, one hero entrance, the lock demo and the route demo. Particle links kept but quieter (alpha 0.10, owner-protected background); arcs now sometimes fork, so each strike reads as an event.
+- Close: the bolt mark at display scale beside "Get Volt" (no glow); the first feature row pairs lock and dashboard, with the lock demo across the full row.
 - Hero: README tagline "Your scooter. Your connection." replaces "Total control. Zero cloud."; the phone stands straight with nothing covering it (the chips hid the screenshot and cut "Midnight Runner" in half); "Which NAVEE models?" link replaces the pill.
 - Features are ruled columns, not cards; screenshots sit straight in one quiet panel each.
 - Type: H1 max 84px (was 124), H2 max 52px (was 72), one red accent on the H1 and on the privacy headline only; headings left-aligned to match the hero; balance/pretty wrapping.
@@ -43,5 +44,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 (Run rule, Nov 10: DESIGN.md and .impeccable/design.json wait until the owner picks a variant; the finish review still applies.)
 
 ## Unresolved
-- og.png still shows "Total control. Zero cloud."; re-render via site/tools if this variant goes live (og:image:alt left describing the image as it is).
+- Variant og.png (site/variants/refined/og.png, rendered by site/tools/variants/render-refined-og.sh) carries the new tagline; the shared site/src/og.png that the live page uses is unchanged.
 - The owner may prefer to keep one of the old headlines; all copy changes are in index.html only.
