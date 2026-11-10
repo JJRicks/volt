@@ -208,8 +208,11 @@ controls = [row for r in results for row in evidence(r['step']) if 'key' in row]
 unrestored = [row['key'] for row in controls if row.get('restored') is False]
 if unrestored: lines[1:1] = ['', f"**NOT RESTORED: {', '.join(unrestored)}. Check these in Volt now.**"]
 if controls:
-    lines += ['', '| Control | Before | Test | After | Outcome |', '|---|---|---|---|---|']
-    lines += [f"| {c['key']} | {c.get('before', '')} | {c.get('test', '')} | {c.get('after', '')} | {c.get('outcome', '')} |" for c in controls]
+    # "after" is the value read back right after the test write; restoration is the separate "restored" flag.
+    restored = {True: 'yes', False: 'no'}
+    lines += ['', '| Control | Before | Test | Read back | Restored | Outcome |', '|---|---|---|---|---|---|']
+    lines += [f"| {c['key']} | {c.get('before', '')} | {c.get('test', '')} | {c.get('after', '')} | "
+              f"{restored.get(c.get('restored'), '—')} | {c.get('outcome', '')} |" for c in controls]
 (args.out / 'report.md').write_text('\n'.join(lines) + '\n')
 failed = [r['step'] for r in results if r['status'] == 'FAIL']
 print(f"{sum(r['status'] == 'PASS' for r in results)} passed, {len(failed)} failed, "
