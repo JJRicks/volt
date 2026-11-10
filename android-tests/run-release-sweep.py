@@ -187,6 +187,8 @@ STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]
+STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation'),
+          inst('riding-disconnected-narrow', T + 'RidingDisconnectedValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (
