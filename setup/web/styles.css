@@ -90,3 +90,79 @@ footer { max-width:652px; margin:0 auto; display:flex; justify-content:space-bet
   footer { padding:0 20px 24px; flex-direction:column; align-items:center; gap:6px; text-align:center; }
 }
 @media (max-width:360px) { .panel { padding:18px; } .steps li { flex-direction:column; gap:6px; } .private-note { font-size:10px; } }
+
+/* Setup wizard and recovery guide (body.setup). Scoped so the NAVEE debugger,
+   which appends debugger.css to this file, keeps its own look unchanged. */
+.setup { --warn-bg:#2b1d1f; --warn-edge:#6e2d32; --warn-ink:#ff8a8f; --soft:#d6d8d0; --line:#4a4b46; }
+.setup ::selection { background:#8c1d23; color:#fff; }
+.setup p { font-size:15px; }
+.setup .lede { font-size:16px; }
+.setup .private-note { font-size:13px; }
+.setup .panel { padding:32px; }
+.setup .actions-list + h2 { margin-top:34px; }
+.setup .steps li { font-size:13px; }
+.setup .steps .complete .step-number { font-size:0; border-color:var(--ok); }
+.setup .steps .complete .step-number::before { content:''; width:5px; height:10px; border:solid var(--ok); border-width:0 2px 2px 0; transform:translateY(-1px) rotate(45deg); }
+.setup .checklist { font-size:15px; gap:12px; margin:22px 0; }
+.setup .checklist li { padding-left:30px; }
+.setup .checklist li::before { content:''; left:4px; top:.3em; width:6px; height:11px; border:solid var(--ok); border-width:0 2px 2px 0; transform:rotate(45deg); }
+/* Disclosures: full-height rows with a drawn chevron instead of the browser triangle. */
+.setup details { font-size:14px; margin:20px 0; }
+.setup summary { list-style:none; display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:54px; padding:12px 0; font-size:15px; color:var(--text); }
+.setup summary::-webkit-details-marker { display:none; }
+.setup summary::after { content:''; flex:none; width:8px; height:8px; margin:0 6px 4px 0; border:solid var(--muted); border-width:0 2px 2px 0; transform:rotate(45deg); transition:transform .16s; }
+.setup details[open] > summary::after { transform:translateY(4px) rotate(-135deg); }
+.setup summary:hover::after { border-color:var(--text); }
+.setup .summary-hint { display:block; margin-top:2px; font-size:13px; font-weight:400; color:var(--muted); }
+.setup details p, .setup details ol { font-size:14px; }
+.setup details ol { gap:10px; }
+.setup details.help { border:1px solid var(--edge); border-radius:16px; padding:0 18px; }
+.setup details.help[open] { padding-bottom:4px; }
+.setup details .full { margin:2px 0 14px; }
+/* Safety cards: a full border and a drawn icon, not a side stripe; body text at reading size. */
+.setup .permission { display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:14px; align-items:start; background:var(--warn-bg); border:1px solid var(--warn-edge); border-radius:16px; padding:18px 20px; margin:24px 0 0; }
+.setup .permission > * { grid-column:2; }
+.setup .permission > svg { grid-column:1; grid-row:1 / span 4; width:22px; height:22px; fill:none; stroke:var(--warn-ink); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.setup .permission > strong { font-size:15px; line-height:1.45; }
+.setup .permission p { font-size:14px; line-height:1.6; color:var(--soft); margin:6px 0 0; }
+.setup .permission + button { margin-top:18px; }
+.setup .permission.calm { background:var(--raised); border-color:var(--edge); }
+.setup .permission.calm > svg { stroke:var(--ok); }
+/* Each approval is its own bordered row directly under what it approves. */
+.setup .consent { align-items:center; gap:14px; margin:12px 0 18px; padding:16px 18px; border:1px solid var(--edge); border-radius:16px; background:var(--raised); color:var(--text); font-size:15px; line-height:1.5; }
+.setup .consent:hover { border-color:var(--line); }
+.setup .consent:has(input:checked) { border-color:#8b8d85; }
+.setup .consent input { width:22px; height:22px; }
+.setup .fine { font-size:13px; }
+.setup button .arrow { width:18px; height:18px; margin-left:4px; vertical-align:-3px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.setup .text-button { font-size:14px; color:var(--soft); text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:5px; }
+.setup .text-button:hover { color:#fff; text-decoration-color:var(--muted); }
+.setup .device-chip, .setup .status-chip { font-size:13px; }
+.setup .status-chip { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--warn-edge); background:var(--warn-bg); color:var(--text); border-radius:100px; font-size:13px; padding:7px 12px; margin:0 0 18px; }
+.setup .status-chip .dot { background:var(--warn-ink); }
+.setup h1 { letter-spacing:-.025em; }
+.setup .panel-head { display:flex; align-items:center; gap:14px; margin:0 0 14px; }
+.setup .panel-head h2 { margin:0; }
+.setup .panel-head .success-mark { width:40px; height:40px; border-radius:50%; margin:0; }
+/* The capture indicator is a pulsing ring around the bolt, not a tile. */
+.setup .orbit { border-radius:50%; background:transparent; border:2px solid var(--warn-edge); }
+.setup .orbit svg { fill:var(--warn-ink); }
+.setup .success-mark svg { width:26px; height:26px; fill:none; stroke:var(--ok); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.setup .file-name { font-size:13px; }
+/* Errors carry a drawn alert mark so they never read by colour alone. */
+.setup .alert { display:grid; grid-template-columns:20px minmax(0,1fr); gap:12px; align-items:start; font-size:14px; }
+.setup .alert::before { content:'!'; display:grid; place-items:center; width:20px; height:20px; margin-top:2px; border:1.5px solid currentColor; border-radius:50%; font-size:12px; font-weight:700; line-height:1; }
+.setup .notice, .setup .notice p { font-size:14px; }
+.setup .privacy-note { font-size:13px; }
+.setup .eyebrow { font-size:12px; letter-spacing:1.2px; }
+.setup .brand-sub { font-size:11px; }
+.setup .actions-list { font-size:15px; }
+.setup .back-link { display:inline-block; margin-top:20px; font-weight:600; }
+.setup footer { font-size:12px; }
+@media (max-width:480px) {
+  .setup .panel { padding:22px; }
+  .setup .steps li { font-size:12px; }
+  .setup .lede { font-size:15px; }
+  .setup .permission { padding:16px; column-gap:12px; }
+}
+@media (max-width:360px) { .setup .panel { padding:18px; } .setup .private-note { font-size:12px; } }

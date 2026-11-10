@@ -150,9 +150,15 @@ ol, ul { padding: 0; list-style: none; }
   padding: 10px var(--gutter);
   background: var(--bg);
 }
-.brand svg { width: 22px; height: 30px; }
-.bolt-edge { fill: var(--accent-deep); }
-.bolt-face { fill: var(--accent); }
+/* The brand disc is the app's launcher icon as a Pixel draws it (res/mipmap-anydpi-v26/ic_launcher.xml):
+   the adaptive icon's visible 72-unit circle, the white bolt with its red offset edge on #111211. Fixed
+   colours in every theme, like the icon; night vision tints it with the rest of the page. */
+.brand { background: #111211; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1); }
+.brand:hover { background: #111211; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .24); }
+.brand svg { width: 100%; height: 100%; stroke: none; }
+.bolt-edge { fill: #EA252B; }
+.bolt-face { fill: #F5F5EF; }
+html.nv .brand { filter: url("#nv"); }
 .wordmark { font-weight: 700; font-size: 1.25rem; margin-right: auto; }
 .links { display: none; gap: 4px; margin-right: 8px; }
 .links a {
