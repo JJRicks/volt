@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Homepage variants (site/README.md, "Variants"): the build contract, the variant markup check, the nginx
 configuration and the live-variant switch. Temporary folders only; no network, server or browser."""
-import hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
+import fcntl, hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # loading the extensionless switch script must leave no __pycache__ in site/
@@ -706,13 +706,15 @@ class DeployRelease(unittest.TestCase):
         self.config = self.nginx / 'sites-available' / 'volt-homepage'
         self.config.write_text('server {\n    root /var/www/volt-home/live;\n}\n')
         self.switch_bin = SITE / 'server' / 'volt-homepage-switch'
-        # nginx -t fails while the flag file "nginx-fails" exists; systemctl knows no unit while "no-unit" does.
+        # nginx -t fails while the flag file "nginx-fails" exists, and sends the deploy SIGTERM (an operator's
+        # interrupt, a dropped session) while "nginx-term" does; systemctl knows no unit while "no-unit" does.
         self.flags = base
-        (self.bin / 'nginx').write_text('#!/bin/sh\n[ -e "%s" ] && { echo "nginx: test failed" >&2; exit 1; }\nexit 0\n'
-                                        % (base / 'nginx-fails'))
+        (self.bin / 'nginx').write_text('#!/bin/sh\n[ -e "%s" ] && { echo "nginx: test failed" >&2; exit 1; }\n'
+                                        '[ -e "%s" ] && kill -TERM "$PPID"\nexit 0\n' % (base / 'nginx-fails', base / 'nginx-term'))
         # systemctl start runs the real switch ("run"), fails ("fail"), succeeds without doing anything ("noop"),
         # moves live and then fails ("movefail"), or moves live, locks the home folder so no link in it can be
-        # replaced, and fails ("movelock"). Every start after the first fails, so a rollback cannot lean on it.
+        # replaced, and fails ("movelock"), or sends the deploy SIGTERM and fails ("term"). Every start after the
+        # first fails, so a rollback cannot lean on it.
         self.starts = base / 'starts'
         run = '"%s" -I "%s" --home "%s" --request "%s" --state-dir "%s"' % (
             sys.executable, self.switch_bin, self.home, self.request, self.state)
@@ -721,9 +723,17 @@ class DeployRelease(unittest.TestCase):
             '    [ -s "%s" ] && { echo again >> "%s"; exit 1; }\n    echo start >> "%s"\n'
             '    case "$(cat "%s")" in\n'
             '    run) exec %s ;;\n    fail) exit 1 ;;\n    movefail) %s; exit 1 ;;\n'
-            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n  esac ;;\nesac\nexit 0\n'
+            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n  esac ;;\nesac\nexit 0\n'
             % (base / 'no-unit', self.starts, self.starts, self.starts, self.mode, run, run, run, self.home))
-        for stub in ('nginx', 'systemctl'):
+        # chown is the real one; it runs right after the release is staged, so it can also change what the deploy
+        # meets next: "releases-0700-after-staging" takes the world bits off releases/ (a served folder, checked
+        # again before current moves), "home-locked-after-staging" makes the home folder read-only, so current
+        # cannot be moved.
+        (self.bin / 'chown').write_text(
+            '#!/bin/sh\n"%s" "$@" || exit 1\n[ -e "%s" ] && chmod 700 "%s"\n[ -e "%s" ] && chmod 555 "%s"\nexit 0\n'
+            % (shutil.which('chown'), base / 'releases-0700-after-staging', self.home / 'releases',
+               base / 'home-locked-after-staging', self.home))
+        for stub in ('nginx', 'systemctl', 'chown'):
             os.chmod(self.bin / stub, 0o755)
         self.mode.write_text('run')
         # The previous release, with refined live.
@@ -998,6 +1008,7 @@ class DeployRelease(unittest.TestCase):
         # Paths are looked up when used: each case starts from a fresh fixture in a new folder.
         tar = lambda: self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
         new_card = lambda: self.home / 'cards' / self.card_url('new').rsplit('/', 1)[1]
+        flag = lambda name: self.flags / name
         saved = {}
 
         def corrupt_archive():
@@ -1008,30 +1019,62 @@ class DeployRelease(unittest.TestCase):
             saved['config'] = self.config.read_bytes()
             self.config.write_bytes(saved['config'] + b'# edited\n')
 
+        def hold_lock():
+            # Another deploy running: it holds the lock for as long as its file is open.
+            saved['lock'] = open(self.home / '.deploy.lock', 'a')
+            fcntl.flock(saved['lock'].fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        def unflag(name, path):
+            def repair():
+                flag(name).unlink()
+                os.chmod(path(), 0o755)
+            return repair
+
         cases = [
-            # name, break, repair, markers on the refusal
-            ('archive hash', corrupt_archive, lambda: tar().write_bytes(saved['tar']), ['DEPLOY_REFUSED the archive']),
+            # name, break, repair, markers on the refusal, whether a release folder was staged (and removed again)
+            ('archive hash', corrupt_archive, lambda: tar().write_bytes(saved['tar']), ['DEPLOY_REFUSED the archive'], False),
             ('nginx site file hash', change_config, lambda: self.config.write_bytes(saved['config']),
-             ['DEPLOY_REFUSED current is not']),
-            ('switch unit missing', lambda: (self.flags / 'no-unit').touch(), lambda: (self.flags / 'no-unit').unlink(),
-             ['DEPLOY_REFUSED nginx serves', 'the switch is not installed']),
+             ['DEPLOY_REFUSED current is not'], False),
+            ('another deploy running', hold_lock, lambda: saved['lock'].close(),
+             ['DEPLOY_REFUSED another deploy holds'], False),
+            ('switch unit missing', lambda: flag('no-unit').touch(), lambda: flag('no-unit').unlink(),
+             ['DEPLOY_REFUSED nginx serves', 'the switch is not installed'], False),
+            # Codex's #361 finding: a folder the deploy doesn't own, fixed by chmod, then the same command.
             ('releases folder unreadable', lambda: os.chmod(self.home / 'releases', 0o700),
-             lambda: os.chmod(self.home / 'releases', 0o755), ['PERMISSIONS_BAD', 'DEPLOY_REFUSED']),
+             lambda: os.chmod(self.home / 'releases', 0o755), ['PERMISSIONS_BAD', 'releases mode=700', 'DEPLOY_REFUSED'], False),
+            ('home folder unreadable', lambda: os.chmod(self.home, 0o700),
+             lambda: os.chmod(self.home, 0o755), ['PERMISSIONS_BAD', 'volt-home mode=700', 'DEPLOY_REFUSED'], False),
+            # The same, found by the second check (after staging): the staged folder must go.
+            ('served folder unreadable after staging', lambda: flag('releases-0700-after-staging').touch(),
+             unflag('releases-0700-after-staging', lambda: self.home / 'releases'),
+             ['PERMISSIONS_BAD', 'releases mode=700', 'DEPLOY_REFUSED a served path'], True),
             ('card conflict', lambda: new_card().write_bytes(b'other bytes'), lambda: new_card().unlink(),
-             ['CARD_CONFLICT', 'DEPLOY_REFUSED', 'STAGED_RELEASE_REMOVED']),
-            ('nginx -t', lambda: (self.flags / 'nginx-fails').touch(), lambda: (self.flags / 'nginx-fails').unlink(),
-             ['DEPLOY_REFUSED nginx -t failed', 'STAGED_RELEASE_REMOVED']),
+             ['CARD_CONFLICT', 'DEPLOY_REFUSED'], True),
+            ('nginx -t', lambda: flag('nginx-fails').touch(), lambda: flag('nginx-fails').unlink(),
+             ['DEPLOY_REFUSED nginx -t failed'], True),
+            # A signal is an exit like any other: the trap runs and removes what this run staged.
+            ('interrupted (SIGTERM)', lambda: flag('nginx-term').touch(), lambda: flag('nginx-term').unlink(),
+             ['DEPLOY_REFUSED unexpected failure (exit 143'], True),
         ]
-        for name, breaks, repair, markers in cases:
+        exit_codes = {'interrupted (SIGTERM)': 143}
+        if os.geteuid() != 0:   # root ignores the read-only folder
+            cases.append(('current cannot move', lambda: flag('home-locked-after-staging').touch(),
+                          unflag('home-locked-after-staging', lambda: self.home), ['DEPLOY_REFUSED could not move current'], True))
+        for name, breaks, repair, markers, staged in cases:
             with self.subTest(name):
                 self.tearDown()
                 self.setUp()
                 status = (self.state / 'status.json').read_bytes()
                 cards = sorted(p.name for p in (self.home / 'cards').iterdir())
                 out = self.deploy(before=breaks)
-                self.assertEqual(out.returncode, 1, out.stdout + out.stderr)
+                self.assertEqual(out.returncode, exit_codes.get(name, 1), out.stdout + out.stderr)
                 for marker in markers:
                     self.assertIn(marker, out.stderr)
+                if staged:
+                    self.assertIn('STAGED_RELEASE_REMOVED %s (staged by this run, never served)'
+                                  % (self.home / 'releases' / self.NEW), out.stderr)
+                else:
+                    self.assertNotIn('STAGED_RELEASE', out.stderr, 'refused before anything was created')
                 self.assertNotIn('UPDATE_OK', out.stdout)
                 self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
                 self.assertFalse(os.path.lexists(self.home / 'releases' / self.NEW), 'nothing staged is left behind')
@@ -1044,26 +1087,77 @@ class DeployRelease(unittest.TestCase):
                 repair()
                 out = self.rerun()
                 self.assertEqual(out.returncode, 0, out.stderr)
+                self.assertNotIn('STAGED_RELEASE', out.stderr, 'the retry found nothing left over')
                 self.assertRegex(out.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
                 self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+                self.assertEqual(self.unreadable_by_other(self.home / 'current', self.home / 'live', self.home / 'cards'), [])
                 self.assertEqual(self.fetch(self.card_url('new')), b'refined card new')
                 self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
                 self.assertEqual(json.loads((self.state / 'status.json').read_text())['release'], self.NEW)
 
+    def test_interrupt_after_current_moved_says_so(self):
+        # No rollback runs on a signal after current moved; the deploy must not end quietly but name the state
+        # and the targets to put back.
+        self.mode.write_text('term')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 143, out.stderr)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertNotIn('DEPLOY_REFUSED', out.stderr)
+        self.assertIn('DEPLOY_INTERRUPTED (exit 143', out.stderr)
+        self.assertIn('point current at %s' % (self.home / 'releases' / self.PREV), out.stderr)
+        self.assertIn('live at %s' % self.variant(self.PREV, 'refined'), out.stderr)
+        self.assertEqual(self.current(), self.NEW)
+        self.assertTrue((self.home / 'releases' / self.NEW).is_dir(), 'a release current points at is never removed')
+
     def test_retry_after_a_rolled_back_deploy(self):
-        # A failure after current moved is rolled back (DEPLOY_FAILED) and leaves the new release for a look;
-        # the identical command replaces that unserved folder and succeeds.
+        # A failure after current moved is rolled back (DEPLOY_FAILED) and leaves the new release for a look.
+        # It matches the manifest and nothing serves it, so the identical command reuses it; a refusal of that
+        # retry leaves it in place (this run did not create it), and the next one succeeds.
+        rel = self.home / 'releases' / self.NEW
         self.mode.write_text('fail')
         out = self.deploy()
         self.assertEqual(out.returncode, 1)
         self.assertIn('DEPLOY_FAILED', out.stderr)
-        self.assertTrue((self.home / 'releases' / self.NEW).is_dir())
+        self.assertTrue(rel.is_dir())
         self.mode.write_text('run')
         self.starts.unlink()
+        (self.flags / 'nginx-fails').touch()
+        out = self.rerun()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('STAGED_RELEASE_REUSED %s' % rel, out.stderr)
+        self.assertIn('DEPLOY_REFUSED nginx -t failed', out.stderr)
+        self.assertNotIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.assertTrue((rel / 'variants' / 'refined' / 'index.html').is_file(), 'a folder this run did not create stays')
+        (self.flags / 'nginx-fails').unlink()
         out = self.rerun()
         self.assertEqual(out.returncode, 0, out.stderr)
-        self.assertIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.assertIn('STAGED_RELEASE_REUSED %s' % rel, out.stderr)
         self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_leftover_that_does_not_match_is_replaced(self):
+        # A crash while staging (no trap runs on SIGKILL or power loss): a partial folder nothing serves.
+        # It is not this release, so the identical command replaces it. A stray link inside counts as a mismatch.
+        rel = self.home / 'releases' / self.NEW
+        (rel / 'variants').mkdir(parents=True)
+        (rel / 'index.html').write_bytes(b'half written')
+        os.chmod(rel / 'variants', 0o700)
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('STAGED_RELEASE_REMOVED %s (left by an earlier attempt, not served, did not match' % rel, out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+        self.assertEqual(self.unreadable_by_other(self.home / 'current', self.home / 'live'), [])
+        # A complete copy plus one link: replaced too, never reused.
+        self.tearDown()
+        self.setUp()
+        rel = self.home / 'releases' / self.NEW
+        for name, data in self.contents('new').items():
+            (rel / name).parent.mkdir(parents=True, exist_ok=True)
+            (rel / name).write_bytes(data)
+        os.symlink('/etc/passwd', rel / 'variants' / 'refined' / 'extra')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.assertFalse(os.path.lexists(rel / 'variants' / 'refined' / 'extra'))
 
     def test_existing_release_that_is_served_is_never_removed(self):
         # The new commit is already current (a repeated deploy): refused with its reason, nothing removed.
@@ -1071,8 +1165,25 @@ class DeployRelease(unittest.TestCase):
         out = self.deploy()
         self.assertEqual(out.returncode, 1)
         self.assertIn('DEPLOY_REFUSED', out.stderr)
-        self.assertIn('is current or holds the live variant', out.stderr)
+        self.assertIn('is served: current points into it', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr)
         self.assertTrue((self.home / 'releases' / self.NEW / 'variants' / 'refined' / 'index.html').is_file())
+
+    def test_release_holding_live_is_never_removed(self):
+        # current is the previous release but live points into the new one (a rollback not finished by hand):
+        # the folder is served, so it is refused before anything changes and nothing is removed.
+        rel = self.home / 'releases' / self.NEW
+        for name, data in self.contents('other').items():
+            (rel / name).parent.mkdir(parents=True, exist_ok=True)
+            (rel / name).write_bytes(data)
+        os.unlink(self.home / 'live')
+        os.symlink(str(rel / 'variants' / 'refined'), self.home / 'live')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('is served: live points into it', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr)
+        self.assertEqual((rel / 'index.html').read_bytes(), self.contents('other')['index.html'])
+        self.assertEqual(self.live(), str(rel / 'variants' / 'refined'))
 
     def test_first_deploy_before_the_switch_exists(self):
         self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')

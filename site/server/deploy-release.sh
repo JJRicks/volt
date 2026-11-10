@@ -20,9 +20,13 @@
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
 #   - the retry contract: every refusal before current moves prints a marker and its reason (DEPLOY_REFUSED,
 #     CARD_CONFLICT, PERMISSIONS_BAD) and leaves nothing behind that stops the identical command from
-#     succeeding once the cause is fixed. Folders it doesn't own are checked before anything is created; a
-#     release folder this run staged is removed on any failure before current moves (it was never served),
-#     and one left by an earlier attempt that is neither current nor holds live is replaced (STAGED_RELEASE_REMOVED);
+#     succeeding once the cause is fixed. Folders it doesn't own are checked before anything is created. A
+#     release folder this run created is removed again on any failure before current moves (it was never
+#     served; STAGED_RELEASE_REMOVED). One that already exists (an earlier attempt, a rolled-back deploy, an
+#     older release) is used as it is when nothing serves it and it matches the manifest exactly
+#     (STAGED_RELEASE_REUSED; a later refusal leaves it in place), and replaced when nothing serves it and it
+#     doesn't (STAGED_RELEASE_REMOVED). A folder that is current or holds live is never removed. One deploy
+#     runs at a time ($HOME_DIR/.deploy.lock, released by the kernel when the script ends, however it ends);
 #   - before current moves, the live link's target is saved. After current moves,
 #     volt-homepage-switch.service must succeed in this run AND the live link must point inside the new
 #     release. Otherwise the script restores both links itself, each with one atomic rename (current to the
@@ -38,8 +42,9 @@ set -euo pipefail
 # would otherwise make folders nginx's workers cannot enter).
 umask 022
 # The retry contract (site/README.md, "Failure modes"). Until current moves (MOVED=1), any failure prints a
-# marker with its reason, and the release folder this run staged (STAGED=1) is removed again: nothing ever
-# served it, so the identical command works once the cause is fixed.
+# marker with its reason, and a release folder this run created (STAGED=1) is removed again: nothing ever
+# served it, so the identical command works once the cause is fixed. A folder this run found and reused
+# (STAGED=0) stays: it matches the manifest, and the next run reuses it too.
 REPORTED=0; MOVED=0; STAGED=0; ERR_LINE=
 refuse() {
   echo "DEPLOY_REFUSED $*. Nothing served changed; fix the cause and run the same command again." >&2
@@ -51,12 +56,25 @@ on_exit() {
   local rc=$?
   if [ "$rc" -ne 0 ] && [ "$MOVED" -eq 0 ]; then
     [ "$REPORTED" -eq 1 ] || echo "DEPLOY_REFUSED unexpected failure (exit $rc near line ${ERR_LINE:-?}). Nothing served changed; fix the cause and run the same command again." >&2
-    if [ "$STAGED" -eq 1 ] && remove_unserved_release; then
-      echo "STAGED_RELEASE_REMOVED $REL (staged by this run, never served)" >&2
+    if [ "$STAGED" -eq 1 ]; then
+      if unserved_release remove; then
+        echo "STAGED_RELEASE_REMOVED $REL (staged by this run, never served)" >&2
+      else
+        echo "STAGED_RELEASE_LEFT $REL could not be removed (reason above). Nothing serves it; the same command checks it and replaces it." >&2
+      fi
     fi
+  elif [ "$rc" -ne 0 ] && [ "$REPORTED" -eq 0 ]; then
+    # After current moved, every planned exit reports itself (DEPLOY_FAILED, DEPLOY_INCOMPLETE). Anything
+    # else (an interrupt, say) did not get to the rollback: say so rather than exit quietly.
+    echo "DEPLOY_INTERRUPTED (exit $rc near line ${ERR_LINE:-?}) after current moved to $REL; no rollback ran." \
+         "Check readlink -f $HOME_DIR/current and readlink $HOME_DIR/live. To undo, point current at $PREV" \
+         "and live at ${prior_live:-(no live link before this deploy)}, each with ln -sfn and mv -Tf (site/README.md, \"Rollback\")." >&2
   fi
 }
 trap on_exit EXIT
+# A signal becomes an ordinary exit, so the trap above runs with a failing status (bash would otherwise
+# run it with $? = 0 and skip the clean-up).
+trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 [[ $# -eq 5 ]] || refuse "usage: <commit> <archive sha256> <manifest sha256> <previous release commit> <nginx config sha256>"
 C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_CONFIG="$5"
 [[ "$C" =~ ^[0-9a-f]{40}$ && "$EXPECTED_PREV" =~ ^[0-9a-f]{40}$ ]] || refuse "the commits must be 40 lowercase hex characters"
@@ -94,20 +112,52 @@ point_current() { swap_link "$HOME_DIR/current" "$1"; }
 unchanged() {
   [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ] && [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
 }
-# Removes $REL only when nothing serves it: a real folder (not a link) that is not current and does not
-# hold the live target. Returns non-zero, removing nothing, otherwise.
-remove_unserved_release() {
-  python3 -I - "$HOME_DIR" "$REL" <<'PY'
+# unserved_release <check|remove>: succeeds when $REL is a real folder (not a link) that nothing serves: it
+# is not current and does not hold the live target. With "remove", it is then removed. Otherwise it prints
+# why and fails, removing nothing.
+unserved_release() {
+  python3 -I - "$1" "$HOME_DIR" "$REL" <<'PY'
 import os, shutil, sys
-home, rel = sys.argv[1], sys.argv[2]
+action, home, rel = sys.argv[1:4]
 if os.path.islink(rel) or not os.path.isdir(rel):
-    sys.exit(1)
+    sys.exit('%s is not a folder' % rel)
 real = os.path.realpath(rel)
 for link in ('current', 'live'):
     target = os.path.realpath(os.path.join(home, link))
     if target == real or target.startswith(real + os.sep):
-        sys.exit(1)
-shutil.rmtree(rel)
+        sys.exit('%s is served: %s points into it' % (rel, link))
+if action == 'remove':
+    shutil.rmtree(rel)
+PY
+}
+# release_matches [set-times]: succeeds when $REL holds exactly the manifest: only folders and regular files
+# (no links or anything else), the same file names, the same SHA-256 for each. With set-times, each file
+# then gets a modification time derived from its SHA-256 (a second between 2001 and 2020): same content,
+# same ETag and Last-Modified, in every release and variant.
+release_matches() {
+  python3 -I - "$REL" "$MAN" "${1:-}" <<'PY'
+import hashlib, os, stat, sys
+rel, manifest, set_times = sys.argv[1], sys.argv[2], sys.argv[3] == 'set-times'
+entries = [line.split('  ', 1) for line in open(manifest).read().splitlines()]
+found = []
+for folder, dirs, files in os.walk(rel):
+    for name in dirs + files:
+        path = os.path.join(folder, name)
+        mode = os.lstat(path).st_mode
+        if stat.S_ISREG(mode):
+            found.append(os.path.relpath(path, rel).replace(os.sep, '/'))
+        elif not stat.S_ISDIR(mode):
+            sys.exit('%s is neither a file nor a folder' % path)
+if sorted(found) != sorted(name for _, name in entries):
+    sys.exit('the files in %s are not the files in the manifest' % rel)
+for digest, name in entries:
+    with open(os.path.join(rel, name), 'rb') as f:
+        if hashlib.sha256(f.read()).hexdigest() != digest:
+            sys.exit('%s differs from the manifest' % name)
+if set_times:
+    for digest, name in entries:
+        when = 1_000_000_000 + int(digest[:15], 16) % 600_000_000
+        os.utime(os.path.join(rel, name), (when, when), follow_symlinks=False)
 PY
 }
 # check_modes <path>... [--tree <path>...]: every path (and, after --tree, everything under it) must be
@@ -141,12 +191,17 @@ PY
 [ "$(sha "$TAR" 2>/dev/null)" = "$EXPECTED_TAR" ] || refuse "the archive $TAR is missing or its SHA-256 is not $EXPECTED_TAR"
 [ "$(sha "$MAN" 2>/dev/null)" = "$EXPECTED_MANIFEST" ] || refuse "the manifest $MAN is missing or its SHA-256 is not $EXPECTED_MANIFEST"
 unchanged || refuse "current is not $PREV, or the nginx site file's SHA-256 is not $EXPECTED_CONFIG"
+# One deploy at a time, from here on: everything below may stage, reuse or remove $REL. flock's lock belongs
+# to the open file, which only this shell (and its children) holds, so it ends with the script however the
+# script ends (a crash included) and never needs cleaning up. Busy: refused, and the same command works later.
+LOCK="$HOME_DIR/.deploy.lock"
+exec 9>>"$LOCK" || refuse "could not open the deploy lock $LOCK"
+python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null \
+  || refuse "another deploy holds $LOCK; run the same command again once it has finished"
 [ ! -L "$REL" ] || refuse "$REL is a symbolic link"
+# A release folder that is served (current, or holding live) is never staged over or removed.
 if [ -e "$REL" ]; then
-  # Left by an earlier attempt (a crash, or a deploy that failed after current moved and was rolled back).
-  # Nothing serves it, so it is replaced; current or the live target is never touched.
-  remove_unserved_release || refuse "$REL exists and is current or holds the live variant"
-  echo "STAGED_RELEASE_REMOVED $REL (left by an earlier attempt, not served); staging it again" >&2
+  unserved_release check || refuse "$REL already exists and cannot be staged over (reason above); it is never removed"
 fi
 # nginx serves the live variant once its configuration names live; then the switch must be there.
 serves_live=0
@@ -186,28 +241,29 @@ cp -a "$NGINX_DIR/sites-available" "$BACKUP/"
 cp -a "$NGINX_DIR/sites-enabled" "$BACKUP/"
 printf '%s\n' "$PREV" > "$BACKUP/previous-release.txt"
 readlink "$HOME_DIR/live" > "$BACKUP/previous-live.txt" 2>/dev/null || true
-install -d -m 755 "$REL"
-STAGED=1
-tar -xzf "$TAR" -C "$REL" --no-same-owner --no-same-permissions
+# A release folder that already exists was left by an earlier attempt (a refusal that could not remove it,
+# a crash, a rolled-back deploy) or is an older release being deployed again. Served: refused above.
+# Not served and exactly this release: used as it is, and left in place if this run is refused later.
+# Not served and anything else: replaced.
+if [ -e "$REL" ]; then
+  if release_matches 2>/dev/null; then
+    echo "STAGED_RELEASE_REUSED $REL (already there, not served, matches the manifest)" >&2
+  else
+    unserved_release remove || refuse "could not remove $REL (reason above)"
+    echo "STAGED_RELEASE_REMOVED $REL (left by an earlier attempt, not served, did not match the manifest); staging it again" >&2
+  fi
+fi
+if [ ! -e "$REL" ]; then
+  install -d -m 755 "$REL"
+  STAGED=1
+  tar -xzf "$TAR" -C "$REL" --no-same-owner --no-same-permissions
+fi
 chown -R "$OWNER" "$REL"
 find "$REL" -type d -exec chmod 755 {} +
 find "$REL" -type f -exec chmod 644 {} +
-[ -z "$(find "$REL" ! -type f ! -type d)" ] || refuse "the archive holds something other than files and folders"
-# Check every file against the manifest, then give it a modification time derived from its SHA-256
-# (a second between 2001 and 2020): same content, same ETag and Last-Modified, in every release and variant.
-python3 -I - "$REL" "$MAN" <<'PY' || refuse "the release folder does not match the manifest"
-import hashlib, os, sys
-from pathlib import Path
-rel, manifest = Path(sys.argv[1]), Path(sys.argv[2])
-entries = [line.split('  ', 1) for line in manifest.read_text().splitlines()]
-found = sorted(p.relative_to(rel).as_posix() for p in rel.rglob('*') if p.is_file())
-assert found == sorted(name for _, name in entries), 'the release folder does not match the manifest'
-for digest, name in entries:
-    path = rel / name
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
-    when = 1_000_000_000 + int(digest[:15], 16) % 600_000_000
-    os.utime(path, (when, when), follow_symlinks=False)
-PY
+# Check every file against the manifest (and that there is nothing but files and folders), then set the
+# content-derived modification times.
+release_matches set-times || refuse "the release folder does not match the manifest (reason above)"
 # Link-preview cards (site/README.md, "Variants"): add the release's cards/ to the append-only store
 # $HOME_DIR/cards/, served at /cards/<name> with an immutable cache. A name is its file's SHA-256, so an
 # existing name must already hold the same bytes: a different file under it stops the deploy
@@ -297,10 +353,12 @@ if [ "$switch_installed" -eq 1 ]; then
       case "$live_now" in "$REL"/*) ;; *) live_back=1 ;; esac
     fi
     if [ "$current_back" -eq 1 ] && [ "$live_back" -eq 1 ]; then
+      REPORTED=1
       echo "DEPLOY_FAILED switch_ok=$switch_ok live_after_switch=${live_target:-none}: live was not left inside the new release." \
            "Restored: current -> $PREV, live -> ${prior_live:-none}. The new release stays in $REL for a look; see $STATUS." >&2
       exit 1
     fi
+    REPORTED=1
     echo "DEPLOY_INCOMPLETE the deploy failed (switch_ok=$switch_ok) and the rollback did not finish:" \
          "current -> ${current_now:-?} (want $PREV), live -> ${live_now:-none} (want ${prior_live:-none})." >&2
     echo "DEPLOY_INCOMPLETE finish by hand, as root:" \
