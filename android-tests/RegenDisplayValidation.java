@@ -53,6 +53,7 @@ public final class RegenDisplayValidation extends Instrumentation {
     private final ArrayList<String> notes = new ArrayList<>();
     private File evidence;
     private int assertions;
+    private String immersivePrevious;
 
     @Override public void onCreate(Bundle args) { start(); }
 
@@ -60,6 +61,10 @@ public final class RegenDisplayValidation extends Instrumentation {
         try {
             require(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Refusing physical device");
             require(prefs("profiles").getAll().isEmpty() && prefs("scooter").getAll().isEmpty(), "Refusing existing profiles; clear disposable app first");
+            // Android's one-time "Viewing full screen" notice takes the active window when riding mode first hides the
+            // bars, so the accessibility tree read below would be the notice's (as the other riding validations do).
+            immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
+            shell("settings put secure immersive_mode_confirmations confirmed");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "regen-display");
             require(evidence.mkdirs() || evidence.isDirectory(), "Evidence directory");
             main(() -> {
@@ -80,6 +85,9 @@ public final class RegenDisplayValidation extends Instrumentation {
             result.putString("result", "FAIL");
             result.putString("failure", String.valueOf(t));
         } finally {
+            if (immersivePrevious != null) try {
+                shell(immersivePrevious.isEmpty() || immersivePrevious.equals("null") ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
+            } catch (Exception ignored) { }
             result.putInt("assertions", assertions);
             result.putStringArrayList("notes", notes);
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -542,9 +550,11 @@ public final class RegenDisplayValidation extends Instrumentation {
     private static boolean unsigned(String number) { return number.indexOf('-') < 0 && number.indexOf('\u2212') < 0; }
     private boolean unsignedMain(View cell) { return unsigned(numberMain(fieldOn(cell, "number"))); }
     private static String said(View view) { return String.valueOf(view.getContentDescription()); }
-    private void shell(String command) throws Exception {
+    private String shell(String command) throws Exception {
         ParcelFileDescriptor pfd = getUiAutomation().executeShellCommand(command);
-        try (FileInputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) { byte[] buffer = new byte[1024]; while (in.read(buffer) >= 0) { } }
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        try (FileInputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) { byte[] buffer = new byte[1024]; for (int n; (n = in.read(buffer)) >= 0; ) out.write(buffer, 0, n); }
+        return out.toString("UTF-8");
     }
     private void setPowerSpots(String frame, String... spots) {
         main(() -> {
