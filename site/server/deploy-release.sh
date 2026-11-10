@@ -6,10 +6,17 @@
 #
 # Replaces the update.sh used through Volt 1.13.0. The same checks, plus:
 #   - the release must hold variants.json and a real variants/original/index.html;
+#   - every file's modification time is derived from its SHA-256, so nginx's ETag and Last-Modified change
+#     exactly when a file's content does. With "Cache-Control: no-cache" (nginx/volt-homepage.conf), a
+#     return visit after a variant switch or a deploy never reuses another variant's file at the same URL;
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
-#   - after current moves, volt-homepage-switch.service runs, so the live variant moves to the new release
-#     (or falls back to original when the release lacks it) and its status file records the result.
+#   - after current moves, volt-homepage-switch.service must succeed in this run AND the live link must
+#     point inside the new release. Otherwise current goes back to the previous release, the switch runs
+#     again, and the deploy fails (DEPLOY_FAILED). A status file left by an earlier run is never trusted.
 # Until the switch runs, / keeps serving the previous release's copy of the live variant; nothing dangles.
+#
+# The VOLT_* variables below exist for tests/site-homepage-test.py, which runs this script in a temporary
+# folder with stand-ins for nginx and systemctl. Production uses the defaults.
 set -euo pipefail
 [[ $# -eq 5 ]]
 C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_CONFIG="$5"
@@ -17,19 +24,29 @@ C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_
 for checksum in "$EXPECTED_TAR" "$EXPECTED_MANIFEST" "$EXPECTED_CONFIG"; do
   [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]
 done
-TAR="/tmp/volt-home-$C.tar.gz"; MAN="/tmp/volt-home-$C.manifest"
-CONFIG=/etc/nginx/sites-available/volt-homepage
-HOME_DIR=/var/www/volt-home
+HOME_DIR="${VOLT_HOME_DIR:-/var/www/volt-home}"
+NGINX_DIR="${VOLT_NGINX_DIR:-/etc/nginx}"
+UPLOADS="${VOLT_UPLOAD_DIR:-/tmp}"
+SWITCH="${VOLT_SWITCH_BIN:-/usr/local/sbin/volt-homepage-switch}"
+STATUS="${VOLT_SWITCH_STATUS:-/var/lib/volt-homepage-switch/status.json}"
+OWNER="${VOLT_RELEASE_OWNER:-root:root}"
+TAR="$UPLOADS/volt-home-$C.tar.gz"; MAN="$UPLOADS/volt-home-$C.manifest"
+CONFIG="$NGINX_DIR/sites-available/volt-homepage"
 REL="$HOME_DIR/releases/$C"
 PREV="$HOME_DIR/releases/$EXPECTED_PREV"
-SWITCH=/usr/local/sbin/volt-homepage-switch
-STATUS=/var/lib/volt-homepage-switch/status.json
-unchanged() {
-  [ "$(readlink -f "$HOME_DIR/current")" = "$PREV" ]
-  [ "$(sha256sum "$CONFIG" | cut -d' ' -f1)" = "$EXPECTED_CONFIG" ]
+sha() { python3 -I -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$1"; }
+realpath_of() { python3 -I -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
+# Points current at a release in one rename (a new link, renamed over the old one).
+point_current() {
+  ln -sfn "$1" "$HOME_DIR/current.new"
+  python3 -I -c 'import os, sys; os.replace(sys.argv[1], sys.argv[2])' "$HOME_DIR/current.new" "$HOME_DIR/current"
 }
-[ "$(sha256sum "$TAR" | cut -d' ' -f1)" = "$EXPECTED_TAR" ]
-[ "$(sha256sum "$MAN" | cut -d' ' -f1)" = "$EXPECTED_MANIFEST" ]
+unchanged() {
+  [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ]
+  [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
+}
+[ "$(sha "$TAR")" = "$EXPECTED_TAR" ]
+[ "$(sha "$MAN")" = "$EXPECTED_MANIFEST" ]
 unchanged
 [ ! -e "$REL" ]
 [ ! -L "$REL" ]
@@ -64,35 +81,69 @@ with tarfile.open(sys.argv[1]) as archive:
         assert member.isfile()
         assert hashlib.sha256(archive.extractfile(member).read()).hexdigest() == expected[member.name]
 PY
-BACKUP="/etc/nginx/volt-deployment-backups/$(date -u +%Y%m%d-%H%M%S)-volt-home-$C"
+BACKUP="$NGINX_DIR/volt-deployment-backups/$(date -u +%Y%m%d-%H%M%S)-volt-home-$C"
 install -d -m 700 "$BACKUP"
-cp -a /etc/nginx/sites-available "$BACKUP/"
-cp -a /etc/nginx/sites-enabled "$BACKUP/"
+cp -a "$NGINX_DIR/sites-available" "$BACKUP/"
+cp -a "$NGINX_DIR/sites-enabled" "$BACKUP/"
 printf '%s\n' "$PREV" > "$BACKUP/previous-release.txt"
 readlink "$HOME_DIR/live" > "$BACKUP/previous-live.txt" 2>/dev/null || true
 install -d -m 755 "$REL"
 tar -xzf "$TAR" -C "$REL" --no-same-owner --no-same-permissions
-chown -R root:root "$REL"
+chown -R "$OWNER" "$REL"
 find "$REL" -type d -exec chmod 755 {} +
 find "$REL" -type f -exec chmod 644 {} +
-(cd "$REL" && sha256sum --quiet -c "$MAN")
-[ "$(find "$REL" -type f | wc -l)" -eq "$(wc -l < "$MAN")" ]
 [ -z "$(find "$REL" ! -type f ! -type d)" ]
+# Check every file against the manifest, then give it a modification time derived from its SHA-256
+# (a second between 2001 and 2020): same content, same ETag and Last-Modified, in every release and variant.
+python3 -I - "$REL" "$MAN" <<'PY'
+import hashlib, os, sys
+from pathlib import Path
+rel, manifest = Path(sys.argv[1]), Path(sys.argv[2])
+entries = [line.split('  ', 1) for line in manifest.read_text().splitlines()]
+found = sorted(p.relative_to(rel).as_posix() for p in rel.rglob('*') if p.is_file())
+assert found == sorted(name for _, name in entries), 'the release folder does not match the manifest'
+for digest, name in entries:
+    path = rel / name
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, name
+    when = 1_000_000_000 + int(digest[:15], 16) % 600_000_000
+    os.utime(path, (when, when), follow_symlinks=False)
+PY
 nginx -t
 unchanged
-ln -sfn "$REL" "$HOME_DIR/current.new"
-mv -Tf "$HOME_DIR/current.new" "$HOME_DIR/current"
+point_current "$REL"
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
-  systemctl start volt-homepage-switch.service || echo "The switch reported a problem; see its status below." >&2
-  live_line="$(python3 -I - "$STATUS" "$REL" <<'PY'
+  switch_ok=1
+  systemctl start volt-homepage-switch.service || switch_ok=0
+  live_target="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
+  inside=0
+  case "$live_target" in "$REL"/variants/?*) inside=1 ;; esac
+  if [ "$switch_ok" -ne 1 ] || [ "$inside" -ne 1 ]; then
+    # Undo the move: current back to the previous release, and the switch again so live follows it.
+    point_current "$PREV"
+    systemctl start volt-homepage-switch.service || true
+    echo "DEPLOY_FAILED switch_ok=$switch_ok live=${live_target:-none} was not inside the new release." \
+         "current is back on $PREV; live -> $(readlink "$HOME_DIR/live" 2>/dev/null || echo none)." \
+         "The new release stays in $REL for a look; see $STATUS." >&2
+    exit 1
+  fi
+  # This run's status only: it must name the new release.
+  live_line="$(python3 -I - "$STATUS" "$C" "$live_target" <<'PY'
 import json, os, sys
-status = json.load(open(sys.argv[1]))
-live = os.readlink('/var/www/volt-home/live')
-inside = live.startswith(sys.argv[2] + '/variants/')
-print('live=%s result=%s in_new_release=%s message=%s' % (status.get('live'), status.get('result'), 'yes' if inside else 'NO', status.get('message')))
+try:
+    status = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    status = {}
+if status.get('current_release') != sys.argv[2]:
+    status = {}
+name = os.path.basename(sys.argv[3])
+print('live=%s result=%s in_new_release=yes message=%s' % (name, status.get('result', 'unknown'), status.get('message', '(no status for this release)')))
 PY
 )"
 fi
-echo "UPDATE_OK current=$(readlink -f "$HOME_DIR/current") previous=$PREV backup=$BACKUP $live_line"
-echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current && systemctl start volt-homepage-switch.service"
+echo "UPDATE_OK current=$(realpath_of "$HOME_DIR/current") previous=$PREV backup=$BACKUP $live_line"
+if [ "$switch_installed" -eq 1 ]; then
+  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current && systemctl start volt-homepage-switch.service && readlink $HOME_DIR/live"
+else
+  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current"
+fi

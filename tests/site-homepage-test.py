@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Homepage variants (site/README.md, "Variants"): the build contract, the variant markup check, the nginx
 configuration and the live-variant switch. Temporary folders only; no network, server or browser."""
-import importlib.machinery, importlib.util, json, os, re, shutil, stat, subprocess, sys, tempfile, threading, unittest
+import hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # loading the extensionless switch script must leave no __pycache__ in site/
@@ -96,7 +96,7 @@ class BuildContract(unittest.TestCase):
         self.assertEqual(files(self.dist / 'variants' / 'original'), expected)
         root = {k: v for k, v in files(self.dist).items() if not k.startswith('variants/') and k != 'variants.json'}
         self.assertEqual(root, expected, 'dist/ root keeps today\'s page for older tools')
-        self.assertIn(b'Disallow: /preview/', expected['robots.txt'])
+        self.assertNotIn(b'/preview', expected['robots.txt'], 'crawlers must be able to fetch previews to see noindex')
 
     def test_variant_gets_shared_files_and_keeps_its_own(self):
         out = files(self.dist / 'variants' / 'zz-test')
@@ -182,6 +182,30 @@ class BuildFailures(unittest.TestCase):
             os.symlink('index.html', v / 'link.html')
         self.failing(setup, 'not a regular file')
 
+    def test_markup_problems_stop_the_build(self):
+        self.failing(lambda s, v: (v / 'index.html').write_text('<p style="x">@VERSION@</p>'), 'style=""')
+
+    def test_own_social_image_needs_a_content_url(self):
+        def setup(s, v):
+            (v / 'og.png').write_bytes(b'a new card')
+            (v / 'index.html').write_text('<meta property="og:image" content="https://volt.jjricks.com/og.png"><p>@VERSION@</p>')
+        want = 'og.png?v=' + hashlib.sha256(b'a new card').hexdigest()[:12]
+        self.failing(setup, want)
+        with tempfile.TemporaryDirectory() as temp:
+            site = make_tree(temp)
+            v = site / 'variants' / 'fixed'
+            v.mkdir(parents=True)
+            (v / 'og.png').write_bytes(b'a new card')
+            (v / 'index.html').write_text('<meta property="og:image" content="https://volt.jjricks.com/%s"><p>@VERSION@</p>' % want)
+            result = build(site)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_robots_hiding_previews_stops_the_build(self):
+        def setup(s, v):
+            (v / 'index.html').write_text('<p>@VERSION@</p>')
+            (v / 'robots.txt').write_text('User-agent: *\nDisallow: /preview/\n')
+        self.failing(setup, 'hides the previews')
+
 
 class VariantMarkup(unittest.TestCase):
     def test_todays_page_and_every_variant_pass(self):
@@ -195,8 +219,39 @@ class VariantMarkup(unittest.TestCase):
             folder.mkdir()
             (folder / 'index.html').write_text('<!doctype html><html><head><title>t</title>%s</head><body></body></html>' % body)
             for name, text in (extra or {}).items():
-                (folder / name).write_text(text)
+                if isinstance(text, bytes):
+                    (folder / name).write_bytes(text)
+                else:
+                    (folder / name).write_text(text)
             return checker.check_folder(folder)
+
+    def test_social_images_change_url_with_content(self):
+        today = (SITE / 'src' / 'og.png').read_bytes()
+        mine = b'refined card'
+        tag = 'v=' + hashlib.sha256(mine).hexdigest()[:12]
+        meta = '<meta property="og:image" content="%s"><meta name="twitter:image" content="%s">'
+        # Today's image at today's URL is fine, in any variant.
+        self.assertEqual(self.page(meta % ('https://volt.jjricks.com/og.png', 'og.png')), [])
+        self.assertEqual(self.page(meta % ('https://volt.jjricks.com/og.png', 'og.png'), {'og.png': today}), [])
+        # A variant's own image needs ?v=<its hash>, for both tags and any image path.
+        for url in ('https://volt.jjricks.com/og.png', 'og.png', 'https://volt.jjricks.com/og.png?v=000000000000'):
+            problems = self.page(meta % (url, url), {'og.png': mine})
+            self.assertEqual(len(problems), 2, problems)
+            self.assertTrue(all('https://volt.jjricks.com/og.png?' + tag in p for p in problems), problems)
+        self.assertEqual(self.page(meta % ('https://volt.jjricks.com/og.png?' + tag, 'og.png?' + tag), {'og.png': mine}), [])
+        problems = self.page('<meta property="og:image:secure_url" content="https://volt.jjricks.com/card-2.png">', {'card-2.png': mine})
+        self.assertTrue(problems and 'card-2.png?' + tag in problems[0], problems)
+        self.assertTrue(any('does not have' in p for p in self.page('<meta property="og:image" content="missing.png">')))
+        # Original (src/) is today's page byte for byte and is left as it is.
+        self.assertEqual(checker.check_folder(SITE / 'src'), [])
+
+    def test_robots_must_let_crawlers_fetch_previews(self):
+        for text in ('Disallow: /preview/', 'Disallow: /preview', 'Disallow: /', 'Disallow: /p # comment'):
+            problems = self.page('', {'robots.txt': 'User-agent: *\n' + text + '\n'})
+            self.assertTrue(any('hides the previews' in p for p in problems), (text, problems))
+        for text in ('Allow: /', 'Disallow:', 'Disallow: /private/', '# Disallow: /preview/'):
+            self.assertEqual(self.page('', {'robots.txt': 'User-agent: *\n' + text + '\n'}), [], text)
+        self.assertEqual(checker.robots_problems('src/robots.txt', (SITE / 'src' / 'robots.txt').read_text()), [])
 
     def test_allowed(self):
         ok = ['<link rel="canonical" href="https://volt.jjricks.com/">',
@@ -314,8 +369,28 @@ class NginxConfig(unittest.TestCase):
     def test_workbench_include_is_kept(self):
         self.assertIn(['include', '/etc/nginx/snippets/volt-dev.conf'], [w for w, c in self.https if c is None])
 
-    def test_robots_disallows_previews(self):
-        self.assertIn('Disallow: /preview/', (SITE / 'src' / 'robots.txt').read_text().splitlines())
+    def test_robots_lets_crawlers_see_the_noindex(self):
+        lines = [l.strip() for l in (SITE / 'src' / 'robots.txt').read_text().splitlines()]
+        self.assertFalse([l for l in lines if l.lower().startswith('disallow:') and '/preview/'.startswith(l.split(':', 1)[1].strip() or '#')])
+
+    def file_locations(self, items, path=()):
+        for words, children in items:
+            if children is not None and words and words[0] == 'location':
+                here = path + (' '.join(words[1:]),)
+                if any(w and w[0] == 'try_files' for w, c in children if c is None) and 'acme-challenge' not in here[0]:
+                    yield here, children
+                yield from self.file_locations(children, here)
+
+    def test_every_file_is_revalidated(self):
+        # A return visit after a switch must not reuse another variant's file at the same URL: every location
+        # serving homepage files says no-cache ("expires epoch"), and nothing turns validators off.
+        found = list(self.file_locations(self.https))
+        self.assertGreaterEqual(len(found), 4)
+        for path, children in found:
+            self.assertIn(['expires', 'epoch'], [w for w, c in children if c is None], ' > '.join(path))
+        text = re.sub(r'(?m)#.*$', '', (SITE / 'nginx' / 'volt-homepage.conf').read_text())
+        self.assertEqual(sorted(set(re.findall(r'expires\s+([^;]+);', text))), ['epoch'])
+        self.assertNotRegex(text, r'etag\s+off|if_modified_since\s+off|add_header\s+(Cache-Control|ETag|Last-Modified)')
 
 
 class Switch(unittest.TestCase):
@@ -514,6 +589,137 @@ class Switch(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn('live=app release=r1 result=ok', out.stdout)
         self.assertEqual(self.live(), self.target('r1', 'app'))
+
+
+
+class DeployRelease(unittest.TestCase):
+    """site/server/deploy-release.sh in a temporary folder, with stand-ins for nginx and systemctl."""
+    PREV, NEW = 'a' * 40, 'b' * 40
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        base = Path(os.path.realpath(self.temp.name))
+        self.home, self.nginx, self.uploads = base / 'volt-home', base / 'nginx', base / 'uploads'
+        self.state, self.bin, self.mode = base / 'state', base / 'bin', base / 'mode'
+        self.request = base / 'volt-dev' / 'homepage' / 'request'
+        for d in (self.nginx / 'sites-available', self.nginx / 'sites-enabled', self.uploads, self.bin, self.request.parent):
+            d.mkdir(parents=True)
+        self.config = self.nginx / 'sites-available' / 'volt-homepage'
+        self.config.write_text('server {\n    root /var/www/volt-home/live;\n}\n')
+        self.switch_bin = SITE / 'server' / 'volt-homepage-switch'
+        (self.bin / 'nginx').write_text('#!/bin/sh\nexit 0\n')
+        # systemctl start runs the real switch ("run"), fails ("fail") or succeeds without doing anything ("noop").
+        (self.bin / 'systemctl').write_text(
+            '#!/bin/sh\ncase "$1" in\n  cat) exit 0 ;;\n  start) case "$(cat "%s")" in\n'
+            '    run) exec "%s" -I "%s" --home "%s" --request "%s" --state-dir "%s" ;;\n'
+            '    fail) exit 1 ;;\n  esac ;;\nesac\nexit 0\n'
+            % (self.mode, sys.executable, self.switch_bin, self.home, self.request, self.state))
+        for stub in ('nginx', 'systemctl'):
+            os.chmod(self.bin / stub, 0o755)
+        self.mode.write_text('run')
+        # The previous release, with refined live.
+        for name, data in self.contents('old').items():
+            path = self.home / 'releases' / self.PREV / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        os.symlink(str(self.home / 'releases' / self.PREV), self.home / 'current')
+        self.request.write_text('refined\n')
+        self.assertEqual(switch.apply(str(self.home), str(self.request), str(self.state))[0]['live'], 'refined')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def contents(self, tag):
+        page = lambda name: ('<!doctype html><title>%s %s</title><link rel="stylesheet" href="styles.css">' % (name, tag)).encode()
+        out = {'index.html': page('original'), 'variants.json': b'{}'}
+        # Same size, different content: the case where an mtime+size validator could collide.
+        for name, css in (('original', b'body{color:red}'), ('refined', b'body{color:tan}')):
+            out['variants/%s/index.html' % name] = page(name)
+            out['variants/%s/styles.css' % name] = css
+            out['variants/%s/fonts/saira.ttf' % name] = b'the same font in both'
+        return out
+
+    def deploy(self, switch_installed=True):
+        contents = self.contents('new')
+        tar_path = self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
+        with tarfile.open(tar_path, 'w:gz') as tar:
+            for name, data in sorted(contents.items()):
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                tar.addfile(info, io.BytesIO(data))
+        manifest = self.uploads / ('volt-home-%s.manifest' % self.NEW)
+        manifest.write_text(''.join('%s  %s\n' % (hashlib.sha256(d).hexdigest(), n) for n, d in sorted(contents.items())))
+        digest = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+        env = dict(os.environ, VOLT_HOME_DIR=str(self.home), VOLT_NGINX_DIR=str(self.nginx), VOLT_UPLOAD_DIR=str(self.uploads),
+                   VOLT_SWITCH_BIN=str(self.switch_bin if switch_installed else self.bin / 'missing'),
+                   VOLT_SWITCH_STATUS=str(self.state / 'status.json'), VOLT_RELEASE_OWNER='%d:%d' % (os.getuid(), os.getgid()),
+                   PATH=str(self.bin) + os.pathsep + os.environ['PATH'])
+        return subprocess.run(['bash', str(SITE / 'server' / 'deploy-release.sh'), self.NEW, digest(tar_path), digest(manifest),
+                               self.PREV, digest(self.config)], capture_output=True, text=True, env=env)
+
+    def current(self):
+        return os.path.basename(os.path.realpath(self.home / 'current'))
+
+    def live(self):
+        return os.readlink(self.home / 'live')
+
+    def variant(self, release, name):
+        return str(self.home / 'releases' / release / 'variants' / name)
+
+    def validator(self, url_path):
+        """What nginx compares on a return visit: ETag "<mtime hex>-<size hex>" and Last-Modified (mtime)."""
+        info = os.stat(os.path.join(self.live(), url_path))
+        return '"%x-%x"' % (int(info.st_mtime), info.st_size), int(info.st_mtime)
+
+    def test_deploy_moves_live_into_the_new_release(self):
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertRegex(out.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_return_visit_across_a_switch_never_reuses_the_old_file(self):
+        self.assertEqual(self.deploy().returncode, 0)
+        css, font = self.validator('styles.css'), self.validator('fonts/saira.ttf')
+        self.request.write_text('original\n')
+        self.assertEqual(switch.apply(str(self.home), str(self.request), str(self.state))[0]['live'], 'original')
+        self.assertNotEqual(self.validator('styles.css')[0], css[0], 'same size, different CSS: the ETag must change')
+        self.assertNotEqual(self.validator('styles.css')[1], css[1], 'and Last-Modified too')
+        self.assertEqual(self.validator('fonts/saira.ttf'), font, 'an identical file keeps its validators (304)')
+        # Derived from the content alone: the same as the manifest's hash says, in every release.
+        digest = hashlib.sha256(b'body{color:red}').hexdigest()
+        self.assertEqual(self.validator('styles.css')[1], 1_000_000_000 + int(digest[:15], 16) % 600_000_000)
+
+    def test_failed_switch_with_a_stale_status_fails_and_restores(self):
+        # A status claiming success for the new release, left by someone else, must not be believed.
+        (self.state / 'status.json').write_text(json.dumps({'current_release': self.NEW, 'release': self.NEW, 'live': 'refined', 'result': 'ok'}))
+        self.mode.write_text('fail')
+        out = self.deploy()
+        self.assertNotEqual(out.returncode, 0)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertIn('DEPLOY_FAILED', out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+
+    def test_switch_that_leaves_live_behind_fails_and_restores(self):
+        self.mode.write_text('noop')
+        out = self.deploy()
+        self.assertNotEqual(out.returncode, 0)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertIn('was not inside the new release', out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+
+    def test_first_deploy_before_the_switch_exists(self):
+        self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')
+        out = self.deploy(switch_installed=False)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('live=not-installed', out.stdout)
+        self.assertEqual(self.current(), self.NEW)
+
+    def test_nginx_serving_live_without_the_switch_changes_nothing(self):
+        out = self.deploy(switch_installed=False)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn('the switch is not installed', out.stderr)
+        self.assertEqual(self.current(), self.PREV)
+        self.assertFalse((self.home / 'releases' / self.NEW).exists())
 
 
 if __name__ == '__main__':
