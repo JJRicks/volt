@@ -37,6 +37,10 @@
 #
 # The VOLT_* variables below exist for tests/site-homepage-test.py, which runs this script in a temporary
 # folder with stand-ins for nginx and systemctl. Production uses the defaults.
+#
+# The whole script is one { ... } group, ended by exit: bash -s reads it from the SSH channel, and bash parses
+# a group completely before running any of it, so a dropped connection can never cut the script off half way.
+{
 set -euo pipefail
 # Every mode below is explicit, and nothing depends on the caller's umask (a root shell with umask 077
 # would otherwise make folders nginx's workers cannot enter).
@@ -50,8 +54,10 @@ umask 022
 #   - neither does: nothing served changed. DEPLOY_REFUSED and the reason, and a release folder this run
 #     created (STAGED=1) is removed again, so the identical command works once the cause is fixed. A folder
 #     this run found and reused (STAGED=0) stays: it matches the manifest, and the next run reuses it too.
-# DEPLOY_FAILED and DEPLOY_INCOMPLETE (after a rollback) report themselves and set FINAL=1.
-REASON=; FINAL=0; STAGED=0; LINKS_CHECKED=0; START_LIVE=; ERR_LINE=
+# Once current is about to move, the critical section below holds HUP, INT and TERM until the outcome is
+# completely reported (UPDATE_OK, DEPLOY_FAILED or DEPLOY_INCOMPLETE), and only then sets FINAL=1. The link
+# reading above stays as the safety net for any other exit in between.
+REASON=; FINAL=0; STAGED=0; LINKS_CHECKED=0; START_LIVE=; ERR_LINE=; SIGNALED=0; SWITCH_STARTED=0; SWITCH_STATE=
 refuse() {
   REASON="$*"
   exit 1
@@ -62,6 +68,10 @@ on_exit() {
   { [ "$rc" -ne 0 ] && [ "$FINAL" -eq 0 ]; } || return 0
   if [ "$LINKS_CHECKED" -eq 1 ]; then
     into="$(links_into_release 2>/dev/null)" || into="current or live (they could not be read)"
+  fi
+  if [ -n "$into" ] && [ "$SWITCH_STARTED" -eq 1 ] && ! switch_settles; then
+    report_switch_running
+    return 0
   fi
   if [ -n "$into" ]; then
     # The target live had before this deploy: read just before current moved, else when the run started.
@@ -94,6 +104,8 @@ trap on_exit EXIT
 # A signal becomes an ordinary exit, so the trap above runs with a failing status (bash would otherwise
 # run it with $? = 0 and skip the clean-up).
 trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+# A write to a closed SSH channel fails (EPIPE) instead of killing the shell before it has cleaned up.
+trap '' PIPE
 [[ $# -eq 5 ]] || refuse "usage: <commit> <archive sha256> <manifest sha256> <previous release commit> <nginx config sha256>"
 C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_CONFIG="$5"
 [[ "$C" =~ ^[0-9a-f]{40}$ && "$EXPECTED_PREV" =~ ^[0-9a-f]{40}$ ]] || refuse "the commits must be 40 lowercase hex characters"
@@ -130,6 +142,42 @@ PY
 point_current() { swap_link "$HOME_DIR/current" "$1"; }
 unchanged() {
   [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ] && [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
+}
+# The switch unit as systemd sees it. switch_busy prints why it is busy (it has a job queued, or it is
+# mid-run) and succeeds then; it fails when the unit is idle. A unit whose state can't be read counts as busy.
+SWITCH_UNIT=volt-homepage-switch.service
+SETTLE_SECONDS="${VOLT_SWITCH_SETTLE_SECONDS:-60}"   # the unit's TimeoutStartSec is 30
+switch_busy() {
+  local state jobs
+  state="$(systemctl show -p ActiveState --value "$SWITCH_UNIT" 2>/dev/null)" || state="unknown (systemctl show failed)"
+  case "$state" in
+    activating|deactivating|reloading|refreshing|unknown*) echo "$state"; return 0 ;;
+  esac
+  # Read whole, not piped into grep -q: with pipefail, systemctl's EPIPE after an early match would read as
+  # "no job".
+  jobs="$(systemctl list-jobs --no-legend 2>/dev/null)" || jobs=
+  case "$jobs" in *"$SWITCH_UNIT"*) echo "a job is queued"; return 0 ;; esac
+  return 1
+}
+# switch_settles: waits (at most SETTLE_SECONDS) until the switch unit is idle. A switch run started by this
+# deploy goes on inside systemd even if the systemctl client that asked for it is gone, so nothing reads the
+# links to decide on a rollback, a recovery message or a retry before this succeeds. SWITCH_STATE says why not.
+switch_settles() {
+  local deadline=$(( $(date +%s) + SETTLE_SECONDS ))
+  while SWITCH_STATE="$(switch_busy)"; do
+    [ "$(date +%s)" -lt "$deadline" ] || return 1
+    sleep 0.2
+  done
+  SWITCH_STATE=idle
+}
+# The switch run didn't settle: the links can still change, so no put-back commands (they would race it).
+report_switch_running() {
+  echo "DEPLOY_INCOMPLETE $SWITCH_UNIT is still running after ${SETTLE_SECONDS}s ($SWITCH_STATE), so live may still" \
+       "change. current -> $(readlink "$HOME_DIR/current" 2>/dev/null || echo '?'), live -> $(readlink "$HOME_DIR/live" 2>/dev/null || echo none)." \
+       "Don't touch either link while it runs." >&2
+  echo "DEPLOY_INCOMPLETE wait until 'systemctl is-active $SWITCH_UNIT' no longer prints activating and" \
+       "'systemctl list-jobs' lists nothing for it, then read both links: both inside $REL means the deploy" \
+       "went through; otherwise put current back to $PREV and live to ${prior_live:-$START_LIVE} (site/README.md, \"Rollback\")." >&2
 }
 # links_into_release: prints which of current and live resolve to $REL or into it ("current", "live",
 # "current and live"), or nothing. A link to a folder that doesn't exist (yet) counts by its path.
@@ -234,6 +282,13 @@ exec 9>>"$LOCK" || refuse "could not open the deploy lock $LOCK"
 python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null \
   || refuse "another deploy holds $LOCK; run the same command again once it has finished"
 [ ! -L "$REL" ] || refuse "$REL is a symbolic link"
+switch_installed=0
+if [ -x "$SWITCH" ] && systemctl cat "$SWITCH_UNIT" >/dev/null 2>&1; then switch_installed=1; fi
+# A switch run still going (an earlier deploy that was killed, say) could still move live: wait for it before
+# deciding anything from the links.
+if [ "$switch_installed" -eq 1 ]; then
+  switch_settles || refuse "$SWITCH_UNIT is still running after ${SETTLE_SECONDS}s ($SWITCH_STATE); run the same command again once it has finished"
+fi
 # A release folder that is served (current, or holding live) is never staged over or removed. From here on,
 # a link that points into $REL was moved by this run (see on_exit).
 served="$(links_into_release)" || refuse "could not read where current and live point"
@@ -246,8 +301,6 @@ fi
 # nginx serves the live variant once its configuration names live; then the switch must be there.
 serves_live=0
 if grep -q '^[[:space:]]*root /var/www/volt-home/live;' "$CONFIG"; then serves_live=1; fi
-switch_installed=0
-if [ -x "$SWITCH" ] && systemctl cat volt-homepage-switch.service >/dev/null 2>&1; then switch_installed=1; fi
 if [ "$serves_live" -eq 1 ] && [ "$switch_installed" -eq 0 ]; then
   refuse "nginx serves $HOME_DIR/live but the switch is not installed; stopping before any change"
 fi
@@ -364,48 +417,74 @@ PY
 check_modes "$HOME_DIR" "$HOME_DIR/releases" --tree "$REL" "$HOME_DIR/cards" || refuse "a served path is not readable by nginx (above)"
 nginx -t || refuse "nginx -t failed (its output is above)"
 unchanged || refuse "current or the nginx site file changed during the deploy"
+# ---- The critical section ------------------------------------------------------------------------------
+# From the first link change until the outcome is completely reported, HUP, INT and TERM are held: the handler
+# only records the signal, and finish acts on it once every line of the outcome is out (a success then exits
+# 128+n; a failure keeps its own code, 1 or 2). FINAL=1 is set by finish, after the last line. The commands
+# here run without set -e, and every result is checked. SIGKILL can't be held: then nothing reports, and the
+# next run waits for the switch and refuses while a link points into the release (site/README.md).
+hold() { SIGNALED=$1; }
+finish() {  # <exit code>: the outcome is completely reported
+  FINAL=1
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+  if [ "$SIGNALED" -ne 0 ]; then
+    echo "DEPLOY_SIGNAL_HELD a signal (exit $SIGNALED) arrived while the links were changing; it was held until the outcome above was complete." >&2
+    [ "$1" -ne 0 ] || exit "$SIGNALED"
+  fi
+  exit "$1"
+}
 # The live link as it was, so a failed deploy can put it back without the switch.
 prior_live="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
-# No flag follows this rename: on_exit reads the links (a signal can land between the rename and any flag).
-point_current "$REL" || refuse "could not move current"
+trap 'hold 129' HUP; trap 'hold 130' INT; trap 'hold 143' TERM
+set +e
+point_current "$REL"
+if [ "$(realpath_of "$HOME_DIR/current")" != "$(realpath_of "$REL")" ]; then
+  # current did not move (read from the link, not from the rename's exit code): nothing served changed.
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+  set -e
+  refuse "could not move current"
+fi
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
+  # In a session of its own, so a signal to the deploy's process group (Ctrl-C, a hang-up) can't kill the client
+  # half way; and whatever the client says, the unit itself must be idle before anything reads the links.
+  SWITCH_STARTED=1
   switch_ok=1
-  systemctl start volt-homepage-switch.service || switch_ok=0
-  live_target="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
+  python3 -I -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' systemctl start "$SWITCH_UNIT" || switch_ok=0
+  if ! switch_settles; then
+    report_switch_running
+    finish 2
+  fi
+  live_target="$(readlink "$HOME_DIR/live" 2>/dev/null)"
   inside=0
   case "$live_target" in "$REL"/variants/?*) inside=1 ;; esac
   if [ "$switch_ok" -ne 1 ] || [ "$inside" -ne 1 ]; then
-    # Put both links back as they were, directly, then check both. Nothing here may stop the script early.
-    set +e
+    # Put both links back as they were, directly, then check both.
     point_current "$PREV"
     if [ -n "$prior_live" ]; then
       [ "$(readlink "$HOME_DIR/live" 2>/dev/null)" = "$prior_live" ] || swap_link "$HOME_DIR/live" "$prior_live"
     fi
     current_now="$(realpath_of "$HOME_DIR/current")"
     live_now="$(readlink "$HOME_DIR/live" 2>/dev/null)"
-    set -e
     current_back=0; live_back=0
-    [ "$current_now" = "$(realpath_of "$PREV")" ] && current_back=1
+    [ -n "$current_now" ] && [ "$current_now" = "$(realpath_of "$PREV")" ] && current_back=1
     if [ -n "$prior_live" ]; then
       [ "$live_now" = "$prior_live" ] && live_back=1
     else
       case "$live_now" in "$REL"/*) ;; *) live_back=1 ;; esac
     fi
     if [ "$current_back" -eq 1 ] && [ "$live_back" -eq 1 ]; then
-      FINAL=1
       echo "DEPLOY_FAILED switch_ok=$switch_ok live_after_switch=${live_target:-none}: live was not left inside the new release." \
            "Restored: current -> $PREV, live -> ${prior_live:-none}. The new release stays in $REL for a look; see $STATUS." >&2
-      exit 1
+      finish 1
     fi
-    FINAL=1
     echo "DEPLOY_INCOMPLETE the deploy failed (switch_ok=$switch_ok) and the rollback did not finish:" \
          "current -> ${current_now:-?} (want $PREV), live -> ${live_now:-none} (want ${prior_live:-none})." >&2
     echo "DEPLOY_INCOMPLETE finish by hand, as root:" \
          "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
          "${prior_live:+&& ln -sfn $prior_live $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live}" \
          "&& readlink -f $HOME_DIR/current && readlink $HOME_DIR/live" >&2
-    exit 2
+    finish 2
   fi
   # This run's status only: it must name the new release.
   live_line="$(python3 -I - "$STATUS" "$C" "$live_target" <<'PY'
@@ -419,7 +498,7 @@ if status.get('current_release') != sys.argv[2]:
 name = os.path.basename(sys.argv[3])
 print('live=%s result=%s in_new_release=yes message=%s' % (name, status.get('result', 'unknown'), status.get('message', '(no status for this release)')))
 PY
-)"
+)" || live_line="live=$(basename "$live_target") result=unknown in_new_release=yes message=(status not read)"
 fi
 echo "UPDATE_OK current=$(realpath_of "$HOME_DIR/current") previous=$PREV backup=$BACKUP cards_added=$cards_added $live_line"
 if [ "$switch_installed" -eq 1 ] && [ -n "$prior_live" ]; then
@@ -427,3 +506,5 @@ if [ "$switch_installed" -eq 1 ] && [ -n "$prior_live" ]; then
 else
   echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current"
 fi
+finish 0
+}
