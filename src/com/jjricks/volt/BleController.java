@@ -402,12 +402,14 @@ public final class BleController {
         wanted=true;retries=0;scan(p.mac);if(scanning)identifying=true;
     }
     public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
+    /** True only inside suspend()'s close: this link is ending because Volt paused it, not because the scooter went away. */
+    private boolean ownPause;public boolean ownPause(){return ownPause;}
     /** Stop every pending connection operation; saved profiles and diagnostic history survive. */
     public void suspend(){
         if(simulating())return;
         recoverableConnectionLoss=false;wanted=false;handler.removeCallbacksAndMessages(null);endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);
         if(gatt==null&&!scanning&&state==State.DISCONNECTED&&mutation==null&&queue.isEmpty())return;
-        recordDiagnostic(ConnectionEventLog.Reason.BACKGROUND_PAUSE,-1);close(State.DISCONNECTED);notice(M.bleStatusPaused());
+        recordDiagnostic(ConnectionEventLog.Reason.BACKGROUND_PAUSE,-1);ownPause=true;try{close(State.DISCONNECTED);}finally{ownPause=false;}notice(M.bleStatusPaused());
     }
     public void destroy(){recordDiagnostic(ConnectionEventLog.Reason.SERVICE_CLOSED,-1);recoverableConnectionLoss=false;endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);if(simulating()){telemetry.clear();simulation=null;simulationChanging=false;commandResults.clear();experimentBaselines.clear();}wanted=false;close(State.DISCONNECTED);handler.removeCallbacksAndMessages(null);listener=null;try{context.unregisterReceiver(bluetoothReceiver);}catch(Exception ignored){}diagnostics.flush();}
     public void scan(){scan("");}

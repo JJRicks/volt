@@ -64,6 +64,8 @@ done
 sources+=("$TEST_DIR/RideAutoStopStoreTest.java")
 # Riding mode's Max and Avg, fed from telemetry as readings arrive; and the auto-end count, recoverable with the journal.
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingSpeed.java" "$APP_DIR/src/com/jjricks/volt/RideAutoEnds.java" "$TEST_DIR/RideAutoEndsTest.java")
+# Whether riding mode shows Home after a lost connection, and which ends of a link count.
+sources+=("$APP_DIR/src/com/jjricks/volt/RidingLink.java" "$TEST_DIR/RidingLinkTest.java")
 # Saved ride summaries for a fast first Rides open (RideSummaryStore; RideStore and RideArchive are above).
 sources+=("$APP_DIR/src/com/jjricks/volt/RideSummaryStore.java" "$TEST_DIR/RideSummaryStoreTest.java")
 # The hardware check's Rides first-open timing helper (android-tests, no Android types).
@@ -149,6 +151,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoEndsTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingLinkTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideSummaryStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidesOpenTimingTest
 
