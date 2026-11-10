@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var lock = document.getElementById('lock');
   var thumb = document.getElementById('lock-thumb');
   if (lock && thumb) {
+    // The button ships disabled (and its slide/press hint hidden) so that without JavaScript the bar is a
+    // plain sample; it becomes a control only here, once its handlers exist.
+    thumb.disabled = false;
+    var lockHint = document.getElementById('lock-hint');
+    if (lockHint) lockHint.hidden = false;
     var INSET = 5;
     var travel = function () { return lock.clientWidth - thumb.offsetWidth - INSET * 2; };
     var locked = function () { return lock.getAttribute('data-state') === 'locked'; };

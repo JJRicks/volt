@@ -32,8 +32,8 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <link rel="preload" href="fonts/saira-bold.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=4979dc025a33">
-  <script src="main.js?v=60cbc2ce2d02" defer></script>
+  <link rel="stylesheet" href="styles.css?v=89a561799afa">
+  <script src="main.js?v=d722fc4c0dc5" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -112,14 +112,14 @@
           </div>
           <div class="ride-controls">
             <div class="lock" id="lock" data-state="unlocked">
-              <button class="lock-thumb" id="lock-thumb" type="button" aria-pressed="false" aria-describedby="lock-hint">
+              <button class="lock-thumb" id="lock-thumb" type="button" aria-pressed="false" aria-describedby="lock-hint" disabled>
                 <svg class="g-open" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/></svg>
                 <svg class="g-shut" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
                 <span class="sr">Sample Lock bar</span>
               </button>
               <span class="lock-hint" aria-hidden="true">›</span>
               <span class="lock-label" aria-live="polite"><span class="l-unlocked">Unlocked</span><span class="l-locked">Locked</span></span>
-              <span class="sr" id="lock-hint">A sample of Volt's Lock bar. Slide it, or press it, to see the change. It isn't connected to a scooter.</span>
+              <span class="sr" id="lock-hint" hidden>A sample of Volt's Lock bar. Slide it, or press it, to see the change. It isn't connected to a scooter.</span>
             </div>
             <a class="record" href="#rides" aria-label="Ride recording">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle class="fill" cx="12" cy="12" r="3.6"/></svg>
@@ -294,7 +294,7 @@
           <li class="chip">Android 8.0+ with Bluetooth</li>
           <li class="chip">An activated NAVEE scooter</li>
           <li class="chip">The NAVEE app, signed in and connecting</li>
-          <li class="chip">For pairing once: a computer with USB, or Shizuku</li>
+          <li class="chip">For pairing once: a computer with USB, or Shizuku on Android 11+</li>
         </ul>
       </div>
       <ol class="card group steps">
