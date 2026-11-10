@@ -2,9 +2,9 @@ VOLT 1.13.0 — DUTCH, TURKISH, POLISH, RIDING MODE'S TUNE MENU, INFERRED REGEN 
 November 9, 2026
 
 - Every pull request merged since 1.12.1 (#345 to #356) passed CI (core-tests
-  and web-setup) on its final head. Ten merged after an independent review
-  came back clean on that head. #350's final head is a merge of main made
-  after the clean review of the head before it. #349 was merged over two
+  and web-setup) on its final head. Eleven merged after an independent
+  review came back clean on that exact head, #350 included (reviewed clean
+  at 4c96bbfa, which is the head that merged). #349 was merged over two
   findings from the review of its final head, both in the recovery that
   decides whether riding mode closes after a lost automatic end. Each needs
   a rare chain of events, such as a process death at one exact moment, and
