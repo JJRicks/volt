@@ -1098,18 +1098,19 @@ public final class MainActivity extends Activity implements ScreenHost {
             design.decorate(lockTitle,Boolean.FALSE.equals(shownLock)?"unlock":"lock");
             android.graphics.drawable.Drawable lockGlyph=lockTitle.getCompoundDrawablesRelative()[0];
             if(lockGlyph!=null){lockGlyph.setBounds(0,0,design.dp(20),design.dp(20));lockTitle.setCompoundDrawablesRelative(lockGlyph,null,null,null);lockTitle.setCompoundDrawablePadding(design.dp(8));}
+            String unknown=compactLock?T.mainLockStateUnknown():T.mainLockStateUnverified();
+            String known=shownLock==null?null:shownLock?"Locked":"Unlocked";
+            String description=known==null?unknown:"Locked".equals(known)?T.mainLockLastKnownFullLocked():"Unlocked".equals(known)?T.mainLockLastKnownFullUnlocked():T.mainLockLastKnownFull(known.toLowerCase(java.util.Locale.ROOT));
             // Another write in flight (an automatic one right after connecting) no longer disables the switch: the tap waits for it.
-            lockControl.update(shownLock,ready&&!editing&&lockOffered(ble,shownLock));
+            // Not ready, a state shown is the saved one: riding mode's switch, which stays on screen, says it's the last known.
+            lockControl.update(shownLock,ready&&!editing&&lockOffered(ble,shownLock),ready?null:description);
             if(offlineTitle!=null){
                 // The scooter name is already in the Home header; repeating it can fill
                 // a narrow card and push Cancel out of view at larger system font sizes.
-                String unknown=compactLock?T.mainLockStateUnknown():T.mainLockStateUnverified();
-                String known=shownLock==null?null:shownLock?"Locked":"Unlocked";
                 offlineTitle.setText(connecting?(compactLock?T.bleStatusConnecting():T.mainLockConnecting()):known==null?unknown:known);
                 offlineTitle.setTextColor(design.muted);
                 // known is the state id; the title shows it as a word, in the same pass, so the id is never drawn.
                 if(!connecting&&known!=null)offlineTitle.setText(shownLock?T.mainLockLocked():T.mainLockUnlocked());
-                String description=known==null?unknown:"Locked".equals(known)?T.mainLockLastKnownFullLocked():"Unlocked".equals(known)?T.mainLockLastKnownFullUnlocked():T.mainLockLastKnownFull(known.toLowerCase(java.util.Locale.ROOT));
                 offlineTitle.setContentDescription(connecting?T.mainLockConnectingTo(scooterName,description):description);
                 // The feature cache contains scooter readbacks, never a requested lock change.
                 // Keep its stale label visible even during reconnect; it does not enable the switch.
@@ -1229,7 +1230,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(stoppedGate!=null&&!stoppedGate.getAsBoolean()){Haptics.reject(this);toast(movingReason());return;} // A tap that lands as the scooter starts moving.
             if(lockQueue.request(value,target,SystemClock.elapsedRealtime(),stoppedGate!=null)){lockStoppedGate=stoppedGate;requestedAt=SystemClock.elapsedRealtime();redraw();}
         }
-        void update(Boolean locked,boolean enabled){
+        /** @param lastKnown the words for a saved, unconfirmed state (no live link), or null while the state is live */
+        void update(Boolean locked,boolean enabled,String lastKnown){
             boolean changed=value==null?locked!=null:!value.equals(locked);
             boolean hadState=value!=null;
             if(changed&&hadState&&locked!=null&&requestedAt>0&&SystemClock.elapsedRealtime()-requestedAt<15000){requestedAt=0;Haptics.confirm(this);}
@@ -1237,8 +1239,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!enabled&&dragging){dragging=false;setPressed(false);releaseParent();settle(hadState&&locked!=null);}
             else if((changed||!java.util.Objects.equals(drawn,shown()))&&!dragging)settle(hadState&&locked!=null);
             drawn=shown();
-            setContentDescription(locked==null?T.mainLockSwitchUnavailable():locked?T.mainLockSwitchLocked():T.mainLockSwitchUnlocked());
-            if(Build.VERSION.SDK_INT>=30)setStateDescription(locked==null?T.mainLockUnavailable():locked?T.mainLockLocked():T.mainLockUnlocked());
+            // A saved state isn't offered as a double-tap: the switch says it's the last known one, and unavailable.
+            boolean saved=locked!=null&&lastKnown!=null;
+            setContentDescription(locked==null?T.mainLockSwitchUnavailable():saved?lastKnown:locked?T.mainLockSwitchLocked():T.mainLockSwitchUnlocked());
+            if(Build.VERSION.SDK_INT>=30)setStateDescription(locked==null||saved?T.mainLockUnavailable():locked?T.mainLockLocked():T.mainLockUnlocked());
             invalidate();
         }
         private void cancelMotion(){if(motion!=null){motion.cancel();motion=null;}}

@@ -12,6 +12,15 @@ import java.util.*;
 
 /** A local, editable dashboard. Widget movement never shares gestures with scooter controls. */
 public final class DashboardScreen implements AppScreen {
+    /**
+     * What an idle recorder disc says: Home's, and riding mode's Record, which never connects, so its
+     * disabled "Connect to scooter" is only the reason it can't start.
+     */
+    static String recordIdleSpoken(boolean saving, boolean ready, boolean connecting) {
+        return saving ? T.dashboardRecordSaving() : ready ? T.dashboardStartRecording() : connecting ? T.dashboardRecordConnecting()
+                : T.dashboardRecordConnect();
+    }
+
     public interface Actions {
         View lock(boolean showDisconnect);
 
@@ -3721,9 +3730,7 @@ public final class DashboardScreen implements AppScreen {
                 rideTitle.setTypeface(ui.medium());
                 showRecorderTitle();
                 rideDetail.setText(saving ? T.dashboardSavingRide() : connecting ? T.dashboardConnecting() : "");
-                rideButton.setContentDescription(saving ? T.dashboardRecordSaving()
-                        : ready ? T.dashboardStartRecording() : connecting ? T.dashboardRecordConnecting()
-                        : T.dashboardRecordConnect());
+                rideButton.setContentDescription(recordIdleSpoken(saving, ready, connecting));
             }
             // A hidden caption is never re-measured by setText alone; show it when it has words.
             int detail = rideDetail.length() > 0 && !compactRecorder ? View.VISIBLE : View.GONE;

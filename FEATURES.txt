@@ -35,7 +35,9 @@ NEW IN 1.12.1
 - Riding mode's Ride time, distance, Max and Average speed start from zero each
   time it opens. It closes itself when a recording ends automatically. Its
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
-  screen, and it has Lock and Record buttons while the scooter is stopped.
+  screen, and it has Lock and Record buttons while the scooter is stopped or
+  disconnected. Disconnected, Record only stops a recording and Lock shows
+  its last known state without taking a tap.
 - Start automatically, off by default: Record rides automatically and Riding
   mode's Open automatically act when the connected scooter moves.
 - The live charging card clears about 15 s after unplugging and, on Android 16

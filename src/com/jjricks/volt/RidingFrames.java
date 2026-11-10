@@ -106,16 +106,18 @@ final class RidingFrames {
 
     /**
      * The frame picker shows only while stopped (owner Q17 A, like the editor's pencil): the scooter
-     * says it's stationary, and the latest speed is missing or under 1 km/h. Lock and Record use this
-     * same gate (owner, Nov 8), so everything a tap can reach while stopped goes together.
+     * says it's stationary, and the latest speed is missing or under 1 km/h. The tune button, Lock and
+     * Record use it through {@link #tuneShown}, and Lock's own taps through it alone.
      */
     static boolean pickerShown(boolean stationary, Double speedKmh) {
         return stationary && (speedKmh == null || speedKmh < STOPPED_KMH);
     }
 
     /**
-     * The tune button: hidden while the scooter moves, as {@link #pickerShown} says, and also shown
-     * with no scooter connected (owner, Nov 9). Lock and Record stay with the stopped-only gate.
+     * The tune button, Lock and Record: hidden while the scooter moves, as {@link #pickerShown} says,
+     * and also shown with no scooter connected (owner, Nov 9), so everything a tap can reach goes
+     * together. Connected with no motion report yet (just after a reconnect) is not stopped: all three
+     * wait for the first stationary report.
      */
     static boolean tuneShown(boolean connected, boolean stationary, Double speedKmh) {
         return !connected || pickerShown(stationary, speedKmh);
@@ -137,11 +139,19 @@ final class RidingFrames {
 
     /**
      * What a tap on the Record disc does (RecorderTap's START, STOP or NONE): Home's rule, but only
-     * while stopped, so a tap that lands as the scooter starts moving does nothing.
+     * while stopped, so a tap that lands as the scooter starts moving does nothing. With no scooter
+     * connected (owner, Nov 9) a recording still stops; otherwise nothing happens, never a start and
+     * never a connection. A tap acts on the mark it landed on: when the recording started or ended
+     * since the disc was drawn (an automatic end in the same moment), it does nothing, so one tap
+     * can't stop one ride and start the next.
+     *
+     * @param showingStop the disc shows its stop mark
      */
-    static int recordAction(boolean stopped, boolean recording, boolean ready) {
+    static int recordAction(boolean connected, boolean stopped, boolean recording, boolean ready, boolean showingStop) {
+        if (recording != showingStop) return RecorderTap.NONE;
         int action = RecorderTap.lead(recording, ready, false);
-        return !stopped || action == RecorderTap.CONNECT ? RecorderTap.NONE : action;
+        if (!connected) return action == RecorderTap.STOP ? action : RecorderTap.NONE;
+        return stopped && action != RecorderTap.CONNECT ? action : RecorderTap.NONE;
     }
 
     /**
