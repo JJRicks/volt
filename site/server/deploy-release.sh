@@ -64,7 +64,14 @@ umask 022
 # before current moves it refuses; after, it ends in DEPLOY_INCOMPLETE naming what could not be confirmed. So
 # each probe below prints an exact answer word (or a checked path) and is read by that word, never by an empty
 # string or by "not a match". site/README.md, "Probes", lists them all.
-REASON=; FINAL=0; STAGED=0; LINKS_CHECKED=0; START_LIVE=; ERR_LINE=; SIGNALED=0; SWITCH_STARTED=0; SWITCH_STATE=
+#
+# One lock for every writer of current and live: the switch's own lock file. The switch holds it for its whole
+# run (it reads current and writes live under it), and this script holds it while it reads live and moves
+# current, and from its check of the switch's result through the rollback and its read-back. It never holds it
+# while the switch it started runs (that would deadlock); a switch the Workbench starts meanwhile waits for it,
+# then reads current as this script left it. The commands it prints for an operator take it too (flock).
+# site/README.md, "Writers of current and live", lists every writer.
+LINKS_LOCKED=0; REASON=; FINAL=0; STAGED=0; LINKS_CHECKED=0; START_LIVE=; ERR_LINE=; SIGNALED=0; SWITCH_STARTED=0; SWITCH_STATE=
 refuse() {
   REASON="$*"
   exit 1
@@ -73,6 +80,9 @@ trap 'ERR_LINE=$LINENO' ERR
 on_exit() {
   local rc=$? into= live_back live_step
   { [ "$rc" -ne 0 ] && [ "$FINAL" -eq 0 ]; } || return 0
+  # Let a waiting switch run finish before anything below waits for the unit to be idle (inline: this trap can
+  # run before unlock_links is defined).
+  if [ "$LINKS_LOCKED" -eq 1 ]; then exec 8>&-; LINKS_LOCKED=0; fi
   if [ "$LINKS_CHECKED" -eq 1 ]; then
     into="$(links_into_release 2>/dev/null)" || into=unknown
   fi
@@ -99,10 +109,9 @@ on_exit() {
     echo "DEPLOY_INTERRUPTED (exit $rc near line ${ERR_LINE:-?}${REASON:+: $REASON}): the new release $REL" \
          "already holds $into, and no rollback ran. Nothing was removed. If both point into it and live is the" \
          "variant you want, the deploy itself finished; otherwise put both back before anything else." >&2
-    echo "DEPLOY_INTERRUPTED put back by hand, as root:" \
-         "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
-         "&& $live_step" \
-         "&& readlink -f $HOME_DIR/current && { readlink $HOME_DIR/live || echo 'no live link'; }" >&2
+    echo "DEPLOY_INTERRUPTED put back by hand, as root: $(link_steps "ln -sfn $PREV $HOME_DIR/current.new" \
+         "&& mv -Tf $HOME_DIR/current.new $HOME_DIR/current && $live_step" \
+         "&& readlink -f $HOME_DIR/current && { readlink $HOME_DIR/live || echo no-live-link; }")" >&2
     echo "DEPLOY_INTERRUPTED once both are back, the same command works again (it reuses $REL)." >&2
     return 0
   fi
@@ -133,6 +142,8 @@ UPLOADS="${VOLT_UPLOAD_DIR:-/tmp}"
 SWITCH="${VOLT_SWITCH_BIN:-/usr/local/sbin/volt-homepage-switch}"
 STATUS="${VOLT_SWITCH_STATUS:-/var/lib/volt-homepage-switch/status.json}"
 OWNER="${VOLT_RELEASE_OWNER:-root:root}"
+# The switch's lock (volt-homepage-switch takes <state dir>/lock; the status file sits in the same folder).
+SWITCH_LOCK="${VOLT_SWITCH_LOCK:-${STATUS%/*}/lock}"
 SETTLE_SECONDS="${VOLT_SWITCH_SETTLE_SECONDS:-60}"   # the unit's TimeoutStartSec is 30
 [[ "$SETTLE_SECONDS" =~ ^[0-9]{1,4}$ ]] || refuse "VOLT_SWITCH_SETTLE_SECONDS must be a whole number of seconds"
 TAR="$UPLOADS/volt-home-$C.tar.gz"; MAN="$UPLOADS/volt-home-$C.manifest"
@@ -288,6 +299,43 @@ switch_not_idle() {
     unknown*) echo "$SWITCH_UNIT could not be confirmed idle after ${SETTLE_SECONDS}s ($SWITCH_STATE)" ;;
     *) echo "$SWITCH_UNIT is still running after ${SETTLE_SECONDS}s ($SWITCH_STATE)" ;;
   esac
+}
+# lock_links: takes the switch's lock (see above) on fd 8, waiting at most SETTLE_SECONDS for a switch run that
+# holds it. Prints nothing; fails when the lock file can't be opened or the lock isn't taken in time, which
+# counts as unknown. unlock_links lets it go (closing fd 8 releases it; nothing else holds that descriptor).
+lock_links() {
+  { exec 8>>"$SWITCH_LOCK"; } 2>/dev/null || return 1
+  if [ "$(python3 -I -c 'import fcntl, sys, time
+deadline = time.monotonic() + float(sys.argv[2])
+while True:
+    try:
+        fcntl.flock(8, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        break
+    except BlockingIOError:
+        if time.monotonic() >= deadline:
+            sys.exit(1)
+        time.sleep(0.1)
+print("locked")' tag:linklock "$SETTLE_SECONDS" 2>/dev/null)" = locked ]; then
+    LINKS_LOCKED=1
+    return 0
+  fi
+  exec 8>&-
+  return 1
+}
+unlock_links() {
+  [ "$LINKS_LOCKED" -eq 1 ] || return 0
+  exec 8>&-
+  LINKS_LOCKED=0
+}
+# link_steps <commands>...: commands an operator runs to change the links. With the switch installed they run
+# under its lock, so a switch run can't interleave with them (flock waits at most 60 s, then fails, changing
+# nothing). The commands hold no single quotes.
+link_steps() {
+  if [ "${switch_installed:-0}" -eq 1 ]; then
+    printf "flock -w 60 %s sh -c '%s'" "$SWITCH_LOCK" "$*"
+  else
+    printf '%s' "$*"
+  fi
 }
 # The switch run isn't confirmed finished: the links can still change, so no put-back commands (they would
 # race it).
@@ -627,6 +675,10 @@ unchanged || refuse "current or the nginx site file changed during the deploy (o
 if [ "$switch_installed" -eq 1 ]; then
   switch_settles || refuse "$(switch_not_idle); run the same command again once it has finished"
 fi
+# From here until current has moved, no switch run can change live: this script holds the switch's lock.
+if [ "$switch_installed" -eq 1 ]; then
+  lock_links || refuse "could not take the switch lock $SWITCH_LOCK within ${SETTLE_SECONDS}s (a switch run holds it, or it can't be opened); run the same command again once the switch has finished"
+fi
 read_link "$HOME_DIR/live"
 case "$LINK" in
   link) prior_live=$LINK_RAW ;;
@@ -667,6 +719,9 @@ if [ "$moved" != yes ]; then
 fi
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
+  # The switch takes the lock itself: let it go first. A switch the Workbench started meanwhile then runs
+  # with current already in the new release.
+  unlock_links
   # In a session of its own, so a signal to the deploy's process group (Ctrl-C, a hang-up) can't kill the client
   # half way; and whatever the client says, the unit itself must be confirmed idle before anything reads the links.
   SWITCH_STARTED=1
@@ -674,6 +729,12 @@ if [ "$switch_installed" -eq 1 ]; then
   python3 -I -c 'import os, sys; os.setsid(); os.execvp(sys.argv[2], sys.argv[2:])' tag:start systemctl start "$SWITCH_UNIT" || switch_ok=0
   if ! switch_settles; then
     report_switch_running
+    finish 2
+  fi
+  # From the check of the switch's result through the rollback and its read-back, no switch run can change
+  # live: one the Workbench starts now waits, and then sees current as this script leaves it. Held to the end.
+  if ! lock_links; then
+    report_unconfirmed "the links: the switch lock $SWITCH_LOCK could not be taken within ${SETTLE_SECONDS}s, so a switch run may still be changing live"
     finish 2
   fi
   read_link "$HOME_DIR/live"
@@ -728,10 +789,9 @@ if os.path.islink(p) and (t == rel or t.startswith(rel + os.sep)): os.unlink(p)'
     echo "DEPLOY_INCOMPLETE the deploy failed (switch_ok=$switch_ok) and the rollback could not be confirmed:" \
          "current -> $current_now (want $PREV), live -> $live_now (want ${prior_live:-none}); confirmed back:" \
          "current $current_back, live $live_back. The switch is confirmed idle, so the commands below can't race it." >&2
-    echo "DEPLOY_INCOMPLETE finish by hand, as root:" \
-         "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
-         "&& $live_step" \
-         "&& readlink -f $HOME_DIR/current && { readlink $HOME_DIR/live || echo 'no live link'; }" >&2
+    echo "DEPLOY_INCOMPLETE finish by hand, as root: $(link_steps "ln -sfn $PREV $HOME_DIR/current.new" \
+         "&& mv -Tf $HOME_DIR/current.new $HOME_DIR/current && $live_step" \
+         "&& readlink -f $HOME_DIR/current && { readlink $HOME_DIR/live || echo no-live-link; }")" >&2
     finish 2
   fi
   # This run's status only: it must name the new release. It is only reported (the outcome was decided by the
@@ -755,9 +815,10 @@ PY
 fi
 echo "UPDATE_OK current=$REL previous=$PREV backup=$BACKUP cards_added=$cards_added $live_line"
 if [ "$switch_installed" -eq 1 ] && [ -n "$prior_live" ]; then
-  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current && ln -sfn $prior_live $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live (cards stay)"
+  echo "Rollback: $(link_steps "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
+       "&& ln -sfn $prior_live $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live") (cards stay)"
 else
-  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current"
+  echo "Rollback: $(link_steps "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current")"
 fi
 finish 0
 }

@@ -730,6 +730,39 @@ class DeployRelease(unittest.TestCase):
                   ' [ -e "%s" ] || rm -f "%s" ) </dev/null >/dev/null 2>&1 & exit 143'
                   % (self.unit_state, base / 'listjobs-fails', self.unit_state, run, self.unit_state,
                      base / 'listjobs-keeps-failing', base / 'listjobs-fails'))
+        # A Workbench "Make live" request: the request becomes original and the real switch runs outside the
+        # deploy (what volt-homepage-switch.path starts). It waits <delay> s first; it notes whether the switch's
+        # lock was free and where both links pointed once it had the lock (workbench-saw); with <pause> > 0 it
+        # holds the lock that long after reading current, just before it moves live (workbench-holding marks
+        # that point); workbench-done marks its end. "movefail-workbench" fires it from the deploy's first
+        # job-list query after its own switch failed, so it arrives as the deploy finds the unit idle;
+        # "movefail-longswitch" fires it while the deploy's switch is failing and waits until it holds the lock.
+        self.workbench_done, self.workbench_saw = base / 'workbench-done', base / 'workbench-saw'
+        (base / 'workbench.py').write_text(
+            'import fcntl, importlib.machinery, importlib.util, json, os, sys, time\n'
+            'path, home, request, state, delay, pause, out = sys.argv[1:8]\n'
+            'time.sleep(float(delay))\n'
+            'loader = importlib.machinery.SourceFileLoader("volt_switch", path)\n'
+            'module = importlib.util.module_from_spec(importlib.util.spec_from_loader("volt_switch", loader))\n'
+            'loader.exec_module(module)\npoint_live = module.point_live\n'
+            'def paused(*args):\n'
+            '    if float(pause):\n        open(out + "-holding", "w").close()\n        time.sleep(float(pause))\n'
+            '    return point_live(*args)\n'
+            'module.point_live = paused\n'
+            'try:\n'
+            '    with open(os.path.join(state, "lock"), "a") as f:\n'
+            '        try:\n            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\n            blocked = False\n'
+            '        except BlockingIOError:\n            blocked = True\n            fcntl.flock(f, fcntl.LOCK_EX)\n'
+            '        saw = [blocked, os.path.realpath(os.path.join(home, "current")), os.readlink(os.path.join(home, "live"))]\n'
+            '    open(out + "-saw", "w").write(json.dumps(saw))\n'
+            '    open(request, "w").write("original\\n")\n'
+            '    module.main(["--home", home, "--request", request, "--state-dir", state])\n'
+            'finally:\n    open(out + "-done", "w").close()\n')
+        workbench = lambda delay, pause: ('( "%s" -I "%s" "%s" "%s" "%s" "%s" %s %s "%s" ) </dev/null >/dev/null 2>&1 & true'
+                                          % (sys.executable, base / 'workbench.py', self.switch_bin, self.home, self.request,
+                                             self.state, delay, pause, base / 'workbench'))
+        self.workbench_holding = base / 'workbench-holding'
+        self.workbench_pause = base / 'workbench-pause'
         # Fault injection (test_every_probe_that_fails_reads_as_unknown): the file "fault" names probes
         # (comma-separated), "fault-when" says from when (always; moving: from the rename of current into the
         # new release on; moved: once current points there), "fault-how" says how (exit1: fails, printing
@@ -745,6 +778,7 @@ class DeployRelease(unittest.TestCase):
             '      *) faulty show && fault_out; s="$(cat "%s" 2>/dev/null || echo inactive)"; [ "$s" = queued ] && s=inactive; echo "$s" ;;\n'
             '    esac; exit 0 ;;\n'
             '  list-jobs) faulty list-jobs && fault_out; [ -e "%s" ] && exit 1\n'
+            '    if [ -e "%s" ]; then rm -f "%s"; %s; fi\n'
             '    case "$(cat "%s" 2>/dev/null)" in activating|queued) echo "7 volt-homepage-switch.service start running" ;; esac\n'
             '    cat "%s" 2>/dev/null; exit 0 ;;\n'
             '  start)\n'
@@ -753,10 +787,15 @@ class DeployRelease(unittest.TestCase):
             '    run) exec %s ;;\n    fail) exit 1 ;;\n    movefail) %s; exit 1 ;;\n'
             '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n'
             '    runterm) %s; kill -TERM "$PPID"; exit 0 ;;\n    detach) %s ;;\n    detachslow) %s ;;\n    queued) %s ;;\n'
+            '    movefail-workbench) %s; touch "%s"; exit 1 ;;\n'
+            '    movefail-longswitch) %s; %s; until [ -e "%s" ]; do sleep 0.05; done; exit 1 ;;\n'
             '  esac ;;\nesac\nexit 0\n'
-            % (base / 'faulty.sh', base / 'no-unit', self.unit_state, base / 'listjobs-fails', self.unit_state,
+            % (base / 'faulty.sh', base / 'no-unit', self.unit_state, base / 'listjobs-fails',
+               base / 'workbench-armed', base / 'workbench-armed', workbench(0.2, 0), self.unit_state,
                base / 'jobs-extra', self.starts, self.starts, self.starts, self.mode,
-               run, run, run, self.home, run, job(1), job(4), queued))
+               run, run, run, self.home, run, job(1), job(4), queued,
+               run, base / 'workbench-armed', run, workbench(0, '"$(cat "%s")"' % (base / 'workbench-pause')),
+               base / 'workbench-holding'))
         # readlink and grep can fail too (the deploy's fallback link reader, and its nginx configuration check).
         for name in ('readlink', 'grep'):
             (self.bin / name).write_text('#!/bin/sh\n. "%s"\nfaulty %s && fault_out 2\nexec "%s" "$@"\n'
@@ -961,6 +1000,19 @@ class DeployRelease(unittest.TestCase):
         self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
         self.assertEqual(self.starts.read_text(), 'start\n', 'the rollback must not start the switch again')
 
+    def run_printed_steps(self, out, prefix):
+        """Runs the put-back commands a deploy printed after prefix, as an operator would. They must run under the
+        switch's lock (flock -w 60 <state>/lock sh -c '...'); flock is not on every test machine, so a Python
+        stand-in takes the same lock. mv -T is GNU-only, so os.replace stands in for it."""
+        line = re.search(re.escape(prefix) + r'(.*)', out.stderr).group(1)
+        m = re.fullmatch(r"flock -w 60 (\S+) sh -c '([^']*)'", line)
+        self.assertTrue(m, 'the printed steps take the switch lock: ' + line)
+        self.assertEqual(m.group(1), str(self.state / 'lock'))
+        steps = m.group(2).replace('mv -Tf', '"%s" -I -c "import os,sys; os.replace(*sys.argv[1:])"' % sys.executable)
+        locked = ('import fcntl, subprocess, sys\nwith open(sys.argv[1], "a") as f:\n    fcntl.flock(f, fcntl.LOCK_EX)\n'
+                  '    sys.exit(subprocess.call(["sh", "-c", sys.argv[2]]))\n')
+        subprocess.run([sys.executable, '-I', '-c', locked, m.group(1), steps], check=True, capture_output=True)
+
     @unittest.skipIf(os.geteuid() == 0, 'root ignores the locked folder')
     def test_rollback_that_cannot_finish_says_deploy_incomplete(self):
         self.mode.write_text('movelock')
@@ -973,8 +1025,7 @@ class DeployRelease(unittest.TestCase):
         self.assertIn('DEPLOY_INCOMPLETE finish by hand', out.stderr)
         self.assertIn('ln -sfn %s/releases/%s/variants/refined %s/live.new' % (self.home, self.PREV, self.home), out.stderr)
         # Following the printed steps puts both links back.
-        steps = re.search(r'finish by hand, as root: (.*)', out.stderr).group(1).replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
-        subprocess.run(['sh', '-c', steps], check=True, capture_output=True)
+        self.run_printed_steps(out, 'DEPLOY_INCOMPLETE finish by hand, as root: ')
         self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
 
     @staticmethod
@@ -1208,9 +1259,7 @@ class DeployRelease(unittest.TestCase):
                     self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
                     self.retry_succeeds()
                 else:
-                    steps = re.search(r'DEPLOY_INCOMPLETE finish by hand, as root: (.*)', out.stderr).group(1)
-                    steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
-                    subprocess.run(['sh', '-c', steps], check=True, capture_output=True, env=dict(os.environ))
+                    self.run_printed_steps(out, 'DEPLOY_INCOMPLETE finish by hand, as root: ')
                     self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
                     self.retry_succeeds()
 
@@ -1309,6 +1358,7 @@ class DeployRelease(unittest.TestCase):
             if 'ln -sfn' not in line:
                 continue
             self.assertNotRegex(out.stderr, r'could not be confirmed idle|is still running after', 'commands racing the switch')
+            self.assertIn("flock -w 60 %s sh -c '" % (self.state / 'lock'), line, 'under the switch lock')
             self.assertIn('ln -sfn %s %s/current.new' % (self.home / 'releases' / self.PREV, self.home), line)
             self.assertIn('ln -sfn %s %s/live.new' % (self.variant(self.PREV, 'refined'), self.home), line)
             self.assertNotIn('rm -f %s/live' % self.home, line)
@@ -1339,6 +1389,7 @@ class DeployRelease(unittest.TestCase):
             (['matches'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'could not check'),
             (['unserved'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'cannot be staged over'),
             (['cards'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'card'),
+            (['linklock'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not take the switch lock'),
             # The rename itself fails and so does every Python step after it (Codex's second finding): the
             # fallback reader confirms current never moved.
             (['python'], 'moving', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not move current'),
@@ -1347,6 +1398,7 @@ class DeployRelease(unittest.TestCase):
             (['show'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
             (['list-jobs'], 'moved', ('exit1',), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
             (['start'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_FAILED', 'live was not left inside the new release'),
+            (['linklock'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'the switch lock'),
             (['python'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
             # The switch moves live and fails, and the rollback's renames fail: confirmed not back, so the exact commands.
             (['swap'], 'moved', ('exit1', 'empty'), 'movefail', 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
@@ -1375,14 +1427,84 @@ class DeployRelease(unittest.TestCase):
                     if marker in ('DEPLOY_REFUSED', 'DEPLOY_FAILED'):
                         self.assertEqual((self.current(), self.live()), old_links, 'nothing served changed')
                     elif 'finish by hand' in out.stderr:
-                        steps = re.search(r'DEPLOY_INCOMPLETE finish by hand, as root: (.*)', out.stderr).group(1)
-                        steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
-                        subprocess.run(['sh', '-c', steps], check=True, capture_output=True, env=dict(os.environ))
+                        self.run_printed_steps(out, 'DEPLOY_INCOMPLETE finish by hand, as root: ')
                         self.assertEqual((self.current(), self.live()), old_links)
                     else:
                         self.assertNotIn('ln -sfn', out.stderr)
                         self.put_back_by_hand()
                     self.retry_succeeds()
+
+    def wait_for_workbench(self):
+        deadline = time.monotonic() + 15
+        while not self.workbench_done.exists():
+            self.assertLess(time.monotonic(), deadline, 'the Workbench switch run never finished')
+            time.sleep(0.05)
+        return json.loads(self.workbench_saw.read_text())
+
+    def test_a_workbench_switch_after_the_idle_check_waits_for_the_rollback(self):
+        # Codex's round-4 probe: the deploy's switch fails, the unit is found idle, and a Workbench "Make live"
+        # starts a switch run right then (0.2 s later). The deploy took the switch's lock before it read live, so
+        # that run waits until both links are back and confirmed, then applies the request to the restored release.
+        self.mode.write_text('movefail-workbench')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_FAILED', False), out.stderr)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        blocked, saw_current, saw_live = self.wait_for_workbench()
+        self.assertTrue(blocked, 'the Workbench run had to wait for the lock')
+        self.assertEqual((saw_current, saw_live), (str(self.home / 'releases' / self.PREV), self.variant(self.PREV, 'refined')),
+                         'when it got the lock, the rollback had finished')
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'original')),
+                         'consistent: live is inside current, as the Workbench asked')
+
+    def test_a_long_switch_holding_the_lock_is_awaited_before_the_rollback(self):
+        # A Workbench switch run took the lock first (while the deploy's own switch was failing) and holds it for
+        # 1.5 s before moving live. The rollback waits for it, then restores both links.
+        self.mode.write_text('movefail-longswitch')
+        self.workbench_pause.write_text('1.5')
+        out = self.deploy()
+        self.assertTrue(self.workbench_done.exists(), 'the deploy waited for that run to finish')
+        self.assertEqual(self.outcome(out), ('DEPLOY_FAILED', False), out.stderr)
+        self.assertEqual(self.wait_for_workbench(), [False, str(self.home / 'releases' / self.NEW), self.variant(self.NEW, 'refined')])
+        self.assertIn('live_after_switch=%s' % self.variant(self.NEW, 'original'), out.stderr, 'it read live after that run')
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        # It holds the lock longer than VOLT_SWITCH_SETTLE_SECONDS: the deploy can't confirm live, so
+        # DEPLOY_INCOMPLETE naming the lock, with no commands (they could race that run).
+        self.tearDown()
+        self.setUp()
+        self.settle = '1'
+        self.mode.write_text('movefail-longswitch')
+        self.workbench_pause.write_text('2')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertIn('the switch lock %s could not be taken within 1s' % (self.state / 'lock'), out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        self.wait_for_workbench()
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'original')),
+                         'nothing undone behind the switch run')
+
+    def test_a_held_switch_lock_refuses_before_current_moves(self):
+        # Something holds the switch's lock for longer than VOLT_SWITCH_SETTLE_SECONDS before the move: refuse,
+        # nothing served changed, and the identical command works once the lock is free.
+        self.settle = '1'
+        self.state.mkdir(exist_ok=True)
+        ready = self.flags / 'lock-held'
+        # A separate holder that lets go after 4 s, so a deploy that waits on the lock can never hang the test.
+        holder = subprocess.Popen([sys.executable, '-I', '-c', 'import fcntl, sys, time\nf = open(sys.argv[1], "a")\n'
+                                   'fcntl.flock(f, fcntl.LOCK_EX)\nopen(sys.argv[2], "w").close()\ntime.sleep(4)\n',
+                                   str(self.state / 'lock'), str(ready)])
+        self.addCleanup(holder.wait)
+        while not ready.exists():
+            time.sleep(0.05)
+        out = self.deploy()
+        self.assertIsNone(holder.poll(), 'the lock was still held when the deploy finished')
+        holder.wait()
+        self.assertEqual(out.returncode, 1, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('could not take the switch lock %s within 1s' % (self.state / 'lock'), out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.retry_succeeds()
 
     def test_a_failed_job_list_is_unknown_not_idle(self):
         # Codex's round-3 probe: the start job is queued (show still says inactive) and list-jobs fails. That is
