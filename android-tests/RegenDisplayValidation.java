@@ -314,6 +314,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), name + ": no inferred reading on screen", 45000);
             main(() -> { caption.set(checkDrawn(name, problem)); });
             if (problem.get() != null) throw new AssertionError(problem.get());
+            SystemClock.sleep(250); // Let the checked frame reach the screen: idle isn't drawn.
             shot("riding-cue-" + name);
             // The direction can change between readings: only a frame still inferred after the shot counts as this rung's picture.
             AtomicReference<Boolean> still = new AtomicReference<>(false);
