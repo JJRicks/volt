@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.12.1 (versionCode 56)
+Current version: 1.13.0 (versionCode 57)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,19 +25,36 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.12.1
+NEW IN 1.13.0
+------------
+- Dutch, Turkish and Polish, all beta. The lock's Quick access padlock shows
+  its last known state in every language; in Turkish and Polish its tiles say
+  locked or unlocked instead of On and Off.
+- Riding mode's brightness, rotation, Hide status bar and night vision move
+  into its tune menu, which saves every change at once (no Done) and closes
+  only at 4 mph (6.4 km/h). Lock, Record and tune also show while the scooter
+  is disconnected; there Record only stops a running recording and Lock shows
+  its last known state without taking a tap. Lock and Record fade in and out
+  like the tune button.
+- Riding mode closes when a recording ends by itself, and Volt shows Home at
+  the next open after the connection was lost while it was out of sight with
+  no recording running. Max and Average speed start from zero at each open.
+- Scooters that don't report current direction, such as a GT3 Max, get an
+  estimated regen below zero in riding mode and on the ride graph, marked as
+  direction unknown; their saved rides' energy rows stay Not measured.
+- Focus's battery gauge follows Battery to any spot. Ride export file names
+  start with the ride's date and time. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 1.12.1
 ------------
 - Riding mode's power bar uses the same direction rule as ride recordings: a
   UT5 MAX shows draw and regen right away. Scooters that report only unsigned
   current stay muted, except that a reading from about 1,200 W up shows as
   draw, inferred rather than measured. Draw and Input on their saved rides are
   unconfirmed.
-- Riding mode's Ride time, distance, Max and Average speed start from zero each
-  time it opens. It closes itself when a recording ends automatically. Its
+- Riding mode's Ride time and distance start from zero each time it opens. Its
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
-  screen, and it has Lock and Record buttons while the scooter is stopped or
-  disconnected. Disconnected, Record only stops a recording and Lock shows
-  its last known state without taking a tap.
+  screen, and it has Lock and Record buttons while the scooter is stopped.
 - Start automatically, off by default: Record rides automatically and Riding
   mode's Open automatically act when the connected scooter moves.
 - The live charging card clears about 15 s after unplugging and, on Android 16
@@ -693,7 +710,9 @@ screen on and hides the navigation bar. Focus (the default), Halo (a speedometer
 ring with max and average) and Trace (the last minute of speed, draw and regen)
 show speed, Range at this pace (from recent energy per km at cruising speed,
 falling back to Volt's or the scooter's range), battery, trip, ride time,
-battery temperature and power; the layout picker shows only while stopped.
+battery temperature and power. In Focus, Battery brings its gauge to whichever
+spot shows it (segments, a strip under the big number or a thin bar under a
+tile), and the gauge is left out where it would squeeze the number.
 Ride time, trip distance, Max and Average speed start from zero each time riding
 mode opens and keep counting through rotation and while the phone is locked;
 Back and reopening starts them over. Average counts only time spent moving. A recording that ends automatically
@@ -701,21 +720,40 @@ closes riding mode, even in the background; the rider's own stop leaves it open.
 It also shows Home at the next open if the scooter's connection was lost while
 Volt was off screen, with no recording running; nothing closes while Volt stays
 on screen. Volt's own Bluetooth pause after leaving (Stay connected in
-background off) only counts once Volt has been away 2 minutes.
+background off) only counts once Volt has been away 2 minutes. With Open
+automatically on and the scooter moving, a new riding mode, from zero, opens
+instead; the old one never comes back.
 Stale values dim, and speed shows a dash after 6 s without a reading.
-More > App preferences > Riding mode sets brightness (Phone by default, Volt
-auto from the light sensor with learned per-band offsets, or Fixed), rotation
-(Lock on open or Follow phone) and Hide status bar (off by default). It never
+On scooters whose current has no direction (a GT3 Max, for example), Volt
+estimates regen from falling speed and battery voltage and draws it below zero
+in the muted colour with "power (direction unknown)", never as confirmed regen;
+saved rides plot it the same way on the power graph, keep "Direction ?" and
+leave Battery draw and Battery input Not measured. Range and energy estimates
+ignore it. Emulator- and JVM-tested; not yet checked on a GT3 Max.
+The tune disc (shown while stopped or disconnected, hidden while the connected
+scooter moves, sliding in and out over 220 ms) opens the tune menu. At the top
+is the layout editor: drawn previews of the three frames, what each spot shows,
+and per-frame Power bar, Chips and Tenths switches, saved per scooter as each
+change is made (no Done button), with Reset for the frame on show. Below it
+are riding mode's own settings: brightness (Phone by default, Volt auto from
+the light sensor with learned per-band offsets, or Fixed), rotation (Lock on
+open or Follow phone), Hide status bar (off by default) and night vision, plus
+Record rides automatically and Open automatically, which are also in More >
+App preferences. Every change saves at once. The menu closes with its close
+button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
+a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is
-Lock or Unlock, from the Lock button that shows with Record while the scooter is
-stopped under 1 km/h and goes away as soon as it moves. The tune disc (shown while stopped, sliding in and out over 220 ms)
-opens the layout editor: drawn previews of the three frames, what each spot
-shows, and per-frame Power bar, Chips and Tenths switches, saved per scooter
-only on Done, with Reset for the frame on show. Volt's range there is the
-learned estimate from past rides. Night vision (moon button; More > App
-preferences > Riding mode > Night vision: Off, On or Scheduled) draws riding
-mode red on black, rescales Volt auto and Fixed brightness to a dim night
-range, hides the status bar and fades over about 450 ms. Scheduled uses sunset
+Lock or Unlock, from the Lock button that shows with Record while the scooter
+is stopped under 1 km/h and goes away as soon as it moves; both fade and grow
+like the tune disc and stop taking taps once they start to hide. While the
+scooter is disconnected, Lock and Record show too: Lock shows its last known
+state and takes no tap, and Record can stop a running recording but never
+starts one. Volt's range in riding mode is the learned estimate from past
+rides.
+Night vision (moon button; the tune menu's Night vision: Off, On or
+Scheduled) draws riding mode red on black, rescales Volt auto and Fixed
+brightness to a dim night range, hides the status bar and fades over about
+450 ms. Scheduled uses sunset
 to sunrise, computed on the phone from the last recorded ride's area (rounded
 to about 10 km, after asking) or the time zone, or custom times; a moon tap
 lasts until the next switch. Nothing is sent. Tested with simulated samples
@@ -725,7 +763,7 @@ Auto-start (More > App preferences, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
 above zero, also in the background with Stay connected in background on (a
 ride started that way has no GPS route). Riding mode > Open automatically
-opens riding mode the same way, only while Volt is on screen and no dialog
+(also in riding mode's tune menu) opens riding mode the same way, only while Volt is on screen and no dialog
 or sheet is open. A manual stop or backing out holds that switch until the
 scooter reconnects; a ride that ends by itself does not. Emulator-tested.
 
