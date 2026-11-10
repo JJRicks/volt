@@ -49,9 +49,12 @@ public final class RidingValuesTest {
         speedBoundaries();
         speedFollowsTelemetry();
         quickReconnect();
+        linkLost();
+        restoredStateUnusable();
+        homeThenAutoOpen();
         battery();
         ranges();
-        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, bands, ranges)");
+        System.out.println("RidingValuesTest: " + checks + " checks passed (0x91/0x92, sign, sign corrections, shared coverage, direction history, unknown after regen, inferred draw, meter vs recording, unknown until sign, staleness, interval EMA, coverage, energy, scale, trace gaps, timers, ride time and distance from each open, whole-km to tenths, unseen distance across a counter switch, reopen vs recreation, lost link, unusable saved state, Home then auto-open, bands, ranges)");
     }
 
     /** 0x92: battery, status, speed tenths (LE16), range, trip tenths (LE16), trip minutes, max, avg, odometer. */
@@ -1416,6 +1419,202 @@ public final class RidingValuesTest {
         check(new RidingSession("p2", null, back, saved).rideTimeMs(back) == 0, "another scooter doesn't inherit it");
         check(new RidingSession(PROFILE, null, t - 1, saved).rideTimeMs(t - 1) == 0, "nor does an open time from the future (a clock from another boot)");
         check(RidingSession.Resume.of(null, t, new double[4]) == null && RidingSession.Resume.of(PROFILE, t, new double[3]) == null, "unusable saved state is refused");
+    }
+
+    /** A session seen connected, over a Log that has seen the same. Times are the phone's monotonic clock. */
+    private static RidingLink.Log upLog() { RidingLink.Log log = new RidingLink.Log(7); log.observe(true, false); return log; }
+    private static RidingSession connectedSession(long t) { RidingSession session = new RidingSession(PROFILE, null, t, null, 0); session.observeLink(true); return session; }
+
+    /** RidingSession's part: when a leave starts and ends, and what it carries. RidingLinkTest has the rule itself. */
+    private static void linkLost() {
+        long t = 1_000_000L;
+        RidingLink.Log log = upLog();
+        RidingSession session = connectedSession(t);
+        session.observeLink(false);
+        check(!session.away(), "a drop on screen isn't a leave");
+        session.left(log.now(), t);
+        check(session.away() && !session.lostOnReturn(log.now(), false, t + 5000), "gone and back with the connection untouched stays open");
+        check(!session.away(), "the return ends the leave");
+
+        // A drop on screen and a reconnect, before the leave, counts for nothing.
+        log = upLog();
+        session = connectedSession(t);
+        log.observe(false, false);
+        session.observeLink(false);
+        log.observe(true, false);
+        session.observeLink(true);
+        session.left(log.now(), t);
+        check(!session.lostOnReturn(log.now(), false, t + 5000), "a drop and reconnect on screen counts for nothing");
+
+        // A recording holds it open at the return it's running at, and that return ends the leave.
+        log = upLog();
+        session = connectedSession(t);
+        session.left(log.now(), t);
+        log.observe(false, false);
+        check(!session.lostOnReturn(log.now(), true, t + 5000), "a recording still running keeps riding mode open");
+        check(!session.lostOnReturn(log.now(), false, t + 6000), "that return ended the leave: a later one is judged from a fresh leave");
+
+        // Opened with no scooter: nothing counts until one has been seen.
+        log = new RidingLink.Log(7);
+        session = new RidingSession(PROFILE, null, t, null, 0);
+        session.observeLink(false);
+        session.left(log.now(), t);
+        check(!session.lostOnReturn(log.now(), false, t + 5000), "opened with no scooter connected stays through a leave and return");
+        session.left(log.now(), t + 6000);
+        session.observeLink(true);
+        log.observe(true, false);
+        check(!session.lostOnReturn(log.now(), false, t + 7000), "a connection made off screen wasn't seen by this riding mode");
+        session.observeLink(true);
+        check(!session.away() && session.resume().linkSeen(), "seen once it's on screen");
+        session.left(log.now(), t + 8000);
+        log.observe(false, false);
+        check(session.lostOnReturn(log.now(), false, t + 9000), "and from then on a loss counts");
+
+        // A permission dialog only pauses the activity: no left() call, so there's nothing to lose.
+        log = upLog();
+        session = connectedSession(t);
+        log.observe(false, false);
+        session.observeLink(false);
+        check(!session.lostOnReturn(log.now(), false, t + 5000), "an activity pause alone is no leave");
+
+        // Android may save state before stopping: the first left() of a leave wins, time included.
+        log = upLog();
+        session = connectedSession(t);
+        session.left(log.now(), t);
+        log.observe(false, true);
+        session.left(log.now(), t + RidingLink.PAUSE_GRACE_MS);
+        check(session.lostOnReturn(log.now(), false, t + RidingLink.PAUSE_GRACE_MS), "a second left() in one leave doesn't restart the time away");
+
+        // Saved and read back, as when the activity is recreated, or (a new token) the process dies.
+        log = upLog();
+        session = connectedSession(t);
+        session.left(log.now(), t);
+        RidingSession.Resume saved = session.resume();
+        RidingSession.Resume restored = RidingSession.Resume.of(saved.profileId(), saved.openedMs(), saved.distance(), saved.speed(), saved.autoEnds(), saved.linkSeen(), saved.leave());
+        check(!restored.lostOnReturn(log.now(), false, t + 5000), "activity destroyed, connection untouched: it comes back");
+        RidingLink.Log paused = upLog();
+        paused.observe(false, true);
+        check(!restored.lostOnReturn(paused.now(), false, t + RidingLink.PAUSE_GRACE_MS - 1), "activity destroyed, Volt's pause, back in time: it comes back");
+        check(restored.lostOnReturn(paused.now(), false, t + RidingLink.PAUSE_GRACE_MS), "the time away survived the save: past it, it closes");
+        RidingLink.Log dropped = upLog();
+        dropped.observe(false, false);
+        dropped.observe(true, false);
+        check(restored.lostOnReturn(dropped.now(), false, t + 5000), "activity destroyed, a drop while away, reconnected since: closes");
+        RidingLink.Log other = new RidingLink.Log(8);
+        check(restored.lostOnReturn(other.now(), false, t + 5000), "process death: had seen a connection, no recording: closes");
+        check(!restored.lostOnReturn(other.now(), true, t + 5000), "process death: unless a recording is running");
+        check(!new RidingSession(PROFILE, null, t, null, 0).resume().lostOnReturn(other.now(), false, t + 5000), "a saved riding mode that never saw a connection comes back");
+        check(!connectedSession(t).resume().lostOnReturn(other.now(), false, t + 5000), "an on-screen recreation hasn't left: no leave to judge");
+        check(!RidingSession.Resume.of(PROFILE, t, saved.distance(), saved.speed(), 3).lostOnReturn(other.now(), false, t + 5000), "a save from before this existed counts as never connected");
+        RidingSession back = new RidingSession(PROFILE, null, t + 1000, saved, 0);
+        check(back.resume().linkSeen() && !back.away() && !back.lostOnReturn(other.now(), false, t + 5000), "a restored session keeps what it had seen, and starts on screen");
+    }
+
+    /**
+     * Saved riding state that can't be used (an older save, a missing or broken array) opens riding mode fresh, as
+     * before: never a crash, never Home. Codex #355 finding 1: the restore check read a null resume.
+     */
+    private static void restoredStateUnusable() {
+        long t = 2_000_000L;
+        RidingLink.Log other = new RidingLink.Log(8);
+        other.observe(false, false);
+        RidingLink.Now now = other.now();
+        // 1.12.0 saved only the riding flag: no riding_opened_ms, so no resume at all.
+        check(!RidingSession.Resume.restoresHome(null, 5, now, false, t), "a 1.12.0 save (riding flag only) doesn't throw and doesn't go Home");
+        RidingSession fresh = new RidingSession(PROFILE, null, t, null, 5);
+        check(fresh.rideTimeMs(t) == 0 && fresh.maxKmh() == null && fresh.trip().km == null && !fresh.away(), "it opens fresh, as 1.12.0 did");
+        // The bundle's getters hand back null for a missing or wrongly typed array.
+        double[] distance = connectedSession(t).resume().distance();
+        RidingSession.Resume missing = RidingSession.Resume.of(PROFILE, t, null, null, 3, true, new RidingLink.Leave(now, t).state());
+        check(missing == null && !RidingSession.Resume.restoresHome(missing, 5, now, false, t + 1000), "no distance array: no resume, no crash, fresh");
+        check(RidingSession.Resume.of(PROFILE, t, new double[6], null, 3, true, null) == null, "a distance array of the wrong length is refused");
+        check(RidingSession.Resume.of(PROFILE, t, new double[]{Double.NaN, 0, 0, 0, 0, 0, 0}, null, 3, true, null) == null, "a banked distance that isn't a number is refused");
+        check(RidingSession.Resume.of(PROFILE, t, new double[]{-1, 0, 0, 0, 0, 0, 0}, null, 3, true, null) == null, "a negative banked distance is refused");
+        check(RidingSession.Resume.of(PROFILE, t, new double[]{Double.POSITIVE_INFINITY, 0, 0, 0, 0, 0, 0}, null, 3, true, null) == null, "an infinite banked distance is refused");
+        check(RidingSession.Resume.of(PROFILE, -1, distance, null, 3, true, null) == null, "a negative open time is refused");
+        check(RidingSession.Resume.of(null, t, distance, null, 3, true, null) == null, "no profile is refused");
+        // A broken riding_leave: there but unreadable refuses the whole resume (fresh), it isn't read as "on screen".
+        long[] good = new RidingLink.Leave(upLog().now(), t).state();
+        check(RidingSession.Resume.of(PROFILE, t, distance, null, 3, true, good) != null, "a readable leave restores");
+        long[][] broken = {new long[0], new long[4], new long[6], {good[0], -1, 0, 0, t}, {good[0], 0, -1, 0, t}, {good[0], 0, 0, 0, -1}, {good[0], 0, 0, 3, t}, {good[0], 0, 0, -1, t}};
+        for (long[] leave : broken) {
+            RidingSession.Resume r = RidingSession.Resume.of(PROFILE, t, distance, null, 3, true, leave);
+            check(r == null && !RidingSession.Resume.restoresHome(r, 5, now, false, t + 1000), "an unreadable leave (" + java.util.Arrays.toString(leave) + ") opens fresh");
+        }
+        check(RidingLink.Leave.of(new long[]{Long.MIN_VALUE, 0, 0, 0, t}) != null, "the process token is any long, negative included");
+        // No leave saved (an on-screen rotation) is still fine, and a speed array of the wrong shape starts Max and Avg over.
+        RidingSession.Resume rotated = RidingSession.Resume.of(PROFILE, t, distance, new double[2], 3, true, null);
+        check(rotated != null && !RidingSession.Resume.restoresHome(rotated, 3, now, false, t + 1000), "no leave: restored, stays");
+        RidingSession back = new RidingSession(PROFILE, null, t + 1000, rotated, 3);
+        check(back.rideTimeMs(t + 1000) == 1000 && back.maxKmh() == null, "and its odd speed array starts Max and Avg over");
+        // The auto-end half of the check still works through the same guard.
+        check(RidingSession.Resume.restoresHome(rotated, 4, now, false, t + 1000), "a recording that ended by itself after the open still goes Home");
+    }
+
+    /**
+     * Codex #355 finding 2, decided by the owner: Home on return; a fresh ride mode only if auto ride mode is on and the
+     * scooter is actually moving. A real drop and reconnect while away closes the old riding mode; the reconnect ends
+     * every auto-open hold (unchanged rule), so a moving scooter opens a NEW riding mode from zero.
+     */
+    private static void homeThenAutoOpen() {
+        long t = 3_000_000L, back = t + 60_000;
+        RidingLink.Log log = upLog();
+        AutoStartPolicy policy = new AutoStartPolicy();
+        policy.observeLink(true, 1);
+        policy.rideModeOpened();
+        RidingSession old = connectedSession(t);
+        trip(old, 10, t);
+        trip(old, 13, t + 30_000);
+        speed(old, 30, t + 30_000);
+        check(near(old.trip().km, 3, 1e-9) && old.maxKmh() == 30, "the old riding mode has distance and Max");
+        old.left(log.now(), t + 40_000);
+        log.observe(false, false);
+        policy.observeLink(false, 1);
+        log.observe(true, false);
+        policy.observeLink(true, 2);
+        check(old.lostOnReturn(log.now(), false, back), "a real drop and reconnect while away: Home on return");
+        boolean clear = AutoStartPolicy.screenClear(true, true, false, false, false, false);
+        check(!policy.rideModeHeld(), "the reconnect ended the hold, as it always has");
+        check(policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 25, back - 500, back), clear), "auto ride mode on and moving: it opens");
+        check(!policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 0, back - 500, back), clear), "not moving: stays Home");
+        check(!policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 25, back - 5000, back), clear), "a stale moving sample: stays Home");
+        check(!policy.shouldOpenRidingMode(false, AutoStartPolicy.moving(true, 25, back - 500, back), clear), "auto ride mode off (the default): stays Home");
+        check(!AutoStartPolicy.screenClear(true, true, true, false, false, false), "while the old riding mode is still open nothing auto-opens over it");
+        // What the activity opens: no resume (dropRiding cleared it) and no followed collector (followSpeed(null)).
+        RidingSession reopened = new RidingSession(PROFILE, null, back, null, 0);
+        check(reopened.rideTimeMs(back) == 0 && reopened.maxKmh() == null && reopened.averageKmh() == null && reopened.trip().km == null,
+                "the auto-opened riding mode is fresh: time, distance, Max and Avg from zero");
+        trip(reopened, 13, back);
+        speed(reopened, 25, back + 1000);
+        check(near(reopened.trip().km, 0, 1e-9) && reopened.maxKmh() == 25, "and counts only from its own open");
+        policy.rideModeOpened();
+        check(!policy.shouldOpenRidingMode(true, true, clear), "one open per connection: the auto-open holds itself");
+
+        // Restored after process death: the same decision on the saved state, the same fresh open.
+        RidingSession.Resume saved = connectedSession(t).resume();
+        RidingLink.Log before = upLog();
+        RidingSession.Resume left = RidingSession.Resume.of(PROFILE, t, saved.distance(), saved.speed(), 0, true, new RidingLink.Leave(before.now(), t).state());
+        RidingLink.Log after = new RidingLink.Log(9);
+        after.observe(true, false);
+        check(RidingSession.Resume.restoresHome(left, 0, after.now(), false, back), "process death after a connection: Home");
+
+        // Hold rules unchanged: a rider's back-out holds until the next connection, even with a Home return in between.
+        AutoStartPolicy held = new AutoStartPolicy();
+        held.observeLink(true, 1);
+        held.riderLeftRidingMode();
+        check(!held.shouldOpenRidingMode(true, true, clear), "a back-out holds auto ride mode");
+        held.observeLink(true, 1);
+        check(held.rideModeHeld(), "the same link doesn't end it");
+        held.observeLink(false, 1);
+        held.observeLink(true, 2);
+        check(held.shouldOpenRidingMode(true, true, clear), "the next connection does");
+        // A Home return from Volt's own pause past the grace has no link: nothing can be moving.
+        RidingLink.Log paused = upLog();
+        RidingSession idle = connectedSession(t);
+        idle.left(paused.now(), t);
+        paused.observe(false, true);
+        check(idle.lostOnReturn(paused.now(), false, t + RidingLink.PAUSE_GRACE_MS) && !AutoStartPolicy.moving(false, 25, t + RidingLink.PAUSE_GRACE_MS - 500, t + RidingLink.PAUSE_GRACE_MS),
+                "Home after the pause, disconnected: nothing to auto-open on");
     }
 
     private static void battery() {

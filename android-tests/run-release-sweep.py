@@ -171,6 +171,7 @@ STEPS += [
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
     inst('regen-display', T + 'RegenDisplayValidation'),
     inst('riding-auto-close', T + 'RidingAutoCloseValidation', hidden_api=True),
+    inst('riding-lost-connection', T + 'RidingLostConnectionValidation', hidden_api=True),
     # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The restored-* steps are the
     # restored-settings first launch. The harness's other -e only scenarios follow one permission across runs of one install, which
     # a step's fresh install can't do (order in its class comment).

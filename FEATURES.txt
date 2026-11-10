@@ -698,6 +698,10 @@ Ride time, trip distance, Max and Average speed start from zero each time riding
 mode opens and keep counting through rotation and while the phone is locked;
 Back and reopening starts them over. Average counts only time spent moving. A recording that ends automatically
 closes riding mode, even in the background; the rider's own stop leaves it open.
+It also shows Home at the next open if the scooter's connection was lost while
+Volt was off screen, with no recording running; nothing closes while Volt stays
+on screen. Volt's own Bluetooth pause after leaving (Stay connected in
+background off) only counts once Volt has been away 2 minutes.
 Stale values dim, and speed shows a dash after 6 s without a reading.
 More > App preferences > Riding mode sets brightness (Phone by default, Volt
 auto from the light sensor with learned per-band offsets, or Fixed), rotation
