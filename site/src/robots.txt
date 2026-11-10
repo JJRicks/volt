@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-Disallow: /preview/
 Sitemap: https://volt.jjricks.com/sitemap.xml
