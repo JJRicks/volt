@@ -474,6 +474,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             if (attempt > 0) await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero again", 45000);
             main(() -> {
                 if (!want.equals(String.valueOf(fieldOn(bar, "direction")))) return;
+                if ((double) call(fieldOn(bar, "smoother"), "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) >= -0.02) return;
                 Bitmap image = Bitmap.createBitmap(bar.getWidth(), bar.getHeight(), Bitmap.Config.ARGB_8888);
                 bar.draw(new android.graphics.Canvas(image));
                 int ok = (int) fieldOn(fieldOn(fieldOn(bar, "this$0"), "ui"), "ok"), green = 0;
