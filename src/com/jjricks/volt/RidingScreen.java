@@ -1153,7 +1153,8 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.POWER: {
-                s.rungs = new String[]{T.ridingLabelPower()};
+                String name = T.ridingLabelPower();
+                s.rungs = new String[]{name};
                 s.icon = "power";
                 RidingValues.Power p = v.power(now);
                 if (p.watts == null) { none(s); break; }
@@ -1161,8 +1162,8 @@ final class RidingScreen implements AppScreen {
                 if (p.direction == RidingValues.Direction.REGEN && p.watts < 0) s.color = ui.ok;
                 if (RidingPowerCue.applies(p.direction)) {
                     // Its label climbs the same ladder as the readout's caption; Cell.show applies the rung it lands on.
-                    s.rungs = new String[]{powerDirectionUnknown(), RidesScreen.directionUnconfirmedChip(), T.ridingLabelPower()};
-                    s.spokenName = T.ridingLabelPower();
+                    s.rungs = new String[]{powerDirectionUnknown(), RidesScreen.directionUnconfirmedChip(), name};
+                    s.spokenName = name;
                     s.spokenNote = powerDirectionUnknown();
                     s.inferredWatts = p.watts;
                     s.color = ui.muted;
