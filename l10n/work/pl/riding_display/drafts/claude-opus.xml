@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="standard">
+    <string name="riding_display_section" volt:src="32cf68959bddde0b11ee7a193610e365ed98103e">Widok jazdy</string>
+    <string name="riding_display_brightness" volt:src="4a144eb214f6801aab0703f8fea92991fcb80a34">Jasność ekranu</string>
+    <string name="riding_display_phone" volt:src="05e3306da9e11991e3b2838cb9c0499478a5b358">Telefon</string>
+    <string name="riding_display_auto" volt:src="758e754e8e495959ed5e6c7ed937cbd0a422c575">Auto Volt</string>
+    <string name="riding_display_fixed" volt:src="7482fcb06d1ca8c86d7e8f14c8443f48fcc87206">Stała</string>
+    <string name="riding_display_rotation" volt:src="b483889b8a840e2c8bf66ee1d7709a9d2cd9e865">Obrót ekranu</string>
+    <string name="riding_display_rotation_lock" volt:src="e4e71f70d60c3b0f82571cb5d0fff44683ece8ba">Blokuj po otwarciu</string>
+    <string name="riding_display_rotation_follow" volt:src="a779aa8e6b27f65452f99238aaabfa9665867a50">Jak telefon</string>
+    <string name="riding_display_auto_open" volt:src="9fc232331f6b9f94acb5da04f95eb4272e54b1b9">Otwieraj automatycznie</string>
+    <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Otwiera się, gdy połączona hulajnoga rusza, a aplikacja Volt jest na ekranie. Po wyjściu z widoku jazdy czeka na ponowne połączenie z hulajnogą</string>
+    <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Ukryj pasek stanu</string>
+    <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Zegar i bateria ukryte podczas jazdy</string>
+    <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Przy opcji „Auto Volt” przyciski − i + na dole widoku jazdy uczą aplikację Volt preferowanego poziomu dla aktualnego oświetlenia. Po wyjściu z widoku jazdy wraca jasność telefonu.</string>
+    <string name="riding_display_note_no_sensor" volt:src="e661d391825a20ea95dda645ba91d2825f7bd131">Opcja „Stała” ustawia poziom przyciskami − i + na dole widoku jazdy. Ten telefon nie ma czujnika światła, więc opcja „Auto Volt” jest niedostępna. Po wyjściu z widoku jazdy wraca jasność telefonu.</string>
+    <string name="riding_display_reset" volt:src="9ec6ee0367a2f8d73116282ededa7af8b42b318b">Zresetuj jasność Auto Volt</string>
+    <string name="riding_display_reset_sub" volt:src="2f6c5565922a129afcb17a37d77f8575506aca1c">Usuwa nauczone poziomy</string>
+    <string name="riding_display_reset_done" volt:src="9cebd1c917db9f53594998c893e614cb46058cd9">Zresetowano jasność Auto Volt</string>
+    <string name="riding_brightness_dimmer" volt:src="5b638ac88778c7aa604f8955e835c1e1a6cf3fd1">Ciemniej</string>
+    <string name="riding_brightness_brighter" volt:src="f545fe26af9b3e1921b23052e0c714704de9dd52">Jaśniej</string>
+</resources>

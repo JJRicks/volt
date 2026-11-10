@@ -1,0 +1,5 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+maps_consent_title	Show online map?	Pokazać mapę online?	Show the online map?	claude-opus	claude-opus-5-5	9d5d38d3390d33f87884334bad629831625fab66	4343c55859c982354a9300059b0b2c7b0ad62dd2
+maps_consent_message	Provider sees your IP and map area. Rides stay on phone.	Dostawca widzi Twój adres IP i obszar mapy. Przejazdy pozostają w telefonie.	The provider sees your IP address and the map area. Rides remain in the phone.	claude-opus	claude-opus-5-5	b826270566cbba2f841d30cf31ced27900e91af0	471997d86d97d3f773746a9b766988500d9d7b46
+maps_consent_enable	Enable basemap	Włącz mapę bazową	Turn on the base map	claude-opus	claude-opus-5-5	bb9ac0845ace7f8b7f2e08bf11f66831ce335172	1cb571603bd15ba54caf86fb5b44f1cc396c321a
