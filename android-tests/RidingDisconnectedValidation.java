@@ -509,6 +509,7 @@ public final class RidingDisconnectedValidation extends Instrumentation {
     private boolean read(BooleanSupplier value) { boolean[] v = new boolean[1]; main(() -> v[0] = value.getAsBoolean()); return v[0]; }
     private <T> T read2(java.util.function.Supplier<T> value) { AtomicReference<T> v = new AtomicReference<>(); main(() -> v.set(value.get())); return v.get(); }
     private void main(Runnable action) {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) { action.run(); return; }
         AtomicReference<Throwable> error = new AtomicReference<>();
         runOnMainSync(() -> { try { action.run(); } catch (Throwable t) { error.set(t); } });
         if (error.get() != null) throw new RuntimeException(error.get());
