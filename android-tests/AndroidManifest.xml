@@ -56,6 +56,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MyScootersValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated multi-scooter management validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingFromZeroValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode ride time and distance start from zero at each open" />
+  <instrumentation android:name="com.jjricks.volt.tests.RidingConfigMenuValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode tune menu holds the moved settings, auto-saves and closes at 4 mph"/>
   <instrumentation android:name="com.jjricks.volt.tests.RidingAutoCloseValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode closes with an automatic ride end; Max and Average count from opening" />
   <instrumentation android:name="com.jjricks.volt.tests.LocaleValidation" android:targetPackage="com.jjricks.volt" android:label="Pseudo-locale text and layout checks (report only during the migration)" />
   <instrumentation android:name="com.jjricks.volt.AutoStartValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator auto-record and auto ride mode validation (synthetic link)" />
