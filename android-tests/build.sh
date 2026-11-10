@@ -29,7 +29,7 @@ javac --release 8 -encoding UTF-8 \
     "$SCRIPT_DIR/BatteryWidgetValidation.java" "$SCRIPT_DIR/CapacityWidgetValidation.java" "$SCRIPT_DIR/LearnedRangeValidation.java" \
     "$SCRIPT_DIR/ChargeCaptureValidation.java" "$SCRIPT_DIR/ChargeEstimateValidation.java" "$SCRIPT_DIR/ChargeScheduleValidation.java" "$SCRIPT_DIR/ChargeScheduleWireValidation.java" "$SCRIPT_DIR/ChargeLiveUnplugValidation.java" \
     "$SCRIPT_DIR/QuickHapticsValidation.java" "$SCRIPT_DIR/ConnectionHapticsValidation.java" \
-    "$SCRIPT_DIR/MotionPolishValidation.java" "$SCRIPT_DIR/RidingChipRowValidation.java" "$SCRIPT_DIR/RidingStoppedMotionValidation.java" "$SCRIPT_DIR/RidingFromZeroValidation.java" "$SCRIPT_DIR/RidingAutoCloseValidation.java" "$SCRIPT_DIR/RidingLostConnectionValidation.java" \
+    "$SCRIPT_DIR/MotionPolishValidation.java" "$SCRIPT_DIR/RidingChipRowValidation.java" "$SCRIPT_DIR/RidingStoppedMotionValidation.java" "$SCRIPT_DIR/RidingFromZeroValidation.java" "$SCRIPT_DIR/RidingAutoCloseValidation.java" "$SCRIPT_DIR/RidingConfigMenuValidation.java" "$SCRIPT_DIR/RidingLostConnectionValidation.java" \
     "$SCRIPT_DIR/RideAutoStopValidation.java" "$SCRIPT_DIR/RideAutoExportValidation.java" "$SCRIPT_DIR/AutoStartValidation.java" \
     "$SCRIPT_DIR/ReportInviteValidation.java" "$SCRIPT_DIR/UpdateCheckValidation.java" "$SCRIPT_DIR/ReportShortcutsValidation.java" "$SCRIPT_DIR/ReportDiagnosticsValidation.java" "$SCRIPT_DIR/MoreMenuValidation.java" "$SCRIPT_DIR/OwnerModelValidation.java" "$SCRIPT_DIR/ModelHomeValidation.java" "$SCRIPT_DIR/CompatibilityGatingValidation.java" "$SCRIPT_DIR/Ut5SimulationScreens.java" \
     "$SCRIPT_DIR/GuidedTestValidation.java" \

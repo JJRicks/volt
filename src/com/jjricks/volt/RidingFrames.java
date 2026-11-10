@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * The Halo and Trace frames' choices in riding mode (riding-mode plan PR 3), kept Android-free so
@@ -30,6 +32,8 @@ final class RidingFrames {
     static final List<String> TILES = Collections.unmodifiableList(Arrays.asList("tile_1", "tile_2"));
     /** Below this speed (km/h) the rider counts as stopped for the picker, with the scooter's own stationary state. */
     static final double STOPPED_KMH = 1;
+    /** 4 mph in km/h: at this speed or more, an open tune menu closes, in any display unit (owner, Nov 9). */
+    static final double MENU_CLOSE_KMH = 6.437;
     /** The stopped controls' widest row, dp, so the lock's slide stays a sensible length on a tablet. */
     static final float STOPPED_CONTROLS_MAX_DP = 320;
 
@@ -109,6 +113,25 @@ final class RidingFrames {
         return stationary && (speedKmh == null || speedKmh < STOPPED_KMH);
     }
 
+    /**
+     * The tune button: hidden while the scooter moves, as {@link #pickerShown} says, and also shown
+     * with no scooter connected (owner, Nov 9). Lock and Record stay with the stopped-only gate.
+     */
+    static boolean tuneShown(boolean connected, boolean stationary, Double speedKmh) {
+        return !connected || pickerShown(stationary, speedKmh);
+    }
+
+    /** The speed the tune menu's close rule uses: the peak of this connection's newest fresh readings (Telemetry.takeSpeedPeak), or null with no scooter connected. */
+    static Double menuKmh(boolean connected, Double peakKmh) { return connected ? peakKmh : null; }
+
+    /**
+     * A switch whose turn-on may ask something first: the speed check runs before the question opens, and
+     * again when the answer arrives (inside save). Refused, the switch shows what's stored and nothing opens.
+     */
+    static void askBeforeSave(BooleanSupplier may, Consumer<Runnable> ask, Runnable save, Runnable showStored) {
+        if (may.getAsBoolean()) ask.accept(save); else showStored.run();
+    }
+
     /** The Record disc takes a tap as Home's does: connected or already recording, and no ride still saving. */
     static boolean recordEnabled(boolean recording, boolean ready, boolean saving) { return (recording || ready) && !saving; }
 
@@ -131,33 +154,35 @@ final class RidingFrames {
     }
 
     /**
-     * The picker sheet's life, owned by its screen. It opens only while stopped and on an open
-     * screen; it must close when riding resumes or the screen is closed (rotation, folding, any
-     * rebuild), and a choice counts only on the screen that opened it while still stopped.
+     * The tune menu's life, owned by its screen. It opens only when the tune button would show and
+     * on an open screen, and it auto-saves. Once open, only a live speed of 4 mph (6.437 km/h) or more
+     * closes it, in any display unit; losing the stationary flag or the readings doesn't. A screen
+     * close (rotation, folding, any rebuild) ends it, and a change counts only on the screen that
+     * opened it and below that speed.
      */
     static final class PickerSheet {
         private boolean open, closed;
 
-        /** Opens the sheet; false when the screen is closed or the scooter isn't stopped. */
-        boolean open(boolean stopped) {
-            if (closed || !stopped) return false;
+        /** Opens the menu; false when the screen is closed or the tune button isn't showing. */
+        boolean open(boolean allowed) {
+            if (closed || !allowed) return false;
             open = true;
             return true;
         }
 
         boolean isOpen() { return open; }
 
-        /** The sheet went away by itself (its close button, Back or a tap outside). */
+        /** The menu went away by itself (its close button, Back or a tap outside). */
         void dismissed() { open = false; }
 
-        /** On each refresh: true when an open sheet must be dismissed because riding resumed. */
-        boolean update(boolean stopped) {
-            if (!open || stopped) return false;
+        /** @param speedKmh the live speed, or null with none: true when an open menu must close. */
+        boolean update(Double speedKmh) {
+            if (!open || !closing(speedKmh)) return false;
             open = false;
             return true;
         }
 
-        /** The screen closes: true when an open sheet must be dismissed with it. */
+        /** The screen closes: true when an open menu must be dismissed with it. */
         boolean close() {
             closed = true;
             boolean was = open;
@@ -165,11 +190,9 @@ final class RidingFrames {
             return was;
         }
 
-        /** A tapped choice: true only on an open sheet of an open screen while still stopped. The sheet closes either way. */
-        boolean accept(boolean stopped) {
-            boolean ok = open && !closed && stopped;
-            open = false;
-            return ok;
-        }
+        /** A change in the menu: true only on an open menu of an open screen below the close speed. The menu stays open. */
+        boolean accept(Double speedKmh) { return open && !closed && !closing(speedKmh); }
+
+        private static boolean closing(Double speedKmh) { return speedKmh != null && speedKmh >= MENU_CLOSE_KMH; }
     }
 }
