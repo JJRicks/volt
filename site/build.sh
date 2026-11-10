@@ -7,6 +7,8 @@
 #   dist/variants/<name>/  one complete page per homepage variant: "original" from src/, and every
 #                          directory under variants/. nginx serves the live one at / and each at /preview/<name>/.
 #   dist/variants.json     name, title and a one-line description of each variant, for the Workbench.
+#   dist/cards/            the variants' link-preview images, named <sha256>.<ext> (only when a variant has
+#                          one). deploy-release.sh adds them to the server's append-only card store.
 #   dist/ (root)           today's page again, byte for byte the same as dist/variants/original/, so
 #                          tools that read dist/index.html and older nginx configurations keep working.
 set -euo pipefail
@@ -63,6 +65,9 @@ build_original() {
 build_variant() {
   local name="$1" from="$2" out="$3"
   [ -f "$from/index.html" ] && [ ! -L "$from/index.html" ] || { echo "$name: variants/$name has no index.html" >&2; exit 1; }
+  # One robots.txt for the whole site, so no variant can hide previews (or the live page) from crawlers.
+  [ ! -e "$from/robots.txt" ] && [ ! -L "$from/robots.txt" ] ||
+    { echo "$name: variants may not ship robots.txt; the shared src/robots.txt is used (site/README.md, \"Variants\")" >&2; exit 1; }
   mkdir -p "$out"
   for file in "${shared_files[@]}"; do
     cp "$src/$file" "$out/$file"
@@ -120,12 +125,13 @@ if [ -d "$variants_src" ]; then
 fi
 
 # Every built page must meet the variant contract (tools/check-variants.py: relative URLs, the CSP,
-# content-specific link-preview image URLs, robots.txt). Any problem stops the build.
+# link-preview image URLs under /preview/<name>/ with the image's hash, robots). Any problem stops the build.
 if ! check_out="$(python3 -I "$here/tools/check-variants.py" "$dist"/variants/* 2>/dev/null)"; then
   printf '%s\n' "$check_out" >&2
   echo "Variant check failed; see site/README.md, \"Variants\"." >&2
   exit 1
 fi
+python3 -I "$here/tools/check-variants.py" --collect-cards "$dist" 2>/dev/null
 
 # Known variants first, in the owner's order, then any others alphabetically (the glob above is sorted).
 ordered=()
