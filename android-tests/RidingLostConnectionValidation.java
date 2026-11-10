@@ -102,6 +102,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         ownPauseBackInTimeThenLeaveAgain();
         ownPausePastGrace();
         realDropBeforeThePause();
+        realDropThenAutoOpenFresh();
         ownPauseActivityGoneBackInTime();
         ownPauseActivityGonePastGrace();
     }
@@ -146,6 +147,63 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         comeBack();
         requireHome("a real drop while away, back at once");
     }
+
+    /**
+     * Codex #355 finding 2, owner-set: Home on return; a fresh ride mode only if auto ride mode is on and the scooter is
+     * actually moving. A real drop and reconnect while away, auto ride mode on: Home stays while stopped, and a moving
+     * sample opens a NEW riding mode (its own open time, none of the old Max), with the usual one-open hold.
+     */
+    private void realDropThenAutoOpenFresh() throws Exception {
+        prefs("app_settings").edit().putBoolean("riding_auto_open", true).commit();
+        try {
+            link();
+            Object old = fieldOnMain(activity, "riding");
+            long oldOpened = (Long) fieldOnMain(old, "openedMs");
+            main(() -> call(call(old, "speed", new Class<?>[]{}), "accept", new Class<?>[]{double.class, long.class}, 40.0, SystemClock.elapsedRealtime()));
+            require(Double.valueOf(40).equals(onMain(() -> call(old, "maxKmh", new Class<?>[]{}))), "The old riding mode has a Max");
+            leave();
+            long losses = linkCount("losses");
+            main(() -> ((BluetoothGattCallback) field(service.ble, "callbacks")).onConnectionStateChange(fake.gatt, 0, BluetoothProfile.STATE_DISCONNECTED));
+            await(() -> !service.ble.connected() && linkCount("losses") == losses + 1, "Native disconnect not counted as a real loss");
+            await(() -> service.ble.state() == BleController.State.DISCONNECTED, "Link still in use");
+            fake = new FakeLink();
+            main(fake::attach);
+            await(() -> service.ble.connected(), "Fake link did not reconnect");
+            require(!held(), "The reconnect ended the auto-open hold");
+            sample(0);
+            long returned = SystemClock.elapsedRealtime();
+            comeBack();
+            requireHome("a real drop and reconnect while away, auto ride mode on, stopped");
+            sample(0);
+            settle();
+            require(!open(), "Stopped: Home stays");
+            shot("10-auto-open-stopped-home");
+            sample(180);
+            await(this::open, "Moving with auto ride mode on: riding mode opens");
+            settle();
+            Object fresh = fieldOnMain(activity, "riding");
+            require(fresh != old, "A new riding session, not the old one");
+            long freshOpened = (Long) fieldOnMain(fresh, "openedMs");
+            require(freshOpened > oldOpened && freshOpened >= returned, "Its time counts from the auto-open");
+            require(!Double.valueOf(40).equals(onMain(() -> call(fresh, "maxKmh", new Class<?>[]{}))), "None of the old Max");
+            require(screenName().contains("RidingScreen"), "Riding mode on screen");
+            require(held(), "The auto-open holds itself: one open per connection");
+            note("real drop + reconnect away, auto ride mode on: Home while stopped, fresh riding mode on moving");
+            shot("11-auto-open-moving-fresh");
+            closeRidingMode();
+            main(() -> ((BluetoothGattCallback) field(service.ble, "callbacks")).onConnectionStateChange(fake.gatt, 0, BluetoothProfile.STATE_DISCONNECTED));
+            await(() -> !service.ble.connected(), "Fake link did not drop");
+        } finally {
+            prefs("app_settings").edit().putBoolean("riding_auto_open", false).commit();
+        }
+    }
+    /** A fresh motion sample from the fake link (km/h x10), then a change for the service and screen to judge it on. */
+    private void sample(int speedRaw) {
+        main(() -> { BleController ble = service.ble; set(ble, "speedRaw", speedRaw); set(ble, "driving", speedRaw > 0 ? 1 : 0); set(ble, "motionMs", SystemClock.elapsedRealtime()); call(ble, "changed", new Class<?>[]{}); });
+        waitForIdleSync();
+    }
+    private Object fieldOnMain(Object target, String name) { return onMain(() -> field(target, name)); }
+    private <T> T onMain(java.util.function.Supplier<T> value) { AtomicReference<T> v = new AtomicReference<>(); main(() -> v.set(value.get())); return v.get(); }
 
     /** The activity is destroyed while away, Volt pauses, and the same process rebuilds both inside 2 minutes. */
     private void ownPauseActivityGoneBackInTime() throws Exception {

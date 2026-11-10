@@ -62,9 +62,13 @@ final class RidingLink {
         /** For saved state, so the time away survives the activity being recreated. */
         long[] state() { return new long[]{process, losses, pauses, down, atMs}; }
 
-        /** Reads state() back; null for anything else, which means on screen. */
+        /**
+         * Reads state() back; null for no state (on screen) and for anything state() can't have written: a wrong
+         * length, an unknown link state, or a negative count or time. Resume.of refuses a resume whose leave is unreadable.
+         * The process token is any long.
+         */
         static Leave of(long[] state) {
-            if (state == null || state.length != 5 || state[3] < UP || state[3] > LOST) return null;
+            if (state == null || state.length != 5 || state[3] < UP || state[3] > LOST || state[1] < 0 || state[2] < 0 || state[4] < 0) return null;
             return new Leave(state[0], state[1], state[2], (int) state[3], state[4]);
         }
     }

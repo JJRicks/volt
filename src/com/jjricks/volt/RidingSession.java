@@ -93,10 +93,25 @@ final class RidingSession {
         static Resume of(String profileId, long openedMs, double[] distance) { return of(profileId, openedMs, distance, null, -1); }
         /** As above, with Max and Avg (a speed array of any other shape starts them over) and the auto-end count, -1 when unknown. */
         static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds) { return of(profileId, openedMs, distance, speed, autoEnds, false, null); }
-        /** As above, with what it knew about the connection when Volt went off screen; a save from before this counts as never connected. */
+        /**
+         * As above, with what it knew about the connection when Volt went off screen; a save from before this counts as never connected.
+         * Null too for what this app can't have saved: a negative open time, a banked distance that isn't a finite
+         * number of km, or a leave that is there but unreadable. A null resume opens riding mode fresh.
+         */
         static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds, boolean linkSeen, long[] leave) {
-            if (profileId == null || distance == null || distance.length != 7) return null;
-            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0, distance[4] != 0, distance[5], distance[6] != 0, speed, autoEnds, linkSeen, RidingLink.Leave.of(leave));
+            if (profileId == null || openedMs < 0 || distance == null || distance.length != 7 || !Double.isFinite(distance[0]) || distance[0] < 0) return null;
+            RidingLink.Leave left = RidingLink.Leave.of(leave);
+            if (leave != null && left == null) return null;
+            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0, distance[4] != 0, distance[5], distance[6] != 0, speed, autoEnds, linkSeen, left);
+        }
+
+        /**
+         * Restoring a saved riding mode after the activity was recreated: true when it should show Home instead,
+         * because its recording ended by itself or its connection was lost (RidingLink.lost). No usable resume
+         * (1.12.0 saved only the riding flag, or the state is unreadable) never does: riding mode opens fresh, as before.
+         */
+        static boolean restoresHome(Resume resume, long autoEndsNow, RidingLink.Now now, boolean recording, long elapsedMs) {
+            return resume != null && (resume.autoEnded(autoEndsNow) || resume.lostOnReturn(now, recording, elapsedMs));
         }
     }
 

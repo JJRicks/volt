@@ -463,7 +463,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(ridingResume!=null&&ridingResume.autoEnded(scooterService.rideAutoEnds())||ridingResume.lostOnReturn(scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;selectedPage="home";scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(RidingSession.Resume.restoresHome(ridingResume,scooterService.rideAutoEnds(),scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;selectedPage="home";scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
