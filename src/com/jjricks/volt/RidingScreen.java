@@ -103,9 +103,11 @@ final class RidingScreen implements AppScreen {
     private double fastestKmh;
     private long powerSampleMs = -1;
     private boolean closed;
-    /** The layout picker's sheet, owned here so a rebuild or a resumed ride can close it. */
+    /** The tune menu, owned here so a rebuild or real speed can close it. */
     private final RidingFrames.PickerSheet sheetState = new RidingFrames.PickerSheet();
     private AlertDialog sheet;
+    /** The menu changed the layout or a display setting: the screen is rebuilt with it once the menu closes. */
+    private boolean applyAfterMenu;
     /** The tune disc's motion as it appears and goes (owner, Nov 6). */
     private RidingDiscMotion disc;
     /** Brightness and the rotation lock while riding mode is open (its slider sits below). */
@@ -580,32 +582,70 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * The layout editor (RidingLayoutSheet), opened from the tune disc while stopped. Done saves for
-     * this scooter and rebuilds the screen in the edited layout; the ride's readings carry over, since
-     * they live in the session.
+     * The tune button: hidden while moving, shown with no scooter connected (owner, Nov 9). A connected
+     * scooter whose settings reply has gone stale (ready() false) still counts as connected.
      */
-    private void edit() {
-        if (closed || host.activity() == null || sheet != null) return;
-        if (!sheetState.open(stopped(SystemClock.elapsedRealtime()))) return;
-        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
-        body.setTag("riding_layout_editor");
-        new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
-        AlertDialog shown = host.showSheet(body);
-        if (shown == null) { sheetState.dismissed(); return; }
-        sheet = shown;
-        shown.setOnDismissListener(d -> { if (sheet == shown) { sheet = null; sheetState.dismissed(); } });
+    private boolean tuneShown(long now) {
+        BleController ble = service == null ? null : service.ble;
+        return RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary(), session.values.speed(now).kmh);
+    }
+
+    /** The speed the menu's close rule looks at: the fastest reading from this connection since the last look, or null. */
+    private Double liveKmh() {
+        BleController ble = service == null ? null : service.ble;
+        return ble == null ? null : RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak(SystemClock.elapsedRealtime()));
     }
 
     /**
-     * The editor's Done: saved for this scooter and the screen rebuilt with it, but only on this
-     * screen's sheet while still stopped (#265's rules); a stale or moving Done saves nothing.
+     * The one check before any change in the tune menu saves, a late permission answer included: reads the
+     * newest speed rather than the last screen refresh's, and at 4 mph or more closes the menu instead.
      */
+    private boolean menuChangeAllowed() {
+        if (closed) return false;
+        Double kmh = liveKmh();
+        if (sheetState.update(kmh)) { dismissSheet(); return false; }
+        return sheetState.accept(kmh);
+    }
+
+    /**
+     * The tune menu: the layout editor (RidingLayoutSheet), then riding mode's own settings
+     * (MoreScreen.RidingSettingsMenu). Everything saves as it changes; the screen is rebuilt with a change once
+     * the menu closes, so a save never closes it mid-edit. The ride's readings carry over, since they
+     * live in the session.
+     */
+    private void edit() {
+        if (closed || host.activity() == null || sheet != null) return;
+        if (!sheetState.open(tuneShown(SystemClock.elapsedRealtime()))) return;
+        liveKmh(); // Speeds from before the menu opened don't count against it.
+        LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
+        body.setTag("riding_layout_editor");
+        new RidingLayoutSheet(host.activity(), ui, config.layout(), this::saveLayout).fill(body);
+        MoreScreen.RidingSettingsMenu settings = new MoreScreen.RidingSettingsMenu(host, ui, preferences, () -> applyAfterMenu = true, this::menuChangeAllowed);
+        settings.fill(body);
+        AlertDialog shown = host.showSheet(body);
+        if (shown == null) { sheetState.dismissed(); settings.close(); return; }
+        sheet = shown;
+        shown.setOnDismissListener(d -> {
+            settings.close();
+            if (sheet == shown) { sheet = null; sheetState.dismissed(); }
+            applyAfterMenu();
+        });
+    }
+
+    /** A change in the editor, saved at once for this scooter; a stale change, or one at riding speed, saves nothing. */
     private void saveLayout(RidingLayout edited) {
-        boolean accepted = !closed && sheetState.accept(stopped(SystemClock.elapsedRealtime()));
-        dismissSheet();
-        if (!accepted || edited.toJson().equals(config.layout().toJson())) return;
+        if (!menuChangeAllowed()) return;
+        if (edited.toJson().equals(config.layout().toJson())) return;
         config.save(edited);
-        // After the dismissal, on the activity's window: the sheet's own views are detached by then.
+        applyAfterMenu = true;
+    }
+
+    /** The menu closed: rebuild once if it changed anything this screen shows. */
+    private void applyAfterMenu() {
+        boolean apply = applyAfterMenu && !closed;
+        applyAfterMenu = false;
+        if (!apply) return;
+        // On the activity's window: the menu's own views are detached by now.
         host.activity().getWindow().getDecorView().post(() -> { if (!closed) host.rebuild(); });
     }
 
@@ -657,12 +697,12 @@ final class RidingScreen implements AppScreen {
         showPower(now);
         if (ring != null) ring.show(now, units);
         if (trace != null) trace.show(now, units);
-        // The picker, Lock and Record show only while stopped (Q17 A; owner, Nov 8): a moving rider sees neither.
+        // Lock and Record show only while stopped (Q17 A; owner, Nov 8), and the tune disc too but also while disconnected (owner, Nov 9): a moving rider sees none.
         boolean stoppedNow = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
-        disc.show(stoppedNow);
+        disc.show(tuneShown(now));
         showStopped(stoppedNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
-        // A sheet opened while stopped closes once riding resumes; its choices can't be tapped mid-ride.
-        if (sheetState.update(stoppedNow)) dismissSheet();
+        // Only real speed closes the tune menu, at 4 mph or more; losing the readings doesn't.
+        if (sheetState.update(liveKmh())) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
         float[] offset = RidingBurnIn.offsetDp(now - session.openedMs);
         frame.setTranslationX(ui.dp(offset[0]));
