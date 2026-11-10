@@ -20,6 +20,7 @@ public final class RidingFocusTest {
             arrangement();
             link();
             segments();
+            gauges();
             digits();
             rideButton();
             range();
@@ -74,6 +75,75 @@ public final class RidingFocusTest {
         check(!RidingFocus.droppedBand(RidingValues.Band.RED, RidingValues.Band.AMBER), "charging up never ticks");
         check(!RidingFocus.droppedBand(null, RidingValues.Band.RED), "opening at red never ticks");
         check(!RidingFocus.droppedBand(RidingValues.Band.AMBER, null), "a lost reading never ticks");
+    }
+
+    /** The battery gauge's fit rule, on synthesized box sizes and text metrics. */
+    private static void gauges() {
+        check(RidingFocus.gaugeFor("highlight") == RidingFocus.Gauge.BESIDE && RidingFocus.gaugeFor("tile_1") == RidingFocus.Gauge.BESIDE, "the wide rows get segments beside the number");
+        check(RidingFocus.gaugeFor("big") == RidingFocus.Gauge.STRIP_BELOW, "the big number gets a strip under it");
+        for (String spot : RidingFocus.BOTTOM_ROW) check(RidingFocus.gaugeFor(spot) == RidingFocus.Gauge.BAR_BELOW, spot + " gets the thin bar");
+        float em = 1.6f, tall = .72f;
+        // Beside: the number's share is (w - 14) / 2.15, and it must keep 60 dp at this reference width.
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 60, 84, em, tall), "a phone row keeps the segments");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 220.5f, 60, 84, em, tall), "just wide enough");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 219.5f, 60, 84, em, tall), "just too narrow: the segments go, the number stays");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 26, 84, em, tall), "just tall enough beside the number");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 25.9f, 84, em, tall), "shorter drops the segments");
+        // Below: a tall tile costs the number nothing; at most a tenth of its size is the limit.
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 90, 60, em, tall), "a tall tile has room for the bar");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 56.5f, 60, em, tall), "the bar costs just under a tenth");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 56, 60, em, tall), "more than a tenth drops the bar");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 47, 200, 60, em, tall), "too narrow to read as a bar");
+        check(RidingFocus.gaugeFits(RidingFocus.Gauge.STRIP_BELOW, 300, 300, 200, em, tall), "the big number's strip fits when width limits the number");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.STRIP_BELOW, 300, 140, 200, em, tall), "a short big number keeps its height");
+        // A window with no size yet never shows one.
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 0, 100, 60, em, tall) && !RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 0, 84, em, tall), "no room, no gauge");
+        // Codex's #354 finding: a 1-4 dp number box sized both numbers at zero and took the gauge (0 >= 0).
+        for (RidingFocus.Gauge g : new RidingFocus.Gauge[]{RidingFocus.Gauge.BAR_BELOW, RidingFocus.Gauge.STRIP_BELOW})
+            for (float h = .5f; h <= 4; h += .5f)
+                check(!RidingFocus.gaugeFits(g, 300, h, 200, em, tall), g + " stays hidden in a " + h + " dp number box");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 90, 0, em, tall), "a number with no size keeps no bar");
+        check(RidingFocus.belowDp(RidingFocus.Gauge.BAR_BELOW) == 14 && RidingFocus.belowDp(RidingFocus.Gauge.STRIP_BELOW) == 24
+                && RidingFocus.belowDp(RidingFocus.Gauge.BESIDE) == 0, "a bar takes 14 dp, a strip 24, beside nothing");
+        gaugeStability(em, tall);
+    }
+
+    /**
+     * Deciding once and measuring again with that decision gives the same answer, as RidingScreen.Cell.onMeasure
+     * replays it in pixels: under the number, the shown gauge and its gap come off a weighted number that LinearLayout
+     * clamps at zero, and onMeasure adds them back; beside, it reads the row, which the gauge doesn't change.
+     */
+    private static void gaugeStability(float em, float tall) {
+        float[] densities = {1, 2, 2.625f, 3.5f};
+        float[] widths = {0, 20, 47, 48, 60, 95, 120, 150, 219.5f, 220.5f, 300, 500};
+        float[] maxes = {0, 60, 84, 200};
+        float[][] ems = {{em, tall}, {.6f, 1.2f}, {3.2f, .4f}};
+        for (RidingFocus.Gauge g : RidingFocus.Gauge.values()) {
+            int shown = 0, hidden = 0;
+            for (float d : densities)
+                for (float w : widths)
+                    for (float max : maxes)
+                        for (float[] e : ems)
+                            for (int px = 0; px <= Math.round(40 * d); px++) {
+                                float wDp = Math.round(w * d) / d;
+                                boolean first = RidingFocus.gaugeFits(g, wDp, px / d, max, e[0], e[1]);
+                                int again = px;
+                                if (first && g != RidingFocus.Gauge.BESIDE) {
+                                    int gauge = Math.round((g == RidingFocus.Gauge.STRIP_BELOW ? RidingFocus.STRIP_HEIGHT_DP : RidingFocus.BAR_HEIGHT_DP) * d);
+                                    int gap = Math.round(RidingFocus.BELOW_GAP_DP * d);
+                                    again = Math.max(0, px - gauge - gap) + gauge + gap;
+                                }
+                                boolean second = RidingFocus.gaugeFits(g, wDp, again / d, max, e[0], e[1]);
+                                if (first != second)
+                                    throw new AssertionError(g + " flips at " + px + " px (density " + d + "), width " + w + " dp, max " + max + ": " + first + " then " + second);
+                                checks++;
+                                if (first) shown++; else hidden++;
+                                if (first && g != RidingFocus.Gauge.BESIDE)
+                                    check(px / d > RidingFocus.belowDp(g), g + " shown only above its own " + RidingFocus.belowDp(g) + " dp");
+                            }
+            // Each kind is seen both shown and hidden within 0-40 dp, so the replay above really ran both ways.
+            check(shown > 0 && hidden > 0, g + ": the sweep sees both answers (" + shown + " shown, " + hidden + " hidden)");
+        }
     }
 
     private static void digits() {
