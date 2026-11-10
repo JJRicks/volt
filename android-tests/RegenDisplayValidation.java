@@ -467,14 +467,22 @@ public final class RegenDisplayValidation extends Instrumentation {
         View bar = find(activity.getWindow().getDecorView(), Class.forName("com.jjricks.volt.RidingScreen$PowerBar"));
         require(bar != null, "No power bar");
         await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero", 60000);
+        // Under load the direction can move on between the wait and the drawing: count only a frame drawn while it's still the one under test.
+        String want = confirmed ? "REGEN" : "REGEN_INFERRED";
         AtomicReference<int[]> counts = new AtomicReference<>();
-        main(() -> {
-            Bitmap image = Bitmap.createBitmap(bar.getWidth(), bar.getHeight(), Bitmap.Config.ARGB_8888);
-            bar.draw(new android.graphics.Canvas(image));
-            int ok = (int) fieldOn(fieldOn(fieldOn(bar, "this$0"), "ui"), "ok"), green = 0;
-            for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) if (image.getPixel(x, y) == ok) green++;
-            counts.set(new int[]{green});
-        });
+        for (int attempt = 0; attempt < 40 && counts.get() == null; attempt++) {
+            if (attempt > 0) await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero again", 45000);
+            main(() -> {
+                if (!want.equals(String.valueOf(fieldOn(bar, "direction")))) return;
+                Bitmap image = Bitmap.createBitmap(bar.getWidth(), bar.getHeight(), Bitmap.Config.ARGB_8888);
+                bar.draw(new android.graphics.Canvas(image));
+                int ok = (int) fieldOn(fieldOn(fieldOn(bar, "this$0"), "ui"), "ok"), green = 0;
+                for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) if (image.getPixel(x, y) == ok) green++;
+                counts.set(new int[]{green});
+            });
+            if (counts.get() == null) SystemClock.sleep(200);
+        }
+        require(counts.get() != null, "The bar never held " + want + " for a drawing");
         note("bar " + (confirmed ? "confirmed" : "inferred") + ": green pixels " + counts.get()[0]);
         require(confirmed ? counts.get()[0] > 0 : counts.get()[0] == 0, "Bar's regen fill, confirmed=" + confirmed + ": green pixels " + counts.get()[0]);
     }
