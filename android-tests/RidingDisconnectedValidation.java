@@ -360,7 +360,10 @@ public final class RidingDisconnectedValidation extends Instrumentation {
         require(rideCount() == rides + 1, "one ride");
         settle();
         require((Boolean) read2(() -> field(field(service, "autoStart"), "recordHeld")), "a hand stop during a dropout holds auto-record");
-        require(!read(record::isEnabled) && english("dashboardRecordConnect").equals(text(record.getContentDescription())), "a link at rest: dim, and it says it needs a connection");
+        main(activity::redraw);
+        settle();
+        String atRest = read2(() -> service.ble.state() + " / " + text(record.getContentDescription()));
+        require(!read(record::isEnabled) && atRest.endsWith(" / " + english("dashboardRecordConnect")), "a link at rest: dim, and it says it needs a connection: " + atRest);
         shot("riding-9-link-ended-idle");
         FakeLink again = new FakeLink();
         main(again::attach);
