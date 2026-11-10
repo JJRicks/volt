@@ -376,7 +376,9 @@ public final class RidingDisconnectedValidation extends Instrumentation {
 
         // The automatic end first, connected, ready and stopped, before the disc has been redrawn: a tap on its stop mark
         // starts nothing. Off the simulator a start would really run, so this is where it can be seen.
-        require(read(() -> service.ble.ready()), "the synthetic link reads as ready");
+        report(0, 0);
+        require(read(() -> service.ble.ready()), "the synthetic link reads as ready: " + read2(() -> "work " + invoke(service.ble, "workAllowed")
+                + ", serial '" + field(service.ble, "serial") + "', status age " + (SystemClock.elapsedRealtime() - (Long) field(service.ble, "statusMs")) + ", state " + service.ble.state()));
         rides = rideCount();
         beginRide();
         report(0, 0);
