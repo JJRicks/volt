@@ -37,10 +37,20 @@ A variant is a folder `variants/<name>/` (lowercase letters, digits and hyphens)
 - The build gives every variant these shared files, which a variant may replace by shipping the same path: `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `og.png`, `site.webmanifest`, `robots.txt`, `sitemap.xml`, `img/*.webp` (today's screenshots), `fonts/saira-{regular,medium,semibold,bold}.ttf` and `THIRD-PARTY-NOTICES.txt`.
 - A page must work at `/` and at `/preview/<name>/`, so its URLs are relative, with no leading slash. The canonical link and the `og:`/`twitter:` URLs may be absolute `https://volt.jjricks.com/` URLs. Links to other sites are fine.
 - The production CSP applies to every variant: no inline `<script>` or `<style>`, no `style=""` attributes or `on*=` handlers, no `data:` URLs and nothing from other hosts. Setting `element.style` from a script file is fine.
+- Link-preview images: sites like Slack and X cache them by URL for a long time. In a variant that ships its own image (for example its own `og.png`), every `og:image` / `twitter:image` URL naming it must end in `?v=` plus the first 12 hex digits of the image's SHA-256, for example `https://volt.jjricks.com/og.png?v=5f92e25d66d7` (`shasum -a 256 og.png | cut -c1-12`). If the build fails, its message gives the exact URL. A variant that keeps today's `og.png` keeps today's URL. Original is never changed.
+- `robots.txt`, if a variant ships its own, must not disallow `/preview/` or anything above it (see below).
+- Nothing else about caching: every file is revalidated on each visit (see "Caching"), so CSS, scripts and images may keep the same names in every variant.
 
-`python3 site/tools/check-variants.py` checks all of this for `src/` and every variant. The content policy and animation rules below apply to every variant.
+`python3 site/tools/check-variants.py` checks all of this for `src/` and every variant, and `build.sh` runs it on every built variant: any problem stops the build. The content policy and animation rules below apply to every variant.
 
-Previews are hidden from search engines: `robots.txt` disallows `/preview/`, and nginx sends `X-Robots-Tag: noindex, nofollow` there.
+Previews are kept out of search by the `X-Robots-Tag: noindex, nofollow` header nginx sends on every `/preview/` response. `robots.txt` deliberately does not disallow `/preview/`: a crawler that is not allowed to fetch a page never sees its noindex, and may list the bare URL anyway.
+
+## Caching
+
+Switching variants changes the files behind the same URLs (`/styles.css`, `/img/…`), so no browser may reuse a file from the variant that was live before:
+
+- nginx sends `Cache-Control: no-cache` (`expires epoch`) for every homepage file, at `/` and under `/preview/`. Browsers keep their copies but ask before using them.
+- `deploy-release.sh` sets each file's modification time from its SHA-256 (a second between 2001 and 2020). nginx's `ETag` (modification time and size) and `Last-Modified` therefore change exactly when the content does. A changed file is sent again; an unchanged one, such as a shared font, comes back as `304 Not Modified`, across switches and releases alike.
 
 ## Live variant switch
 
@@ -65,7 +75,8 @@ To switch by hand on the server, as root: `printf 'refined\n' > /var/lib/volt-de
 The site is served from the jjricks.com VPS by its own nginx site, `volt-homepage`. Every other site's configuration is left untouched.
 
 - Releases are immutable: `/var/www/volt-home/releases/<commit>/`, with `/var/www/volt-home/current` pointing at one of them, and `live` at one variant of a release (see "Live variant switch").
-- Homepage deploys, including the one after each app release, run `server/deploy-release.sh` on the VPS. It replaces the `update.sh` used up to Volt 1.13.0 and takes the same arguments: the commit, the archive and manifest SHA-256, the previous release's commit and the nginx configuration's SHA-256. It checks everything `update.sh` checked, and also that the release has `variants.json` and `variants/original/`. After moving `current`, it runs the switch, so the live choice carries over, and prints the live variant with `UPDATE_OK`. It refuses to start when nginx serves `live` but the switch is missing.
+- Homepage deploys, including the one after each app release, run `server/deploy-release.sh` on the VPS. It replaces the `update.sh` used up to Volt 1.13.0 and takes the same arguments: the commit, the archive and manifest SHA-256, the previous release's commit and the nginx configuration's SHA-256. It checks everything `update.sh` checked, and also that the release has `variants.json` and `variants/original/`, and it sets the content-derived modification times (see "Caching"). It refuses to start when nginx serves `live` but the switch is missing.
+- After moving `current`, it runs the switch, so the live choice carries over. It prints `UPDATE_OK` with the live variant only when the switch service succeeded in that run and `live` really points inside the new release. Otherwise it moves `current` back to the previous release, runs the switch again so `live` follows, prints `DEPLOY_FAILED` and exits 1. The new release folder stays for a look. A status file from an earlier run is never taken as proof.
 - Afterwards, check each file in the manifest at its public URL: `variants/<live>/<file>` at `/<file>`, `variants/<name>/<file>` at `/preview/<name>/<file>`. The release-root copies and `variants.json` are not served.
 - The certificate is a Let's Encrypt ECDSA certificate for `volt.jjricks.com`, issued and renewed with the webroot `/var/www/volt-home-acme`. The renew hook runs `nginx -t` before reloading nginx.
 - Each deployment backs up `sites-available/` and `sites-enabled/` under `/etc/nginx/volt-deployment-backups/`.

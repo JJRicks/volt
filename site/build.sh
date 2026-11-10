@@ -1,5 +1,6 @@
 #!/bin/bash
-# Assembles the static Volt homepage into site/dist/. Bash and coreutils only; no network access.
+# Assembles the static Volt homepage into site/dist/. Bash, coreutils and python3 (for the variant check);
+# no network access.
 # Downloads link to GitHub Releases, so no APK is published from this site.
 #
 # Output (see site/README.md, "Variants"):
@@ -116,6 +117,14 @@ if [ -d "$variants_src" ]; then
     build_variant "$name" "$dir" "$dist/variants/$name"
     names+=("$name")
   done
+fi
+
+# Every built page must meet the variant contract (tools/check-variants.py: relative URLs, the CSP,
+# content-specific link-preview image URLs, robots.txt). Any problem stops the build.
+if ! check_out="$(python3 -I "$here/tools/check-variants.py" "$dist"/variants/* 2>/dev/null)"; then
+  printf '%s\n' "$check_out" >&2
+  echo "Variant check failed; see site/README.md, \"Variants\"." >&2
+  exit 1
 fi
 
 # Known variants first, in the owner's order, then any others alphabetically (the glob above is sorted).

@@ -14,15 +14,24 @@ Every page must work at / and at /preview/<name>/, and under the production CSP
   - no <base>, <iframe>, <frame>, <object>, <embed> or form actions;
   - in CSS, url() and @import are relative too (or a #fragment), never data: or external;
   - in JavaScript, no network calls (fetch, XMLHttpRequest, WebSocket, EventSource, sendBeacon), eval or
-    new Function, and no http(s) URLs other than XML namespaces.
+    new Function, and no http(s) URLs other than XML namespaces;
+  - social preview images (og:image, twitter:image and their :url/:secure_url/:src forms): link previews
+    are cached by URL for a long time, so in a variant other than original, an image that differs from
+    today's file at the same path must carry ?v=<first 12 hex digits of its SHA-256> in its URL, e.g.
+    https://volt.jjricks.com/og.png?v=0123456789ab. The problem line gives the exact URL;
+  - robots.txt must not disallow /preview/ (or anything above it): crawlers would then never fetch a
+    preview and never see its X-Robots-Tag: noindex.
+site/build.sh runs this on every built variant and fails the build on any problem.
 Standard library only.
 """
-import re, sys
+import hashlib, re, sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
 SITE = 'https://volt.jjricks.com/'
+SOCIAL_IMAGE = re.compile(r'(og|twitter):image(:url|:secure_url|:src)?')
+ORIGINAL_FOLDERS = ('original', 'src')
 URL_ATTRS = {'src', 'href', 'poster', 'data', 'action', 'formaction', 'background', 'cite', 'longdesc',
              'manifest', 'icon', 'xlink:href', 'ping', 'archive', 'codebase', 'usemap'}
 BANNED_TAGS = {'base', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'portal'}
@@ -51,10 +60,11 @@ def relative_problem(url):
 
 
 class PageCheck(HTMLParser):
-    def __init__(self, name, problems):
+    def __init__(self, name, problems, images=None):
         super().__init__(convert_charrefs=True)
         self.name, self.problems = name, problems
         self.in_script = False
+        self.images = images if images is not None else []
 
     def problem(self, text):
         line, _ = self.getpos()
@@ -105,6 +115,8 @@ class PageCheck(HTMLParser):
             if re.fullmatch(r'(og|twitter):(url|image|video|audio|player)(:url|:secure_url|:src)?', key) and content:
                 if not content.startswith(SITE) and relative_problem(content):
                     self.problem('<meta %s> URL must be relative or start with %s' % (key, SITE))
+            if SOCIAL_IMAGE.fullmatch(key) and content:
+                self.images.append((self.getpos()[0], key, content))
         rel = a.get('rel', '').lower().split()
         for key in ('srcset', 'imagesrcset'):
             if key in a:
@@ -153,8 +165,51 @@ def check_js(name, text, problems):
             problems.append('%s: contains %s (no external URLs in scripts)' % (name, m.group(0)))
 
 
-def check_folder(folder):
+def social_image_problems(folder, page, images, reference):
+    """Link-preview images whose content differs from today's file must have a content-specific URL."""
+    problems = []
+    for line, key, url in images:
+        base, _, query = url.partition('?')
+        if base.startswith(SITE):
+            path = base[len(SITE):]
+        elif relative_problem(base) is None:
+            path = base
+        else:
+            continue  # reported above
+        if not path or path.endswith('/'):
+            problems.append('%s:%d: <meta %s> names a folder, not an image' % (page, line, key))
+            continue
+        mine, theirs = folder / path, reference / path
+        data = mine.read_bytes() if mine.is_file() else theirs.read_bytes() if theirs.is_file() else None
+        if data is None:
+            problems.append('%s:%d: <meta %s> names %s, which this page does not have' % (page, line, key, path))
+            continue
+        if theirs.is_file() and theirs.read_bytes() == data:
+            continue  # today's image, at today's URL
+        want = 'v=' + hashlib.sha256(data).hexdigest()[:12]
+        if query != want:
+            problems.append('%s:%d: <meta %s> image differs from today\'s %s, so link previews need a URL that changes '
+                            'with it: use %s%s?%s' % (page, line, key, path, SITE, path, want))
+    return problems
+
+
+def robots_problems(name, text):
+    problems = []
+    for raw in text.splitlines():
+        line = raw.split('#', 1)[0].strip()
+        if line.lower().startswith('disallow:'):
+            value = line.split(':', 1)[1].strip()
+            if value and '/preview/'.startswith(value):
+                problems.append('%s: "%s" hides the previews\' noindex from crawlers (and may hide more); '
+                                'previews are kept out of search by X-Robots-Tag instead' % (name, line))
+    return problems
+
+
+def check_folder(folder, reference=None):
+    """Problems in one page folder. reference is today's page (default: site/src next to this tool), used
+    for the social-image rule, which applies to every folder except original (named original or src)."""
     folder = Path(folder)
+    reference = Path(reference) if reference else Path(__file__).resolve().parent.parent / 'src'
     problems = []
     if not (folder / 'index.html').is_file():
         problems.append('%s: no index.html' % folder)
@@ -172,13 +227,18 @@ def check_folder(folder):
                 if re.search(r'(?i)(?:href|src)\s*=\s*["\']\s*(?:https?:|//|data:|javascript:)', text):
                     problems.append(name + ': external or data: reference in an SVG')
                 continue
-            checker = PageCheck(name, problems)
+            images = []
+            checker = PageCheck(name, problems, images)
             checker.feed(text)
             checker.close()
+            if folder.name not in ORIGINAL_FOLDERS:
+                problems += social_image_problems(folder, name, images, reference)
         elif suffix == '.css':
             check_css(name, path.read_text(encoding='utf-8'), problems)
         elif suffix in ('.js', '.mjs'):
             check_js(name, path.read_text(encoding='utf-8'), problems)
+        elif rel.as_posix() == 'robots.txt':
+            problems += robots_problems(name, path.read_text(encoding='utf-8'))
     return problems
 
 
