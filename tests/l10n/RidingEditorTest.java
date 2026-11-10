@@ -229,7 +229,7 @@ public final class RidingEditorTest {
     private static void source() throws IOException {
         String screen = read("src/com/jjricks/volt/RidingScreen.java"), sheet = read("src/com/jjricks/volt/RidingLayoutSheet.java"),
                 motion = read("src/com/jjricks/volt/RidingDiscMotion.java");
-        check(screen.contains("disc.show(tuneShown(now));"), "the disc follows the tune gate");
+        check(screen.contains("boolean shownNow = tuneShown(now);") && screen.contains("disc.show(shownNow);"), "the disc follows the tune gate");
         check(screen.contains("if (disc != null && disc.takesTaps()) edit();"), "a tap while the disc hides opens nothing");
         check(screen.contains("new RidingLayoutSheet(") && screen.contains("return sheetState.accept(kmh);"), "the tune disc opens the editor; changes follow the sheet rules");
         check(!sheet.contains("commonDone") && sheet.contains("changed.save(editor.working())"), "no Done button: every change saves");

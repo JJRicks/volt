@@ -221,14 +221,14 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         latchedCrossingBeforePrompt();
         pausedWithConnectionUp();
 
-        // Disconnected: the tune button shows, Lock and Record don't, and lost readings don't close the menu.
+        // Disconnected: the tune button shows, and Lock and Record with it (owner, Nov 9); lost readings don't close the menu.
         openMenu();
         main(() -> { activity.service().ble.setSimulationScript("dropout"); activity.redraw(); });
         settle();
         require(menuOpen(), "Losing the connection and readings doesn't close the menu");
         close();
         tuneShows("disconnected");
-        require(((View) field(screen(), "stoppedControls")).getVisibility() == View.GONE, "Lock and Record stay stopped-only while disconnected");
+        require(((View) field(screen(), "stoppedControls")).getVisibility() == View.VISIBLE, "Lock and Record show with the tune button while disconnected");
         shot(label + "-8-disconnected");
         openMenu();
         shot(label + "-9-menu-disconnected");

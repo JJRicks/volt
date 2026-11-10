@@ -32,10 +32,32 @@ public final class RidingStoppedControlsTest {
     private static void record() {
         check(RidingFrames.recordEnabled(false, true, false) && RidingFrames.recordEnabled(true, false, false), "connected, or recording, takes a tap");
         check(!RidingFrames.recordEnabled(false, true, true) && !RidingFrames.recordEnabled(true, true, true) && !RidingFrames.recordEnabled(false, false, false), "still saving, or not connected, doesn't");
-        check(RidingFrames.recordAction(true, false, true) == RecorderTap.START, "stopped and idle starts");
-        check(RidingFrames.recordAction(true, true, true) == RecorderTap.STOP, "stopped and recording stops");
-        check(RidingFrames.recordAction(true, false, false) == RecorderTap.NONE, "not connected does nothing here");
-        check(RidingFrames.recordAction(false, true, true) == RecorderTap.NONE && RidingFrames.recordAction(false, false, true) == RecorderTap.NONE, "a tap that lands once moving does nothing");
+        // recordAction(connected, stopped, recording, ready, showingStop)
+        check(RidingFrames.recordAction(true, true, false, true, false) == RecorderTap.START, "stopped and idle starts");
+        check(RidingFrames.recordAction(true, true, true, true, true) == RecorderTap.STOP, "stopped and recording stops");
+        check(RidingFrames.recordAction(true, false, true, true, true) == RecorderTap.NONE && RidingFrames.recordAction(true, false, false, true, false) == RecorderTap.NONE, "a tap that lands once moving does nothing");
+        check(RidingFrames.recordAction(true, true, true, false, true) == RecorderTap.STOP && RidingFrames.recordAction(true, false, true, false, true) == RecorderTap.NONE,
+                "connected with stale settings: a stop still needs stopped");
+        check(RidingFrames.recordAction(true, false, true, false, true) == RecorderTap.NONE, "reconnected, no motion report yet: not stopped, so nothing");
+
+        // Disconnected (owner, Nov 9): a recording stops; nothing else ever happens, neither a start nor a connection.
+        check(RidingFrames.recordAction(false, false, true, false, true) == RecorderTap.STOP, "disconnected and recording: the tap stops it");
+        check(RidingFrames.recordAction(false, true, true, false, true) == RecorderTap.STOP, "disconnected with a stationary report still fresh: stops too");
+        for (boolean stopped : new boolean[]{false, true})
+            for (boolean ready : new boolean[]{false, true})
+                check(RidingFrames.recordAction(false, stopped, false, ready, false) == RecorderTap.NONE, "disconnected and idle: nothing (stopped " + stopped + ", ready " + ready + ")");
+        check(RidingFrames.recordAction(true, true, false, false, false) == RecorderTap.NONE, "connected but not ready and idle: no connection attempt from here");
+
+        // A tap acts on the mark it landed on: an automatic end (or start) since the last draw makes it do nothing.
+        check(RidingFrames.recordAction(true, true, false, true, true) == RecorderTap.NONE, "ended automatically before the redraw: the stop mark starts nothing");
+        check(RidingFrames.recordAction(false, false, false, false, true) == RecorderTap.NONE, "ended automatically while disconnected: nothing");
+        check(RidingFrames.recordAction(true, true, true, true, false) == RecorderTap.NONE, "started automatically before the redraw: the record mark stops nothing");
+
+        // Lock, Record and the tune button share one gate (RidingFrames.tuneShown).
+        check(RidingFrames.tuneShown(false, false, null) && RidingFrames.tuneShown(false, false, 30.0) && RidingFrames.tuneShown(false, true, 0.0), "disconnected: shown, whatever the old readings say");
+        check(RidingFrames.tuneShown(true, true, 0.0) && RidingFrames.tuneShown(true, true, null), "connected and stopped: shown");
+        check(!RidingFrames.tuneShown(true, true, 1.0) && !RidingFrames.tuneShown(true, false, 0.0), "connected and moving: hidden");
+        check(!RidingFrames.tuneShown(true, false, null), "reconnected with no motion report yet: hidden until the first stationary report");
     }
 
     private static void lockTaps() {
@@ -130,10 +152,14 @@ public final class RidingStoppedControlsTest {
         check(cancelled > stoppedMotion.indexOf("if (!motion.want(shown)) return false;") && cancelled < stoppedMotion.indexOf("motion.run();") && stoppedMotion.contains("MotionEvent.ACTION_CANCEL") && stoppedMotion.contains("controls.dispatchTouchEvent(cancel);"), "a gesture already down is cancelled as the hide starts, only then, and through the row");
         check(screen.indexOf("if (stoppedMotion.show(shown) && !shown) {") < screen.indexOf("recordDisc.setEnabled(false);", screen.indexOf("if (stoppedMotion.show(shown) && !shown) {")), "Record is disabled only after that cancel, which a disabled view would ignore");
         check(screen.indexOf("stoppedMotion.dim(alpha);") < screen.indexOf("if (!shown) return;", screen.indexOf("stoppedMotion.dim(alpha);")), "the long-ride dim keeps up while they hide");
-        check(screen.contains("stoppedLock = host.ridingLock(() -> stopped(") && screen.contains("showStopped(stoppedNow,"), "Lock and Record follow the stopped gate");
+        check(screen.contains("stoppedLock = host.ridingLock(() -> stopped(") && screen.contains("boolean shownNow = tuneShown(now);")
+                && screen.contains("disc.show(shownNow);") && screen.contains("showStopped(shownNow,"), "Lock and Record show by the tune button's one reading of the gate, and Lock's taps keep the stopped gate");
         check(main.contains("lockQueue.stoppedGateClosed(") && main.indexOf("lockQueue.stoppedGateClosed(") < main.indexOf("decisionOnceIdle(\"lock\",Boolean.TRUE"), "a waiting tap meets the stopped gate before the lock's own gate");
         check(main.contains("stoppedGate!=null&&!stoppedGate.getAsBoolean()") && main.contains("lockQueue.sending(true);"), "a tap as motion starts is refused, and a send is held from redraws");
-        check(screen.contains("RidingFrames.recordAction(stopped(SystemClock.elapsedRealtime())") && screen.contains("RideRecordingApp.of(host)"), "Record is Home's control, re-checked at the tap");
+        check(screen.contains("RidingFrames.recordAction(service.ble.connected(), stopped(SystemClock.elapsedRealtime())") && screen.contains("recordGlyph.stop);")
+                && screen.contains("RideRecordingApp.of(host)"), "Record is Home's control, re-checked at the tap against the connection and the mark drawn");
+        check(main.contains("lockControl.update(shownLock,ready&&!editing&&lockOffered(ble,shownLock),ready?null:description);")
+                && main.contains("saved?lastKnown:"), "with no live link the lock switch takes no tap and says its state is the last known");
         check(!screen.contains("ble.set("), "the lock's tap goes through MainActivity's queue, never straight to the scooter");
         String ble = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/BleController.java")), StandardCharsets.UTF_8);
         check(main.contains("if(lockQueue.stoppedOnly())ble.holdUnsent(\"lock\",lockStoppedGate,"), "a riding tap's stopped gate is carried past the queue (a read in flight can leave it unsent)");
