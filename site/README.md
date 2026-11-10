@@ -2,12 +2,17 @@
 
 The public homepage at <https://volt.jjricks.com/>. It's a single static page with no build tools, no frameworks and no third-party requests. Fonts, images and scripts are all served from the same origin.
 
+There can be several versions of the page, called variants. One is live at `/`, and every one can be previewed at `/preview/<name>/`. The owner switches between them in the private Workbench (`/dev/`, Homepage).
+
 ## Layout
 
 - `src/` holds the page: `index.html`, `styles.css`, `main.js`, the icons, the link-preview card (`og.png`), the web manifest, `robots.txt` and `sitemap.xml`.
 - `src/img/` holds the app screenshots, exported as WebP. They were captured on an emulator in simulation mode with sample data; the developer-mode banner is omitted, and the footer says the screens show sample data. The phone image retains the three-reading arrangement shared by the current default; Capacity experiment is below its viewport. The unfolded screenshot uses a custom four-reading arrangement in Volt 1.4.5: Power, Temp, Health and Charge limit in a 2×2 grid. It includes the full Capacity experiment card below Record ride in the same taller viewport. This screenshot does not change the app defaults or the folded phone image. The sample name and existing readings are unchanged. Capacity values are simulated examples, not recorded evidence.
 - `tools/` holds the templates and script that render `og.png` and the PNG icons with a local Google Chrome: `bash site/tools/render-images.sh`. The rendered files are committed, so a normal build doesn't need Chrome.
-- `nginx/volt-homepage.conf` is the server configuration, with security headers, caching and the ACME webroot.
+- `variants/<name>/` holds the other homepage variants (see "Variants"). Today's page is the `original` variant and stays in `src/`.
+- `tools/check-variants.py` checks today's page and every variant against the variant contract and the production CSP. `tests/site-homepage-test.py` runs it in CI.
+- `nginx/volt-homepage.conf` is the server configuration, with security headers, caching, previews and the ACME webroot.
+- `server/` holds the root-owned live-variant switch (`volt-homepage-switch` with its systemd path and service units, and `install-switch.sh`) and `deploy-release.sh`, the server half of a homepage deploy (see "Deploy").
 
 ## Build
 
@@ -15,21 +20,101 @@ The public homepage at <https://volt.jjricks.com/>. It's a single static page wi
 bash site/build.sh
 ```
 
-This writes `site/dist/` and a SHA-256 manifest, `site/dist.sha256`, kept beside it rather than served. The Saira fonts and their SIL OFL license come straight from `res/font/` and `licenses/`, so they aren't duplicated. The download buttons link to GitHub Releases; this site doesn't host an APK.
+This writes `site/dist/` and a SHA-256 manifest, `site/dist.sha256`, kept beside it rather than served:
+
+- `dist/variants/<name>/`: one complete page per variant: `original` from `src/`, and one per folder in `variants/`.
+- `dist/variants.json`: each variant's name, title and one-line description, in the order the Workbench lists them. The titles are Original, Refined, Hybrid and App look; any other name gets itself, capitalized, as its title.
+- `dist/` itself: today's page again, byte for byte the same as `dist/variants/original/`. This keeps older tools working: release scripts that read `dist/index.html`, and the nginx configuration from before variants, which served the release root. The copies add about 1 MB to a release. The Saira fonts and their SIL OFL license come straight from `res/font/` and `licenses/`, so they aren't duplicated. The download buttons link to GitHub Releases; this site doesn't host an APK.
 
 `build.sh` fills the download line's `@VERSION@` from `AndroidManifest.xml`'s `versionName`, so rebuilding after a release keeps the page current. Deploying still needs the owner's OK.
+
+## Variants
+
+A variant is a folder `variants/<name>/` (lowercase letters, digits and hyphens). The names the switch accepts are fixed: `original` (today's page, `src/`), `refined`, `hybrid` and `app`. Others build, but can't go live.
+
+- `index.html` is required and must contain the `@VERSION@` placeholder; the build fails otherwise.
+- Every other regular file is copied, keeping subpaths, except `*.md` files and dotfiles. Symbolic links stop the build.
+- The build gives every variant these shared files, which a variant may replace by shipping the same path: `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `og.png`, `site.webmanifest`, `sitemap.xml`, `img/*.webp` (today's screenshots), `fonts/saira-{regular,medium,semibold,bold}.ttf` and `THIRD-PARTY-NOTICES.txt`. Every variant also gets `robots.txt`, which it may not replace (see below).
+- A page must work at `/` and at `/preview/<name>/`, so its URLs are relative, with no leading slash. The canonical link and the `og:`/`twitter:` URLs may be absolute `https://volt.jjricks.com/` URLs. Links to other sites are fine.
+- The production CSP applies to every variant: no inline `<script>` or `<style>`, no `style=""` attributes or `on*=` handlers, no `data:` URLs and nothing from other hosts. Setting `element.style` from a script file is fine.
+- Link-preview images are content-addressed cards, so a card URL's bytes never change: not on a switch, not on a later deploy, not on a rollback (Slack, X and the like cache them by URL for a long time). In every variant except original, each `og:image` / `twitter:image` (and its `:url`, `:secure_url`, `:src` forms) is exactly
+  `https://volt.jjricks.com/cards/<sha256>.<ext>`,
+  where `<sha256>` is all 64 hex digits of the SHA-256 of an image the variant serves (its own, or a shared `src/` one), and `<ext>` is that file's extension (`png`, `jpg`, `jpeg` or `webp`). For example `shasum -a 256 site/variants/refined/og.png | cut -c1-64`. The build copies each card to `dist/cards/`. `deploy-release.sh` adds it to the server's append-only store `/var/www/volt-home/cards/`, which nginx serves with an immutable cache. A name that already exists with other bytes stops the deploy, and nothing is ever removed from the store, rollbacks included. If the build fails, its message gives the exact URL.
+- Original is today's page byte for byte, so it keeps `https://volt.jjricks.com/og.png`. That URL serves the live variant's `og.png`, so while a variant with its own card is live, a fresh unfurl of the original's links shows that card. Link-preview caches keep what they fetched before.
+- Robots rules come from nginx and the one shared `src/robots.txt` only. A variant may not ship `robots.txt` (the build stops), the shared one has no `Disallow` lines, and no page may have a `<meta name="robots">`, a crawler-specific one such as `<meta name="googlebot">`, or `<meta http-equiv="X-Robots-Tag">`. A crawler that may not fetch a preview never sees its noindex (see below), and a variant's own robots rules would follow it to `/` when it goes live.
+- Nothing else about caching: every file is revalidated on each visit (see "Caching"), so CSS, scripts and images may keep the same names in every variant.
+
+`python3 site/tools/check-variants.py` checks all of this for `src/` and every variant, and `build.sh` runs it on every built variant: any problem stops the build. The content policy and animation rules below apply to every variant.
+
+Previews are kept out of search by the `X-Robots-Tag: noindex, nofollow` header nginx sends on every `/preview/` response. `robots.txt` deliberately does not disallow `/preview/`: a crawler that is not allowed to fetch a page never sees its noindex, and may list the bare URL anyway.
+
+## Caching
+
+Switching variants changes the files behind the same URLs (`/styles.css`, `/img/…`), so no browser may reuse a file from the variant that was live before:
+
+- nginx sends `Cache-Control: no-cache` (`expires epoch`) for every homepage file, at `/` and under `/preview/`. Browsers keep their copies but ask before using them.
+- `deploy-release.sh` sets each file's modification time from its SHA-256 (one of 600 million seconds between 2001 and 2020). nginx's `ETag` (modification time and size) and `Last-Modified` therefore change when the content does. A changed file is sent again; an unchanged one, such as a shared font, comes back as `304 Not Modified`, across switches and releases alike.
+- Cards (`/cards/<sha256>.<ext>`) are the exception: their names are their content, so nginx sends `Cache-Control: public, max-age=31536000, immutable`, and only on success, so an early 404 isn't kept.
+- Limit: 600 million values is not collision-proof. Two files of the same size whose SHA-256 values map to the same second share a validator, so a browser holding one would keep it when served the other. Ordinary files essentially never do (for a handful of versions of one URL the chance is around one in 10^8), but they can be crafted: `body{color:red}/*00015ba8*/` and `body{color:tan}/*0000062d*/` collide. Variant files arrive through reviewed pull requests, and a collision would only show a visitor the other variant's copy of that file until it next changes. A collision-proof validator needs a hash-based ETag, which stock nginx can't serve from static files.
+
+## Live variant switch
+
+`/` serves `/var/www/volt-home/live`, a symbolic link to `releases/<commit>/variants/<name>`. Only the root-owned switch changes it:
+
+1. The Workbench (the unprivileged `volt-dev` service) writes the requested name to `/var/lib/volt-dev/homepage/request`, which it owns, and records the change in its history.
+2. `volt-homepage-switch.path` notices and starts `volt-homepage-switch.service`, a oneshot that runs `/usr/local/sbin/volt-homepage-switch` as root. It:
+   - accepts only an exact `original`, `refined`, `hybrid` or `app` (one trailing newline allowed). A missing request means `original`. A request that is a symbolic link, too large or anything else is refused, and its content is never copied anywhere;
+   - checks that the variant is a real folder, with a real `index.html`, in the release `current` points at;
+   - replaces `live` atomically: a new link under a temporary name, renamed over the old one. nginx resolves the link on every request, so no reload is needed;
+   - writes `/var/lib/volt-homepage-switch/status.json`, readable by everyone: what its last run did (the live name and its release, the requested name, the time in UTC ISO 8601, the result `ok`, `error` or `fallback`, and a message). It is a record of that run, not the state: a failed deploy restores the links without touching it. The Workbench therefore reads "Live now" and the release from `readlink live` and `readlink current`, which are world-readable, and shows the status only as the last switch result.
+3. An invalid request, or one for a variant this release lacks, leaves the live variant as it is and records the error.
+
+The choice survives homepage deploys. A deploy points `current` at the new release and then runs the switch, which moves `live` to the same variant in the new release. Until then `/` keeps serving the previous release's copy, so nothing dangles. If the new release lacks the chosen variant, original goes live and the status says `fallback`. The request still names the chosen variant, so a later release that has it brings it back.
+
+Install or update the switch with `bash site/server/install-switch.sh` as root on the VPS. It backs up replaced files to `/var/backups/volt-homepage-switch/`, creates the request folder and runs the switch once. To remove it: `systemctl disable --now volt-homepage-switch.path`, then delete the two units in `/etc/systemd/system/` and `/usr/local/sbin/volt-homepage-switch`, and run `systemctl daemon-reload`. Before that, put back an nginx configuration whose root is `/var/www/volt-home/current`, because nothing moves `live` afterwards.
+
+To switch by hand on the server, as root: `printf 'refined\n' > /var/lib/volt-dev/homepage/request && chown volt-dev:volt-dev /var/lib/volt-dev/homepage/request`, then read the status file.
 
 ## Deploy
 
 The site is served from the jjricks.com VPS by its own nginx site, `volt-homepage`. Every other site's configuration is left untouched.
 
-- Releases are immutable: `/var/www/volt-home/releases/<commit>/`, with `/var/www/volt-home/current` pointing at one of them.
+- Releases are immutable: `/var/www/volt-home/releases/<commit>/`, with `/var/www/volt-home/current` pointing at one of them, and `live` at one variant of a release (see "Live variant switch").
+- Homepage deploys, including the one after each app release, run `server/deploy-release.sh` on the VPS. It replaces the `update.sh` used up to Volt 1.13.0 and takes the same arguments: the commit, the archive and manifest SHA-256, the previous release's commit and the nginx configuration's SHA-256. It checks everything `update.sh` checked, and also that the release has `variants.json` and `variants/original/`, and it sets the content-derived modification times (see "Caching"). Before moving `current` it adds the release's `cards/` to the card store; a card name that already holds other bytes stops it (`CARD_CONFLICT`) with nothing else changed. It runs under `umask 022`, gives the release tree, the card store and every card explicit modes (folders 755, files 644) on every run, and stops with `PERMISSIONS_BAD` before `current` moves if any served path, including the folders above it, isn't world-readable. It refuses to start when nginx serves `live` but the switch is missing.
+- Before moving `current`, it saves where `live` points. After moving `current`, it runs the switch, so the live choice carries over. It prints `UPDATE_OK` with the live variant only when the switch service succeeded in that run and `live` really points inside the new release. Otherwise it puts both links back itself, without the switch: `current` to the previous release and `live` to the saved target, each with one atomic rename. Then it checks both. When both are back, it prints `DEPLOY_FAILED` and exits 1. When either is not, it prints `DEPLOY_INCOMPLETE` with the exact commands that finish the rollback and exits 2: run them as root before anything else. The new release folder stays for a look. A status file from an earlier run is never taken as proof.
+- Afterwards, check each file in the manifest at its public URL: `variants/<live>/<file>` at `/<file>`, `variants/<name>/<file>` at `/preview/<name>/<file>`, `cards/<name>` at `/cards/<name>`. The release-root copies and `variants.json` are not served.
 - The certificate is a Let's Encrypt ECDSA certificate for `volt.jjricks.com`, issued and renewed with the webroot `/var/www/volt-home-acme`. The renew hook runs `nginx -t` before reloading nginx.
 - Each deployment backs up `sites-available/` and `sites-enabled/` under `/etc/nginx/volt-deployment-backups/`.
 
 Rollback:
-- **To a previous release:** point `current` back at an earlier directory under `releases/`. No reload is needed.
+- **To a previous release:** point `current` back at an earlier directory under `releases/`, then run `systemctl start volt-homepage-switch.service` so `live` follows. No reload is needed.
+- **To today's page:** request `original` in the Workbench, or by hand as above.
 - **To remove the site entirely:** delete `/etc/nginx/sites-enabled/volt-homepage`, then run `nginx -t && systemctl reload nginx`.
+
+## Failure modes
+
+Every step that can fail, the state the links and files are in at that moment, what the scripts do about it, and the test that proves it. "Links" are `/var/www/volt-home/current` and `/var/www/volt-home/live`. "Cards" is the append-only store `/var/www/volt-home/cards/`. "Status" is the switch's `/var/lib/volt-homepage-switch/status.json`, which records only the last switch run. Tests are in `tests/site-homepage-test.py` unless they say otherwise.
+
+| Step | Failure | State at that moment | What happens | Proof |
+|---|---|---|---|---|
+| Deploy: checks before any change | archive, manifest or nginx file hash differs; `current` isn't the expected release; nginx serves `live` but the switch is missing | nothing changed | `deploy-release.sh` exits non-zero before it extracts anything | `test_nginx_serving_live_without_the_switch_changes_nothing` |
+| Deploy: extract, manifest check, modification times | a file is missing or extra, or a hash differs | the new release folder exists but nothing serves it; links, cards and status are untouched | `set -e` exit, non-zero | the manifest assertion in the script |
+| Deploy: add cards | a card name isn't its own SHA-256, or the store already has that name with different bytes | links and status untouched; cards that were added before it are correct and never served under another name | `CARD_CONFLICT`, exit 1; nothing in the store is replaced or removed | `test_card_conflict_refuses_the_deploy` |
+| Deploy: permissions | the caller's umask is restrictive (077), or an existing card store, card or switch state folder has the wrong mode | nginx's unprivileged workers (or the Workbench's user, for `status.json`) could not traverse or read a path | Nothing depends on the umask: `deploy-release.sh`, `install-switch.sh` and the switch each set `umask 022` (embedded Python too) and give every path they create an explicit mode. What they own is set again on every run, which repairs it: the release tree, the card store and every card in it, and the switch's state folder, `status.json` and lock. Folders the deploy doesn't own (`/var/www/volt-home`, `releases/`) are only checked: before `current` moves, every served path must be world-traversable and readable, or the deploy stops with `PERMISSIONS_BAD` and nothing served changed | `test_card_store_first_created_under_umask_077`, `test_existing_0700_store_is_repaired`, `test_deploy_under_umask_077_serves_everything_to_other`, `test_unreadable_releases_folder_stops_before_current_moves`, `test_state_modes_do_not_depend_on_the_umask` |
+| Build: a variant ships its own card | n/a | `dist/cards/` holds exactly the cards the variants name; the root copy and `variants/original/` stay today's page | the root comparison excludes `cards/` (as it excludes `variants/`); a separate assertion pins `dist/cards/` | `BuildContract` (its test variant ships two cards): `test_original_is_todays_page_byte_for_byte`, `test_cards_are_exactly_the_named_ones` |
+| Deploy: move `current` | the rename fails | `current` is still the old release (one rename) | `set -e` exit, non-zero | (atomic rename) |
+| Deploy: switch run | the service fails, leaves `live` outside the new release, or moves `live` and writes status and then fails | `current` is new; `live` is wherever the switch left it; status is whatever the switch wrote | the script restores `current` and the saved `live` itself (no switch run), checks both, `DEPLOY_FAILED`, exit 1. Status is not trusted: the Workbench reads the links | `test_failed_switch_with_a_stale_status_fails_and_restores`, `test_switch_that_leaves_live_behind_fails_and_restores`, `test_switch_that_moves_live_then_fails_is_undone_without_the_switch`, `test_failure_after_status_and_links_moved_is_undone` |
+| Rollback | either rename fails | one or both links are not restored | `DEPLOY_INCOMPLETE` with exact commands, exit 2; the wrappers stop with exit 3 | `test_rollback_that_cannot_finish_says_deploy_incomplete`; kit `test-kit.sh` (incomplete) |
+| Deploy: success | n/a | both links in the new release | `UPDATE_OK`, with `live=` read from the `live` link itself | `test_deploy_moves_live_into_the_new_release` |
+| Switch | bad request (unknown name, symbolic link, too large) | `live` unchanged | status `error`; `live` stays | `Switch` tests |
+| Switch | the requested variant is missing from `current` | `live` becomes original of `current` | status `fallback` | `Switch` tests |
+| Switch | crash between the `live` rename and the status write | `live` is new, status is old | nothing to do: "Live now" and "Release" come from the links | Workbench `test_live_comes_from_links` |
+| Status in the Workbench | `status.json` is missing, stale or disagrees with the links | the links are the truth | "Live now" and "Release" come from `readlink live` and `readlink current`; status shows only as "last switch" | Workbench `test_live_comes_from_links` (also no link, and links pointing elsewhere) |
+| Workbench request | the history write or the request rename fails | the request file is unchanged | a `homepage-request-failed` row; HTTP 500 | Workbench `test_homepage_variant_requests` |
+| Card URL: build | a variant's `og:image` / `twitter:image` isn't `/cards/<sha256>.<ext>` of a file it serves | n/a | the checker prints the exact URL and the build fails | `test_social_images_are_content_addressed_cards`, `test_own_social_image_needs_a_card_url` |
+| Card URL: deploy with a changed card, rollback, before a switch | n/a | old and new cards both stay in the store | an old URL keeps its old bytes forever; the URL never depends on `live` or `current` | `test_card_urls_keep_their_bytes_across_deploys`, `test_card_urls_keep_their_bytes_after_a_rollback` |
+| Deploy kit wrapper (`install.sh`, `homepage-release.sh`; outside this repository) | `rs` swallows SSH exit codes | n/a | every remote step greps for a positive marker (`UPDATE_OK`, `SWITCH_INSTALLED`, `NGINX_OK`, …) | review |
+| Deploy kit: public checks | a file mismatch, a wrong card or one that isn't immutable, a missing noindex, a missing security header, or another site not answering 200 | the deploy itself is done | every check counts as a failure; `HOMEPAGEDONE` / `VERIFY_OK` print only with zero failures, otherwise exit 1 | kit `test-kit.sh` (wrong card, missing noindex, missing header, all good) |
 
 ## Content policy
 

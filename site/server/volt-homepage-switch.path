@@ -1,0 +1,13 @@
+# Starts volt-homepage-switch.service whenever the Workbench writes its homepage request.
+# Installed as /etc/systemd/system/volt-homepage-switch.path by site/server/install-switch.sh.
+[Unit]
+Description=Watch the Volt Workbench's homepage variant request
+
+[Path]
+# The Workbench (volt-dev) replaces this file in one rename; it lives in its own folder so that
+# nothing else in /var/lib/volt-dev wakes the switch.
+PathChanged=/var/lib/volt-dev/homepage/request
+Unit=volt-homepage-switch.service
+
+[Install]
+WantedBy=paths.target

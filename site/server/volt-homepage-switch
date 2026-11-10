@@ -1,0 +1,266 @@
+#!/usr/bin/python3 -I
+"""Points volt.jjricks.com's live homepage at one variant of the current release. Runs as root.
+
+Installed as /usr/local/sbin/volt-homepage-switch and started by volt-homepage-switch.service, which
+volt-homepage-switch.path starts whenever the Workbench (the unprivileged volt-dev service) writes the
+variant name it wants into its request file. Homepage deploys start the service too. See site/README.md.
+
+What it does, in order:
+  1. reads the requested name: one of original, refined, hybrid or app, exactly, with at most one
+     trailing newline. No request file means original;
+  2. checks that the variant is a real directory (not a symbolic link) in the current release;
+  3. points <home>/live at <home>/releases/<release>/variants/<name> by renaming a new symbolic link over
+     the old one, so nginx always finds a whole page there and needs no reload;
+  4. writes a status file anyone can read: the live name, its release, the time and the result.
+
+An unusable request leaves the live variant as it was (moved into the current release when it is there)
+and records why. When the current release lacks the live variant, original goes live and the status says
+so. The request file is never echoed into the status, since another account writes it.
+
+Standard library only; Python 3.8 or later.
+"""
+import argparse, errno, fcntl, json, os, re, stat, sys, tempfile, time
+
+ALLOWED = ('original', 'refined', 'hybrid', 'app')
+TITLES = {'original': 'Original', 'refined': 'Refined', 'hybrid': 'Hybrid', 'app': 'App look'}
+DEFAULT = 'original'
+REQUEST_MAX_BYTES = 64
+RELEASE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}')
+
+
+class Fatal(Exception):
+    """Nothing can be switched (no current release, no original in it); live stays as it is."""
+
+
+def open_no_symlinks(path):
+    """Opens path for reading, refusing a symbolic link at any step. Returns an fd for a regular file."""
+    if not os.path.isabs(path):
+        raise ValueError('The request path must be absolute.')
+    parts = [p for p in path.split('/') if p]
+    if not parts or any(p in ('.', '..') for p in parts):
+        raise ValueError('The request path is not a plain path.')
+    nofollow = getattr(os, 'O_NOFOLLOW', 0)
+    fd = os.open('/', os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
+    try:
+        for part in parts[:-1]:
+            nxt = os.open(part, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0) | nofollow, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        # O_NONBLOCK: a FIFO in place of the file must not hang the switch.
+        return os.open(parts[-1], os.O_RDONLY | nofollow | os.O_NONBLOCK | getattr(os, 'O_NOCTTY', 0), dir_fd=fd)
+    finally:
+        os.close(fd)
+
+
+def read_request(path):
+    """Returns (name, None) for a usable request, or (None, reason). A missing file is the default."""
+    try:
+        fd = open_no_symlinks(path)
+    except FileNotFoundError:
+        return DEFAULT, None
+    except OSError as e:
+        if e.errno in (errno.ELOOP, errno.EMLINK, errno.ENOTDIR):
+            return None, 'The request file or a folder above it is a symbolic link, so it was ignored.'
+        return None, 'The request file could not be read.'
+    except ValueError as e:
+        return None, str(e)
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            return None, 'The request is not a regular file, so it was ignored.'
+        if info.st_size > REQUEST_MAX_BYTES:
+            return None, 'The request file is too large to be a variant name.'
+        data = os.read(fd, REQUEST_MAX_BYTES + 1)
+    finally:
+        os.close(fd)
+    if len(data) > REQUEST_MAX_BYTES:
+        return None, 'The request file is too large to be a variant name.'
+    if data.endswith(b'\n'):
+        data = data[:-1]
+    for name in ALLOWED:
+        if data == name.encode('ascii'):
+            return name, None
+    return None, 'The request is not one of: ' + ', '.join(ALLOWED) + '.'
+
+
+def real_dir(path):
+    try:
+        return stat.S_ISDIR(os.lstat(path).st_mode)
+    except OSError:
+        return False
+
+
+def has_variant(release_dir, name):
+    """The variant is a real directory with a real index.html, and so is the variants folder above it."""
+    variants = os.path.join(release_dir, 'variants')
+    page = os.path.join(variants, name, 'index.html')
+    try:
+        return real_dir(variants) and real_dir(os.path.join(variants, name)) and stat.S_ISREG(os.lstat(page).st_mode)
+    except OSError:
+        return False
+
+
+def current_release(home):
+    """The release directory that <home>/current resolves to, inside <home>/releases."""
+    releases = os.path.join(home, 'releases')
+    try:
+        target = os.path.realpath(os.path.join(home, 'current'))
+    except OSError:
+        target = ''
+    if not os.path.lexists(os.path.join(home, 'current')):
+        raise Fatal('There is no current homepage release.')
+    if os.path.dirname(target) != os.path.realpath(releases) or not RELEASE_NAME.fullmatch(os.path.basename(target)):
+        raise Fatal('The current homepage release is not a folder in releases/.')
+    if not real_dir(target):
+        raise Fatal('The current homepage release is missing.')
+    return os.path.join(releases, os.path.basename(target))
+
+
+def live_now(home):
+    """(name, release) that <home>/live points at, or (None, None)."""
+    try:
+        target = os.readlink(os.path.join(home, 'live'))
+    except OSError:
+        return None, None
+    m = re.fullmatch(re.escape(os.path.join(home, 'releases')) + r'/([^/]+)/variants/([a-z][a-z0-9-]*)', target)
+    if not m or m.group(2) not in ALLOWED:
+        return None, None
+    return m.group(2), m.group(1)
+
+
+def point_live(home, release_dir, name):
+    """Replaces <home>/live with a link to the variant in one rename. Returns True when it changed."""
+    target = os.path.join(release_dir, 'variants', name)
+    live = os.path.join(home, 'live')
+    try:
+        if os.readlink(live) == target:
+            return False
+    except OSError:
+        pass
+    if os.path.lexists(live) and not os.path.islink(live):
+        raise Fatal('live is not a symbolic link; leaving it alone.')
+    for attempt in range(20):
+        temp = os.path.join(home, '.live.%d.%d' % (os.getpid(), attempt))
+        try:
+            os.symlink(target, temp)
+            break
+        except FileExistsError:
+            continue
+    else:
+        raise Fatal('Could not create a temporary link next to live.')
+    try:
+        os.replace(temp, live)
+    except BaseException:
+        try:
+            os.unlink(temp)
+        except OSError:
+            pass
+        raise
+    sync_dir(home)
+    return True
+
+
+def sync_dir(path):
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
+def write_status(state_dir, status):
+    """status.json, replaced atomically, readable by everyone (mode 0644)."""
+    os.makedirs(state_dir, mode=0o755, exist_ok=True)
+    os.chmod(state_dir, 0o755)   # explicit: makedirs' mode is filtered by the umask, and an old folder is repaired
+    fd, temp = tempfile.mkstemp(prefix='.status.', dir=state_dir)
+    try:
+        with os.fdopen(fd, 'w') as out:
+            json.dump(status, out, indent=2, sort_keys=True)
+            out.write('\n')
+            out.flush()
+            os.fsync(out.fileno())
+        os.chmod(temp, 0o644)
+        os.replace(temp, os.path.join(state_dir, 'status.json'))
+    except BaseException:
+        try:
+            os.unlink(temp)
+        except OSError:
+            pass
+        raise
+    sync_dir(state_dir)
+
+
+def apply(home, request_path, state_dir, now=None):
+    """Does one switch and writes the status. Returns the status dict."""
+    when = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(now if now is not None else time.time()))
+    requested, problem = read_request(request_path)
+    before, before_release = live_now(home)
+    status = {'format': 'volt-homepage-switch-v1', 'at': when, 'requested': requested,
+              'previous': before, 'previous_release': before_release}
+    try:
+        release_dir = current_release(home)
+        release = os.path.basename(release_dir)
+        status['current_release'] = release
+        if not has_variant(release_dir, DEFAULT):
+            raise Fatal('The current release has no variants/original, so nothing was switched. '
+                        'Deploy a release built with variants first.')
+        if problem is None and has_variant(release_dir, requested):
+            name, result, message = requested, 'ok', TITLES[requested] + ' is live.'
+        else:
+            if problem is None:
+                problem = TITLES[requested] + ' is not in release ' + release[:12] + '.'
+            # Keep what is live now (in this release), or fall back to original.
+            if before is not None and has_variant(release_dir, before):
+                name, result = before, 'error'
+                message = problem + ' ' + TITLES[before] + ' stays live.'
+            else:
+                name, result = DEFAULT, ('fallback' if before not in (None, DEFAULT) else 'error')
+                message = problem + ' Original is live.'
+        changed = point_live(home, release_dir, name)
+        status.update(live=name, release=release, result=result, message=message, changed=changed)
+        code = 0
+    except Fatal as e:
+        name, release = live_now(home)
+        status.update(live=name, release=release, result='error', message=str(e), changed=False)
+        code = 1
+    write_status(state_dir, status)
+    return status, code
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Switch the live Volt homepage variant (see site/README.md).')
+    parser.add_argument('--home', default='/var/www/volt-home', help='Folder with releases/, current and live.')
+    parser.add_argument('--request', default='/var/lib/volt-dev/homepage/request',
+                        help="The Workbench's request file (written by volt-dev).")
+    parser.add_argument('--state-dir', default='/var/lib/volt-homepage-switch',
+                        help='Where status.json (readable by everyone) and the lock live.')
+    args = parser.parse_args(argv)
+    home = os.path.abspath(args.home)
+    state_dir = os.path.abspath(args.state_dir)
+    # Every mode is explicit: nothing here depends on the caller's umask, and a state folder made under
+    # another umask is repaired (status.json must stay readable by the Workbench's user).
+    os.umask(0o022)
+    os.makedirs(state_dir, mode=0o755, exist_ok=True)
+    os.chmod(state_dir, 0o755)
+    with open(os.path.join(state_dir, 'lock'), 'a') as lock:
+        os.fchmod(lock.fileno(), 0o644)
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        # systemd folds a trigger that arrives while this run is still going into this run, so a request
+        # written meanwhile is picked up here: apply again until the request stops changing.
+        for _ in range(10):
+            seen = read_request(args.request)
+            status, code = apply(home, args.request, state_dir)
+            if read_request(args.request) == seen:
+                break
+    print('volt-homepage-switch: live=%s release=%s result=%s: %s' % (
+        status.get('live'), (status.get('release') or '-')[:12], status['result'], status['message']))
+    return code
+
+
+if __name__ == '__main__':
+    sys.exit(main())
