@@ -15,12 +15,19 @@ Every page must work at / and at /preview/<name>/, and under the production CSP
   - in CSS, url() and @import are relative too (or a #fragment), never data: or external;
   - in JavaScript, no network calls (fetch, XMLHttpRequest, WebSocket, EventSource, sendBeacon), eval or
     new Function, and no http(s) URLs other than XML namespaces;
-  - social preview images (og:image, twitter:image and their :url/:secure_url/:src forms): link previews
-    are cached by URL for a long time, so in a variant other than original, an image that differs from
-    today's file at the same path must carry ?v=<first 12 hex digits of its SHA-256> in its URL, e.g.
-    https://volt.jjricks.com/og.png?v=0123456789ab. The problem line gives the exact URL;
-  - robots.txt must not disallow /preview/ (or anything above it): crawlers would then never fetch a
-    preview and never see its X-Robots-Tag: noindex.
+  - social preview images (og:image, twitter:image and their :url/:secure_url/:src forms) in a variant
+    other than original must not depend on which variant is live, and must change URL when the image
+    changes (link previews are cached by URL for a long time). So each is exactly
+      https://volt.jjricks.com/preview/<name>/<path>?v=<first 12 hex digits of the SHA-256 of that file>
+    where the file is the variant's own <path>, or the shared site/src/<path> when it ships none. nginx
+    serves /preview/<name>/ from the current release whatever is live. The problem line gives the exact
+    URL. <name> must be one nginx serves under /preview/. Original keeps https://volt.jjricks.com/og.png,
+    which shows whichever variant is live (site/README.md, "Variants");
+  - robots: a variant may not ship robots.txt (site/build.sh copies the shared one, which this checks
+    against site/src/robots.txt), the shared robots.txt has no Disallow (a crawler that may not fetch a
+    preview never sees its X-Robots-Tag: noindex), and no page has a robots or crawler <meta> (name
+    "robots" or a crawler such as "googlebot") or <meta http-equiv="X-Robots-Tag">: robots rules for
+    the homepage and its previews come from nginx and the shared robots.txt only.
 site/build.sh runs this on every built variant and fails the build on any problem.
 Standard library only.
 """
@@ -31,6 +38,7 @@ from urllib.parse import urlsplit
 
 SITE = 'https://volt.jjricks.com/'
 SOCIAL_IMAGE = re.compile(r'(og|twitter):image(:url|:secure_url|:src)?')
+CRAWLER_META = re.compile(r'robots|bot\b|bot-|slurp|crawler|spider')
 ORIGINAL_FOLDERS = ('original', 'src')
 URL_ATTRS = {'src', 'href', 'poster', 'data', 'action', 'formaction', 'background', 'cite', 'longdesc',
              'manifest', 'icon', 'xlink:href', 'ping', 'archive', 'codebase', 'usemap'}
@@ -107,8 +115,12 @@ class PageCheck(HTMLParser):
             self.problem('<%s> is not allowed on the homepage' % tag)
         if tag == 'form' and a.get('action', '').strip():
             self.problem('<form action> (the CSP has form-action \'none\')')
-        if tag == 'meta' and a.get('http-equiv', '').strip().lower() in ('refresh', 'content-security-policy', 'set-cookie'):
+        if tag == 'meta' and a.get('http-equiv', '').strip().lower() in ('refresh', 'content-security-policy', 'set-cookie',
+                                                                         'x-robots-tag'):
             self.problem('<meta http-equiv="%s"> is not allowed' % a['http-equiv'])
+        if tag == 'meta' and CRAWLER_META.search(a.get('name', '').strip().lower()):
+            self.problem('<meta name="%s"> is not allowed: robots rules come from nginx and the shared robots.txt'
+                         % a['name'])
         if tag == 'meta':
             key = (a.get('property') or a.get('name') or '').lower()
             content = a.get('content', '').strip()
@@ -165,52 +177,64 @@ def check_js(name, text, problems):
             problems.append('%s: contains %s (no external URLs in scripts)' % (name, m.group(0)))
 
 
+def preview_names():
+    """The variant names nginx serves under /preview/ (site/nginx/volt-homepage.conf)."""
+    conf = (Path(__file__).resolve().parent.parent / 'nginx' / 'volt-homepage.conf').read_text()
+    m = re.search(r'\^/preview/\(([a-z0-9|-]+)\)/\(\.\+\)\$', conf)
+    return set(m.group(1).split('|')) if m else set()
+
+
 def social_image_problems(folder, page, images, reference):
-    """Link-preview images whose content differs from today's file must have a content-specific URL."""
+    """A variant's link-preview images: /preview/<name>/<path>?v=<hash of that file>, whatever is live."""
     problems = []
+    name = folder.name
+    prefix = SITE + 'preview/' + name + '/'
+    if images and name not in preview_names():
+        problems.append('%s: nginx serves no /preview/%s/, so its link-preview image would not load; add %s to the '
+                        '/preview/ locations in site/nginx/volt-homepage.conf' % (page, name, name))
     for line, key, url in images:
         base, _, query = url.partition('?')
-        if base.startswith(SITE):
-            path = base[len(SITE):]
-        elif relative_problem(base) is None:
-            path = base
-        else:
-            continue  # reported above
-        if not path or path.endswith('/'):
-            problems.append('%s:%d: <meta %s> names a folder, not an image' % (page, line, key))
+        # The image path, wherever the URL points now, so the problem line can give the right URL.
+        path = re.sub(r'^preview/[^/]*/', '', (base[len(SITE):] if base.startswith(SITE) else base).lstrip('/'))
+        if not path or path.endswith('/') or '..' in path.split('/') or relative_problem(path):
+            problems.append('%s:%d: <meta %s> must be %s<image path>?v=<hash>' % (page, line, key, prefix))
             continue
         mine, theirs = folder / path, reference / path
         data = mine.read_bytes() if mine.is_file() else theirs.read_bytes() if theirs.is_file() else None
         if data is None:
             problems.append('%s:%d: <meta %s> names %s, which this page does not have' % (page, line, key, path))
             continue
-        if theirs.is_file() and theirs.read_bytes() == data:
-            continue  # today's image, at today's URL
-        want = 'v=' + hashlib.sha256(data).hexdigest()[:12]
-        if query != want:
-            problems.append('%s:%d: <meta %s> image differs from today\'s %s, so link previews need a URL that changes '
-                            'with it: use %s%s?%s' % (page, line, key, path, SITE, path, want))
+        want = '%s%s?v=%s' % (prefix, path, hashlib.sha256(data).hexdigest()[:12])
+        if url != want:
+            problems.append('%s:%d: <meta %s> must not depend on which variant is live and must change with the '
+                            'image: use %s' % (page, line, key, want))
     return problems
 
 
-def robots_problems(name, text):
+def robots_problems(name, text, shared=None):
+    """robots.txt: no Disallow at all, and in a variant, the shared file unchanged."""
     problems = []
+    if shared is not None and text != shared:
+        problems.append('%s: variants may not ship robots.txt; the build uses the shared site/src/robots.txt' % name)
     for raw in text.splitlines():
         line = raw.split('#', 1)[0].strip()
-        if line.lower().startswith('disallow:'):
-            value = line.split(':', 1)[1].strip()
-            if value and '/preview/'.startswith(value):
-                problems.append('%s: "%s" hides the previews\' noindex from crawlers (and may hide more); '
-                                'previews are kept out of search by X-Robots-Tag instead' % (name, line))
+        if line.lower().startswith('disallow:') and line.split(':', 1)[1].strip():
+            problems.append('%s: "%s": the shared robots.txt has no Disallow, so crawlers can always fetch a '
+                            'preview and see its X-Robots-Tag: noindex' % (name, line))
     return problems
 
 
-def check_folder(folder, reference=None):
+def check_folder(folder, reference=None, source=False):
     """Problems in one page folder. reference is today's page (default: site/src next to this tool), used
-    for the social-image rule, which applies to every folder except original (named original or src)."""
+    for the social-image and robots rules, which apply to every folder except original (named original or
+    src). source=True means folder is a site/variants/<name>/ source folder, which may not have robots.txt."""
     folder = Path(folder)
     reference = Path(reference) if reference else Path(__file__).resolve().parent.parent / 'src'
+    variant = folder.name not in ORIGINAL_FOLDERS
     problems = []
+    if source and variant and (folder / 'robots.txt').exists():
+        problems.append('%s/robots.txt: variants may not ship robots.txt; the build uses the shared site/src/robots.txt'
+                        % folder.name)
     if not (folder / 'index.html').is_file():
         problems.append('%s: no index.html' % folder)
     for path in sorted(p for p in folder.rglob('*') if p.is_file()):
@@ -231,23 +255,25 @@ def check_folder(folder, reference=None):
             checker = PageCheck(name, problems, images)
             checker.feed(text)
             checker.close()
-            if folder.name not in ORIGINAL_FOLDERS:
+            if variant:
                 problems += social_image_problems(folder, name, images, reference)
         elif suffix == '.css':
             check_css(name, path.read_text(encoding='utf-8'), problems)
         elif suffix in ('.js', '.mjs'):
             check_js(name, path.read_text(encoding='utf-8'), problems)
-        elif rel.as_posix() == 'robots.txt':
-            problems += robots_problems(name, path.read_text(encoding='utf-8'))
+        elif rel.as_posix() == 'robots.txt' and not source:
+            shared = (reference / 'robots.txt').read_text(encoding='utf-8') if variant else None
+            problems += robots_problems(name, path.read_text(encoding='utf-8'), shared)
     return problems
 
 
 def main(argv):
     site = Path(__file__).resolve().parent.parent
-    folders = argv or [str(site / 'src')] + sorted(str(p) for p in (site / 'variants').glob('*') if p.is_dir())
+    sources = [] if argv else sorted(str(p) for p in (site / 'variants').glob('*') if p.is_dir())
+    folders = argv or [str(site / 'src')] + sources
     problems = []
     for folder in folders:
-        problems += check_folder(folder)
+        problems += check_folder(folder, source=folder in sources)
     for line in problems:
         print(line)
     print('check-variants: %d folder(s), %d problem(s)' % (len(folders), len(problems)), file=sys.stderr)
