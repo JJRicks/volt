@@ -1514,7 +1514,8 @@ final class RidingScreen implements AppScreen {
                 paint.setShader(null);
             } else {
                 float bottom = (float) (zero + (h - inset - zero) * Math.min(1, -value / Math.max(1, regenScale)));
-                paint.setColor(ui.ok);
+                // Green is for regen the scooter confirmed; an inferred reading keeps the side, not the colour.
+                paint.setColor(direction == RidingValues.Direction.REGEN ? ui.ok : ui.muted);
                 if (bottom - zero > 1) canvas.drawRoundRect(new RectF(inset, zero, w - inset, bottom), radius - inset, radius - inset, paint);
             }
             // The zero line, and the peak-draw tick.
@@ -1766,7 +1767,8 @@ final class RidingScreen implements AppScreen {
                     value = Math.abs(p.watts);
                     boolean regen = p.direction.regen() && p.watts < 0;
                     regenPower = regen;
-                    tint = regen ? ui.ok : p.direction == RidingValues.Direction.UNKNOWN ? ui.muted : ui.accent;
+                    tint = regen && p.direction == RidingValues.Direction.REGEN ? ui.ok
+                            : p.direction == RidingValues.Direction.UNKNOWN || p.direction == RidingValues.Direction.REGEN_INFERRED ? ui.muted : ui.accent;
                     top = regen ? v.scale().regenW : v.scale().drawW;
                 }
             } else {
@@ -1922,11 +1924,11 @@ final class RidingScreen implements AppScreen {
             if (showsPower()) {
                 float zero = plotTop + plotH * RidingFrames.TRACE_ZERO;
                 for (List<RidingValues.TracePoint> run : RidingFrames.runs(powers)) {
-                    // A run splits again where the direction becomes known or unknown, so each part takes its own colour.
+                    // A run splits again where the direction becomes confirmed or not, so each part takes its own colour.
                     int from = 0;
                     for (int i = 1; i <= run.size(); i++) {
-                        if (i < run.size() && run.get(i).directionUnknown == run.get(from).directionUnknown) continue;
-                        area(canvas, run.subList(from > 0 ? from - 1 : 0, i), run.get(from).directionUnknown, scale, pad, plotTop, plotH, plotW, zero);
+                        if (i < run.size() && run.get(i).directionUnconfirmed == run.get(from).directionUnconfirmed) continue;
+                        area(canvas, run.subList(from > 0 ? from - 1 : 0, i), run.get(from).directionUnconfirmed, scale, pad, plotTop, plotH, plotW, zero);
                         from = i;
                     }
                 }

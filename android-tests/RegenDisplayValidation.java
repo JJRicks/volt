@@ -248,6 +248,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             SystemClock.sleep(500);
             caption(frame, true);
             shot("riding-inferred-" + frame);
+            if (frame.equals("focus")) barColor(false);
             if (frame.equals("trace")) {
                 AtomicReference<Object> trace = new AtomicReference<>();
                 main(() -> trace.set(call(values(), "powerTrace", new Class<?>[]{long.class, long.class}, SystemClock.elapsedRealtime(), 60_000L)));
@@ -260,6 +261,42 @@ public final class RegenDisplayValidation extends Instrumentation {
             await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
             settle();
         }
+        setFrame("halo", true);
+        openRiding();
+        await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())), "No inferred regen for the power ring", 45000);
+        ringColor(false);
+        SystemClock.sleep(300);
+        shot("riding-inferred-halo-power-ring");
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+        setFrame("halo", false);
+    }
+
+    /** The bar's below-zero fill: green only for regen the scooter confirmed (its pixels, so what draws is what's checked). */
+    private void barColor(boolean confirmed) throws Exception {
+        View bar = find(activity.getWindow().getDecorView(), Class.forName("com.jjricks.volt.RidingScreen$PowerBar"));
+        require(bar != null, "No power bar");
+        await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero", 60000);
+        AtomicReference<int[]> counts = new AtomicReference<>();
+        main(() -> {
+            Bitmap image = Bitmap.createBitmap(bar.getWidth(), bar.getHeight(), Bitmap.Config.ARGB_8888);
+            bar.draw(new android.graphics.Canvas(image));
+            int ok = (int) fieldOn(fieldOn(fieldOn(bar, "this$0"), "ui"), "ok"), green = 0;
+            for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) if (image.getPixel(x, y) == ok) green++;
+            counts.set(new int[]{green});
+        });
+        note("bar " + (confirmed ? "confirmed" : "inferred") + ": green pixels " + counts.get()[0]);
+        require(confirmed ? counts.get()[0] > 0 : counts.get()[0] == 0, "Bar's regen fill, confirmed=" + confirmed + ": green pixels " + counts.get()[0]);
+    }
+
+    /** A power ring takes green only for confirmed regen. */
+    private void ringColor(boolean confirmed) throws Exception {
+        View ring = find(activity.getWindow().getDecorView(), Class.forName("com.jjricks.volt.RidingScreen$Ring"));
+        require(ring != null, "No ring");
+        int expected = (int) fieldOn(fieldOn(fieldOn(ring, "this$0"), "ui"), confirmed ? "ok" : "muted");
+        await(() -> (int) fieldOn(ring, "color") == expected, "The power ring's colour, confirmed=" + confirmed, 60000);
+        note("ring " + (confirmed ? "confirmed" : "inferred") + ": colour as expected");
     }
 
     /** The caption is the signal for inferred regen: the same wording as an unknown direction, never the regen one; confirmed regen keeps its own. */
@@ -313,10 +350,20 @@ public final class RegenDisplayValidation extends Instrumentation {
         SystemClock.sleep(500);
         caption("signed", false);
         shot("riding-signed-regen");
+        await(() -> "REGEN".equals(String.valueOf(direction())), "A signed ride should reach confirmed regen for the bar", 60000);
+        barColor(true);
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+        setFrame("halo", true);
+        openRiding();
+        await(() -> "REGEN".equals(String.valueOf(direction())), "A signed ride should reach confirmed regen for the ring", 60000);
+        ringColor(true);
         main(() -> activity.onBackPressed());
     }
 
-    private void setFrame(String frame) {
+    private void setFrame(String frame) { setFrame(frame, false); }
+    private void setFrame(String frame, boolean powerRing) {
         main(() -> {
             Object profile;
             try {
@@ -325,6 +372,9 @@ public final class RegenDisplayValidation extends Instrumentation {
                 Object layout = parse.invoke(null, (Object) null);
                 Method setFrame = layoutClass.getDeclaredMethod("setFrame", String.class); setFrame.setAccessible(true);
                 setFrame.invoke(layout, frame);
+                Method setContent = layoutClass.getDeclaredMethod("setContent", String.class, String.class, String.class); setContent.setAccessible(true);
+                Field power = layoutClass.getDeclaredField(powerRing ? "POWER" : "RING_SPEED"); power.setAccessible(true);
+                if (frame.equals("halo")) setContent.invoke(layout, frame, "ring", power.get(null));
                 Method toJson = layoutClass.getDeclaredMethod("toJson"); toJson.setAccessible(true);
                 String json = (String) toJson.invoke(layout);
                 profile = call(activity.service(), "activeProfileId", new Class<?>[0]);

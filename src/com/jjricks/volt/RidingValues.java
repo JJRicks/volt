@@ -156,8 +156,10 @@ final class RidingValues {
         final boolean gapBefore;
         /** True for a power point measured without a known direction: a magnitude, drawn neutral, never as draw or regen. */
         final boolean directionUnknown;
-        private TracePoint(long t, double value, boolean gapBefore, boolean directionUnknown) {
-            this.t = t; this.value = value; this.gapBefore = gapBefore; this.directionUnknown = directionUnknown;
+        /** The chart's colour: directionUnknown, or inferred regen, which plots below zero but was never measured as regen. */
+        final boolean directionUnconfirmed;
+        private TracePoint(long t, double value, boolean gapBefore, boolean directionUnknown, boolean directionUnconfirmed) {
+            this.t = t; this.value = value; this.gapBefore = gapBefore; this.directionUnknown = directionUnknown; this.directionUnconfirmed = directionUnconfirmed;
         }
     }
 
@@ -567,7 +569,7 @@ final class RidingValues {
             Direction d = sample.length > 1 ? Direction.values()[(int) sample[1]] : null;
             double v = d != null ? shown(sample[0], d) : sample[0];
             if (t[0] < nowMs - windowMs || t[0] > nowMs) continue;
-            out.add(new TracePoint(t[0], v, !first && t[1] == 1, d == Direction.UNKNOWN));
+            out.add(new TracePoint(t[0], v, !first && t[1] == 1, d == Direction.UNKNOWN, d == Direction.UNKNOWN || d == Direction.REGEN_INFERRED));
             first = false;
         }
         return out;

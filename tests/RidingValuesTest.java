@@ -513,7 +513,11 @@ public final class RidingValuesTest {
         check(!p.direction.knownOrInferred() && p.direction.unsigned(), "for energy and efficiency it counts like an unknown reading");
         check(v.direction() == RidingValues.Direction.REGEN_INFERRED, "the screen can tell it from confirmed regen");
         boolean negative = false;
-        for (RidingValues.TracePoint point : v.powerTrace(now, 60_000)) { negative |= point.value < 0; check(!point.directionUnknown || point.value >= 0, "unknown points stay magnitudes"); }
+        for (RidingValues.TracePoint point : v.powerTrace(now, 60_000)) {
+            negative |= point.value < 0;
+            check(!point.directionUnknown || point.value >= 0, "unknown points stay magnitudes");
+            check(point.value >= 0 || point.directionUnconfirmed, "a trace point below zero that was only inferred isn't drawn as confirmed regen");
+        }
         check(negative, "the live trace goes below zero");
         RidingValues compare = new RidingValues();
         compare.setNominalIntervals(1000, 2000);
