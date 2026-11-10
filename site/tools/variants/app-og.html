@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+/* Link-preview card for the "app" homepage variant, in the Volt app's own tokens. Rendered by render-app-og.sh
+   into site/variants/app/og.png. Values are the sample riding-mode readings shown on the page. */
+@font-face{font-family:Saira;src:url("../../../res/font/saira_regular.ttf");font-weight:400;font-display:block}
+@font-face{font-family:Saira;src:url("../../../res/font/saira_semibold.ttf");font-weight:600;font-display:block}
+@font-face{font-family:Saira;src:url("../../../res/font/saira_bold.ttf");font-weight:700;font-display:block}
+html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:#111211;color:#F4F5F0;font-family:Saira,sans-serif}
+.wrap{position:relative;width:1200px;height:630px}
+.copy{position:absolute;left:72px;top:64px;width:560px}
+.brand{display:flex;align-items:center;gap:14px;font-weight:700;font-size:30px}
+.disc{width:60px;height:60px;border-radius:50%;background:#1F201E;display:grid;place-items:center}
+.disc svg{width:26px;height:36px}
+h1{margin:70px 0 0;font-weight:700;font-size:76px;line-height:1.04}
+p{margin:26px 0 0;font-size:25px;line-height:1.45;color:#9A9C95}
+.url{position:absolute;left:72px;bottom:54px;font-size:22px;color:#9A9C95}
+.ride{position:absolute;left:676px;top:56px;width:460px;height:518px;border-radius:20px;background:#1F201E;padding:26px 28px;box-sizing:border-box}
+.pill{display:inline-flex;align-items:center;gap:10px;height:42px;padding:0 18px;border-radius:100px;background:#2A2B28;font-size:15px;font-weight:600;letter-spacing:.06em}
+.pill i{width:9px;height:9px;border-radius:50%;background:#5FCB7E}
+.pill b{color:#E32B2F}
+.lab{font-size:17px;color:#9A9C95;margin-top:18px}
+.speed{font-weight:700;font-size:176px;line-height:.86;margin-top:2px}
+.speed small{font-size:.46em}
+.speed em{font-style:normal;font-size:30px;color:#9A9C95;font-weight:600;margin-left:10px}
+.batt{display:flex;align-items:flex-end;gap:16px;margin-top:22px;padding-top:16px;border-top:1px solid #2A2B28}
+.batt b{font-size:58px;line-height:1}
+.batt b small{font-size:.46em;color:#9A9C95;font-weight:600}
+.seg{display:flex;gap:5px;flex:1;height:32px;margin-bottom:5px}
+.seg i{flex:1;border-radius:6px;background:#5FCB7E}.seg i.o{background:#2A2B28}
+.lock{position:relative;margin-top:26px;height:58px;border-radius:20px;background:linear-gradient(90deg,rgba(227,43,47,.32),rgba(227,43,47,.08));box-shadow:inset 0 0 0 1px rgba(227,43,47,.43);display:flex;align-items:center;justify-content:center;color:#E32B2F;font-weight:600;font-size:17px}
+.thumb{position:absolute;left:5px;top:5px;width:48px;height:48px;border-radius:50%;background:#E32B2F;display:grid;place-items:center}
+.thumb svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sample{position:absolute;right:28px;top:34px;font-size:14px;color:#9A9C95;background:#2A2B28;border-radius:100px;padding:3px 12px}
+</style></head><body><div class="wrap">
+<div class="copy">
+ <div class="brand"><span class="disc"><svg viewBox="32 22 49 66"><path fill="#B81B22" d="M66,27 L38,61 L54,61 L49,86 L79,50 L62,50 Z"/><path fill="#E32B2F" d="M62,24 L34,58 L50,58 L45,83 L75,47 L58,47 Z"/></svg></span>Volt</div>
+ <h1>Your scooter, no cloud.</h1>
+ <p>An independent, open source Android app for NAVEE scooters. No account, and it works offline.</p>
+</div>
+<div class="url">volt.jjricks.com</div>
+<div class="ride">
+ <span class="pill"><i></i><b>SPORT</b> · Connected</span><span class="sample">Sample</span>
+ <div class="lab">Speed</div>
+ <div class="speed">0<small>.0</small><em>mph</em></div>
+ <div class="batt"><b>78<small>%</small></b><span class="seg"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="o"></i><i class="o"></i></span></div>
+ <div class="lock"><span class="thumb"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/></svg></span>Unlocked</div>
+</div>
+</div></body></html>
