@@ -81,7 +81,12 @@ class BuildContract(unittest.TestCase):
         test = cls.site / 'variants' / 'zz-test'
         (test / 'img').mkdir(parents=True)
         (test / 'deep' / 'er').mkdir(parents=True)
-        (test / 'index.html').write_text('<!doctype html><p>Volt @VERSION@ for Android, and @VERSION@ again.</p>\n')
+        # zz-test ships its own social cards, as the real variants do, so every comparison of dist/ below
+        # meets a dist/cards/ (a card-free test variant once hid that from the root comparison).
+        (test / 'index.html').write_text('<!doctype html><meta property="og:image" content="%s">'
+                                         '<meta name="twitter:image" content="%s">'
+                                         '<p>Volt @VERSION@ for Android, and @VERSION@ again.</p>\n'
+                                         % (card(b'variant og'), card(b'extra', '.webp')))
         (test / 'styles.css').write_text('body{color:red}\n')
         (test / 'og.png').write_bytes(b'variant og')
         (test / 'img' / 'extra.webp').write_bytes(b'extra')
@@ -102,9 +107,23 @@ class BuildContract(unittest.TestCase):
     def test_original_is_todays_page_byte_for_byte(self):
         expected = todays_page()
         self.assertEqual(files(self.dist / 'variants' / 'original'), expected)
-        root = {k: v for k, v in files(self.dist).items() if not k.startswith('variants/') and k != 'variants.json'}
+        root = {k: v for k, v in files(self.dist).items()
+                if not k.startswith(('variants/', 'cards/')) and k != 'variants.json'}
         self.assertEqual(root, expected, 'dist/ root keeps today\'s page for older tools')
+        self.assertTrue(files(self.dist / 'cards'), 'the test variant ships cards, so this comparison really excludes them')
         self.assertNotIn(b'/preview', expected['robots.txt'], 'crawlers must be able to fetch previews to see noindex')
+
+    def test_cards_are_exactly_the_named_ones(self):
+        """dist/cards/ holds the card of every social image a built page names, under its own hash, and nothing else."""
+        named = set()
+        for page in self.dist.rglob('*.html'):
+            named |= set(re.findall(r'https://volt\.jjricks\.com/cards/([0-9a-f]{64}\.[a-z]+)', page.read_text()))
+        cards = files(self.dist / 'cards')
+        self.assertEqual(set(cards), named)
+        self.assertEqual(set(cards), {card(b'variant og').rsplit('/', 1)[1], card(b'extra', '.webp').rsplit('/', 1)[1]})
+        for name, data in cards.items():
+            self.assertEqual(name.split('.')[0], hashlib.sha256(data).hexdigest(), name)
+        self.assertFalse([p for p in (self.dist / 'cards').rglob('*') if p.is_dir()], 'cards/ is flat')
 
     def test_variant_gets_shared_files_and_keeps_its_own(self):
         out = files(self.dist / 'variants' / 'zz-test')
@@ -647,6 +666,24 @@ class Switch(unittest.TestCase):
         self.assertIn('live=app release=r1 result=ok', out.stdout)
         self.assertEqual(self.live(), self.target('r1', 'app'))
 
+    def test_state_modes_do_not_depend_on_the_umask(self):
+        """The oneshot's state folder, status.json and lock get explicit modes: first made under umask 077, and
+        repaired when an older run left them 0700/0600 (the Workbench's user reads status.json)."""
+        self.release('r1', ['original', 'app'])
+        self.ask('app\n')
+        command = [sys.executable, '-I', str(SITE / 'server' / 'volt-homepage-switch'), '--home', str(self.home),
+                   '--request', str(self.request), '--state-dir', str(self.state)]
+        for first in (True, False):
+            if not first:
+                os.chmod(self.state, 0o700)
+                os.chmod(self.state / 'lock', 0o600)
+                os.chmod(self.state / 'status.json', 0o600)
+            out = subprocess.run(command, capture_output=True, text=True, preexec_fn=lambda: os.umask(0o077))
+            self.assertEqual(out.returncode, 0, out.stderr)
+            self.assertEqual(stat.S_IMODE(os.stat(self.state).st_mode), 0o755, first)
+            self.assertEqual(stat.S_IMODE(os.stat(self.state / 'status.json').st_mode), 0o644, first)
+            self.assertEqual(stat.S_IMODE(os.stat(self.state / 'lock').st_mode), 0o644, first)
+
 
 
 class DeployRelease(unittest.TestCase):
@@ -654,6 +691,8 @@ class DeployRelease(unittest.TestCase):
     PREV, NEW = 'a' * 40, 'b' * 40
 
     def setUp(self):
+        # The fixture itself is made under umask 022 whatever the runner's is; tests pass their own umask to deploy().
+        self.addCleanup(os.umask, os.umask(0o022))
         self.temp = tempfile.TemporaryDirectory()
         base = Path(os.path.realpath(self.temp.name))
         self.home, self.nginx, self.uploads = base / 'volt-home', base / 'nginx', base / 'uploads'
@@ -694,6 +733,8 @@ class DeployRelease(unittest.TestCase):
 
     def tearDown(self):
         os.chmod(self.home, 0o755)
+        if (self.home / 'releases').is_dir():
+            os.chmod(self.home / 'releases', 0o755)
         self.temp.cleanup()
 
     def contents(self, tag, refined=True):
@@ -725,7 +766,7 @@ class DeployRelease(unittest.TestCase):
         folder = self.home / 'current' / 'variants' / m.group(1) if m else self.home / 'live'
         return (folder / (m.group(2) if m else path.lstrip('/'))).read_bytes()
 
-    def deploy(self, switch_installed=True, contents=None):
+    def deploy(self, switch_installed=True, contents=None, umask=None):
         contents = contents or self.contents('new')
         tar_path = self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
         with tarfile.open(tar_path, 'w:gz') as tar:
@@ -741,7 +782,8 @@ class DeployRelease(unittest.TestCase):
                    VOLT_SWITCH_STATUS=str(self.state / 'status.json'), VOLT_RELEASE_OWNER='%d:%d' % (os.getuid(), os.getgid()),
                    PATH=str(self.bin) + os.pathsep + os.environ['PATH'])
         return subprocess.run(['bash', str(SITE / 'server' / 'deploy-release.sh'), self.NEW, digest(tar_path), digest(manifest),
-                               self.PREV, digest(self.config)], capture_output=True, text=True, env=env)
+                               self.PREV, digest(self.config)], capture_output=True, text=True, env=env,
+                              preexec_fn=None if umask is None else (lambda: os.umask(umask)))
 
     def current(self):
         return os.path.basename(os.path.realpath(self.home / 'current'))
@@ -873,6 +915,67 @@ class DeployRelease(unittest.TestCase):
         steps = re.search(r'finish by hand, as root: (.*)', out.stderr).group(1).replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
         subprocess.run(['sh', '-c', steps], check=True, capture_output=True)
         self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+
+    @staticmethod
+    def perm(path):
+        return stat.S_IMODE(os.lstat(path).st_mode)
+
+    def unreadable_by_other(self, *roots):
+        """Every path under roots (links followed to their targets) that nginx's unprivileged workers could not
+        read: a folder without o+rx, a file without o+r."""
+        bad = []
+        for root in roots:
+            root = Path(os.path.realpath(root))
+            for p in [root] + sorted(root.rglob('*')):
+                need = stat.S_IROTH | stat.S_IXOTH if p.is_dir() else stat.S_IROTH
+                if os.stat(p).st_mode & need != need:
+                    bad.append('%s %o' % (p, self.perm(p)))
+        return bad
+
+    def test_card_store_first_created_under_umask_077(self):
+        shutil.rmtree(self.home / 'cards')
+        out = self.deploy(umask=0o077)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('cards_added=1', out.stdout)
+        self.assertEqual(self.perm(self.home / 'cards'), 0o755)
+        self.assertEqual({p.name: self.perm(p) for p in (self.home / 'cards').iterdir()},
+                         {self.card_url('new').rsplit('/', 1)[1]: 0o644})
+
+    def test_existing_0700_store_is_repaired(self):
+        # An older deploy (or a hand copy) under umask 077: the store and an old card nginx can no longer read.
+        old = self.home / 'cards' / self.card_url('old').rsplit('/', 1)[1]
+        os.chmod(old, 0o600)
+        os.chmod(self.home / 'cards', 0o700)
+        out = self.deploy(umask=0o077)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('UPDATE_OK', out.stdout)
+        self.assertEqual(self.perm(self.home / 'cards'), 0o755)
+        self.assertEqual(sorted(self.perm(p) for p in (self.home / 'cards').iterdir()), [0o644, 0o644])
+        self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
+
+    def test_deploy_under_umask_077_serves_everything_to_other(self):
+        out = self.deploy(umask=0o077)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertRegex(out.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
+        # Everything nginx serves: the current tree (/preview/), the live target (/) and the card store (/cards/),
+        # and the folders above them.
+        self.assertEqual(self.unreadable_by_other(self.home / 'current', self.home / 'live', self.home / 'cards'), [])
+        for folder in (self.home, self.home / 'releases'):
+            self.assertEqual(self.perm(folder) & 0o005, 0o005, folder)
+        self.assertEqual(self.perm(self.state) & 0o005, 0o005, 'the switch state folder')
+        self.assertEqual(self.perm(self.state / 'status.json') & 0o004, 0o004)
+
+    def test_unreadable_releases_folder_stops_before_current_moves(self):
+        # A folder the deploy does not own: it is checked, not changed, and the deploy stops before current moves.
+        os.chmod(self.home / 'releases', 0o700)
+        out = self.deploy(umask=0o077)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn('PERMISSIONS_BAD', out.stderr)
+        self.assertIn(str(self.home / 'releases') + ' mode=700', out.stderr)
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertEqual(self.current(), self.PREV)
+        self.assertEqual(self.live(), self.variant(self.PREV, 'refined'))
+        self.assertEqual(self.perm(self.home / 'releases'), 0o700, 'left as it was')
 
     def test_first_deploy_before_the_switch_exists(self):
         self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')
