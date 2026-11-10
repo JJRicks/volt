@@ -6,6 +6,8 @@
 # request yet, that makes original live. Replaced files are kept in /var/backups/volt-homepage-switch/.
 # Touches nothing else: no nginx files, no other sites. Uninstalling is described in site/README.md.
 set -euo pipefail
+# Every mode below is explicit; nothing depends on the caller's umask.
+umask 022
 here="$(cd "$(dirname "$0")" && pwd)"
 [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }
 id volt-dev >/dev/null 2>&1 || { echo "The volt-dev user (the Workbench service) does not exist." >&2; exit 1; }
