@@ -382,14 +382,10 @@ public final class RegenDisplayValidation extends Instrumentation {
 
     private Object screen() { return fieldOn(activity, "screen"); }
     private boolean inferredDrawn() {
-        AtomicReference<Boolean> drawn = new AtomicReference<>(false);
-        main(() -> drawn.set(((TextView) fieldOn(screen(), "wattsCaption")).getContentDescription() != null));
-        return drawn.get();
+        return ((TextView) fieldOn(screen(), "wattsCaption")).getContentDescription() != null;
     }
     private String captionText() {
-        AtomicReference<String> text = new AtomicReference<>();
-        main(() -> text.set(((TextView) fieldOn(screen(), "wattsCaption")).getText().toString()));
-        return text.get();
+        return ((TextView) fieldOn(screen(), "wattsCaption")).getText().toString();
     }
     private int captionMuted() { return ((TextView) fieldOn(screen(), "wattsCaption")).getCurrentTextColor(); }
 
