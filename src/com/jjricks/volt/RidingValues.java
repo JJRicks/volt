@@ -284,7 +284,7 @@ final class RidingValues {
             powerSample(value, updatedMs, previous, t);
         }
     }
-    private static double clampInterval(double ms) { return Math.max(MIN_INTERVAL_MS, Math.min(MAX_INTERVAL_MS, ms)); }
+    static double clampInterval(double ms) { return Math.max(MIN_INTERVAL_MS, Math.min(MAX_INTERVAL_MS, ms)); }
     private static long gapMs(Track t) { return Math.max(MIN_GAP_MS, (long) (GAP_INTERVALS * Math.max(t.intervalMs, t.nominalMs))); }
 
     /**

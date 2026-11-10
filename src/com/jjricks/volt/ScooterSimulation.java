@@ -161,7 +161,10 @@ public final class ScooterSimulation {
         if (telemetry == null || elapsedMs < 0) throw new IllegalArgumentException("Invalid simulation clock");
         if (!telemetry.frames().isEmpty() || !telemetry.statuses().isEmpty())
             throw new IllegalArgumentException("Clear real telemetry before simulating");
+        boolean riding = !script.isEmpty() && !charging;
         for (Telemetry.Metric metric : telemetry.metrics()) {
+            // A script's ride sets speed below at this same time: one reading per tick, as a real report has.
+            if (riding && metric.key.equals(RidingValues.SPEED_KEY)) continue;
             Sample value = fixed.get(metric.key);
             telemetry.putSimulationSample(metric.key,
                     value == null ? "Simulation · no real response" : value.text,
@@ -200,7 +203,7 @@ public final class ScooterSimulation {
         telemetry.putSimulationSample("current_sign_state", charging ? "1 (simulation)" : "0 (simulation)",
                 charging ? 1.0 : 0.0, elapsedMs);
         telemetry.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
-        if (!script.isEmpty() && !charging) ride(telemetry, elapsedMs, phase);
+        if (riding) ride(telemetry, elapsedMs, phase);
     }
 
     /** A ride for riding mode's screenshots: speed and power that swing into regen, a growing trip. */
