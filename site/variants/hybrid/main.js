@@ -101,17 +101,20 @@
       drag.at = at / (max || 1);
       thumb.style.transform = `translateX(${at}px)`;
     });
-    const end = event => {
+    // A completed tap or drag commits; a cancelled gesture (the browser took it over, e.g. a vertical
+    // scroll) only puts the thumb back.
+    const finish = (event, commit) => {
       if (!drag || event.pointerId !== drag.id) return;
       const { moved, at } = drag;
       drag = null;
       bar.classList.remove('is-dragging');
       thumb.style.removeProperty('transform');
+      if (!commit) return;
       if (!moved) set(!locked);
       else if (locked ? at < 0.5 : at > 0.5) set(!locked);
     };
-    bar.addEventListener('pointerup', end);
-    bar.addEventListener('pointercancel', end);
+    bar.addEventListener('pointerup', event => finish(event, true));
+    bar.addEventListener('pointercancel', event => finish(event, false));
     bar.addEventListener('keydown', event => {
       if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); set(!locked); }
       else if (event.key === 'ArrowRight' && !locked) set(true);
