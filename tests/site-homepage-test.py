@@ -120,7 +120,10 @@ class BuildContract(unittest.TestCase):
             named |= set(re.findall(r'https://volt\.jjricks\.com/cards/([0-9a-f]{64}\.[a-z]+)', page.read_text()))
         cards = files(self.dist / 'cards')
         self.assertEqual(set(cards), named)
-        self.assertEqual(set(cards), {card(b'variant og').rsplit('/', 1)[1], card(b'extra', '.webp').rsplit('/', 1)[1]})
+        # The tree also holds the real variants in site/variants/, which ship their own cards, so the
+        # fixture's two cards are a subset; the exact set is the `named` check above.
+        fixture = {card(b'variant og').rsplit('/', 1)[1], card(b'extra', '.webp').rsplit('/', 1)[1]}
+        self.assertLessEqual(fixture, set(cards), 'the zz-test variant ships two cards')
         for name, data in cards.items():
             self.assertEqual(name.split('.')[0], hashlib.sha256(data).hexdigest(), name)
         self.assertFalse([p for p in (self.dist / 'cards').rglob('*') if p.is_dir()], 'cards/ is flat')
