@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" integrity="__INTEGRITY__" defer></script>
 </head>
-<body>
+<body class="setup">
   <a class="skip" href="#main">Skip to setup</a>
   <header class="masthead"><a class="brand" href="./" aria-label="Volt setup home"><span class="brand-symbol"><svg viewBox="0 0 28 32" aria-hidden="true"><path d="M17 1 3 18h10l-2 13 14-18H15z"/></svg></span>VOLT</a><span class="private-note"><span class="dot"></span> Local USB setup</span></header>
   <main id="main">
@@ -34,23 +34,24 @@
       <div id="error" class="alert" hidden role="alert"></div>
       <div id="notice" class="notice" hidden role="status"></div>
       <section id="recovery" class="panel" hidden aria-labelledby="recovery-title">
-        <span class="eyebrow">INTERRUPTED SETUP</span><h2 id="recovery-title">Finish cleanup first.</h2>
+        <h2 id="recovery-title">Finish cleanup first.</h2>
+        <div class="status-chip"><span class="dot"></span>Interrupted setup</div>
         <p>Reconnect the same phone so we can check that NAVEE’s original log setting is restored. Keep this browser’s site data until then.</p>
         <button id="recover" class="primary">Connect phone and recover</button>
         <details><summary>Need help recovering?</summary><p>The phone’s timer attempts cleanup after two minutes. If recovery fails, wait two minutes and try again. Don’t start another capture helper or clear site data.</p><p>The recovery record contains no scooter key. Download it for a trusted helper, or follow the <a href="./recovery.html" target="_blank" rel="noopener noreferrer">recovery guide</a>.</p><button id="recovery-details" class="secondary full">Download recovery instructions</button></details>
       </section>
       <section id="connect-panel" class="panel" aria-labelledby="connect-title">
-        <span class="eyebrow">01 / CONNECT</span><h2 id="connect-title">Start with your phone.</h2>
+        <h2 id="connect-title">Start with your phone.</h2>
         <p>Open this page in <strong>Chrome or Edge on a computer</strong>. Connect your phone with a USB data cable.</p>
         <ul class="checklist"><li>NAVEE is signed in and works with your scooter.</li><li>Your scooter is on, parked, and nearby.</li></ul>
-        <details id="connection-help" class="help"><summary>Enable USB debugging &amp; connection help</summary><ol><li>On your phone, open Settings → About phone. Tap Build number seven times. On Samsung, open Software information first.</li><li>In Developer options, turn on USB debugging. Connect the cable and unlock your phone.</li><li>Close other scooter apps, Android Studio, scrcpy, and other USB setup tabs. If ADB is installed on this computer, run <code>adb kill-server</code> in a terminal: its background server keeps the phone busy after <code>adb devices</code> finishes.</li></ol><p>Only the main personal Android user is supported; work profiles and secondary users are not supported.</p><p>Browser capture is still being validated. If the browser can’t connect or capture doesn’t finish, complete any cleanup here first, then use the computer ADB helper in the <a href="https://github.com/JJRicks/volt/blob/main/docs/getting-started.md#computer-adb-quick-start" target="_blank" rel="noopener noreferrer">setup guide</a>.</p><p>This page cannot connect to the phone it’s running on. On Linux, the browser needs Android udev rules (Ubuntu or Debian: <code>android-sdk-platform-tools-common</code>); Snap or Flatpak browsers may not see USB phones. Windows may need your phone’s USB driver; a work-managed phone may block debugging.</p></details>
-        <div class="permission"><strong>Approve access to your phone</strong><p>USB debugging gives this page broad developer access. Use only a phone and scooter you own or have permission to set up.</p><p>Use a regular browser window, not Incognito or Guest. Keep its site data until cleanup finishes.</p><p>On the phone prompt, leave <strong>“Always allow” unchecked.</strong></p></div>
+        <details id="connection-help" class="help"><summary><span>Enable USB debugging &amp; connection help<span class="summary-hint">Start here if USB debugging isn’t on yet.</span></span></summary><ol><li>On your phone, open Settings → About phone. Tap Build number seven times. On Samsung, open Software information first.</li><li>In Developer options, turn on USB debugging. Connect the cable and unlock your phone.</li><li>Close other scooter apps, Android Studio, scrcpy, and other USB setup tabs. If ADB is installed on this computer, run <code>adb kill-server</code> in a terminal: its background server keeps the phone busy after <code>adb devices</code> finishes.</li></ol><p>Only the main personal Android user is supported; work profiles and secondary users are not supported.</p><p>Browser capture is still being validated. If the browser can’t connect or capture doesn’t finish, complete any cleanup here first, then use the computer ADB helper in the <a href="https://github.com/JJRicks/volt/blob/main/docs/getting-started.md#computer-adb-quick-start" target="_blank" rel="noopener noreferrer">setup guide</a>.</p><p>This page cannot connect to the phone it’s running on. On Linux, the browser needs Android udev rules (Ubuntu or Debian: <code>android-sdk-platform-tools-common</code>); Snap or Flatpak browsers may not see USB phones. Windows may need your phone’s USB driver; a work-managed phone may block debugging.</p></details>
+        <div class="permission"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2"/><path d="M12 16.9v.1"/></svg><strong>Approve access to your phone</strong><p>USB debugging gives this page broad developer access. Use only a phone and scooter you own or have permission to set up.</p><p>Use a regular browser window, not Incognito or Guest. Keep its site data until cleanup finishes.</p><p>On the phone prompt, leave <strong>“Always allow” unchecked.</strong></p></div>
         <label class="consent"><input id="usb-consent" type="checkbox"><span>I understand and approve USB access.</span></label>
-        <button id="connect" class="primary" disabled>Choose my phone <span aria-hidden="true">→</span></button>
+        <button id="connect" class="primary" disabled>Choose my phone <svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11.5M11 5.5l4.5 4.5-4.5 4.5"/></svg></button>
         <p class="fine">Select your phone, then approve its USB debugging prompt.</p>
       </section>
       <section id="capture-panel" class="panel" hidden aria-labelledby="capture-title">
-        <span class="eyebrow">02 / APPROVE</span><h2 id="capture-title">One quick capture.</h2>
+        <h2 id="capture-title">One quick capture.</h2>
         <div class="device-chip"><span class="dot"></span><span id="device-name">Android phone connected</span></div>
         <p>We’ll restart NAVEE, briefly enable logging, and read the connection message Volt needs. Then we’ll close NAVEE and restore its log setting.</p>
         <details><summary>What happens to my data?</summary><p>Only fresh NAVEE authentication messages are read by this helper. NAVEE itself may log more while logging is enabled. Your NAVEE password is never read, and the capture is never uploaded.</p><p>A cleanup timer runs on the phone. If the cable comes out or this tab closes, return here with the same phone to verify cleanup. Nothing can be exported until that check passes.</p></details>
@@ -61,18 +62,18 @@
       </section>
       <section id="working-panel" class="panel working" hidden aria-labelledby="working-title">
         <div class="orbit" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M29 4 11 27h13l-3 17 17-25H25z"/></svg></div>
-        <span class="eyebrow">03 / ON YOUR PHONE</span><h2 id="working-title">Open your scooter in NAVEE.</h2><p id="progress" role="status" aria-live="polite">Preparing the capture…</p>
+        <h2 id="working-title">Open your scooter in NAVEE.</h2><p id="progress" role="status" aria-live="polite">Preparing the capture…</p>
         <p>Keep this tab open and the cable connected. NAVEE will close when we’re done.</p><button id="cancel" class="secondary">Stop and clean up</button>
       </section>
       <section id="save-panel" class="panel" hidden aria-labelledby="save-title">
-        <span class="success-mark" aria-hidden="true">✓</span><span class="eyebrow">04 / IMPORT</span><h2 id="save-title">Your scooter key is ready.</h2>
+        <div class="panel-head"><span class="success-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><h2 id="save-title">Your scooter key is ready.</h2></div>
         <p>Cleanup is verified. Save the key, then return to Volt’s <strong>Import your owner file</strong> step and tap <strong>Choose owner file</strong>.</p>
-        <div class="permission"><strong>Keep this file private.</strong><p>It can allow control of your scooter. Phone Downloads is shared storage; delete that copy after importing.</p></div>
+        <div class="permission"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg><strong>Keep this file private.</strong><p>It can allow control of your scooter. Phone Downloads is shared storage; delete that copy after importing.</p></div>
         <button id="send" class="primary">Save to phone Downloads</button>
         <p id="saved-file" class="file-name" hidden></p>
         <p class="fine">You choose what to import in Volt. Nothing is replaced automatically.</p>
-        <details><summary>Computer backup &amp; other options</summary><button id="download" class="secondary full">Download to this computer</button><p>Store the file privately. It uses your browser’s normal download permissions.</p><p>Saving closes USB access. Saving to the phone again asks you to select the same phone. The key stays in this tab’s memory until you finish or close it.</p></details>
-        <button id="finish" class="text-button full">Finish and disconnect</button>
+        <details><summary>Computer backup &amp; other options</summary><p>Store the file privately. It uses your browser’s normal download permissions.</p><button id="download" class="secondary full">Download to this computer</button><p>Saving closes USB access. Saving to the phone again asks you to select the same phone. The key stays in this tab’s memory until you finish or close it.</p></details>
+        <button id="finish" class="secondary full">Finish and disconnect</button>
       </section>
       <p class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6z"/><path d="m8 12 3 3 5-6"/></svg>Setup stays in this tab. Nothing is uploaded.</p>
     </div>
