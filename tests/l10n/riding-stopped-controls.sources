@@ -1,6 +1,7 @@
 # Riding mode's stopped Lock and Record controls: the gate, Record's taps and the wiring in the source.
 src/com/jjricks/volt/RidingLayout.java
 src/com/jjricks/volt/RidingValues.java
+src/com/jjricks/volt/RegenInference.java
 src/com/jjricks/volt/RidingFocus.java
 src/com/jjricks/volt/RidingFrames.java
 src/com/jjricks/volt/RecorderTap.java

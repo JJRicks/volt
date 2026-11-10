@@ -169,6 +169,7 @@ STEPS += [
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
+    inst('regen-display', T + 'RegenDisplayValidation'),
     inst('riding-auto-close', T + 'RidingAutoCloseValidation', hidden_api=True),
     inst('riding-lost-connection', T + 'RidingLostConnectionValidation', hidden_api=True),
     # Auto-record and auto ride mode. Location stays ungranted: these steps press its prompt themselves. The restored-* steps are the

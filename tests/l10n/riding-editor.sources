@@ -5,6 +5,7 @@ src/com/jjricks/volt/RidingFrames.java
 src/com/jjricks/volt/RidingEditor.java
 src/com/jjricks/volt/RidingDisc.java
 src/com/jjricks/volt/RidingValues.java
+src/com/jjricks/volt/RegenInference.java
 src/com/jjricks/volt/LiveRangeEstimator.java
 src/com/jjricks/volt/RangeReadout.java
 src/com/jjricks/volt/RidingFocus.java

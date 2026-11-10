@@ -21,10 +21,17 @@ public final class RidingValuesTest {
         directionHistory();
         unknownAfterRegen();
         unsignedCurrent();
+        inferenceKeepsANewConnectionsFirstReadings();
+        screenPassesTheConnectionsTrueStart();
+        inferenceStopsAtANewConnection();
         inferredDraw();
         inferredThreshold();
         inferredWindow();
         inferredFromFrames();
+        inferredRegen();
+        inferredRegenUsesOnlyEarlierSpeed();
+        inferredRegenCorrectedToDraw();
+        signedNeverInfers();
         inferredThenStrongerRegen();
         meterMatchesRecording();
         unknownUntilSign();
@@ -401,6 +408,80 @@ public final class RidingValuesTest {
     }
 
     /** The GT3 Max's unsigned current stays unknown; a negative reading proves a signed one (PowerSign). */
+    /**
+     * Ride mode's view of a short Bluetooth drop: a new connection between two readings means they
+     * can't be compared, even when the drop is shorter than the staleness gap. A pre-drop speed
+     * paired with a new power reading isn't either.
+     */
+    private static void inferenceStopsAtANewConnection() {
+        for (boolean reconnect : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            v.setLinkGeneration(7, 0);
+            unsignedBrake(v, 0);
+            long t = 28_000;
+            double volts = 50.24;
+            if (reconnect) v.setLinkGeneration(8, 28_000);
+            t += 1000; // one second missed
+            v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", 9, 0x92, t); v.sample("power_w", 3 * volts, 0x72, t);
+            RidingValues.Direction direction = v.power(t + 100).direction;
+            if (reconnect) check(direction != RidingValues.Direction.REGEN_INFERRED, "the speed before a new connection isn't a slowing: " + direction);
+            else check(direction == RidingValues.Direction.REGEN_INFERRED, "the same readings on one connection are: " + direction);
+        }
+        RidingValues first = new RidingValues();
+        first.setLinkGeneration(3, 100);
+        first.setLinkGeneration(3, 200);
+        first.setNominalIntervals(1000, 2000);
+        first.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(first, 1000);
+        check(first.power(29_000).direction == RidingValues.Direction.REGEN_INFERRED, "learning the first connection, and seeing it again, is no interruption");
+    }
+
+    /**
+     * A snapshot can hold readings from a new connection before any screen refresh sees that
+     * connection: the floor is where the connection began, not when it was first noticed.
+     */
+    private static void inferenceKeepsANewConnectionsFirstReadings() {
+        for (boolean screenTime : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            v.setLinkGeneration(7, 0);
+            unsignedBrake(v, 0);
+            long reconnect = 30_000, firstReading = reconnect + 500, refresh = reconnect + 1000, brake = reconnect + 1500;
+            double volts = 50.64;
+            // The reconnect and its first reading both land before the screen's next refresh.
+            v.setLinkGeneration(8, screenTime ? refresh : reconnect);
+            v.sample("voltage_v", volts, 0x72, firstReading); v.sample("speed_kmh", 19, 0x92, firstReading); v.sample("power_w", 8 * volts, 0x72, firstReading);
+            v.sample("voltage_v", volts, 0x72, brake); v.sample("speed_kmh", 15.5, 0x92, brake); v.sample("power_w", 8 * volts, 0x72, brake);
+            RidingValues.Direction direction = v.power(brake + 100).direction;
+            if (screenTime) check(direction != RidingValues.Direction.REGEN_INFERRED, "a floor at the screen's refresh loses the new connection's first reading: " + direction);
+            else check(direction == RidingValues.Direction.REGEN_INFERRED, "the new connection's first reading counts toward the next one: " + direction);
+        }
+        // The old link's speed in that same snapshot still can't pair with a new power reading.
+        RidingValues old = new RidingValues();
+        old.setNominalIntervals(1000, 2000);
+        old.sample("current_sign_state", 254, 0x79, 0);
+        old.setLinkGeneration(7, 0);
+        unsignedBrake(old, 0);
+        long reconnect = 30_000, firstReading = reconnect + 500, brake = reconnect + 1500;
+        old.sample("speed_kmh", 19, 0x92, reconnect - 100);
+        old.setLinkGeneration(8, reconnect);
+        old.sample("voltage_v", 50.64, 0x72, firstReading); old.sample("power_w", 8 * 50.64, 0x72, firstReading);
+        old.sample("voltage_v", 50.64, 0x72, brake); old.sample("power_w", 8 * 50.64, 0x72, brake);
+        check(old.power(brake + 100).direction != RidingValues.Direction.REGEN_INFERRED, "the old connection's speed isn't compared with a new reading");
+    }
+    /** The floor above is only as good as the call: the screen must hand over the connection's own start. */
+    private static void screenPassesTheConnectionsTrueStart() {
+        try {
+            String screen = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/RidingScreen.java")), java.nio.charset.StandardCharsets.UTF_8);
+            check(screen.contains("setLinkGeneration(ble.connectionGeneration(), ble.connectionStartMs())"), "RidingScreen hands over the connection's own start");
+            String controller = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/BleController.java")), java.nio.charset.StandardCharsets.UTF_8);
+            check(controller.contains("++generation;generationStartMs=now();"), "BleController dates each new generation");
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
+    }
+
     private static void unsignedCurrent() {
         RidingValues gt3 = new RidingValues();
         gt3.setNominalIntervals(1000, 2000);
@@ -413,6 +494,104 @@ public final class RidingValuesTest {
         gt3.sample("power_w", -300, 0x72, 5000);
         check(gt3.power(5100).direction == RidingValues.Direction.REGEN && near(gt3.power(5100).peakRegenW, 300, 0.01), "a negative current proves the scooter signs it: regen");
         check(gt3.signState() != RidingValues.Direction.UNKNOWN, "and from then on it is signed");
+    }
+
+    /** Feeds an unsigned ride: rest, acceleration, cruise, then a brake where the voltage rises. */
+    private static void unsignedBrake(RidingValues v, long t0) {
+        double rest = 50, ohms = 0.08, kmh = 0;
+        long t = t0;
+        for (int i = 0; i < 8; i++) { v.sample("voltage_v", rest, 0x72, t); v.sample("speed_kmh", 0, 0x92, t); v.sample("power_w", 10, 0x72, t); t += 1000; }
+        for (int i = 0; i < 8; i++) { kmh += 3; double volts = rest - 18 * ohms; v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 18 * volts, 0x72, t); t += 1000; }
+        for (int i = 0; i < 8; i++) { v.sample("voltage_v", rest, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 15, 0x72, t); t += 1000; }
+        for (int i = 0; i < 4; i++) { kmh -= 3.2; double volts = rest + 8 * ohms; v.sample("voltage_v", volts, 0x72, t); v.sample("speed_kmh", kmh, 0x92, t); v.sample("power_w", 8 * volts, 0x72, t); t += 1000; }
+    }
+
+    /** An unsigned brake reads as inferred regen everywhere a screen looks, but never moves the energy (owner, Nov 9). */
+    private static void inferredRegen() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        long now = 27_500;
+        RidingValues.Power p = v.power(now);
+        check(p.direction == RidingValues.Direction.REGEN_INFERRED, "the brake is inferred regen: " + p.direction);
+        check(p.watts != null && p.watts < 0 && p.direction.regen(), "and shown on the regen side");
+        check(p.countedWatts > 0 && near(p.countedWatts, -p.watts, 1e-9), "range still gets the magnitude");
+        check(p.peakRegenW == 0 && p.peakInferredRegenW > 0, "the inferred regen peak is kept apart: confirmed " + p.peakRegenW + ", inferred " + p.peakInferredRegenW);
+        check(v.inferredDrawThresholdW() == 1200, "and an inference never raises the threshold");
+        check(!p.direction.knownOrInferred() && p.direction.unsigned(), "for energy and efficiency it counts like an unknown reading");
+        check(v.direction() == RidingValues.Direction.REGEN_INFERRED, "the screen can tell it from confirmed regen");
+        boolean negative = false;
+        for (RidingValues.TracePoint point : v.powerTrace(now, 60_000)) {
+            negative |= point.value < 0;
+            check(!point.directionUnknown || point.value >= 0, "unknown points stay magnitudes");
+            check(point.value >= 0 || point.directionUnconfirmed, "a trace point below zero that was only inferred isn't drawn as confirmed regen");
+        }
+        check(negative, "the live trace goes below zero");
+        RidingValues compare = new RidingValues();
+        compare.setNominalIntervals(1000, 2000);
+        compare.sample("current_sign_state", 254, 0x79, 0);
+        for (long t = 0; t < 28_000; t += 1000) compare.sample("power_w", v.powerTrace(now, 60_000).get((int) (t / 1000)).value < 0 ? -v.powerTrace(now, 60_000).get((int) (t / 1000)).value : v.powerTrace(now, 60_000).get((int) (t / 1000)).value, 0x72, t);
+        check(near(v.rideEnergyWh(), compare.rideEnergyWh(), 0.01), "energy is the sum of magnitudes, as before: " + v.rideEnergyWh() + " vs " + compare.rideEnergyWh());
+        check(v.inferredDrawWh() == 0 && near(v.unconfirmedEnergyWh(), v.rideEnergyWh(), 1e-6), "and all of it unconfirmed, none inferred draw");
+    }
+
+    /** A refresh can bring a later speed before the power reading it follows: only a speed from before counts. */
+    private static void inferredRegenUsesOnlyEarlierSpeed() {
+        for (boolean laterSpeed : new boolean[]{false, true}) {
+            RidingValues v = new RidingValues();
+            v.setNominalIntervals(1000, 2000);
+            v.sample("current_sign_state", 254, 0x79, 0);
+            long t = 0;
+            for (int i = 0; i < 8; i++) { v.sample("voltage_v", 50, 0x72, t); v.sample("speed_kmh", 30, 0x92, t); v.sample("power_w", 10, 0x72, t); t += 1000; }
+            v.sample("voltage_v", 50.4, 0x72, t);
+            if (laterSpeed) v.sample("speed_kmh", 20, 0x92, t + 1000);
+            v.sample("power_w", 150, 0x72, t);
+            check(v.power(t + 100).direction == RidingValues.Direction.UNKNOWN, "the latest speed before it was steady, so this stays unknown (later speed " + laterSpeed + "): " + v.power(t + 100).direction);
+        }
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        long t = 40_000; // no speed from the last 3 seconds, only a later one
+        v.sample("voltage_v", 50.6, 0x72, t);
+        v.sample("speed_kmh", 5, 0x92, t + 1000);
+        v.sample("power_w", 150, 0x72, t);
+        check(v.power(t + 100).direction == RidingValues.Direction.UNKNOWN, "with no speed from before it, the direction stays unknown: " + v.power(t + 100).direction);
+    }
+
+    /** A same-time sign correction takes back the sample's inferred regen peak with everything else. */
+    private static void inferredRegenCorrectedToDraw() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 254, 0x79, 0);
+        unsignedBrake(v, 0);
+        double before = v.power(27_500).peakInferredRegenW;
+        check(before > 0 && v.power(27_500).peakRegenW == 0, "the brake left an inferred peak, and no confirmed one: " + before);
+        long t = 28_000;
+        double volts = 50.72, watts = 9 * volts;
+        v.sample("voltage_v", volts, 0x72, t);
+        v.sample("speed_kmh", 8, 0x92, t);
+        v.sample("power_w", watts, 0x72, t);
+        check(v.power(t + 100).direction == RidingValues.Direction.REGEN_INFERRED && near(v.power(t + 100).peakInferredRegenW, watts, 1e-6) && v.power(t + 100).peakRegenW == 0,
+                "a stronger inferred sample raises the inferred peak only: " + v.power(t + 100).peakInferredRegenW);
+        v.sample("current_sign_state", 0, 0x79, t + 200);
+        v.sample("power_w", watts, 0x72, t);
+        RidingValues.Power corrected = v.power(t + 300);
+        check(corrected.direction == RidingValues.Direction.DRAW && near(corrected.watts, watts, 1e-9), "the correction made it confirmed draw: " + corrected.direction);
+        check(near(corrected.peakInferredRegenW, before, 1e-9) && corrected.peakRegenW == 0, "and took its inferred peak back: " + corrected.peakInferredRegenW + " vs " + before);
+    }
+
+    /** A signed scooter reads exactly as before: no inference runs, whatever it does. */
+    private static void signedNeverInfers() {
+        RidingValues v = new RidingValues();
+        v.setNominalIntervals(1000, 2000);
+        v.sample("current_sign_state", 0, 0x79, 0);
+        unsignedBrake(v, 0);
+        RidingValues.Power p = v.power(27_500);
+        check(p.direction == RidingValues.Direction.DRAW && p.watts > 0, "a signed scooter's positive reading stays draw: " + p.direction);
+        for (RidingValues.TracePoint point : v.powerTrace(27_500, 60_000)) check(point.value >= 0, "and nothing goes below zero");
+        check(p.peakRegenW == 0, "no regen peak appears");
     }
 
     /** A strong reading without a known sign is inferred draw; a weaker one stays unknown (owner, Nov 6). */

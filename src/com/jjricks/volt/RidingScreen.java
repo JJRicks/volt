@@ -236,8 +236,13 @@ final class RidingScreen implements AppScreen {
         wattsCaption.setTextColor(ui.muted);
         wattsCaption.setMaxLines(1);
         wattsCaption.setEllipsize(TextUtils.TruncateAt.END);
+        // The number draws itself and the caption may be cut to a rung, so neither speaks: the column holds one
+        // description with the watts and the caption's whole meaning (showPower).
+        wattsCaption.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         chrome.add(wattsCaption);
         power = column();
+        power.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        power.setFocusable(true);
         power.addView(watts, new LinearLayout.LayoutParams(-1, 0, 1));
         power.addView(wattsCaption, new LinearLayout.LayoutParams(-1, -2));
         bar = new PowerBar();
@@ -688,6 +693,7 @@ final class RidingScreen implements AppScreen {
         if (ble != null) {
             session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             session.setRecordingKm(ride == null ? null : ride.distanceKm);
+            session.values.setLinkGeneration(ble.connectionGeneration(), ble.connectionStartMs());
             Double charging = ble.telemetry.number("charging_state");
             ble.telemetry.followSpeed(session.speed());
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
@@ -943,24 +949,64 @@ final class RidingScreen implements AppScreen {
         if (p.watts == null) {
             watts.set("", T.ridingNoValue(), "", "", ui.dim, ui.dim);
             wattsCaption.setText(T.ridingPowerDrawPeakShort());
+            power.setContentDescription(spokenReading(powerName(), null));
             bar.set(null, p.direction, scale, p.peakDrawW, 0, false, now);
             return;
         }
+        // Confirmed regen only: inferred regen keeps its side of the bar, but its number and caption claim no direction.
         boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
-        boolean unknown = p.direction == RidingValues.Direction.UNKNOWN;
+        boolean inferred = RidingPowerCue.applies(p.direction);
+        boolean unknown = p.direction == RidingValues.Direction.UNKNOWN || inferred;
         int color = regen ? ui.ok : unknown ? ui.muted : ui.text;
-        Formatted shown = Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT));
+        int rung = inferred ? captionRung() : RidingPowerCue.FULL;
+        Formatted shown = Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(p.watts, p.direction, rung))), Fmt.unit(UnitCode.WATT));
         watts.set(shown, color, regen ? ui.ok : ui.muted);
-        double peak = regen ? p.peakRegenW : p.peakDrawW;
-        String peakText = T.fmtQuantity(Fmt.integer(Math.round(Math.abs(peak))), UnitCode.WATT.symbol());
-        String caption = unknown ? T.ridingPowerUnknown() : Math.abs(peak) < 1 ? null
-                : regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
+        // A confirmed caption names only a confirmed peak; an inferred one never becomes it (RidingPowerCue).
+        String caption = RidingPowerCue.readoutCaption(p, readoutCaptions);
         String brief = regen ? T.ridingPowerRegenPeakShort() : T.ridingPowerDrawPeakShort();
-        fit(wattsCaption, caption == null ? brief : caption, brief);
+        if (inferred) showInferredCaption(rung, brief);
+        else fit(wattsCaption, caption == null ? brief : caption, brief);
+        // Heard as one: the watts as shown and the caption in full, at every rung (an unknown direction always says so).
+        power.setContentDescription(spokenReading(powerName(), RidingPowerCue.spokenValue(shown.toString(),
+                RidingPowerCue.readoutNote(p.direction, powerDirectionUnknown(), caption == null ? brief : caption))));
         // A same-time sign correction (after 0x79) moves the bar too, not only the number.
         boolean fresh = sample != null && sample.updatedMs != powerSampleMs;
         if (sample != null) powerSampleMs = sample.updatedMs;
         bar.set(p.watts, p.direction, scale, p.peakDrawW, sample == null ? 1000 : sample.intervalMs, fresh, now);
+    }
+
+    /** The caption for a power reading whose direction isn't confirmed (no catalog wording for an estimate yet). */
+    private static String powerDirectionUnknown() { return T.ridingPowerUnknown(); }
+
+    /** The readout caption's wording, for RidingPowerCue.readoutCaption. */
+    private static final RidingPowerCue.Captions readoutCaptions = new RidingPowerCue.Captions() {
+        @Override public String unknown() { return powerDirectionUnknown(); }
+        @Override public String peak(boolean regen, long watts) {
+            String peakText = T.fmtQuantity(Fmt.integer(watts), UnitCode.WATT.symbol());
+            return regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
+        }
+    };
+
+    /** How much of the inferred-direction caption the readout can show now; its room is settled once it's laid out. */
+    private int captionRung() {
+        int room = wattsCaption.getWidth() - wattsCaption.getPaddingLeft() - wattsCaption.getPaddingRight();
+        if (room <= 0) wattsCaption.post(() -> { if (!closed && wattsCaption.getWidth() > 0) showPower(SystemClock.elapsedRealtime()); });
+        return RidingPowerCue.rung(wattsCaption.getPaint().measureText(powerDirectionUnknown()),
+                wattsCaption.getPaint().measureText(RidesScreen.directionUnconfirmedChip()), room);
+    }
+
+    /** The caption at its rung; the power column's description says the direction is unknown at every one of them. */
+    private void showInferredCaption(int rung, String plain) {
+        String pick = rung == RidingPowerCue.FULL ? powerDirectionUnknown() : rung == RidingPowerCue.CUE ? RidesScreen.directionUnconfirmedChip() : plain;
+        if (TileRung.needsSet(pick, wattsCaption.getText())) wattsCaption.setText(pick);
+    }
+
+    /** A power reading's name, as a tile's label and the trace's key show it. */
+    private static String powerName() { return T.ridingLabelPower(); }
+
+    /** What a reading says to a screen reader: its name and value, or its name and that there's no reading. */
+    private static String spokenReading(String name, String spoken) {
+        return spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, spoken);
     }
 
     /** A caption's ladder: the full text while it fits, else the brief one; never a broken word. */
@@ -980,6 +1026,14 @@ final class RidingScreen implements AppScreen {
         CharSequence prefix = "", main = "", fraction = "", suffix = "";
         int color, unitColor;
         String spoken;
+        /** Heard after the reading only (a strip chip shows spoken as its text). */
+        String spokenNote;
+        String spokenFull() { return RidingPowerCue.spokenValue(spoken, spokenNote); }
+        /** The name heard for this reading, when it isn't the first rung shown. */
+        String spokenName;
+        String name() { return spokenName != null ? spokenName : rungs.length == 0 ? "" : rungs[0]; }
+        /** An inferred regen reading: a cell loses its minus sign when its label ends up with no cue (RidingPowerCue). */
+        Double inferredWatts;
         RidingValues.Band band;
         double percent = Double.NaN;
     }
@@ -1135,12 +1189,21 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.POWER: {
-                s.rungs = new String[]{T.ridingLabelPower()};
+                String name = powerName();
+                s.rungs = new String[]{name};
                 s.icon = "power";
                 RidingValues.Power p = v.power(now);
                 if (p.watts == null) { none(s); break; }
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(p.watts)), Fmt.unit(UnitCode.WATT)));
                 if (p.direction == RidingValues.Direction.REGEN && p.watts < 0) s.color = ui.ok;
+                if (RidingPowerCue.applies(p.direction)) {
+                    // Its label climbs the same ladder as the readout's caption; Cell.show applies the rung it lands on.
+                    s.rungs = new String[]{powerDirectionUnknown(), RidesScreen.directionUnconfirmedChip(), name};
+                    s.spokenName = name;
+                    s.spokenNote = powerDirectionUnknown();
+                    s.inferredWatts = p.watts;
+                    s.color = ui.muted;
+                }
                 break;
             }
             default: none(s); break;
@@ -1234,6 +1297,7 @@ final class RidingScreen implements AppScreen {
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
             setFocusable(true);
             label = new Label();
+            label.rungChanged = () -> { if (!closed) show(SystemClock.elapsedRealtime(), units()); };
             addView(label, new LayoutParams(-1, -2));
             number = new NumberView(maxSp, unitBelow);
             LayoutParams p = new LayoutParams(-1, 0, 1);
@@ -1315,9 +1379,13 @@ final class RidingScreen implements AppScreen {
         void show(long now, String units) {
             Shown s = shown(content, now, units);
             label.set(s.icon, s.rungs);
+            if (s.inferredWatts != null) {
+                int rung = RidingPowerCue.rungOfLabel(label.picked);
+                split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts, RidingValues.Direction.REGEN_INFERRED, rung))), Fmt.unit(UnitCode.WATT)));
+            }
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
-            String name = s.rungs.length == 0 ? "" : s.rungs[0];
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
+            String name = s.name();
+            setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
             if (gauge != null) {
                 boolean battery = RidingLayout.BATTERY.equals(content);
                 if (fit == null) ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
@@ -1333,6 +1401,10 @@ final class RidingScreen implements AppScreen {
     private final class Label extends TextView {
         private String[] rungs = new String[0];
         private String icon;
+        /** The rung on show, or -1 for its icon alone, no room or a hidden label. */
+        int picked = -1;
+        /** Runs when a change of width moves the label to another rung, so what depends on the rung follows at once. */
+        Runnable rungChanged;
         Label() {
             super(host.activity());
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, labelSp(LABEL_SP) * ui.textScale);
@@ -1352,15 +1424,21 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onSizeChanged(int w, int h, int ow, int oh) {
             super.onSizeChanged(w, h, ow, oh);
-            if (w != ow) post(this::fit);
+            if (w != ow) post(() -> {
+                int before = picked;
+                fit();
+                if (picked != before && rungChanged != null) rungChanged.run();
+            });
         }
         private void fit() {
+            picked = -1;
             if (rungs.length == 0) { setText(""); return; }
             int room = getWidth() - getPaddingLeft() - getPaddingRight();
             if (room <= 0) { show(rungs[0], false); return; }
             float[] widths = new float[rungs.length];
             for (int i = 0; i < rungs.length; i++) widths[i] = getPaint().measureText(rungs[i]);
             int pick = TileRung.first(widths, room);
+            picked = pick;
             if (pick < 0 && icon != null) show("", true);
             else show(rungs[pick < 0 ? rungs.length - 1 : pick], false);
         }
@@ -1605,7 +1683,7 @@ final class RidingScreen implements AppScreen {
                 paint.setColor(ui.dim);
                 canvas.drawRoundRect(new RectF(inset, zero - ui.dp(6), w - inset, zero + ui.dp(6)), ui.dp(6), ui.dp(6), paint);
                 paint.setStyle(Paint.Style.FILL);
-            } else if (value >= 0 || direction != RidingValues.Direction.REGEN) {
+            } else if (value >= 0 || !direction.regen()) {
                 double magnitude = Math.abs(value);
                 float top = (float) (zero - (zero - inset) * Math.min(1, magnitude / Math.max(1, drawScale)));
                 if (direction == RidingValues.Direction.UNKNOWN) paint.setColor(ui.muted);
@@ -1614,7 +1692,8 @@ final class RidingScreen implements AppScreen {
                 paint.setShader(null);
             } else {
                 float bottom = (float) (zero + (h - inset - zero) * Math.min(1, -value / Math.max(1, regenScale)));
-                paint.setColor(ui.ok);
+                // Green is for regen the scooter confirmed; an inferred reading keeps the side, not the colour.
+                paint.setColor(direction == RidingValues.Direction.REGEN ? ui.ok : ui.muted);
                 if (bottom - zero > 1) canvas.drawRoundRect(new RectF(inset, zero, w - inset, bottom), radius - inset, radius - inset, paint);
             }
             // The zero line, and the peak-draw tick.
@@ -1788,8 +1867,8 @@ final class RidingScreen implements AppScreen {
                 int visible = want ? VISIBLE : GONE;
                 if (getVisibility() != visible) setVisibility(visible);
             }
-            String name = s.rungs.length > 0 ? s.rungs[0] : s.main.toString();
-            setContentDescription(s.spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, s.spoken));
+            String name = s.rungs.length > 0 ? s.name() : s.main.toString();
+            setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
         }
     }
 
@@ -1864,9 +1943,10 @@ final class RidingScreen implements AppScreen {
                 sample = v.reading(RidingValues.POWER_KEY, now);
                 if (p.watts != null) {
                     value = Math.abs(p.watts);
-                    boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts < 0;
+                    boolean regen = p.direction.regen() && p.watts < 0;
                     regenPower = regen;
-                    tint = regen ? ui.ok : p.direction == RidingValues.Direction.UNKNOWN ? ui.muted : ui.accent;
+                    tint = regen && p.direction == RidingValues.Direction.REGEN ? ui.ok
+                            : p.direction == RidingValues.Direction.UNKNOWN || p.direction == RidingValues.Direction.REGEN_INFERRED ? ui.muted : ui.accent;
                     top = regen ? v.scale().regenW : v.scale().drawW;
                 }
             } else {
@@ -1996,7 +2076,7 @@ final class RidingScreen implements AppScreen {
             float x = pad, keyY = pad - fm.ascent;
             List<Object[]> key = new ArrayList<>();
             if (showsSpeed()) key.add(new Object[]{T.ridingLabelSpeed(), ui.text});
-            if (showsPower()) { key.add(new Object[]{T.ridingLabelPower(), ui.accent}); key.add(new Object[]{T.ridingTraceRegen(), ui.ok}); }
+            if (showsPower()) { key.add(new Object[]{powerName(), ui.accent}); key.add(new Object[]{T.ridingTraceRegen(), ui.ok}); }
             for (Object[] k : key) {
                 String name = (String) k[0];
                 float need = ui.dp(22) + label.measureText(name);
@@ -2021,11 +2101,11 @@ final class RidingScreen implements AppScreen {
             if (showsPower()) {
                 float zero = plotTop + plotH * RidingFrames.TRACE_ZERO;
                 for (List<RidingValues.TracePoint> run : RidingFrames.runs(powers)) {
-                    // A run splits again where the direction becomes known or unknown, so each part takes its own colour.
+                    // A run splits again where the direction becomes confirmed or not, so each part takes its own colour.
                     int from = 0;
                     for (int i = 1; i <= run.size(); i++) {
-                        if (i < run.size() && run.get(i).directionUnknown == run.get(from).directionUnknown) continue;
-                        area(canvas, run.subList(from > 0 ? from - 1 : 0, i), run.get(from).directionUnknown, scale, pad, plotTop, plotH, plotW, zero);
+                        if (i < run.size() && run.get(i).directionUnconfirmed == run.get(from).directionUnconfirmed) continue;
+                        area(canvas, run.subList(from > 0 ? from - 1 : 0, i), run.get(from).directionUnconfirmed, scale, pad, plotTop, plotH, plotW, zero);
                         from = i;
                     }
                 }

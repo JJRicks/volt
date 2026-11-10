@@ -25,6 +25,10 @@ public final class RideChartData {
         /** The catalog id of the legend name, or -1 for a series whose label is already display text. */
         private final int labelId;
         private double drawnFrom = Double.NaN, drawnTo; private int drawnColumns; private int[] drawn;
+        /** Power on an unsigned ride where RegenInference moved points below zero: the plotted direction isn't measured. */
+        boolean directionInferred;
+        /** Set by the screen (catalog text can't be read while building off the main thread). */
+        public String directionNote;
         Series(int index, String unit, List<Value> values) { this(index, unit, values, false); }
         Series(int index, String unit, List<Value> values, boolean fullDetail) {
             this(KEYS[index], LABELS[index], LABEL_IDS[index], unit, COLORS[index], index, values, null, fullDetail, false);
@@ -71,6 +75,8 @@ public final class RideChartData {
         }
         /** The legend name in the current language; label stays the English name. */
         public String displayLabel() { return labelId < 0 ? label : T.render(labelId); }
+        /** The label to read out and name the series with: the legend name, plus directionNote when inferred regen is plotted. */
+        public String notedLabel() { return directionNote == null ? displayLabel() : displayLabel() + " · " + directionNote; }
         public boolean available() { return hasData; }
         public boolean connects(Value left, Value right) {
             return left != null && right != null && left.value != null && right.value != null
@@ -205,7 +211,12 @@ public final class RideChartData {
         return build(scooter, phone, miles, false);
     }
     public static List<Series> build(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail) {
+        return build(scooter, phone, miles, fullDetail, false);
+    }
+    /** inferRegen: a ride whose current is unsigned plots inferred regen below zero. Stored values never change. */
+    public static List<Series> build(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
         if (fullDetail) RideStore.checkDetailMemory();
+        RegenInference.Label[] regen = inferRegen ? regenLabels(scooter) : null;
         List<Series> result = new ArrayList<>();
         List<PhoneRideStore.Point> phonePoints = phone == null ? Collections.emptyList() : fullDetail ? phone.fullPoints() : phone.points;
         ClockIndex clocks = new ClockIndex(scooter); List<Long> alignedTimes = new ArrayList<>();
@@ -223,17 +234,39 @@ public final class RideChartData {
                     Long aligned = alignedTimes.get(position);
                     if (aligned != null) values.add(new Value(aligned, v, p.segment));
                 }
-            } else for (RideStore.Point p : scooter) {
+            } else for (int position = 0; position < scooter.size(); position++) {
+                RideStore.Point p = scooter.get(position);
                 checkCanceled();
                 if (fullDetail) RideStore.checkDetailMemory();
-                Double v = index == 0 ? p.powerW : index == 1 ? p.speedKmh : index == 3 ? p.voltageV : index == 4 ? p.batteryPercent : energyPerDistance(p.powerW, p.speedKmh, miles);
+                Double v = index == 0 ? shownPower(p, regen, position) : index == 1 ? p.speedKmh : index == 3 ? p.voltageV : index == 4 ? p.batteryPercent : energyPerDistance(p.powerW, p.speedKmh, miles);
                 if (index == 1 && v != null && miles) v /= RideStore.KM_PER_MILE;
                 values.add(new Value(p.elapsedMs, v, p.segment));
             }
             String unit = index == 0 ? UnitCode.WATT.code : index == 1 || index == 2 ? miles ? UnitCode.MPH.code : UnitCode.KMH.code : index == 3 ? UnitCode.VOLT.code : index == 4 ? "%" : index == 5 ? miles ? "ft" : "m" : index == 6 ? "m/s²" : miles ? "Wh/mi" : "Wh/km";
-            result.add(new Series(index, unit, values, fullDetail));
+            Series series = new Series(index, unit, values, fullDetail);
+            series.directionInferred = index == 0 && plotsInferredRegen(scooter, regen);
+            result.add(series);
         }
         return Collections.unmodifiableList(result);
+    }
+    /** True when a stored power reading was labelled inferred regen, so the plot's sign isn't measured. */
+    private static boolean plotsInferredRegen(List<RideStore.Point> scooter, RegenInference.Label[] regen) {
+        if (regen == null) return false;
+        for (int i = 0; i < regen.length; i++) if (regen[i] == RegenInference.Label.REGEN && scooter.get(i).powerW != null) return true;
+        return false;
+    }
+    /** A plotted power value: inferred regen goes negative; every other reading stays as stored. */
+    private static Double shownPower(RideStore.Point p, RegenInference.Label[] regen, int position) {
+        if (p.powerW == null) return null;
+        return regen != null && regen[position] == RegenInference.Label.REGEN ? -Math.abs(p.powerW) : p.powerW;
+    }
+    /** The whole-ride inference over a saved ride's points (a point missing a reading keeps its place, unknown). */
+    static RegenInference.Label[] regenLabels(List<RideStore.Point> points) {
+        List<RegenInference.Sample> samples = new ArrayList<>(points.size());
+        for (RideStore.Point p : points)
+            samples.add(new RegenInference.Sample(p.elapsedMs, p.powerW == null ? Double.NaN : p.powerW,
+                    p.voltageV == null ? Double.NaN : p.voltageV, p.speedKmh == null ? Double.NaN : p.speedKmh, p.segment));
+        return RegenInference.wholeRide(samples);
     }
     private static void checkCanceled() { if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException("Ride chart loading canceled"); }
 }

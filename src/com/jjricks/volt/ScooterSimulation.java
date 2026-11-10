@@ -15,7 +15,7 @@ public final class ScooterSimulation {
     private String model = "";
     /** Riding-mode screenshot scripts: memory only, display samples only, never a command. */
     static final String RIDING = "riding", STOPPED = "stopped", DROPOUT = "dropout", LOW_AMBER = "low_amber",
-            LOW_RED = "low_red", WARNING = "warning";
+            LOW_RED = "low_red", WARNING = "warning", UNSIGNED_REGEN = "unsigned_regen";
     private String script = "";
 
     private static final class Sample {
@@ -149,7 +149,7 @@ public final class ScooterSimulation {
 
     /** A riding-mode script id; "" or an unknown id gives the plain parked samples. */
     public void setScript(String id) {
-        script = java.util.Arrays.asList(RIDING, STOPPED, DROPOUT, LOW_AMBER, LOW_RED, WARNING).contains(id) ? id : "";
+        script = java.util.Arrays.asList(RIDING, STOPPED, DROPOUT, LOW_AMBER, LOW_RED, WARNING, UNSIGNED_REGEN).contains(id) ? id : "";
     }
     public String script() { return script; }
 
@@ -206,8 +206,30 @@ public final class ScooterSimulation {
         if (riding) ride(telemetry, elapsedMs, phase);
     }
 
+    /**
+     * A scooter that doesn't sign its current (a GT3 Max answers 0x79 with 254): always a positive
+     * reading, with a repeating pull-away, cruise and brake where the voltage rises. Regen inference only.
+     */
+    private void unsignedRegenRide(Telemetry telemetry, long time, double phase) {
+        double cycle = phase % 32, volts = 50.4, amps, speed;
+        if (cycle < 6) { speed = 6 + 4 * cycle; amps = 16; volts -= 16 * .08; }
+        else if (cycle < 14) { speed = 30; amps = .45; }
+        else if (cycle < 20) { speed = 30 - 3.5 * (cycle - 14); amps = 7.5; volts += 7.5 * .06; }
+        else { speed = 9 - .05 * (cycle - 20); amps = .35; }
+        reading(telemetry, "voltage_v", volts, 3, Telemetry.SUFFIX_VOLT, time);
+        reading(telemetry, "current_a", amps, 2, Telemetry.SUFFIX_AMP, time);
+        reading(telemetry, "power_w", volts * amps, 1, Telemetry.SUFFIX_WATT, time);
+        reading(telemetry, "speed_kmh", speed, 1, Telemetry.SUFFIX_KMH, time);
+        telemetry.putSimulationSample("current_sign_state", "254 (simulation)", 254.0, time);
+        reading(telemetry, "battery_percent", 72, 0, Telemetry.SUFFIX_PERCENT, time);
+        reading(telemetry, "remaining_range_km", 18, 1, Telemetry.SUFFIX_RANGE, time);
+        reading(telemetry, "trip_km", 2.4, 2, Telemetry.SUFFIX_KM, time);
+        reading(telemetry, "trip_minutes", 9, 1, Telemetry.SUFFIX_MINUTE, time);
+    }
+
     /** A ride for riding mode's screenshots: speed and power that swing into regen, a growing trip. */
     private void ride(Telemetry telemetry, long time, double phase) {
+        if (script.equals(UNSIGNED_REGEN)) { unsignedRegenRide(telemetry, time, phase); return; }
         boolean moving = !script.equals(STOPPED);
         double speed = moving ? 24.3 + 5.5 * Math.sin(phase / 9) : 0;
         double watts = moving ? 540 + 720 * Math.sin(phase / 7) : 6;

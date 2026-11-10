@@ -432,6 +432,8 @@ public final class RidesScreen implements AppScreen {
         return new TextView[]{value, unit};
     }
     /** A small rounded status pill tinted with one colour, e.g. Disconnected or Direction ?. */
+    /** "Direction ?": also names a chart's power line while it plots a direction nobody measured. */
+    static String directionUnconfirmedChip() { return T.ridesDirectionChipUnconfirmed(); }
     private TextView pill(String text, int color) {
         TextView pill = ui.text(text, 11.5f, false); pill.setTypeface(ui.semibold()); pill.setTextColor(color);
         pill.setGravity(Gravity.CENTER); pill.setMaxLines(1); pill.setPadding(ui.dp(9), ui.dp(3), ui.dp(9), ui.dp(3));
@@ -809,7 +811,7 @@ public final class RidesScreen implements AppScreen {
     private void buildOverview(LinearLayout body, RideStore.Summary ride, List<RideStore.Point> measured, Runnable afterDelete) throws IOException {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
-        ChartPanel graph = new ChartPanel(ride.id, measured, null, false); body.addView(graph);
+        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         if (ride.distanceKm != null) tileReadings(distanceParts(ride.distanceKm));
         if (ride.averageSpeedKmh != null) tileReadings(speedParts(ride.averageSpeedKmh));
@@ -907,14 +909,15 @@ public final class RidesScreen implements AppScreen {
         final RideChartView chart; final Flow choices; final Set<String> chosen;
         final android.widget.HorizontalScrollView chartScroll;
         final LinearLayout inspection; String inspectionSignature = "";
-        final boolean full; List<RideChartData.Series> data;
+        final boolean full, inferRegen; List<RideChartData.Series> data;
         final TextView loadStatus; AlertDialog expandedDialog; java.util.concurrent.Future<?> fullLoad;
         /** A waiting "load once saving finishes" step; cancelled with the load so it can't reload later. */
         Runnable fullLoadRetry;
         int loadGeneration; boolean fullDataLoaded;
         int overlayLimit = ui.dp(112); ScrollView overlayScroll;
-        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full) {
+        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen) {
             super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
+            this.inferRegen = inferRegen;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
             LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
             loadStatus = ui.text(T.ridesLoading(), 12, false); loadStatus.setMinHeight(ui.dp(48)); loadStatus.setGravity(Gravity.CENTER); loadStatus.setPadding(ui.dp(6), 0, ui.dp(6), 0);
@@ -976,29 +979,30 @@ public final class RidesScreen implements AppScreen {
             for (RideChartData.Series s : selected) {
                 RideChartData.Value value = s.sampleAt(time);
                 LinearLayout cell = vertical(); cell.setMinimumWidth(ui.dp(124)); cell.setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6));
-                TextView label = ui.text((s.index % 3 == 0 ? MARK_SOLID : s.index % 3 == 1 ? MARK_DASH : MARK_DOT) + s.displayLabel(), 12, false);
+                TextView label = ui.text((s.index % 3 == 0 ? MARK_SOLID : s.index % 3 == 1 ? MARK_DASH : MARK_DOT) + s.notedLabel(), 12, false);
                 label.setSingleLine(true); cell.addView(label);
                 TextView reading = ui.text(RideChartView.sampleValue(s, value), 17, true); reading.setSingleLine(true); cell.addView(reading);
                 boolean available = value != null && value.value != null && Double.isFinite(value.value);
                 TextView stamp = ui.caption(available ? T.mapsChartCursorAt(RideChartView.sampleTime(value.time)) : "—"); stamp.setSingleLine(true); cell.addView(stamp);
-                cell.setContentDescription(T.ridesChartCellDescription(s.displayLabel(), (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample())));
+                cell.setContentDescription(T.ridesChartCellDescription(s.notedLabel(), (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample())));
                 inspection.addView(cell);
             }
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi"))));
+            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
             choices.removeAllViews();
             for (RideChartData.Series series : data) {
+                series.directionNote = series.directionInferred ? directionUnconfirmedChip() : null;
                 CheckBox toggle = new CheckBox(host.activity()); toggle.setButtonDrawable(null); toggle.setMinHeight(ui.dp(48));
                 // Energy / distance exists only above walking pace; the chip says where, and the chart hatches the rest.
                 String limit = "wh_per_distance".equals(series.key) ? (miles() ? T.ridesChartChipFromMph() : T.ridesChartChipFromKmh()) : "";
-                toggle.setText((series.index % 3 == 0 ? MARK_SOLID : series.index % 3 == 1 ? MARK_DASH : MARK_DOT) + series.displayLabel() + limit + (series.available() ? "" : T.ridesChartChipNoData()));
+                toggle.setText((series.index % 3 == 0 ? MARK_SOLID : series.index % 3 == 1 ? MARK_DASH : MARK_DOT) + series.notedLabel() + limit + (series.available() ? "" : T.ridesChartChipNoData()));
                 toggle.setTextSize(12 * ui.textScale); toggle.setTypeface(ui.semibold()); toggle.setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8));
-                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription(WH_PER_DISTANCE.equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.displayLabel()) : T.ridesChartSeriesOnlyAtMphNoSamples(series.displayLabel())) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.displayLabel()) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.displayLabel()))) : (series.available() ? T.ridesChartSeries(series.displayLabel()) : T.ridesChartSeriesNoSamples(series.displayLabel())));
+                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription(WH_PER_DISTANCE.equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.displayLabel()) : T.ridesChartSeriesOnlyAtMphNoSamples(series.displayLabel())) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.displayLabel()) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.displayLabel()))) : (series.available() ? T.ridesChartSeries(series.notedLabel()) : T.ridesChartSeriesNoSamples(series.displayLabel())));
                 Runnable style = () -> { toggle.setTextColor(toggle.isChecked() ? ui.text : ui.muted); toggle.setBackground(ui.shape(toggle.isChecked() ? Ui.withAlpha(series.color, 50) : ui.raised, 12, toggle.isChecked() ? series.color : ui.outline)); };
                 style.run(); toggle.setOnCheckedChangeListener((button, checked) -> {
                     if (checked) chosen.add(series.key); else chosen.remove(series.key);
@@ -1009,7 +1013,7 @@ public final class RidesScreen implements AppScreen {
         }
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
-            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true);
+            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
             expandedDialog = dialog;
@@ -1037,7 +1041,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true);
+                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true, inferRegen);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;
@@ -1081,7 +1085,7 @@ public final class RidesScreen implements AppScreen {
         // Section label with a Direction ✓ / ? chip that gives its reason on tap.
         LinearLayout energyHead = horizontal(); energyHead.setGravity(Gravity.CENTER_VERTICAL);
         energyHead.addView(ui.sectionLabel(T.ridesElectricalEnergy()));
-        TextView direction = pill(s.directionConfirmed ? T.ridesDirectionChipConfirmed() : T.ridesDirectionChipUnconfirmed(), s.directionConfirmed ? ui.ok : ui.orange);
+        TextView direction = pill(s.directionConfirmed ? T.ridesDirectionChipConfirmed() : directionUnconfirmedChip(), s.directionConfirmed ? ui.ok : ui.orange);
         // A 48dp touch target around a compact pill.
         direction.setBackground(new InsetDrawable(direction.getBackground(), 0, ui.dp(9), 0, ui.dp(9))); direction.setMinHeight(ui.dp(48));
         reasonOnTap(direction, s.directionConfirmed ? T.ridesDirectionConfirmed() : T.ridesDirectionUnconfirmed());

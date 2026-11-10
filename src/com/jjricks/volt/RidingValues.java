@@ -62,6 +62,8 @@ final class RidingValues {
         KEYS = Collections.unmodifiableSet(keys);
     }
     static final int EXPANDED_RIDE_REPORT = 0x92;
+    /** How old a speed reading can be and still be judged with a power reading, for inferred regen. */
+    private static final long INFERENCE_SPEED_MAX_AGE_MS = 3_000;
 
     enum Band { GREEN, AMBER, RED }
     /**
@@ -69,13 +71,17 @@ final class RidingValues {
      * really signs, the rule recordings use (PowerSign). DRAW_INFERRED was unsigned but too strong
      * to be regen (inferredDrawThresholdW()); it counts as draw everywhere, yet stays apart from
      * confirmed so a screen can show the difference. UNKNOWN is a weaker unsigned reading: only
-     * its magnitude is known.
+     * its magnitude is known. REGEN_INFERRED was unsigned too, and RegenInference judged it regen
+     * from what the scooter was doing: shown on the regen side, but for energy it stays exactly
+     * like UNKNOWN (range and efficiency don't move on an inference).
      */
-    enum Direction { DRAW, REGEN, UNKNOWN, DRAW_INFERRED;
-        /** True for DRAW_INFERRED and UNKNOWN: the reading's sign can't be trusted, so it counts as a magnitude. */
-        boolean unsigned() { return this == UNKNOWN || this == DRAW_INFERRED; }
-        /** True when the reading counts as draw or regen with a known sense: everything but UNKNOWN. */
-        boolean knownOrInferred() { return this != UNKNOWN; }
+    enum Direction { DRAW, REGEN, UNKNOWN, DRAW_INFERRED, REGEN_INFERRED;
+        /** True for DRAW_INFERRED, UNKNOWN and REGEN_INFERRED: the reading's sign can't be trusted, so it counts as a magnitude. */
+        boolean unsigned() { return this == UNKNOWN || this == DRAW_INFERRED || this == REGEN_INFERRED; }
+        /** True when the reading counts as draw or regen with a known sense: not UNKNOWN or REGEN_INFERRED. */
+        boolean knownOrInferred() { return this != UNKNOWN && this != REGEN_INFERRED; }
+        /** True when a screen shows this reading on the regen side: confirmed or inferred. */
+        boolean regen() { return this == REGEN || this == REGEN_INFERRED; }
     }
 
     /** One reading as riding mode sees it. */
@@ -103,9 +109,17 @@ final class RidingValues {
     static final class Power {
         final Double watts;
         final Direction direction;
-        final double peakDrawW, peakRegenW;
-        private Power(Double watts, Direction direction, double peakDrawW, double peakRegenW) {
-            this.watts = watts; this.direction = direction; this.peakDrawW = peakDrawW; this.peakRegenW = peakRegenW;
+        /**
+         * peakRegenW is confirmed regen only: what a "regen · peak" caption may claim. The strongest
+         * inferred regen stays apart in peakInferredRegenW, never folded into a confirmed peak, since a
+         * later 0/1 sign re-signs the newest reading, not the earlier ones Volt inferred.
+         */
+        final double peakDrawW, peakRegenW, peakInferredRegenW;
+        /** The reading as range and energy count it: inferred regen stays a positive magnitude here. */
+        final Double countedWatts;
+        private Power(Double watts, Double countedWatts, Direction direction, double peakDrawW, double peakRegenW, double peakInferredRegenW) {
+            this.watts = watts; this.countedWatts = countedWatts; this.direction = direction; this.peakDrawW = peakDrawW; this.peakRegenW = peakRegenW;
+            this.peakInferredRegenW = peakInferredRegenW;
         }
     }
 
@@ -148,8 +162,10 @@ final class RidingValues {
         final boolean gapBefore;
         /** True for a power point measured without a known direction: a magnitude, drawn neutral, never as draw or regen. */
         final boolean directionUnknown;
-        private TracePoint(long t, double value, boolean gapBefore, boolean directionUnknown) {
-            this.t = t; this.value = value; this.gapBefore = gapBefore; this.directionUnknown = directionUnknown;
+        /** The chart's colour: directionUnknown, or inferred regen, which plots below zero but was never measured as regen. */
+        final boolean directionUnconfirmed;
+        private TracePoint(long t, double value, boolean gapBefore, boolean directionUnknown, boolean directionUnconfirmed) {
+            this.t = t; this.value = value; this.gapBefore = gapBefore; this.directionUnknown = directionUnknown; this.directionUnconfirmed = directionUnconfirmed;
         }
     }
 
@@ -201,9 +217,15 @@ final class RidingValues {
      * Ride energy; the part of it from stretches touching an unknown direction (counted as
      * magnitude); and the part from stretches touching inferred draw (and no unknown end).
      */
-    private double rideEnergyWh, unconfirmedEnergyWh, inferredDrawWh, peakDrawW, peakRegenW;
+    private double rideEnergyWh, unconfirmedEnergyWh, inferredDrawWh, peakDrawW, peakRegenW, peakInferredRegenW;
+    /** Past-only regen inference, fed only for readings this scooter doesn't sign. */
+    private final RegenInference.Live inference = new RegenInference.Live();
+    /** The inference's run of readings, advanced by a new connection; readings measured by inferenceFloorMs belong to the old one. */
+    private int inferenceSegment, linkGeneration = NO_LINK_YET;
+    private long inferenceFloorMs = -1;
+    private static final int NO_LINK_YET = Integer.MIN_VALUE;
     /** What the latest power sample added, so a sign correction can redo it without double-counting. */
-    private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
+    private double lastSegmentWh, lastSegmentUnconfirmedWh, lastSegmentInferredWh, peakDrawBeforeW, peakRegenBeforeW, peakInferredRegenBeforeW, scaleDrawBeforeW, scaleRegenBeforeW;
     private double lastSegmentPreviousW;
     private Direction lastSegmentPreviousDirection = Direction.UNKNOWN;
     private long lastSegmentPreviousMs = -1;
@@ -247,12 +269,25 @@ final class RidingValues {
     /** The reading a range spot shows, or null for a content that isn't a range. */
     Range range(String contentId, long nowMs) { RangeSource s = ranges.get(contentId); return s == null ? null : s.range(nowMs); }
 
+    /**
+     * The connection the next snapshot comes from, and when that connection began (not when a
+     * screen first saw it, because a snapshot can already hold readings from it). A new one is an
+     * interruption the readings can't show when it is shorter than their gap rule, so the
+     * inference starts a new run of readings; only readings measured by the start are the old link's.
+     */
+    void setLinkGeneration(int generation, long connectionStartMs) {
+        if (linkGeneration != NO_LINK_YET && generation != linkGeneration) { inferenceSegment++; inferenceFloorMs = Math.max(inferenceFloorMs, connectionStartMs); }
+        linkGeneration = generation;
+    }
+
     /** Feeds every reading in a Telemetry snapshot. Readings already seen add nothing; a re-signed one is a correction. */
     void update(List<Telemetry.Metric> metrics) {
         // The sign first, so power in the same snapshot is read with the direction it was measured under.
-        for (int pass = 0; pass < 2; pass++)
+        // Power last, so the voltage and speed that inferred regen needs are this snapshot's too.
+        for (int pass = 0; pass < 3; pass++)
             for (Telemetry.Metric m : metrics)
-                if (m.numericValue != null && m.updatedMs >= 0 && KEYS.contains(m.key) && (pass == 0) == m.key.equals(SIGN_KEY))
+                if (m.numericValue != null && m.updatedMs >= 0 && KEYS.contains(m.key)
+                        && pass == (m.key.equals(SIGN_KEY) ? 0 : m.key.equals(POWER_KEY) ? 2 : 1))
                     sample(m.key, m.numericValue, m.sourceCmd, m.updatedMs);
     }
 
@@ -304,7 +339,7 @@ final class RidingValues {
             rideEnergyWh -= lastSegmentWh;
             unconfirmedEnergyWh -= lastSegmentUnconfirmedWh;
             inferredDrawWh -= lastSegmentInferredWh;
-            peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW;
+            peakDrawW = peakDrawBeforeW; peakRegenW = peakRegenBeforeW; peakInferredRegenW = peakInferredRegenBeforeW;
             double drawW = scale.drawW, regenW = scale.regenW;
             scale.drawW = scaleDrawBeforeW; scale.regenW = scaleRegenBeforeW;
             applyPower(value, now, t.updatedMs, lastSegmentPreviousMs, lastSegmentPreviousW, lastSegmentPreviousDirection);
@@ -319,16 +354,40 @@ final class RidingValues {
         }
     }
 
+    /** The live inference for one unsigned power reading, from what was measured up to its own time. */
+    private RegenInference.Label inferenceLabel(double watts, long updatedMs) {
+        Track voltage = tracks.get("voltage_v");
+        double volts = voltage == null || voltage.updatedMs <= inferenceFloorMs || voltage.updatedMs < 0 || voltage.updatedMs > updatedMs ? Double.NaN : voltage.value;
+        return inference.accept(new RegenInference.Sample(updatedMs, watts, volts, speedAtOrBefore(updatedMs), inferenceSegment));
+    }
+
+    /** The newest recent speed measured no later than a power reading (a refresh can bring a later one first), or NaN. */
+    private double speedAtOrBefore(long updatedMs) {
+        java.util.Iterator<long[]> times = speedSamples.descendingIterator();
+        java.util.Iterator<double[]> values = speedValues.descendingIterator();
+        while (times.hasNext()) {
+            long at = times.next()[0];
+            double kmh = values.next()[0];
+            if (at <= updatedMs) return at <= inferenceFloorMs || updatedMs - at > INFERENCE_SPEED_MAX_AGE_MS ? Double.NaN : kmh;
+        }
+        return Double.NaN;
+    }
+
     private void powerSample(double watts, long updatedMs, long previousMs, Track t) {
         Direction direction = signDirection(watts);
         // Decided once, from what's known now; a later sign or threshold never revisits it.
         if (direction == Direction.UNKNOWN && Math.abs(watts) >= inferredDrawThresholdW() && Math.abs(watts) <= PowerScale.DRAW_CAP_W)
             direction = Direction.DRAW_INFERRED;
+        if (direction == Direction.UNKNOWN || direction == Direction.DRAW_INFERRED) {
+            // Fed every unsigned reading, so its resting voltage and resistance keep learning; a strong one still stays draw.
+            RegenInference.Label label = inferenceLabel(watts, updatedMs);
+            if (direction == Direction.UNKNOWN && label == RegenInference.Label.REGEN) direction = Direction.REGEN_INFERRED;
+        }
         boolean joined = !powerValues.isEmpty() && previousMs >= 0 && updatedMs - previousMs > 0 && updatedMs - previousMs <= gapMs(t);
         double previousW = powerValues.isEmpty() ? 0 : powerValues.peekLast()[0];
         Direction previousDirection = direction();
         append(powerSamples, powerValues, updatedMs, new double[]{watts, direction.ordinal()}, gapMs(t));
-        peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW;
+        peakDrawBeforeW = peakDrawW; peakRegenBeforeW = peakRegenW; peakInferredRegenBeforeW = peakInferredRegenW;
         scaleDrawBeforeW = scale.drawW; scaleRegenBeforeW = scale.regenW;
         lastSegmentPreviousW = previousW;
         lastSegmentPreviousDirection = previousDirection;
@@ -342,6 +401,8 @@ final class RidingValues {
 
     /** A sample's watts as riding mode counts them: signed when confirmed, magnitude (as draw) otherwise. */
     private static double counted(double watts, Direction direction) { return direction.unsigned() ? Math.abs(watts) : watts; }
+    /** A sample's watts as a screen shows them: inferred regen goes negative, the rest as counted. */
+    private static double shown(double watts, Direction direction) { return direction == Direction.REGEN_INFERRED ? -Math.abs(watts) : counted(watts, direction); }
 
     /**
      * Energy since the previous sample (when joined), peaks and scale for one power sample. A
@@ -353,6 +414,10 @@ final class RidingValues {
      */
     private void applyPower(double watts, Direction direction, long updatedMs, long previousMs, double previousW, Direction previousDirection) {
         lastSegmentPreviousMs = previousMs;
+        // Inferred regen stays out of the energy, as an UNKNOWN reading would.
+        Direction shownDirection = direction;
+        direction = direction == Direction.REGEN_INFERRED ? Direction.UNKNOWN : direction;
+        previousDirection = previousDirection == Direction.REGEN_INFERRED ? Direction.UNKNOWN : previousDirection;
         boolean anyInferred = direction == Direction.DRAW_INFERRED || previousDirection == Direction.DRAW_INFERRED;
         boolean unknown = direction == Direction.UNKNOWN || previousDirection == Direction.UNKNOWN
                 || anyInferred && (direction == Direction.REGEN || previousDirection == Direction.REGEN);
@@ -368,8 +433,9 @@ final class RidingValues {
         if (direction == Direction.REGEN && -watts <= PowerScale.REGEN_CAP_W) peakRegenW = Math.max(peakRegenW, -watts);
         else if (direction == Direction.DRAW && watts <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, watts);
         else if (direction == Direction.DRAW_INFERRED && Math.abs(watts) <= PowerScale.DRAW_CAP_W) peakDrawW = Math.max(peakDrawW, Math.abs(watts));
-        // An unknown or inferred direction still sizes the draw scale: the bar shows its magnitude.
-        scaleChanged |= scale.observe(watts, direction == Direction.REGEN ? Direction.REGEN : Direction.DRAW);
+        if (shownDirection == Direction.REGEN_INFERRED) peakInferredRegenW = Math.max(peakInferredRegenW, Math.min(PowerScale.REGEN_CAP_W, Math.abs(watts)));
+        // An unknown or inferred-draw direction still sizes the draw scale: the bar shows its magnitude.
+        scaleChanged |= scale.observe(watts, shownDirection.regen() ? Direction.REGEN : Direction.DRAW);
     }
 
     private static void append(ArrayDeque<long[]> times, ArrayDeque<double[]> values, long t, double[] v, long gapMs) {
@@ -411,8 +477,9 @@ final class RidingValues {
     Power power(long nowMs) {
         Reading r = reading(POWER_KEY, nowMs);
         Direction direction = direction();
-        Double watts = r == null || r.stale ? null : counted(r.value, direction);
-        return new Power(watts, direction, peakDrawW, peakRegenW);
+        Double watts = r == null || r.stale ? null : shown(r.value, direction);
+        Double countedWatts = r == null || r.stale ? null : Double.valueOf(counted(r.value, direction));
+        return new Power(watts, countedWatts, direction, peakDrawW, peakRegenW, peakInferredRegenW);
     }
 
     PowerScale scale() { return scale; }
@@ -506,9 +573,9 @@ final class RidingValues {
         for (long[] t : times) {
             double[] sample = vi.next();
             Direction d = sample.length > 1 ? Direction.values()[(int) sample[1]] : null;
-            double v = d != null ? counted(sample[0], d) : sample[0];
+            double v = d != null ? shown(sample[0], d) : sample[0];
             if (t[0] < nowMs - windowMs || t[0] > nowMs) continue;
-            out.add(new TracePoint(t[0], v, !first && t[1] == 1, d == Direction.UNKNOWN));
+            out.add(new TracePoint(t[0], v, !first && t[1] == 1, d == Direction.UNKNOWN, d == Direction.UNKNOWN || d == Direction.REGEN_INFERRED));
             first = false;
         }
         return out;

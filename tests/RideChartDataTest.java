@@ -8,6 +8,9 @@ public final class RideChartDataTest {
     static void check(boolean value, String message) { checks++; if (!value) throw new AssertionError(message); }
     static void near(double expected, Double actual, String message) { check(actual != null && Math.abs(expected - actual) < 0.00001, message + ": " + actual); }
     public static void main(String[] args) throws Exception {
+        inferredRegen();
+        signedRideIsNotInferred();
+        noRegenAcrossARecordedGap();
         near(50, RideChartData.energyPerDistance(1000d, 20d, false), "W divided by km/h yields Wh/km");
         near(80.4672, RideChartData.energyPerDistance(1000d, 20d, true), "Imperial conversion preserves energy");
         near(-10, RideChartData.energyPerDistance(-200d, 20d, false), "Battery input keeps negative sign");
@@ -171,5 +174,85 @@ public final class RideChartDataTest {
         try { RideChartData.build(points, null, false, true); } catch (java.util.concurrent.CancellationException expected) { canceled = true; } finally { Thread.interrupted(); }
         check(canceled, "Full chart preparation honors cancellation before posting UI data");
         System.out.println("RideChartDataTest: " + checks + " assertions passed");
+    }
+    /** Unsigned ride: the power line goes below zero on the brake, and the energy rows stay unavailable; a signed plot is untouched. */
+    private static void inferredRegen() throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-regen").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Brake", 1000000, 1000);
+        long t = 0; double kmh = 0, rest = 50, r = 0.08;
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.2, rest, 0);
+        for (int i = 0; i < 8; i++) { kmh += 3; unsigned(store, t++, 18, rest - 18 * r, kmh); }
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.4, rest, kmh);
+        for (int i = 0; i < 6; i++) { kmh -= 3.2; unsigned(store, t++, 8, rest + 8 * r, kmh); }
+        for (int i = 0; i < 4; i++) unsigned(store, t++, 0.3, rest, kmh);
+        store.stop(1000000 + t * 1000, 1000 + t * 1000);
+        RideStore.Summary s = store.get(id);
+        check(s.unsignedCurrent(), "254 with no negative current is an unsigned ride");
+        List<RideStore.Point> points = store.fullTrend(id);
+        List<RideChartData.Value> raw = RideChartData.build(points, null, false, true).get(0).values, shown = RideChartData.build(points, null, false, true, true).get(0).values;
+        int negative = 0;
+        for (RideChartData.Value v : raw) check(v.value == null || v.value >= 0, "the stored line never goes negative");
+        for (int i = 0; i < shown.size(); i++) if (shown.get(i).value != null && shown.get(i).value < 0) {
+            negative++; check(Math.abs(shown.get(i).value + raw.get(i).value) < 1e-9, "a flipped point is the same magnitude"); }
+        check(negative >= 4, "the brake goes below zero: " + negative);
+        RideChartData.Series power = RideChartData.build(points, null, false, true, true).get(0);
+        check(power.directionInferred, "a plot with inferred regen says so");
+        check(!RideChartData.build(points, null, false, true, true).get(1).directionInferred, "only power's direction is inferred");
+        check(!RideChartData.build(points, null, false, true, false).get(0).directionInferred, "the raw plot isn't");
+        check(power.notedLabel().equals(power.displayLabel()), "no note until the screen sets one");
+        power.directionNote = "Direction ?";
+        check(power.notedLabel().equals(power.displayLabel() + " · Direction ?"), "the label carries the note: " + power.notedLabel());
+        check(s.drawWh == null && s.returnedWh == null, "an unsigned ride's draw and input stay unavailable, inference or not");
+        check(s.measuredThroughputWh != null, "its throughput is still measured");
+    }
+    /** A signed ride keeps its stored power line and its measured draw and input. */
+    private static void signedRideIsNotInferred() throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-signed").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Signed", 1000000, 1000);
+        long t = 0; double kmh = 0;
+        for (int i = 0; i < 8; i++) { kmh += 3; signed(store, t++, 18, 48.56, kmh); }
+        for (int i = 0; i < 6; i++) { kmh -= 3.2; signed(store, t++, -8, 50.64, kmh); }
+        store.stop(1000000 + t * 1000, 1000 + t * 1000);
+        RideStore.Summary s = store.get(id);
+        check(!s.unsignedCurrent(), "a scooter that signs its current is not an unsigned ride");
+        check(s.drawWh != null && s.drawWh > 0 && s.returnedWh != null && s.returnedWh > 0, "its draw and input are the measured ones: " + s.drawWh + " / " + s.returnedWh);
+        List<RideStore.Point> points = store.fullTrend(id);
+        List<RideChartData.Value> shown = RideChartData.build(points, null, false, true, s.unsignedCurrent()).get(0).values;
+        for (int i = 0; i < shown.size(); i++) check(Objects.equals(shown.get(i).value, points.get(i).powerW), "a signed point plots as stored");
+        check(!RideChartData.build(points, null, false, true, s.unsignedCurrent()).get(0).directionInferred, "a signed plot is never marked inferred");
+    }
+    /** Different speeds on the two sides of a marked gap don't make a slowing; the same readings without one do. */
+    private static void noRegenAcrossARecordedGap() throws Exception {
+        RegenInference.Label[] gap = gapRide(true), joined = gapRide(false);
+        for (int i = 0; i < gap.length; i++) check(gap[i] != RegenInference.Label.REGEN, "no regen on either side of the gap, at " + i + ": " + gap[i]);
+        boolean found = false;
+        for (RegenInference.Label label : joined) found |= label == RegenInference.Label.REGEN;
+        check(found, "the same readings with no gap are read as a slowing, so the gap is what stops it");
+    }
+    private static RegenInference.Label[] gapRide(boolean marked) throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-gap").toFile(); RideStore store = new RideStore(dir);
+        store.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW); String id = store.start("fixture", "Gap", 1000000, 1000);
+        long t = 0; double kmh = 0, watts = 150, volts = 50.24, amps = watts / volts;
+        for (int i = 0; i < 8; i++) unsigned(store, t++, 0.2, 50, 0);
+        for (int i = 0; i < 8; i++) { kmh += 3.75; unsigned(store, t++, 18, 50 - 18 * 0.08, kmh); }
+        for (int i = 0; i < 3; i++) unsigned(store, t++, 0.4, 50, 30);
+        for (int i = 0; i < 3; i++) unsigned(store, t++, amps, volts, 30);
+        if (marked) store.markGap(1000000 + t * 1000, 1000 + t * 1000, "Bluetooth disconnected");
+        t++; // one second missed
+        for (int i = 0; i < 2; i++) unsigned(store, t++, amps, volts, 20);
+        store.stop(1000000 + t * 1000, 1000 + t * 1000);
+        return RideChartData.regenLabels(store.fullTrend(id));
+    }
+    private static void signed(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
+        long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();
+        row.put("voltage_v", new RideStore.Sample(volts, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(amps, "", "A", 0x72, mono));
+        row.put("speed_kmh", new RideStore.Sample(kmh, mono)); row.put("current_sign_state", new RideStore.Sample(1d, mono)); row.put("battery_percent", new RideStore.Sample(90d, mono));
+        store.sample(1000000 + t * 1000, mono, row);
+    }
+    private static void unsigned(RideStore store, long t, double amps, double volts, double kmh) throws Exception {
+        long mono = 1000 + t * 1000; Map<String,RideStore.Sample> row = new HashMap<>();
+        row.put("voltage_v", new RideStore.Sample(volts, "", "V", 0x72, mono)); row.put("current_a", new RideStore.Sample(amps, "", "A", 0x72, mono));
+        row.put("speed_kmh", new RideStore.Sample(kmh, mono)); row.put("current_sign_state", new RideStore.Sample(254d, mono)); row.put("battery_percent", new RideStore.Sample(90d, mono));
+        store.sample(1000000 + t * 1000, mono, row);
     }
 }

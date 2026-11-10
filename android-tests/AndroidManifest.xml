@@ -58,6 +58,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MyScootersValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated multi-scooter management validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingFromZeroValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode ride time and distance start from zero at each open" />
+  <instrumentation android:name="com.jjricks.volt.tests.RegenDisplayValidation" android:targetPackage="com.jjricks.volt" android:label="Inferred regen in Rides and ride mode on an unsigned scooter" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingConfigMenuValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode tune menu holds the moved settings, auto-saves and closes at 4 mph"/>
   <instrumentation android:name="com.jjricks.volt.tests.RidingAutoCloseValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode closes with an automatic ride end; Max and Average count from opening" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingLostConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Riding mode shows Home at the next open after the connection was lost" />

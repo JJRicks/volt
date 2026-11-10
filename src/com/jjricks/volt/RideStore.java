@@ -128,6 +128,8 @@ public final class RideStore {
          * summary's drawWh and netConsumptionWh are null then), but what learned range can still use.
          */
         final Double unsignedDrawWh;
+        /** True for a ride whose current has no direction at all: its regen can only be inferred. */
+        boolean unsignedCurrent() { return unsignedDrawWh != null; }
         public final long movingElectricalCoverageMs, stationaryElectricalCoverageMs,
                 unknownMotionElectricalCoverageMs;
         public final Double movingThroughputWh, stationaryThroughputWh, unknownMotionThroughputWh;
