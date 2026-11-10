@@ -5,7 +5,7 @@ import java.util.*;
 
 /**
  * Opt-in automatic copies of each finished ride into one folder the rider chose: the ride's Everything (JSON) file,
- * ride-&lt;id&gt;-everything.json, made by the same code as the Export ride data sheet (RideExportFiles.payload, which
+ * named for the ride's start and id (RideExportFiles.stem) with the ending -everything.json, made by the same code as the Export ride data sheet (RideExportFiles.payload, which
  * calls RideExportEverything). This class is the pure part (no Android types): preference keys, the file name, the
  * persisted waiting list and one export pass over a {@link Folder}.
  * RideAutoExportRunner runs a pass off the main thread once a ride's phone journal has finished saving;
@@ -102,8 +102,10 @@ final class RideAutoExport {
         return after != before ? Problem.NONE : notified;
     }
 
-    /** The sheet's Everything (JSON) name: ride-&lt;first 8 characters of the id&gt;-everything.json. */
-    static String everythingName(String rideId) { return RideExportFiles.name(RideExportFiles.Format.EVERYTHING_JSON, rideId); }
+    /** The sheet's Everything (JSON) name for a ride that started at startWallMs (RideExportFiles.stem), in the phone's time zone now. */
+    static String everythingName(String rideId, long startWallMs) {
+        return RideExportFiles.fileName(RideExportFiles.Format.EVERYTHING_JSON, RideExportFiles.stem(rideId, startWallMs, TimeZone.getDefault()));
+    }
     /** Hidden while it is written; renamed to the final name only once complete. Never ends in .csv or .json. */
     static String temporaryName(String name) { return "." + name + ".partial"; }
 
@@ -185,7 +187,7 @@ final class RideAutoExport {
             if (summary == null) return null;
             RideExportFiles.Payload payload = RideExportFiles.payload(RideExportFiles.Format.EVERYTHING_JSON, rideId, rides, summary,
                     phone, phoneTrack(phone, rideId), cacheDir, appVersion);
-            return new Output(everythingName(rideId), payload.file, payload.owned);
+            return new Output(everythingName(rideId, RideExportFiles.start(summary)), payload.file, payload.owned);
         };
     }
     /**

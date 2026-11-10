@@ -90,7 +90,8 @@ public final class ScooterService extends Service {
     private static final int AUTO_EXPORT_NOTICE = 78;
     /** The failure kind AUTO_EXPORT_NOTICE posted for the current stored failure (RideAutoExport.notifiedAfter); NONE if none. */
     private RideAutoExport.Problem autoExportNotified = RideAutoExport.Problem.NONE;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends",LINK_LOSSES = "ride_link_losses";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
+    private RideAutoEnds autoEnds;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop",RIDE_AUTO_ENDS = "ride_auto_ends",RIDE_AUTO_ENDS_COUNTED = "ride_auto_ends_counted";private static final String START_SENT_NOTICE = "charge_start_sent_notice", START_SENT_SCOPE = "charge_start_sent_scope";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
     private boolean alertUpdating,alertHeld,alertNoticeKept;
@@ -160,7 +161,11 @@ public final class ScooterService extends Service {
             guardedLifecycle = destroyed = true; stopSelf(); return;
         }
         settings = getSharedPreferences("app_settings", MODE_PRIVATE);
-        countLinkLoss();
+        autoEnds = new RideAutoEnds(new RideAutoEnds.Store(){
+            public long count(){return settings.getLong(RIDE_AUTO_ENDS,0);}
+            public String counted(){return settings.getString(RIDE_AUTO_ENDS_COUNTED,"");}
+            public void save(long count,String counted){settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_ENDS_COUNTED,counted).commit();}
+        });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         maintenanceNotices = new MaintenanceNotices(this, profiles);
@@ -170,6 +175,7 @@ public final class ScooterService extends Service {
         ble.recoverTests();try{
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
             rides = new RideStore(new File(getFilesDir(), "rides"), true, new File(getNoBackupFilesDir(), "rides-index"));
+            autoEnds.reconcile(rides.automaticStopsAtLoad());
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
@@ -1837,20 +1843,18 @@ public final class ScooterService extends Service {
     public void stopRide(){stopRide("");}
     /**
      * How many recordings have ended by themselves. A count rather than a time, so it means the same
-     * across a reboot or a clock change: a riding mode that remembers a different count is over. Saved
-     * with commit so a process death right after the stop can't lose it.
+     * across a reboot or a clock change: a riding mode that remembers a lower count is over.
+     * RideAutoEnds keeps it recoverable together with the journal's STOP row.
      */
-    public long rideAutoEnds(){return settings==null?0:settings.getLong(RIDE_AUTO_ENDS,0);}
-    /** The connection as last seen by changed(), to count each loss once. */
-    private boolean linkUp;
+    public long rideAutoEnds(){return autoEnds==null?0:autoEnds.count();}
+    /** Every way this process's links have ended. Static, so a new service in the same process carries it on. */
+    private static final RidingLink.Log LINK_LOG=new RidingLink.Log(new java.util.Random().nextLong());
     /**
-     * How many times a connection has ended: every fall from connected, and every new service, since the one
-     * before it can't still hold a link. Riding mode compares it across a leave (no clock), so a drop that has
-     * reconnected by the return still shows, including after the process died.
+     * What riding mode compares across a leave. Observed here too, so a service destroyed with the link up reads
+     * as a loss on the next look: only Volt's own pause ends a link without counting as one.
      */
-    public long linkLosses(){return settings==null?0:settings.getLong(LINK_LOSSES,0);}
-    private void countLinkLoss(){if(settings!=null)settings.edit().putLong(LINK_LOSSES,linkLosses()+1).commit();}
-    private void observeLinkLoss(){boolean up=ble.connected();if(linkUp&&!up)countLinkLoss();linkUp=up;}
+    public RidingLink.Now rideLink(){observeLink();return LINK_LOG.now();}
+    private void observeLink(){LINK_LOG.observe(ble.connected(),ble.ownPause());}
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
@@ -1905,7 +1909,7 @@ public final class ScooterService extends Service {
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
         // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved).
         RideAutoExportFolder.queue(settings,stopping);
-        if(!reason.isEmpty())settings.edit().putLong(RIDE_AUTO_ENDS,rideAutoEnds()+1).commit();
+        if(rides.lastStopAutomatic())autoEnds.stopped(stopping);
         stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /**
      * Feeds the forgotten-ride policy from the current authenticated transport, never from cached
@@ -2171,7 +2175,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;observeLinkLoss();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }

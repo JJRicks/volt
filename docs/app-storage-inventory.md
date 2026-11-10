@@ -146,7 +146,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `cache/map-tiles/<sha256>/…` | Cache | — | Downloaded basemap tiles, `.meta`, `.part`, `network.meta`. MapTiles. |
 | `cache/charge-exports/charges-*.json` | Cache | one scooter | Developer charge export; removed after 24 h. |
 | `cache/ride-<uuid>.csv` | Cache | — | Ride sensor CSV export. |
-| `cache/ride-export-<ms>/ride-<id8>-everything.json` | Cache | — | Ride Everything (JSON) export, made before it is saved ([format](ride-export-everything.md)), in a staging folder of its own. Removed as soon as it is copied for the Save dialog or into the several-files folder, or when that fails; a folder left by a killed save is swept by the next ride export once it is a day old. |
+| `cache/ride-export-<ms>/ride-<yyyy-MM-dd>_<HH-mm>-<id8>-everything.json` | Cache | — | Ride Everything (JSON) export, made before it is saved ([format](ride-export-everything.md)), in a staging folder of its own. Removed as soon as it is copied for the Save dialog or into the several-files folder, or when that fails; a folder left by a killed save is swept by the next ride export once it is a day old. |
 | `cache/volt-encrypted-*.voltbackup`, `cache/volt-rides-*.voltrides` | Cache | — | Prepared backup waiting for a destination (`.voltrides` only from older versions); orphans removed at startup (BackupExportCache). |
 | `/data/local/tmp/volt-owner-capture.lock/` | outside app storage | — | Shell-owned Shizuku capture lock. Not app data; never touched by backups. |
 

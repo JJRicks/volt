@@ -2,6 +2,13 @@ package com.jjricks.volt.tests;
 
 import android.app.Activity;
 import android.app.Instrumentation;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,6 +18,7 @@ import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 
+import com.jjricks.volt.BleController;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterProfiles;
@@ -20,15 +28,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 /**
  * Riding mode shows Home at the next open after the connection was lost with no recording running, and at no
- * other time. Drives the simulated scooter's connection. Process death can't be driven from inside the process
- * that would die, so that one is in RidingValuesTest's saved-state round trip. Disposable emulator only.
+ * other time. Most steps drive the simulated scooter's connection. Volt's own Bluetooth pause doesn't exist in
+ * simulation, so those steps fake a real authenticated link and let the service's real 10-second deadline pause it,
+ * and wait out the real 2 minutes. Process death can't be driven from inside the process that would die, so that
+ * one is in RidingValuesTest's saved-state round trip. Disposable emulator only.
  */
 public final class RidingLostConnectionValidation extends Instrumentation {
     private MainActivity activity;
@@ -84,6 +97,131 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         recreatedOnScreenWhileDown();
         activityGoneControl();
         activityGoneAfterDrop();
+        main(() -> require(service.setSimulation(false), "Simulation off failed"));
+        settle();
+        ownPauseBackInTimeThenLeaveAgain();
+        ownPausePastGrace();
+        realDropBeforeThePause();
+        ownPauseActivityGoneBackInTime();
+        ownPauseActivityGonePastGrace();
+    }
+
+    /** Back within 2 minutes of Volt's pause stays; a second leave with the link still paused gets its own 2 minutes. */
+    private void ownPauseBackInTimeThenLeaveAgain() throws Exception {
+        link();
+        leave();
+        awaitOwnPause();
+        comeBack();
+        requireOpen("Volt's own pause, back inside 2 minutes");
+        shot("8-own-pause-back-in-time-open");
+        long losses = linkCount("losses");
+        leave();
+        comeBack();
+        requireOpen("off again with the link still paused, back at once");
+        leave();
+        SystemClock.sleep(WAIT_PAST_GRACE_MS);
+        comeBack();
+        require(linkCount("losses") == losses, "No real loss was counted");
+        requireHome("the second leave ran past its own 2 minutes");
+    }
+
+    private void ownPausePastGrace() throws Exception {
+        link();
+        leave();
+        awaitOwnPause();
+        SystemClock.sleep(WAIT_PAST_GRACE_MS);
+        comeBack();
+        requireHome("Volt's own pause, away past 2 minutes");
+        shot("9-own-pause-past-grace-home");
+    }
+
+    /** A native disconnect inside the pause's 10 seconds is a real drop: it counts at once. */
+    private void realDropBeforeThePause() throws Exception {
+        link();
+        leave();
+        require(linkCount("pauses") == pausesAtLink, "Volt hasn't paused yet");
+        long losses = linkCount("losses");
+        main(() -> ((BluetoothGattCallback) field(service.ble, "callbacks")).onConnectionStateChange(fake.gatt, 0, BluetoothProfile.STATE_DISCONNECTED));
+        await(() -> !service.ble.connected() && linkCount("losses") == losses + 1, "Native disconnect not counted as a real loss");
+        comeBack();
+        requireHome("a real drop while away, back at once");
+    }
+
+    /** The activity is destroyed while away, Volt pauses, and the same process rebuilds both inside 2 minutes. */
+    private void ownPauseActivityGoneBackInTime() throws Exception {
+        link();
+        goneToBackground();
+        awaitOwnPause();
+        awaitServiceGone();
+        foreground();
+        await(() -> field(activity, "riding") != null, "A saved riding mode must come back inside the 2 minutes");
+        settle();
+        requireOpen("activity destroyed, Volt's pause, new service, back inside 2 minutes");
+        closeRidingMode();
+    }
+
+    /** As above but past the 2 minutes: the time away came through the saved state. */
+    private void ownPauseActivityGonePastGrace() throws Exception {
+        link();
+        goneToBackground();
+        awaitOwnPause();
+        SystemClock.sleep(WAIT_PAST_GRACE_MS);
+        foreground();
+        require(field(activity, "riding") == null && !(Boolean) field(activity, "ridingRestore"), "A saved riding mode must not come back past 2 minutes");
+        requireHome("activity destroyed, Volt's pause, away past 2 minutes");
+    }
+
+    private static final long WAIT_PAST_GRACE_MS = 125_000;
+    private FakeLink fake;
+    private long pausesAtLink;
+
+    /** A real (not simulated) authenticated link, and riding mode opened on it. */
+    private void link() {
+        clearHold();
+        await(() -> service.ble.state() == BleController.State.DISCONNECTED, "Link still in use");
+        fake = new FakeLink();
+        main(fake::attach);
+        await(() -> service.ble.connected(), "Fake link did not read as connected");
+        pausesAtLink = linkCount("pauses");
+        openRiding();
+    }
+    /** The service's real background deadline, through BleController.suspend, and counted as a pause and nothing else. */
+    private void awaitOwnPause() {
+        long losses = linkCount("losses");
+        await(() -> !service.ble.connected(), "Volt did not pause Bluetooth");
+        require(linkCount("pauses") == pausesAtLink + 1, "Counted as Volt's own pause");
+        require(linkCount("losses") == losses, "And not as a loss");
+    }
+    /** ScooterService.running is the current instance; null once the idle service has stopped. */
+    private void awaitServiceGone() { await(() -> staticField(ScooterService.class, "running") != service, "Idle service did not stop"); }
+    private long linkCount(String name) {
+        AtomicReference<Long> value = new AtomicReference<>();
+        main(() -> value.set((Long) field(staticField(ScooterService.class, "LINK_LOG"), name)));
+        return value.get();
+    }
+
+    private final class FakeLink {
+        BluetoothGatt gatt;
+        void attach() { try {
+            BleController ble = service.ble;
+            ScooterProfiles.Profile profile = ble.profile();
+            BluetoothDevice device = getTargetContext().getSystemService(BluetoothManager.class).getAdapter().getRemoteDevice(profile.mac);
+            Class<?> unsafeType = Class.forName("sun.misc.Unsafe"); Field unsafe = unsafeType.getDeclaredField("theUnsafe"); unsafe.setAccessible(true);
+            gatt = (BluetoothGatt) unsafeType.getMethod("allocateInstance", Class.class).invoke(unsafe.get(null), BluetoothGatt.class);
+            Class<?> iface = Class.forName("android.bluetooth.IBluetoothGatt");
+            InvocationHandler transport = (proxy, method, args) -> {
+                if (method.getDeclaringClass() == Object.class) { if (method.getName().equals("equals")) return proxy == args[0]; if (method.getName().equals("hashCode")) return System.identityHashCode(proxy); return "RidingFixtureGatt"; }
+                Class<?> type = method.getReturnType(); return type == int.class ? 0 : type == boolean.class ? false : type == long.class ? 0L : null;
+            };
+            set(gatt, "mService", Proxy.newProxyInstance(iface.getClassLoader(), new Class<?>[]{iface}, transport));
+            set(gatt, "mClientRegistered", true); set(gatt, "mDeviceBusy", false); set(gatt, "mDeviceBusyLock", new Object()); set(gatt, "mStateLock", new Object()); set(gatt, "mDevice", device); set(gatt, "mServices", new CopyOnWriteArrayList<BluetoothGattService>());
+            BluetoothGattService gattService = new BluetoothGattService(BleController.SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY); set(gattService, "mDevice", device);
+            BluetoothGattCharacteristic writer = new BluetoothGattCharacteristic(BleController.WRITE, BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE);
+            gattService.addCharacteristic(writer);
+            set(ble, "profile", profile); set(ble, "gatt", gatt); set(ble, "writer", writer); set(ble, "serial", profile.serial);
+            set(ble, "authenticated", true); set(ble, "discovered", true); set(ble, "subscribed", true); set(ble, "wanted", false); set(ble, "state", BleController.State.READY);
+            ble.getClass(); call(service, "changed", new Class<?>[]{});
+        } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable; relax hidden_api_policy on the disposable emulator", error); } }
     }
 
     /** The owner's case: stop the recording in riding mode, the scooter disconnects, next open is Home. */
@@ -297,6 +435,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         require(next instanceof MainActivity, "Activity did not come back");
         activity = (MainActivity) next;
         await(() -> activity.service() != null, "Service did not rebind");
+        service = activity.service();
         settle();
     }
     /** The Developer option's own call: the setting alone only takes effect at boot. Needs the sweep's hidden_api step. */
@@ -340,6 +479,14 @@ public final class RidingLostConnectionValidation extends Instrumentation {
     private void settle() { waitForIdleSync(); SystemClock.sleep(550); }
     private static Object field(Object target, String name) {
         try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+        catch (Exception e) { throw new RuntimeException(e); }
+    }
+    private static Object staticField(Class<?> type, String name) {
+        try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(null); }
+        catch (Exception e) { throw new RuntimeException(e); }
+    }
+    private static void set(Object target, String name, Object value) {
+        try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); f.set(target, value); }
         catch (Exception e) { throw new RuntimeException(e); }
     }
     private static Object call(Object target, String name, Class<?>[] types, Object... args) {

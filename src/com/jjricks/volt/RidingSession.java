@@ -41,19 +41,14 @@ final class RidingSession {
      */
     private double tripSeenKm = Double.NaN;
     private boolean tripSeenWhole;
-    /** Top speed and the moving average since this riding mode opened, from the speed readings it saw. */
-    private boolean speedSeen;
-    private double topKmh, movingMs, movingKmhMs;
-    /** When the newest speed reading counted was measured, or -1 before any. */
-    private long speedSeenMs = -1;
-    /** ScooterService.rideAutoEnds() when this riding mode opened: any change means its recording ended by itself. */
+    /** Top speed and the moving average since this riding mode opened. */
+    private final RidingSpeed speed;
+    /** ScooterService.rideAutoEnds() when this riding mode opened: a higher count now means its recording ended by itself. */
     private final long autoEnds;
     /** This riding mode has seen a scooter connected. Until it has, a missing connection is just how it was opened. */
     private boolean linkSeen;
-    /** ScooterService.linkLosses() when Volt went off screen, or -1 while it's on screen. */
-    private long leftLosses = -1;
-    /** The connection had dropped and was still down when Volt went off screen. */
-    private boolean leftDown;
+    /** What the connection looked like when Volt went off screen, or null while it's on screen. */
+    private RidingLink.Leave leave;
 
     /**
      * The distance spot: how far since riding mode opened. km is null before the first usable reading.
@@ -70,39 +65,38 @@ final class RidingSession {
         private final String profileId;
         private final long openedMs;
         private final double bankedKm, baseKm, peakKm, tripSeenKm;
-        private final boolean fromRecording, wholeKm, tripSeenWhole, speedSeen;
-        private final double topKmh, movingMs, movingKmhMs;
-        private final long speedSeenMs, autoEnds, leftLosses;
-        private final boolean linkSeen, leftDown;
+        private final boolean fromRecording, wholeKm, tripSeenWhole;
+        private final double[] speed;
+        private final long autoEnds;
+        private final boolean linkSeen;
+        private final RidingLink.Leave leave;
         private Resume(String profileId, long openedMs, double bankedKm, double baseKm, double peakKm, boolean fromRecording, boolean wholeKm, double tripSeenKm, boolean tripSeenWhole,
-                boolean speedSeen, double topKmh, double movingMs, double movingKmhMs, long speedSeenMs, long autoEnds, boolean linkSeen, long leftLosses, boolean leftDown) {
-            this.linkSeen = linkSeen; this.leftLosses = leftLosses; this.leftDown = leftDown;
+                double[] speed, long autoEnds, boolean linkSeen, RidingLink.Leave leave) {
+            this.linkSeen = linkSeen; this.leave = leave;
             this.profileId = profileId; this.openedMs = openedMs; this.bankedKm = bankedKm; this.baseKm = baseKm; this.peakKm = peakKm; this.fromRecording = fromRecording; this.wholeKm = wholeKm;
             this.tripSeenKm = tripSeenKm; this.tripSeenWhole = tripSeenWhole;
-            this.speedSeen = speedSeen; this.topKmh = topKmh; this.movingMs = movingMs; this.movingKmhMs = movingKmhMs; this.speedSeenMs = speedSeenMs; this.autoEnds = autoEnds;
+            this.speed = speed; this.autoEnds = autoEnds;
         }
         String profileId() { return profileId; }
         long openedMs() { return openedMs; }
         double[] distance() { return new double[]{bankedKm, baseKm, peakKm, fromRecording ? 1 : 0, wholeKm ? 1 : 0, tripSeenKm, tripSeenWhole ? 1 : 0}; }
-        double[] speed() { return new double[]{speedSeen ? 1 : 0, topKmh, movingMs, movingKmhMs, speedSeenMs}; }
+        double[] speed() { return speed; }
         long autoEnds() { return autoEnds; }
         boolean linkSeen() { return linkSeen; }
-        long leftLosses() { return leftLosses; }
-        boolean leftDown() { return leftDown; }
+        /** The leave in progress as saved state, or null on screen. */
+        long[] leave() { return leave == null ? null : leave.state(); }
         /** True when a recording ended by itself after this riding mode opened, so it must not come back. Unknown (a save from before this existed) never counts. */
-        boolean autoEnded(long autoEndsNow) { return autoEnds >= 0 && autoEnds != autoEndsNow; }
+        boolean autoEnded(long autoEndsNow) { return autoEnds >= 0 && autoEndsNow > autoEnds; }
         /** The same answer as RidingSession.lostOnReturn, for a riding mode the activity is about to restore. */
-        boolean lostOnReturn(boolean connected, long lossesNow, boolean recording) { return lost(linkSeen, leftLosses, leftDown, connected, lossesNow, recording); }
+        boolean lostOnReturn(RidingLink.Now now, boolean recording, long elapsedMs) { return RidingLink.lost(linkSeen, leave, now, recording, elapsedMs); }
         /** Rebuilds saved state, or null when the distance array isn't the one distance() wrote. */
         static Resume of(String profileId, long openedMs, double[] distance) { return of(profileId, openedMs, distance, null, -1); }
         /** As above, with Max and Avg (a speed array of any other shape starts them over) and the auto-end count, -1 when unknown. */
-        static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds) { return of(profileId, openedMs, distance, speed, autoEnds, false, -1, false); }
+        static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds) { return of(profileId, openedMs, distance, speed, autoEnds, false, null); }
         /** As above, with what it knew about the connection when Volt went off screen; a save from before this counts as never connected. */
-        static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds, boolean linkSeen, long leftLosses, boolean leftDown) {
+        static Resume of(String profileId, long openedMs, double[] distance, double[] speed, long autoEnds, boolean linkSeen, long[] leave) {
             if (profileId == null || distance == null || distance.length != 7) return null;
-            boolean hasSpeed = speed != null && speed.length == 5;
-            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0, distance[4] != 0, distance[5], distance[6] != 0,
-                    hasSpeed && speed[0] != 0, hasSpeed ? speed[1] : 0, hasSpeed ? speed[2] : 0, hasSpeed ? speed[3] : 0, hasSpeed ? (long) speed[4] : -1, autoEnds, linkSeen, leftLosses, leftDown);
+            return new Resume(profileId, openedMs, distance[0], distance[1], distance[2], distance[3] != 0, distance[4] != 0, distance[5], distance[6] != 0, speed, autoEnds, linkSeen, RidingLink.Leave.of(leave));
         }
     }
 
@@ -116,13 +110,19 @@ final class RidingSession {
     RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs, Resume resume) { this(profileId, scale, nowMs, resume, 0); }
 
     /** @param autoEndsNow ScooterService.rideAutoEnds() at this open; the resumed value wins when there is one */
-    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs, Resume resume, long autoEndsNow) {
+    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs, Resume resume, long autoEndsNow) { this(profileId, scale, nowMs, resume, autoEndsNow, null); }
+
+    /**
+     * @param following what the service's Telemetry is feeding. It wins over what was saved when it is this
+     *                  same riding mode, because it kept counting while the activity was gone
+     */
+    RidingSession(String profileId, RidingValues.PowerScale scale, long nowMs, Resume resume, long autoEndsNow, RidingSpeed following) {
         this.profileId = profileId == null ? "" : profileId;
         values = new RidingValues(scale == null ? new RidingValues.PowerScale() : scale);
         boolean resumes = resume != null && this.profileId.equals(resume.profileId) && resume.openedMs <= nowMs;
         openedMs = resumes ? resume.openedMs : nowMs;
-        if (resumes) { bankedKm = resume.bankedKm; baseKm = resume.baseKm; peakKm = resume.peakKm; fromRecording = resume.fromRecording; wholeKm = resume.wholeKm; tripSeenKm = resume.tripSeenKm; tripSeenWhole = resume.tripSeenWhole;
-            speedSeen = resume.speedSeen; topKmh = resume.topKmh; movingMs = resume.movingMs; movingKmhMs = resume.movingKmhMs; speedSeenMs = resume.speedSeenMs; linkSeen = resume.linkSeen; }
+        if (resumes) { bankedKm = resume.bankedKm; baseKm = resume.baseKm; peakKm = resume.peakKm; fromRecording = resume.fromRecording; wholeKm = resume.wholeKm; tripSeenKm = resume.tripSeenKm; tripSeenWhole = resume.tripSeenWhole; linkSeen = resume.linkSeen; }
+        speed = !resumes ? new RidingSpeed(openedMs) : following != null && following.openedMs() == openedMs ? following : new RidingSpeed(openedMs, resume.speed, nowMs);
         autoEnds = resumes && resume.autoEnds >= 0 ? resume.autoEnds : autoEndsNow;
     }
 
@@ -130,47 +130,42 @@ final class RidingSession {
     Long rideTimeMs(long nowMs) { return Math.max(0, nowMs - openedMs); }
 
     /** This riding mode's state, to hand to the session that replaces it when the activity is recreated. */
-    Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording, wholeKm, tripSeenKm, tripSeenWhole, speedSeen, topKmh, movingMs, movingKmhMs, speedSeenMs, autoEnds, linkSeen, leftLosses, leftDown); }
+    Resume resume() { return new Resume(profileId, openedMs, bankedKm, baseKm, peakKm, fromRecording, wholeKm, tripSeenKm, tripSeenWhole, speed.state(), autoEnds, linkSeen, leave); }
 
     /** True when a recording ended by itself after this riding mode opened: riding mode closes with it. */
-    boolean autoEnded(long autoEndsNow) { return autoEnds != autoEndsNow; }
+    boolean autoEnded(long autoEndsNow) { return autoEndsNow > autoEnds; }
 
     /** The connection as an on-screen riding mode sees it. Off screen, only what left() and lostOnReturn() compare counts. */
-    void observeLink(boolean connected) { if (connected && leftLosses < 0) linkSeen = true; }
+    void observeLink(boolean connected) { if (connected && leave == null) linkSeen = true; }
 
     /** Volt went off screen (onStop, not onPause). The first call of a leave counts: Android may save state before stopping. */
-    void left(boolean connected, long lossesNow) {
-        if (leftLosses >= 0) return;
-        observeLink(connected);
-        leftLosses = Math.max(0, lossesNow);
-        leftDown = linkSeen && !connected;
+    void left(RidingLink.Now now, long elapsedMs) {
+        if (leave != null) return;
+        observeLink(now.connected());
+        leave = new RidingLink.Leave(now, elapsedMs);
     }
 
     /** Off screen since left(). */
-    boolean away() { return leftLosses >= 0; }
+    boolean away() { return leave != null; }
 
     /**
-     * Volt is back on screen. True when riding mode should close to Home: it had seen a scooter, the
-     * connection was lost while Volt was away or was already down when it left, and no recording is running.
+     * Volt is back on screen. True when riding mode should close to Home; see RidingLink.lost.
      * Ends the leave either way, so a drop while on screen never counts.
      */
-    boolean lostOnReturn(boolean connected, long lossesNow, boolean recording) {
-        boolean lost = lost(linkSeen, leftLosses, leftDown, connected, lossesNow, recording);
-        leftLosses = -1;
-        leftDown = false;
+    boolean lostOnReturn(RidingLink.Now now, boolean recording, long elapsedMs) {
+        boolean lost = RidingLink.lost(linkSeen, leave, now, recording, elapsedMs);
+        leave = null;
         return lost;
     }
 
-    /** A count rather than a time: a loss while away shows even if the connection is back by the return. */
-    private static boolean lost(boolean linkSeen, long leftLosses, boolean leftDown, boolean connected, long lossesNow, boolean recording) {
-        return linkSeen && leftLosses >= 0 && !recording && (leftDown || !connected || lossesNow != leftLosses);
-    }
-
     /** Top speed since this riding mode opened: null before the first speed reading, then 0 until something has moved. */
-    Double maxKmh() { return speedSeen ? topKmh : null; }
+    Double maxKmh() { return speed.maxKmh(); }
 
-    /** Time-weighted average of speed while moving, since this riding mode opened: null before the first speed reading, then 0 until something has moved. */
-    Double averageKmh() { return !speedSeen ? null : movingMs > 0 ? movingKmhMs / movingMs : 0; }
+    /** Time-weighted average of speed while moving, since this riding mode opened; see RidingSpeed.averageKmh. */
+    Double averageKmh() { return speed.averageKmh(); }
+
+    /** What Telemetry feeds while this riding mode is open. */
+    RidingSpeed speed() { return speed; }
 
     /** The recording's distance so far (null without one); the next feed folds it in. */
     void setRecordingKm(Double km) { recordingKm = km == null || !Double.isFinite(km) ? null : km; }
@@ -229,24 +224,15 @@ final class RidingSession {
     }
 
     /**
-     * Follows the speed reading for Max and Avg, which count from this open and hold through a stop.
-     * Each new reading at or above RidingFrames.STOPPED_KMH counts toward Max, and toward Avg for the time
-     * since the one before it. Time across a dropout isn't counted, the same gap rule as the speed trace.
+     * Hands the latest speed reading to Max and Avg (which count from this open and hold through a stop).
+     * Telemetry has already given it every reading as it arrived; what this adds is the baseline: a reading
+     * from just before opening, when riding mode opened while moving.
      */
     private void trackSpeed(long nowMs) {
         RidingValues.Reading r = values.reading(RidingValues.SPEED_KEY, nowMs);
         // A leftover from before this open isn't this ride's: the same rule as the distance baseline.
-        if (r == null || r.updatedMs <= speedSeenMs || r.stale && r.updatedMs < openedMs) return;
-        long previousMs = speedSeenMs;
-        speedSeen = true;
-        speedSeenMs = r.updatedMs;
-        if (r.value < RidingFrames.STOPPED_KMH) return;
-        topKmh = Math.max(topKmh, r.value);
-        long stepMs = r.updatedMs - previousMs;
-        if (previousMs >= 0 && stepMs <= Math.max(RidingValues.MIN_GAP_MS, RidingValues.GAP_INTERVALS * r.intervalMs)) {
-            movingMs += stepMs;
-            movingKmhMs += r.value * stepMs;
-        }
+        if (r == null || r.stale && r.updatedMs < openedMs) return;
+        speed.accept(r.value, r.updatedMs);
     }
 
     /** What the scooter's trip counter must have gained since the last feed; 0 when it's unknown or fell. */

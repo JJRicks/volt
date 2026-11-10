@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
+import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 
@@ -38,7 +39,7 @@ import java.util.regex.Pattern;
  * sample scooter, whose trip max is 35.6 km/h while its live speed never passes 29.8. Disposable emulator only.
  */
 public final class RidingAutoCloseValidation extends Instrumentation {
-    private static final String NO_MOTION = "auto_no_motion";
+    private static final String NO_MOTION = RideStore.STOP_AUTO_NO_MOTION;
     private MainActivity activity;
     private ScooterService service;
     private final Bundle result = new Bundle();
@@ -84,6 +85,8 @@ public final class RidingAutoCloseValidation extends Instrumentation {
         settle();
 
         speedCountsFromOpen();
+        closeRidingMode();
+        speedCountsInBackground();
         closeRidingMode();
         manualStopLeavesItOpen();
         autoEndOnScreen();
@@ -141,6 +144,27 @@ public final class RidingAutoCloseValidation extends Instrumentation {
         requireStrip("Average", heldAvg, "recreated");
         shot("5-recreated");
         note("recreated: max " + round(sessionMax()) + ", avg " + round(sessionAvg()));
+    }
+
+    /** With the activity gone the service keeps counting: a peak seen only while Volt is off screen shows on return. */
+    private void speedCountsInBackground() throws Exception {
+        openRiding();
+        await(() -> sessionMax() != null, "No session speed after opening");
+        settle();
+        goneToBackground();
+        // Past what the sample scooter ever reports, so only the telemetry path can have seen it.
+        for (double kmh : new double[]{33, 34, 33}) {
+            final double reading = kmh;
+            main(() -> call(field(service.ble, "telemetry"), "putSimulationSample", new Class<?>[]{String.class, String.class, Double.class, long.class}, "speed_kmh", reading + " km/h", reading, SystemClock.elapsedRealtime()));
+            SystemClock.sleep(400);
+        }
+        foreground();
+        await(() -> field(activity, "riding") != null, "Riding mode did not come back");
+        settle();
+        require(sessionMax() >= 34, "A background peak should count: " + sessionMax());
+        requireStrip("Max", sessionMax(), "after background");
+        shot("5b-background-peak");
+        note("background peak: max " + round(sessionMax()) + ", avg " + round(sessionAvg()));
     }
 
     /** Back closes for the next steps and sets the hold; a later step needs that hold clear again. */
