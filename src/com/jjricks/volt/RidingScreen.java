@@ -640,6 +640,7 @@ final class RidingScreen implements AppScreen {
             session.values.setRecordingStart(recordingMs == null ? null : now - recordingMs);
             session.setRecordingKm(ride == null ? null : ride.distanceKm);
             Double charging = ble.telemetry.number("charging_state");
+            ble.telemetry.followSpeed(session.speed());
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
         }
@@ -1017,10 +1018,9 @@ final class RidingScreen implements AppScreen {
                 s.rungs = average ? new String[]{T.ridingLabelAverageSpeed(), T.ridingLabelAverageSpeedShort()}
                         : new String[]{T.ridingLabelMaxSpeed(), T.ridingLabelMaxSpeedShort()};
                 s.icon = "speed";
-                RidingValues.Reading r = v.reading(average ? "average_speed_kmh" : "maximum_speed_kmh", now);
-                if (r == null) { none(s); break; }
-                split(s, Fmt.quantity(Fmt.decimalNumber(Locale.US, speedIn(r.value, units), 1), Fmt.unit(speedUnit(units))));
-                if (r.stale) dim(s);
+                Double kmh = average ? session.averageKmh() : session.maxKmh();
+                if (kmh == null) { none(s); break; }
+                split(s, Fmt.quantity(Fmt.decimalNumber(Locale.US, speedIn(kmh, units), 1), Fmt.unit(speedUnit(units))));
                 break;
             }
             case RidingLayout.EFFICIENCY: {
@@ -1765,10 +1765,9 @@ final class RidingScreen implements AppScreen {
                 sample = v.reading(RidingValues.SPEED_KEY, now);
                 top = RidingFrames.ringTop(fastestKmh > 0 ? fastestKmh : null, units);
                 if (speed.kmh != null) { value = RidingFocus.distance(speed.kmh, units); if (speed.stale) tint = ui.dim; }
-                RidingValues.Reading max = v.reading("maximum_speed_kmh", now), average = v.reading("average_speed_kmh", now);
-                Double maxKmh = max != null ? Double.valueOf(max.value) : fastestKmh > 0 ? Double.valueOf(fastestKmh) : null;
+                Double maxKmh = session.maxKmh(), averageKmh = session.averageKmh();
                 if (maxKmh != null) maxShare = RidingFrames.share(RidingFocus.distance(maxKmh, units), top);
-                if (average != null && !average.stale) averageShare = RidingFrames.share(RidingFocus.distance(average.value, units), top);
+                if (averageKmh != null) averageShare = RidingFrames.share(RidingFocus.distance(averageKmh, units), top);
                 if (speed.kmh == null && speed.lastKmh != null)
                     text = T.ridingSpeedLast(T.fmtQuantity(Fmt.decimal(Locale.US, RidingFocus.distance(speed.lastKmh, units), 1), speedUnit(units).symbol()));
                 else if (maxKmh != null)
