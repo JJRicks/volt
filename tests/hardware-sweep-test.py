@@ -118,7 +118,17 @@ class HardwareSweep(unittest.TestCase):
             if call[:2] == ['shell', 'rm']: self.assertEqual(call[2:], ['-rf', '/sdcard/Android/data/com.jjricks.volt/files/validation'])
             self.assertNotIn('pm clear', ' '.join(call))
         report = (self.out / 'report.md').read_text()
-        self.assertIn('| headlight | 0 | 1 | 1 | Change and restoration confirmed |', report); self.assertNotIn('NOT RESTORED', report)
+        self.assertIn('| headlight | 0 | 1 | 1 | yes | Change and restoration confirmed |', report); self.assertNotIn('NOT RESTORED', report)
+
+    def test_report_labels_the_read_back_and_shows_restoration(self):
+        self.run_sweep()
+        report = (self.out / 'report.md').read_text()
+        self.assertIn('| Control | Before | Test | Read back | Restored | Outcome |\n|---|---|---|---|---|---|\n', report)
+        self.assertNotIn('| After |', report, '"after" is the read-back right after the test write, not the value after restoring')
+        self.assertIn('| maximum_speed |  |  |  | — | Excluded by the test plan; no write |', report, 'no write, so no restoration to show')
+        self.setUp()
+        self.run_sweep(FAKE_PLAN=json.dumps(dict(sweep='unrestored')))
+        self.assertIn('| headlight | 0 | 1 | 1 | no | Change and restoration confirmed |', (self.out / 'report.md').read_text())
 
     def test_background_step_allows_for_the_live_charging_hold(self):
         source = (SWEEP.parent / 'ParkedValidation.java').read_text()
