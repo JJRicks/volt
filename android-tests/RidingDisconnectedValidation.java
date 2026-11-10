@@ -417,7 +417,9 @@ public final class RidingDisconnectedValidation extends Instrumentation {
                 Class<?> type = method.getReturnType(); return type == int.class ? 0 : type == boolean.class ? false : type == long.class ? 0L : null;
             };
             set(gatt, "mService", Proxy.newProxyInstance(iface.getClassLoader(), new Class<?>[]{iface}, transport));
-            set(gatt, "mClientRegistered", true); set(gatt, "mDeviceBusy", false); set(gatt, "mDeviceBusyLock", new Object()); set(gatt, "mStateLock", new Object()); set(gatt, "mDevice", device); set(gatt, "mServices", new CopyOnWriteArrayList<BluetoothGattService>());
+            // Field names differ across Android versions: those this one lacks it doesn't use.
+            optional(gatt, "mClientRegistered", true); optional(gatt, "mDeviceBusy", false); optional(gatt, "mDeviceBusyLock", new Object()); optional(gatt, "mStateLock", new Object());
+            set(gatt, "mDevice", device); optional(gatt, "mServices", new CopyOnWriteArrayList<BluetoothGattService>());
             BluetoothGattService gattService = new BluetoothGattService(BleController.SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY); set(gattService, "mDevice", device);
             BluetoothGattCharacteristic writer = new BluetoothGattCharacteristic(BleController.WRITE, BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE);
             gattService.addCharacteristic(writer);
@@ -527,6 +529,9 @@ public final class RidingDisconnectedValidation extends Instrumentation {
     }
     private static void set(Object target, String name, Object value) {
         try { Field f = field(target.getClass(), name); f.setAccessible(true); f.set(target, value); } catch (Exception e) { throw new RuntimeException(e); }
+    }
+    private static void optional(Object target, String name, Object value) {
+        try { Field f = field(target.getClass(), name); f.setAccessible(true); f.set(target, value); } catch (NoSuchFieldException ignored) { } catch (Exception e) { throw new RuntimeException(e); }
     }
     private static Object call(Object target, String name, Class<?>[] types, Object... args) {
         try { Method m = target.getClass().getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); } catch (Exception e) { throw new RuntimeException(e); }
