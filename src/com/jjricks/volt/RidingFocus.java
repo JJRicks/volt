@@ -89,6 +89,9 @@ final class RidingFocus {
     /**
      * Whether a battery gauge fits beside or under the number in the space the number would have alone.
      * The number wins: the gauge goes rather than cost the number more than a tenth of its size (under), or leave it small (beside). Widths and heights are in dp.
+     * The answer is stable: a box that gets a gauge under its number still gets it when measured again with the gauge shown
+     * (the number keeps a positive height, so its box adds back to the same size), and beside the box is the row, which the
+     * gauge doesn't change.
      *
      * @param widthEm the reference reading's width per dp of number size
      * @param heightEm its height per dp of number size
@@ -100,8 +103,18 @@ final class RidingFocus {
             return boxHeight >= BESIDE_MIN_HEIGHT_DP && number / widthEm >= BESIDE_MIN_NUMBER_DP;
         }
         if (boxWidth < BELOW_MIN_WIDTH_DP) return false;
-        float below = (gauge == Gauge.STRIP_BELOW ? STRIP_HEIGHT_DP : BAR_HEIGHT_DP) + BELOW_GAP_DP;
-        return numberSize(boxWidth, boxHeight - below, maxDp, widthEm, heightEm) >= BELOW_KEEP_SHARE * numberSize(boxWidth, boxHeight, maxDp, widthEm, heightEm);
+        float below = belowDp(gauge);
+        // A box no taller than the gauge and its gap, or one with no room for a number at all, keeps no gauge: the number
+        // would measure at zero, and a zero-height number can't tell onMeasure how tall its box really was.
+        if (boxHeight <= below) return false;
+        float alone = numberSize(boxWidth, boxHeight, maxDp, widthEm, heightEm);
+        return alone > 0 && numberSize(boxWidth, boxHeight - below, maxDp, widthEm, heightEm) >= BELOW_KEEP_SHARE * alone;
+    }
+
+    /** The height in dp a gauge under the number takes from it, gap included; 0 beside. */
+    static float belowDp(Gauge gauge) {
+        if (gauge == Gauge.BESIDE) return 0;
+        return (gauge == Gauge.STRIP_BELOW ? STRIP_HEIGHT_DP : BAR_HEIGHT_DP) + BELOW_GAP_DP;
     }
 
     /** The status pill's connection state. */

@@ -98,6 +98,50 @@ public final class RidingFocusTest {
         check(!RidingFocus.gaugeFits(RidingFocus.Gauge.STRIP_BELOW, 300, 140, 200, em, tall), "a short big number keeps its height");
         // A window with no size yet never shows one.
         check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 0, 100, 60, em, tall) && !RidingFocus.gaugeFits(RidingFocus.Gauge.BESIDE, 300, 0, 84, em, tall), "no room, no gauge");
+        // Codex's #354 finding: a 1-4 dp number box sized both numbers at zero and took the gauge (0 >= 0).
+        for (RidingFocus.Gauge g : new RidingFocus.Gauge[]{RidingFocus.Gauge.BAR_BELOW, RidingFocus.Gauge.STRIP_BELOW})
+            for (float h = .5f; h <= 4; h += .5f)
+                check(!RidingFocus.gaugeFits(g, 300, h, 200, em, tall), g + " stays hidden in a " + h + " dp number box");
+        check(!RidingFocus.gaugeFits(RidingFocus.Gauge.BAR_BELOW, 95, 90, 0, em, tall), "a number with no size keeps no bar");
+        check(RidingFocus.belowDp(RidingFocus.Gauge.BAR_BELOW) == 14 && RidingFocus.belowDp(RidingFocus.Gauge.STRIP_BELOW) == 24
+                && RidingFocus.belowDp(RidingFocus.Gauge.BESIDE) == 0, "a bar takes 14 dp, a strip 24, beside nothing");
+        gaugeStability(em, tall);
+    }
+
+    /**
+     * Deciding once and measuring again with that decision gives the same answer, as RidingScreen.Cell.onMeasure
+     * replays it in pixels: under the number, the shown gauge and its gap come off a weighted number that LinearLayout
+     * clamps at zero, and onMeasure adds them back; beside, it reads the row, which the gauge doesn't change.
+     */
+    private static void gaugeStability(float em, float tall) {
+        float[] densities = {1, 2, 2.625f, 3.5f};
+        float[] widths = {0, 20, 47, 48, 60, 95, 120, 150, 219.5f, 220.5f, 300, 500};
+        float[] maxes = {0, 60, 84, 200};
+        float[][] ems = {{em, tall}, {.6f, 1.2f}, {3.2f, .4f}};
+        int shown = 0, hidden = 0;
+        for (RidingFocus.Gauge g : RidingFocus.Gauge.values())
+            for (float d : densities)
+                for (float w : widths)
+                    for (float max : maxes)
+                        for (float[] e : ems)
+                            for (int px = 0; px <= Math.round(40 * d); px++) {
+                                float wDp = Math.round(w * d) / d;
+                                boolean first = RidingFocus.gaugeFits(g, wDp, px / d, max, e[0], e[1]);
+                                int again = px;
+                                if (first && g != RidingFocus.Gauge.BESIDE) {
+                                    int gauge = Math.round((g == RidingFocus.Gauge.STRIP_BELOW ? RidingFocus.STRIP_HEIGHT_DP : RidingFocus.BAR_HEIGHT_DP) * d);
+                                    int gap = Math.round(RidingFocus.BELOW_GAP_DP * d);
+                                    again = Math.max(0, px - gauge - gap) + gauge + gap;
+                                }
+                                boolean second = RidingFocus.gaugeFits(g, wDp, again / d, max, e[0], e[1]);
+                                if (first != second)
+                                    throw new AssertionError(g + " flips at " + px + " px (density " + d + "), width " + w + " dp, max " + max + ": " + first + " then " + second);
+                                checks++;
+                                if (first) shown++; else hidden++;
+                                if (first && g != RidingFocus.Gauge.BESIDE)
+                                    check(px / d > RidingFocus.belowDp(g), g + " shown only above its own " + RidingFocus.belowDp(g) + " dp");
+                            }
+        check(shown > 0 && hidden > 0, "the sweep sees both answers (" + shown + " shown, " + hidden + " hidden)");
     }
 
     private static void digits() {
