@@ -41,34 +41,53 @@ set -euo pipefail
 # Every mode below is explicit, and nothing depends on the caller's umask (a root shell with umask 077
 # would otherwise make folders nginx's workers cannot enter).
 umask 022
-# The retry contract (site/README.md, "Failure modes"). Until current moves (MOVED=1), any failure prints a
-# marker with its reason, and a release folder this run created (STAGED=1) is removed again: nothing ever
-# served it, so the identical command works once the cause is fixed. A folder this run found and reused
-# (STAGED=0) stays: it matches the manifest, and the next run reuses it too.
-REPORTED=0; MOVED=0; STAGED=0; ERR_LINE=
+# The retry contract (site/README.md, "Failure modes"). Whether a failed run moved anything is read from the
+# links themselves when the script ends, never from a variable: a rename happens in a child process, and a
+# signal can land after it renamed a link but before the shell could record that. So, on any failing exit:
+#   - current or live points into the new release (it didn't when the run started; that is checked before
+#     anything changes): something was moved and no rollback finished. DEPLOY_INTERRUPTED names the links
+#     and prints the exact commands that put both back. Nothing is removed.
+#   - neither does: nothing served changed. DEPLOY_REFUSED and the reason, and a release folder this run
+#     created (STAGED=1) is removed again, so the identical command works once the cause is fixed. A folder
+#     this run found and reused (STAGED=0) stays: it matches the manifest, and the next run reuses it too.
+# DEPLOY_FAILED and DEPLOY_INCOMPLETE (after a rollback) report themselves and set FINAL=1.
+REASON=; FINAL=0; STAGED=0; LINKS_CHECKED=0; START_LIVE=; ERR_LINE=
 refuse() {
-  echo "DEPLOY_REFUSED $*. Nothing served changed; fix the cause and run the same command again." >&2
-  REPORTED=1
+  REASON="$*"
   exit 1
 }
 trap 'ERR_LINE=$LINENO' ERR
 on_exit() {
-  local rc=$?
-  if [ "$rc" -ne 0 ] && [ "$MOVED" -eq 0 ]; then
-    [ "$REPORTED" -eq 1 ] || echo "DEPLOY_REFUSED unexpected failure (exit $rc near line ${ERR_LINE:-?}). Nothing served changed; fix the cause and run the same command again." >&2
-    if [ "$STAGED" -eq 1 ]; then
-      if unserved_release remove; then
-        echo "STAGED_RELEASE_REMOVED $REL (staged by this run, never served)" >&2
-      else
-        echo "STAGED_RELEASE_LEFT $REL could not be removed (reason above). Nothing serves it; the same command checks it and replaces it." >&2
-      fi
+  local rc=$? into= live_back live_step
+  { [ "$rc" -ne 0 ] && [ "$FINAL" -eq 0 ]; } || return 0
+  if [ "$LINKS_CHECKED" -eq 1 ]; then
+    into="$(links_into_release 2>/dev/null)" || into="current or live (they could not be read)"
+  fi
+  if [ -n "$into" ]; then
+    # The target live had before this deploy: read just before current moved, else when the run started.
+    live_back="${prior_live-$START_LIVE}"
+    if [ -n "$live_back" ]; then
+      live_step="ln -sfn $live_back $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live"
+    else
+      live_step="rm -f $HOME_DIR/live"   # there was no live link before this deploy
     fi
-  elif [ "$rc" -ne 0 ] && [ "$REPORTED" -eq 0 ]; then
-    # After current moved, every planned exit reports itself (DEPLOY_FAILED, DEPLOY_INCOMPLETE). Anything
-    # else (an interrupt, say) did not get to the rollback: say so rather than exit quietly.
-    echo "DEPLOY_INTERRUPTED (exit $rc near line ${ERR_LINE:-?}) after current moved to $REL; no rollback ran." \
-         "Check readlink -f $HOME_DIR/current and readlink $HOME_DIR/live. To undo, point current at $PREV" \
-         "and live at ${prior_live:-(no live link before this deploy)}, each with ln -sfn and mv -Tf (site/README.md, \"Rollback\")." >&2
+    echo "DEPLOY_INTERRUPTED (exit $rc near line ${ERR_LINE:-?}${REASON:+: $REASON}): the new release $REL" \
+         "already holds $into, and no rollback ran. Nothing was removed. If both point into it and live is the" \
+         "variant you want, the deploy itself finished; otherwise put both back before anything else." >&2
+    echo "DEPLOY_INTERRUPTED put back by hand, as root:" \
+         "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
+         "&& $live_step" \
+         "&& readlink -f $HOME_DIR/current && { readlink $HOME_DIR/live || echo 'no live link'; }" >&2
+    echo "DEPLOY_INTERRUPTED once both are back, the same command works again (it reuses $REL)." >&2
+    return 0
+  fi
+  echo "DEPLOY_REFUSED ${REASON:-unexpected failure (exit $rc near line ${ERR_LINE:-?})}. Nothing served changed; fix the cause and run the same command again." >&2
+  if [ "$STAGED" -eq 1 ]; then
+    if unserved_release remove; then
+      echo "STAGED_RELEASE_REMOVED $REL (staged by this run, never served)" >&2
+    else
+      echo "STAGED_RELEASE_LEFT $REL could not be removed (reason above). Nothing serves it; the same command checks it and replaces it." >&2
+    fi
   fi
 }
 trap on_exit EXIT
@@ -111,6 +130,22 @@ PY
 point_current() { swap_link "$HOME_DIR/current" "$1"; }
 unchanged() {
   [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ] && [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
+}
+# links_into_release: prints which of current and live resolve to $REL or into it ("current", "live",
+# "current and live"), or nothing. A link to a folder that doesn't exist (yet) counts by its path.
+links_into_release() {
+  python3 -I - "$HOME_DIR" "$REL" <<'PY'
+import os, sys
+home, rel = sys.argv[1], os.path.realpath(sys.argv[2])
+into = []
+for link in ('current', 'live'):
+    path = os.path.join(home, link)
+    if os.path.islink(path):
+        target = os.path.realpath(path)
+        if target == rel or target.startswith(rel + os.sep):
+            into.append(link)
+print(' and '.join(into))
+PY
 }
 # unserved_release <check|remove>: succeeds when $REL is a real folder (not a link) that nothing serves: it
 # is not current and does not hold the live target. With "remove", it is then removed. Otherwise it prints
@@ -199,7 +234,12 @@ exec 9>>"$LOCK" || refuse "could not open the deploy lock $LOCK"
 python3 -I -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null \
   || refuse "another deploy holds $LOCK; run the same command again once it has finished"
 [ ! -L "$REL" ] || refuse "$REL is a symbolic link"
-# A release folder that is served (current, or holding live) is never staged over or removed.
+# A release folder that is served (current, or holding live) is never staged over or removed. From here on,
+# a link that points into $REL was moved by this run (see on_exit).
+served="$(links_into_release)" || refuse "could not read where current and live point"
+[ -z "$served" ] || refuse "$REL is served (it holds $served); it is never staged over or removed"
+START_LIVE="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
+LINKS_CHECKED=1
 if [ -e "$REL" ]; then
   unserved_release check || refuse "$REL already exists and cannot be staged over (reason above); it is never removed"
 fi
@@ -326,8 +366,8 @@ nginx -t || refuse "nginx -t failed (its output is above)"
 unchanged || refuse "current or the nginx site file changed during the deploy"
 # The live link as it was, so a failed deploy can put it back without the switch.
 prior_live="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
-point_current "$REL" || refuse "could not move current (it still points at $PREV)"
-MOVED=1
+# No flag follows this rename: on_exit reads the links (a signal can land between the rename and any flag).
+point_current "$REL" || refuse "could not move current"
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
   switch_ok=1
@@ -353,12 +393,12 @@ if [ "$switch_installed" -eq 1 ]; then
       case "$live_now" in "$REL"/*) ;; *) live_back=1 ;; esac
     fi
     if [ "$current_back" -eq 1 ] && [ "$live_back" -eq 1 ]; then
-      REPORTED=1
+      FINAL=1
       echo "DEPLOY_FAILED switch_ok=$switch_ok live_after_switch=${live_target:-none}: live was not left inside the new release." \
            "Restored: current -> $PREV, live -> ${prior_live:-none}. The new release stays in $REL for a look; see $STATUS." >&2
       exit 1
     fi
-    REPORTED=1
+    FINAL=1
     echo "DEPLOY_INCOMPLETE the deploy failed (switch_ok=$switch_ok) and the rollback did not finish:" \
          "current -> ${current_now:-?} (want $PREV), live -> ${live_now:-none} (want ${prior_live:-none})." >&2
     echo "DEPLOY_INCOMPLETE finish by hand, as root:" \

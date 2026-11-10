@@ -713,8 +713,9 @@ class DeployRelease(unittest.TestCase):
                                         '[ -e "%s" ] && kill -TERM "$PPID"\nexit 0\n' % (base / 'nginx-fails', base / 'nginx-term'))
         # systemctl start runs the real switch ("run"), fails ("fail"), succeeds without doing anything ("noop"),
         # moves live and then fails ("movefail"), or moves live, locks the home folder so no link in it can be
-        # replaced, and fails ("movelock"), or sends the deploy SIGTERM and fails ("term"). Every start after the
-        # first fails, so a rollback cannot lean on it.
+        # replaced, and fails ("movelock"), sends the deploy SIGTERM and fails ("term"), or runs the real switch
+        # and then sends the deploy SIGTERM ("runterm"). Every start after the first fails, so a rollback cannot
+        # lean on it.
         self.starts = base / 'starts'
         run = '"%s" -I "%s" --home "%s" --request "%s" --state-dir "%s"' % (
             sys.executable, self.switch_bin, self.home, self.request, self.state)
@@ -723,8 +724,9 @@ class DeployRelease(unittest.TestCase):
             '    [ -s "%s" ] && { echo again >> "%s"; exit 1; }\n    echo start >> "%s"\n'
             '    case "$(cat "%s")" in\n'
             '    run) exec %s ;;\n    fail) exit 1 ;;\n    movefail) %s; exit 1 ;;\n'
-            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n  esac ;;\nesac\nexit 0\n'
-            % (base / 'no-unit', self.starts, self.starts, self.starts, self.mode, run, run, run, self.home))
+            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n'
+            '    runterm) %s; kill -TERM "$PPID"; exit 0 ;;\n  esac ;;\nesac\nexit 0\n'
+            % (base / 'no-unit', self.starts, self.starts, self.starts, self.mode, run, run, run, self.home, run))
         # chown is the real one; it runs right after the release is staged, so it can also change what the deploy
         # meets next: "releases-0700-after-staging" takes the world bits off releases/ (a served folder, checked
         # again before current moves), "home-locked-after-staging" makes the home folder read-only, so current
@@ -1095,19 +1097,97 @@ class DeployRelease(unittest.TestCase):
                 self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
                 self.assertEqual(json.loads((self.state / 'status.json').read_text())['release'], self.NEW)
 
-    def test_interrupt_after_current_moved_says_so(self):
-        # No rollback runs on a signal after current moved; the deploy must not end quietly but name the state
-        # and the targets to put back.
-        self.mode.write_text('term')
-        out = self.deploy()
+    def interrupt_when(self, link, target):
+        """A stand-in python3 (the deploy renames links with Python) that sends the deploy shell SIGTERM right
+        after the call that made <link> point at <target>: after the rename, before the shell runs its next
+        command. Fires once."""
+        armed = self.flags / 'interrupt-armed'
+        armed.touch()
+        shim = self.bin / 'python3'
+        shim.write_text('#!/bin/sh\nbefore="$(readlink "%s")"\n"%s" "$@"\nrc=$?\nafter="$(readlink "%s")"\n'
+                        'if [ -e "%s" ] && [ "$before" != "%s" ] && [ "$after" = "%s" ]; then rm -f "%s"; kill -TERM "$PPID"; fi\n'
+                        'exit $rc\n' % (self.home / link, sys.executable, self.home / link, armed, target, target, armed))
+        os.chmod(shim, 0o755)
+        self.addCleanup(lambda: shim.unlink() if shim.exists() else None)
+
+    def put_back_by_hand(self, out):
+        """Runs the commands DEPLOY_INTERRUPTED printed (GNU mv -T stood in for by os.replace)."""
+        steps = re.search(r'DEPLOY_INTERRUPTED put back by hand, as root: (.*)', out.stderr).group(1)
+        steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
+        subprocess.run(['sh', '-c', steps], check=True, capture_output=True)
+
+    def assert_interrupted_then_recovered(self, out, moved, mode_for_retry='run'):
+        """DEPLOY_INTERRUPTED naming the links that point into the new release, nothing refused or removed;
+        then the printed steps put both links back, and the identical command succeeds."""
+        rel = self.home / 'releases' / self.NEW
         self.assertEqual(out.returncode, 143, out.stderr)
         self.assertNotIn('UPDATE_OK', out.stdout)
         self.assertNotIn('DEPLOY_REFUSED', out.stderr)
+        self.assertNotIn('DEPLOY_FAILED', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr, 'a folder a link points at is never removed')
         self.assertIn('DEPLOY_INTERRUPTED (exit 143', out.stderr)
-        self.assertIn('point current at %s' % (self.home / 'releases' / self.PREV), out.stderr)
-        self.assertIn('live at %s' % self.variant(self.PREV, 'refined'), out.stderr)
-        self.assertEqual(self.current(), self.NEW)
-        self.assertTrue((self.home / 'releases' / self.NEW).is_dir(), 'a release current points at is never removed')
+        self.assertIn('the new release %s already holds %s, and no rollback ran' % (rel, moved), out.stderr)
+        self.assertIn('ln -sfn %s %s/current.new' % (self.home / 'releases' / self.PREV, self.home), out.stderr)
+        self.assertIn('ln -sfn %s %s/live.new' % (self.variant(self.PREV, 'refined'), self.home), out.stderr)
+        self.assertTrue((rel / 'variants' / 'refined' / 'index.html').is_file())
+        self.put_back_by_hand(out)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.mode.write_text(mode_for_retry)
+        if self.starts.exists():
+            self.starts.unlink()
+        again = self.rerun()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertIn('STAGED_RELEASE_REUSED %s' % rel, again.stderr)
+        self.assertRegex(again.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_interrupt_between_moving_current_and_the_next_command(self):
+        # Codex's #366 boundary: current is renamed (in a child process), and SIGTERM lands before the shell runs
+        # anything else. The links, not a flag, say what moved.
+        self.interrupt_when('current', str(self.home / 'releases' / self.NEW))
+        out = self.deploy()
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.PREV, 'refined')), out.stderr)
+        self.assertFalse(self.starts.exists(), 'stopped before the switch')
+        self.assert_interrupted_then_recovered(out, 'current')
+
+    def test_interrupt_while_the_switch_runs(self):
+        # SIGTERM while systemctl start runs (bash acts on it when the command returns): current moved, and
+        # live too ("runterm") or not ("term").
+        for mode, moved in (('term', 'current'), ('runterm', 'current and live')):
+            with self.subTest(mode):
+                self.tearDown()
+                self.setUp()
+                self.mode.write_text(mode)
+                out = self.deploy()
+                self.assertEqual(self.current(), self.NEW, out.stderr)
+                self.assert_interrupted_then_recovered(out, moved)
+
+    def test_interrupt_inside_the_rollback(self):
+        # The switch moved live into the new release and failed; the rollback has put current back, and SIGTERM
+        # lands before live is put back. live still points into the new release: interrupted, not refused.
+        self.mode.write_text('movefail')
+        self.interrupt_when('current', str(self.home / 'releases' / self.PREV))
+        out = self.deploy()
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.NEW, 'refined')), out.stderr)
+        self.assert_interrupted_then_recovered(out, 'live')
+
+    def test_interrupt_after_the_rollback_put_both_links_back(self):
+        # The last window: both links are back, SIGTERM lands before DEPLOY_FAILED is printed. Nothing served
+        # changed, so it is an ordinary refusal: the folder this run staged (served by nothing) is removed.
+        self.mode.write_text('movefail')
+        self.interrupt_when('live', self.variant(self.PREV, 'refined'))
+        out = self.deploy()
+        self.assertEqual(out.returncode, 143, out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.assertNotIn('DEPLOY_INTERRUPTED', out.stderr)
+        self.assertNotIn('DEPLOY_FAILED', out.stderr)
+        self.assertIn('DEPLOY_REFUSED unexpected failure (exit 143', out.stderr)
+        self.assertIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.mode.write_text('run')
+        self.starts.unlink()
+        again = self.rerun()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
 
     def test_retry_after_a_rolled_back_deploy(self):
         # A failure after current moved is rolled back (DEPLOY_FAILED) and leaves the new release for a look.
@@ -1165,7 +1245,7 @@ class DeployRelease(unittest.TestCase):
         out = self.deploy()
         self.assertEqual(out.returncode, 1)
         self.assertIn('DEPLOY_REFUSED', out.stderr)
-        self.assertIn('is served: current points into it', out.stderr)
+        self.assertIn('is served (it holds current and live)', out.stderr)
         self.assertNotIn('STAGED_RELEASE', out.stderr)
         self.assertTrue((self.home / 'releases' / self.NEW / 'variants' / 'refined' / 'index.html').is_file())
 
@@ -1180,7 +1260,7 @@ class DeployRelease(unittest.TestCase):
         os.symlink(str(rel / 'variants' / 'refined'), self.home / 'live')
         out = self.deploy()
         self.assertEqual(out.returncode, 1)
-        self.assertIn('is served: live points into it', out.stderr)
+        self.assertIn('is served (it holds live)', out.stderr)
         self.assertNotIn('STAGED_RELEASE', out.stderr)
         self.assertEqual((rel / 'index.html').read_bytes(), self.contents('other')['index.html'])
         self.assertEqual(self.live(), str(rel / 'variants' / 'refined'))
