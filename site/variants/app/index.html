@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <link rel="preload" href="fonts/saira-bold.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=b9e57ba04001">
+  <link rel="stylesheet" href="styles.css?v=af0b16794635">
   <script src="main.js?v=d722fc4c0dc5" defer></script>
 </head>
 <body>
@@ -68,7 +68,7 @@
       <div class="hero-copy">
         <h1 id="hero-title">Your scooter, no cloud.</h1>
         <div class="hero-sub">
-          <p class="lede">Volt is an independent, open source Android app for NAVEE electric scooters. Lock and unlock, change settings, read live data, ride in full screen and record rides, straight over Bluetooth. No account, and it works offline.</p>
+          <p class="lede">Volt is an independent, open source Android app for NAVEE electric scooters. Lock, ride, record and change settings over Bluetooth. Works offline.</p>
           <div class="hero-act">
             <div class="actions">
               <a class="ride-pill big" href="https://github.com/JJRicks/volt/releases/latest">
@@ -119,89 +119,78 @@
               </button>
               <span class="lock-hint" aria-hidden="true">›</span>
               <span class="lock-label" aria-live="polite"><span class="l-unlocked">Unlocked</span><span class="l-locked">Locked</span></span>
-              <span class="sr" id="lock-hint" hidden>A sample of Volt's Lock bar. Slide it, or press it, to see the change. It isn't connected to a scooter.</span>
+              <span class="sr" id="lock-hint" hidden>Sample only, not connected to a scooter. Slide or press it to try.</span>
             </div>
             <a class="record" href="#rides" aria-label="Ride recording">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle class="fill" cx="12" cy="12" r="3.6"/></svg>
             </a>
           </div>
         </div>
-        <figcaption id="ride-cap" class="caption">Riding mode, stopped: the full-screen view you mount on the handlebars, rebuilt here with sample data.<span class="js-only"> Slide the Lock bar to try it.</span></figcaption>
+        <figcaption id="ride-cap" class="sr">Riding mode, with sample data</figcaption>
       </figure>
     </section>
 
-    <section class="section" id="features" aria-labelledby="features-title">
+    <section class="section split" id="features" aria-labelledby="features-title">
       <div class="head">
         <h2 id="features-title">Lock, ride, record, charge.</h2>
-        <p>This is Volt's Home screen, rebuilt with sample data: the widgets you see first, in the order they come.</p>
       </div>
-      <div class="home">
-        <div class="dash" role="img" aria-label="Volt's Home screen with sample data: Midnight Runner connected in Sport, battery 78 percent with about 24 miles left, an Unlocked Lock bar, battery power 21.3 watts, battery temperature 23 degrees, health 97 percent, Max. speed 31.1 mph, charge schedule off, and Record ride.">
-          <div class="dash-head" aria-hidden="true">
-            <div><p class="conn">Connected · Sport</p><p class="dash-title">Midnight Runner</p></div>
-            <span class="ride-pill small"><svg viewBox="0 0 24 24"><path d="M4.5 16a7.5 7.5 0 1 1 15 0"/><path d="m12 16 3.5-4.5"/></svg>RIDE</span>
-            <span class="disc pencil"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span>
+      <div class="dash" role="img" aria-label="Volt's Home screen with sample data: Midnight Runner connected in Sport, battery 78 percent with about 24 miles left, an Unlocked Lock bar, battery power 21.3 watts, battery temperature 23 degrees, health 97 percent, Max. speed 31.1 mph, charge schedule off, and Record ride.">
+        <div class="dash-head" aria-hidden="true">
+          <div><p class="conn">Connected · Sport</p><p class="dash-title">Midnight Runner</p></div>
+          <span class="ride-pill small"><svg viewBox="0 0 24 24"><path d="M4.5 16a7.5 7.5 0 1 1 15 0"/><path d="m12 16 3.5-4.5"/></svg>RIDE</span>
+          <span class="disc pencil"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span>
+        </div>
+        <div class="dash-grid" aria-hidden="true">
+          <div class="card battery">
+            <div class="b-top">
+              <div>
+                <p class="t-caption">Battery</p>
+                <p class="b-pct">78<span class="unit">%</span></p>
+                <p class="b-range">about 24 mi left</p>
+              </div>
+              <span class="chip quiet">Sample</span>
+            </div>
+            <div class="bar"><span class="bar-fill"></span></div>
+            <dl class="b-read">
+              <div><dt>Odometer</dt><dd>154.32<span class="unit">mi</span></dd></div>
+              <div><dt>Drive mode</dt><dd class="mode-sport">SPORT</dd></div>
+            </dl>
           </div>
-          <div class="dash-grid" aria-hidden="true">
-            <div class="card battery">
-              <div class="b-top">
-                <div>
-                  <p class="t-caption">Battery</p>
-                  <p class="b-pct">78<span class="unit">%</span></p>
-                  <p class="b-range">about 24 mi left</p>
-                </div>
-                <span class="chip quiet">Sample</span>
-              </div>
-              <div class="bar"><span class="bar-fill"></span></div>
-              <dl class="b-read">
-                <div><dt>Odometer</dt><dd>154.32<span class="unit">mi</span></dd></div>
-                <div><dt>Drive mode</dt><dd class="mode-sport">SPORT</dd></div>
-              </dl>
-            </div>
-            <div class="lock static" data-state="unlocked">
-              <span class="lock-thumb"><svg class="g-open" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/></svg></span>
-              <span class="lock-hint">›</span>
-              <span class="lock-label">Unlocked</span>
-            </div>
-            <div class="r-tiles">
-              <div class="tile read"><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg><span class="t-title">Battery power</span><span class="t-value">21.3<span class="unit">W</span></span></div>
-              <div class="tile read"><svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0z"/></svg><span class="t-title">Battery temp.</span><span class="t-value">23<span class="unit">°C</span></span></div>
-              <div class="tile read"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span class="t-title">Health</span><span class="t-value">97<span class="unit">%</span></span></div>
-            </div>
-            <div class="s-tiles">
-              <div class="tile hot">
-                <span class="t-title">Max. speed</span>
-                <span class="t-value">31.1 mph</span>
-                <svg class="t-cue" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
-              </div>
-              <div class="tile">
-                <span class="t-title">Charge sched.</span>
-                <span class="t-value">Off</span>
-                <svg class="t-ring" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12.5"/><path d="M14 8.5v5M10.4 10.6a5 5 0 1 0 7.2 0"/></svg>
-              </div>
-            </div>
-            <div class="tile row">
-              <svg class="rec-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="fill" cx="12" cy="12" r="3.6"/></svg>
-              <span class="t-value">Record ride</span>
+          <div class="lock static" data-state="unlocked">
+            <span class="lock-thumb"><svg class="g-open" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/></svg></span>
+            <span class="lock-hint">›</span>
+            <span class="lock-label">Unlocked</span>
+          </div>
+          <div class="r-tiles">
+            <div class="tile read"><svg viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg><span class="t-title">Battery power</span><span class="t-value">21.3<span class="unit">W</span></span></div>
+            <div class="tile read"><svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0z"/></svg><span class="t-title">Battery temp.</span><span class="t-value">23<span class="unit">°C</span></span></div>
+            <div class="tile read"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span class="t-title">Health</span><span class="t-value">97<span class="unit">%</span></span></div>
+          </div>
+          <div class="s-tiles">
+            <div class="tile hot">
+              <span class="t-title">Max. speed</span>
+              <span class="t-value">31.1 mph</span>
               <svg class="t-cue" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
             </div>
+            <div class="tile">
+              <span class="t-title">Charge sched.</span>
+              <span class="t-value">Off</span>
+              <svg class="t-ring" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12.5"/><path d="M14 8.5v5M10.4 10.6a5 5 0 1 0 7.2 0"/></svg>
+            </div>
+          </div>
+          <div class="tile row">
+            <svg class="rec-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle class="fill" cx="12" cy="12" r="3.6"/></svg>
+            <span class="t-value">Record ride</span>
+            <svg class="t-cue" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
           </div>
         </div>
-        <ul class="notes">
-          <li><b>Battery</b> Level, range left and readings. Range is learned from your own rides, and estimates say so.</li>
-          <li><b>Lock bar</b> Slide to lock or unlock; Volt shows the change once the scooter confirms it.</li>
-          <li><b>Readings</b> Power, temperatures, health and trip stats, with charts and history in Live Stats.</li>
-          <li><b>Setting tiles</b> Top speed, cruise control, energy recovery, lights and more, for the controls your model supports. Experimental ones are marked LAB.</li>
-          <li><b>Record ride</b> GPS route, phone sensors and energy readings, saved on the phone.</li>
-          <li><b>Yours to arrange</b> Move and resize any widget. Folded and unfolded screens keep their own layouts.</li>
-        </ul>
       </div>
     </section>
 
     <section class="section" id="rides" aria-labelledby="rides-title">
       <div class="head">
         <h2 id="rides-title">Your routes, colored by power or grade.</h2>
-        <p>Start a recording with Volt open and location on, and you can color its route by power or grade. While the scooter charges, a live card on your lock screen shows the level, power and finish time.</p>
+        <p>Record with Volt open and location on to get the route. While charging, a lock-screen card shows the level and time to full.</p>
       </div>
       <div class="rides-grid">
         <div class="card route" role="img" aria-label="A sample recorded route through a few streets, colored from blue at low power to yellow at high power, with a stat row: 0.74 miles, 4 minutes, about 14 watt-hours.">
@@ -239,7 +228,7 @@
     <section class="section screens" id="screens" aria-labelledby="screens-title">
       <div class="head">
         <h2 id="screens-title">Folded, unfolded, day or night.</h2>
-        <p>Separate layouts for the cover screen and the inside screen, and nothing reloads when you open the phone. Riding mode has night vision for after dark: try the moon at the top of this page.</p>
+        <p>Cover and inside screens keep their own layouts. Riding mode has night vision: try the moon up top.</p>
       </div>
       <div class="shots">
         <figure class="shot wide">
@@ -267,22 +256,22 @@
     <section class="section" id="models" aria-labelledby="models-title">
       <div class="head">
         <h2 id="models-title">Made for NAVEE scooters.</h2>
-        <p>Controls follow the connected model. Features vary by model and firmware.</p>
+        <p>Features vary by model and firmware.</p>
       </div>
       <div class="card fitrow">
         <dl class="fit-pair">
           <div>
             <dt>Tested on hardware</dt>
             <dd class="big">UT5 MAX<span class="unit">US</span></dd>
-            <dd class="sub"><span class="chip okchip"><i class="dot" aria-hidden="true"></i>Verified</span> Checked on a real scooter.</dd>
+            <dd class="sub"><span class="chip okchip"><i class="dot" aria-hidden="true"></i>Verified</span></dd>
           </div>
           <div>
             <dt>Your phone</dt>
             <dd class="big">Android<span class="unit">8.0+</span></dd>
-            <dd class="sub">With Bluetooth LE. Foldables and narrow cover screens included.</dd>
+            <dd class="sub">With Bluetooth LE. Foldables included.</dd>
           </div>
         </dl>
-        <p class="fit-other">Other NAVEE models: mapped from the official app, still being verified.</p>
+        <p class="fit-other">Other NAVEE models mapped from the official app are still being verified.</p>
       </div>
     </section>
 
@@ -300,17 +289,17 @@
       <ol class="card group steps">
         <li class="row">
           <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></span>
-          <span class="row-text"><b>Install</b><span>Download the APK from GitHub Releases and open it on your phone.</span></span>
+          <span class="row-text"><b>Install</b><span>Download the APK and open it on your phone.</span></span>
           <a class="row-link" href="https://github.com/JJRicks/volt/releases/latest">Releases<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
         </li>
         <li class="row">
           <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 2 2"/></svg></span>
-          <span class="row-text"><b>Pair once</b><span>Volt's onboarding helps you copy your scooter's owner key from the NAVEE app. You never enter a password.</span></span>
+          <span class="row-text"><b>Pair once</b><span>Volt helps you copy your scooter's key from NAVEE. No password needed.</span></span>
           <a class="row-link" href="https://pairscooter.jjricks.com/">Setup helper<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
         </li>
         <li class="row">
           <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M8 17.5h8M14 5h2.5l2 12.5M14 5l-6 12.5"/></svg></span>
-          <span class="row-text"><b>Ride</b><span>Close NAVEE and connect in Volt. After setup, no computer or signal needed.</span></span>
+          <span class="row-text"><b>Ride</b><span>Close NAVEE and connect in Volt. No computer needed after setup.</span></span>
         </li>
       </ol>
     </section>
@@ -318,7 +307,6 @@
     <section class="section split" id="privacy" aria-labelledby="privacy-title">
       <div class="head">
         <h2 id="privacy-title" aria-describedby="map-data-note">Nothing leaves your phone.<sup aria-hidden="true">*</sup></h2>
-        <p>Bluetooth control and recording work offline, with no Volt account or server.</p>
       </div>
       <div class="card group privacy">
         <div class="row">
@@ -327,28 +315,28 @@
         </div>
         <div class="row">
           <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg></span>
-          <span class="row-text"><b>Direct Bluetooth</b><span>Controls and recording work offline, with no server in the middle.</span></span>
+          <span class="row-text"><b>Direct Bluetooth</b><span>No server in the middle.</span></span>
         </div>
         <div class="row">
           <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6m0 0-2.5 2.5M12 12l2.5 2.5"/></svg></span>
-          <span class="row-text"><b>You decide what to share</b><span>Exports and backups are files you choose to make and share.</span></span>
+          <span class="row-text"><b>You decide what to share</b><span>You choose what to export or back up. Ride auto-save is opt-in.</span></span>
         </div>
-        <p class="map-data-note" id="map-data-note">* Two optional extras go online. Map backgrounds are off by default; when on, the map provider sees your IP address and the map area you view. Update checks run only when you tap Check for updates or turn on automatic checks; GitHub then sees your IP address and Volt version.</p>
+        <p class="map-data-note" id="map-data-note">* Except two opt-in extras: map backgrounds (the map provider sees your IP address and the area you view) and update checks (GitHub sees your IP address and Volt version).</p>
       </div>
     </section>
 
     <section class="section split" id="faq" aria-labelledby="faq-title">
       <div class="head">
         <h2 id="faq-title">Questions</h2>
-        <p>The rest is in the <a href="https://github.com/JJRicks/volt">GitHub repository</a>, from model support to how the pairing capture works.</p>
+        <p>More in the <a href="https://github.com/JJRicks/volt">GitHub repository</a>.</p>
       </div>
       <div class="card group faq">
         <details><summary>Is Volt made by NAVEE?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Volt is an independent project and isn't affiliated with NAVEE or its app vendor.</p></details>
-        <details id="compat"><summary>Which scooters does it work with?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>Volt is built for NAVEE scooters, with controls tailored to the connected model. Features vary by model and firmware. The US UT5 MAX has been tested on hardware; other mapped models are still being verified.</p></details>
-        <details><summary>Does Volt need the internet?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Locking, controls, readings and ride recording work offline. Map backgrounds are optional and only load after you turn them on, and update checks only run when you ask for them.</p></details>
-        <details><summary>Which languages does Volt speak?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>English, plus Spanish, Portuguese (Portugal and Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish, all in beta. Volt follows your phone's language. On Android 13 and newer, More › App preferences › Language can switch Volt alone back to English.</p></details>
-        <details><summary>Is there an iPhone version?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>Not right now. Volt runs on Android 8.0 and newer, including foldables.</p></details>
-        <details><summary>Where is my data stored?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>On your phone. You can export rides or make a password-protected backup whenever you like.</p></details>
+        <details id="compat"><summary>Which scooters does it work with?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>NAVEE scooters. The US UT5 MAX is tested on hardware; other mapped models are still being verified. Features vary by model and firmware.</p></details>
+        <details><summary>Does Volt need the internet?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>No. Controls, readings and ride recording work offline. Map backgrounds and update checks go online only when you ask.</p></details>
+        <details><summary>Which languages does Volt speak?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>English, plus Spanish, Portuguese (Portugal and Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish, all in beta. Volt follows your phone's language; on Android 13+, More › App preferences › Language switches it back to English.</p></details>
+        <details><summary>Is there an iPhone version?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>Not right now. Volt is Android only.</p></details>
+        <details><summary>Where is my data stored?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></summary><p>On your phone. Export rides or make a password-protected backup anytime.</p></details>
       </div>
     </section>
 
@@ -357,7 +345,7 @@
       <div class="get-read">
         <span class="r-label">Latest release</span>
         <span class="r-value">@VERSION@<span class="unit">for Android 8.0+</span></span>
-        <span class="get-note">Free, with no account. Downloads come from GitHub Releases, with SHA-256 checksums.</span>
+        <span class="get-note">Free, from GitHub Releases, with SHA-256 checksums.</span>
       </div>
       <div class="get-actions">
         <a class="ride-pill big" id="download" href="https://github.com/JJRicks/volt/releases/latest">
@@ -374,7 +362,7 @@
 
   <footer class="foot">
     <p class="foot-line">Volt @VERSION@ · not affiliated with NAVEE</p>
-    <p>Volt is an independent project and is not affiliated with, endorsed by or sponsored by NAVEE. NAVEE and UT5 MAX are trademarks of their respective owners. Screens show sample data.</p>
+    <p>Volt is an independent project and is not affiliated with, endorsed by or sponsored by NAVEE. NAVEE and UT5 MAX are trademarks of their respective owners.</p>
     <p class="foot-links"><a href="https://github.com/JJRicks/volt">GitHub</a><a href="https://pairscooter.jjricks.com/">Setup helper</a><a href="#privacy">Privacy</a><a href="THIRD-PARTY-NOTICES.txt">Licenses</a><a href="https://jjricks.com/">Made by JJRicks</a></p>
   </footer>
 
