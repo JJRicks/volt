@@ -150,8 +150,8 @@ final class RidingFrames {
     static int recordAction(boolean connected, boolean stopped, boolean recording, boolean ready, boolean showingStop) {
         if (recording != showingStop) return RecorderTap.NONE;
         int action = RecorderTap.lead(recording, ready, false);
-        if (action == RecorderTap.CONNECT) return RecorderTap.NONE;
-        return stopped || (!connected && action == RecorderTap.STOP) ? action : RecorderTap.NONE;
+        if (!connected) return action == RecorderTap.STOP ? action : RecorderTap.NONE;
+        return stopped && action != RecorderTap.CONNECT ? action : RecorderTap.NONE;
     }
 
     /**
