@@ -954,10 +954,8 @@ final class RidingScreen implements AppScreen {
         int rung = inferred ? captionRung() : RidingPowerCue.FULL;
         Formatted shown = Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(p.watts, p.direction, rung))), Fmt.unit(UnitCode.WATT));
         watts.set(shown, color, regen ? ui.ok : ui.muted);
-        double peak = regen ? p.peakRegenW : p.peakDrawW;
-        String peakText = T.fmtQuantity(Fmt.integer(Math.round(Math.abs(peak))), UnitCode.WATT.symbol());
-        String caption = unknown ? powerDirectionUnknown() : Math.abs(peak) < 1 ? null
-                : regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
+        // A confirmed caption names only a confirmed peak; an inferred one never becomes it (RidingPowerCue).
+        String caption = RidingPowerCue.readoutCaption(p, readoutCaptions);
         String brief = regen ? T.ridingPowerRegenPeakShort() : T.ridingPowerDrawPeakShort();
         if (inferred) showInferredCaption(rung, brief);
         else fit(wattsCaption, caption == null ? brief : caption, brief);
@@ -972,6 +970,15 @@ final class RidingScreen implements AppScreen {
 
     /** The caption for a power reading whose direction isn't confirmed (no catalog wording for an estimate yet). */
     private static String powerDirectionUnknown() { return T.ridingPowerUnknown(); }
+
+    /** The readout caption's wording, for RidingPowerCue.readoutCaption. */
+    private static final RidingPowerCue.Captions readoutCaptions = new RidingPowerCue.Captions() {
+        @Override public String unknown() { return powerDirectionUnknown(); }
+        @Override public String peak(boolean regen, long watts) {
+            String peakText = T.fmtQuantity(Fmt.integer(watts), UnitCode.WATT.symbol());
+            return regen ? T.ridingPowerRegenPeak(peakText) : T.ridingPowerDrawPeak(peakText);
+        }
+    };
 
     /** How much of the inferred-direction caption the readout can show now; its room is settled once it's laid out. */
     private int captionRung() {

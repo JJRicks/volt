@@ -109,11 +109,17 @@ final class RidingValues {
     static final class Power {
         final Double watts;
         final Direction direction;
-        final double peakDrawW, peakRegenW;
+        /**
+         * peakRegenW is confirmed regen only: what a "regen · peak" caption may claim. The strongest
+         * inferred regen stays apart in peakInferredRegenW, never folded into a confirmed peak, since a
+         * later 0/1 sign re-signs the newest reading, not the earlier ones Volt inferred.
+         */
+        final double peakDrawW, peakRegenW, peakInferredRegenW;
         /** The reading as range and energy count it: inferred regen stays a positive magnitude here. */
         final Double countedWatts;
-        private Power(Double watts, Double countedWatts, Direction direction, double peakDrawW, double peakRegenW) {
+        private Power(Double watts, Double countedWatts, Direction direction, double peakDrawW, double peakRegenW, double peakInferredRegenW) {
             this.watts = watts; this.countedWatts = countedWatts; this.direction = direction; this.peakDrawW = peakDrawW; this.peakRegenW = peakRegenW;
+            this.peakInferredRegenW = peakInferredRegenW;
         }
     }
 
@@ -473,7 +479,7 @@ final class RidingValues {
         Direction direction = direction();
         Double watts = r == null || r.stale ? null : shown(r.value, direction);
         Double countedWatts = r == null || r.stale ? null : Double.valueOf(counted(r.value, direction));
-        return new Power(watts, countedWatts, direction, peakDrawW, Math.max(peakRegenW, peakInferredRegenW));
+        return new Power(watts, countedWatts, direction, peakDrawW, peakRegenW, peakInferredRegenW);
     }
 
     PowerScale scale() { return scale; }

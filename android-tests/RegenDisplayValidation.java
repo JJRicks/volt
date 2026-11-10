@@ -72,6 +72,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready", 8000);
             ridesCheck();
             rideModeUnsigned();
+            signArrives();
             cueLadder();
             rideModeSigned();
             result.putString("result", "PASS");
@@ -248,11 +249,12 @@ public final class RegenDisplayValidation extends Instrumentation {
             SystemClock.sleep(frame.equals("focus") ? 1000 : 500);
             await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())), "Riding mode never showed inferred regen on " + frame, 45000);
             AtomicReference<Object[]> power = new AtomicReference<>();
-            main(() -> { Object p = power(); power.set(new Object[]{fieldOn(p, "watts"), fieldOn(p, "peakRegenW"), texts()}); });
-            Double watts = (Double) power.get()[0]; double peak = (Double) power.get()[1];
-            note(frame + ": watts=" + watts + " peakRegen=" + peak + " screen=" + power.get()[2]);
+            main(() -> { Object p = power(); power.set(new Object[]{fieldOn(p, "watts"), fieldOn(p, "peakInferredRegenW"), texts(), fieldOn(p, "peakRegenW")}); });
+            Double watts = (Double) power.get()[0]; double peak = (Double) power.get()[1], confirmedPeak = (Double) power.get()[3];
+            note(frame + ": watts=" + watts + " peakInferredRegen=" + peak + " peakRegen=" + confirmedPeak + " screen=" + power.get()[2]);
             require(watts != null && watts < 0, frame + ": inferred regen should read below zero: " + watts);
-            require(peak > 0, frame + ": no regen peak");
+            require(peak > 0, frame + ": no inferred regen peak");
+            require(confirmedPeak == 0, frame + ": an unsigned scooter has no confirmed regen peak: " + confirmedPeak);
             SystemClock.sleep(500);
             caption(frame, true);
             spokenPower(frame, true);
@@ -633,6 +635,48 @@ public final class RegenDisplayValidation extends Instrumentation {
         require(floor.get().equals(start.get()), "The floor must be the connection's own start, not the screen's refresh time: " + floor.get() + " vs " + start.get());
         await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())), "Inference should keep working in the new run", 60000);
         note("connection boundary: inference recovered after the new connection");
+    }
+
+    /**
+     * The sign arrives mid-session (Codex, #353 at 6f02fd26): inferred regen first, then, with riding mode
+     * still open, the scooter starts signing its current (the signed script's first negative reading proves
+     * it) and confirmed regen follows. Its caption and spoken text name only the confirmed peak; the
+     * inferred one (about 381 W, above the signed script's 180 W) is never named as confirmed.
+     */
+    private void signArrives() throws Exception {
+        main(() -> activity.service().ble.setSimulationScript("unsigned_regen"));
+        setFrame("focus");
+        openRiding();
+        await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())), "No inferred regen before the sign arrives", 45000);
+        main(() -> activity.service().ble.setSimulationScript("riding"));
+        await(() -> "REGEN".equals(String.valueOf(direction())), "Confirmed regen never followed the inferred stretch", 60000);
+        String failure = null;
+        for (int attempt = 0; attempt < 40; attempt++) {
+            SystemClock.sleep(250);
+            AtomicReference<Object[]> seen = new AtomicReference<>();
+            main(() -> { Object p = power(); seen.set(new Object[]{String.valueOf(fieldOn(p, "direction")), fieldOn(p, "peakRegenW"), fieldOn(p, "peakInferredRegenW"), said(readout()), captionText()}); });
+            if (!"REGEN".equals(seen.get()[0])) { failure = "not confirmed regen at the read"; continue; }
+            double confirmed = (Double) seen.get()[1], inferredPeak = (Double) seen.get()[2];
+            String spoken = (String) seen.get()[3], shownCaption = (String) seen.get()[4];
+            String confirmedText = "regen · peak " + Math.round(confirmed), inferredText = "regen · peak " + Math.round(inferredPeak);
+            note("sign arrives: confirmed peak " + confirmed + ", inferred peak " + inferredPeak + ", caption \"" + shownCaption + "\", said \"" + spoken + "\"");
+            require(Math.round(inferredPeak) > Math.round(confirmed) && confirmed > 0, "The fixture needs an inferred peak above the confirmed one: " + inferredPeak + " vs " + confirmed);
+            if (!spoken.contains(confirmedText)) { failure = "the readout says \"" + spoken + "\", not " + confirmedText; continue; }
+            require(!spoken.contains(inferredText) && !shownCaption.contains(inferredText), "The inferred peak is named as confirmed: " + spoken + " / " + shownCaption);
+            require(!shownCaption.contains("peak") || shownCaption.contains(confirmedText), "The caption names another peak: " + shownCaption);
+            require(!spoken.contains("direction unknown"), "Confirmed regen gets no uncertainty note: " + spoken);
+            failure = null;
+            break;
+        }
+        if (failure != null) throw new AssertionError("sign arrives: " + failure);
+        shot("riding-sign-arrives");
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+        main(() -> activity.service().ble.setSimulationScript("unsigned_regen"));
+        // The next session must not start from the signed script's last negative reading (that would prove a sign).
+        await(() -> { Double w = reading("power_w"); return w != null && w > 0; }, "The unsigned script did not resume", 8000);
+        setFrame("halo", false);
     }
 
     private void rideModeSigned() throws Exception {

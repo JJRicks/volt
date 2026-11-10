@@ -52,4 +52,24 @@ final class RidingPowerCue {
     static String readoutNote(RidingValues.Direction direction, String unknown, String caption) {
         return applies(direction) || direction == RidingValues.Direction.UNKNOWN ? unknown : caption;
     }
+
+    /** The readout caption's catalog wording; the screen supplies it, so its strings stay where they are. */
+    interface Captions {
+        String unknown();
+        /** "regen · peak …" when regen, else "power · peak …", for a whole number of watts. */
+        String peak(boolean regen, long watts);
+    }
+
+    /**
+     * The power readout's caption in full, or null before there's a peak to name (the brief word
+     * then). A direction that isn't confirmed says so and names no peak. Confirmed regen claims only
+     * the confirmed regen peak: an inferred one from earlier in the ride is never named beside it,
+     * because a later 0/1 sign re-signs the newest reading, not the earlier ones Volt inferred.
+     */
+    static String readoutCaption(RidingValues.Power p, Captions captions) {
+        if (applies(p.direction) || p.direction == RidingValues.Direction.UNKNOWN) return captions.unknown();
+        boolean regen = p.direction == RidingValues.Direction.REGEN && p.watts != null && p.watts < 0;
+        double peak = Math.abs(regen ? p.peakRegenW : p.peakDrawW);
+        return peak < 1 ? null : captions.peak(regen, Math.round(peak));
+    }
 }

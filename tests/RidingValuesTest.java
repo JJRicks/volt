@@ -517,7 +517,7 @@ public final class RidingValuesTest {
         check(p.direction == RidingValues.Direction.REGEN_INFERRED, "the brake is inferred regen: " + p.direction);
         check(p.watts != null && p.watts < 0 && p.direction.regen(), "and shown on the regen side");
         check(p.countedWatts > 0 && near(p.countedWatts, -p.watts, 1e-9), "range still gets the magnitude");
-        check(p.peakRegenW > 0, "the inferred regen peak is there for the caption");
+        check(p.peakRegenW == 0 && p.peakInferredRegenW > 0, "the inferred regen peak is kept apart: confirmed " + p.peakRegenW + ", inferred " + p.peakInferredRegenW);
         check(v.inferredDrawThresholdW() == 1200, "and an inference never raises the threshold");
         check(!p.direction.knownOrInferred() && p.direction.unsigned(), "for energy and efficiency it counts like an unknown reading");
         check(v.direction() == RidingValues.Direction.REGEN_INFERRED, "the screen can tell it from confirmed regen");
@@ -566,19 +566,20 @@ public final class RidingValuesTest {
         v.setNominalIntervals(1000, 2000);
         v.sample("current_sign_state", 254, 0x79, 0);
         unsignedBrake(v, 0);
-        double before = v.power(27_500).peakRegenW;
-        check(before > 0, "the brake left an inferred peak: " + before);
+        double before = v.power(27_500).peakInferredRegenW;
+        check(before > 0 && v.power(27_500).peakRegenW == 0, "the brake left an inferred peak, and no confirmed one: " + before);
         long t = 28_000;
         double volts = 50.72, watts = 9 * volts;
         v.sample("voltage_v", volts, 0x72, t);
         v.sample("speed_kmh", 8, 0x92, t);
         v.sample("power_w", watts, 0x72, t);
-        check(v.power(t + 100).direction == RidingValues.Direction.REGEN_INFERRED && near(v.power(t + 100).peakRegenW, watts, 1e-6), "a stronger inferred sample raises the peak: " + v.power(t + 100).peakRegenW);
+        check(v.power(t + 100).direction == RidingValues.Direction.REGEN_INFERRED && near(v.power(t + 100).peakInferredRegenW, watts, 1e-6) && v.power(t + 100).peakRegenW == 0,
+                "a stronger inferred sample raises the inferred peak only: " + v.power(t + 100).peakInferredRegenW);
         v.sample("current_sign_state", 0, 0x79, t + 200);
         v.sample("power_w", watts, 0x72, t);
         RidingValues.Power corrected = v.power(t + 300);
         check(corrected.direction == RidingValues.Direction.DRAW && near(corrected.watts, watts, 1e-9), "the correction made it confirmed draw: " + corrected.direction);
-        check(near(corrected.peakRegenW, before, 1e-9), "and took its inferred peak back: " + corrected.peakRegenW + " vs " + before);
+        check(near(corrected.peakInferredRegenW, before, 1e-9) && corrected.peakRegenW == 0, "and took its inferred peak back: " + corrected.peakInferredRegenW + " vs " + before);
     }
 
     /** A signed scooter reads exactly as before: no inference runs, whatever it does. */
