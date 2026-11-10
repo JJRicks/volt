@@ -184,5 +184,7 @@ for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "co
 
 # build.sh versionName: dev marker, release flag, trees that aren't their own checkout.
 bash "$TEST_DIR/build-version-test.sh"
+# Homepage variants: site/build.sh contract, variant markup and CSP check, nginx headers, live switch (site/README.md).
+python3 -I "$TEST_DIR/site-homepage-test.py"
 # Localization suites from tests/l10n/*.sources (see above), from the repository root.
 for name in ${l10n_tests[@]+"${l10n_tests[@]}"}; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"); done
