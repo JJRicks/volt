@@ -24,10 +24,13 @@ checker = load('check_variants', SITE / 'tools' / 'check-variants.py')
 switch = load('volt_homepage_switch', SITE / 'server' / 'volt-homepage-switch')
 
 
-def make_tree(root):
-    """The files site/build.sh reads, as the deploy's git archive provides them."""
+def make_tree(root, real_variants=True):
+    """The files site/build.sh reads, as the deploy's git archive provides them. With
+    real_variants=False the copy has no site/variants/, so a test's own variant can use any name."""
     root = Path(root)
     shutil.copytree(SITE, root / 'site', ignore=shutil.ignore_patterns('dist', 'dist.sha256', '.DS_Store'))
+    if not real_variants:
+        shutil.rmtree(root / 'site' / 'variants', ignore_errors=True)
     (root / 'res' / 'font').mkdir(parents=True)
     for weight in ('regular', 'medium', 'semibold', 'bold'):
         shutil.copy(APP / 'res' / 'font' / ('saira_%s.ttf' % weight), root / 'res' / 'font')
@@ -146,7 +149,7 @@ class BuildContract(unittest.TestCase):
 class BuildFailures(unittest.TestCase):
     def failing(self, setup, message, name='broken'):
         with tempfile.TemporaryDirectory() as temp:
-            site = make_tree(temp)
+            site = make_tree(temp, real_variants=False)
             variant = site / 'variants' / name
             variant.mkdir(parents=True)
             setup(site, variant)
@@ -192,7 +195,7 @@ class BuildFailures(unittest.TestCase):
         want = 'https://volt.jjricks.com/preview/refined/og.png?v=' + hashlib.sha256(b'a new card').hexdigest()[:12]
         self.failing(setup, want, 'refined')
         with tempfile.TemporaryDirectory() as temp:
-            site = make_tree(temp)
+            site = make_tree(temp, real_variants=False)
             v = site / 'variants' / 'refined'
             v.mkdir(parents=True)
             (v / 'og.png').write_bytes(b'a new card')
