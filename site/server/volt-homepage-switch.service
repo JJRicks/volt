@@ -1,0 +1,38 @@
+# Points volt.jjricks.com's live homepage at the requested variant. See site/README.md.
+# Installed as /etc/systemd/system/volt-homepage-switch.service by site/server/install-switch.sh.
+[Unit]
+Description=Switch the live Volt homepage variant
+# Several Make live clicks in a row must not trip systemd's start limit and stop the path unit.
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -I /usr/local/sbin/volt-homepage-switch
+# status.json and the lock; readable by the Workbench.
+StateDirectory=volt-homepage-switch
+StateDirectoryMode=0755
+UMask=0022
+ReadWritePaths=/var/www/volt-home
+# Reading the volt-dev-owned request needs only these; the rest of root's powers are dropped.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateNetwork=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+TimeoutStartSec=30
