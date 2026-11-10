@@ -133,10 +133,11 @@ h3 { margin: 0 0 var(--s-2); font-weight: 600; font-size: 21px; line-height: 1.2
 .features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-7) clamp(32px, 5vw, 72px); }
 .feature { padding-top: var(--s-5); border-top: 1px solid var(--edge-strong); }
 .feature p { margin: 0; max-width: 34em; color: var(--muted); }
-/* The lock demo gets its own full-width row under the first pair, like the app's full-width lock bar on the unfolded screen. */
+/* The lock demo sits in its own row under the lock copy; the screenshot features start on the next row so they stay paired. */
 .feature-lock { grid-column: 1; grid-row: 1; }
 .feature-dash { grid-column: 2; grid-row: 1; }
-.features > .lock-demo { grid-column: 1 / -1; grid-row: 2; margin-top: calc(var(--s-5) - var(--s-7)); }
+.features > .lock-demo { grid-column: 1; grid-row: 2; margin-top: calc(var(--s-5) - var(--s-7)); }
+.feature-shot { grid-row: 3; }
 .shot {
   margin-top: var(--s-6); height: 440px; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: var(--surface); border: 1px solid var(--edge); border-bottom: 0;
@@ -307,7 +308,7 @@ details p { margin: 0 0 var(--s-5); max-width: 40em; color: var(--muted); line-h
   .js .nav-links.open { opacity: 1; visibility: visible; transform: none; }
   .js .nav-links a { padding: 14px 0; font-size: 18px; border-bottom: 1px solid var(--edge); }
   .features { grid-template-columns: 1fr; gap: var(--s-7); }
-  .feature-lock, .feature-dash, .features > .lock-demo { grid-column: auto; grid-row: auto; }
+  .feature-lock, .feature-dash, .features > .lock-demo, .feature-shot { grid-column: auto; grid-row: auto; }
   .step-list, .promises { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
