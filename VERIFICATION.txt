@@ -1,3 +1,128 @@
+VOLT 1.13.0 — DUTCH, TURKISH, POLISH, RIDING MODE'S TUNE MENU, INFERRED REGEN (versionCode 57)
+November 9, 2026
+
+- Every pull request merged since 1.12.1 (#345 to #356) passed CI (core-tests
+  and web-setup) on its final head. Ten merged after an independent review
+  came back clean on that head. #350's final head is a merge of main made
+  after the clean review of the head before it. #349 was merged over two
+  findings from the review of its final head, both in the recovery that
+  decides whether riding mode closes after a lost automatic end. Each needs
+  a rare chain of events, such as a process death at one exact moment, and
+  in the worst case riding mode stays open once. That was a documented skip
+  under the owner's rule. Each PR's pure-Java suites cover its change: the
+  lock state words and padlock, the auto-end count and Max and Average from
+  opening, the tune menu's settings and its 4 mph close, Lock and Record
+  motion, export names, regen inference, the battery gauge's fit rule, the
+  lost-connection rule, and Lock and Record while disconnected.
+- Ten beta languages: Spanish, Portuguese (Portugal), Portuguese (Brazil),
+  Swedish, German, French, Italian, and new in this release Dutch (#345),
+  Turkish (#346) and Polish (#347). In Turkish and Polish the lock's tiles
+  say locked or unlocked (#348). ship_check --release shows zero English
+  fallback in every one: 0 of 3817 keys each.
+- Inferred regen (#353): on 10 held-out signed rides with the sign stripped,
+  saved rides' inferred regen had precision 0.922 (95% interval 0.890 to
+  0.946) and ride mode's 0.919 (0.882 to 0.945), against a 90% bar. Recall
+  by sample was 0.540 and 0.439. Not yet checked on a GT3 Max.
+- Release candidate checks on commit 76f826da, which is main at 0ed2534b
+  plus this release's version, changelog, features and README lines. Later
+  commits on the release branch change only android-tests/ (the validation
+  runner, described below) and add this section. Neither goes into the APK:
+  a release build packages only the manifest, resources, assets and
+  classes.dex, and reads its version from the manifest.
+  - ship_check --release --aapt required: PASS. All ten languages have 0 of
+    3817 keys falling back. aapt compiles 4038 texts exactly for es, pt-PT,
+    pt-BR, fr and it, 3928 for sv, de, nl and tr, and 4148 for pl.
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (163 suites).
+    The owner-capture guard (11), capture-owner (22) and hardware-sweep (15)
+    tests pass. verify-all passes every CI step on 76f826da.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 1.13.0 (no -dev), versionCode 57, signed with 1.12.1's
+    certificate. APK SHA-256
+    c82fbbe258e900dab92a2dd8e34c122dbfddf6d1badabf203b5d7b23adf82dbb.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned, has no repeated entry names and reads 1.13.0 (57).
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off), split over eight emulators at once, one
+  step per --only run. All 160 listed steps ran exactly once in the first
+  pass, which took 27 minutes including rides-timing and the ride auto-save
+  check. Closing numbers of the first pass, as printed:
+  - Gating steps: 88 passed, 3 failed: motion-polish, regen-display,
+    responsive.
+  - Report-only steps (never counted as passes): 30 ran, 30 did not finish,
+    9 skipped.
+- The three gating failures and the 30 unfinished reports were all in the
+  validation runner, not the app. Each was fixed in android-tests/ only and
+  rerun with --only on the same candidate APK, with a runner rebuilt with
+  the same key:
+  - responsive and motion-polish failed with "Method update". #356 gave the
+    lock switch's update method a third parameter, and both validations
+    still looked it up with the old two. They now pass null for it, which
+    behaves exactly as before. Rerun once: both passed.
+  - regen-display failed with "focus: no accessibility node for the
+    readout". Riding mode hides the system bars, Android's one-time "Viewing
+    full screen" notice then takes the active window, and this validation
+    reads that window's accessibility tree. Unlike the other riding
+    validations, it never marked the notice confirmed. With the original
+    runner it failed the same way twice more, alone on a freshly booted
+    emulator and on one already used for riding screens. With the notice
+    marked confirmed, it passed (107 assertions, as on #353's own head).
+  - All 30 locale-*-scooter-* reports stopped at their last screen, after
+    19 of 20, because they expected riding mode to stay open after an
+    automatic stop. Since #349 riding mode closes then, so the walk now
+    checks that it closes and has 19 screens. Rerun once: 26 finished. The
+    other 4 were each the first step on a freshly booted emulator and
+    stopped at riding-connected, where the walk's own check found the
+    full-screen notice over the screenshot. A second rerun of those 4 on
+    already-used emulators finished all 4.
+  - After those reruns: gating 91 passed, 0 failed (responsive,
+    motion-polish and regen-display passed only on a rerun with a fixed
+    runner). Report-only: 60 ran, 0 did not finish, 9 skipped.
+  - rides-timing passed. It ran last, alone on the one emulator still up.
+    Best of two cold starts per case, slowest case: first frame 202 ms and
+    service start command 185 ms (budgets 1.5 s). Rides first row 50 ms,
+    and the longest main-thread message was 46 ms cold and 43 ms warm
+    (budget 1 s). The slowest single cold launch held the main thread for
+    164 ms, under the 250 ms everyday target.
+  - Locale reports (report only, not gating), 60 steps: ten languages at
+    344 dp, 725 dp and 725 dp with large font, app and scooter screens.
+    Every app walk reached 23 screens and every scooter walk 19. No glued,
+    direction, unfilled or unextracted problems. Fit problems: Spanish and
+    both Portugueses 0, French 1, Italian 1, Polish 2, Turkish 2, Dutch 3,
+    Swedish 3, German 19. Setting tiles that still end in an ellipsis:
+    Spanish 10, Portuguese (Portugal) 8, French 8, Portuguese (Brazil) 7,
+    Polish 5, German 4, Italian 4, Swedish 3, Dutch 0, Turkish 0. The seven
+    older languages' numbers match 1.12.1's.
+  - The pseudo-locale reports (en-XA and ar-XB, 9 steps) were skipped: the
+    sweep was given no pseudo-locale build.
+- Ride auto-save (RideAutoExportValidation, run separately with
+  run-ride-auto-export.py, since it drives the system folder pickers):
+  passed in full on the candidate (585 checks), on the same emulator right
+  after rides-timing.
+- An earlier sweep of this candidate on a single emulator was stopped by
+  hand for speed after 6 steps had passed. It is not counted here.
+- Not run for this release: the owner-present hardware sweep, and any check
+  on a real phone. The owner's phone was not connected, so nothing here ran
+  on a real phone or scooter. ModelRegistry.REPORTED was left as it was in
+  1.12.1. Adding any compatibility reports received since then is the
+  owner's step.
+- Real-phone checks only the owner can do, not yet done:
+  - riding mode's tune menu on a ride: settings saved as they change, and
+    the menu closing at 4 mph and not before;
+  - Lock, Record and the tune button while the scooter is disconnected,
+    and Record stopping a recording there;
+  - riding mode closing after an automatic end, and Home at the next open
+    after a lost connection, including the 2-minute grace after Volt's own
+    Bluetooth pause;
+  - inferred regen on a GT3 Max, in riding mode and on the saved ride;
+  - the battery gauge in each Focus spot, and the padlock's last known
+    state;
+  - Dutch, Turkish and Polish on a phone set to those languages.
+- Physical scope: this release's riding mode, regen and language changes
+  are tested on emulators and in JVM suites, not yet on a ride or on a real
+  phone.
+
+--- Previous verification ---
+
 VOLT 1.12.1 — RIDING MODE FIXES, AUTO-START, LIVE CHARGING CARD (versionCode 56)
 November 9, 2026
 
