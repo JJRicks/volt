@@ -433,7 +433,7 @@ public final class RidesScreen implements AppScreen {
     }
     /** A small rounded status pill tinted with one colour, e.g. Disconnected or Direction ?. */
     /** "Direction ?": also names a chart's power line while it plots a direction nobody measured. */
-    private static String directionUnconfirmedChip() { return T.ridesDirectionChipUnconfirmed(); }
+    static String directionUnconfirmedChip() { return T.ridesDirectionChipUnconfirmed(); }
     private TextView pill(String text, int color) {
         TextView pill = ui.text(text, 11.5f, false); pill.setTypeface(ui.semibold()); pill.setTextColor(color);
         pill.setGravity(Gravity.CENTER); pill.setMaxLines(1); pill.setPadding(ui.dp(9), ui.dp(3), ui.dp(9), ui.dp(3));
