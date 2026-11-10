@@ -20,8 +20,8 @@
   --ok: #5FCB7E;
   /* Small red text: the accent lifted just enough for 4.5:1 on cards (the app's own accent is 3.6:1 there). */
   --accent-ink: #FA5256;
+  --lock-ink: #FF7376; /* Lock label on the tinted bar over a card: 5:1 */
   --accent-rgb: 227 43 47;
-  --glow-a: .55;          /* charging floor glow, alpha 140 */
   --chip-a: .13;          /* Charging chip, alpha 34 */
   --hatch: rgb(255 255 255 / .86);
   --ease: cubic-bezier(.2, 0, 0, 1);
@@ -44,8 +44,8 @@
     --accent-deep: #A8161C;
     --ok: #1E8A47;
     --accent-ink: #A8161C;
+    --lock-ink: #A8161C;
     --accent-rgb: 211 37 42;
-    --glow-a: .35;
     --chip-a: .09;
     --hatch: #161716;
   }
@@ -67,8 +67,8 @@ html.nv {
   --on-accent: #FF1400;
   --ok: #8B0B00;
   --accent-ink: #FF1400;
+  --lock-ink: #FF1400;
   --accent-rgb: 156 13 0;
-  --glow-a: .55;
   --chip-a: .2;
   --hatch: #FF1400;
 }
@@ -232,8 +232,8 @@ h1 {
 .lock-thumb:active { cursor: grabbing; }
 .lock-thumb svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; grid-area: 1 / 1; }
 .lock-thumb .g-shut { opacity: 0; }
-.lock-hint { position: absolute; left: 62px; color: var(--accent-ink); font-size: 1.25rem; line-height: 1; }
-.lock-label { flex: 1; text-align: center; font-weight: 600; font-size: .9375rem; color: var(--accent-ink); padding: 0 60px; }
+.lock-hint { position: absolute; left: 62px; color: var(--lock-ink); font-size: 1.25rem; line-height: 1; }
+.lock-label { flex: 1; text-align: center; font-weight: 600; font-size: .9375rem; color: var(--lock-ink); padding: 0 60px; }
 .l-locked { display: none; }
 .lock[data-state="locked"] { background: var(--surface); box-shadow: inset 0 0 0 1px var(--raised); }
 .lock[data-state="locked"] .lock-thumb { background: var(--text); color: var(--bg); }
@@ -244,6 +244,9 @@ h1 {
 .lock[data-state="locked"] .l-unlocked { display: none; }
 .lock[data-state="locked"] .l-locked { display: inline; }
 .lock.dragging .lock-thumb { transition: none; }
+/* Inside the hero card the tint carries the bar; a hairline on top of the card edge read as a card in a card. */
+.ride-card .lock { box-shadow: none; }
+.ride-card .lock[data-state="locked"] { background: var(--raised); box-shadow: none; }
 .record {
   width: 58px; height: 58px; border-radius: 50%; flex: none;
   display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
@@ -390,7 +393,7 @@ html.nv .legend i { background: linear-gradient(90deg, #4A0300, #FF1400); }
 .row-link svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms var(--ease); }
 .row-link:hover svg { transform: translateX(2px); }
 .needs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.map-data-note { padding: 12px 0 14px; color: var(--muted); font-size: .8125rem; line-height: 1.55; text-align: left; }
+.map-data-note { max-width: 31rem; padding: 12px 0 14px; color: var(--muted); font-size: .8125rem; line-height: 1.55; text-align: left; }
 
 .faq summary {
   list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 14px;

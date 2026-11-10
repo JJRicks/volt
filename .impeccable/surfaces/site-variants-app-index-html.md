@@ -32,6 +32,7 @@ Note for this run: DESIGN.md is deliberately deferred by the owner's run plan (o
 ## Unresolved
 - Night-vision muted text is lifted above the exact matrix value so captions stay at 4.5:1; the app keeps the raw matrix.
 - Small red text uses --accent-ink (#FA5256 dark, #A8161C light) instead of the app's #E32B2F, which is 3.6:1 on cards; fills and the RIDE pill keep the app's accent.
+- Inside the hero card the Lock bar drops its accent hairline (the tint carries it; locked state sits on the raised tone), and its label uses --lock-ink #FF7376 for 5:1 on the tinted bar.
 - Route promise: only rides recorded with Volt open and location on have a route; copy never says every ride gets a map.
 - No scooter product render outside the app screenshots (NAVEE product art is not cleared for the web), so the charging card has no scooter glow.
 - Which variant goes live is the owner's call.
