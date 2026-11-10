@@ -1250,8 +1250,9 @@ final class RidingScreen implements AppScreen {
             View view = (View) gauge;
             boolean shown = view.getVisibility() == VISIBLE;
             float density = getResources().getDisplayMetrics().density;
+            // Beside, read the row's own size: a row answered from its measure cache leaves the number's size from an earlier, shorter pass.
             int boxWidth = line != null ? line.getMeasuredWidth() : number.getMeasuredWidth();
-            int boxHeight = number.getMeasuredHeight();
+            int boxHeight = line != null ? line.getMeasuredHeight() : number.getMeasuredHeight();
             if (shown && fit != RidingFocus.Gauge.BESIDE) boxHeight += view.getMeasuredHeight() + ui.dp(RidingFocus.BELOW_GAP_DP);
             if (referenceEms == null) referenceEms = number.referenceEms();
             boolean wanted = RidingFocus.gaugeFits(fit, boxWidth / density, boxHeight / density, number.maxPx / density, referenceEms[0], referenceEms[1]);
