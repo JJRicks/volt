@@ -386,12 +386,16 @@ public final class RideStore {
         final ArrayList<File> deferred = new ArrayList<>();
         for (File file : files) if (isJournal(file)) {
             journals.add(journalId(file));
-            if (deferFinished && endsFinished(file)) { deferred.add(file); continue; }
+            if (deferFinished) {
+                String[] stop = finishedStop(file);
+                if (stop != null) { noteStop(journalId(file), stop[14]); deferred.add(file); continue; }
+            }
             long length = file.length(), modified = file.lastModified();
             Accumulator candidate = read(file);
             if (candidate == null) continue;
             // Keep this read: Rides opens from it instead of replaying every journal again.
             if (candidate.stopped) {
+                noteStop(candidate.id, candidate.stopReason);
                 if (file.length() == length && file.lastModified() == modified) cacheFinished(candidate.id, length, modified, candidate);
             } else if (active == null || candidate.startWall > active.startWall) active = candidate;
         }
@@ -405,6 +409,14 @@ public final class RideStore {
             active.recover();
         }
     }
+
+    /** The id of every journal found at this load whose STOP row names an automatic end. */
+    private final ArrayList<String> automaticStops = new ArrayList<>();
+    private void noteStop(String rideId, String details) {
+        if (STOP_AUTO_PARKED.equals(details) || STOP_AUTO_NO_MOTION.equals(details) || isQuietStop(details)) automaticStops.add(rideId);
+    }
+    /** See {@link RideAutoEnds}: what the journals themselves recorded, as of this store's load. */
+    String[] automaticStopsAtLoad() { return automaticStops.toArray(new String[0]); }
 
     /** Seeds the cache from a deferred (finished-looking) journal's saved summary when it matches. */
     private void seedSaved(File file) {
@@ -1240,30 +1252,32 @@ public final class RideStore {
      * appends after STOP. A full replay of such a journal finds it finished (or unreadable without a START), never
      * unfinished. Quotes, carriage returns, a partial last row or any other event return false, so the caller replays.
      */
-    static boolean endsFinished(File file) {
+    static boolean endsFinished(File file) { return finishedStop(file) != null; }
+    /** The STOP row's columns when the journal {@linkplain #endsFinished ends finished}, otherwise null. */
+    private static String[] finishedStop(File file) {
         try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(file, "r")) {
             long length = in.length();
             int window = (int) Math.min(length, 16384);
-            if (window == 0) return false;
+            if (window == 0) return null;
             byte[] tail = new byte[window];
             in.seek(length - window); in.readFully(tail);
             String text = new String(tail, "UTF-8");
-            if (!text.endsWith("\n")) return false;
+            if (!text.endsWith("\n")) return null;
             String[] lines = text.substring(0, text.length() - 1).split("\n", -1);
             // The window's first line may start mid-row; it is never trusted.
             int first = window < length ? 1 : 0;
             for (int i = lines.length - 1; i >= first; i--) {
                 String line = lines[i];
-                if (line.indexOf('"') >= 0 || line.indexOf('\r') >= 0) return false;
+                if (line.indexOf('"') >= 0 || line.indexOf('\r') >= 0) return null;
                 String[] f = line.split(",", -1);
-                if (f.length != 15 || !"1".equals(f[0])) return false;
+                if (f.length != 15 || !"1".equals(f[0])) return null;
                 if ("RENAME".equals(f[1])) continue;
-                if (!"STOP".equals(f[1])) return false;
+                if (!"STOP".equals(f[1])) return null;
                 Long.parseLong(f[3]); Long.parseLong(f[4]);
-                return true;
+                return f;
             }
-            return false;
-        } catch (IOException | RuntimeException unreadable) { return false; }
+            return null;
+        } catch (IOException | RuntimeException unreadable) { return null; }
     }
     /** Read a staged journal without recovery or any writes to its containing folder. */
     static Summary inspectJournal(File source) throws IOException {

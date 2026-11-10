@@ -1737,7 +1737,10 @@ unlock written as the lock word plus the common separate word (sv "lås upp", id
 the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
 "Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку", tr "Kilit kaldırıldı"), also after a status colon,
 dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
-list; and, in a safety key of a first-wave language or Turkish, an English on or off state drafted with only
+list; in Polish, an English "never" drafted as `zawsze` or with no `nigdy` or `nie` of its own
+(`lexicon.NEVER_WORDS`), and a lock action drafted as the state or the state as the action
+("Zablokowana" for Lock, "Zablokowanie" for Locked), though not in the loose -ing match below; and,
+in a safety key of a first-wave language or Turkish, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
 alarma activado"; `lexicon.STATE_WORDS`), and, in a Turkish lock key, the lock word next to a bare
 open or closed ("Kilit: açık"; `lexicon.LOCK_STATE_TRAP`). A state word right after a negation word counts as the

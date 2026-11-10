@@ -233,7 +233,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){selectedPage=saved.getString("page","home");for(String page:pages)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else selectedPage="home";
-        if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"));
+        if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"),saved.getDoubleArray("riding_speed"),saved.getLong("riding_auto_ends",-1));
         if(!knownPage(selectedPage))selectedPage="home";
         expireMoreSection(saved!=null);
         // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
@@ -298,6 +298,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
+        if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
@@ -307,7 +308,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         captureScroll();saved.putString("page",selectedPage);saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);
         saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
-        if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());}
+        if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());}
         for(String page:pages)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
         super.onSaveInstanceState(saved);
     }
@@ -385,6 +386,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
+        if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
@@ -446,7 +448,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;openRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(ridingResume!=null&&ridingResume.autoEnded(scooterService.rideAutoEnds())){ridingResume=null;selectedPage="home";scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
+        dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
@@ -531,7 +534,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Creates the session, makes it the open one, then asks for its prior: a cached answer arrives at once. */
     private void openRidingSession(){
         String id=ridingProfileId();
-        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume);
+        RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume,scooterService.rideAutoEnds(),scooterService.ble.telemetry.followedSpeed());
         ridingResume=null;
         riding=session;
         if(scooterService.simulating()){
@@ -561,7 +564,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void riderClosedRiding(){if(riding!=null&&scooterService!=null)scooterService.autoStart.riderLeftRidingMode();closeRiding();}
     private void closeRiding(){
         if(riding==null)return;
-        riding.close();riding=null;ridingRestore=false;selectedPage="home";transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;selectedPage="home";if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);transitionRebuild(0);
+    }
+    /** A recording that ended by itself closes the riding mode that was open for it, with no auto-open hold. True when it did. */
+    private boolean dropAutoEndedRiding(){
+        if(riding==null||scooterService==null||!riding.autoEnded(scooterService.rideAutoEnds()))return false;
+        riding.close();riding=null;ridingRestore=false;ridingResume=null;selectedPage="home";scooterService.ble.telemetry.followSpeed(null);return true;
     }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){

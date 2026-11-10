@@ -1,0 +1,17 @@
+# Polish. Every string decided by the three-vendor translation council (l10n/decisions/pl/), beta; see l10n/README.md for each field.
+field	value
+tag	pl
+folder	values-pl
+endonym	Polski
+wave	1
+status	beta
+formality	ty, impersonal for instructions
+plurals	one,few,many,other
+quote_style	„…” «…»
+percent_style	%1$s%%
+decimal_style	12 345,6
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

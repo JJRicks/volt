@@ -79,6 +79,8 @@ final class BackupRegistry {
         add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
         add(app, "charge_live_lock_detail", String.class, PREFERENCES);
         // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
+        exclude(app, "ride_auto_ends", Long.class, DEVICE);
+        exclude(app, "ride_auto_ends_counted", String.class, DEVICE);
         exclude(app, "charge_live_stopped", String.class, DEVICE);
         // The last live card's Live Update verdict (Developer options) describes this phone's Android only.
         exclude(app, "charge_live_update_last", String.class, DEVICE);
