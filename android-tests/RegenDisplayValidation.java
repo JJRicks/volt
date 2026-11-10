@@ -315,8 +315,11 @@ public final class RegenDisplayValidation extends Instrumentation {
             main(() -> { caption.set(checkDrawn(name, problem)); });
             if (problem.get() != null) throw new AssertionError(problem.get());
             shot("riding-cue-" + name);
-            String after = captionText();
-            if (after.equals(caption.get()) || attempt >= 4) {
+            // The direction can change between readings: only a frame still inferred after the shot counts as this rung's picture.
+            AtomicReference<Boolean> still = new AtomicReference<>(false);
+            main(() -> still.set(inferredDrawn() && captionText().equals(caption.get())));
+            if (still.get() || attempt >= 40) {
+                require(still.get(), name + ": never held an inferred frame across a screenshot");
                 note(name + " caption \"" + caption.get() + "\" " + Arrays.toString(cellStates()));
                 if (expected != null) require(expected.equals(caption.get()), name + ": expected the caption " + expected + ", got " + caption.get());
                 seenFull[0] |= FULL.equals(caption.get());
@@ -353,7 +356,8 @@ public final class RegenDisplayValidation extends Instrumentation {
         await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), "squeeze: no inferred reading on screen", 45000);
         main(() -> {
             TextView caption = (TextView) fieldOn(screen(), "wattsCaption");
-            caption.setPadding(caption.getWidth() / 2, 0, caption.getWidth() / 2, 0);
+            // Room for the plain word only, so the rung shows as the rider would see it.
+            caption.setPadding(0, 0, caption.getWidth() - Math.round(caption.getPaint().measureText(PLAIN)) - 4, 0);
             View cell = powerCell(false);
             TextView label = (TextView) fieldOn(cell, "label");
             label.setPadding(label.getWidth() / 2, 0, label.getWidth() / 2, 0);
