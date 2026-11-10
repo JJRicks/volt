@@ -11,6 +11,9 @@
 #     after a variant switch or a deploy revalidates every file. Limit: the time is the SHA-256 reduced to
 #     600 million seconds, so two same-size files can be crafted to share a validator (site/README.md,
 #     "Caching"); ordinary files don't collide in practice;
+#   - the release's cards/ (variant link-preview images, named by SHA-256) are added to the append-only
+#     store /var/www/volt-home/cards/; a name that exists with other bytes stops the deploy (CARD_CONFLICT)
+#     before current moves, and nothing in the store is ever replaced or removed;
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
 #   - before current moves, the live link's target is saved. After current moves,
 #     volt-homepage-switch.service must succeed in this run AND the live link must point inside the new
@@ -124,6 +127,50 @@ for digest, name in entries:
     when = 1_000_000_000 + int(digest[:15], 16) % 600_000_000
     os.utime(path, (when, when), follow_symlinks=False)
 PY
+# Link-preview cards (site/README.md, "Variants"): add the release's cards/ to the append-only store
+# $HOME_DIR/cards/, served at /cards/<name> with an immutable cache. A name is its file's SHA-256, so an
+# existing name must already hold the same bytes: a different file under it stops the deploy
+# (CARD_CONFLICT) before current moves. Nothing in the store is ever replaced or removed, rollbacks included.
+cards_added="$(python3 -I - "$REL/cards" "$HOME_DIR/cards" <<'PY'
+import hashlib, os, re, sys
+from pathlib import Path
+source, store = Path(sys.argv[1]), Path(sys.argv[2])
+if not source.is_dir():
+    print(0); sys.exit(0)
+store.mkdir(mode=0o755, exist_ok=True)
+added = 0
+for card in sorted(source.iterdir()):
+    data = card.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    m = re.fullmatch(r'([0-9a-f]{64})\.(png|jpg|jpeg|webp)', card.name)
+    if not card.is_file() or not m or m.group(1) != digest:
+        print('CARD_CONFLICT %s is not named <its sha256>.<png|jpg|jpeg|webp>; nothing changed' % card.name, file=sys.stderr)
+        sys.exit(1)
+    target = store / card.name
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() or not target.is_file() or target.read_bytes() != data:
+            print('CARD_CONFLICT %s already holds different bytes; the store keeps it and the deploy stops' % target, file=sys.stderr)
+            sys.exit(1)
+        continue
+    temp = store / ('.%s.%d.new' % (card.name, os.getpid()))
+    with open(temp, 'wb') as f:
+        f.write(data); f.flush(); os.fsync(f.fileno())
+    os.chmod(temp, 0o644)
+    when = 1_000_000_000 + int(digest[:15], 16) % 600_000_000
+    os.utime(temp, (when, when))
+    try:
+        os.link(temp, target)   # never replaces: fails if the name appeared meanwhile
+    except FileExistsError:
+        if target.read_bytes() != data:
+            print('CARD_CONFLICT %s already holds different bytes' % target, file=sys.stderr)
+            sys.exit(1)
+    else:
+        added += 1
+    finally:
+        os.unlink(temp)
+print(added)
+PY
+)" || exit 1
 nginx -t
 unchanged
 # The live link as it was, so a failed deploy can put it back without the switch.
@@ -180,9 +227,9 @@ print('live=%s result=%s in_new_release=yes message=%s' % (name, status.get('res
 PY
 )"
 fi
-echo "UPDATE_OK current=$(realpath_of "$HOME_DIR/current") previous=$PREV backup=$BACKUP $live_line"
-if [ "$switch_installed" -eq 1 ]; then
-  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current && systemctl start volt-homepage-switch.service && readlink $HOME_DIR/live"
+echo "UPDATE_OK current=$(realpath_of "$HOME_DIR/current") previous=$PREV backup=$BACKUP cards_added=$cards_added $live_line"
+if [ "$switch_installed" -eq 1 ] && [ -n "$prior_live" ]; then
+  echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current && ln -sfn $prior_live $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live (cards stay)"
 else
   echo "Rollback: ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current"
 fi
