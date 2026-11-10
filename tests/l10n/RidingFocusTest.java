@@ -118,8 +118,8 @@ public final class RidingFocusTest {
         float[] widths = {0, 20, 47, 48, 60, 95, 120, 150, 219.5f, 220.5f, 300, 500};
         float[] maxes = {0, 60, 84, 200};
         float[][] ems = {{em, tall}, {.6f, 1.2f}, {3.2f, .4f}};
-        int shown = 0, hidden = 0;
-        for (RidingFocus.Gauge g : RidingFocus.Gauge.values())
+        for (RidingFocus.Gauge g : RidingFocus.Gauge.values()) {
+            int shown = 0, hidden = 0;
             for (float d : densities)
                 for (float w : widths)
                     for (float max : maxes)
@@ -141,7 +141,9 @@ public final class RidingFocusTest {
                                 if (first && g != RidingFocus.Gauge.BESIDE)
                                     check(px / d > RidingFocus.belowDp(g), g + " shown only above its own " + RidingFocus.belowDp(g) + " dp");
                             }
-        check(shown > 0 && hidden > 0, "the sweep sees both answers (" + shown + " shown, " + hidden + " hidden)");
+            // Each kind is seen both shown and hidden within 0-40 dp, so the replay above really ran both ways.
+            check(shown > 0 && hidden > 0, g + ": the sweep sees both answers (" + shown + " shown, " + hidden + " hidden)");
+        }
     }
 
     private static void digits() {
