@@ -1,12 +1,14 @@
 package com.jjricks.volt.tests;
 
 import android.app.Instrumentation;
+import android.content.pm.ActivityInfo;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +24,7 @@ import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -65,6 +68,7 @@ public final class RegenDisplayValidation extends Instrumentation {
             await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready", 8000);
             ridesCheck();
             rideModeUnsigned();
+            cueLadder();
             rideModeSigned();
             result.putString("result", "PASS");
         } catch (Throwable t) {
@@ -273,6 +277,190 @@ public final class RegenDisplayValidation extends Instrumentation {
         setFrame("halo", false);
     }
 
+    /**
+     * Inferred regen never shows a minus sign without a cue: the readout's caption and a POWER tile climb the
+     * ladder (full caption, then "Direction ?", then an unsigned muted number) at three widths, and the
+     * spoken text always says the direction is unknown. 640 x 360 dp landscape is the width Codex measured.
+     */
+    private void cueLadder() throws Exception {
+        boolean[] seenFull = {false}, seenCue = {false};
+        try {
+            cueCheck("default", null, seenFull, seenCue);
+            shell("wm size 903x2004");
+            settle();
+            cueCheck("344dp", null, seenFull, seenCue);
+            shell("wm size 945x1680");
+            main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+            SystemClock.sleep(2500);
+            settle();
+            cueCheck("640dp-landscape", "Direction ?", seenFull, seenCue);
+            bareNumber();
+        } finally {
+            main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED));
+            shell("wm size reset");
+            SystemClock.sleep(2500);
+            settle();
+        }
+        require(seenFull[0] && seenCue[0], "Both the full caption and the cue should have been reached across the widths");
+    }
+
+    private void cueCheck(String name, String expected, boolean[] seenFull, boolean[] seenCue) throws Exception {
+        setPowerSpots("halo", "tile_1", "strip_1");
+        openRiding();
+        // Each pass polls until a refresh has drawn the inferred reading, so the checks read one consistent frame.
+        for (int attempt = 0; ; attempt++) {
+            AtomicReference<String> problem = new AtomicReference<>();
+            AtomicReference<String> caption = new AtomicReference<>();
+            await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), name + ": no inferred reading on screen", 45000);
+            main(() -> { caption.set(checkDrawn(name, problem)); });
+            if (problem.get() != null) throw new AssertionError(problem.get());
+            shot("riding-cue-" + name);
+            String after = captionText();
+            if (after.equals(caption.get()) || attempt >= 4) {
+                note(name + " caption \"" + caption.get() + "\" " + Arrays.toString(cellStates()));
+                if (expected != null) require(expected.equals(caption.get()), name + ": expected the caption " + expected + ", got " + caption.get());
+                seenFull[0] |= FULL.equals(caption.get());
+                seenCue[0] |= CUE.equals(caption.get());
+                require(!PLAIN.equals(caption.get()), name + ": the plain caption should not be needed at this width");
+                break;
+            }
+            SystemClock.sleep(300);
+        }
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+    }
+
+    /** With a real view squeezed so no cue fits, and with a label hidden, the number drops its sign and stays muted. */
+    private void bareNumber() throws Exception {
+        setPowerSpots("halo", "big");
+        openRiding();
+        await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), "big: no inferred reading on screen", 45000);
+        SystemClock.sleep(1200);
+        await(() -> inferredDrawn(), "big: inferred reading gone", 45000);
+        main(() -> {
+            View cell = powerCell(true);
+            require(cell != null, "No hidden-label power cell");
+            require(unsignedMain(cell), "A power number with its label hidden must not show a minus sign: " + cellState(cell));
+            require(said(cell).contains("direction unknown"), "The hidden-label cell still speaks the uncertainty: " + said(cell));
+        });
+        shot("riding-cue-hidden-label");
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+        setPowerSpots("halo", "tile_1");
+        openRiding();
+        await(() -> "REGEN_INFERRED".equals(String.valueOf(direction())) && inferredDrawn(), "squeeze: no inferred reading on screen", 45000);
+        main(() -> {
+            TextView caption = (TextView) fieldOn(screen(), "wattsCaption");
+            caption.setPadding(caption.getWidth() / 2, 0, caption.getWidth() / 2, 0);
+            View cell = powerCell(false);
+            TextView label = (TextView) fieldOn(cell, "label");
+            label.setPadding(label.getWidth() / 2, 0, label.getWidth() / 2, 0);
+            call(label, "fit", new Class<?>[0]);
+        });
+        SystemClock.sleep(1500);
+        await(() -> inferredDrawn() && captionText().equals(PLAIN), "The squeezed caption should fall to the plain label", 45000);
+        main(() -> {
+            TextView caption = (TextView) fieldOn(screen(), "wattsCaption");
+            require(unsigned(numberMain(fieldOn(screen(), "watts"))), "No cue fits: the readout must drop its minus sign: " + numberMain(fieldOn(screen(), "watts")));
+            require(FULL.equals(String.valueOf(caption.getContentDescription())), "Spoken text keeps the uncertainty: " + caption.getContentDescription());
+            require(caption.getCurrentTextColor() == captionMuted(), "The bare caption keeps its muted colour");
+            require((Integer) fieldOn(fieldOn(screen(), "watts"), "color") == captionMuted(), "The unsigned number is in the muted colour");
+            View cell = powerCell(false);
+            require(unsignedMain(cell), "No cue fits: the tile must drop its minus sign: " + cellState(cell));
+            require(said(cell).contains("direction unknown"), "The tile still speaks the uncertainty: " + said(cell));
+        });
+        shot("riding-cue-no-room");
+        main(() -> activity.onBackPressed());
+        await(() -> fieldOn(activity, "riding") == null, "Back did not close riding mode", 8000);
+        settle();
+        setFrame("halo", false);
+    }
+
+    private static final String FULL = "power (direction unknown)", CUE = "Direction ?", PLAIN = "power";
+
+    private Object screen() { return fieldOn(activity, "screen"); }
+    private boolean inferredDrawn() {
+        AtomicReference<Boolean> drawn = new AtomicReference<>(false);
+        main(() -> drawn.set(((TextView) fieldOn(screen(), "wattsCaption")).getContentDescription() != null));
+        return drawn.get();
+    }
+    private String captionText() {
+        AtomicReference<String> text = new AtomicReference<>();
+        main(() -> text.set(((TextView) fieldOn(screen(), "wattsCaption")).getText().toString()));
+        return text.get();
+    }
+    private int captionMuted() { return ((TextView) fieldOn(screen(), "wattsCaption")).getCurrentTextColor(); }
+
+    /** Returns the caption on show; records the first broken rule in problem. */
+    private String checkDrawn(String name, AtomicReference<String> problem) {
+        TextView caption = (TextView) fieldOn(screen(), "wattsCaption");
+        String text = caption.getText().toString();
+        Object watts = fieldOn(screen(), "watts");
+        boolean cued = FULL.equals(text) || CUE.equals(text);
+        if (!cued && !PLAIN.equals(text)) problem.set(name + ": unexpected caption " + text);
+        if (cued == unsigned(numberMain(watts))) problem.set(name + ": caption \"" + text + "\" with number " + numberMain(watts));
+        if (!FULL.equals(String.valueOf(caption.getContentDescription()))) problem.set(name + ": spoken caption " + caption.getContentDescription());
+        // Measured, not assumed: a caption that shows must fit whole, never ellipsized.
+        if (caption.getLayout() != null && caption.getLayout().getEllipsisCount(0) > 0) problem.set(name + ": caption ellipsized: " + text);
+        for (Object cell : (List<?>) fieldOn(screen(), "cells")) {
+            if (!"power".equals(fieldOn(cell, "content"))) continue;
+            String state = cellState((View) cell);
+            TextView label = (TextView) fieldOn(cell, "label");
+            String labelText = label.getText().toString();
+            boolean labelCued = FULL.equals(labelText) || CUE.equals(labelText);
+            if (label.getVisibility() != View.VISIBLE) labelCued = false;
+            if (labelCued == unsignedMain((View) cell)) problem.set(name + ": tile " + state);
+            if (!said((View) cell).contains("direction unknown")) problem.set(name + ": tile spoken " + said((View) cell));
+            if (label.getLayout() != null && label.getLayout().getEllipsisCount(0) > 0) problem.set(name + ": tile label ellipsized: " + state);
+            if ((Integer) fieldOn(fieldOn(cell, "number"), "color") != captionMuted()) problem.set(name + ": tile number not muted: " + state);
+        }
+        return text;
+    }
+    private String[] cellStates() {
+        AtomicReference<String[]> out = new AtomicReference<>();
+        main(() -> {
+            List<String> states = new ArrayList<>();
+            for (Object cell : (List<?>) fieldOn(screen(), "cells")) if ("power".equals(fieldOn(cell, "content"))) states.add(cellState((View) cell));
+            out.set(states.toArray(new String[0]));
+        });
+        return out.get();
+    }
+    private View powerCell(boolean hiddenLabel) {
+        for (Object cell : (List<?>) fieldOn(screen(), "cells")) {
+            if (!"power".equals(fieldOn(cell, "content"))) continue;
+            boolean hidden = ((View) fieldOn(cell, "label")).getVisibility() != View.VISIBLE;
+            if (hidden == hiddenLabel) return (View) cell;
+        }
+        return null;
+    }
+    private String cellState(View cell) { return "label=\"" + ((TextView) fieldOn(cell, "label")).getText() + "\" number=" + numberMain(fieldOn(cell, "number")) + " said=" + said(cell); }
+    private static String numberMain(Object number) { return String.valueOf(fieldOn(number, "prefix")) + fieldOn(number, "main"); }
+    private static boolean unsigned(String number) { return number.indexOf('-') < 0 && number.indexOf('\u2212') < 0; }
+    private boolean unsignedMain(View cell) { return unsigned(numberMain(fieldOn(cell, "number"))); }
+    private static String said(View view) { return String.valueOf(view.getContentDescription()); }
+    private void shell(String command) throws Exception {
+        ParcelFileDescriptor pfd = getUiAutomation().executeShellCommand(command);
+        try (FileInputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) { byte[] buffer = new byte[1024]; while (in.read(buffer) >= 0) { } }
+    }
+    private void setPowerSpots(String frame, String... spots) {
+        main(() -> {
+            try {
+                Class<?> layoutClass = Class.forName("com.jjricks.volt.RidingLayout");
+                Method parse = layoutClass.getDeclaredMethod("parse", String.class); parse.setAccessible(true);
+                Object layout = parse.invoke(null, (Object) null);
+                Method setFrame = layoutClass.getDeclaredMethod("setFrame", String.class); setFrame.setAccessible(true);
+                setFrame.invoke(layout, frame);
+                Method setContent = layoutClass.getDeclaredMethod("setContent", String.class, String.class, String.class); setContent.setAccessible(true);
+                for (String spot : spots) setContent.invoke(layout, frame, spot, "power");
+                Method toJson = layoutClass.getDeclaredMethod("toJson"); toJson.setAccessible(true);
+                Object profile = call(activity.service(), "activeProfileId", new Class<?>[0]);
+                prefs("app_settings").edit().putString("riding_layout_v1_" + profile, (String) toJson.invoke(layout)).commit();
+            } catch (Exception e) { throw new RuntimeException(e); }
+        });
+    }
+
     /** The bar's below-zero fill: green only for regen the scooter confirmed (its pixels, so what draws is what's checked). */
     private void barColor(boolean confirmed) throws Exception {
         View bar = find(activity.getWindow().getDecorView(), Class.forName("com.jjricks.volt.RidingScreen$PowerBar"));
@@ -350,6 +538,11 @@ public final class RegenDisplayValidation extends Instrumentation {
         SystemClock.sleep(500);
         caption("signed", false);
         shot("riding-signed-regen");
+        main(() -> {
+            TextView c = (TextView) fieldOn(screen(), "wattsCaption");
+            require(c.getContentDescription() == null, "A signed reading gets no uncertainty note");
+            require(!unsigned(numberMain(fieldOn(screen(), "watts"))), "Signed regen keeps its minus sign");
+        });
         await(() -> "REGEN".equals(String.valueOf(direction())), "A signed ride should reach confirmed regen for the bar", 60000);
         barColor(true);
         main(() -> activity.onBackPressed());
