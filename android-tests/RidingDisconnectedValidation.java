@@ -226,7 +226,9 @@ public final class RidingDisconnectedValidation extends Instrumentation {
         // Not recording, disconnected: dim, and a tap does nothing.
         require(!read(record::isEnabled) && !read(record::isClickable), "dim Record takes no tap");
         String spoken = text(record.getContentDescription());
-        require(english("dashboardRecordConnect").equals(spoken), "the label doesn't offer a start: " + spoken);
+        // The simulator's dropout is a reconnect in progress (CONNECTING): Home's "Connecting" words; a link at rest says it needs one.
+        String needed = state == BleController.State.CONNECTING ? english("dashboardRecordConnecting") : english("dashboardRecordConnect");
+        require(needed.equals(spoken), "the label doesn't offer a start: " + spoken);
         shot("riding-6-disconnected-idle");
         tap(record);
         settle();
@@ -358,6 +360,8 @@ public final class RidingDisconnectedValidation extends Instrumentation {
         require(rideCount() == rides + 1, "one ride");
         settle();
         require((Boolean) read2(() -> field(field(service, "autoStart"), "recordHeld")), "a hand stop during a dropout holds auto-record");
+        require(!read(record::isEnabled) && english("dashboardRecordConnect").equals(text(record.getContentDescription())), "a link at rest: dim, and it says it needs a connection");
+        shot("riding-9-link-ended-idle");
         FakeLink again = new FakeLink();
         main(again::attach);
         await(() -> service.ble.connected(), "synthetic link back");
