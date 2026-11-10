@@ -205,7 +205,7 @@ public final class RidingLostConnectionValidation extends Instrumentation {
         void attach() { try {
             BleController ble = service.ble;
             ScooterProfiles.Profile profile = ble.profile();
-            BluetoothDevice device = getTargetContext().getSystemService(BluetoothManager.class).getAdapter().getRemoteDevice(profile.mac);
+            BluetoothDevice device = getTargetContext().getSystemService(BluetoothManager.class).getAdapter().getRemoteDevice("AA:BB:CC:DD:EE:01");
             Class<?> unsafeType = Class.forName("sun.misc.Unsafe"); Field unsafe = unsafeType.getDeclaredField("theUnsafe"); unsafe.setAccessible(true);
             gatt = (BluetoothGatt) unsafeType.getMethod("allocateInstance", Class.class).invoke(unsafe.get(null), BluetoothGatt.class);
             Class<?> iface = Class.forName("android.bluetooth.IBluetoothGatt");
@@ -220,8 +220,8 @@ public final class RidingLostConnectionValidation extends Instrumentation {
             gattService.addCharacteristic(writer);
             set(ble, "profile", profile); set(ble, "gatt", gatt); set(ble, "writer", writer); set(ble, "serial", profile.serial);
             set(ble, "authenticated", true); set(ble, "discovered", true); set(ble, "subscribed", true); set(ble, "wanted", false); set(ble, "state", BleController.State.READY);
-            ble.getClass(); call(service, "changed", new Class<?>[]{});
-        } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable; relax hidden_api_policy on the disposable emulator", error); } }
+            call(service, "changed", new Class<?>[]{});
+        } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable: " + error, error); } }
     }
 
     /** The owner's case: stop the recording in riding mode, the scooter disconnects, next open is Home. */
