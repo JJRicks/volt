@@ -18,6 +18,11 @@
 #     store, cards) gets 755/644 explicitly on every run, and every served path, including the home and
 #     releases folders it doesn't own, must be world-readable before current moves (PERMISSIONS_BAD);
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
+#   - the retry contract: every refusal before current moves prints a marker and its reason (DEPLOY_REFUSED,
+#     CARD_CONFLICT, PERMISSIONS_BAD) and leaves nothing behind that stops the identical command from
+#     succeeding once the cause is fixed. Folders it doesn't own are checked before anything is created; a
+#     release folder this run staged is removed on any failure before current moves (it was never served),
+#     and one left by an earlier attempt that is neither current nor holds live is replaced (STAGED_RELEASE_REMOVED);
 #   - before current moves, the live link's target is saved. After current moves,
 #     volt-homepage-switch.service must succeed in this run AND the live link must point inside the new
 #     release. Otherwise the script restores both links itself, each with one atomic rename (current to the
@@ -32,11 +37,31 @@ set -euo pipefail
 # Every mode below is explicit, and nothing depends on the caller's umask (a root shell with umask 077
 # would otherwise make folders nginx's workers cannot enter).
 umask 022
-[[ $# -eq 5 ]]
+# The retry contract (site/README.md, "Failure modes"). Until current moves (MOVED=1), any failure prints a
+# marker with its reason, and the release folder this run staged (STAGED=1) is removed again: nothing ever
+# served it, so the identical command works once the cause is fixed.
+REPORTED=0; MOVED=0; STAGED=0; ERR_LINE=
+refuse() {
+  echo "DEPLOY_REFUSED $*. Nothing served changed; fix the cause and run the same command again." >&2
+  REPORTED=1
+  exit 1
+}
+trap 'ERR_LINE=$LINENO' ERR
+on_exit() {
+  local rc=$?
+  if [ "$rc" -ne 0 ] && [ "$MOVED" -eq 0 ]; then
+    [ "$REPORTED" -eq 1 ] || echo "DEPLOY_REFUSED unexpected failure (exit $rc near line ${ERR_LINE:-?}). Nothing served changed; fix the cause and run the same command again." >&2
+    if [ "$STAGED" -eq 1 ] && remove_unserved_release; then
+      echo "STAGED_RELEASE_REMOVED $REL (staged by this run, never served)" >&2
+    fi
+  fi
+}
+trap on_exit EXIT
+[[ $# -eq 5 ]] || refuse "usage: <commit> <archive sha256> <manifest sha256> <previous release commit> <nginx config sha256>"
 C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_CONFIG="$5"
-[[ "$C" =~ ^[0-9a-f]{40}$ && "$EXPECTED_PREV" =~ ^[0-9a-f]{40}$ ]]
+[[ "$C" =~ ^[0-9a-f]{40}$ && "$EXPECTED_PREV" =~ ^[0-9a-f]{40}$ ]] || refuse "the commits must be 40 lowercase hex characters"
 for checksum in "$EXPECTED_TAR" "$EXPECTED_MANIFEST" "$EXPECTED_CONFIG"; do
-  [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]
+  [[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || refuse "a SHA-256 must be 64 lowercase hex characters: $checksum"
 done
 HOME_DIR="${VOLT_HOME_DIR:-/var/www/volt-home}"
 NGINX_DIR="${VOLT_NGINX_DIR:-/etc/nginx}"
@@ -67,24 +92,73 @@ PY
 }
 point_current() { swap_link "$HOME_DIR/current" "$1"; }
 unchanged() {
-  [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ]
-  [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
+  [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ] && [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
 }
-[ "$(sha "$TAR")" = "$EXPECTED_TAR" ]
-[ "$(sha "$MAN")" = "$EXPECTED_MANIFEST" ]
-unchanged
-[ ! -e "$REL" ]
-[ ! -L "$REL" ]
+# Removes $REL only when nothing serves it: a real folder (not a link) that is not current and does not
+# hold the live target. Returns non-zero, removing nothing, otherwise.
+remove_unserved_release() {
+  python3 -I - "$HOME_DIR" "$REL" <<'PY'
+import os, shutil, sys
+home, rel = sys.argv[1], sys.argv[2]
+if os.path.islink(rel) or not os.path.isdir(rel):
+    sys.exit(1)
+real = os.path.realpath(rel)
+for link in ('current', 'live'):
+    target = os.path.realpath(os.path.join(home, link))
+    if target == real or target.startswith(real + os.sep):
+        sys.exit(1)
+shutil.rmtree(rel)
+PY
+}
+# check_modes <path>... [--tree <path>...]: every path (and, after --tree, everything under it) must be
+# readable by nginx's unprivileged workers: folders o+rx, files o+r. PERMISSIONS_BAD otherwise.
+check_modes() {
+  python3 -I - "$@" <<'PY'
+import os, stat, sys
+from pathlib import Path
+paths, tree = [], False
+for arg in sys.argv[1:]:
+    if arg == '--tree':
+        tree = True
+        continue
+    p = Path(arg)
+    paths += [p] + (sorted(p.rglob('*')) if tree and p.is_dir() else [])
+bad = []
+for p in paths:
+    if p.is_symlink() or p.name.startswith('.') or not p.exists():
+        continue
+    mode = p.stat().st_mode
+    need = stat.S_IROTH | stat.S_IXOTH if p.is_dir() else stat.S_IROTH
+    if mode & need != need:
+        bad.append('%s mode=%o' % (p, stat.S_IMODE(mode)))
+if bad:
+    print('PERMISSIONS_BAD nginx could not read: %s%s. Nothing served changed; current is still the previous '
+          'release. Fix with chmod (folders 755, files 644) and run the same command again.'
+          % ('; '.join(bad[:5]), ' ...' if len(bad) > 5 else ''), file=sys.stderr)
+    sys.exit(1)
+PY
+}
+[ "$(sha "$TAR" 2>/dev/null)" = "$EXPECTED_TAR" ] || refuse "the archive $TAR is missing or its SHA-256 is not $EXPECTED_TAR"
+[ "$(sha "$MAN" 2>/dev/null)" = "$EXPECTED_MANIFEST" ] || refuse "the manifest $MAN is missing or its SHA-256 is not $EXPECTED_MANIFEST"
+unchanged || refuse "current is not $PREV, or the nginx site file's SHA-256 is not $EXPECTED_CONFIG"
+[ ! -L "$REL" ] || refuse "$REL is a symbolic link"
+if [ -e "$REL" ]; then
+  # Left by an earlier attempt (a crash, or a deploy that failed after current moved and was rolled back).
+  # Nothing serves it, so it is replaced; current or the live target is never touched.
+  remove_unserved_release || refuse "$REL exists and is current or holds the live variant"
+  echo "STAGED_RELEASE_REMOVED $REL (left by an earlier attempt, not served); staging it again" >&2
+fi
 # nginx serves the live variant once its configuration names live; then the switch must be there.
 serves_live=0
 if grep -q '^[[:space:]]*root /var/www/volt-home/live;' "$CONFIG"; then serves_live=1; fi
 switch_installed=0
 if [ -x "$SWITCH" ] && systemctl cat volt-homepage-switch.service >/dev/null 2>&1; then switch_installed=1; fi
 if [ "$serves_live" -eq 1 ] && [ "$switch_installed" -eq 0 ]; then
-  echo "nginx serves $HOME_DIR/live but the switch is not installed; stopping before any change." >&2
-  exit 1
+  refuse "nginx serves $HOME_DIR/live but the switch is not installed; stopping before any change"
 fi
-python3 -I - "$TAR" "$MAN" <<'PY'
+# The folders above the release that this script does not own: checked before anything is created.
+check_modes "$HOME_DIR" "$HOME_DIR/releases" || refuse "a folder above the release is not readable by nginx (above)"
+python3 -I - "$TAR" "$MAN" <<'PY' || refuse "the archive does not match its manifest"
 import hashlib, re, sys, tarfile
 from pathlib import Path, PurePosixPath
 expected = {}
@@ -113,14 +187,15 @@ cp -a "$NGINX_DIR/sites-enabled" "$BACKUP/"
 printf '%s\n' "$PREV" > "$BACKUP/previous-release.txt"
 readlink "$HOME_DIR/live" > "$BACKUP/previous-live.txt" 2>/dev/null || true
 install -d -m 755 "$REL"
+STAGED=1
 tar -xzf "$TAR" -C "$REL" --no-same-owner --no-same-permissions
 chown -R "$OWNER" "$REL"
 find "$REL" -type d -exec chmod 755 {} +
 find "$REL" -type f -exec chmod 644 {} +
-[ -z "$(find "$REL" ! -type f ! -type d)" ]
+[ -z "$(find "$REL" ! -type f ! -type d)" ] || refuse "the archive holds something other than files and folders"
 # Check every file against the manifest, then give it a modification time derived from its SHA-256
 # (a second between 2001 and 2020): same content, same ETag and Last-Modified, in every release and variant.
-python3 -I - "$REL" "$MAN" <<'PY'
+python3 -I - "$REL" "$MAN" <<'PY' || refuse "the release folder does not match the manifest"
 import hashlib, os, sys
 from pathlib import Path
 rel, manifest = Path(sys.argv[1]), Path(sys.argv[2])
@@ -186,36 +261,17 @@ for card in sorted(source.iterdir()):
         os.unlink(temp)
 print(added)
 PY
-)" || exit 1
+)" || refuse "the release's cards could not be added to the card store (reason above)"
 # Every path nginx serves must be readable by its unprivileged workers. Paths this script owns were set
 # above (release tree) or just now (store, cards); the folders above them are only checked. Any path without
 # the world bits stops the deploy here, before current moves (PERMISSIONS_BAD), with nothing served changed.
-python3 -I - "$HOME_DIR" "$REL" <<'PY'
-import os, stat, sys
-from pathlib import Path
-home, rel = Path(sys.argv[1]), Path(sys.argv[2])
-paths = [home, home / 'releases', rel] + sorted(rel.rglob('*'))
-if (home / 'cards').exists():
-    paths += [home / 'cards'] + sorted((home / 'cards').iterdir())
-bad = []
-for p in paths:
-    if p.is_symlink() or p.name.startswith('.'):
-        continue
-    mode = p.stat().st_mode
-    need = stat.S_IROTH | stat.S_IXOTH if p.is_dir() else stat.S_IROTH
-    if mode & need != need:
-        bad.append('%s mode=%o' % (p, stat.S_IMODE(mode)))
-if bad:
-    print('PERMISSIONS_BAD nginx could not read: %s%s. Nothing served changed; current is still the previous '
-          'release. Fix with chmod (folders 755, files 644) and deploy again.' % ('; '.join(bad[:5]), ' ...' if len(bad) > 5 else ''),
-          file=sys.stderr)
-    sys.exit(1)
-PY
-nginx -t
-unchanged
+check_modes "$HOME_DIR" "$HOME_DIR/releases" --tree "$REL" "$HOME_DIR/cards" || refuse "a served path is not readable by nginx (above)"
+nginx -t || refuse "nginx -t failed (its output is above)"
+unchanged || refuse "current or the nginx site file changed during the deploy"
 # The live link as it was, so a failed deploy can put it back without the switch.
 prior_live="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
-point_current "$REL"
+point_current "$REL" || refuse "could not move current (it still points at $PREV)"
+MOVED=1
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
   switch_ok=1
