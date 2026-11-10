@@ -63,6 +63,9 @@ build_original() {
 build_variant() {
   local name="$1" from="$2" out="$3"
   [ -f "$from/index.html" ] && [ ! -L "$from/index.html" ] || { echo "$name: variants/$name has no index.html" >&2; exit 1; }
+  # One robots.txt for the whole site, so no variant can hide previews (or the live page) from crawlers.
+  [ ! -e "$from/robots.txt" ] && [ ! -L "$from/robots.txt" ] ||
+    { echo "$name: variants may not ship robots.txt; the shared src/robots.txt is used (site/README.md, \"Variants\")" >&2; exit 1; }
   mkdir -p "$out"
   for file in "${shared_files[@]}"; do
     cp "$src/$file" "$out/$file"
@@ -120,7 +123,7 @@ if [ -d "$variants_src" ]; then
 fi
 
 # Every built page must meet the variant contract (tools/check-variants.py: relative URLs, the CSP,
-# content-specific link-preview image URLs, robots.txt). Any problem stops the build.
+# link-preview image URLs under /preview/<name>/ with the image's hash, robots). Any problem stops the build.
 if ! check_out="$(python3 -I "$here/tools/check-variants.py" "$dist"/variants/* 2>/dev/null)"; then
   printf '%s\n' "$check_out" >&2
   echo "Variant check failed; see site/README.md, \"Variants\"." >&2

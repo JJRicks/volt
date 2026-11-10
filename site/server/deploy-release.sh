@@ -7,12 +7,17 @@
 # Replaces the update.sh used through Volt 1.13.0. The same checks, plus:
 #   - the release must hold variants.json and a real variants/original/index.html;
 #   - every file's modification time is derived from its SHA-256, so nginx's ETag and Last-Modified change
-#     exactly when a file's content does. With "Cache-Control: no-cache" (nginx/volt-homepage.conf), a
-#     return visit after a variant switch or a deploy never reuses another variant's file at the same URL;
+#     when a file's content does. With "Cache-Control: no-cache" (nginx/volt-homepage.conf), a return visit
+#     after a variant switch or a deploy revalidates every file. Limit: the time is the SHA-256 reduced to
+#     600 million seconds, so two same-size files can be crafted to share a validator (site/README.md,
+#     "Caching"); ordinary files don't collide in practice;
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
-#   - after current moves, volt-homepage-switch.service must succeed in this run AND the live link must
-#     point inside the new release. Otherwise current goes back to the previous release, the switch runs
-#     again, and the deploy fails (DEPLOY_FAILED). A status file left by an earlier run is never trusted.
+#   - before current moves, the live link's target is saved. After current moves,
+#     volt-homepage-switch.service must succeed in this run AND the live link must point inside the new
+#     release. Otherwise the script restores both links itself, each with one atomic rename (current to the
+#     previous release, live to its saved target; no switch run is involved), checks both, and fails:
+#     DEPLOY_FAILED when both are back, DEPLOY_INCOMPLETE (with the commands to finish by hand) when not.
+#     A status file left by an earlier run is never trusted.
 # Until the switch runs, / keeps serving the previous release's copy of the live variant; nothing dangles.
 #
 # The VOLT_* variables below exist for tests/site-homepage-test.py, which runs this script in a temporary
@@ -36,11 +41,22 @@ REL="$HOME_DIR/releases/$C"
 PREV="$HOME_DIR/releases/$EXPECTED_PREV"
 sha() { python3 -I -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$1"; }
 realpath_of() { python3 -I -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
-# Points current at a release in one rename (a new link, renamed over the old one).
-point_current() {
-  ln -sfn "$1" "$HOME_DIR/current.new"
-  python3 -I -c 'import os, sys; os.replace(sys.argv[1], sys.argv[2])' "$HOME_DIR/current.new" "$HOME_DIR/current"
+# Points a link (current or live) at a target in one rename: a new link under a unique temporary name,
+# renamed over the old one. Returns non-zero, changing nothing, if that fails.
+swap_link() {  # <link> <target>
+  python3 -I - "$1" "$2" <<'PY'
+import os, sys
+link, target = sys.argv[1], sys.argv[2]
+temp = '%s.%d.new' % (link, os.getpid())
+os.symlink(target, temp)
+try:
+    os.replace(temp, link)
+except BaseException:
+    os.unlink(temp)
+    raise
+PY
 }
+point_current() { swap_link "$HOME_DIR/current" "$1"; }
 unchanged() {
   [ "$(realpath_of "$HOME_DIR/current")" = "$(realpath_of "$PREV")" ]
   [ "$(sha "$CONFIG")" = "$EXPECTED_CONFIG" ]
@@ -110,6 +126,8 @@ for digest, name in entries:
 PY
 nginx -t
 unchanged
+# The live link as it was, so a failed deploy can put it back without the switch.
+prior_live="$(readlink "$HOME_DIR/live" 2>/dev/null || true)"
 point_current "$REL"
 live_line="live=not-installed"
 if [ "$switch_installed" -eq 1 ]; then
@@ -119,13 +137,34 @@ if [ "$switch_installed" -eq 1 ]; then
   inside=0
   case "$live_target" in "$REL"/variants/?*) inside=1 ;; esac
   if [ "$switch_ok" -ne 1 ] || [ "$inside" -ne 1 ]; then
-    # Undo the move: current back to the previous release, and the switch again so live follows it.
+    # Put both links back as they were, directly, then check both. Nothing here may stop the script early.
+    set +e
     point_current "$PREV"
-    systemctl start volt-homepage-switch.service || true
-    echo "DEPLOY_FAILED switch_ok=$switch_ok live=${live_target:-none} was not inside the new release." \
-         "current is back on $PREV; live -> $(readlink "$HOME_DIR/live" 2>/dev/null || echo none)." \
-         "The new release stays in $REL for a look; see $STATUS." >&2
-    exit 1
+    if [ -n "$prior_live" ]; then
+      [ "$(readlink "$HOME_DIR/live" 2>/dev/null)" = "$prior_live" ] || swap_link "$HOME_DIR/live" "$prior_live"
+    fi
+    current_now="$(realpath_of "$HOME_DIR/current")"
+    live_now="$(readlink "$HOME_DIR/live" 2>/dev/null)"
+    set -e
+    current_back=0; live_back=0
+    [ "$current_now" = "$(realpath_of "$PREV")" ] && current_back=1
+    if [ -n "$prior_live" ]; then
+      [ "$live_now" = "$prior_live" ] && live_back=1
+    else
+      case "$live_now" in "$REL"/*) ;; *) live_back=1 ;; esac
+    fi
+    if [ "$current_back" -eq 1 ] && [ "$live_back" -eq 1 ]; then
+      echo "DEPLOY_FAILED switch_ok=$switch_ok live_after_switch=${live_target:-none}: live was not left inside the new release." \
+           "Restored: current -> $PREV, live -> ${prior_live:-none}. The new release stays in $REL for a look; see $STATUS." >&2
+      exit 1
+    fi
+    echo "DEPLOY_INCOMPLETE the deploy failed (switch_ok=$switch_ok) and the rollback did not finish:" \
+         "current -> ${current_now:-?} (want $PREV), live -> ${live_now:-none} (want ${prior_live:-none})." >&2
+    echo "DEPLOY_INCOMPLETE finish by hand, as root:" \
+         "ln -sfn $PREV $HOME_DIR/current.new && mv -Tf $HOME_DIR/current.new $HOME_DIR/current" \
+         "${prior_live:+&& ln -sfn $prior_live $HOME_DIR/live.new && mv -Tf $HOME_DIR/live.new $HOME_DIR/live}" \
+         "&& readlink -f $HOME_DIR/current && readlink $HOME_DIR/live" >&2
+    exit 2
   fi
   # This run's status only: it must name the new release.
   live_line="$(python3 -I - "$STATUS" "$C" "$live_target" <<'PY'
