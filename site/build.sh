@@ -7,6 +7,8 @@
 #   dist/variants/<name>/  one complete page per homepage variant: "original" from src/, and every
 #                          directory under variants/. nginx serves the live one at / and each at /preview/<name>/.
 #   dist/variants.json     name, title and a one-line description of each variant, for the Workbench.
+#   dist/cards/            the variants' link-preview images, named <sha256>.<ext> (only when a variant has
+#                          one). deploy-release.sh adds them to the server's append-only card store.
 #   dist/ (root)           today's page again, byte for byte the same as dist/variants/original/, so
 #                          tools that read dist/index.html and older nginx configurations keep working.
 set -euo pipefail
@@ -129,6 +131,7 @@ if ! check_out="$(python3 -I "$here/tools/check-variants.py" "$dist"/variants/* 
   echo "Variant check failed; see site/README.md, \"Variants\"." >&2
   exit 1
 fi
+python3 -I "$here/tools/check-variants.py" --collect-cards "$dist" 2>/dev/null
 
 # Known variants first, in the owner's order, then any others alphabetically (the glob above is sorted).
 ordered=()
