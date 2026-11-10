@@ -176,6 +176,7 @@ def sync_dir(path):
 def write_status(state_dir, status):
     """status.json, replaced atomically, readable by everyone (mode 0644)."""
     os.makedirs(state_dir, mode=0o755, exist_ok=True)
+    os.chmod(state_dir, 0o755)   # explicit: makedirs' mode is filtered by the umask, and an old folder is repaired
     fd, temp = tempfile.mkstemp(prefix='.status.', dir=state_dir)
     try:
         with os.fdopen(fd, 'w') as out:
@@ -241,9 +242,13 @@ def main(argv=None):
     args = parser.parse_args(argv)
     home = os.path.abspath(args.home)
     state_dir = os.path.abspath(args.state_dir)
+    # Every mode is explicit: nothing here depends on the caller's umask, and a state folder made under
+    # another umask is repaired (status.json must stay readable by the Workbench's user).
     os.umask(0o022)
     os.makedirs(state_dir, mode=0o755, exist_ok=True)
+    os.chmod(state_dir, 0o755)
     with open(os.path.join(state_dir, 'lock'), 'a') as lock:
+        os.fchmod(lock.fileno(), 0o644)
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         # systemd folds a trigger that arrives while this run is still going into this run, so a request
         # written meanwhile is picked up here: apply again until the request stops changing.

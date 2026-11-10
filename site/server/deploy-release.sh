@@ -14,6 +14,9 @@
 #   - the release's cards/ (variant link-preview images, named by SHA-256) are added to the append-only
 #     store /var/www/volt-home/cards/; a name that exists with other bytes stops the deploy (CARD_CONFLICT)
 #     before current moves, and nothing in the store is ever replaced or removed;
+#   - modes never depend on the caller's umask: everything this script creates or owns (release tree, card
+#     store, cards) gets 755/644 explicitly on every run, and every served path, including the home and
+#     releases folders it doesn't own, must be world-readable before current moves (PERMISSIONS_BAD);
 #   - once nginx serves /var/www/volt-home/live, the switch (site/server/) must be installed;
 #   - before current moves, the live link's target is saved. After current moves,
 #     volt-homepage-switch.service must succeed in this run AND the live link must point inside the new
@@ -26,6 +29,9 @@
 # The VOLT_* variables below exist for tests/site-homepage-test.py, which runs this script in a temporary
 # folder with stand-ins for nginx and systemctl. Production uses the defaults.
 set -euo pipefail
+# Every mode below is explicit, and nothing depends on the caller's umask (a root shell with umask 077
+# would otherwise make folders nginx's workers cannot enter).
+umask 022
 [[ $# -eq 5 ]]
 C="$1"; EXPECTED_TAR="$2"; EXPECTED_MANIFEST="$3"; EXPECTED_PREV="$4"; EXPECTED_CONFIG="$5"
 [[ "$C" =~ ^[0-9a-f]{40}$ && "$EXPECTED_PREV" =~ ^[0-9a-f]{40}$ ]]
@@ -135,9 +141,18 @@ cards_added="$(python3 -I - "$REL/cards" "$HOME_DIR/cards" <<'PY'
 import hashlib, os, re, sys
 from pathlib import Path
 source, store = Path(sys.argv[1]), Path(sys.argv[2])
+os.umask(0o022)
+# The store and every card in it get their modes on every run, so a store made or filled under another
+# umask, such as a 0700 folder or 0600 cards, is repaired here rather than served as 403s.
+if store.is_dir() and not store.is_symlink():
+    os.chmod(store, 0o755)
+    for old in store.iterdir():
+        if not old.name.startswith('.') and old.is_file() and not old.is_symlink():
+            os.chmod(old, 0o644)
 if not source.is_dir():
     print(0); sys.exit(0)
 store.mkdir(mode=0o755, exist_ok=True)
+os.chmod(store, 0o755)   # explicit: the umask filters the mode given to mkdir
 added = 0
 for card in sorted(source.iterdir()):
     data = card.read_bytes()
@@ -151,6 +166,7 @@ for card in sorted(source.iterdir()):
         if target.is_symlink() or not target.is_file() or target.read_bytes() != data:
             print('CARD_CONFLICT %s already holds different bytes; the store keeps it and the deploy stops' % target, file=sys.stderr)
             sys.exit(1)
+        os.chmod(target, 0o644)   # repairs a card stored under another umask
         continue
     temp = store / ('.%s.%d.new' % (card.name, os.getpid()))
     with open(temp, 'wb') as f:
@@ -171,6 +187,30 @@ for card in sorted(source.iterdir()):
 print(added)
 PY
 )" || exit 1
+# Every path nginx serves must be readable by its unprivileged workers. Paths this script owns were set
+# above (release tree) or just now (store, cards); the folders above them are only checked. Any path without
+# the world bits stops the deploy here, before current moves (PERMISSIONS_BAD), with nothing served changed.
+python3 -I - "$HOME_DIR" "$REL" <<'PY'
+import os, stat, sys
+from pathlib import Path
+home, rel = Path(sys.argv[1]), Path(sys.argv[2])
+paths = [home, home / 'releases', rel] + sorted(rel.rglob('*'))
+if (home / 'cards').exists():
+    paths += [home / 'cards'] + sorted((home / 'cards').iterdir())
+bad = []
+for p in paths:
+    if p.is_symlink() or p.name.startswith('.'):
+        continue
+    mode = p.stat().st_mode
+    need = stat.S_IROTH | stat.S_IXOTH if p.is_dir() else stat.S_IROTH
+    if mode & need != need:
+        bad.append('%s mode=%o' % (p, stat.S_IMODE(mode)))
+if bad:
+    print('PERMISSIONS_BAD nginx could not read: %s%s. Nothing served changed; current is still the previous '
+          'release. Fix with chmod (folders 755, files 644) and deploy again.' % ('; '.join(bad[:5]), ' ...' if len(bad) > 5 else ''),
+          file=sys.stderr)
+    sys.exit(1)
+PY
 nginx -t
 unchanged
 # The live link as it was, so a failed deploy can put it back without the switch.
