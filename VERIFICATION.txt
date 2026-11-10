@@ -120,8 +120,10 @@ November 9, 2026
 - Physical scope: this release's riding mode, regen and language changes
   are tested on emulators and in JVM suites, not yet on a ride or on a real
   phone.
-- After publishing, November 9, 2026. The bullets above were written before
-  publishing; these record what ran since.
+- Release checks after the #357 merge and before publishing, November 9,
+  2026 (local time). The bullets above were written at the merge, before
+  these ran; for the phone install and the parked hardware sweep, these
+  replace "not yet on a real phone" above.
   - Final release build of the merge commit e96705b5 (VOLT_RELEASE=1, with
     the release key): ship_check --release --aapt required PASS,
     tests/run.sh passes (163 suites), and the owner-capture guard,
@@ -129,9 +131,7 @@ November 9, 2026
     b8de10fbc0732e43086b8d943fb0d71186f80829633b9080518e7a77cba2b11c. It
     reads 1.13.0 (57) with no -dev, carries 1.12.1's certificate and is
     zipaligned, and its contents outside META-INF are identical by SHA-256
-    to the swept candidate (c82fbbe2...), 37 of 37 entries. After
-    publishing, the release assets were downloaded again and matched this
-    build, and tag v1.13.0 points at e96705b5.
+    to the swept candidate (c82fbbe2...), 37 of 37 entries.
   - The swept candidate APK (contents identical to the release) was
     installed over 1.12.1 on the owner's Pixel 10 Pro Fold, keeping its data
     (install -r). The phone reads 1.13.0 (57).
@@ -153,6 +153,10 @@ November 9, 2026
     mode closing after an automatic end, inferred regen on a GT3 Max), the
     live charging card through a real charge and an unplug, and Test
     scheduled charging during a charge.
+- After publishing (GitHub release published 05:45 UTC on November 10,
+  10:45 PM MST on November 9): the release assets were downloaded again and
+  matched the final build byte for byte, release-gates.py apk passed on the
+  downloaded APK, and tag v1.13.0 points at e96705b5.
 
 --- Previous verification ---
 
