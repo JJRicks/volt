@@ -40,11 +40,13 @@ import java.util.Locale;
  * speed. Every frame has the tall power bar on the left, and sideways or on a wide screen each puts
  * its parts side by side.
  *
- * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped (the
- * layout picker's own gate, RidingFrames.pickerShown) riding mode also shows two 56 dp controls, Lock
- * and Record, which are Home's own: MainActivity's LockControl through its LockTapQueue, and
- * RideRecordingControl. They go the moment the scooter moves, and a lock tap still waiting in the queue
- * goes back then too. Nothing else here sends a scooter
+ * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped riding
+ * mode also shows two 56 dp controls, Lock and Record, which are Home's own: MainActivity's LockControl
+ * through its LockTapQueue, and RideRecordingControl. They share the tune button's gate
+ * (RidingFrames.tuneShown): shown when stopped or with no scooter connected (owner, Nov 9), gone the
+ * moment a connected scooter moves, and a lock tap still waiting in the queue goes back then too.
+ * Disconnected, Lock shows the last known state and takes no tap, and Record only stops a recording.
+ * Nothing else here sends a scooter
  * command, changes a setting or starts a recording, and there is still no lock state in the readings
  * or the layout spots. Moving, the only control that acts on the scooter or the app is back, top
  * bar, 56 dp; the moon and the brightness slider stay live but change only this screen's look. The
@@ -703,10 +705,11 @@ final class RidingScreen implements AppScreen {
         showPower(now);
         if (ring != null) ring.show(now, units);
         if (trace != null) trace.show(now, units);
-        // Lock and Record show only while stopped (Q17 A; owner, Nov 8), and the tune disc too but also while disconnected (owner, Nov 9): a moving rider sees none.
-        boolean stoppedNow = RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
-        disc.show(tuneShown(now));
-        showStopped(stoppedNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
+        // The tune disc, Lock and Record show while stopped (Q17 A; owner, Nov 8) or disconnected (owner, Nov 9), from one
+        // reading of the gate, so they change on the same frame: a moving rider sees none.
+        boolean shownNow = tuneShown(now);
+        disc.show(shownNow);
+        showStopped(shownNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
         // Only real speed closes the tune menu, at 4 mph or more; losing the readings doesn't.
         if (sheetState.update(liveKmh())) dismissSheet();
         // OLED care: the whole layout drifts slowly and the static chrome dims on a long ride.
@@ -729,11 +732,13 @@ final class RidingScreen implements AppScreen {
             recordDisc.setClickable(false);
         }
         if (!shown) return;
-        boolean recording = service != null && service.isRecording(), ready = service != null && service.ble.ready();
+        BleController ble = service == null ? null : service.ble;
+        boolean recording = service != null && service.isRecording(), ready = ble != null && ble.ready();
         boolean saving = service != null && service.phoneSaving(), enabled = RidingFrames.recordEnabled(recording, ready, saving);
         recordDisc.setEnabled(enabled);
         recordDisc.setClickable(enabled);
-        recordDisc.setContentDescription(recording ? T.ridesEndDescription() : saving ? T.dashboardRecordSaving() : T.dashboardStartRecording());
+        // Home's words for a disc that can't start here: saving, connecting, or needing a connection (which this disc never makes).
+        recordDisc.setContentDescription(recording ? T.ridesEndDescription() : DashboardScreen.recordIdleSpoken(saving, ready, reconnecting(ble, ready)));
         recordGlyph.set(recording, enabled ? ui.onAccent : ui.dim);
         if (recordLive != null && recordLive == enabled) return;
         recordLive = enabled;
@@ -781,7 +786,8 @@ final class RidingScreen implements AppScreen {
     /** The Record disc: Home's start and stop, asked once more whether the scooter is still stopped. */
     private void recordTap() {
         if (closed || service == null) return;
-        int action = RidingFrames.recordAction(stopped(SystemClock.elapsedRealtime()), service.isRecording(), service.ble.ready());
+        int action = RidingFrames.recordAction(service.ble.connected(), stopped(SystemClock.elapsedRealtime()), service.isRecording(),
+                service.ble.ready(), recordGlyph.stop);
         RideRecordingControl recorder = RideRecordingApp.of(host);
         if (action == RecorderTap.STOP) recorder.stop();
         else if (action == RecorderTap.START) { Haptics.tick(view); recorder.start(); }
@@ -790,11 +796,7 @@ final class RidingScreen implements AppScreen {
 
     private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
         boolean ready = ble != null && ble.ready();
-        BleController.State state = ble == null ? null : ble.state();
-        boolean reconnecting = ble != null && !ready && (ble.connected() || ble.recoverableConnectionLoss()
-                || state == BleController.State.CONNECTING || state == BleController.State.AUTHENTICATING
-                || state == BleController.State.SCANNING || state == BleController.State.WAITING);
-        RidingFocus.Link link = RidingFocus.link(ready, reconnecting);
+        RidingFocus.Link link = RidingFocus.link(ready, reconnecting(ble, ready));
         int color = link == RidingFocus.Link.CONNECTED ? ui.ok : ui.orange;
         dot.setBackground(oval(color));
         status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
@@ -847,6 +849,14 @@ final class RidingScreen implements AppScreen {
             warning.setContentDescription(T.ridingWarningSpoken(number));
             warning.setAlpha(code.stale ? .6f : 1);
         } else warning.setVisibility(View.GONE);
+    }
+
+    /** Not ready, and on the way back: the pill's Reconnecting, and the Record disc's "Connecting". */
+    private static boolean reconnecting(BleController ble, boolean ready) {
+        BleController.State state = ble == null ? null : ble.state();
+        return ble != null && !ready && (ble.connected() || ble.recoverableConnectionLoss()
+                || state == BleController.State.CONNECTING || state == BleController.State.AUTHENTICATING
+                || state == BleController.State.SCANNING || state == BleController.State.WAITING);
     }
 
     /**
