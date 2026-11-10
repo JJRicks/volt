@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Homepage variants (site/README.md, "Variants"): the build contract, the variant markup check, the nginx
 configuration and the live-variant switch. Temporary folders only; no network, server or browser."""
-import fcntl, hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
+import fcntl, hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, time, unittest
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # loading the extensionless switch script must leave no __pycache__ in site/
@@ -724,18 +724,44 @@ class DeployRelease(unittest.TestCase):
             sys.executable, self.switch_bin, self.home, self.request, self.state)
         job = lambda seconds: ('echo activating > "%s"; ( sleep %d; %s; echo inactive > "%s" ) </dev/null >/dev/null 2>&1 & exit 143'
                                % (self.unit_state, seconds, run, self.unit_state))
+        # "queued" is a start job systemd has queued but not begun: show still says inactive, list-jobs lists it,
+        # and list-jobs fails ("listjobs-fails") until the job has run, or for good with "listjobs-keeps-failing".
+        queued = ('echo queued > "%s"; touch "%s"; ( sleep 1; echo activating > "%s"; sleep 0.3; %s; echo inactive > "%s";'
+                  ' [ -e "%s" ] || rm -f "%s" ) </dev/null >/dev/null 2>&1 & exit 143'
+                  % (self.unit_state, base / 'listjobs-fails', self.unit_state, run, self.unit_state,
+                     base / 'listjobs-keeps-failing', base / 'listjobs-fails'))
+        # Fault injection (test_every_probe_that_fails_reads_as_unknown): the file "fault" names probes
+        # (comma-separated), "fault-when" says from when (always; moving: from the rename of current into the
+        # new release on; moved: once current points there), "fault-how" says how (exit1: fails, printing
+        # nothing; empty: exit 0, printing nothing). Every stand-in below sources this.
+        (base / 'faulty.sh').write_text(
+            'faulty() {\n  [ -e "%(b)s/fault" ] || return 1\n  case ",$(cat "%(b)s/fault")," in *",$1,"*) ;; *) return 1 ;; esac\n'
+            '  when="$(cat "%(b)s/fault-when")"\n  [ "$when" = always ] || [ -e "%(b)s/$when" ]\n}\n'
+            'fault_out() { [ "$(cat "%(b)s/fault-how" 2>/dev/null)" = empty ] && exit 0; exit "${1:-1}"; }\n' % {'b': base})
         (self.bin / 'systemctl').write_text(
-            '#!/bin/sh\ncase "$1" in\n  cat) [ -e "%s" ] && exit 1; exit 0 ;;\n'
-            '  show) cat "%s" 2>/dev/null || echo inactive; exit 0 ;;\n'
-            '  list-jobs) [ "$(cat "%s" 2>/dev/null)" = activating ] && echo "7 volt-homepage-switch.service start running"; exit 0 ;;\n'
+            '#!/bin/sh\n. "%s"\ncase "$1" in\n'
+            '  show) case "$*" in\n'
+            '      *LoadState*) faulty loadstate && fault_out; [ -e "%s" ] && echo not-found || echo loaded ;;\n'
+            '      *) faulty show && fault_out; s="$(cat "%s" 2>/dev/null || echo inactive)"; [ "$s" = queued ] && s=inactive; echo "$s" ;;\n'
+            '    esac; exit 0 ;;\n'
+            '  list-jobs) faulty list-jobs && fault_out; [ -e "%s" ] && exit 1\n'
+            '    case "$(cat "%s" 2>/dev/null)" in activating|queued) echo "7 volt-homepage-switch.service start running" ;; esac\n'
+            '    cat "%s" 2>/dev/null; exit 0 ;;\n'
             '  start)\n'
             '    [ -s "%s" ] && { echo again >> "%s"; exit 1; }\n    echo start >> "%s"\n'
             '    case "$(cat "%s")" in\n'
             '    run) exec %s ;;\n    fail) exit 1 ;;\n    movefail) %s; exit 1 ;;\n'
             '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n'
-            '    runterm) %s; kill -TERM "$PPID"; exit 0 ;;\n    detach) %s ;;\n    detachslow) %s ;;\n  esac ;;\nesac\nexit 0\n'
-            % (base / 'no-unit', self.unit_state, self.unit_state, self.starts, self.starts, self.starts, self.mode,
-               run, run, run, self.home, run, job(1), job(4)))
+            '    runterm) %s; kill -TERM "$PPID"; exit 0 ;;\n    detach) %s ;;\n    detachslow) %s ;;\n    queued) %s ;;\n'
+            '  esac ;;\nesac\nexit 0\n'
+            % (base / 'faulty.sh', base / 'no-unit', self.unit_state, base / 'listjobs-fails', self.unit_state,
+               base / 'jobs-extra', self.starts, self.starts, self.starts, self.mode,
+               run, run, run, self.home, run, job(1), job(4), queued))
+        # readlink and grep can fail too (the deploy's fallback link reader, and its nginx configuration check).
+        for name in ('readlink', 'grep'):
+            (self.bin / name).write_text('#!/bin/sh\n. "%s"\nfaulty %s && fault_out 2\nexec "%s" "$@"\n'
+                                         % (base / 'faulty.sh', name, shutil.which(name)))
+            os.chmod(self.bin / name, 0o755)
         # chown is the real one; it runs right after the release is staged, so it can also change what the deploy
         # meets next: "releases-0700-after-staging" takes the world bits off releases/ (a served folder, checked
         # again before current moves), "home-locked-after-staging" makes the home folder read-only, so current
@@ -1230,6 +1256,203 @@ class DeployRelease(unittest.TestCase):
         self.unit_state.write_text('inactive\n')
         out = self.rerun()
         self.assertEqual(out.returncode, 0, out.stderr)
+
+    def fault(self, probes, when='always', how='exit1'):
+        """Makes the named probes fail (see faulty.sh in setUp) and puts a stand-in python3 on the path that
+        honours it: a Python step names itself with a tag:<name> argument, and "python" fails them all. The
+        stand-in also marks the rename of current into the new release: "moving" just before, "moved" once
+        current points there."""
+        for name, text in (('fault', ','.join(probes)), ('fault-when', when), ('fault-how', how)):
+            (self.flags / name).write_text(text)
+        new = str(self.home / 'releases' / self.NEW)
+        shim = self.bin / 'python3'
+        shim.write_text(
+            '#!%(py)s -I\nimport os, subprocess, sys\nbase, new, current = %(base)r, %(new)r, %(current)r\n'
+            'args = sys.argv[1:]\ntag = next((a[4:] for a in args if a.startswith("tag:")), "")\n'
+            'def read(name):\n    try:\n        return open(os.path.join(base, name)).read().strip()\n'
+            '    except OSError:\n        return ""\n'
+            'def faulty(name):\n    when = read("fault-when")\n'
+            '    return name in read("fault").split(",") and (when == "always" or os.path.exists(os.path.join(base, when)))\n'
+            'swap_in = args[-2:] == [current, new]   # the rename of current into the new release\n'
+            'if swap_in:\n    open(os.path.join(base, "moving"), "a").close()\n'
+            'if faulty(tag) or faulty("python"):\n    sys.exit(0 if read("fault-how") == "empty" else 1)\n'
+            'if not swap_in:\n    os.execv(%(py)r, [%(py)r] + args)\n'
+            'rc = subprocess.call([%(py)r] + args, close_fds=False)\n'
+            'if swap_in and os.path.islink(current) and os.readlink(current) == new:\n'
+            '    open(os.path.join(base, "moved"), "a").close()\n'
+            'sys.exit(rc)\n' % {'py': sys.executable, 'base': str(self.flags), 'new': new, 'current': str(self.home / 'current')})
+        os.chmod(shim, 0o755)
+        self.addCleanup(lambda: shim.unlink() if shim.exists() else None)
+
+    def clear_fault(self):
+        for name in ('fault', 'fault-when', 'fault-how', 'moving', 'moved'):
+            if (self.flags / name).exists():
+                (self.flags / name).unlink()
+
+    def wait_for_idle_unit(self):
+        for _ in range(100):
+            if not self.unit_state.exists() or self.unit_state.read_text().strip() == 'inactive':
+                return
+            subprocess.run(['sleep', '0.1'])
+        self.fail('the switch job never finished')
+
+    def put_back_by_hand(self):
+        """site/README.md, "Rollback", done by the test: current to the previous release, live to its variant."""
+        for link, target in (('current', str(self.home / 'releases' / self.PREV)), ('live', self.variant(self.PREV, 'refined'))):
+            os.symlink(target, self.home / (link + '.by-hand'))
+            os.replace(self.home / (link + '.by-hand'), self.home / link)
+
+    def assert_safe_recovery_lines(self, out):
+        """A put-back command is printed only as the exact restore (current to the previous release, live to the
+        variant it held), never rm -f of a live link that existed, and never while the switch isn't confirmed idle."""
+        for line in out.stderr.splitlines():
+            if 'ln -sfn' not in line:
+                continue
+            self.assertNotRegex(out.stderr, r'could not be confirmed idle|is still running after', 'commands racing the switch')
+            self.assertIn('ln -sfn %s %s/current.new' % (self.home / 'releases' / self.PREV, self.home), line)
+            self.assertIn('ln -sfn %s %s/live.new' % (self.variant(self.PREV, 'refined'), self.home), line)
+            self.assertNotIn('rm -f %s/live' % self.home, line)
+
+    def test_every_probe_that_fails_reads_as_unknown(self):
+        """The class behind Codex's round-3 findings: a probe that fails must not read as a pass. Each probe the
+        deploy decides on (site/README.md, "Probes") fails in turn, by exiting non-zero and by printing nothing;
+        before current moves and, where it is used there, after. Never a success marker, never a put-back command
+        that could race the switch or delete live, and the outcome matches the links; then, once the probe works
+        again (and the links are put back where the report says to), the same command succeeds."""
+        leftover = lambda: [((self.home / 'releases' / self.NEW / n).parent.mkdir(parents=True, exist_ok=True),
+                             (self.home / 'releases' / self.NEW / n).write_bytes(d)) for n, d in self.contents('new').items()]
+        cases = [
+            # probes, when, hows, setup (a leftover release folder, or a switch mode), marker, text in the report
+            (['sha'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'the archive'),
+            (['real', 'readlink'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not resolve'),
+            (['link', 'readlink'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'current is not'),
+            (['lock'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'another deploy holds'),
+            (['kind'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'releases/%s exists' % self.NEW),
+            (['exec'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'is installed'),
+            (['loadstate'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not tell whether volt-homepage-switch.service is installed'),
+            (['show'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not be confirmed idle'),
+            (['list-jobs'], 'always', ('exit1',), None, 'DEPLOY_REFUSED', 'could not be confirmed idle after 1s (unknown: systemctl list-jobs failed)'),
+            (['grep'], 'always', ('exit1',), None, 'DEPLOY_REFUSED', 'could not read'),
+            (['modes'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not be checked'),
+            (['archive'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'the archive does not match its manifest'),
+            (['matches'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'does not match the manifest, or could not be checked'),
+            (['matches'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'could not check'),
+            (['unserved'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'cannot be staged over'),
+            (['cards'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'card'),
+            # The rename itself fails and so does every Python step after it (Codex's second finding): the
+            # fallback reader confirms current never moved.
+            (['python'], 'moving', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not move current'),
+            (['python', 'readlink'], 'moving', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not confirm where current points'),
+            (['link', 'readlink'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not confirm where current points'),
+            (['show'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
+            (['list-jobs'], 'moved', ('exit1',), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
+            (['start'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_FAILED', 'live was not left inside the new release'),
+            (['python'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
+            # The switch moves live and fails, and the rollback's renames fail: confirmed not back, so the exact commands.
+            (['swap'], 'moved', ('exit1', 'empty'), 'movefail', 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
+        ]
+        for probes, when, hows, setup, marker, text in cases:
+            for how in hows:
+                with self.subTest(probes=probes, when=when, how=how, setup=bool(setup)):
+                    self.tearDown()
+                    self.setUp()
+                    self.settle = '1'
+                    old_links = (self.PREV, self.variant(self.PREV, 'refined'))
+                    if setup == 'movefail':
+                        self.mode.write_text(setup)
+                    elif setup:
+                        setup()
+                    self.fault(probes, when, how)
+                    out = self.deploy()
+                    self.wait_for_idle_unit()
+                    os.chmod(self.home, 0o755)
+                    self.assertNotIn('UPDATE_OK', out.stdout, out.stderr)
+                    self.assertEqual(self.outcome(out)[0], marker, out.stderr)
+                    self.assertIn(text, out.stderr)
+                    self.assertEqual(out.returncode, {'DEPLOY_REFUSED': 1, 'DEPLOY_FAILED': 1, 'DEPLOY_INCOMPLETE': 2}[marker], out.stderr)
+                    self.assert_safe_recovery_lines(out)
+                    self.clear_fault()
+                    if marker in ('DEPLOY_REFUSED', 'DEPLOY_FAILED'):
+                        self.assertEqual((self.current(), self.live()), old_links, 'nothing served changed')
+                    elif 'finish by hand' in out.stderr:
+                        steps = re.search(r'DEPLOY_INCOMPLETE finish by hand, as root: (.*)', out.stderr).group(1)
+                        steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
+                        subprocess.run(['sh', '-c', steps], check=True, capture_output=True, env=dict(os.environ))
+                        self.assertEqual((self.current(), self.live()), old_links)
+                    else:
+                        self.assertNotIn('ln -sfn', out.stderr)
+                        self.put_back_by_hand()
+                    self.retry_succeeds()
+
+    def test_a_failed_job_list_is_unknown_not_idle(self):
+        # Codex's round-3 probe: the start job is queued (show still says inactive) and list-jobs fails. That is
+        # not idle: the deploy waits until both queries answer, so its rollback comes after the switch moved live,
+        # not before, and nothing changes afterwards.
+        self.mode.write_text('queued')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_FAILED', False), out.stderr)
+        self.assertIn('switch_ok=0 live_after_switch=%s' % self.variant(self.NEW, 'refined'), out.stderr)
+        subprocess.run(['sleep', '1.5'])
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.retry_succeeds()
+        # When list-jobs keeps failing, the deploy never calls the unit idle: DEPLOY_INCOMPLETE, no commands.
+        self.tearDown()
+        self.setUp()
+        (self.flags / 'listjobs-keeps-failing').touch()
+        self.mode.write_text('queued')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertIn('volt-homepage-switch.service could not be confirmed idle after 3s (unknown: systemctl list-jobs failed)', out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        self.wait_for_idle_unit()
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_a_healthy_idle_answer_is_idle(self):
+        # Inactive, and list-jobs answers with other units' jobs only: idle at once. An unreadable job line is not.
+        (self.flags / 'jobs-extra').write_text('12 apt-daily.service start waiting\n')
+        started = time.monotonic()
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertLess(time.monotonic() - started, float(self.settle), 'no waiting on an idle unit')
+        self.tearDown()
+        self.setUp()
+        self.settle = '1'
+        (self.flags / 'jobs-extra').write_text('Job for something went wrong\n')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('could not be confirmed idle after 1s (unknown: systemctl list-jobs gave an unreadable line)', out.stderr)
+
+    def test_first_deploy_rename_and_path_lookups_failing(self):
+        # Codex's round-3 probe, on the first-deploy path (nginx serves current, no switch): Python fails from the
+        # rename on, so the rename doesn't happen and every lookup after it fails. Two failed lookups used to
+        # compare equal (UPDATE_OK current=, exit 0). Now: the fallback reader confirms current never moved.
+        def first_deploy(when, probes):
+            self.tearDown()
+            self.setUp()
+            self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')
+            self.fault(probes, when)
+            return self.deploy(switch_installed=False)
+        out = first_deploy('moving', ['python'])
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('could not move current', out.stderr)
+        self.assertEqual(self.current(), self.PREV)
+        self.clear_fault()
+        again = self.rerun()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(self.current(), self.NEW)
+        # Neither Python nor readlink can read current: unknown, so no success and no commands.
+        out = first_deploy('moving', ['python', 'readlink'])
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        # The rename finished and Python fails only afterwards: the link still reads (coreutils readlink), so
+        # the deploy went through, and says so with the confirmed path.
+        out = first_deploy('moved', ['python'])
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('UPDATE_OK current=%s ' % (self.home / 'releases' / self.NEW), out.stdout)
+        self.assertEqual(self.current(), self.NEW)
 
     def test_retry_after_a_rolled_back_deploy(self):
         # A failure after current moved is rolled back (DEPLOY_FAILED) and leaves the new release for a look.
