@@ -702,6 +702,12 @@
     <string name="more_update_open" volt:screen="Update check" volt:purpose="button">Open release page</string>
     <!-- Shown when no browser app is installed. -->
     <string name="more_update_no_browser" volt:screen="Update check" volt:purpose="toast">No browser could open the release page</string>
+    <!-- Shown instead of more_update_available_body when GitHub's reply lists the release's APK: the Download button hands that file to the browser, which downloads it. %1$s is the installed version, such as 1.13.0. -->
+    <string name="more_update_available_body_download" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Download the new version and install it over this one; your data stays.</string>
+    <!-- Button in the "Volt 1.13.1 is available" dialog that opens the new APK in the browser so it downloads; shown instead of "Open release page" when the reply lists that APK. -->
+    <string name="more_update_download" volt:screen="Update check" volt:purpose="button">Download</string>
+    <!-- Toast when no browser on the phone could open the new APK's download link. -->
+    <string name="more_update_no_browser_download" volt:screen="Update check" volt:purpose="toast">No browser could start the download</string>
     <!-- Group label in the More menu, above the version line: its two rows are the automatic and the manual update check. Shown in capitals. -->
     <string name="more_updates_title" volt:screen="More" volt:purpose="label" volt:max="280dp@11sp">Updates</string>
     <!-- Switch, off by default: let Volt ask GitHub for a newer release by itself, at most once a day. On a phone the title wraps to two lines, so the budget is two lines of about 165dp. -->
