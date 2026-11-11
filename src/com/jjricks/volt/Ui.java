@@ -1206,6 +1206,9 @@ public final class Ui {
                 for (int x = 5; x <= 19; x += 7) canvas.drawCircle(x, 12, 1.8f, paint);
             } else if (key.equals("check")) {
                 p.moveTo(4, 12); p.lineTo(9, 17); p.lineTo(20, 6); canvas.drawPath(p, paint);
+            } else if (key.equals("record")) {
+                // A ring around a filled dot, as the Rides tab's Record button draws it.
+                canvas.drawCircle(12, 12, 8.5f, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 4.5f, paint);
             } else if (key.equals("plus")) { canvas.drawLine(12, 4, 12, 20, paint); canvas.drawLine(4, 12, 20, 12, paint); }
             else if (key.equals("close")) { canvas.drawLine(5, 5, 19, 19, paint); canvas.drawLine(5, 19, 19, 5, paint); }
             else if (key.equals("reorder")) {

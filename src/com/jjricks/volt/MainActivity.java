@@ -174,7 +174,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private int navFrom = -1;
     private View pageHeader;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
-        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")) {
+        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
             handler.postDelayed(settingsRebuild, Ui.motionEnabled() ? 210 : 0);
         } else if(key.equals("text_scale")) { handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); }
@@ -2261,13 +2261,17 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        if (entry == null) return;
+        // Clean Home's own two (HomeQuickActions; never in the Quick access catalog). Recording says why it can't start.
+        if (HomeQuickActions.RECORD.equals(id)) { RideRecordingApp.of(this).toggle(); return; }
+        boolean ridingMode = HomeQuickActions.RIDING.equals(id);
+        if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { select(id); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
+        if (ridingMode) { openRiding(); return; }
         if (id.equals("lights")) { showQuickSettings("Lights"); return; }
         if (id.equals("controls")) { showQuickSettings("Settings"); return; }
         if (id.startsWith("more:")) { showQuickMore(id.substring(5), null); return; }
