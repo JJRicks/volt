@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Hub (hub layout plan, PR 2): Home lists the scooter's subjects (Ride, Battery & charging,
+  Controls, Lights & sound, Security, Service, Data), each with a one-line live summary, and each
+  subject opens its own page. Longer subjects split into sub-pages, opened from link rows on the
+  subject's page. A sub-page shows a back link to the page above it.
+
+  Subject names are page titles and Home's row names; the _short rung is for narrow places such as
+  icon captions. Summaries are whole lines; values arrive formatted with their unit ("6.2 mi",
+  "90%"), dates arrive formatted for the language. A summary that cannot be known is not shown.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Subjects: Home's rows and their pages' titles ===== -->
+    <!-- Rides: recording, the ride list and riding mode. -->
+    <string name="hub_subject_ride" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Ride</string>
+    <string name="hub_subject_ride_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Ride</string>
+    <!-- Battery level, charge limit, charging schedule and charge history. -->
+    <string name="hub_subject_battery" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Battery &amp; charging</string>
+    <string name="hub_subject_battery_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Battery</string>
+    <!-- Drive modes, cruise control, assists and speed limits. -->
+    <string name="hub_subject_controls" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Controls</string>
+    <string name="hub_subject_controls_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Controls</string>
+    <!-- Headlight, ambient lights and the scooter's sounds. -->
+    <string name="hub_subject_lights" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Lights &amp; sound</string>
+    <string name="hub_subject_lights_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Lights</string>
+    <!-- Lock, PIN and proximity unlock. -->
+    <string name="hub_subject_security" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Security</string>
+    <string name="hub_subject_security_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Security</string>
+    <!-- Maintenance reminders, experimental controls, compatibility tests and issue reports. -->
+    <string name="hub_subject_service" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Service</string>
+    <string name="hub_subject_service_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Service</string>
+    <!-- Live readings, charts, diagnostics and stored history. -->
+    <string name="hub_subject_data" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Data</string>
+    <string name="hub_subject_data_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Data</string>
+
+    <!-- ===== Sub-pages: the link row on the subject's page, and the sub-page's title ===== -->
+    <!-- The full list of saved rides, where two rides can be compared. -->
+    <string name="hub_page_ride_rides" volt:screen="Ride page" volt:purpose="row and page title">All rides &amp; compare</string>
+    <!-- Automatic recording, auto end, keeping the screen awake and the phone's sensors. -->
+    <string name="hub_page_ride_recording" volt:screen="Ride page" volt:purpose="row and page title">Recording settings</string>
+    <!-- Settings of riding mode, the full-screen display used while riding. -->
+    <string name="hub_page_ride_riding" volt:screen="Ride page" volt:purpose="row and page title">Riding mode</string>
+    <!-- Button that opens riding mode now. -->
+    <string name="hub_ride_open_riding" volt:screen="Ride page" volt:purpose="button">Open riding mode</string>
+    <!-- Label above the last few rides. -->
+    <string name="hub_ride_recent" volt:screen="Ride page" volt:purpose="section label">Recent rides</string>
+
+    <!-- Low Battery Mode and Long range mode. -->
+    <string name="hub_page_battery_modes" volt:screen="Battery &amp; charging page" volt:purpose="row and page title" volt:safety="charge">Battery modes</string>
+    <!-- Settings made once: the charger used for time estimates, the range estimate's source, the scheduled-charging test and usable ride energy. -->
+    <string name="hub_page_battery_estimates" volt:screen="Battery &amp; charging page" volt:purpose="row and page title" volt:safety="charge">Estimates &amp; charger</string>
+    <!-- Past charging sessions, and recordings of a charge's curve. -->
+    <string name="hub_page_battery_history" volt:screen="Battery &amp; charging page" volt:purpose="row and page title">Charge history &amp; recordings</string>
+
+    <!-- The scooter's riding assists, such as starting and braking aids. -->
+    <string name="hub_page_controls_assists" volt:screen="Controls page" volt:purpose="row and page title">Assists</string>
+    <!-- Top speed and the per-mode speed limits. -->
+    <string name="hub_page_controls_limits" volt:screen="Controls page" volt:purpose="row and page title">Speed limits</string>
+
+    <!-- The scooter's light strips along the deck: their pattern and colour. -->
+    <string name="hub_page_lights_line" volt:screen="Lights &amp; sound page" volt:purpose="row and page title">Line lights</string>
+    <!-- The scooter's small decorative lights: their pattern and colour. -->
+    <string name="hub_page_lights_star" volt:screen="Lights &amp; sound page" volt:purpose="row and page title">Star lights</string>
+
+    <!-- Controls the official app may not offer on this model, to try with care. -->
+    <string name="hub_page_service_experimental" volt:screen="Service page" volt:purpose="row and page title" volt:safety="experimental">Experimental controls</string>
+    <!-- A guided test of which commands this scooter understands. -->
+    <string name="hub_page_service_compatibility" volt:screen="Service page" volt:purpose="row and page title">Compatibility test</string>
+    <!-- Row that opens the Diagnostics section of the Data page: connection events and command logs. -->
+    <string name="hub_page_service_diagnostics" volt:screen="Service page" volt:purpose="row title">Diagnostics &amp; connection activity</string>
+    <!-- Drafting an email to Volt about a problem, with an optional report attached. -->
+    <string name="hub_page_service_reports" volt:screen="Service page" volt:purpose="row and page title">Issue reports</string>
+
+    <!-- Ride and telemetry history stored on the phone, and how much is kept. -->
+    <string name="hub_page_data_storage" volt:screen="Data page" volt:purpose="row and page title">Data &amp; history</string>
+
+    <!-- ===== Page header and rows ===== -->
+    <!-- Screen-reader label of a sub-page's back link. %1$s is the name of the page it returns to ("Battery & charging"). -->
+    <string name="hub_back_to" volt:screen="Page header back link" volt:purpose="accessibility">Back to %1$s</string>
+    <!-- Small label on a subject page's row for a control that is still experimental on this model. -->
+    <string name="hub_experimental_badge" volt:screen="Subject page rows" volt:purpose="badge" volt:safety="experimental">Experimental</string>
+    <!-- Screen-reader text of such a row. %1$s is the control's name. Tapping the row opens that control's test in Service › Experimental controls. -->
+    <string name="hub_experimental_row_description" volt:screen="Subject page rows" volt:purpose="accessibility" volt:safety="experimental">%1$s, experimental. Opens its test in Experimental controls.</string>
+
+    <!-- ===== Home: one-line summaries under each subject ===== -->
+    <!-- %1$s is the last ride's distance with its unit ("6.2 mi"). -->
+    <string name="hub_summary_ride_last_today" volt:screen="Home subject summaries" volt:purpose="summary">Last ride %1$s · today</string>
+    <!-- %1$s is the last ride's distance with its unit. -->
+    <string name="hub_summary_ride_last_yesterday" volt:screen="Home subject summaries" volt:purpose="summary">Last ride %1$s · yesterday</string>
+    <!-- %1$s is the last ride's distance with its unit, %2$s the day it ended, formatted for the language. -->
+    <string name="hub_summary_ride_last_date" volt:screen="Home subject summaries" volt:purpose="summary">Last ride %1$s · %2$s</string>
+    <!-- A ride is being recorded now. %1$s is the time recorded so far ("12:40"). -->
+    <string name="hub_summary_ride_recording" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="ride">Recording · %1$s</string>
+    <string name="hub_summary_ride_none" volt:screen="Home subject summaries" volt:purpose="summary">No rides yet</string>
+    <!-- %1$s is the charge limit as a percent ("90%"). -->
+    <string name="hub_summary_battery_limit_idle" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="charge">Limit %1$s · not charging</string>
+    <!-- %1$s is the charge limit as a percent. -->
+    <string name="hub_summary_battery_limit_charging" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="charge">Charging · limit %1$s</string>
+    <!-- For a model with no charge limit. %1$s is the battery level as a percent. -->
+    <string name="hub_summary_battery_idle" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="charge">%1$s · not charging</string>
+    <!-- For a model with no charge limit. %1$s is the battery level as a percent. -->
+    <string name="hub_summary_battery_charging" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="charge">Charging · %1$s</string>
+    <!-- %1$s is the drive mode as Home shows it, with its top speed ("Sport 31 mph"). -->
+    <string name="hub_summary_controls_cruise_on" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise on</string>
+    <!-- %1$s is the drive mode as Home shows it, with its top speed. -->
+    <string name="hub_summary_controls_cruise_off" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise off</string>
+    <!-- The headlight turns itself on in the dark. -->
+    <string name="hub_summary_lights_auto" volt:screen="Home subject summaries" volt:purpose="summary">Headlight auto</string>
+    <string name="hub_summary_lights_on" volt:screen="Home subject summaries" volt:purpose="summary">Headlight on</string>
+    <string name="hub_summary_lights_off" volt:screen="Home subject summaries" volt:purpose="summary">Headlight off</string>
+    <!-- The handlebar PIN, and unlocking when the owner's phone comes near. -->
+    <string name="hub_summary_security_pin_on_proximity_on" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity on</string>
+    <string name="hub_summary_security_pin_on_proximity_off" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity off</string>
+    <string name="hub_summary_security_pin_off_proximity_on" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN off · proximity on</string>
+    <string name="hub_summary_security_pin_off_proximity_off" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN off · proximity off</string>
+    <!-- The next maintenance check. %1$s is the reminder's name ("Tire pressure"), %2$s when it is due ("40 mi left", "Due today"). -->
+    <string name="hub_summary_service_due" volt:screen="Home subject summaries" volt:purpose="summary">%1$s: %2$s</string>
+    <string name="hub_summary_service_clear" volt:screen="Home subject summaries" volt:purpose="summary">No checks due</string>
+    <string name="hub_summary_data" volt:screen="Home subject summaries" volt:purpose="summary">Live readings, charts</string>
+
+    <!-- ===== Battery & charging page: the summary card at the top ===== -->
+    <!-- %1$s is the battery level as a percent ("72%"), %2$s the estimated range left with its unit ("14 mi"). -->
+    <string name="hub_battery_level_range" volt:screen="Battery &amp; charging summary" volt:purpose="summary" volt:safety="charge">%1$s · about %2$s left</string>
+    <!-- %1$s is the percent the charge stops at ("90%"). -->
+    <string name="hub_battery_charging_to" volt:screen="Battery &amp; charging summary" volt:purpose="status" volt:safety="charge">Charging to %1$s</string>
+    <string name="hub_battery_not_charging" volt:screen="Battery &amp; charging summary" volt:purpose="status" volt:safety="charge">Not charging</string>
+</resources>
