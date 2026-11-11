@@ -19,20 +19,20 @@
     <string name="main_simulation_description" volt:src="0b5e7d43e943dc5e6ee831139b90251f9dfd4744">Simulação, dados de exemplo. Toca para sair da simulação.</string>
     <string name="main_lock_title" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Bloqueio</string>
     <string name="main_lock_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">A atualizar…</string>
-    <string name="main_lock_locked" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueada</string>
-    <string name="main_lock_locked_short" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueada</string>
-    <string name="main_lock_unlocked" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueada</string>
-    <string name="main_lock_unlocked_short" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueada</string>
+    <string name="main_lock_locked" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueado</string>
+    <string name="main_lock_locked_short" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueado</string>
+    <string name="main_lock_unlocked" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueado</string>
+    <string name="main_lock_unlocked_short" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueado</string>
     <string name="main_lock_state_unknown" volt:src="36f14d262822b32749a3c8c5c1b8d1ecb19c9061">Estado do bloqueio desconhecido</string>
     <string name="main_lock_state_unverified" volt:src="d9fd5d3e078c6993bbc97c106b541a2f7231c050">Estado do bloqueio não verificado</string>
     <string name="main_lock_connecting" volt:src="221b9aaeff7de550efb40684f35c6fc6fdcf4c47">A conectar</string>
-    <string name="main_lock_last_known_full_locked" volt:src="b5596f644e48ce36bb37ba88f68e3f80c16d7a1d">Último estado conhecido do bloqueio: bloqueada. Volta a conectar a trotinete para verificar.</string>
-    <string name="main_lock_last_known_full_unlocked" volt:src="7457e04c3b27606a15f4665afe45f7036fd6cfbd">Último estado conhecido do bloqueio: desbloqueada. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_locked" volt:src="b5596f644e48ce36bb37ba88f68e3f80c16d7a1d">Último estado conhecido do bloqueio: bloqueado. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_unlocked" volt:src="7457e04c3b27606a15f4665afe45f7036fd6cfbd">Último estado conhecido do bloqueio: desbloqueado. Volta a conectar a trotinete para verificar.</string>
     <string name="main_lock_last_known_full" volt:src="c6756f4fe7786b80d0090d4a301f6a27fc196ae5">Último estado conhecido do bloqueio: %1$s. Volta a conectar a trotinete para verificar.</string>
     <string name="main_lock_connecting_to" volt:src="d2a01535219dab3bcbefee1117d528a7a278b0e6">A conectar: %1$s. %2$s</string>
     <string name="main_lock_your_scooter" volt:src="e414882e1866d36c116e9e4b55c7db25e4cf6a57">a tua trotinete</string>
-    <string name="main_lock_last_known_word_locked" volt:src="69c68eaf954d861bca93225823142ac87043ce89">Último estado conhecido: bloqueada</string>
-    <string name="main_lock_last_known_word_unlocked" volt:src="2eeafca10bc9c4f48ea9f32c39c9df6ef7464e02" volt:attempt="2">Último conhecido: desbloqueada</string>
+    <string name="main_lock_last_known_word_locked" volt:src="69c68eaf954d861bca93225823142ac87043ce89">Última leitura: bloqueado</string>
+    <string name="main_lock_last_known_word_unlocked" volt:src="2eeafca10bc9c4f48ea9f32c39c9df6ef7464e02" volt:attempt="2">Última leitura: desbloqueado</string>
     <string name="main_lock_last_known_word" volt:src="e9ee49efdd68626631938b8704277801bc8567b5">Último estado conhecido: %1$s</string>
     <string name="main_lock_last_known" volt:src="edb38098ef78ddbd0b658ad242943c1c69b99f46">Último estado conhecido</string>
     <string name="main_status_connected_named" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
