@@ -1,8 +1,10 @@
 # Localization for contributors
 
-You are adding or changing a feature. This guide is how to respect Volt's language system. Only English ships today, but every screen, notice and message must be ready for translation, and CI checks part of that.
+You are adding or changing a feature. This guide is how to respect Volt's language system. Volt ships in English and ten beta languages, so every screen, notice and message must be ready for translation, and CI checks part of that.
 
 Visible text lives in **the catalog**: the XML files `res/values/strings_<area>.xml`. The build generates two classes from them, `T` and `M`, with one method per string.
+
+**Add English only.** The maintainers translate new and changed text into every shipped language before the next release. Never edit the translated files under `res/values-*/`. Until a key is translated, those languages show its English; `ship_check.py` reports that per language as `reference only` and still passes a pull request, while a release build refuses any English fallback. In your pull request, list the keys you added, changed or stopped using.
 
 For depth, see the [localization workflow](../l10n/README.md). That manual is written for moving old text into the catalog. You don't need its proof steps for a feature.
 
@@ -212,8 +214,9 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 | Code on a line holding a literal | Allowed | Refused; add a new statement on its own line |
 | Lint baselines (`l10n/baseline/`) | May grow | Shrink only |
 | Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
-| `tests/run.sh`, `build.sh`, `android-tests/build.sh`, `.github/workflows/`, `tools/l10n/` and existing tests under `tests/l10n/` | May change | Must not change, with one exception: `tests/l10n/<Name>.java` may be added |
-| Existing tests | May change | May only gain whole statements |
+| `tests/run.sh`, `build.sh`, `android-tests/build.sh`, `.github/workflows/`, `tools/l10n/` and every existing file under `tests/l10n/` except `characterization/`, `golden/` and top-level `*.sources` | May change | Must not change, not even by an added statement. Exceptions: a new `tests/l10n/<Name>.java`, and a `.sources` file |
+| Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May only gain whole statements |
+| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`) |
 | `T.` or `M.` calls, catalog strings | Not possible; adding them makes it a `batch` | Yes |
 
 MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `batch`.
@@ -251,10 +254,21 @@ A passing lint doesn't prove text is localized: a single word outside the text h
 - **Text you just added and has no ledger row:** edit it freely.
 - **A key that has a ledger row:** rewording fails on every kind unless `l10n/english-changes.tsv` records it. That route needs the project owner's approval and a screen-text comparison, so put it in its own PR.
 - **Retiring a key that has a ledger row:** that takes a tooling PR. Removing the key fails with `key ... is not in res/values/strings*.xml`, and removing its row fails with `ledger files are append-only`.
+- **A key you stopped using:** leave it in the catalog. No check fails on an unused key; say in the PR which keys are unused, and the maintainers retire them.
+
+### Moving text with a screen
+
+When a row or screen moves, its text stays where it is:
+
+- **Keep each key in its `strings_<area>.xml` file.** Translations must sit in the same area file as their English, so moving a key to another file fails `ship_check.py` in every shipped language.
+- **Update the metadata freely.** Changing `volt:screen`, `volt:purpose` or `volt:max` doesn't touch the text, so CI keeps the translations as current. A new `volt:max` isn't re-checked against existing translations by CI, so if a label now has less room, say so in the PR: a translation can be longer than the English.
+- **Moving code that calls `T.` or `M.` to another file makes the PR a `batch`,** even though no text changed, because that file gained catalog references. Moving it within one file doesn't. A moved statement that also holds a literal other than a lower-case id fails `G1` in a `batch`. [Working on the UI](development-notes.md#working-on-the-ui) has the order this forces.
+
+Lock, alarm, PIN and other safety text (`volt:safety`) gets stricter translation. Don't reword it to fit a new layout; a change to safety wording needs the project owner's yes first.
 
 ## What gets refused, and how it reads
 
-CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py`, and `R2` to `R6` from `CatalogUsageTest` in `tests/run.sh`. These messages are worded for moving old text, so "extraction batch" includes your feature PR.
+CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py` (`G5` only with `--pr-head`, as CI runs it), and `R2` to `R6` from `CatalogUsageTest` in `tests/run.sh`. These messages are worded for moving old text, so "extraction batch" includes your feature PR.
 
 | Message contains | Meaning | Fix |
 |---|---|---|
@@ -264,9 +278,10 @@ CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py`, 
 | `G1`: `exact row: <key> is '...' but the literal was '...'` | You reworded a key that has a ledger row | Revert, or use `english-changes.tsv` |
 | `G8`: `new hard-coded English (sink) "..."`, or `(helper)` or `(multiword)` | See [Hard-coded text](#hard-coded-text-and-baselines) | Shown: move it to the catalog. Not shown: `--write-baselines` in an ordinary PR |
 | `G8`: `<file>.txt can shrink by N entries; run --write-baselines` | You removed hard-coded text. Only a note in an `ordinary` PR | Run that command and commit |
-| `G4`: `a test statement with "..." was changed or removed` | You edited an existing test in a `batch` | Add whole statements, or move the edit to a prep PR |
+| `G4`: `a test statement with "..." was changed or removed` | You edited an existing test in a `batch` | Add whole statements instead, or move the edit to a prep PR |
+| `G5`: `... is a characterization test but the first commit ... does not add it; characterization tests come first` | A `batch` added or changed a test under `tests/l10n/characterization/` after its first commit | Put those tests in the PR's first commit, with no `src/` or `res/` change, or move them to a prep PR |
 | `G9`: `<file> changed since <sha>` | A golden changed in a `batch` | Move the format change to a prep PR |
-| `proof tooling unchanged: tests/run.sh changed` | A `batch` touched proof tooling | Move it to a prep PR, or use a `.sources` file |
+| `proof tooling unchanged: tests/run.sh changed`, or a `tests/l10n/` test changed | A `batch` touched proof tooling, which includes the existing tests directly under `tests/l10n/` | Move it to a prep PR, or use a `.sources` file |
 | `import static ...; call T.x(), M.x() or R.string.x instead` | A static import of a catalog member | Call by the class name |
 | `gen_catalog: ...: unescaped apostrophe` | Spelling | Write `\'` |
 | `gen_catalog: ...: placeholders must be numbered %1$ to %2$ with no gaps` | Placeholder numbering | Renumber |
@@ -299,6 +314,7 @@ python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
 python3 tests/hardware-sweep-test.py
 python3 tests/rides-timing-gate-test.py
+python3 tests/release-sweep-summary-test.py
 python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
 python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 ```
@@ -309,10 +325,9 @@ python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 
 ```sh
 bash build.sh
-bash android-tests/build.sh
 ```
 
-`build.sh` also compares the catalog with what the resource tool stored and guards the release APK. CI can't run this.
+`build.sh` also compares the catalog with what the resource tool stored and guards the release APK. CI can't run this. `bash android-tests/build.sh` builds the Android validations, which are optional for contributors; see [Running an emulator check yourself](building.md#running-an-emulator-check-yourself).
 
 | | Runs |
 |---|---|
@@ -326,6 +341,8 @@ Say in your PR what you ran, and what you couldn't run.
 `tools/l10n/prove-english.sh` is a local proof for moving old text. It isn't in CI, and a feature PR doesn't need it. If you run it on an ordinary PR, expect false alarms: at this writing it fails `G1` on any new or changed non-id literal and `G8` on grown baselines, even when `ci_gates.py` passes. `ci_gates.py` is the authority. A catalog-only PR with no new data literals passes it.
 
 ## See your text in the pseudo-locale build
+
+This is optional. The maintainers check new text in every shipped language.
 
 ```sh
 VOLT_PSEUDO_LOCALES=1 bash build.sh
