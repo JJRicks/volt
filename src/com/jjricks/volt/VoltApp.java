@@ -24,8 +24,8 @@ public final class VoltApp extends Application {
         AppLanguage.migrate(this);
         // Ride auto-save's retired Route CSV switch becomes the one switch before anything reads or backs it up.
         RideAutoExportFolder.migrate(getSharedPreferences("app_settings", MODE_PRIVATE));
-        // Home style (HomeStyle): decided once per installation, before any Activity reads it. A new install
-        // records Clean; any sign of an earlier owner records Widgets. Absent always reads as Widgets.
+        // Home style (HomeStyle): before any Activity reads it. An earlier owner records Widgets; a clean new
+        // install writes nothing (absent reads as Widgets) so fresh app data stays empty; a stored origin is kept.
         HomeStylePrefs.seed(this, getSharedPreferences("app_settings", MODE_PRIVATE));
         // The opt-in daily update check is not a persisted job; each process start puts it back (UpdateCheckJob).
         UpdateCheckJob.sync(this);

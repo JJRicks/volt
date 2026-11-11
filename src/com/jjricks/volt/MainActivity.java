@@ -2261,8 +2261,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own two (HomeQuickActions; never in the Quick access catalog). Recording says why it can't start.
-        if (HomeQuickActions.RECORD.equals(id)) { RideRecordingApp.of(this).toggle(); return; }
+        // Clean Home's own two (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
+        if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { select(id); return; }

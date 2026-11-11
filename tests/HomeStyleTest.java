@@ -34,6 +34,25 @@ public final class HomeStyleTest {
         require(HomeStyle.initial(false, false, false, false, t, t + 1).equals(HomeStyle.WIDGETS)
                 && HomeStyle.origin(false, false, false, false, t, t + 1).equals(HomeStyle.ORIGIN_UPDATE), "An updated installation keeps Widgets");
         require(HomeStyle.initial(false, false, false, false, 0, 1).equals(HomeStyle.WIDGETS), "Unknown package times (the seed's fallback) keep Widgets");
+        // What the app-start seed writes while no style is stored.
+        require(HomeStyle.reseed(null, false, false, false, false, t, t) == null, "A clean new install writes nothing: fresh app data stays empty");
+        for (boolean[] s : signals) {
+            String[] w = HomeStyle.reseed(null, s[0], s[1], s[2], s[3], t, t);
+            require(w != null && w[0].equals(HomeStyle.WIDGETS) && w[1].equals(HomeStyle.ORIGIN_UPDATE), "An earlier owner records Widgets and update together");
+        }
+        String[] updated = HomeStyle.reseed(null, false, false, false, false, t, t + 1);
+        require(updated != null && updated[0].equals(HomeStyle.WIDGETS) && updated[1].equals(HomeStyle.ORIGIN_UPDATE), "An updated installation records Widgets and update");
+        String[] restored = HomeStyle.reseed(HomeStyle.ORIGIN_INSTALL, true, true, false, true, t, t);
+        require(restored != null && restored[0].equals(HomeStyle.CLEAN) && restored[1].equals(HomeStyle.ORIGIN_INSTALL),
+                "origin=install, style dropped by a pre-Hub restore, profile present: Clean, origin stays install");
+        require(!HomeStyle.showWhatsNew(restored[1], false, false, false, false, true, true), "and that restore shows no What's new");
+        String[] kept = HomeStyle.reseed(HomeStyle.ORIGIN_UPDATE, false, false, false, false, t, t);
+        require(kept != null && kept[0].equals(HomeStyle.WIDGETS) && kept[1].equals(HomeStyle.ORIGIN_UPDATE), "A stored update origin is never re-decided");
+        String[] odd = HomeStyle.reseed("bogus", false, false, false, false, t, t);
+        require(odd == null, "An unknown stored origin counts as none");
+        require(HomeStyle.pickedOrigin(null).equals(HomeStyle.ORIGIN_INSTALL), "A pick on an installation the seed left alone records install");
+        require(HomeStyle.pickedOrigin(HomeStyle.ORIGIN_UPDATE).equals(HomeStyle.ORIGIN_UPDATE)
+                && HomeStyle.pickedOrigin(HomeStyle.ORIGIN_INSTALL).equals(HomeStyle.ORIGIN_INSTALL), "A pick never rewrites a stored origin");
         require(HomeStyle.dashboardKey("dashboard_v1_abc") && HomeStyle.dashboardKey("dashboard_v1_unconfigured"), "A saved dashboard is a signal");
         require(!HomeStyle.dashboardKey("dashboard_v1_") && !HomeStyle.dashboardKey("dashboard_slot_v1_abc_0")
                 && !HomeStyle.dashboardKey("dashboard_columns") && !HomeStyle.dashboardKey(null), "Other dashboard keys are not");

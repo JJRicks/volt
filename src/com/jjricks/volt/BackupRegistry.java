@@ -112,7 +112,7 @@ final class BackupRegistry {
         add(app, NightSchedule.START_KEY, Integer.class, PREFERENCES);
         add(app, NightSchedule.END_KEY, Integer.class, PREFERENCES);
         exclude(app, NightSchedule.AREA_KEY, String.class, DEVICE);
-        // Home style (HomeStyle): the style and whether the owner chose it travel together; the seed's origin and the
+        // Home style (HomeStyle): the style and whether the owner chose it travel together; the installation's origin and the
         // one-time What's new sheet describe this installation's history, so a restored phone keeps its own.
         add(app, HomeStyle.KEY, String.class, PREFERENCES);
         add(app, HomeStyle.CHOSEN_KEY, Boolean.class, PREFERENCES);
