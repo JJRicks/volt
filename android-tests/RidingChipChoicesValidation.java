@@ -234,8 +234,12 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             if (!self) require(nameShown || iconShown, label + ": " + content + " shows a bare value '" + value.getText() + "'");
             if (!self) require(!(nameShown && iconShown), label + ": " + content + " shows both name and icon");
             if (!nameShown && iconShown && (content.equals("average_speed") || content.equals("max_speed"))) iconOnlySpeeds++;
-            CharSequence spoken = v.getContentDescription();
-            require(spoken != null && spoken.toString().contains(value.getText().toString()) || "—".contentEquals(value.getText()),
+            // What a screen reader gets on reaching the chip: with clock seconds on, the clock says the time to the second
+            // then (#374), so it may be a tick past the one drawn, and its AM/PM can be off the tightest rung's text.
+            CharSequence spoken = v.createAccessibilityNodeInfo().getContentDescription();
+            boolean seconds = content.equals("clock") && value.getText().toString().matches("(?s).*\\d:\\d\\d:\\d\\d.*");
+            require(spoken != null && (seconds ? spoken.toString().matches("(?s).*\\d:\\d\\d:\\d\\d.*") : spoken.toString().contains(value.getText()))
+                    || "—".contentEquals(value.getText()),
                     label + ": " + content + " spoken '" + spoken + "' lacks its value '" + value.getText() + "'");
             if (!self) require(spoken.toString().toLowerCase(Locale.ROOT).contains(fullName(content)), label + ": " + content + " spoken '" + spoken + "' lacks its name");
             int[] at = new int[2], in = new int[2];
