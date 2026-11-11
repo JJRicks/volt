@@ -629,27 +629,27 @@
     <!-- src:bf009136f79a7acd257a0cc0fd721eba2522290f -->
     <string name="dashboard_restored">Esquema restaurado: «%1$s»</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
-    <string name="dashboard_status_connected">Conectada</string>
+    <string name="dashboard_status_connected">Conectado</string>
     <!-- src:67ce2814b0e0b0c18a94426aa3efd96eec4fc80b -->
-    <string name="dashboard_status_connected_mode">Conectada · %1$s</string>
+    <string name="dashboard_status_connected_mode">Conectado · %1$s</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
-    <string name="dashboard_status_disconnected">Desconectada</string>
+    <string name="dashboard_status_disconnected">Desconectado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
-    <string name="dashboard_status_disconnected_short">Desconectada</string>
+    <string name="dashboard_status_disconnected_short">Desconectado</string>
     <!-- src:685da721f9ff2b145d69f738ac21657b3567558f -->
-    <string name="dashboard_status_disconnected_seen">Desconectada · última leitura: %1$s</string>
+    <string name="dashboard_status_disconnected_seen">Desconectado · última leitura: %1$s</string>
     <!-- src:bea91ec53d150284c959e9ef76a1cada6427610d -->
-    <string name="dashboard_status_disconnected_seen_short">Desconectada · %1$s</string>
+    <string name="dashboard_status_disconnected_seen_short">Desconectado · %1$s</string>
     <!-- src:56c461696100940740107f4b2d6fa0289ea989e6 -->
-    <string name="dashboard_status_spoken_connected">Conectada. Detalhes da ligação</string>
+    <string name="dashboard_status_spoken_connected">Conectado. Detalhes da ligação</string>
     <!-- src:8365501f95a72a9d7455b9f4c5f9d96f88cb3c14 -->
-    <string name="dashboard_status_spoken_connected_mode">Conectada, modo %1$s. Detalhes da ligação</string>
+    <string name="dashboard_status_spoken_connected_mode">Conectado, modo %1$s. Detalhes da ligação</string>
     <!-- src:773e46b6e066dce56c5e9185607ec18f94fea8db -->
     <string name="dashboard_status_spoken_connecting">A conectar. Detalhes da ligação</string>
     <!-- src:d9c881d1fc3f830173a5c611c2644b7d768a47a3 -->
-    <string name="dashboard_status_spoken_disconnected">Desconectada. Detalhes da ligação</string>
+    <string name="dashboard_status_spoken_disconnected">Desconectado. Detalhes da ligação</string>
     <!-- src:e06022cc0b4286933ac4958b3748778f79f3be5d -->
-    <string name="dashboard_status_spoken_disconnected_seen">Desconectada, última leitura: %1$s. Detalhes da ligação</string>
+    <string name="dashboard_status_spoken_disconnected_seen">Desconectado, última leitura: %1$s. Detalhes da ligação</string>
     <!-- src:8e0740162d51d699a03819781780072ee12a147f -->
     <plurals name="dashboard_estimate_window_days">
         <item quantity="one">%1$d dia</item>

@@ -3,7 +3,7 @@
      the decision and merge again. Each src comment is the hash of the English it translates. -->
 <resources>
     <!-- src:188490eaa6ecd6b05fd354c8aa752241f6ae6a82 -->
-    <string name="ble_status_not_connected">Não conectada</string>
+    <string name="ble_status_not_connected">Não conectado</string>
     <!-- src:843972942cebb292d9f98d72b7f665e780316706 -->
     <string name="ble_status_searching">A procurar…</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -11,11 +11,11 @@
     <!-- src:d45b8605bd13654353a1a28a50012cc4a9d6db7a -->
     <string name="ble_status_checking_owner">A verificar o proprietário…</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
-    <string name="ble_status_connected">Conectada</string>
+    <string name="ble_status_connected">Conectado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
-    <string name="ble_status_disconnected">Desconectada</string>
+    <string name="ble_status_disconnected">Desconectado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
-    <string name="ble_status_disconnected_short">Desconectada</string>
+    <string name="ble_status_disconnected_short">Desconectado</string>
     <!-- src:1c8e31fe8678fa854df7fdfd9b602b38219a9454 -->
     <string name="ble_status_paused">Em pausa em segundo plano</string>
     <!-- src:f5e401d398f0a530f7e0506eaf3ff83526736a77 -->
