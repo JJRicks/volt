@@ -39,10 +39,20 @@ dist/volt.apk
 
 ### Install your build
 
-Use the SDK's `adb`. If you let `build.sh` find the SDK, export its location in this shell first. This is the macOS default; on Linux it is usually `$HOME/Android/Sdk`:
+Use the SDK's `adb`, which needs `ANDROID_SDK_ROOT` exported in this shell. This block keeps a path you already exported. If you let `build.sh` find the SDK, it looks in the same default places `build.sh` does, on macOS and Linux:
 
 ```sh
-export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
+  for sdk in "$HOME/Library/Android/sdk" "$HOME/Android/Sdk" /opt/android-sdk; do
+    if [ -x "$sdk/platform-tools/adb" ]; then export ANDROID_SDK_ROOT="$sdk"; break; fi
+  done
+fi
+"$ANDROID_SDK_ROOT/platform-tools/adb" version
+```
+
+If the last line says the file doesn't exist, your SDK is somewhere else: export `ANDROID_SDK_ROOT` with its real path and run that line again. Then install:
+
+```sh
 "$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 install -r dist/volt.apk
 ```
 
