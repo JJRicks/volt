@@ -1808,7 +1808,8 @@ final class RidingScreen implements AppScreen {
 
     /**
      * Trace's chips, stacked beside the big number (fitChips). They take at most CHIP_COLUMN_SHARE of the row, so a long
-     * name shortens, or its chip steps aside, before it can squeeze the speed.
+     * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
+     * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
      */
     private final class ChipColumn extends LinearLayout {
         ChipColumn() {
@@ -1816,8 +1817,17 @@ final class RidingScreen implements AppScreen {
             setOrientation(VERTICAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE
-                    : (int) (MeasureSpec.getSize(widthSpec) * CHIP_COLUMN_SHARE);
+            int room = Integer.MAX_VALUE;
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                int size = MeasureSpec.getSize(widthSpec);
+                room = (int) (size * CHIP_COLUMN_SHARE);
+                for (int i = 0; i < getChildCount(); i++) {
+                    View child = getChildAt(i);
+                    if (!(child instanceof Chip)) continue;
+                    Chip chip = (Chip) child;
+                    if (chip.wanted && chip.namesItself) room = Math.max(room, Math.min(size, chip.widthAt(RidingChipFit.FULL, -1)));
+                }
+            }
             fitChips(this, room, true);
             super.onMeasure(widthSpec, heightSpec);
         }

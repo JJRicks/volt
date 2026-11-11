@@ -200,6 +200,9 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                 boolean wanted = (Boolean) field(chip, "wanted");
                 // A drive mode the simulator hasn't sent yet steps aside, as it always has.
                 if (wanted) require(((View) chip).getVisibility() == View.VISIBLE, label + ": default chip " + content + " stepped aside");
+                // The default column keeps the room it always had, so the thermometer and clock face stay (as in 1.13.0).
+                View icon = (View) field(chip, "icon");
+                if (wanted && icon != null) require(icon.getVisibility() == View.VISIBLE, label + ": default chip " + content + " lost its icon");
             }
         });
     }
