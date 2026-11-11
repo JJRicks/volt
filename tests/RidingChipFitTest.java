@@ -72,6 +72,7 @@ public final class RidingChipFitTest {
 
         stacks();
         names();
+        namesAmongShown();
         System.out.println("RidingChipFitTest passed");
     }
 
@@ -129,6 +130,113 @@ public final class RidingChipFitTest {
         step(new String[][]{{}}, new String[]{"trip"}, 0, RidingChipFit.TIGHT, -1, "an empty mark list");
         if (RidingChipFit.iconMark(null) != null || RidingChipFit.iconMark("speed").equals("speed"))
             throw new AssertionError("an icon mark never equals a name");
+    }
+
+    /** Synthetic named chips: a width per name step (-1 = names itself, then full, short, icon); TIGHT takes 14 off. */
+    private static RidingChipFit.Widths named(final int[][] byStep) {
+        return (chip, rung, step) -> byStep[chip][step + 1] - (rung == RidingChipFit.TIGHT ? 14 : 0)
+                - (rung >= RidingChipFit.NO_ICONS && step < 0 ? 24 : 0);
+    }
+
+    /**
+     * Names are worked out among the chips that show, for each set the fit tries: a chip that stepped aside holds no mark,
+     * and a decorative icon that has gone holds none either. (Review of a0d0cb87: the marks were worked out once against
+     * every wanted chip, so a dropped chip still pushed others to longer names and a second chip could go too.)
+     */
+    private static void namesAmongShown() {
+        String route = RidingChipFit.iconMark("route"), battery = RidingChipFit.iconMark("battery"), clock = RidingChipFit.iconMark("clock");
+        // Volt's range, Battery, Scooter's range. The two ranges share "Range" and the route icon.
+        String[][] marks = {{"Volt's range", "Range", route}, {"Battery", "Battery", battery}, {"Scooter's range", "Range", route}};
+        String[] contents = {"range_volt", "battery", "range_scooter"};
+        int[][] byStep = {{0, 150, 90, 70}, {0, 100, 100, 60}, {0, 160, 90, 70}};
+        RidingChipFit.Widths widths = named(byStep);
+        // 140: three never fit. Without Scooter's range, Volt's range may take the route icon: 70 + 8 + 60 = 138. Worked out
+        // against all three (a0d0cb87), Volt's range kept its full name (150, 136 tight) and only it showed.
+        RidingChipFit fit = RidingChipFit.row(marks, contents, widths, GAP, 140);
+        if (fit.count != 2 || fit.rung != RidingChipFit.ICON_NAMES || fit.steps[0] != RidingChipFit.NAME_ICON || fit.steps[2] != -1)
+            throw new AssertionError("ranges row at 140: " + fit.count + " chips at rung " + fit.rung + " steps " + java.util.Arrays.toString(fit.steps)
+                    + ", expected Volt's range on its icon beside Battery");
+        // All three shown: neither range may say "Range" or show the route alone.
+        fit = RidingChipFit.row(marks, contents, widths, GAP, 1000);
+        if (fit.count != 3 || fit.steps[0] != RidingChipFit.NAME_FULL || fit.steps[2] != RidingChipFit.NAME_FULL)
+            throw new AssertionError("ranges row at 1000: " + java.util.Arrays.toString(fit.steps));
+        sweepRow("ranges", marks, contents, byStep);
+        // Ride time beside the clock: the clock face is the clock chip's while it shows; from NO_ICONS on, it's gone.
+        String[][] times = {{"Ride time", "Time", clock}, {null, null, clock}};
+        String[] timeContents = {"ride_time", "clock"};
+        boolean[] both = {true, true};
+        if (RidingChipFit.nameStep(times, timeContents, both, 0, RidingChipFit.ICON_NAMES) != RidingChipFit.NAME_SHORT
+                || RidingChipFit.nameStep(times, timeContents, both, 0, RidingChipFit.NO_ICONS) != RidingChipFit.NAME_ICON
+                || RidingChipFit.nameStep(times, timeContents, both, 0, RidingChipFit.TIGHT) != RidingChipFit.NAME_ICON)
+            throw new AssertionError("a decorative icon is taken only while it shows");
+        sweepRow("times", times, timeContents, new int[][]{{0, 100, 60, 44}, {90, 0, 0, 0}});
+        // Trace's column, room 100: the two ranges need their full names together (150, 160), which never fit; alone,
+        // Volt's range takes "Range" (90). a0d0cb87 kept its full name and showed nothing.
+        String[][] two = {marks[0], marks[2]};
+        String[] twoContents = {"range_volt", "range_scooter"};
+        int[][] twoBy = {byStep[0], byStep[2]};
+        fit = RidingChipFit.column(two, twoContents, named(twoBy), 100);
+        if (!java.util.Arrays.equals(fit.shown, new boolean[]{true, false}) || fit.rung != RidingChipFit.SHORT_NAMES || fit.steps[0] != RidingChipFit.NAME_SHORT)
+            throw new AssertionError("ranges column at 100: " + java.util.Arrays.toString(fit.shown) + " rung " + fit.rung + " steps " + java.util.Arrays.toString(fit.steps));
+        sweepColumn("ranges column", two, twoContents, twoBy);
+        // A column of a wide first chip and two ranges: the first steps aside alone, and the ranges still fit each other out.
+        String[][] three = {{"Recording time", "Rec", clock}, marks[0], marks[2]};
+        sweepColumn("mixed column", three, new String[]{"recording_time", "range_volt", "range_scooter"}, new int[][]{{0, 400, 380, 360}, byStep[0], byStep[2]});
+    }
+
+    /** At every room: the shown chips fit with the steps the fit reports, a chip never comes back on a narrower row, the
+     *  fit is the same when worked out again, and no shown chip keeps a longer name than the chips that show force. */
+    private static void sweepRow(String name, String[][] marks, String[] contents, int[][] byStep) {
+        RidingChipFit.Widths widths = named(byStep);
+        int last = Integer.MAX_VALUE;
+        for (int room = 1000; room >= 0; room--) {
+            RidingChipFit fit = RidingChipFit.row(marks, contents, widths, GAP, room);
+            RidingChipFit again = RidingChipFit.row(marks, contents, widths, GAP, room);
+            if (fit.rung != again.rung || !java.util.Arrays.equals(fit.shown, again.shown) || !java.util.Arrays.equals(fit.steps, again.steps))
+                throw new AssertionError(name + " at " + room + ": not the same twice");
+            if (fit.count > last) throw new AssertionError(name + " at " + room + ": a chip came back");
+            last = fit.count;
+            long used = GAP * Math.max(0, fit.count - 1L);
+            for (int chip = 0; chip < marks.length; chip++) if (fit.shown[chip]) used += widths.at(chip, fit.rung, fit.steps[chip]);
+            if (used > room) throw new AssertionError(name + " at " + room + ": needs " + used);
+            fair(name + " at " + room, marks, contents, fit);
+        }
+    }
+
+    private static void sweepColumn(String name, String[][] marks, String[] contents, int[][] byStep) {
+        RidingChipFit.Widths widths = named(byStep);
+        for (int room = 1000; room >= 0; room--) {
+            RidingChipFit fit = RidingChipFit.column(marks, contents, widths, room);
+            RidingChipFit again = RidingChipFit.column(marks, contents, widths, room);
+            if (fit.rung != again.rung || !java.util.Arrays.equals(fit.shown, again.shown) || !java.util.Arrays.equals(fit.steps, again.steps))
+                throw new AssertionError(name + " at " + room + ": not the same twice");
+            for (int chip = 0; chip < marks.length; chip++)
+                if (fit.shown[chip] && widths.at(chip, fit.rung, fit.steps[chip]) > room) throw new AssertionError(name + " at " + room + ": chip " + chip + " too wide");
+            fair(name + " at " + room, marks, contents, fit);
+        }
+    }
+
+    /** A shown chip that kept a longer name than its rung asks did so only because a shown chip holds the shorter mark. */
+    private static void fair(String name, String[][] marks, String[] contents, RidingChipFit fit) {
+        for (int chip = 0; chip < marks.length; chip++) {
+            if (!fit.shown[chip] || fit.steps[chip] < 0) continue;
+            int asked = Math.min(RidingChipFit.nameStep(fit.rung), marks[chip].length - 1);
+            for (int k = fit.steps[chip] + 1; k <= asked; k++) {
+                if (marks[chip][k] == null) continue;
+                boolean held = false;
+                for (int other = 0; other < marks.length; other++) {
+                    if (other == chip || !fit.shown[other] || marks[other] == null || contents[other].equals(contents[chip])) continue;
+                    if (marks[other][0] == null && fit.rung >= RidingChipFit.NO_ICONS) continue;
+                    for (String m : marks[other]) held |= marks[chip][k].equals(m);
+                }
+                if (!held) throw new AssertionError(name + ": chip " + chip + " kept step " + fit.steps[chip] + " at rung " + fit.rung + " for no shown chip");
+            }
+        }
+        for (int a = 0; a < marks.length; a++)
+            for (int b = a + 1; b < marks.length; b++) {
+                if (!fit.shown[a] || !fit.shown[b] || fit.steps[a] < 0 || fit.steps[b] < 0 || contents[a].equals(contents[b])) continue;
+                if (marks[a][fit.steps[a]].equals(marks[b][fit.steps[b]])) throw new AssertionError(name + ": chips " + a + " and " + b + " look alike");
+            }
     }
 
     private static void expect(int[][] widths, int room, int count, int rung, String name) {

@@ -1756,14 +1756,17 @@ final class RidingScreen implements AppScreen {
         String[][] marks = new String[n][];
         String[] contents = new String[n];
         for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; }
-        int[][] steps = new int[RidingChipFit.RUNGS][n], widths = new int[RidingChipFit.RUNGS][n];
-        for (int rung = 0; rung < RidingChipFit.RUNGS; rung++)
-            for (int i = 0; i < n; i++) {
-                steps[rung][i] = RidingChipFit.nameStep(marks, contents, i, rung);
-                widths[rung][i] = wanted.get(i).widthAt(rung, steps[rung][i]);
-            }
+        // The fit works out names for each set of chips it tries, among the chips in that set (a chip that stepped aside
+        // holds no mark); widths come from the probes, never from what's shown, so measuring the result again gives it again.
+        final int[][][] measured = new int[n][RidingChipFit.RUNGS][RidingChipFit.NAME_ICON + 2];
+        RidingChipFit.Widths widths = (chip, rung, step) -> {
+            int[] cell = measured[chip][rung];
+            if (cell[step + 1] == 0) cell[step + 1] = wanted.get(chip).widthAt(rung, step) + 1;
+            return cell[step + 1] - 1;
+        };
         int gap = ui.dp(8);
-        RidingChipFit fit = stacked ? RidingChipFit.stack(widths, room) : RidingChipFit.choose(widths, gap, room);
+        RidingChipFit fit = stacked ? RidingChipFit.column(marks, contents, widths, room)
+                : RidingChipFit.row(marks, contents, widths, gap, room);
         int shown = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -1772,7 +1775,7 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(fit.rung, steps[fit.rung][at]);
+                chip.useRung(fit.rung, fit.steps[at]);
                 // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, stacked);
                 shown++;
@@ -1938,7 +1941,11 @@ final class RidingScreen implements AppScreen {
             return padding + mark + value;
         }
         /** Shows this chip at a RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
+        /** The rung and name step this chip last took (for the validation; -1 before its first fit). */
+        int shownRung = -1, shownStep = -1;
         void useRung(int rung, int step) {
+            shownRung = rung;
+            shownStep = step;
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             boolean iconShown, nameShown;
             if (namesItself) { iconShown = rung < RidingChipFit.NO_ICONS; nameShown = false; }

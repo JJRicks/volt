@@ -87,6 +87,12 @@ public final class RidingChipChoicesValidation extends Instrumentation {
     private static final String SPEEDS = halo("average_speed", "max_speed", "odometer");
     private static final String ELECTRIC = halo("current", "battery", "trip");
     private static final String ICONS = halo("average_speed", "trip", "clock");
+    // Volt's and Scooter's range share "Range" and the route icon, with Battery between them (the case review found):
+    // once Scooter's range steps aside, Volt's range may take the icon, and Battery must not step aside for a stale clash.
+    private static final String RANGES = halo("range_volt", "battery", "range_scooter");
+    // Ride time's clock icon matches the clock chip's face, which goes at the no-icons rung.
+    private static final String TIMES = halo("ride_time", "clock", "trip");
+    private static final String TRACE_RANGES = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"range_volt\",\"chip_2\":\"range_scooter\"}}}}";
     private static final String TRACE = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"max_speed\",\"chip_2\":\"ride_time\"}}}}";
 
     private static String halo(String a, String b, String c) {
@@ -117,12 +123,19 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         show("trace-split", TRACE, split, 1f, false);
         show("trace-sideways", TRACE, sideways, 1f, false);
         show("trace-night", TRACE, phone, 1f, true);
+        show("trace-ranges-344", TRACE_RANGES, phone, 1f, false);
+        show("trace-ranges-344-large", TRACE_RANGES, phone, 1.5f, false);
+        show("halo-ranges-344", RANGES, phone, 1f, false);
+        show("halo-ranges-344-large", RANGES, phone, 1.5f, false);
+        show("halo-times-344", TIMES, phone, 1f, false);
         // Km: the same readings in the other units.
         prefs().edit().putString("units", "km").commit();
         show("halo-speeds-344-km", SPEEDS, phone, 1f, false);
         prefs().edit().putString("units", "mi").commit();
         sweep("speeds", SPEEDS, phone);
         sweep("icons", ICONS, phone);
+        sweep("ranges", RANGES, phone);
+        sweep("times", TIMES, phone);
     }
 
     private void setup(String layout, int[] window, float text, boolean night) throws Exception {
@@ -142,6 +155,12 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         setup(layout, window, text, night);
         String[] verdict = new String[1];
         main(() -> verdict[0] = check(label));
+        // Measured again with its own output, the group lays out the same way (no flip-flop between two layouts).
+        String[] before = new String[1], after = new String[1];
+        main(() -> { before[0] = signature(); ((View) chipList().get(0)).getParent().requestLayout(); activity.redraw(); });
+        settle();
+        main(() -> after[0] = signature());
+        require(before[0].equals(after[0]), label + ": re-measured, the chips changed from " + before[0] + " to " + after[0]);
         notes.add(verdict[0]);
         android.util.Log.i("VoltChips", verdict[0]);
         shot(label);
@@ -186,6 +205,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                     .append("'").append(value.getText()).append("' ").append(v.getWidth()).append("px spoken='").append(spoken).append("']");
         }
         require(shown > 0, label + ": every chip gone");
+        requireFairNames(label, chips);
         require(iconOnlySpeeds < 2, label + ": Average and Max speed both on the speedometer alone");
         if (!stacked) require(used <= group.getWidth(), label + ": the row needs " + used + " of " + group.getWidth());
         return out.toString();
@@ -216,6 +236,8 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             case "battery": return "battery";
             case "trip": return "trip";
             case "ride_time": return "ride time";
+            case "range_volt": return "volt's range";
+            case "range_scooter": return "scooter's range";
             default: return content.replace('_', ' ');
         }
     }
@@ -234,9 +256,13 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             row.measure(unbounded, unbounded);
             int natural = 0;
             for (int i = 0; i < row.getChildCount(); i++) if (row.getChildAt(i).getVisibility() != View.GONE) natural += row.getChildAt(i).getMeasuredWidth() + margins(row.getChildAt(i));
-            int lastCount = Integer.MAX_VALUE, shortAt = -1, iconAt = -1, dropAt = -1, fullAt = -1;
+            int lastCount = Integer.MAX_VALUE, shortAt = -1, iconAt = -1, dropAt = -1, fullAt = -1, rangeIconAt = -1, timeIconAt = -1;
             for (int width = natural + 40; width >= 0; width--) {
                 row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), unbounded);
+                String once = signature();
+                row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), unbounded);
+                require(once.equals(signature()), label + " width " + width + ": measured twice, " + once + " became " + signature());
+                requireFairNames(label + " width " + width, chips);
                 int used = 0, count = 0;
                 boolean anyFull = false, anyShort = false, anyIcon = false;
                 for (int i = 0; i < row.getChildCount(); i++) {
@@ -260,6 +286,8 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                             if (name.getText().toString().equals(names[0])) anyFull = true; else anyShort = true;
                         }
                         if (iconShown) anyIcon = true;
+                        if (iconShown && content.equals("range_volt")) rangeIconAt = Math.max(rangeIconAt, width);
+                        if (iconShown && content.equals("ride_time")) timeIconAt = Math.max(timeIconAt, width);
                     }
                 }
                 require(used <= width, label + " width " + width + ": chips and gaps need " + used);
@@ -271,13 +299,80 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                 lastCount = count;
             }
             row.requestLayout();
-            require(fullAt > 0 && shortAt > 0 && dropAt > 0 && shortAt > dropAt, label + ": rungs out of order full=" + fullAt + " short=" + shortAt + " drop=" + dropAt);
+            if (label.equals("speeds") || label.equals("icons"))
+                require(fullAt > 0 && shortAt > 0 && dropAt > 0 && shortAt > dropAt, label + ": rungs out of order full=" + fullAt + " short=" + shortAt + " drop=" + dropAt);
+            if (label.equals("ranges")) require(rangeIconAt > 0, "ranges: Volt's range never took the route icon after Scooter's range stepped aside");
+            if (label.equals("times")) require(timeIconAt > 0, "times: Ride time never took its icon once the clock face had gone");
             if (label.equals("icons")) require(iconAt > 0 && iconAt < shortAt && iconAt > dropAt, label + ": icons out of order icon=" + iconAt + " short=" + shortAt + " drop=" + dropAt);
             if (label.equals("speeds")) require(iconAt < 0, "speeds: Average and Max must keep their names (shared speedometer), odometer has no icon");
-            verdict[0] = label + " sweep: natural " + natural + " full until " + fullAt + " short at " + shortAt + " icons at " + iconAt + " first drop at " + dropAt;
+            verdict[0] = label + " sweep: natural " + natural + " full until " + fullAt + " short at " + shortAt + " icons at " + iconAt + " first drop at " + dropAt
+                    + (rangeIconAt > 0 ? " range icon at " + rangeIconAt : "") + (timeIconAt > 0 ? " ride time icon at " + timeIconAt : "");
         });
         notes.add(verdict[0]);
         android.util.Log.i("VoltChips", verdict[0]);
+    }
+
+    private List<?> chipList() { return (List<?>) field(field(activity, "screen"), "chips"); }
+
+    /** Each chip's visibility, name and icon, to compare two layouts. */
+    private String signature() {
+        StringBuilder out = new StringBuilder();
+        for (Object c : chipList()) {
+            View v = (View) c, icon = (View) field(c, "icon");
+            TextView name = (TextView) field(c, "name");
+            out.append(field(c, "content")).append(v.getVisibility() == View.GONE ? ":gone" : "")
+                    .append(name.getVisibility() == View.GONE ? "" : ":'" + name.getText() + "'")
+                    .append(icon != null && icon.getVisibility() != View.GONE ? ":icon" : "").append(' ');
+        }
+        return out.toString().trim();
+    }
+
+    /**
+     * Names are worked out among the chips that actually show. No two shown chips with different readings show the same name
+     * or the same icon alone (a decorative icon counts while it shows). And a chip that kept a longer name than its rung asks
+     * for did so only because a chip that is shown (not one that stepped aside) carries the shorter mark, or it has none.
+     */
+    private void requireFairNames(String label, List<?> chips) {
+        List<Object> shown = new ArrayList<>();
+        for (Object c : chips) if (((View) c).getVisibility() != View.GONE) shown.add(c);
+        for (Object c : shown) {
+            String content = (String) field(c, "content");
+            int rung = (Integer) field(c, "shownRung"), step = (Integer) field(c, "shownStep");
+            require(rung >= 0, label + ": " + content + " shown without a fit");
+            String mine = displayedMark(c);
+            for (Object o : shown) {
+                if (o == c || content.equals(field(o, "content")) || mine == null) continue;
+                require(!mine.equals(displayedMark(o)), label + ": " + content + " and " + field(o, "content") + " both show " + mine);
+            }
+            if (step < 0) continue;
+            String[] marks = (String[]) call(c, "marks");
+            int asked = Math.min(rung <= 1 ? 0 : rung == 2 ? 1 : 2, marks.length - 1);
+            for (int k = step + 1; k <= asked; k++) {
+                if (marks[k] == null) continue;
+                boolean held = false;
+                for (Object o : shown) {
+                    if (o == c || content.equals(field(o, "content"))) continue;
+                    String[] theirs = (String[]) call(o, "marks");
+                    boolean decorative = theirs.length == 0 || theirs[0] == null;
+                    if (decorative && rung >= 4) continue;
+                    for (String m : theirs) held |= marks[k].equals(m);
+                }
+                require(held, label + ": " + content + " kept name step " + step + " at rung " + rung + " though no shown chip holds its step " + k + " mark");
+            }
+        }
+    }
+
+    /** What identifies a shown chip at a glance: its name, or its icon when it shows only that. */
+    private static String displayedMark(Object chip) {
+        View icon = (View) field(chip, "icon");
+        TextView name = (TextView) field(chip, "name");
+        if (name.getVisibility() != View.GONE) return "name:" + name.getText();
+        return icon != null && icon.getVisibility() != View.GONE ? "icon:" + field(chip, "iconKey") : null;
+    }
+
+    private static Object call(Object target, String name) {
+        try { Method m = target.getClass().getDeclaredMethod(name); m.setAccessible(true); return m.invoke(target); }
+        catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
     }
 
     private static int margins(View child) {
