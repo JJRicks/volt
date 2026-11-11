@@ -90,6 +90,19 @@ public final class UpdateCheckValidation extends Instrumentation {
             press("Open release page"); settle();
             require(PAGE.equals(opened.get()) && showingCount() == 0, "Open release page did not open the release page");
 
+            reply.set(release("v" + installed().replaceAll("-.*", ""), PAGE)); opened.set(null);
+            tap(); await(() -> showing("You're up to date"), "The current release was not recognised");
+            require(requests.size() == 2 && text(dialogView(), "Close") == null, "Consent is asked only once; one OK closes it"); settle(); SystemClock.sleep(600); screenshot("current"); press("OK"); settle();
+
+            reply.set(null);
+            tap(); await(() -> showing("Couldn't check for updates"), "An unreachable GitHub was not explained");
+            require(text(dialogView(), "GitHub didn't answer. Check your connection and try again.") != null && text(dialogView(), "Close") == null, "Unreachable wording with a single OK"); press("OK"); settle();
+
+            reply.set(release("v9.9.9", "https://example.com/volt.apk"));
+            tap(); await(() -> showing("Couldn't check for updates"), "A reply pointing elsewhere was offered");
+            press("OK"); settle();
+            require(opened.get() == null, "A page outside Volt's releases was opened");
+
             // The reply lists the release's APK beside SHA256SUMS and the source zip: Download opens exactly the APK.
             reply.set(releaseWithApk("v9.9.9", APK)); opened.set(null);
             tap(); await(() -> showing("Volt 9.9.9 is available"), "A newer release with its APK was not offered");
@@ -105,19 +118,6 @@ public final class UpdateCheckValidation extends Instrumentation {
             require(text(dialogView(), "Download") == null, "A foreign APK was offered");
             press("Open release page"); settle();
             require(PAGE.equals(opened.get()) && showingCount() == 0, "A foreign APK did not fall back to the release page");
-
-            reply.set(release("v" + installed().replaceAll("-.*", ""), PAGE)); opened.set(null);
-            tap(); await(() -> showing("You're up to date"), "The current release was not recognised");
-            require(requests.size() == 2 && text(dialogView(), "Close") == null, "Consent is asked only once; one OK closes it"); settle(); SystemClock.sleep(600); screenshot("current"); press("OK"); settle();
-
-            reply.set(null);
-            tap(); await(() -> showing("Couldn't check for updates"), "An unreachable GitHub was not explained");
-            require(text(dialogView(), "GitHub didn't answer. Check your connection and try again.") != null && text(dialogView(), "Close") == null, "Unreachable wording with a single OK"); press("OK"); settle();
-
-            reply.set(release("v9.9.9", "https://example.com/volt.apk"));
-            tap(); await(() -> showing("Couldn't check for updates"), "A reply pointing elsewhere was offered");
-            press("OK"); settle();
-            require(opened.get() == null, "A page outside Volt's releases was opened");
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
