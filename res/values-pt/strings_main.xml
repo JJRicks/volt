@@ -39,13 +39,13 @@
     <!-- src:dc6742d6d9ee09ea554a81f62fada24d6c4b1562 -->
     <string name="main_lock_updating">A atualizar…</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="main_lock_locked">Bloqueada</string>
+    <string name="main_lock_locked">Bloqueado</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="main_lock_locked_short">Bloqueada</string>
+    <string name="main_lock_locked_short">Bloqueado</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="main_lock_unlocked">Desbloqueada</string>
+    <string name="main_lock_unlocked">Desbloqueado</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="main_lock_unlocked_short">Desbloqueada</string>
+    <string name="main_lock_unlocked_short">Desbloqueado</string>
     <!-- src:36f14d262822b32749a3c8c5c1b8d1ecb19c9061 -->
     <string name="main_lock_state_unknown">Estado do bloqueio desconhecido</string>
     <!-- src:d9fd5d3e078c6993bbc97c106b541a2f7231c050 -->
@@ -53,9 +53,9 @@
     <!-- src:221b9aaeff7de550efb40684f35c6fc6fdcf4c47 -->
     <string name="main_lock_connecting">A conectar</string>
     <!-- src:b5596f644e48ce36bb37ba88f68e3f80c16d7a1d -->
-    <string name="main_lock_last_known_full_locked">Último estado conhecido do bloqueio: bloqueada. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_locked">Último estado conhecido do bloqueio: bloqueado. Volta a conectar a trotinete para verificar.</string>
     <!-- src:7457e04c3b27606a15f4665afe45f7036fd6cfbd -->
-    <string name="main_lock_last_known_full_unlocked">Último estado conhecido do bloqueio: desbloqueada. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_unlocked">Último estado conhecido do bloqueio: desbloqueado. Volta a conectar a trotinete para verificar.</string>
     <!-- src:c6756f4fe7786b80d0090d4a301f6a27fc196ae5 -->
     <string name="main_lock_last_known_full">Último estado conhecido do bloqueio: %1$s. Volta a conectar a trotinete para verificar.</string>
     <!-- src:d2a01535219dab3bcbefee1117d528a7a278b0e6 -->
@@ -63,9 +63,9 @@
     <!-- src:e414882e1866d36c116e9e4b55c7db25e4cf6a57 -->
     <string name="main_lock_your_scooter">a tua trotinete</string>
     <!-- src:69c68eaf954d861bca93225823142ac87043ce89 -->
-    <string name="main_lock_last_known_word_locked">Última leitura: bloqueada</string>
+    <string name="main_lock_last_known_word_locked">Última leitura: bloqueado</string>
     <!-- src:2eeafca10bc9c4f48ea9f32c39c9df6ef7464e02 -->
-    <string name="main_lock_last_known_word_unlocked">Última leitura: desbloqueada</string>
+    <string name="main_lock_last_known_word_unlocked">Última leitura: desbloqueado</string>
     <!-- src:e9ee49efdd68626631938b8704277801bc8567b5 -->
     <string name="main_lock_last_known_word">Última leitura: %1$s</string>
     <!-- src:edb38098ef78ddbd0b658ad242943c1c69b99f46 -->
@@ -211,7 +211,7 @@
     <!-- src:3b0a36d8f6d3c120de05e3e2cc58d59d31720aab -->
     <string name="main_group_headlights">Faróis</string>
     <!-- src:19e4ffbba7448e522406f346b2626f240378932b -->
-    <string name="main_search_top_speed">velocidade de ponta velocidade máxima modo sport limite mph km/h</string>
+    <string name="main_search_top_speed">velocidade máxima modo sport limite mph km/h</string>
     <!-- src:eab92c8bf5f1a81fcbbc4c77b79a8eabd1fff486 -->
     <string name="main_search_done_by">carga pronta até hora de carga pronta terminar carregamento hora limite</string>
     <!-- src:d6100971d533c46f28a4913b96dfee6a2caa60db -->
@@ -247,7 +247,7 @@
     <!-- src:1f17401c574aee23f88aed47fc2e41b97fd9e219 -->
     <string name="main_controls_lights_title">Luzes</string>
     <!-- src:95147b39ffcde610427a035ba0e264fd07ec2207 -->
-    <string name="main_controls_last_seen">Última leitura (desconectada)</string>
+    <string name="main_controls_last_seen">Última leitura (desconectado)</string>
     <!-- src:9d087c810cbe1d3da20889a6a829b131419a26ac -->
     <string name="main_controls_identify">Identificar</string>
     <!-- src:3969a4abb9a765df45508c907767c4de1d0a3f72 -->
@@ -703,7 +703,7 @@
     <!-- src:1ab40a605da2bc18ed58beccb24f21c2e5d745fd -->
     <string name="main_edit_apply">Aplicar</string>
     <!-- src:188490eaa6ecd6b05fd354c8aa752241f6ae6a82 -->
-    <string name="main_edit_not_connected">Não conectada</string>
+    <string name="main_edit_not_connected">Não conectado</string>
     <!-- src:93150918ece1d786b43b4e52a9bd663cceb5c7cb -->
     <string name="main_edit_updated">Atualizado na trotinete</string>
     <!-- src:013595d4988a93adacae7d4abbdd83e099acf322 -->

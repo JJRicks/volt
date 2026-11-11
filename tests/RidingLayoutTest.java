@@ -13,6 +13,7 @@ public final class RidingLayoutTest {
         editing();
         json();
         fallbacks();
+        chips();
         System.out.println("RidingLayoutTest: " + checks + " checks passed (Focus default, catalog kinds, per-frame memory, JSON fallbacks)");
     }
 
@@ -56,7 +57,16 @@ public final class RidingLayoutTest {
         check(RidingLayout.item(RidingLayout.RIDE_TIME) != null && RidingLayout.item(RidingLayout.RECORDING_TIME) != null, "ride time and recording time are separate contents");
         check(!RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.DRIVE_MODE), "drive mode can't go in the ring");
         check(RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.BATTERY) && RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.POWER), "the ring takes battery and power");
-        check(RidingLayout.choices(RidingLayout.Kind.CHIP).equals(Arrays.asList("battery_temperature", "drive_mode", "clock")), "chips: battery temperature, drive mode and clock, no lock: " + RidingLayout.choices(RidingLayout.Kind.CHIP));
+        // Chips hold every reading but speed (a tester asked for more choices), in catalog order like the tiles.
+        check(RidingLayout.choices(RidingLayout.Kind.CHIP).equals(Arrays.asList("power", "range_at_pace", "range_scooter", "range_volt", "battery", "trip",
+                "ride_time", "recording_time", "average_speed", "max_speed", "efficiency", "ride_energy", "voltage", "current",
+                "battery_temperature", "drive_mode", "clock", "odometer")), "chips: every reading but speed, no lock: " + RidingLayout.choices(RidingLayout.Kind.CHIP));
+        for (String id : RidingLayout.choices(RidingLayout.Kind.CHIP))
+            check(RidingLayout.accepts(RidingLayout.Kind.TILE, id), "a chip shows only what a tile can: " + id);
+        check(RidingLayout.chipNamesItself(RidingLayout.DRIVE_MODE) && RidingLayout.chipNamesItself(RidingLayout.BATTERY_TEMPERATURE)
+                && RidingLayout.chipNamesItself(RidingLayout.CLOCK), "drive mode, temperature and the clock name themselves");
+        for (String id : new String[]{RidingLayout.AVERAGE_SPEED, RidingLayout.MAX_SPEED, RidingLayout.CURRENT, RidingLayout.ODOMETER, RidingLayout.BATTERY, null})
+            check(!RidingLayout.chipNamesItself(id), "every other chip carries a name: " + id);
         check(RidingLayout.choices(RidingLayout.Kind.TOP).equals(Arrays.asList("status")), "the top bar holds only the status pill (Record retired)");
         check(RidingLayout.item(RidingLayout.RECORD) == null && !RidingLayout.accepts(RidingLayout.Kind.TOP, RidingLayout.RECORD), "Record is no longer a choice");
         check(RidingLayout.choices(RidingLayout.Kind.TRACE).size() == 3, "three traces");
@@ -93,6 +103,35 @@ public final class RidingLayoutTest {
         check("trace".equals(back.frame()) && RidingLayout.TRACE_POWER.equals(back.content("trace", "trace")) && !back.on("trace", RidingLayout.POWER_BAR)
                 && RidingLayout.CLOCK.equals(back.content("focus", "tile_4")), "choices survive a round trip");
         check(RidingLayout.parse(back.toJson()).toJson().equals(layout.toJson()), "a second round trip is stable");
+    }
+
+    /** Chip choices across versions: 1.13.0 allowed only drive mode, temperature and the clock. */
+    private static void chips() {
+        // A 1.13.0 layout (or backup) loads unchanged: its chip choices are still accepted.
+        RidingLayout old = RidingLayout.parse("{\"v\":1,\"frame\":\"halo\",\"frames\":{\"halo\":{\"spots\":{\"chip_1\":\"clock\",\"chip_3\":\"drive_mode\"}},"
+                + "\"trace\":{\"spots\":{\"chip_2\":\"clock\"}}}}");
+        check(RidingLayout.CLOCK.equals(old.content("halo", "chip_1")) && RidingLayout.BATTERY_TEMPERATURE.equals(old.content("halo", "chip_2"))
+                && RidingLayout.DRIVE_MODE.equals(old.content("halo", "chip_3")) && RidingLayout.CLOCK.equals(old.content("trace", "chip_2")), "a 1.13.0 chip layout loads as saved");
+        // The new choices, in every chip spot of every frame, and they round trip.
+        RidingLayout layout = new RidingLayout();
+        String[] picks = {RidingLayout.AVERAGE_SPEED, RidingLayout.MAX_SPEED, RidingLayout.CURRENT, RidingLayout.ODOMETER, RidingLayout.BATTERY};
+        check(layout.setContent("halo", "chip_1", picks[0]) && layout.setContent("halo", "chip_2", picks[1]) && layout.setContent("halo", "chip_3", picks[2])
+                && layout.setContent("trace", "chip_1", picks[3]) && layout.setContent("trace", "chip_2", picks[4]), "every chip spot takes the new readings");
+        RidingLayout back = RidingLayout.parse(layout.toJson());
+        check(picks[0].equals(back.content("halo", "chip_1")) && picks[1].equals(back.content("halo", "chip_2")) && picks[2].equals(back.content("halo", "chip_3"))
+                && picks[3].equals(back.content("trace", "chip_1")) && picks[4].equals(back.content("trace", "chip_2")), "new chip choices round trip: " + layout.toJson());
+        check(layout.toJson().startsWith("{\"v\":1,"), "the format version stays 1, so 1.13.0 still reads the rest of the layout");
+        // What a chip can't hold, saved by hand or by a later version, falls back to that spot's default; neighbours stay.
+        RidingLayout bad = RidingLayout.parse("{\"v\":1,\"frame\":\"trace\",\"frames\":{\"halo\":{\"spots\":{\"chip_1\":\"speed\",\"chip_2\":\"ring_speed\",\"chip_3\":\"trace_power\"}},"
+                + "\"trace\":{\"spots\":{\"chip_1\":\"record\",\"chip_2\":\"lap_time\",\"tile_1\":\"odometer\"}}}}");
+        check(RidingLayout.DRIVE_MODE.equals(bad.content("halo", "chip_1")) && RidingLayout.BATTERY_TEMPERATURE.equals(bad.content("halo", "chip_2"))
+                && RidingLayout.CLOCK.equals(bad.content("halo", "chip_3")), "speed, the ring's and the chart's contents fall back in a chip");
+        check(RidingLayout.DRIVE_MODE.equals(bad.content("trace", "chip_1")) && RidingLayout.BATTERY_TEMPERATURE.equals(bad.content("trace", "chip_2"))
+                && RidingLayout.ODOMETER.equals(bad.content("trace", "tile_1")) && bad.isDefault("halo"), "the top bar's Record and an unknown id fall back; the tile stays");
+        RidingLayout wrongType = RidingLayout.parse("{\"v\":1,\"frame\":\"halo\",\"frames\":{\"halo\":{\"spots\":{\"chip_1\":null,\"chip_2\":7,\"chip_3\":{\"id\":\"current\"}}}}}");
+        check(wrongType.isDefault("halo") && "halo".equals(wrongType.frame()), "null, number and object chip values fall back without throwing");
+        check(!layout.setContent("halo", "chip_1", null) && !layout.setContent("halo", "chip_1", RidingLayout.SPEED) && picks[0].equals(layout.content("halo", "chip_1")),
+                "a refused chip choice keeps the current one");
     }
 
     private static void fallbacks() {

@@ -16,9 +16,9 @@
     </plurals>
     <!-- src:c74afe1f860be56a9885fd23d36973372e45e13e -->
     <plurals name="maintenance_row_due">
-        <item quantity="one">%1$d a fazer</item>
-        <item quantity="many">%1$d a fazer</item>
-        <item quantity="other">%1$d a fazer</item>
+        <item quantity="one">%1$d pendente</item>
+        <item quantity="many">%1$d pendentes</item>
+        <item quantity="other">%1$d pendentes</item>
     </plurals>
     <!-- src:6f3c512051b6d2f7fad34779ceb250f66eeea77b -->
     <string name="maintenance_tab_due">%1$s, manutenção pendente</string>
@@ -65,13 +65,13 @@
     <!-- src:04cd9da553dfa69d35d68b98ebd7dbf4243ba18c -->
     <string name="maintenance_history_none">Ainda não há verificações concluídas.</string>
     <!-- src:7d21a0a84f05a330d6fb0c2bcd4630a0da8caa78 -->
-    <string name="maintenance_stale">Última leitura do odómetro: %1$s. As viagens desde então contam assim que a Volt voltar a conectar a trotinete.</string>
+    <string name="maintenance_stale">Última leitura da distância total: %1$s. As viagens desde então contam assim que a Volt voltar a conectar a trotinete.</string>
     <!-- src:2112883eafe451e0996b7e081ceef0efcf31c01f -->
-    <string name="maintenance_reset">O valor do odómetro diminuiu (um novo ecrã da trotinete ou controlador, ou uma reposição?). Os lembretes por distância continuam a contar a partir daqui.</string>
+    <string name="maintenance_reset">A distância total diminuiu (um novo ecrã da trotinete ou controlador, ou uma reposição?). Os lembretes por distância continuam a contar a partir daqui.</string>
     <!-- src:8b40298cfdfba790a58baf2f29eaf7876c2ca160 -->
     <string name="maintenance_distance_next">A distância conta a partir da próxima ligação.</string>
     <!-- src:c3c8bac70f46aa28046200ad44f68f67d68d51f1 -->
-    <string name="maintenance_never_read">Conecta a trotinete uma vez para a Volt poder ler o odómetro.</string>
+    <string name="maintenance_never_read">Conecta a trotinete uma vez para a Volt poder ler a distância total.</string>
     <!-- src:feac7ec65a71dc220fc5c431fd1c4c2ea88836da -->
     <string name="maintenance_whole_km">Esta trotinete indica quilómetros inteiros. Se fizer mais de 255 km entre ligações, a distância contada pode ficar abaixo da real.</string>
     <!-- src:13d916781834a30aebd921740d4e2b81b4d8d244 -->
@@ -149,7 +149,7 @@
     <!-- src:4ee8c3b94d4e5daa38ce89bc9bb7622764e44644 -->
     <string name="maintenance_due_today">Pendente hoje</string>
     <!-- src:c968e86abfa83d6a4d273bcb806b791f9155aa7a -->
-    <string name="maintenance_waiting">A aguardar o odómetro</string>
+    <string name="maintenance_waiting">A aguardar a distância total</string>
     <!-- src:d9e08a6881dbfb96ba2cc044a0d3375587748b57 -->
     <string name="maintenance_snoozed_until">Adiado até %1$s</string>
     <!-- src:67bd926cb6c9d0ec7c4153685f41d07a36cee715 -->
@@ -191,7 +191,7 @@
         <item quantity="other">%1$d meses</item>
     </plurals>
     <!-- src:4c8c3f43d1fcba0253933df8a6e944b2ae4851b6 -->
-    <string name="maintenance_done_today_at">Concluído hoje · Odómetro: %1$s</string>
+    <string name="maintenance_done_today_at">Concluído hoje · Distância total: %1$s</string>
     <!-- src:fa59e45c679eec5d5b0f8b34fd9a9874aeef050f -->
     <string name="maintenance_done_today">Concluído hoje</string>
     <!-- src:cd8a36e9e1b2c8078958818b0aa23695ec393ac9 -->
@@ -205,13 +205,13 @@
     <!-- src:af4010b949b4542d0deef5f74ea3afd764409c7a -->
     <string name="maintenance_date">Data</string>
     <!-- src:23ffaa65cdea74e9d3ce9244c06b87d0eb03aead -->
-    <string name="maintenance_odometer_then">Odómetro nessa altura, em %1$s (opcional)</string>
+    <string name="maintenance_odometer_then">Distância total nessa altura, em %1$s (opcional)</string>
     <!-- src:c3c11c26b22b3da27144d2a0ebfa09c7ff92b1aa -->
-    <string name="maintenance_odometer_then_note">Deixa o campo vazio para contar a distância a partir do valor atual do odómetro.</string>
+    <string name="maintenance_odometer_then_note">Deixa o campo vazio para contar a partir da distância total atual.</string>
     <!-- src:717a8989edec22604b76085eb1df7bcb516343f7 -->
-    <string name="maintenance_odometer_ahead">Isso é mais do que o odómetro indica agora.</string>
+    <string name="maintenance_odometer_ahead">Isso é mais do que a distância total indicada agora.</string>
     <!-- src:5a379201aeae7684ad046af22000fae1a4bf22f8 -->
-    <string name="maintenance_odometer_before_reset">Esse valor é de antes de o odómetro diminuir. Deixa o campo vazio.</string>
+    <string name="maintenance_odometer_before_reset">Esse valor é de antes de a distância total diminuir. Deixa o campo vazio.</string>
     <!-- src:4af55579966f5d483c52bd6e228fb61650456169 -->
     <string name="maintenance_number_invalid">Introduz um número.</string>
     <!-- src:83223cd4e92d95228de16bd6dad9d17463f098d9 -->
@@ -273,7 +273,7 @@
     <!-- src:937e31b4bf5437153d93fed921f8b8f8f65c126d -->
     <string name="maintenance_detail_due">Prazo</string>
     <!-- src:5755a5832d73c7b5aa142ee94f71a003338a3fb9 -->
-    <string name="maintenance_at_odometer">Odómetro: %1$s</string>
+    <string name="maintenance_at_odometer">Distância total: %1$s</string>
     <!-- src:8cd3db4cf159ed1f6fbf53d2face254189c232ef -->
     <string name="maintenance_event_added">Adicionado</string>
     <!-- src:a3226307b1168b09401e9231e2fe8a8ab6d0d8af -->

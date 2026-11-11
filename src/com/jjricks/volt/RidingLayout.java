@@ -13,6 +13,9 @@ import java.util.*;
  *
  * Parsing is strict but never throws: an unknown frame falls back to the default frame, and an
  * unknown content, or a content that the spot's kind can't hold, falls back to that spot's default.
+ * That holds both ways across versions, so VERSION stays 1 when a kind accepts more: 1.13.0 only let a
+ * chip hold drive mode, battery temperature or the clock, and reading this version's "average_speed"
+ * chip it refuses the id and shows that chip's default, while the other spots keep their choices.
  */
 final class RidingLayout {
     /** What a spot is, which decides the contents it accepts. */
@@ -29,7 +32,7 @@ final class RidingLayout {
         STRIP,
         /** The live chart (Trace). */
         TRACE,
-        /** A small chip beside the gauges. */
+        /** A small chip beside the gauges: any reading but speed, with its name or icon unless it names itself. */
         CHIP,
         /** The top bar's status pill (it turns into the recording pill while a ride records). */
         TOP
@@ -78,7 +81,8 @@ final class RidingLayout {
                 DRIVE_MODE, CLOCK, ODOMETER}) {
             Set<Kind> kinds = EnumSet.copyOf(single);
             if (id.equals(BATTERY) || id.equals(POWER)) kinds.add(Kind.RING);
-            if (id.equals(DRIVE_MODE) || id.equals(BATTERY_TEMPERATURE) || id.equals(CLOCK)) kinds.add(Kind.CHIP);
+            // A chip holds every reading but speed, which the big number shows (a tester asked for more chip choices).
+            if (!id.equals(SPEED)) kinds.add(Kind.CHIP);
             all.add(new Content(id, kinds));
         }
         all.add(new Content(RING_SPEED, EnumSet.of(Kind.RING)));
@@ -95,6 +99,14 @@ final class RidingLayout {
         List<String> out = new ArrayList<>();
         for (Content c : CATALOG) if (c.accepts.contains(kind)) out.add(c.id);
         return out;
+    }
+
+    /**
+     * True for the chips whose value names itself ("SPORT", "31 °C", "12:48"): drive mode, battery
+     * temperature and the clock. Every other chip carries the reading's name or icon beside its value.
+     */
+    static boolean chipNamesItself(String contentId) {
+        return DRIVE_MODE.equals(contentId) || BATTERY_TEMPERATURE.equals(contentId) || CLOCK.equals(contentId);
     }
 
     /** A place in a frame. Its id is stable storage; its default is the shipped choice. */

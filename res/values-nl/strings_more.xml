@@ -651,6 +651,12 @@
     <string name="more_update_open">Releasepagina openen</string>
     <!-- src:17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798 -->
     <string name="more_update_no_browser">Er is geen browser gevonden om de releasepagina te openen</string>
+    <!-- src:fb89df6fe7ad6b42d1f42351d795fa59a824d9a3 -->
+    <string name="more_update_available_body_download">Je hebt %1$s. Download de nieuwe versie en installeer deze over de huidige heen; je gegevens blijven bewaard.</string>
+    <!-- src:125bac9fd522836e232196ca3c1fda1c7f82328d -->
+    <string name="more_update_download">Downloaden</string>
+    <!-- src:c3360a18a2f6d0837c54336eb2fe3cca9e748c7d -->
+    <string name="more_update_no_browser_download">Er is geen browser gevonden om de download te starten</string>
     <!-- src:c8847f40145311a42aa65b74cc4e604a7cbf6d14 -->
     <string name="more_updates_title">Updates</string>
     <!-- src:d9b247e5c640259079820708230c037ae72204e8 -->

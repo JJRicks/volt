@@ -201,7 +201,7 @@
     <!-- src:c3a14cda2fdcecd7010e01072bf5f4025d7de152 -->
     <string name="more_history_save">Guardar histórico de leituras</string>
     <!-- src:43f52453f26ec982834dfe5c5dbccacc061d9e83 -->
-    <string name="more_history_while_connected">Enquanto conectada</string>
+    <string name="more_history_while_connected">Enquanto conectado</string>
     <!-- src:46c9be67fb117972d7212eeea2e93155c0e9d689 -->
     <string name="more_history_off_kept">Desativado · últimas leituras mantidas</string>
     <!-- src:3306dbdeccfc25335130c26851c550b072b30c74 -->
@@ -654,6 +654,12 @@
     <string name="more_update_open">Abrir página de lançamentos</string>
     <!-- src:17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798 -->
     <string name="more_update_no_browser">Nenhum navegador conseguiu abrir a página da versão</string>
+    <!-- src:fb89df6fe7ad6b42d1f42351d795fa59a824d9a3 -->
+    <string name="more_update_available_body_download">Tens a versão %1$s. Transfere a nova versão e instala-a sobre esta; os teus dados mantêm-se.</string>
+    <!-- src:125bac9fd522836e232196ca3c1fda1c7f82328d -->
+    <string name="more_update_download">Transferir</string>
+    <!-- src:c3360a18a2f6d0837c54336eb2fe3cca9e748c7d -->
+    <string name="more_update_no_browser_download">Nenhum navegador conseguiu iniciar a transferência</string>
     <!-- src:c8847f40145311a42aa65b74cc4e604a7cbf6d14 -->
     <string name="more_updates_title">Atualizações</string>
     <!-- src:d9b247e5c640259079820708230c037ae72204e8 -->
@@ -803,9 +809,9 @@
     <!-- src:a4626b9f998eee1c46548c1c60b810c533eaec16 -->
     <string name="more_role_shared">Autorizado</string>
     <!-- src:43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8 -->
-    <string name="more_link_connected">conectada</string>
+    <string name="more_link_connected">conectado</string>
     <!-- src:1b2dac54076ca87a6ee8f7c5d4abe3370fb44091 -->
-    <string name="more_link_disconnected">não conectada</string>
+    <string name="more_link_disconnected">não conectado</string>
     <!-- src:5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa -->
     <string name="more_link_connecting">a conectar</string>
     <!-- src:65df44c1e08fb53c5b885d6b68d28f2be2366e59 -->
@@ -819,7 +825,7 @@
     <!-- src:a2bc3ab4e707d5b537d842d62066c615e5099580 -->
     <string name="more_scooters_empty">As tuas trotinetes guardadas vão aparecer aqui.</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
-    <string name="more_scooters_connected">Conectada</string>
+    <string name="more_scooters_connected">Conectado</string>
     <!-- src:4f2fe96a65ce1006ebf27bee78efd89117a9a408 -->
     <string name="more_scooters_offline">Sem ligação</string>
     <!-- src:6fedbc5bb2d906c46447405f68ddba4baeefbaee -->

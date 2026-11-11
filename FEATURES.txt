@@ -751,6 +751,9 @@ ignore it. Emulator- and JVM-tested; not yet checked on a GT3 Max.
 The tune disc (shown while stopped or disconnected, hidden while the connected
 scooter moves, sliding in and out over 220 ms) opens the tune menu. At the top
 is the layout editor: drawn previews of the three frames, what each spot shows,
+(Halo's and Trace's chips can show any reading but speed, named beside the
+value unless it names itself, with names shortening to their short form and
+then a unique icon before a chip steps aside),
 and per-frame Power bar, Chips and Tenths switches, saved per scooter as each
 change is made (no Done button), with Reset for the frame on show. Below it
 are riding mode's own settings: brightness (Phone by default, Volt auto from
