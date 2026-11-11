@@ -229,8 +229,8 @@
     <string name="readings_value_warning_code" volt:src="e1dcca3c7ed74e7c9d5f0a5eafd9e91033c6a842">Código %1$s</string>
     <string name="readings_value_battery_normal" volt:src="0b43d3cb60ef5830e5252376a1b7e17d7a645eb4">Normal</string>
     <string name="readings_value_battery_abnormal" volt:src="5b44438be50b1f266c95de611bce91b20e99278b">Anormal</string>
-    <string name="readings_value_unlocked" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueada</string>
-    <string name="readings_value_locked" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueada</string>
+    <string name="readings_value_unlocked" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueado</string>
+    <string name="readings_value_locked" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueado</string>
     <string name="readings_value_acknowledged" volt:src="da60ce6ecf0605827f3bb0fc3b62434de10cbb0f">Receção confirmada</string>
     <string name="readings_value_no_trips" volt:src="a62c020b8c9d61bc836a08748a0ff3c8e6441e24">A trotinete não indica viagens guardadas</string>
     <plurals name="readings_value_trips" volt:src="119c9aef102b50e75ee9c9d2808ed49bd5f720eb">

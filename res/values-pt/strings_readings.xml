@@ -133,11 +133,11 @@
     <!-- src:521f4da2ae5f346cbd86a916a614309848096146 -->
     <string name="readings_trip_minutes_compact">Tempo</string>
     <!-- src:9063a6639c99ecf08f46fe20d63dc86c3128d6ec -->
-    <string name="readings_maximum_speed_kmh">Velocidade de ponta do trajeto atual</string>
+    <string name="readings_maximum_speed_kmh">Velocidade máxima do trajeto atual</string>
     <!-- src:b32c219506a82df18171f269b241a95055523dd0 -->
-    <string name="readings_maximum_speed_kmh_short">Vel. de ponta do trajeto</string>
+    <string name="readings_maximum_speed_kmh_short">Vel. máxima do trajeto</string>
     <!-- src:bd5454ada3dd47ff513fe2425116d98bcc142545 -->
-    <string name="readings_maximum_speed_kmh_compact">Vel. ponta</string>
+    <string name="readings_maximum_speed_kmh_compact">Vel. máxima</string>
     <!-- src:475f4a3043351f56010ea35afe879a4bfce68294 -->
     <string name="readings_average_speed_kmh">Velocidade média do trajeto atual</string>
     <!-- src:9ce635ccc269f0d6a75890baa90f11dddc03d421 -->
@@ -145,11 +145,11 @@
     <!-- src:93c2d63a2f9dfc29f9bced985292aafb358e1e9f -->
     <string name="readings_average_speed_kmh_compact">Vel. média</string>
     <!-- src:9b51943cfe775f6e1df4a4a52895bb3d4d10211d -->
-    <string name="readings_odometer_km">Odómetro total</string>
+    <string name="readings_odometer_km">Distância total</string>
     <!-- src:31e867d79b873d5caf18fe27d8c61f1abb71151c -->
-    <string name="readings_odometer_km_short">Odómetro</string>
+    <string name="readings_odometer_km_short">Distância total</string>
     <!-- src:31adf29d5b21915924c4aa05d92e9631f043c10e -->
-    <string name="readings_odometer_km_compact">Odóm.</string>
+    <string name="readings_odometer_km_compact">Dist. total</string>
     <!-- src:146fe630a90cf0bf2081606b8216f5e137c1206b -->
     <string name="readings_driving_status">Estado de condução (em bruto)</string>
     <!-- src:c4179fc50d153cdd72a836df995bb8051089e067 -->
@@ -459,9 +459,9 @@
     <!-- src:5b44438be50b1f266c95de611bce91b20e99278b -->
     <string name="readings_value_battery_abnormal">Anormal</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="readings_value_unlocked">Desbloqueada</string>
+    <string name="readings_value_unlocked">Desbloqueado</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="readings_value_locked">Bloqueada</string>
+    <string name="readings_value_locked">Bloqueado</string>
     <!-- src:da60ce6ecf0605827f3bb0fc3b62434de10cbb0f -->
     <string name="readings_value_acknowledged">Receção confirmada</string>
     <!-- src:a62c020b8c9d61bc836a08748a0ff3c8e6441e24 -->
