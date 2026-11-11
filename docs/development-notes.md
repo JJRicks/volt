@@ -16,7 +16,121 @@ Implementation invariants and native test guidance for contributors. Start with 
 | `res/values/strings_*.xml`, `l10n/`, `tools/l10n/`, `tests/l10n/` | The language catalog and its checks; start with the [localization guide](localization-for-contributors.md) |
 | `docs/`, `FEATURES.txt`, `VERIFICATION.txt` | User/technical references, per-control evidence and dated validation history |
 
+## Working on the UI
+
+Read this before moving settings between screens, regrouping a menu, or adding another kind of dashboard. Every rule below was checked against the code and CI's gates when it was written.
+
+### Screen map
+
+All screens are native views built in code; there are no layout XML files. `MainActivity` shows one page at a time. Page ids, their parents and the rules about them are in `HubPages` (pure Java, tested by `tests/HubPagesTest.java`); `HubNav` is the stack of open pages, with Home at the bottom. The tab bar shows five tab roots, `HubPages.TABS`, which `MainActivity` keeps in its `pages` array:
+
+| Tab | Page id | Class | Notes |
+|---|---|---|---|
+| Home | `home` | `DashboardScreen` | The widget dashboard and its editor. Widgets are `DashboardConfig.TYPES`; Quick access is `QuickAccessGrid` and `QuickAccessActions` |
+| Live Stats | `data` | `StatsScreen` | Readings and charts, with its own search |
+| Scooter | `scooter` | `MainActivity.ControlsScreen` (inner class) | Scooter settings, the Lights page (`scooter_section` = `Lights`) and Maintenance (`MaintenanceScreen`). Order and hidden rows come from `ScooterMenuLayout` |
+| Rides | `ride` | `RidesScreen` | Recorded rides and charges |
+| More | `settings` | `MoreScreen` | Sections with ids `App`, `Scooters`, `Security`, `Lab`, `Data`, `Developer` and `About`, plus `Units` and `Compatibility` |
+
+`HubPages.ALL` also lists the pages of the Hub layout (subjects such as `battery` and `lights`, and sub-pages such as `battery.modes`), each under a parent. While the tabs remain, `createScreen` shows a page with its tab's screen (`HubPages.tabOf`), so those ids open the tab that holds them today. The ids used before, `stats`, `controls`, `rides` and `more`, are still accepted: `HubPages.canonical` maps them to `data`, `scooter`, `ride` and `settings`, and maps an unknown id to `home`. Android validations read `MainActivity.selectedPage`, which is always the top of the stack, and call `select(page)`; compare with `HubPages.canonical(page)`, not the id you passed.
+
+Outside the tabs: `RidingScreen` is riding mode (layout editor `RidingLayoutSheet`, settings `RidingConfig`), `OnboardingScreen` is first launch, and `BackupActivity` is backup and restore. `Ui` holds the shared design system (colors for both themes, navigation, rows), with `Motion`, `Haptics`, `ReorderList`, `SegmentedSelector` and `TileRung` beside it. The tab bar is built by `MainActivity.navigation` with names from `navNames`; at 650 text-dp and wider (`WideLayout`) it becomes a side rail and More shows its menu and section side by side.
+
+How Volt returns to a place:
+
+- A fresh start opens Home. Within a session, and when Android recreates the activity, the open pages are kept: the saved state holds the top page in `page` and the whole stack in `page_stack`, and `HubNav.restore` checks every saved id, falling back to the top page and its parents. Each page change writes the top page's id to `last_page`; nothing reads it to choose a page.
+- Tapping a tab, or `select(page)` with a tab root, shows that tab with only Home below it. `select` with any other page, and `open(page)` (`ScreenHost`), put the page on top of the current one; `open` can carry one-shot arguments (`HubNav.Args`) that are dropped on the next page change. Tapping the page already shown scrolls it to the top.
+- Back first goes to onboarding or riding mode when they are showing, then to the screen's own `back()` (ending dashboard or Scooter menu editing, clearing a search, leaving the Lights or Maintenance page, or going up from a More section), then to the page below in the stack, and closes the app from Home.
+- More remembers its open section in `more_section` for one minute away from the app, and forgets it after a reboot. The Scooter tab remembers the Lights page in `scooter_section`.
+- Notification taps route by intent: a maintenance notice opens the Maintenance page (`MaintenanceNotices.tapped`), the update notice opens More and its update check (`UpdateCheckJob.opened`), and the connection notification just opens the app.
+
+Page and section ids are stored values, not text. Keep them stable, or handle the old id where it is read: a changed page id needs an entry in `HubPages.canonical`'s legacy map, and `tests/HubNavTest.java` checks that saved pages with old ids still restore.
+
+### Moving or regrouping a setting
+
+Check each of these in the same pull request:
+
+1. **The row's text.** Keep the string key in the `strings_<area>.xml` file it is in now, even if the row moves to another screen. `ship_check.py` requires each translated key to sit in the same area file as its English, so moving an English key to another file fails CI for every shipped language. Update the `volt:screen` attribute, and `volt:max` if the room changes: that metadata doesn't change the text, so CI still counts the translations as current.
+2. **Search.** The Scooter tab's search matches each row's shown title plus extra words from `main_search_*` keys (`volt:purpose="search keywords"`), attached in `ControlsScreen` through `shownExtras` and `extras`. A row moved off that tab takes its search words out of that search; if it moves onto it, give it words. Live Stats has its own search. More has none.
+3. **Remembered places.** If a page id, More section id or `scooter_section` value changes or disappears, decide where a saved old value now leads. Check notification routes that open the old place.
+4. **The Scooter menu layout.** `ScooterMenuLayout` stores each scooter's section and row order and hidden rows in `scooter_menu_v1_<pid>`. Section ids are the groups' English names and row ids are feature keys. Rows move within their own section only. Unknown ids are dropped, and a new id is inserted after its predecessor. A row that changes section, or a renamed id, loses the scooter's saved position and hidden state for it unless you carry them over.
+5. **TalkBack.** Keep content descriptions and headings; a moved row should read the same with TalkBack. Validations and TalkBack both find rows by view tags, IDs and content descriptions, so keep those stable where you can, and list any that changed in the pull request.
+6. **Docs with menu paths.** Update every doc that spells out the old path: `docs/user-guide.md`, `docs/getting-started.md`, `FEATURES.txt`, `SETUP.txt`, `PRIVACY.md`, `README.md` and the homepage under `site/` all carry menu paths, written with `›`, `→` or `>`. Search them for the old name, for example:
+
+   ```sh
+   git grep -n "Developer options" -- docs FEATURES.txt SETUP.txt PRIVACY.md README.md site
+   ```
+
+   Translated style notes under `l10n/` are the maintainers'.
+
+### Stored state
+
+Volt must keep working with what earlier versions saved, and must not break an older Volt that restores a newer backup.
+
+- **Every new preference key or file needs a backup class.** `BackupRegistry` classifies each key as durable, device, pending, cache or diagnostic. `tests/BackupRegistryTest.java` (in `tests/run.sh`) fails when source writes a key it doesn't classify, naming the key. Add the key there and a row to [docs/app-storage-inventory.md](app-storage-inventory.md).
+- **Prefer a new key to a changed format.** An older Volt reads the dashboard store leniently (unknown widget types skipped, unknown fields ignored) but checks saved slots and dashboard transfers strictly: a slot or transfer with a new widget type or layout field is refused there ("Unknown widget type", "Unexpected layout fields"). An older Volt restores keys it doesn't know only with Replace everything. Riding mode's layout falls back to defaults on a newer version number.
+- **A view choice is saved state too.** A dashboard "mode", a new default tab or a remembered toggle is a preference key. Decide whether it is durable (backed up) or device-only, register it, and give it a default that matches today's behavior when the key is absent.
+- **Never overwrite a saved custom or empty dashboard** with defaults. Reorganizing must keep every scooter's saved layouts, menu order, hidden rows and riding layout.
+
+### Adding another dashboard beside the widget dashboard
+
+The widget dashboard stays, and an alternative goes beside it, not in its place.
+
+- The widget dashboard's state is per scooter: `dashboard_v1_<pid>` (the live dashboard), `dashboard_slot_v1_<pid>_<n>` (saved slots), `dashboard_empty_example_v1_<pid>` and the global `dashboard_columns`. Don't change their formats for the new dashboard; store its state in new keys.
+- `DashboardConfig` owns the format and its validation, `DefaultDashboard` the defaults, `DashboardLayout` the pure grid logic, and `DashboardScreen` the rendering and editor. `DashboardScreen` is large; add a new class for a new dashboard instead of growing it.
+- Reuse the existing reading helpers (`ReadingSpan`, `ReadingUnits`, `ScooterReadingLabels`, `DashboardWords`, `LiveStatsTitle`) so units, missing values and spoken labels stay consistent.
+- The switch between dashboards is a saved choice (see [Stored state](#stored-state)), and its absence means the widget dashboard.
+- Many tests read `DashboardScreen.java` and `QuickAccessGrid.java` as text (`DashboardScreenTextTest`, `DashboardFollowupsTest`, `ConnectingLabelTest`, `RecorderTapTest`, `NarrowLabelLadderTest`, `DashboardModelTileTest` and others under `tests/l10n/`). Restructuring those files can fail them even when the app works; such a test edit goes in an ordinary pull request (see below).
+
+### Tests that navigate the UI, and the order CI forces
+
+CI runs the JVM and Python suites only, not the Android validations under `android-tests/`. Those validations walk the real screens: about thirty find views by tag and more by visible text or content description. A move can break them without failing CI. The maintainers run the affected ones on every UI pull request, and update validations that fail only because something moved. [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) has the contributor's side.
+
+The localization gates decide what one pull request can hold. Its kind comes from what it changes ([Pull request kinds](localization-for-contributors.md#pull-request-kinds)):
+
+- **Moving code within one file** keeps that file's catalog references the same, so the pull request stays `ordinary` unless it changes other things.
+- **Moving code that calls `T.` or `M.` into another file** makes it a `batch`, because the new file gained catalog references. That passes if the moved code has no text or data literals other than lower-case ids.
+- **Moving code that has both catalog calls and other literals** (such as `"Locked"` or a section id like `"Lights"`) into another file fails `G1`: the literal counts as removed from one file and new in the other. Move only the catalog calls in that pull request, and ask on the issue about the literals; the maintainers record them.
+- **A `batch` may not edit the tests directly under `tests/l10n/` at all**, not even by adding a statement: they count as proof tooling, like `tests/run.sh`, `android-tests/build.sh` and `tools/l10n/`. That includes the dashboard text tests named above. Other existing tests (`tests/*.java`, `android-tests/*.java`) may only gain whole statements. A `batch` also may not change goldens, and may only shrink `l10n/baseline/`. So a test that reads a file you restructured, or a validation that needs more than added statements, can't be fixed in the same `batch`.
+
+That gives a large move this order:
+
+1. **Ordinary prep pull requests**: pure logic, new classes with no catalog references, new preference keys and their backup classes, and any edit to existing tests.
+2. **The move itself**, with the catalog calls. Keep it small: one screen or section at a time.
+3. **Validation updates** by the maintainers, as a follow-up or stacked pull request, after their emulator pass.
+
+Run `python3 tools/l10n/ci_gates.py --base origin/main --print-mode` to see a pull request's kind before you push it. Never delete or disable a validation, test or golden to get past a failure.
+
+### Text when it moves or changes
+
+- A moved row keeps its key, its file and its translations. Only update `volt:screen`.
+- New text is English only, in a `batch`. The maintainers translate it before the next release.
+- Rewording an existing key changes every language: most keys have ledger rows, and rewording one fails `G1` unless it goes through the owner-approved English-change route in its own pull request. See [Changing existing English](localization-for-contributors.md#changing-existing-english).
+- A label that now has less room needs a shorter rung ([Narrow labels](localization-for-contributors.md#narrow-labels)), not smaller text. Say so in the pull request, because translations are usually longer.
+- A key that is no longer used doesn't fail CI. Say in the pull request which keys you stopped using; the maintainers retire them.
+
+### Running a large overhaul
+
+1. **Open an issue first.** Describe the target layout and the series of pull requests. Removing a setting, changing a default or changing safety wording (lock, alarm, charging, experimental controls, PIN) needs the project owner's yes in that issue before any code.
+2. **Small pull requests that keep `main` shippable.** Each one leaves every setting reachable and every saved layout intact. Old and new layouts may coexist for a while.
+3. **Screenshots before and after**, at least on a phone width. The maintainers' standard set is 344 dp and 725 dp wide, large text, light and dark themes, and a foldable's cover screen where it applies; attach whichever you can.
+4. **List what moved** in each pull request as "old place → new place".
+
 ## Device checks
+
+The Android validations in `android-tests/` are run by the maintainers, not CI, and contributors aren't required to run them. [Running an emulator check yourself](building.md#running-an-emulator-check-yourself) shows how to run one if you want to. `android-tests/run-release-sweep.py` runs them on a disposable emulator; `--list` prints its steps, and `--only <step>` runs one. The rest of this section is reference for the individual runners.
+
+### Adding a validation
+
+This is optional reference. A new validation class must be registered in three places, or it doesn't run:
+
+1. `android-tests/AndroidManifest.xml`: an `<instrumentation>` element naming the class.
+2. `android-tests/build.sh`: the class's source file in its compile list. Without it, the run fails with `ClassNotFoundException`.
+3. `android-tests/run-release-sweep.py`: a step in `STEPS`, or an entry in `EXCLUDED` or `SUBSUMED` with the reason. Otherwise the sweep refuses to start (`Not covered by the release sweep`), and `tests/release-sweep-summary-test.py` fails in CI.
+
+Editing `android-tests/build.sh` is refused in a pull request with catalog text (a `batch`), so a new validation goes in an ordinary pull request, before or after the one that adds the text. Edits to existing validations in a `batch` may only add whole statements.
+
+### Individual runners
 
 `android-tests/ParkedValidation.java` is a separate, explicitly invoked instrumentation runner. Its modes include real lock/settings writes and stationary recording sessions; choose a mode only when those actions are intended and the owner is present with a safely parked scooter. Navigation/background modes perform different checks and have documented guards. Read the chosen mode before running it. `sweep` takes `-e exclude key,key` (recorded, never written); `schedule` runs Test scheduled charging end to end and passes only on an on-time resume with Scheduled charging confirmed off.
 
@@ -90,13 +204,17 @@ must not enable tiles, and refreshing a view must not count as consent.
 `PhoneRideValidation` and `UiOrganizationValidation` are fresh-emulator-only. They
 refuse owner phones and existing app data; synthetic routes are test fixtures, not
 physical sensor validation. Grant test permissions externally only on the emulator.
-Use the existing release signing key privately for an in-place owner update.
+Maintainers only: an in-place update of an installed release needs the release
+signing key, which is never shared.
 
 ## Dashboard and connected history
 
 `DashboardValidation` exercises the actual widget palette, edit controls, cached
 readings, and saved layout. Run it on a fresh emulator at narrow, compact, and
-expanded widths. `HistoryValidation` uses isolated synthetic databases to check
+expanded widths. Besides its default mode it has `-e mode layout-slots`,
+`home-widgets` and `offline-lock` (sweep steps `dashboard`,
+`dashboard-layout-slots`, `dashboard-home-widgets` and
+`dashboard-offline-lock-<width>`). `HistoryValidation` uses isolated synthetic databases to check
 profile separation, retention, query bounds, and storage pressure. Neither runner
 belongs on an owner's phone; both reject physical devices.
 

@@ -61,6 +61,7 @@ First-time capture needs your working NAVEE account and Android debugging access
 | A bug report or an idea | [Issues](https://github.com/JJRicks/volt/issues) · [Contributing](CONTRIBUTING.md) |
 | What's planned, including languages | [Roadmap](ROADMAP.md) |
 | A source build | [Build guide](docs/building.md) · [Development notes](docs/development-notes.md) |
+| A pull request | [Contributing](CONTRIBUTING.md) · [Working on the UI](docs/development-notes.md#working-on-the-ui) · [Localization guide](docs/localization-for-contributors.md) |
 | A security concern | [Security reporting](SECURITY.md) |
 
 ---

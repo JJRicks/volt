@@ -81,7 +81,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `ride_selected` | String | global (ride UUID) | Durable | Last opened ride. |
 | `notification_prompted` | Boolean | global | Device | Volt already asked for Android's notification permission on this installation. |
 | `owner_import_applied` | String | global | Pending | Import ID of the last applied `pending-owner-import.json`; protects that file from being applied twice. |
-| `last_page` | String | global | Device | Last tab. |
+| `last_page` | String | global | Device | Id of the last page shown (`HubPages`; before the page stack, a tab id such as `stats`). Not read to choose a page. |
 | `more_section`, `scooter_section`, `stats_section` | String | global | Device | Open sections. |
 | `more_wide_section_scroll`, `more_wide_menu_scroll` | String / Integer | global | Device | Wide-window scroll positions; depend on window size. |
 | `more_away_elapsed`, `stats_away_elapsed` | Long | global | Device | `SystemClock.elapsedRealtime()` when the tab was left. Meaningless after a reboot or on another phone. |
