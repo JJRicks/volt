@@ -32,7 +32,7 @@ public final class HubPagesTest {
         Pattern id = Pattern.compile("[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*");
         for (String page : HubPages.ALL) {
             require(id.matcher(page).matches(), "Lower-case id: " + page);
-            require(HubPages.known(page) && HubPages.canonical(page).equals(page) || page.equals(HubPages.CONTROLS),
+            require(HubPages.known(page) && HubPages.canonical(page).equals(page),
                     "A page is its own canonical id: " + page);
             // Acyclic and rooted: walking parents reaches Home within the page count.
             String at = page; int steps = 0;
@@ -62,11 +62,12 @@ public final class HubPagesTest {
         require(HubPages.canonical("stats").equals(HubPages.DATA), "Live Stats is Data");
         require(HubPages.canonical("rides").equals(HubPages.RIDE), "Rides is Ride");
         require(HubPages.canonical("more").equals(HubPages.SETTINGS), "More is Settings");
-        require(HubPages.canonical("controls").equals(HubPages.SCOOTER), "Until PR 3, controls is the Scooter tab");
+        // The Scooter tab's old id is the Controls page's (PR 3): an old Bundle or last_page opens Controls on that tab.
+        require(HubPages.canonical("controls").equals(HubPages.CONTROLS), "controls is the Controls page");
         require(HubPages.canonical(null).equals(HubPages.HOME) && HubPages.canonical("bogus").equals(HubPages.HOME)
                 && HubPages.canonical("").equals(HubPages.HOME), "Anything else opens Home");
         for (String legacy : new String[] {"home", "stats", "controls", "rides", "more"})
-            require(HubPages.TABS.contains(HubPages.canonical(legacy)), "Each of today's tabs opens a tab root: " + legacy);
+            require(HubPages.TABS.contains(HubPages.tabOf(HubPages.canonical(legacy))), "Each of today's tabs opens a page on its tab: " + legacy);
     }
 
     private static void subjects() {

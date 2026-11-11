@@ -702,17 +702,16 @@ Find My/Find Hub networks remain outside this offline app.
 
 DASHBOARD AND LOCAL HISTORY
 
-Five main tabs: Home, Scooter, Stats, Rides and More. Scooter contains grouped
-settings and the Lights destination for tail/automatic, line and star lighting.
-Rename the local scooter profile in Scooter or with its widget pencil while
-editing Home.
-The Scooter tab's pencil arranges its sections and settings for each scooter:
-drag or Move up/down within a section, hide with Undo, Add back and Reset. The
-tab then ends with "N settings hidden · Edit", and search still finds hidden
-settings, marked Hidden. Hiding never changes or sends a setting. Wide screens
-balance the two columns by row count. Lights and Quick access keep their own
-order. Maintenance (Scooter > Maintenance > Reminders, off by default) keeps
-local reminders by distance, time or either, counted from odometer readings the
+Five main tabs: Home, Scooter, Stats, Rides and More. Scooter lists its
+subjects with a summary each (Battery & charging, Controls, Lights & sound,
+Security, Service); each is a short page in a fixed, most-used-first order with
+sub-pages for settings set once (Assists, Speed limits, Battery modes,
+Estimates & charger, Line lights, Star lights). Search at the top of the tab
+finds a setting on any page. The former arrange-and-hide editor is gone, and
+settings hidden with it show again. Rename the local scooter profile in More >
+My scooters or with its widget pencil while editing Home. Maintenance
+(Scooter > Service > Maintenance, off by default) keeps local reminders by
+distance, time or either, counted from odometer readings the
 scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
 Scooter tab dot and an optional quiet notification once per due cycle (a daily
 JobScheduler check for time reminders; no push service). Where a NAVEE manual
@@ -974,8 +973,9 @@ history does not extend the fixed ten-second idle background deadline.
 
 RANGE LEARNED FROM YOUR RIDES
 
-Scooter > Range estimate offers Scooter's estimate (default, following drive
-mode) or Volt's estimate (learned), saved separately for each scooter. Volt's
+Scooter > Battery & charging > Estimates & charger > Range estimate offers
+Scooter's estimate (default, following drive mode) or Volt's estimate
+(learned), saved separately for each scooter. Volt's
 estimate uses only that profile's completed ride recordings on this phone;
 no other rider's range baseline ships with Volt.
 With recorded power it forecasts battery energy left at the displayed level
@@ -1076,8 +1076,9 @@ Brief boundary fluctuations have bounded tolerance to avoid abrupt ETA switching
 stale readings and sustained or larger power mismatches still discard the reference.
 Usable ride energy never changes charging estimates.
 
-Scooter → Battery → Charger for estimates offers Stock / High-speed without
-Developer options, including while disconnected. This per-scooter manual choice
+Scooter → Battery & charging → Estimates & charger → Charger for estimates
+offers Stock / High-speed without Developer options, including while
+disconnected. This per-scooter manual choice
 changes estimates only: High-speed opts out of the bundled stock reference.
 It neither sets charger output nor starts recording, and cannot change during
 an active capture. The recording screen uses the same saved selection.
@@ -1112,8 +1113,8 @@ observed 100% finish provides a reference and prediction error; incomplete
 recordings and lower cutoffs are never compared to a guessed completion time.
 Older journals have no historical predictions; estimates are not backfilled.
 
-Live charging (Scooter > Battery > Live charging, on by default) starts only
-when you leave Volt while the scooter is connected and charging, or a Charge
+Live charging (Scooter > Battery & charging > Live charging, on by default)
+starts only when you leave Volt while the scooter is connected and charging, or a Charge
 done by or Scheduled charging start is set. Volt's connection notice becomes a
 card with the level, target, finish time and power; the lock screen shows
 Details, Level or Hidden. It ends at the limit (or 99%), about 15 s after the

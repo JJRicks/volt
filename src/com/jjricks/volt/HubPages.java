@@ -72,8 +72,6 @@ public final class HubPages {
         LEGACY.put("stats", DATA);
         LEGACY.put("rides", RIDE);
         LEGACY.put("more", SETTINGS);
-        // The Scooter tab's id until the Controls page exists (PR 3).
-        LEGACY.put(CONTROLS, SCOOTER);
     }
 
     /** More's section ids and the page that holds each one. */
