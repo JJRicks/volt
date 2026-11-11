@@ -29,7 +29,7 @@ python3 setup/shizuku-dependencies.py --fetch
 bash build.sh
 ```
 
-Replace the SDK and JDK paths with your installed locations. If you leave them unset, `build.sh` looks for an SDK with platform 36 in `~/Library/Android/sdk`, `~/Android/Sdk` and `/opt/android-sdk`, and for a JDK in Android Studio's bundled runtime, then `/usr/libexec/java_home`, then your `PATH`. The `adb` commands below run in your own shell, so they still need `ANDROID_SDK_ROOT` exported; see [Install your build](#install-your-build). The dependency fetch is explicit and verifies pinned hashes; subsequent Android builds verify and use the cached dependencies offline. [Shizuku build details](../setup/SHIZUKU.md#dependencies-and-build) describe the included components.
+Replace the SDK and JDK paths with your installed locations. If you leave `ANDROID_SDK_ROOT` unset, `build.sh` uses `ANDROID_HOME` when that is set, and otherwise looks for an SDK with platform 36 in `~/Library/Android/sdk`, `~/Android/Sdk` and `/opt/android-sdk`. If you leave `JAVA_HOME` unset, it looks for a JDK in Android Studio's bundled runtime, then `/usr/libexec/java_home`, then your `PATH`. The `adb` commands below run in your own shell, so they still need `ANDROID_SDK_ROOT` exported; see [Install your build](#install-your-build). The dependency fetch is explicit and verifies pinned hashes; subsequent Android builds verify and use the cached dependencies offline. [Shizuku build details](../setup/SHIZUKU.md#dependencies-and-build) describe the included components.
 
 The build signs the APK and verifies its signature and alignment. Its default output is:
 
@@ -39,18 +39,14 @@ dist/volt.apk
 
 ### Install your build
 
-Use the SDK's `adb`, which needs `ANDROID_SDK_ROOT` exported in this shell. This block keeps a path you already exported. If you let `build.sh` find the SDK, it looks in the same default places `build.sh` does, on macOS and Linux:
+The `adb` commands in this guide run in your own shell and read `ANDROID_SDK_ROOT`, so export it now if it isn't already. Use the same SDK the build used. `build.sh` takes `ANDROID_SDK_ROOT` if it's set, then `ANDROID_HOME`, then the first of `~/Library/Android/sdk`, `~/Android/Sdk` and `/opt/android-sdk` that contains `platforms/android-36`.
 
 ```sh
-if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
-  for sdk in "$HOME/Library/Android/sdk" "$HOME/Android/Sdk" /opt/android-sdk; do
-    if [ -x "$sdk/platform-tools/adb" ]; then export ANDROID_SDK_ROOT="$sdk"; break; fi
-  done
-fi
+export ANDROID_SDK_ROOT=/path/to/Android/sdk
 "$ANDROID_SDK_ROOT/platform-tools/adb" version
 ```
 
-If the last line says the file doesn't exist, your SDK is somewhere else: export `ANDROID_SDK_ROOT` with its real path and run that line again. Then install:
+Replace the path with that SDK's folder; skip the `export` line if you already exported it for the build. The second line should print adb's version. Then install:
 
 ```sh
 "$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 install -r dist/volt.apk
