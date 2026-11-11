@@ -99,7 +99,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 |---|---|---|
 | Lock (action) | **Bloquear** | Button or action. Official wording. Never *Trancar*, *Fechar* |
 | Lock (noun, card title) | **Bloqueio** | Never *Cadeado*, *Fechadura*, *Tranca* |
-| Locked | **Bloqueado** | A standalone state is masculine (owner, 2026-11-11, on a native speaker's review). *Bloqueada* only where *trotinete* is named in the same expression or sentence: *trotinete bloqueada*. The shipped lock keys still say *Bloqueada* until they pass the council's safety path again |
+| Locked | **Bloqueado** | A standalone state is masculine (owner, 2026-11-11, on a native speaker's review). *Bloqueada* only where *trotinete* is named in the same expression or sentence: *trotinete bloqueada*. This covers the lock state words on Home, in the readings and after *Última leitura:* or *Último estado conhecido do bloqueio:* |
 | Unlock (action) | **Desbloquear** | Noun: **Desbloqueio** |
 | Unlocked | **Desbloqueado** | As Locked: masculine alone, *desbloqueada* only beside *trotinete*. Never *aberto*, *aberta* or *livre* |
 | Lock state unverified | **Estado do bloqueio não verificado** | Must never read as confirmed. Keep *não*. Keep *do*: *estado de bloqueio* can mean a locked state |
@@ -122,7 +122,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 
 Words that look right and mean something else:
 
-- **Bloqueada and Desbloqueada differ only by *Des-*.** Keep both whole, never truncate, and in sentences keep the full word.
+- **Bloqueado and Desbloqueado (Bloqueada and Desbloqueada) differ only by *Des-*.** Keep both whole, never truncate, and in sentences keep the full word.
 - **Bloqueio de segurança is taken.** NAVEE's manual uses it for the physical folding latch. Volt's lock control is **bloqueio eletrónico**, never *bloqueio de segurança*.
 - **Ligar and desligar are power, here.** They also mean connect and disconnect in Portugal. To keep a scooter that is on apart from one that is connected, power and lights use **ligar**, **desligar**, **ligada**, **desligada**, and the Bluetooth link uses **conectar**, **desconectar**, **conectada**, **desconectada**, as NAVEE's manual does in *Conectar à App NAVEE*. So *Scooter parked and powered on* is *Trotinete parada e ligada*, *Connected* is *Conectado*. Never *Desligar* for Disconnect: it would read as turning the scooter off. The noun for the link is **ligação** (*Detalhes da ligação*, *Sem ligação*), which never means power.
 - **Cables and chargers take ligar.** With a cable or charger named as the object, *ligar* and *desligar* are what a native writes: *Liga o carregador*, *Desliga o cabo e volta a ligá-lo*, *Liga o telemóvel com o cabo de dados*. Never *conectar o carregador*. *Plugged in* and *unplugged* are plain *ligado* and *desligado*: name the wall socket only where the English does, because a charger in the wall but not in the scooter must not pass the check. A phone to a computer or to a website also takes *ligar*: *Ligar ao computador*, *O site ligou-se ao telemóvel*. Intransitive *conectar* needs an object: *conecta a trotinete*. The glossary check warns about *Connect* on these keys; that warning is expected, so leave the text. Bare *Ligada* and *Desligada* still mean scooter power, and the scooter's Bluetooth link stays *conectar*.

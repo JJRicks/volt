@@ -459,9 +459,9 @@
     <!-- src:5b44438be50b1f266c95de611bce91b20e99278b -->
     <string name="readings_value_battery_abnormal">Anormal</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="readings_value_unlocked">Desbloqueada</string>
+    <string name="readings_value_unlocked">Desbloqueado</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="readings_value_locked">Bloqueada</string>
+    <string name="readings_value_locked">Bloqueado</string>
     <!-- src:da60ce6ecf0605827f3bb0fc3b62434de10cbb0f -->
     <string name="readings_value_acknowledged">Receção confirmada</string>
     <!-- src:a62c020b8c9d61bc836a08748a0ff3c8e6441e24 -->
