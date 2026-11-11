@@ -201,7 +201,7 @@
     <!-- src:c3a14cda2fdcecd7010e01072bf5f4025d7de152 -->
     <string name="more_history_save">Guardar histórico de leituras</string>
     <!-- src:43f52453f26ec982834dfe5c5dbccacc061d9e83 -->
-    <string name="more_history_while_connected">Enquanto conectada</string>
+    <string name="more_history_while_connected">Enquanto conectado</string>
     <!-- src:46c9be67fb117972d7212eeea2e93155c0e9d689 -->
     <string name="more_history_off_kept">Desativado · últimas leituras mantidas</string>
     <!-- src:3306dbdeccfc25335130c26851c550b072b30c74 -->
@@ -803,9 +803,9 @@
     <!-- src:a4626b9f998eee1c46548c1c60b810c533eaec16 -->
     <string name="more_role_shared">Autorizado</string>
     <!-- src:43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8 -->
-    <string name="more_link_connected">conectada</string>
+    <string name="more_link_connected">conectado</string>
     <!-- src:1b2dac54076ca87a6ee8f7c5d4abe3370fb44091 -->
-    <string name="more_link_disconnected">não conectada</string>
+    <string name="more_link_disconnected">não conectado</string>
     <!-- src:5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa -->
     <string name="more_link_connecting">a conectar</string>
     <!-- src:65df44c1e08fb53c5b885d6b68d28f2be2366e59 -->
@@ -819,7 +819,7 @@
     <!-- src:a2bc3ab4e707d5b537d842d62066c615e5099580 -->
     <string name="more_scooters_empty">As tuas trotinetes guardadas vão aparecer aqui.</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
-    <string name="more_scooters_connected">Conectada</string>
+    <string name="more_scooters_connected">Conectado</string>
     <!-- src:4f2fe96a65ce1006ebf27bee78efd89117a9a408 -->
     <string name="more_scooters_offline">Sem ligação</string>
     <!-- src:6fedbc5bb2d906c46447405f68ddba4baeefbaee -->

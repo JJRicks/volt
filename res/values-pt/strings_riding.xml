@@ -11,17 +11,17 @@
     <!-- src:48bb68250fa0bc39a723c0fbde0ad659e0e5c3ac -->
     <string name="riding_back">Sair da vista de condução</string>
     <!-- src:a816b4a5952b183a3b7a57488079ff7a4970050c -->
-    <string name="riding_status_connected_mode">%1$s · Conectada</string>
+    <string name="riding_status_connected_mode">%1$s · Conectado</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
-    <string name="riding_status_connected_mode_short">Conectada</string>
+    <string name="riding_status_connected_mode_short">Conectado</string>
     <!-- src:fda8d6994ee05b9c6e4ac9fc2b1dfa844694a769 -->
     <string name="riding_status_reconnecting">A reconectar…</string>
     <!-- src:66ad8087bc6e353d966f613727ab8c2c990010d3 -->
-    <string name="riding_status_not_connected_seen">Não conectada · última leitura: %1$s</string>
+    <string name="riding_status_not_connected_seen">Não conectado · última leitura: %1$s</string>
     <!-- src:9dbd41660432bec5fe06998ae3eb548cc10b2ba0 -->
     <string name="riding_status_not_connected_seen_short">Última leitura: %1$s</string>
     <!-- src:188490eaa6ecd6b05fd354c8aa752241f6ae6a82 -->
-    <string name="riding_status_not_connected_seen_compact">Não conectada</string>
+    <string name="riding_status_not_connected_seen_compact">Não conectado</string>
     <!-- src:92a272b9824526f5c9fa0a71fdef7fc3244edc04 -->
     <string name="riding_status_recording">REC %1$s</string>
     <!-- src:306dc71fe5e8917139a044e445848148e32c71a5 -->
@@ -29,9 +29,9 @@
     <!-- src:a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0 -->
     <string name="riding_status_recording_reconnecting_short">%1$s · A reconectar…</string>
     <!-- src:7cd145f757ae7a410c862537586232a2535d1996 -->
-    <string name="riding_status_recording_not_connected">REC %1$s · Não conectada</string>
+    <string name="riding_status_recording_not_connected">REC %1$s · Não conectado</string>
     <!-- src:c894ef6f85a4af280fdf302c4e3731f2ca80af4a -->
-    <string name="riding_status_recording_not_connected_short">%1$s · Não conectada</string>
+    <string name="riding_status_recording_not_connected_short">%1$s · Não conectado</string>
     <!-- src:166b70664fe37ad9af57fecda1f9f9f2c61367db -->
     <string name="riding_status_ride_saved">Viagem guardada</string>
     <!-- src:c4dbb000e520ac67b53954b2491af6d11503fa5d -->
@@ -93,9 +93,9 @@
     <!-- src:a2755aa4f573c4e5a952a379c4e347dfa8367cc0 -->
     <string name="riding_label_average_speed_short">Média</string>
     <!-- src:17ae76385b628a388d3faaab61116919201212b3 -->
-    <string name="riding_label_max_speed">Vel. ponta</string>
+    <string name="riding_label_max_speed">Vel. máx.</string>
     <!-- src:7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d -->
-    <string name="riding_label_max_speed_short">Vel. ponta</string>
+    <string name="riding_label_max_speed_short">Vel. máx.</string>
     <!-- src:deae1c30efa1cde42393254cf1d88b476297f5df -->
     <string name="riding_label_efficiency">Eficiência</string>
     <!-- src:0e85b741bc4a3623a94385147993516b603c8e43 -->
@@ -119,9 +119,9 @@
     <!-- src:d146a494aa72d5293f9795b3f72cfba5fd963b7a -->
     <string name="riding_label_clock">Relógio</string>
     <!-- src:31e867d79b873d5caf18fe27d8c61f1abb71151c -->
-    <string name="riding_label_odometer">Odómetro</string>
+    <string name="riding_label_odometer">Dist. total</string>
     <!-- src:31adf29d5b21915924c4aa05d92e9631f043c10e -->
-    <string name="riding_label_odometer_short">Odóm.</string>
+    <string name="riding_label_odometer_short">Dist. total</string>
     <!-- src:2f0265913cb02528d0a25d25b2eb57febffbadac -->
     <string name="riding_speed_last">última: %1$s</string>
     <!-- src:0579aa52f3ff283354e835d1d3b21d9baa7ce6c8 -->
@@ -165,7 +165,7 @@
     <!-- src:591ae6acf4038658c6088285dfd6803e19f36e9b -->
     <string name="riding_layout_choose">Escolher um esquema</string>
     <!-- src:b12784bd1a78199af50601c39355d949c5494ee0 -->
-    <string name="riding_ring_max">vel. ponta %1$s</string>
+    <string name="riding_ring_max">vel. máxima %1$s</string>
     <!-- src:be82caaed8b18ef144864fbb89e965d5305f01f5 -->
     <string name="riding_trace_regen">Recarga</string>
     <!-- src:3d0735234e6143966db2a62686d1e50de0336c7b -->
@@ -197,7 +197,7 @@
     <!-- src:170156934b1acb193aeb3aa975b42874105bcc5b -->
     <string name="riding_spot_chart">Gráfico</string>
     <!-- src:33e7df283558365bbdcdfa89303ee387b99d8520 -->
-    <string name="riding_content_ring_speed">Velocidade + ponta</string>
+    <string name="riding_content_ring_speed">Velocidade + máxima</string>
     <!-- src:4333eff0fafd0919230240bdeddc6ac75a5332ed -->
     <string name="riding_content_trace_speed_power">Vel. e potência</string>
     <!-- src:3350903d199aa055bb011acd8bdc4ceb0ed72feb -->
