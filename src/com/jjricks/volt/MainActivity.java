@@ -373,7 +373,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
     private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -1025,7 +1025,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(target.equals(selectedPage)){if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
         String from=selectedPage;
         captureScroll();leaving(from,target);
-        if(HubPages.TABS.contains(target))nav.reset(target);else nav.open(target);
+        pageArgs=null;if(HubPages.TABS.contains(target))nav.reset(target);else nav.open(target);
         arrived(from);
     }
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
@@ -1042,7 +1042,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void goBack(){
         String from=selectedPage,target=nav.pages().get(nav.size()-2);
         captureScroll();leaving(from,target);
-        nav.back();
+        nav.back();pageArgs=null;
         arrived(from);
     }
     /** More's and Live Stats' return timers when a page change moves between tabs. */
@@ -1222,7 +1222,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(ble==null)return false;CapabilityResolver.Decision d=ble.decision("lock",shownLock==null||!shownLock?1:0);
         return d.available()||d.blockedByRide()||d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE;
     }
-    /** The Scooter tab's page id. */
     /** Ids the text below sits beside: keys and tags, never shown. */
     private static final String KEY_CLOCK_SYNC="clock_sync",KEY_DISPLAY_UNITS="display_units",KEY_LOCK_EXPIRY="lock_expiry",PREF_UNITS="units",UNIT_KM="km",
             GROUP_LIGHTS="Lights",SECTION_SETTINGS="Settings",SECTION_COMPATIBILITY="Compatibility",TAG_IDENTIFY="scooter-identify-model",PAGE_HOME="home",NO_TEXT="",TAG_DIAGNOSTICS_NOTE="diagnostics-note";

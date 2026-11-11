@@ -21,6 +21,7 @@ public final class HubPagesTest {
         tabs();
         riding();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
+        iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
         System.out.println("HubPages: " + checks + " checks passed");
     }
 
@@ -131,6 +132,17 @@ public final class HubPagesTest {
                 && HubPages.fromMoreSection("Security").equals(HubPages.SECURITY), "Sections move to their subjects");
         require(HubPages.fromMoreSection(null).equals(HubPages.SETTINGS) && HubPages.fromMoreSection("").equals(HubPages.SETTINGS),
                 "More's index is Settings");
+    }
+
+    /** Every icon key HubPages hands out is one Ui draws: a typo would show as a missing glyph. */
+    private static void iconsDrawn(String ui) throws Exception {
+        String source = new String(Files.readAllBytes(Paths.get(ui)), StandardCharsets.UTF_8);
+        Set<String> pages = new HashSet<>(HubPages.ALL);
+        pages.add(HubPages.SCOOTER); pages.add(HubPages.HOME);
+        for (String page : pages) {
+            String icon = HubPages.icon(page);
+            require(source.contains("key.equals(\"" + icon + "\")"), "Ui draws the icon " + icon + " for " + page);
+        }
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
