@@ -2,6 +2,30 @@
 
 Thanks for helping make Volt useful across phones and scooters. It is an independent community project, not affiliated with or endorsed by NAVEE.
 
+## Hand your pull request to the maintainers
+
+This is the whole path from idea to merge. Each step is explained further down.
+
+1. **Agree on the plan first.** For a feature, new scooter support or a change to how screens are organized, open an issue describing the intended behavior and wait for a reply. Removing a setting, changing a default or changing safety wording needs the project owner's yes in that issue before any code. See [Propose a change](#propose-a-change).
+2. **Branch from the current `main`, and open the pull request against `main` from the start.** A branch in your fork or in this repository both work. Changing the base branch later does not re-run CI, and the localization gates compare your work with the base branch as it was when CI ran, so a retargeted pull request can keep a stale result.
+3. **Keep it a draft until it's finished.** Review starts when you mark it ready, and each push to a ready pull request can start another review. Push finished work, not work in progress.
+4. **Before you mark it ready:**
+   - run the checks CI runs, and build the app ([Build and test](#build-and-test));
+   - install your build on your own phone or emulator and try the change by hand;
+   - take screenshots of what you changed.
+5. **Fill in the pull request description** (the template asks for each of these):
+   - what changed, and the related issue;
+   - what you ran, and the results;
+   - what you tried by hand, and on which device and Android version (emulator or real phone);
+   - what moved, was renamed or was removed, as "old place → new place";
+   - new or changed English text, by string key;
+   - what's untested;
+   - screenshots.
+6. **Review.** An independent automated review is posted as a comment from the maintainer's account, headed as an independent review. Reviews run when a maintainer is reviewing, so one usually arrives the same day you mark the pull request ready; if none has arrived after a day or two, comment on the pull request to ask for one. The maintainer may comment too. Findings marked **[P1]** or **[P2]** need a fix or a reasoned reply. When you've pushed fixes, say on the pull request that it's ready for another look. CI must be green on the final commit.
+7. **The maintainers' part.** They run the emulator validations and the standard screenshot set, update any validation that fails only because something moved or was renamed, translate new text, merge, and cut releases. You never need the release signing key, [RELEASING.md](RELEASING.md), translations, validation code or a release installed on a phone to finish a pull request.
+
+If this is your first pull request from a fork, GitHub holds its CI run until a maintainer approves it. That's normal.
+
 ## Report a bug or compatibility result
 
 Include the Volt version, phone model, Android version, scooter model/region/firmware where known, steps to reproduce, expected behavior and what happened. For layout problems, include the window size or folded/unfolded state and any custom font/display scaling.
@@ -10,27 +34,68 @@ Redact screenshots and logs before sharing. Do not attach owner setup identities
 
 ## Propose a change
 
-For substantial features or new scooter support, open an issue describing the intended behavior first. Keep a pull request focused enough to review, explain the user-visible change and relevant validation, and identify anything requiring physical hardware testing. Preserve compatibility with existing profiles, recordings and saved layouts.
+For substantial features, new scooter support or a reorganization of screens, open an issue describing the intended behavior first. Keep a pull request focused enough to review, explain the user-visible change and relevant validation, and identify anything requiring physical hardware testing. Preserve compatibility with existing profiles, recordings and saved layouts.
 
-New or changed visible text must follow the [localization guide](docs/localization-for-contributors.md), which also explains how CI classifies your pull request.
+A large change, such as moving settings between screens or an alternative dashboard, goes in as a series of small pull requests, not one. Describe the series in the issue. Order it so `main` could ship after each one, and say in each pull request where it sits in the series. The localization gates shape that order; [Working on the UI](docs/development-notes.md#working-on-the-ui) explains how.
 
-Use a feature branch and include documentation changes where behavior changes. An independent maintainer should review the final commit before merging. Do not describe a control as verified merely because it compiles or the scooter acknowledges a write.
+New or changed visible text must follow the [localization guide](docs/localization-for-contributors.md), which also explains how CI classifies your pull request. Add English only; the maintainers translate before each release.
+
+Include documentation changes where behavior changes, including docs that spell out a menu path. Do not describe a control as verified merely because it compiles or the scooter acknowledges a write.
 
 ## Build and test
 
 Follow the [build guide](docs/building.md). The app uses Java, native Android views and a shell build; the optional USB helper is a separate static Node/npm project.
 
+GitHub CI runs these on every pull request. They need JDK 17 or newer and Python 3, but no Android SDK, device or signing key. Run them from the repository root before you mark a pull request ready:
+
 ```sh
 bash tests/run.sh
+python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
 python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
-bash build.sh
-bash android-tests/build.sh
+python3 tests/hardware-sweep-test.py
+python3 tests/rides-timing-gate-test.py
+python3 tests/release-sweep-summary-test.py
+python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
+python3 -m unittest discover -s tools/l10n
+python3 tools/l10n/gen_catalog.py --check
+python3 tools/l10n/ship_check.py
+bash tests/l10n/golden.sh
+python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"
 ```
 
-Run checks relevant to your change. UI and lifecycle changes need native checks on a disposable emulator, including narrow screens and large text when relevant. The [development notes](docs/development-notes.md) describe the test runners and implementation invariants. Some parked validation modes change scooter settings; do not run them on someone else's device or an unattended scooter.
+`tests/run.sh` and the `tools/l10n` unit tests take a few minutes each; the rest take seconds. `ci_gates.py` judges your last commit against the base, so commit first and fetch the base. `--pr-head` makes it run the same checks CI runs on a pull request, including that characterization tests come first (`G5`); without it, that check is skipped. In a fork, `origin/main` is your fork's copy, so compare with this repository instead:
+
+```sh
+git remote add upstream https://github.com/JJRicks/volt.git
+git fetch upstream
+python3 tools/l10n/ci_gates.py --base upstream/main --pr-head "$(git rev-parse HEAD)"
+```
+
+Then build the app (this needs the Android SDK; see the [build guide](docs/building.md)):
+
+```sh
+bash build.sh
+```
+
+CI does not build the APK and does not run the Android validations under `android-tests/`. You are not required to run those validations. The maintainers run the affected ones on every UI pull request, with the standard screenshot set: 344 dp and 725 dp wide, large text, both themes, and a foldable cover screen where it applies. That pass is the check that catches a moved or renamed row. If a validation fails only because something moved or was renamed, the maintainers update it in a follow-up pull request. If it fails because behavior changed or broke, that comes back to you as a review finding. To make that easy:
+
+- list what moved, was renamed or was removed, as "old place → new place";
+- keep existing view tags, IDs and content descriptions where you can, because validations and TalkBack find rows by them, and say so when one had to change;
+- never delete or disable a validation to get past a failure.
+
+If you'd like to run an emulator validation yourself, the build guide has an optional section, [Running an emulator check yourself](docs/building.md#running-an-emulator-check-yourself). Some parked validation modes change scooter settings; never run them on someone else's device or an unattended scooter.
 
 For website changes, use the commands in [setup/web/README.md](setup/web/README.md). Keep dependencies pinned and preserve the explicit consent, local processing and cleanup boundaries.
+
+## What never goes in a pull request
+
+- Signing keys, keystores, passwords, `local-build.env` or any other credential.
+- Real ride data, routes or coordinates, real backups, owner setup files, serial numbers, Bluetooth addresses and PINs.
+- Captures, logs or bug reports from your own or anyone else's phone or scooter.
+- Generated binaries (APKs, build output).
+
+Test fixtures are synthetic: made-up identities, serials and coordinates.
 
 ## Signing and private files
 
@@ -50,7 +115,7 @@ Review staged changes before pushing. Keep captures, credentials, recordings, pr
 - Simulation cannot send real commands or contaminate recorded history.
 - Layout changes preserve saved configurations and accessible controls.
 
-More detailed constraints and native test guidance are in [development notes](docs/development-notes.md). The release process is in [RELEASING.md](RELEASING.md).
+More detailed constraints are in [development notes](docs/development-notes.md), including [Working on the UI](docs/development-notes.md#working-on-the-ui). [RELEASING.md](RELEASING.md) is the maintainers' release process; contributors don't need it.
 
 ## Attribution
 
