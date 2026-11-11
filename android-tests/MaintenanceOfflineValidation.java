@@ -111,13 +111,13 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
 
         // A custom name by distance: every mode is enabled, and Distance says it counts from the next connection.
         open(add);
-        View note = sheetView("maintenance_distance_note");
-        require(note.getVisibility() == View.GONE, "Time (the default with no reading) needs no note");
         for (int i = 0; i < 3; i++) {
             TextView chip = (TextView) sheetView("maintenance_mode" + i);
             require(chip.isEnabled() && chip.isFocusable() && chip.isClickable() && chip.getAlpha() == 1f, "Mode " + i + " is offered disconnected like its connected twin");
             require(chip.getText().toString().contentEquals(chip.getContentDescription()), "Mode " + i + " is spoken by its label");
         }
+        View note = sheetView("maintenance_distance_note");
+        require(note.getVisibility() == View.GONE, "Time (the default with no reading) needs no note");
         click("maintenance_mode0");
         require(note.isShown() && text("maintenance_distance_next").contentEquals(((TextView) note).getText()), "Distance explains it counts from the next connection");
         require(note.getImportantForAccessibility() != View.IMPORTANT_FOR_ACCESSIBILITY_NO, "The note is read by a screen reader");
@@ -190,7 +190,9 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
         openPage();
         open(page().findViewWithTag("maintenance_add"));
         TextView note = (TextView) sheetView("maintenance_distance_note");
-        require(!note.isShown(), "No note before a distance part is chosen");
+        // With a reading, Distance is the default; Time hides the note, Distance shows it again.
+        click("maintenance_mode1");
+        require(!note.isShown(), "Time needs no note");
         click("maintenance_mode0");
         String template = text("maintenance_stale");
         require(note.isShown() && note.getText().toString().startsWith(template.substring(0, template.indexOf("%1$s"))), "Distance shows the stale note: " + note.getText());
