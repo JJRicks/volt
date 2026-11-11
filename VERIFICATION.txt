@@ -1,3 +1,121 @@
+VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
+November 11, 2026
+
+- Pull requests in this release, all merged into main at 42046fc9: #369
+  and #371 (update check Download), #373 (maintenance reminders without a
+  connection), #374 (clock seconds), #372 (chip choices), #370 and #377
+  (European Portuguese wording from a native Portuguese speaker; #377 took
+  the lock-state texts through the council's safety path and the
+  Maintenance odometer texts as owner decisions) and #378 (the language
+  top-up: the 5 new strings in all ten languages).
+- Every one merged on a head the independent review came back clean on,
+  with CI (core-tests and web-setup) passing on that head. Seven were clean
+  on the first review. #372 took two: the first found that chip names were
+  worked out against every wanted chip, before the fit chose which chips
+  show, so a chip that later stepped aside could still keep another from
+  its short name or icon. Names are now worked out among the chips that
+  show, and the second review was clean. #377's first CI run on its final
+  head, started as its base was switched from #370's branch to main, failed
+  the localization gates; the next run on the same head passed.
+- Each PR's own checks cover its change: UpdateApkTest (80) and
+  UpdateCheckValidation (44) for Download; MaintenanceOfflineAddTest (50),
+  MaintenanceBackupTest and MaintenanceOfflineValidation for reminders
+  without a connection; RidingClockSecondsTest (1775) for clock seconds;
+  RidingChipFitTest, RidingLayoutTest (249), RidingEditorTest (241) and
+  RidingChipChoicesValidation for chip choices; ship_check, merge.py
+  --check, council.py beta and glossary-check for the Portuguese wording
+  and the top-up.
+- Clock seconds' emulator check ran out of tree on #374 (catalog-adding
+  PRs can't add android-tests), so the release sweep has no step of its own
+  for it.
+- Release candidate checks on commit 45c281ec, which is main at 42046fc9
+  plus this release's version, changelog, features and verification lines.
+  Later commits on the release branch change only VERIFICATION.txt, which
+  is not in the APK: a release build packages only the manifest, resources,
+  assets and classes.dex, and reads its version from the manifest.
+  - ship_check --release --aapt required: PASS. All ten languages have 0 of
+    3822 keys falling back. aapt compiles 4043 texts exactly for es, pt-PT,
+    pt-BR, fr and it, 3933 for sv, de, nl and tr, and 4153 for pl.
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (165 suites).
+    The owner-capture guard (11), capture-owner (22), hardware-sweep (16)
+    and release-sweep summary (4) tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 1.13.1 (no -dev), versionCode 58, signed with 1.13.0's
+    certificate. APK SHA-256
+    ab6cf9aa6563575def58f54b692567f6c286d1b946d8dc980d94a980ae25a8a9.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned, has no repeated entry names and reads 1.13.1 (58).
+    The validation runner was built with the same key.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off), split over four emulators at once, one
+  step per --only run. All 163 listed steps were invoked exactly once: 154
+  ran their checks, and 9 pseudo-locale steps returned skipped before
+  their checks ran, because no pseudo-locale APK was supplied. The 154
+  include this release's new maintenance-offline-344,
+  maintenance-offline-725 and riding-chip-choices steps. The sweep took 57
+  minutes, including
+  rides-timing and the ride auto-save check. Closing numbers, as printed:
+  - Gating steps: 94 passed, 0 failed.
+  - Report-only steps (never counted as passes): 60 ran, 0 did not finish,
+    9 skipped.
+  - No step was rerun: nothing failed or stopped early.
+  - Steps covering this release's changes: update-check passed (44
+    assertions), maintenance-offline-344 and -725 passed (211 assertions
+    each), and riding-chip-choices and riding-chip-row passed.
+  - rides-timing passed. It ran last, alone on the one emulator of ours
+    still up. Best of two cold starts per case, slowest case: first frame
+    278 ms and service start command 247 ms (budgets 1.5 s). Rides first
+    row 35 ms, and the longest main-thread message on Rides was 135 ms cold
+    and 103 ms warm (budget 1 s). The slowest single cold launch held the
+    main thread for 432 ms (one frame, on the 300-ride case's first run).
+    That is over the 250 ms everyday target, which is a reference figure,
+    not a release budget. The same case's second cold start held it for
+    216 ms. The Mac was shared with another project's work during the
+    sweep (load average about 7 to 38).
+  - Locale reports (report only, not gating), 60 steps: ten languages at
+    344 dp, 725 dp and 725 dp with large font, app and scooter screens.
+    Every app walk reached 23 screens and every scooter walk 19. No glued,
+    direction, unfilled or unextracted problems. Fit problems: Spanish and
+    both Portugueses 0, Italian 1, French 2, Polish 2, Turkish 2, Dutch 3,
+    Swedish 3, German 19. French was 1 in 1.13.0; the rest match 1.13.0.
+    Setting tiles that still end in an ellipsis: Spanish 10, Portuguese
+    (Portugal) 8, French 8, Portuguese (Brazil) 7, Polish 5, German 4,
+    Italian 4, Swedish 3, Dutch 0, Turkish 0, the same as 1.13.0.
+  - The pseudo-locale reports (en-XA and ar-XB, 9 steps) were skipped: the
+    sweep was given no pseudo-locale build.
+- Ride auto-save (RideAutoExportValidation, run separately with
+  run-ride-auto-export.py, since it drives the system folder pickers):
+  passed in full on the candidate (585 checks), on the same emulator right
+  after rides-timing.
+- Clock seconds has no step of its own in the sweep (see above), but
+  riding-chip-choices turns the switch on (12-hour) for its Halo default
+  and icon chip rows at 344 dp, large text and split screen, plus a width
+  sweep. It checks that the clock chip keeps its seconds, gives up AM/PM
+  only on the tightest rung, and that the chips hold still as the seconds
+  tick. That step passed.
+- Not run for this release: the owner-present parked hardware sweep, and
+  any install or check on a real phone. No phone was available and the
+  owner was asleep while this release was prepared, so nothing here ran on
+  a real phone or scooter. Everything in this release is tested on
+  emulators and in JVM suites only.
+- ModelRegistry.REPORTED was left as it was in 1.13.0. Adding any
+  compatibility reports received since then is the owner's step.
+- Real-phone checks only the owner can do, not yet done:
+  - Download from a real update check, through the phone's browser (on
+    phones where the GitHub app claims github.com links, the APK link may
+    open in that app, as the release page link did);
+  - adding a distance reminder while disconnected, then the first
+    connection afterwards;
+  - clock seconds on a ride, and the new chip choices in Halo and Trace on
+    a real screen;
+  - European Portuguese on a phone set to Português (Portugal).
+  Still open from 1.13.0: a real ride (the tune menu's 4 mph close, riding
+  mode closing after an automatic end, inferred regen on a GT3 Max), the
+  live charging card through a real charge and an unplug, and Test
+  scheduled charging during a charge.
+
+--- Previous verification ---
+
 VOLT 1.13.0 — DUTCH, TURKISH, POLISH, RIDING MODE'S TUNE MENU, INFERRED REGEN (versionCode 57)
 November 9, 2026
 
