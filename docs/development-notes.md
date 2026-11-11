@@ -22,25 +22,29 @@ Read this before moving settings between screens, regrouping a menu, or adding a
 
 ### Screen map
 
-All screens are native views built in code; there are no layout XML files. `MainActivity` hosts five pages, listed in its `pages` array:
+All screens are native views built in code; there are no layout XML files. `MainActivity` shows one page at a time. Page ids, their parents and the rules about them are in `HubPages` (pure Java, tested by `tests/HubPagesTest.java`); `HubNav` is the stack of open pages, with Home at the bottom. The tab bar shows five tab roots, `HubPages.TABS`, which `MainActivity` keeps in its `pages` array:
 
 | Tab | Page id | Class | Notes |
 |---|---|---|---|
 | Home | `home` | `DashboardScreen` | The widget dashboard and its editor. Widgets are `DashboardConfig.TYPES`; Quick access is `QuickAccessGrid` and `QuickAccessActions` |
-| Live Stats | `stats` | `StatsScreen` | Readings and charts, with its own search |
-| Scooter | `controls` | `MainActivity.ControlsScreen` (inner class) | Scooter settings, the Lights page (`scooter_section` = `Lights`) and Maintenance (`MaintenanceScreen`). Order and hidden rows come from `ScooterMenuLayout` |
-| Rides | `rides` | `RidesScreen` | Recorded rides and charges |
-| More | `more` | `MoreScreen` | Sections with ids `App`, `Scooters`, `Security`, `Lab`, `Data`, `Developer` and `About`, plus `Units` and `Compatibility` |
+| Live Stats | `data` | `StatsScreen` | Readings and charts, with its own search |
+| Scooter | `scooter` | `MainActivity.ControlsScreen` (inner class) | Scooter settings, the Lights page (`scooter_section` = `Lights`) and Maintenance (`MaintenanceScreen`). Order and hidden rows come from `ScooterMenuLayout` |
+| Rides | `ride` | `RidesScreen` | Recorded rides and charges |
+| More | `settings` | `MoreScreen` | Sections with ids `App`, `Scooters`, `Security`, `Lab`, `Data`, `Developer` and `About`, plus `Units` and `Compatibility` |
+
+`HubPages.ALL` also lists the pages of the Hub layout (subjects such as `battery` and `lights`, and sub-pages such as `battery.modes`), each under a parent. While the tabs remain, `createScreen` shows a page with its tab's screen (`HubPages.tabOf`), so those ids open the tab that holds them today. The ids used before, `stats`, `controls`, `rides` and `more`, are still accepted: `HubPages.canonical` maps them to `data`, `scooter`, `ride` and `settings`, and maps an unknown id to `home`. Android validations read `MainActivity.selectedPage`, which is always the top of the stack, and call `select(page)`; compare with `HubPages.canonical(page)`, not the id you passed.
 
 Outside the tabs: `RidingScreen` is riding mode (layout editor `RidingLayoutSheet`, settings `RidingConfig`), `OnboardingScreen` is first launch, and `BackupActivity` is backup and restore. `Ui` holds the shared design system (colors for both themes, navigation, rows), with `Motion`, `Haptics`, `ReorderList`, `SegmentedSelector` and `TileRung` beside it. The tab bar is built by `MainActivity.navigation` with names from `navNames`; at 650 text-dp and wider (`WideLayout`) it becomes a side rail and More shows its menu and section side by side.
 
 How Volt returns to a place:
 
-- A fresh start opens Home. Within a session, and when Android recreates the activity, the current page is kept, and `select(page)` writes it to `last_page`.
+- A fresh start opens Home. Within a session, and when Android recreates the activity, the open pages are kept: the saved state holds the top page in `page` and the whole stack in `page_stack`, and `HubNav.restore` checks every saved id, falling back to the top page and its parents. Each page change writes the top page's id to `last_page`; nothing reads it to choose a page.
+- Tapping a tab, or `select(page)` with a tab root, shows that tab with only Home below it. `select` with any other page, and `open(page)` (`ScreenHost`), put the page on top of the current one; `open` can carry one-shot arguments (`HubNav.Args`) that are dropped on the next page change. Tapping the page already shown scrolls it to the top.
+- Back first goes to onboarding or riding mode when they are showing, then to the screen's own `back()` (ending dashboard or Scooter menu editing, clearing a search, leaving the Lights or Maintenance page, or going up from a More section), then to the page below in the stack, and closes the app from Home.
 - More remembers its open section in `more_section` for one minute away from the app, and forgets it after a reboot. The Scooter tab remembers the Lights page in `scooter_section`.
 - Notification taps route by intent: a maintenance notice opens the Maintenance page (`MaintenanceNotices.tapped`), the update notice opens More and its update check (`UpdateCheckJob.opened`), and the connection notification just opens the app.
 
-Page and section ids are stored values, not text. Keep them stable, or handle the old id where it is read.
+Page and section ids are stored values, not text. Keep them stable, or handle the old id where it is read: a changed page id needs an entry in `HubPages.canonical`'s legacy map, and `tests/HubNavTest.java` checks that saved pages with old ids still restore.
 
 ### Moving or regrouping a setting
 
