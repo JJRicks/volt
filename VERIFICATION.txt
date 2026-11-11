@@ -28,11 +28,24 @@ November 11, 2026
 - Clock seconds' emulator check ran out of tree on #374 (catalog-adding
   PRs can't add android-tests), so the release sweep has no step of its own
   for it.
-- Languages: [PHASE 2: ship_check --release --aapt required result and
-  the per-language counts, from the release commit.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 1.13.0's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
+- Release candidate checks on commit 45c281ec, which is main at 42046fc9
+  plus this release's version, changelog, features and verification lines.
+  Later commits on the release branch change only VERIFICATION.txt, which
+  is not in the APK: a release build packages only the manifest, resources,
+  assets and classes.dex, and reads its version from the manifest.
+  - ship_check --release --aapt required: PASS. All ten languages have 0 of
+    3822 keys falling back. aapt compiles 4043 texts exactly for es, pt-PT,
+    pt-BR, fr and it, 3933 for sv, de, nl and tr, and 4153 for pl.
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (165 suites).
+    The owner-capture guard (11), capture-owner (22), hardware-sweep (16)
+    and release-sweep summary (4) tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 1.13.1 (no -dev), versionCode 58, signed with 1.13.0's
+    certificate. APK SHA-256
+    ab6cf9aa6563575def58f54b692567f6c286d1b946d8dc980d94a980ae25a8a9.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned, has no repeated entry names and reads 1.13.1 (58).
+    The validation runner was built with the same key.
 - run-release-sweep.py on that build: [PHASE 2: emulators used, steps
   listed, first-pass gating and report-only numbers as printed, each rerun
   and why, numbers after reruns, rides-timing, ride auto-save.]
