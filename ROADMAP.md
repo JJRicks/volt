@@ -4,7 +4,7 @@ What's planned for Volt and roughly in what order. It's a plan, not a promise: t
 
 ## Languages
 
-Volt is English-only today. Its text is written directly into the code, so translating it starts with a rebuild of how the app stores text.
+Volt ships in English and ten beta languages: Spanish, German, French, Italian, Portuguese (Portugal and Brazil), Dutch, Polish, Swedish and Turkish. The plan that got it there, and what comes next:
 
 1. **Move every screen's text into Android string resources**, one screen at a time. English stays exactly the same. Afterwards, Volt follows the phone's language.
 2. **Latin-script languages.** Volt's font already covers them.
