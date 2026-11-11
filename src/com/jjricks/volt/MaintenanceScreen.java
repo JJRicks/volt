@@ -143,7 +143,7 @@ final class MaintenanceScreen {
             long reset = s.distance.resetWall;
             left.addView(note(T.maintenanceReset(), () -> change(x -> x.extra.put(RESET_SEEN, reset))));
         }
-        if (anyDistance && s.distance.stale(now)) left.addView(note(T.maintenanceStale(date(s.distance.lastWall)), null));
+        if (anyDistance && s.distance.stale(now)) left.addView(note(staleNote(s), null));
         List<MaintenancePolicy.Reminder> due = MaintenanceView.dueNow(s, now, zone()), coming = MaintenanceView.comingUp(s, now, zone());
         if (!due.isEmpty()) {
             left.addView(ui.sectionLabel(T.maintenanceDueNow()));
@@ -191,6 +191,9 @@ final class MaintenanceScreen {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2); p.bottomMargin = ui.dp(10); note.setLayoutParams(p);
         return note;
     }
+
+    /** The stale-odometer note, on the page and in the add and edit sheets: the last reading's date. */
+    private static String staleNote(MaintenanceStore.Settings s) { return T.maintenanceStale(date(s.distance.lastWall)); }
 
     private View disclaimer() {
         TextView line = ui.caption(T.maintenanceDisclaimer()); line.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(4));
@@ -537,7 +540,7 @@ final class MaintenanceScreen {
         String[] modeNames = {T.maintenanceByDistance(), T.maintenanceByTime(), T.maintenanceByEither()};
         TextView[] modeChips = new TextView[3];
         content.addView(modes);
-        TextView reason = ui.caption(distanceNote == MaintenanceView.DistanceNote.STALE ? T.maintenanceStale(date(s.distance.lastWall)) : T.maintenanceDistanceNext());
+        TextView reason = ui.caption(distanceNote == MaintenanceView.DistanceNote.STALE ? staleNote(s) : T.maintenanceDistanceNext());
         reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); reason.setTag(TAG_DISTANCE_NOTE); content.addView(reason);
         TextView either = ui.caption(T.maintenanceEitherNote()); either.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(either);
         // Distance: a number in the rider's units and neutral shortcut chips.
