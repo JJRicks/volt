@@ -1,3 +1,54 @@
+VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
+November 11, 2026
+
+- Pull requests in this release: #369 and #371 (update check Download),
+  #373 (maintenance reminders without a connection), #374 (clock seconds),
+  #372 (chip choices), #370 and its follow-up (European Portuguese wording
+  from a native Portuguese speaker) and the language top-up.
+  [PHASE 2: PR numbers of the pt-PT follow-up and the top-up; for each PR,
+  CI on its final head and the independent review on the head that merged.]
+- Each PR's own checks cover its change: UpdateApkTest (80) and
+  UpdateCheckValidation (44) for Download; MaintenanceOfflineAddTest (50),
+  MaintenanceBackupTest and MaintenanceOfflineValidation for reminders
+  without a connection; RidingClockSecondsTest (1775) for clock seconds;
+  RidingChipFitTest, RidingLayoutTest, RidingEditorTest and
+  RidingChipChoicesValidation for chip choices; ship_check and the
+  council's checks for the Portuguese wording.
+  [PHASE 2: confirm these counts against the merged heads.]
+- Clock seconds' emulator check ran out of tree on #374 (catalog-adding
+  PRs can't add android-tests), so the release sweep has no step of its own
+  for it.
+- Languages: [PHASE 2: ship_check --release --aapt required result and
+  the per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 1.13.0's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- Not run for this release: the owner-present parked hardware sweep, and
+  any install or check on a real phone. No phone was available and the
+  owner was asleep while this release was prepared, so nothing here ran on
+  a real phone or scooter. Everything in this release is tested on
+  emulators and in JVM suites only.
+- ModelRegistry.REPORTED was left as it was in 1.13.0. Adding any
+  compatibility reports received since then is the owner's step.
+- Real-phone checks only the owner can do, not yet done:
+  - Download from a real update check, through the phone's browser (on
+    phones where the GitHub app claims github.com links, the APK link may
+    open in that app, as the release page link did);
+  - adding a distance reminder while disconnected, then the first
+    connection afterwards;
+  - clock seconds on a ride, and the new chip choices in Halo and Trace on
+    a real screen;
+  - European Portuguese on a phone set to Português (Portugal).
+  Still open from 1.13.0: a real ride (the tune menu's 4 mph close, riding
+  mode closing after an automatic end, inferred regen on a GT3 Max), the
+  live charging card through a real charge and an unplug, and Test
+  scheduled charging during a charge.
+
+--- Previous verification ---
+
 VOLT 1.13.0 — DUTCH, TURKISH, POLISH, RIDING MODE'S TUNE MENU, INFERRED REGEN (versionCode 57)
 November 9, 2026
 
