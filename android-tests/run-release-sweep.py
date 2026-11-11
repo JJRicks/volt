@@ -186,6 +186,7 @@ for theme in ('dark', 'light'):
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
+STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]

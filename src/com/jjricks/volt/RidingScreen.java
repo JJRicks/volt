@@ -55,6 +55,8 @@ import java.util.Locale;
 final class RidingScreen implements AppScreen {
     /** Label size before the cap; labels grow with the text size up to RidingFocus.labelCap, numbers stay fixed. */
     private static final float LABEL_SP = 15, TOUCH_DP = 56;
+    /** The most of Trace's top row its chip column may take beside the big number. */
+    private static final float CHIP_COLUMN_SHARE = .45f;
     private final float labelCap;
     private final ScreenHost host;
     private final Ui ui;
@@ -401,14 +403,11 @@ final class RidingScreen implements AppScreen {
         LinearLayout head = row();
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
         if (layout.on(RidingLayout.CHIPS)) {
-            LinearLayout beside = column();
+            LinearLayout beside = new ChipColumn();
             beside.setGravity(Gravity.END | Gravity.TOP);
-            for (int i = 0; i < RidingFrames.TRACE_CHIPS.size(); i++) {
-                Chip chip = chip(RidingFrames.TRACE_CHIPS.get(i));
-                LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, -2);
-                if (i > 0) p.topMargin = ui.dp(8);
-                beside.addView(chip, p);
-            }
+            // The column sets each chip's top gap by what's shown (fitChips).
+            for (int i = 0; i < RidingFrames.TRACE_CHIPS.size(); i++)
+                beside.addView(chip(RidingFrames.TRACE_CHIPS.get(i)), new LinearLayout.LayoutParams(-2, -2));
             LinearLayout.LayoutParams besideSize = new LinearLayout.LayoutParams(-2, -1);
             besideSize.setMarginStart(ui.dp(10));
             head.addView(beside, besideSize);
@@ -1741,9 +1740,60 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * A row of chips that tightens before it gives anything up (RidingChipFit): the drive mode's letter spacing goes, then
-     * the icons, then some padding, and only then the last chip. The whole row uses one rung. A chip never shows cut.
+     * Fits a group's chips to room (RidingChipFit): side by side with gaps (Halo's row), or stacked (Trace's column beside the
+     * big number). The drive mode's letter spacing goes first, then the reading names shorten to their short form and then
+     * to an icon, then the decorative icons go, then some padding, and only then a chip. The whole group uses one rung, and
+     * a chip never shows cut. A name or icon another chip in the group also carries is skipped for a longer one, so two
+     * readings never look alike.
      */
+    private void fitChips(ViewGroup group, int room, boolean stacked) {
+        List<Chip> wanted = new ArrayList<>();
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof Chip && ((Chip) child).wanted) wanted.add((Chip) child);
+        }
+        int n = wanted.size();
+        String[][] marks = new String[n][];
+        String[] contents = new String[n];
+        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; }
+        int[][] steps = new int[RidingChipFit.RUNGS][n], widths = new int[RidingChipFit.RUNGS][n];
+        for (int rung = 0; rung < RidingChipFit.RUNGS; rung++)
+            for (int i = 0; i < n; i++) {
+                steps[rung][i] = RidingChipFit.nameStep(marks, contents, i, rung);
+                widths[rung][i] = wanted.get(i).widthAt(rung, steps[rung][i]);
+            }
+        int gap = ui.dp(8);
+        RidingChipFit fit = stacked ? RidingChipFit.stack(widths, room) : RidingChipFit.choose(widths, gap, room);
+        int shown = 0;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (!(child instanceof Chip)) continue;
+            Chip chip = (Chip) child;
+            int at = wanted.indexOf(chip), want = View.GONE;
+            if (at >= 0 && fit.shown[at]) {
+                want = View.VISIBLE;
+                chip.useRung(fit.rung, steps[fit.rung][at]);
+                // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
+                setLeadingMargin(group, chip, shown == 0 ? 0 : gap, stacked);
+                shown++;
+            }
+            if (chip.getVisibility() != want) chip.setVisibility(want);
+        }
+    }
+
+    private static void setLeadingMargin(ViewGroup group, View chip, int margin, boolean stacked) {
+        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+        if (stacked) {
+            if (p.topMargin != margin) p.topMargin = margin;
+            return;
+        }
+        if (p.getMarginStart() == margin) return;
+        p.setMarginStart(margin);
+        // LinearLayout measures with the left and right margins, and only the child's first measure would resolve them.
+        p.resolveLayoutDirection(group.getLayoutDirection());
+    }
+
+    /** Halo's row of chips, side by side (fitChips). */
     private final class ChipRow extends LinearLayout {
         ChipRow() {
             super(host.activity());
@@ -1751,62 +1801,55 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE : MeasureSpec.getSize(widthSpec);
-            List<Chip> wanted = new ArrayList<>();
-            for (int i = 0; i < getChildCount(); i++) {
-                View child = getChildAt(i);
-                if (child instanceof Chip && ((Chip) child).wanted) wanted.add((Chip) child);
-            }
-            int[][] widths = new int[RidingChipFit.RUNGS][wanted.size()];
-            for (int rung = 0; rung < RidingChipFit.RUNGS; rung++)
-                for (int i = 0; i < wanted.size(); i++) widths[rung][i] = wanted.get(i).widthAt(rung);
-            int gap = ui.dp(8);
-            RidingChipFit fit = RidingChipFit.choose(widths, gap, room);
-            int shown = 0;
-            for (int i = 0; i < getChildCount(); i++) {
-                View child = getChildAt(i);
-                if (!(child instanceof Chip)) continue;
-                Chip chip = (Chip) child;
-                int want = GONE;
-                if (chip.wanted && shown < fit.count) {
-                    want = VISIBLE;
-                    chip.useRung(fit.rung);
-                    // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
-                    setStartMargin(chip, shown == 0 ? 0 : gap);
-                    shown++;
-                }
-                if (chip.getVisibility() != want) chip.setVisibility(want);
-            }
+            fitChips(this, room, false);
             super.onMeasure(widthSpec, heightSpec);
-        }
-        private void setStartMargin(View chip, int margin) {
-            LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
-            if (p.getMarginStart() == margin) return;
-            p.setMarginStart(margin);
-            // LinearLayout measures with the left and right margins, and only the child's first measure would resolve them.
-            p.resolveLayoutDirection(getLayoutDirection());
         }
     }
 
     /**
-     * A small reading in a pill: drive mode in red like the scooter's own badge, the others on the
-     * card colour with their icon (battery temperature's thermometer, the clock's face). It shows a
-     * value only; it takes no taps.
+     * Trace's chips, stacked beside the big number (fitChips). They take at most CHIP_COLUMN_SHARE of the row, so a long
+     * name shortens, or its chip steps aside, before it can squeeze the speed.
+     */
+    private final class ChipColumn extends LinearLayout {
+        ChipColumn() {
+            super(host.activity());
+            setOrientation(VERTICAL);
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE
+                    : (int) (MeasureSpec.getSize(widthSpec) * CHIP_COLUMN_SHARE);
+            fitChips(this, room, true);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
+    /**
+     * A small reading in a pill. Drive mode, battery temperature and the clock name themselves ("SPORT" in red like the
+     * scooter's own badge, the thermometer or clock face with "31 °C" or "12:48") and look as they always have. Every other
+     * reading carries its name ahead of its value, the tile's own names: the full one ("Average speed"), the short one
+     * ("Avg"), then the tile's icon when that's narrower and no other chip in the group has it. It shows a value only; it
+     * takes no taps. Spoken, it's always the reading's full name and its value, whatever the rung.
      */
     private final class Chip extends LinearLayout {
         private static final float MODE_SPACING = .06f;
-        private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 6;
+        private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 6, ICON_DP = 18, ICON_GAP_DP = 6;
         final String content;
-        private final TextView text;
-        /** Measures the text at each rung's letter spacing; off screen, so trying a rung never disturbs the layout. */
-        private final TextView probe;
+        private final TextView name, text;
+        /** Measure a name and the value at each rung; off screen, so trying a rung never disturbs the layout. */
+        private final TextView nameProbe, probe;
+        /** The thermometer or clock face of a chip that names itself; the reading's icon, a rung of its name, on the others. */
         private final View icon;
-        private final boolean mode;
+        private final String iconKey;
+        private final boolean mode, namesItself;
+        /** The reading's names, full and short (the same when it has one name), from the same catalog its tile uses. */
+        private String[] names = new String[0];
         /** False for a chip with nothing to say (no drive mode yet): it steps aside. */
         boolean wanted = true;
         Chip(String content) {
             super(host.activity());
             this.content = content;
             mode = RidingLayout.DRIVE_MODE.equals(content);
+            namesItself = RidingLayout.chipNamesItself(content);
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
@@ -1814,13 +1857,23 @@ final class RidingScreen implements AppScreen {
             setMinimumHeight(ui.dp(40));
             setPaddingRelative(ui.dp(START_PADDING_DP), ui.dp(4), ui.dp(END_PADDING_DP), ui.dp(4));
             setBackground(ui.shape(mode ? ui.accent : cardColor(), 20, 0));
-            String key = content.equals(RidingLayout.BATTERY_TEMPERATURE) ? "temperature" : content.equals(RidingLayout.CLOCK) ? "clock" : null;
-            icon = key == null ? null : ui.icon(key, 18, ui.muted);
+            // The same icon its tile shows: none for drive mode, the thermometer, the clock face, the speedometer and so on.
+            iconKey = shown(content, SystemClock.elapsedRealtime(), units()).icon;
+            icon = iconKey == null ? null : ui.icon(iconKey, ICON_DP, ui.muted);
             if (icon != null) {
-                LayoutParams p = new LayoutParams(ui.dp(18), ui.dp(18));
-                p.setMarginEnd(ui.dp(6));
+                LayoutParams p = new LayoutParams(ui.dp(ICON_DP), ui.dp(ICON_DP));
+                p.setMarginEnd(ui.dp(ICON_GAP_DP));
                 addView(icon, p);
+                if (!namesItself) icon.setVisibility(GONE);
             }
+            name = nameLabel();
+            name.setVisibility(namesItself ? GONE : VISIBLE);
+            LayoutParams nameSize = new LayoutParams(-2, -2);
+            nameSize.setMarginEnd(ui.dp(ICON_GAP_DP));
+            addView(name, nameSize);
+            chrome.add(name);
+            nameProbe = nameLabel();
+            nameProbe.setLayoutParams(new LayoutParams(-2, -2));
             text = label();
             text.setTextColor(mode ? ui.onAccent : ui.text);
             text.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -1836,26 +1889,90 @@ final class RidingScreen implements AppScreen {
             label.setMaxLines(1);
             return label;
         }
-        /** This chip's whole width at a RidingChipFit rung, with its current text. */
-        int widthAt(int rung) {
-            if (!TextUtils.equals(probe.getText(), text.getText())) probe.setText(text.getText());
-            probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-            int iconWidth = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(18) + ui.dp(6) : 0;
-            int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
-            return padding + iconWidth + probe.getMeasuredWidth();
+        /** The reading's name, as a tile's label: muted, never smaller than the label size and never broken. */
+        private TextView nameLabel() {
+            TextView label = ui.text("", labelSp(LABEL_SP), false);
+            label.setTypeface(ui.medium());
+            label.setTextColor(ui.muted);
+            label.setMaxLines(1);
+            label.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+            return label;
         }
-        /** Shows this chip at a RidingChipFit rung. Setting the same rung again changes nothing, so measuring settles. */
-        void useRung(int rung) {
+        /** This chip's marks for RidingChipFit.nameStep: its full name, short name and icon; a chip that names itself, its icon. */
+        String[] marks() {
+            String iconMark = RidingChipFit.iconMark(iconKey);
+            if (namesItself || names.length == 0) return new String[]{null, null, iconMark};
+            return new String[]{names[0], names[names.length - 1], iconMark};
+        }
+        private int measured(TextView probe, CharSequence value) {
+            if (!TextUtils.equals(probe.getText(), value)) probe.setText(value);
+            probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            return probe.getMeasuredWidth();
+        }
+        /** The name text a step shows, or null at no name. */
+        private String nameAt(int step) { return step < 0 || names.length == 0 ? null : names[Math.min(step, names.length - 1)]; }
+        /** True when a step shows the icon in place of a name: it has one, and it's narrower than the short name. */
+        private boolean iconAt(int step) {
+            if (step != RidingChipFit.NAME_ICON || icon == null || names.length == 0) return false;
+            return ui.dp(ICON_DP) < measured(nameProbe, names[names.length - 1]);
+        }
+        /** This chip's whole width at a RidingChipFit rung and name step, with its current text. */
+        int widthAt(int rung, int step) {
+            probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
+            int value = measured(probe, text.getText());
+            int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
+            int mark = 0;
+            if (namesItself) mark = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP) : 0;
+            else if (iconAt(step)) mark = ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP);
+            else if (nameAt(step) != null) mark = measured(nameProbe, nameAt(step)) + ui.dp(ICON_GAP_DP);
+            return padding + mark + value;
+        }
+        /** Shows this chip at a RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
+        void useRung(int rung, int step) {
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            int visible = rung < RidingChipFit.NO_ICONS ? VISIBLE : GONE;
-            if (icon != null && icon.getVisibility() != visible) icon.setVisibility(visible);
+            boolean iconShown, nameShown;
+            if (namesItself) { iconShown = rung < RidingChipFit.NO_ICONS; nameShown = false; }
+            else {
+                iconShown = iconAt(step);
+                String shownName = iconShown ? null : nameAt(step);
+                nameShown = shownName != null;
+                if (nameShown && !TextUtils.equals(name.getText(), shownName)) name.setText(shownName);
+            }
+            if (icon != null && icon.getVisibility() != (iconShown ? VISIBLE : GONE)) icon.setVisibility(iconShown ? VISIBLE : GONE);
+            if (name.getVisibility() != (nameShown ? VISIBLE : GONE)) name.setVisibility(nameShown ? VISIBLE : GONE);
             boolean tight = rung == RidingChipFit.TIGHT;
-            setPaddingRelative(ui.dp(tight ? TIGHT_PADDING_DP : START_PADDING_DP), ui.dp(4), ui.dp(tight ? TIGHT_PADDING_DP : END_PADDING_DP), ui.dp(4));
+            int start = ui.dp(tight ? TIGHT_PADDING_DP : START_PADDING_DP), end = ui.dp(tight ? TIGHT_PADDING_DP : END_PADDING_DP);
+            if (getPaddingStart() != start || getPaddingEnd() != end) setPaddingRelative(start, ui.dp(4), end, ui.dp(4));
+        }
+        /**
+         * The reading's names, full then short, from its tile's ladder. Power keeps its own name (its tile's ladder starts
+         * with the direction cue, which a chip says aloud instead), and Efficiency its name alone: its tile's short rung is
+         * its unit, which the value already shows.
+         */
+        private String[] names(Shown s) {
+            if (RidingLayout.POWER.equals(content)) return new String[]{powerName()};
+            if (s.rungs.length == 0) return new String[0];
+            if (RidingLayout.EFFICIENCY.equals(content)) return new String[]{s.rungs[0]};
+            return new String[]{s.rungs[0], s.rungs[s.rungs.length - 1]};
         }
         void show(long now, String units) {
             Shown s = shown(content, now, units);
-            // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48"), or the dash.
+            if (s.inferredWatts != null) {
+                // An inferred regen reading: a chip has no room for the "direction unknown" cue, so it shows the size alone
+                // (RidingPowerCue's last rung), and the cue is heard with it.
+                split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts,
+                        RidingValues.Direction.REGEN_INFERRED, RidingPowerCue.NONE))), Fmt.unit(UnitCode.WATT)));
+            }
+            if (!namesItself) {
+                String[] fresh = names(s);
+                if (!java.util.Arrays.equals(fresh, names)) {
+                    names = fresh;
+                    // Name the reading at once, before the group measures it to a rung.
+                    if (!TextUtils.equals(name.getText(), names[0])) name.setText(names[0]);
+                    requestLayout();
+                }
+            }
+            // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48", "14.2 mph"), or the dash.
             String value = s.spoken != null ? s.spoken : s.main.toString();
             if (!TextUtils.equals(text.getText(), value)) text.setText(value);
             int color = mode ? ui.onAccent : s.color;
@@ -1863,12 +1980,12 @@ final class RidingScreen implements AppScreen {
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
             boolean want = !(mode && s.spoken == null);
             if (want != wanted) { wanted = want; requestLayout(); }
-            if (!(getParent() instanceof ChipRow)) {
+            if (!(getParent() instanceof ChipRow) && !(getParent() instanceof ChipColumn)) {
                 int visible = want ? VISIBLE : GONE;
                 if (getVisibility() != visible) setVisibility(visible);
             }
-            String name = s.rungs.length > 0 ? s.name() : s.main.toString();
-            setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
+            String spokenName = s.rungs.length > 0 ? s.name() : s.main.toString();
+            setContentDescription(spokenReading(spokenName, s.spoken == null ? null : s.spokenFull()));
         }
     }
 
