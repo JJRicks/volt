@@ -189,6 +189,7 @@ for theme in ('dark', 'light'):
 STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
           for case in (PHONE, WIDE)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
+STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]

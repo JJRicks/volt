@@ -63,7 +63,10 @@ public final class RidingEditorTest {
         check(ringChoices.contains(RidingLayout.RING_SPEED) && ringChoices.contains(RidingLayout.BATTERY) && ringChoices.contains(RidingLayout.POWER)
                 && ringChoices.size() == 3, "the ring offers speed + max, battery and power");
         RidingLayout.Spot chip = RidingLayout.frameDef(RidingLayout.HALO).spot("chip_1");
-        check(RidingEditor.choices(chip).size() == 3 && !RidingEditor.choices(chip).contains(RidingLayout.SPEED), "chips offer drive mode, temperature and the clock");
+        check(RidingEditor.choices(chip).size() == 18 && !RidingEditor.choices(chip).contains(RidingLayout.SPEED), "chips offer every reading but speed");
+        for (String id : new String[]{RidingLayout.DRIVE_MODE, RidingLayout.BATTERY_TEMPERATURE, RidingLayout.CLOCK, RidingLayout.AVERAGE_SPEED, RidingLayout.MAX_SPEED,
+                RidingLayout.CURRENT, RidingLayout.ODOMETER, RidingLayout.BATTERY, RidingLayout.TRIP, RidingLayout.RIDE_TIME, RidingLayout.VOLTAGE, RidingLayout.POWER})
+            check(RidingEditor.choices(chip).contains(id), "a chip can show " + id);
         for (RidingLayout.Content c : RidingLayout.CATALOG) check(!c.id.matches("(un)?lock.*") && !c.id.contains("_lock"), "no lock content (Q16): " + c.id);
         check(RidingEditor.choices(RidingLayout.frameDef(RidingLayout.FOCUS).spot("top")).isEmpty(), "no choices for the top bar");
         check(e.set(RidingLayout.CHIPS, false) && !e.on(RidingLayout.CHIPS), "chips switch off");
