@@ -1,20 +1,30 @@
 VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
 November 11, 2026
 
-- Pull requests in this release: #369 and #371 (update check Download),
-  #373 (maintenance reminders without a connection), #374 (clock seconds),
-  #372 (chip choices), #370 and its follow-up (European Portuguese wording
-  from a native Portuguese speaker) and the language top-up.
-  [PHASE 2: PR numbers of the pt-PT follow-up and the top-up; for each PR,
-  CI on its final head and the independent review on the head that merged.]
+- Pull requests in this release, all merged into main at 42046fc9: #369
+  and #371 (update check Download), #373 (maintenance reminders without a
+  connection), #374 (clock seconds), #372 (chip choices), #370 and #377
+  (European Portuguese wording from a native Portuguese speaker; #377 took
+  the lock-state texts through the council's safety path and the
+  Maintenance odometer texts as owner decisions) and #378 (the language
+  top-up: the 5 new strings in all ten languages).
+- Every one merged on a head the independent review came back clean on,
+  with CI (core-tests and web-setup) passing on that head. Seven were clean
+  on the first review. #372 took two: the first found that chip names were
+  worked out against every wanted chip, before the fit chose which chips
+  show, so a chip that later stepped aside could still keep another from
+  its short name or icon. Names are now worked out among the chips that
+  show, and the second review was clean. #377's first CI run on its final
+  head, started as its base was switched from #370's branch to main, failed
+  the localization gates; the next run on the same head passed.
 - Each PR's own checks cover its change: UpdateApkTest (80) and
   UpdateCheckValidation (44) for Download; MaintenanceOfflineAddTest (50),
   MaintenanceBackupTest and MaintenanceOfflineValidation for reminders
   without a connection; RidingClockSecondsTest (1775) for clock seconds;
-  RidingChipFitTest, RidingLayoutTest, RidingEditorTest and
-  RidingChipChoicesValidation for chip choices; ship_check and the
-  council's checks for the Portuguese wording.
-  [PHASE 2: confirm these counts against the merged heads.]
+  RidingChipFitTest, RidingLayoutTest (249), RidingEditorTest (241) and
+  RidingChipChoicesValidation for chip choices; ship_check, merge.py
+  --check, council.py beta and glossary-check for the Portuguese wording
+  and the top-up.
 - Clock seconds' emulator check ran out of tree on #374 (catalog-adding
   PRs can't add android-tests), so the release sweep has no step of its own
   for it.

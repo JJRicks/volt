@@ -36,8 +36,10 @@ NEW IN 1.13.1
 - Riding mode's tune menu has Show seconds on clock (off by default). Halo's
   and Trace's chips can show any reading but speed, each named beside its
   value.
-- Portuguese (Portugal) wording corrections from a native Portuguese speaker.
-  Full list: CHANGELOG.md.
+- Portuguese (Portugal) wording corrections from a native Portuguese speaker:
+  standalone connection and lock states are masculine, and odometer labels say
+  Distância total, since the value can be shown in miles. This release's new
+  text is translated in all ten languages. Full list: CHANGELOG.md.
 
 PREVIOUSLY IN 1.13.0
 ------------
@@ -753,7 +755,7 @@ scooter moves, sliding in and out over 220 ms) opens the tune menu. At the top
 is the layout editor: drawn previews of the three frames, what each spot shows,
 (Halo's and Trace's chips can show any reading but speed, named beside the
 value unless it names itself, with names shortening to their short form and
-then a unique icon before a chip steps aside),
+then an icon no other chip on show uses before a chip steps aside),
 and per-frame Power bar, Chips and Tenths switches, saved per scooter as each
 change is made (no Done button), with Reset for the frame on show. Below it
 are riding mode's own settings: brightness (Phone by default, Volt auto from
