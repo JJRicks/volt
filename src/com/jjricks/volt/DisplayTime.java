@@ -21,6 +21,23 @@ public final class DisplayTime {
         return wall <= 0 ? "" : format(is24Hour(context, settings) ? "Hm" : "hm", wall);
     }
 
+    /**
+     * The clock to the second, for riding mode's clock with seconds (RidingClockSeconds), in the same 12 or
+     * 24 hour choice as clock(); and the same time without its AM/PM, for a spot too tight for both, or null
+     * when the clock has none (24-hour). Never empty for a real time.
+     */
+    public static String[] clockSeconds(Context context, SharedPreferences settings, long wall) {
+        if (wall <= 0) return new String[]{"", null};
+        Locale locale = Fmt.locale(Locale.getDefault());
+        String skeleton = is24Hour(context, settings) ? android.icu.text.DateFormat.HOUR24_MINUTE_SECOND
+                : android.icu.text.DateFormat.HOUR_MINUTE_SECOND;
+        SimpleDateFormat format = new SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, skeleton), locale);
+        Date date = new Date(wall);
+        String full = format.format(date);
+        String bare = RidingClockSeconds.without(format.formatToCharacterIterator(date), java.text.DateFormat.Field.AM_PM);
+        return new String[]{full, bare};
+    }
+
     public static String dateTime(Context context, SharedPreferences settings, long wall) {
         return wall <= 0 ? "" : format("yMMMd", wall) + " · " + clock(context, settings, wall);
     }

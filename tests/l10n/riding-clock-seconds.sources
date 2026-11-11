@@ -1,0 +1,6 @@
+# Riding mode's clock with seconds (a tester's request). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root. RidingClockSecondsTest covers the stored switch, the
+# second-aligned tick across pause, resume, close and wall-clock changes, dropping the AM/PM before the seconds, and
+# the wiring in RidingScreen, the tune menu and BackupRegistry.
+src/com/jjricks/volt/RidingClockSeconds.java
+tests/l10n/RidingClockSecondsTest.java

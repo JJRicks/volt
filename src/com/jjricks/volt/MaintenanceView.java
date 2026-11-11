@@ -246,6 +246,19 @@ final class MaintenanceView {
         return d.accumulatedAtRaw(typedRawKm);
     }
 
+    /**
+     * What the add and edit sheets say under Distance and Either. Every mode can be saved with or without a
+     * connection: a distance part saved before Volt ever read the odometer (or a reminder still waiting for that
+     * reading) counts from the next connection; after an old reading it counts from the last known odometer, and
+     * rides since then count once Volt connects again (the page's stale note).
+     */
+    enum DistanceNote { NONE, NEXT_CONNECTION, STALE }
+
+    static DistanceNote distanceNote(MaintenanceDistance d, MaintenancePolicy.Reminder existing, long nowWall) {
+        if (!d.everRead() || existing != null && MaintenancePolicy.pending(existing)) return DistanceNote.NEXT_CONNECTION;
+        return d.stale(nowWall) ? DistanceNote.STALE : DistanceNote.NONE;
+    }
+
     /** The calendar-day due date of a time reminder, or 0. */
     static long dueDate(MaintenancePolicy.Reminder r, ZoneId zone) { return r.byTime() ? MaintenancePolicy.dueWall(r, zone) : 0; }
 
@@ -301,5 +314,33 @@ final class MaintenanceView {
         long n = Math.max(1, nowWall);
         while (s.find(REMINDER_ID + n) != null) n++;
         return REMINDER_ID + n;
+    }
+
+    // ---- The add and edit sheets' save --------------------------------------------------------
+
+    /**
+     * The add sheet's save, applied to the document being written: a new reminder counting from baseWall and
+     * from the latest count, or with typedRawKm (not NaN) from the count at that earlier odometer reading. No
+     * connection is needed: without any odometer reading its distance part waits for the next one. Returns why
+     * an earlier reading was refused, or null when the reminder was saved (or the scooter already has the most).
+     */
+    static MaintenanceDistance.Backdate add(MaintenanceStore.Settings x, String task, String name, Double km, int days, int months,
+                                            boolean notify, long baseWall, double typedRawKm, long nowWall) {
+        MaintenanceDistance.AtRaw at = baseline(x.distance, typedRawKm);
+        if (at.kind != MaintenanceDistance.Backdate.OK) return at.kind;
+        MaintenancePolicy.add(x.reminders, MaintenancePolicy.create(newId(x, nowWall), task, name, km, days, months, notify, baseWall, at.accKm, nowWall));
+        return null;
+    }
+
+    /**
+     * The edit sheet's save, applied to the document being written. A reminder that gains a distance part with no
+     * distance base counts it from now; while the odometer was never read it stays without one and counts from the
+     * next reading ({@link MaintenancePolicy#settle}). Its count start and history are kept.
+     */
+    static void edit(MaintenanceStore.Settings x, String id, String task, String name, Double km, int days, int months, boolean notify) {
+        MaintenancePolicy.Reminder r = x.find(id); if (r == null) return;
+        r.task = task; r.name = MaintenancePolicy.cut(name); r.km = km; r.days = days; r.months = months;
+        r.notify = notify;
+        if (r.byDistance() && Double.isNaN(r.baseAccKm) && x.distance.everRead()) r.baseAccKm = x.distance.accumulatedKm;
     }
 }

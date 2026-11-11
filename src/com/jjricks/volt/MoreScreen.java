@@ -2364,7 +2364,7 @@ public final class MoreScreen implements AppScreen {
     /** Its own request code; MainActivity ignores the answer, and the job checks the permission when it posts. */
     private static final int UPDATE_NOTICE_PERMISSION = 5626;
 
-    /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs. */
+    /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs (the browser does). */
     void checkForUpdates() {
         if (closed) return;
         SharedPreferences settings = service().settings;
@@ -2400,7 +2400,10 @@ public final class MoreScreen implements AppScreen {
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
             // Seen here: the automatic check does not announce this version again.
             UpdateCheckJob.seen(settings(), r.latest);
-            box = dialogBox(T.moreUpdateAvailable(r.latest), T.moreUpdateAvailableBody(installed));
+            // Download hands the browser the release's APK; without one in the reply, the release page as before.
+            box = dialogBox(T.moreUpdateAvailable(r.latest), r.direct()
+                    ? T.moreUpdateAvailableBodyDownload(installed)
+                    : T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
                 String language = UpdateCheck.notesLanguageNote();
@@ -2419,14 +2422,22 @@ public final class MoreScreen implements AppScreen {
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
         AlertDialog dialog = builder.setView(inner).create();
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE)
-            dialogButtons(box, T.commonClose(), dialog::dismiss, T.moreUpdateOpen(), () -> { dialog.dismiss(); openReleasePage(r.url); });
+            dialogButtons(box, T.commonClose(), dialog::dismiss, r.direct()
+                    ? T.moreUpdateDownload()
+                    : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
     }
-    private void openReleasePage(String url) {
-        if (!UpdateCheck.safePage(url)) return;
+    /** The browser gets the APK (safeDownload) or the release page (safePage), never anything else; Volt downloads nothing. */
+    private void openRelease(UpdateCheck.Result r) {
+        boolean direct = r.direct();
+        String url = r.target();
+        if (direct ? !UpdateCheck.safeDownload(url) : !UpdateCheck.safePage(url)) return;
         try { host.activity().startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))); }
-        catch (android.content.ActivityNotFoundException none) { host.toast(T.moreUpdateNoBrowser()); }
+        catch (android.content.ActivityNotFoundException none) {
+            if (direct) host.toast(T.moreUpdateNoBrowserDownload());
+            else host.toast(T.moreUpdateNoBrowser());
+        }
     }
 
     /** An email draft to Volt's report address: a prompt, then Volt's and Android's versions, the phone model and the scooter's model name. */
@@ -2887,6 +2898,8 @@ public final class MoreScreen implements AppScreen {
             content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
             // Off by default: the status bar keeps the phone's clock and battery (#254).
             content.addView(toggle(T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(), RidingBars.HIDE_STATUS_BAR_KEY, "preference_riding_hide_status_bar", true, null));
+            // Off by default: the clock reading shows seconds, ticking only while one is on screen (a tester's request).
+            content.addView(toggle(T.ridingDisplayClockSeconds(), T.ridingDisplayClockSecondsSub(), RidingClockSeconds.KEY, "preference_riding_clock_seconds", true, null));
             gap();
             LinearLayout box = ui.groupCard();
             box.setTag("preference_riding_brightness");
@@ -2928,15 +2941,18 @@ public final class MoreScreen implements AppScreen {
             else save.run();
         }
 
+        /** A switch's stored state: only a stored true is on, so a missing or malformed value shows off rather than failing. */
+        private boolean stored(String key) { return RidingClockSeconds.on(preferences.getAll().get(key)); }
+
         /** One switch; applies: riding mode needs rebuilding with it. beforeOn runs ahead of a turn-on and is given the save to run, as in More. */
         private View toggle(String title, String detail, String key, String tag, boolean applies, Consumer<Runnable> beforeOn) {
             View[] row = new View[1];
-            row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, preferences.getBoolean(key, false), true, enabled -> {
+            row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, stored(key), true, enabled -> {
                 // Whatever happened, the switch and TalkBack say what's now stored; the row outlives the save here.
                 Runnable showStored = () -> {
                     ViewGroup parent = (ViewGroup) row[0];
                     Switch toggle = (Switch) parent.getChildAt(parent.getChildCount() - 1);
-                    boolean stored = preferences.getBoolean(key, false);
+                    boolean stored = stored(key);
                     toggle.setChecked(stored);
                     describeSwitch(toggle, stored);
                 };
