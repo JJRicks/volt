@@ -1,9 +1,9 @@
 {"back":"Lock","key":"main_lock_title","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7044b2710ffbc209d1839555476d7926bb179106","target":"Bloqueio"}
 {"back":"Updating…","key":"main_lock_updating","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"dc6742d6d9ee09ea554a81f62fada24d6c4b1562","target":"A atualizar…"}
-{"back":"Locked","key":"main_lock_locked","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ef86a799d35017977069c35386ac0e45e68a5f2d","target":"Bloqueada"}
-{"back":"Locked","key":"main_lock_locked_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ef86a799d35017977069c35386ac0e45e68a5f2d","target":"Bloqueada"}
-{"back":"Unlocked","key":"main_lock_unlocked","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"2b5c62e79ca9b79c8b8d286daecedcbb25d1a409","target":"Desbloqueada"}
-{"back":"Unlocked","key":"main_lock_unlocked_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"2b5c62e79ca9b79c8b8d286daecedcbb25d1a409","target":"Desbloqueada"}
+{"back":"Locked","key":"main_lock_locked","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ef86a799d35017977069c35386ac0e45e68a5f2d","target":"Bloqueado"}
+{"back":"Locked","key":"main_lock_locked_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ef86a799d35017977069c35386ac0e45e68a5f2d","target":"Bloqueado"}
+{"back":"Unlocked","key":"main_lock_unlocked","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"2b5c62e79ca9b79c8b8d286daecedcbb25d1a409","target":"Desbloqueado"}
+{"back":"Unlocked","key":"main_lock_unlocked_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"2b5c62e79ca9b79c8b8d286daecedcbb25d1a409","target":"Desbloqueado"}
 {"back":"Unknown lock state","key":"main_lock_state_unknown","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"36f14d262822b32749a3c8c5c1b8d1ecb19c9061","target":"Estado do bloqueio desconhecido"}
 {"back":"Lock state not verified","key":"main_lock_state_unverified","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"d9fd5d3e078c6993bbc97c106b541a2f7231c050","target":"Estado do bloqueio não verificado"}
 {"back":"Connecting","key":"main_lock_connecting","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"221b9aaeff7de550efb40684f35c6fc6fdcf4c47","target":"A conectar"}
