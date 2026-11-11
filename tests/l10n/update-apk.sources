@@ -1,0 +1,5 @@
+# The update dialog's Download button: the one APK address Volt hands the browser (UpdateCheck.expectedApk,
+# safeDownload, apk) and the fallback to the release page. tests/run.sh compiles every path listed here.
+src/com/jjricks/volt/UpdateCheck.java
+src/com/jjricks/volt/VersionName.java
+tests/l10n/UpdateApkTest.java
