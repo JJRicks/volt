@@ -7,6 +7,10 @@ public interface ScreenHost {
     /** The activity is resumed right now. False by default, so a host that doesn't say keeps riding mode's display paused. */
     default boolean resumed() { return false; }
     void redraw(); void rebuild(); void toast(String text); void connect();
+    /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */
+    void open(String page);
+    /** The same, with one-shot arguments for the page built (HubNav.Args); args may be null. */
+    void open(String page, HubNav.Args args);
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();

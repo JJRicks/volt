@@ -298,7 +298,7 @@ public final class MoreScreen implements AppScreen {
     }
 
     /** Units returns to its parent; otherwise wide Back leaves the tab, keeping its selected pane. */
-    public boolean back() {
+    @Override public boolean back() {
         if ("Units".equals(selectedSection)) { selectSection("App"); return true; }
         if ("Compatibility".equals(selectedSection) && !standalone) {
             selectSection(compatibilityRecovery ? "" : "Developer"); return true;
@@ -306,6 +306,9 @@ public final class MoreScreen implements AppScreen {
         if (standalone || wide || selectedSection.isEmpty()) return false;
         selectSection(""); return true;
     }
+
+    /** More holds Volt's setup flows, PIN forms, Lab tries and text fields: riding mode never opens over it by itself. */
+    @Override public boolean busy() { return true; }
 
     private boolean knownSection(String section) {
         if ("Units".equals(section) || "Compatibility".equals(section)) return true;

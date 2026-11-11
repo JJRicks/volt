@@ -6885,7 +6885,10 @@ public final class DashboardScreen implements AppScreen {
 
     boolean editing() { return editing; }
 
-    public boolean back() {
+    /** The layout editor is open: riding mode waits. */
+    @Override public boolean busy() { return editing; }
+
+    @Override public boolean back() {
         if (editing) {
             toggleEditing();
             return true;
