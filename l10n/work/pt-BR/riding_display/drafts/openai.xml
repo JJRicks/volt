@@ -13,6 +13,8 @@
     <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">O modo de condução será aberto quando o patinete conectado se movimentar e o Volt estiver na tela. Depois que você sair do modo de condução, a abertura automática aguardará até o patinete se conectar novamente</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Ocultar barra de status</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Relógio e bateria ocultos durante a condução</string>
+    <string name="riding_display_clock_seconds" volt:src="1405ce4019d106ca660efb737167d4c344f68c66">Mostrar segundos no relógio</string>
+    <string name="riding_display_clock_seconds_sub" volt:src="261bfcfc8d876fb1b35f8d1baebce1c605873d99">O relógio no modo de condução conta cada segundo</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Em “Volt automático”, os botões − e + na parte inferior do modo de condução ensinam ao Volt o nível de brilho que você prefere para a luz do ambiente. O brilho do telefone volta ao normal quando você sai do modo de condução.</string>
     <string name="riding_display_note_no_sensor" volt:src="e661d391825a20ea95dda645ba91d2825f7bd131">Em “Fixo”, o nível é definido com os botões − e + na parte inferior do modo de condução. Este telefone não tem sensor de luz, por isso “Volt automático” não está disponível. O brilho do telefone volta ao normal quando você sai do modo de condução.</string>
     <string name="riding_display_reset" volt:src="9ec6ee0367a2f8d73116282ededa7af8b42b318b">Redefinir brilho automático do Volt</string>

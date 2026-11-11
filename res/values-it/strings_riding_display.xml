@@ -26,6 +26,10 @@
     <string name="riding_display_hide_status_bar">Nascondi la barra di stato</string>
     <!-- src:03db3298afb18d03c892194dbf078cf840626b15 -->
     <string name="riding_display_hide_status_bar_sub">Orologio e batteria nascosti durante la guida</string>
+    <!-- src:1405ce4019d106ca660efb737167d4c344f68c66 -->
+    <string name="riding_display_clock_seconds">Mostra i secondi sull\'orologio</string>
+    <!-- src:261bfcfc8d876fb1b35f8d1baebce1c605873d99 -->
+    <string name="riding_display_clock_seconds_sub">L\'orologio nella vista di guida segna ogni secondo</string>
     <!-- src:8e56a632424ab5f9b6eedf68668a69ee5ac00d1d -->
     <string name="riding_display_note">Con «Volt auto», i tasti − e + in basso nella vista di guida insegnano a Volt il tuo livello per la luce in cui ti trovi. La luminosità del telefono torna com\'era quando esci dalla vista di guida.</string>
     <!-- src:e661d391825a20ea95dda645ba91d2825f7bd131 -->

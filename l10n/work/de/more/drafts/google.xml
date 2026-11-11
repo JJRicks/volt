@@ -330,6 +330,9 @@
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Die Antwort von GitHub konnte von Volt nicht gelesen werden. Versuche es später erneut oder rufe die Release-Seite im Browser auf.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Release-Seite öffnen</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Kein Browser konnte die Release-Seite öffnen</string>
+    <string name="more_update_available_body_download" volt:src="fb89df6fe7ad6b42d1f42351d795fa59a824d9a3">Du hast %1$s. Lade die neue Version herunter und installiere sie darüber; deine Daten bleiben erhalten.</string>
+    <string name="more_update_download" volt:src="125bac9fd522836e232196ca3c1fda1c7f82328d">Herunterladen</string>
+    <string name="more_update_no_browser_download" volt:src="c3360a18a2f6d0837c54336eb2fe3cca9e748c7d">Kein Browser konnte den Download starten</string>
     <string name="more_updates_title" volt:src="c8847f40145311a42aa65b74cc4e604a7cbf6d14">Updates</string>
     <string name="more_updates_auto" volt:src="d9b247e5c640259079820708230c037ae72204e8">Automatisch nach Updates suchen</string>
     <string name="more_updates_auto_short" volt:src="9bbc93db05aba581ec66fd1b8639210e2124cc2a">Automatisch suchen</string>

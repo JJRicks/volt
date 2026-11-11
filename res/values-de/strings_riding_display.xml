@@ -26,6 +26,10 @@
     <string name="riding_display_hide_status_bar">Statusleiste ausblenden</string>
     <!-- src:03db3298afb18d03c892194dbf078cf840626b15 -->
     <string name="riding_display_hide_status_bar_sub">Uhrzeit und Akku während der Fahrt ausgeblendet</string>
+    <!-- src:1405ce4019d106ca660efb737167d4c344f68c66 -->
+    <string name="riding_display_clock_seconds">Sekunden bei der Uhrzeit anzeigen</string>
+    <!-- src:261bfcfc8d876fb1b35f8d1baebce1c605873d99 -->
+    <string name="riding_display_clock_seconds_sub">Die Uhrzeit in der Fahransicht zählt jede Sekunde mit</string>
     <!-- src:8e56a632424ab5f9b6eedf68668a69ee5ac00d1d -->
     <string name="riding_display_note">Bei „Volt Auto“ lernt Volt mit − und + am unteren Rand der Fahransicht, welche Helligkeit du bei den jeweiligen Lichtverhältnissen bevorzugst. Wenn du die Fahransicht verlässt, wird die Helligkeit deines Telefons wiederhergestellt.</string>
     <!-- src:e661d391825a20ea95dda645ba91d2825f7bd131 -->
