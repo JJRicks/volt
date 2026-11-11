@@ -46,9 +46,50 @@ November 11, 2026
     This is the build the sweep below ran. The release gates passed on it:
     it is zipaligned, has no repeated entry names and reads 1.13.1 (58).
     The validation runner was built with the same key.
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed, each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.]
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off), split over four emulators at once, one
+  step per --only run. All 163 listed steps ran exactly once. That includes
+  this release's new maintenance-offline-344, maintenance-offline-725 and
+  riding-chip-choices steps. The sweep took 57 minutes, including
+  rides-timing and the ride auto-save check. Closing numbers, as printed:
+  - Gating steps: 94 passed, 0 failed.
+  - Report-only steps (never counted as passes): 60 ran, 0 did not finish,
+    9 skipped.
+  - No step was rerun: nothing failed or stopped early.
+  - Steps covering this release's changes: update-check passed (44
+    assertions), maintenance-offline-344 and -725 passed (211 assertions
+    each), and riding-chip-choices and riding-chip-row passed.
+  - rides-timing passed. It ran last, alone on the one emulator of ours
+    still up. Best of two cold starts per case, slowest case: first frame
+    278 ms and service start command 247 ms (budgets 1.5 s). Rides first
+    row 35 ms, and the longest main-thread message on Rides was 135 ms cold
+    and 103 ms warm (budget 1 s). The slowest single cold launch held the
+    main thread for 432 ms (one frame, on the 300-ride case's first run).
+    That is over the 250 ms everyday target, which is a reference figure,
+    not a release budget. The same case's second cold start held it for
+    216 ms. The Mac was shared with another project's work during the
+    sweep (load average about 7 to 38).
+  - Locale reports (report only, not gating), 60 steps: ten languages at
+    344 dp, 725 dp and 725 dp with large font, app and scooter screens.
+    Every app walk reached 23 screens and every scooter walk 19. No glued,
+    direction, unfilled or unextracted problems. Fit problems: Spanish and
+    both Portugueses 0, Italian 1, French 2, Polish 2, Turkish 2, Dutch 3,
+    Swedish 3, German 19. French was 1 in 1.13.0; the rest match 1.13.0.
+    Setting tiles that still end in an ellipsis: Spanish 10, Portuguese
+    (Portugal) 8, French 8, Portuguese (Brazil) 7, Polish 5, German 4,
+    Italian 4, Swedish 3, Dutch 0, Turkish 0, the same as 1.13.0.
+  - The pseudo-locale reports (en-XA and ar-XB, 9 steps) were skipped: the
+    sweep was given no pseudo-locale build.
+- Ride auto-save (RideAutoExportValidation, run separately with
+  run-ride-auto-export.py, since it drives the system folder pickers):
+  passed in full on the candidate (585 checks), on the same emulator right
+  after rides-timing.
+- Clock seconds has no step of its own in the sweep (see above), but
+  riding-chip-choices turns the switch on (12-hour) for its Halo default
+  and icon chip rows at 344 dp, large text and split screen, plus a width
+  sweep. It checks that the clock chip keeps its seconds, gives up AM/PM
+  only on the tightest rung, and that the chips hold still as the seconds
+  tick. That step passed.
 - Not run for this release: the owner-present parked hardware sweep, and
   any install or check on a real phone. No phone was available and the
   owner was asleep while this release was prepared, so nothing here ran on
