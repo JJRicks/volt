@@ -45,7 +45,7 @@ public final class HubText {
             case HubPages.SERVICE_REPORTS: return M.hubPageServiceReports();
             case HubPages.DATA: return M.hubSubjectData();
             case HubPages.DATA_STORAGE: return M.hubPageDataStorage();
-            case HubPages.SETTINGS: return M.dashboardModelQaSettings();
+            case HubPages.SETTINGS: return M.hubPageSettings();
             case HubPages.SETTINGS_UNITS: return M.moreUnitsTitle();
             case HubPages.SETTINGS_SCOOTERS: return M.moreSectionScooters();
             case HubPages.SETTINGS_ABOUT: return M.moreSectionAbout();

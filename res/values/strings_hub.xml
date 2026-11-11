@@ -56,7 +56,7 @@
 
     <!-- The scooter's riding assists, such as starting and braking aids. -->
     <string name="hub_page_controls_assists" volt:screen="Controls page" volt:purpose="row and page title">Assists</string>
-    <!-- Top speed and the per-mode speed limits. -->
+    <!-- Limits set once: a custom speed limit, a speed limit per drive mode, and overspeed control. -->
     <string name="hub_page_controls_limits" volt:screen="Controls page" volt:purpose="row and page title">Speed limits</string>
 
     <!-- The scooter's light strips along the deck: their pattern and colour. -->
@@ -75,6 +75,10 @@
 
     <!-- Ride and telemetry history stored on the phone, and how much is kept. -->
     <string name="hub_page_data_storage" volt:screen="Data page" volt:purpose="row and page title">Data &amp; history</string>
+
+    <!-- ===== Settings ===== -->
+    <!-- The app's own settings (units, scooters, about), opened from the gear in Home's header. Also the back link's target name on its sub-pages. -->
+    <string name="hub_page_settings" volt:screen="Settings page" volt:purpose="title">Settings</string>
 
     <!-- ===== Page header and rows ===== -->
     <!-- Screen-reader label of a sub-page's back link. %1$s is the name of the page it returns to ("Battery & charging"). -->
