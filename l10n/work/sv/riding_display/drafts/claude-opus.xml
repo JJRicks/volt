@@ -13,6 +13,8 @@
     <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Öppnas när den anslutna elsparkcykeln rör sig och Volt visas på skärmen. När du har lämnat körvyn väntar funktionen tills elsparkcykeln ansluter igen</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Dölj statusfältet</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Klocka och batteri döljs under körning</string>
+    <string name="riding_display_clock_seconds" volt:src="1405ce4019d106ca660efb737167d4c344f68c66">Visa sekunder på klockan</string>
+    <string name="riding_display_clock_seconds_sub" volt:src="261bfcfc8d876fb1b35f8d1baebce1c605873d99">Klockan i körvyn räknar varje sekund</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Med Volt auto lär du Volt din nivå för ljuset där du är med − och + längst ned i körvyn. Telefonens ljusstyrka kommer tillbaka när du lämnar körvyn.</string>
     <string name="riding_display_note_no_sensor" volt:src="e661d391825a20ea95dda645ba91d2825f7bd131">Med Fast ställer du in nivån med − och + längst ned i körvyn. Den här telefonen har ingen ljussensor, så Volt auto finns inte som val. Telefonens ljusstyrka kommer tillbaka när du lämnar körvyn.</string>
     <string name="riding_display_reset" volt:src="9ec6ee0367a2f8d73116282ededa7af8b42b318b">Återställ ljusstyrkan för Volt auto</string>

@@ -13,6 +13,8 @@
     <string name="riding_display_auto_open_sub" volt:src="784e409a507105dede02d3c26109037b242d03d1">Si apre quando il monopattino connesso si muove e Volt è sullo schermo. Dopo che esci dalla modalità di guida, attende che il monopattino si riconnetta</string>
     <string name="riding_display_hide_status_bar" volt:src="ec32d55ab521369ba11a51480764fd3f2549b19a">Nascondi la barra di stato</string>
     <string name="riding_display_hide_status_bar_sub" volt:src="03db3298afb18d03c892194dbf078cf840626b15">Orologio e batteria nascosti durante la guida</string>
+    <string name="riding_display_clock_seconds" volt:src="1405ce4019d106ca660efb737167d4c344f68c66">Mostra i secondi sull\'orologio</string>
+    <string name="riding_display_clock_seconds_sub" volt:src="261bfcfc8d876fb1b35f8d1baebce1c605873d99">L\'orologio nella modalità di guida conta ogni secondo</string>
     <string name="riding_display_note" volt:src="8e56a632424ab5f9b6eedf68668a69ee5ac00d1d">Con «Volt auto», i pulsanti − e + in fondo alla modalità di guida insegnano a Volt il livello di luminosità che preferisci per la luce ambientale. Quando esci dalla modalità di guida, viene ripristinata la luminosità del telefono.</string>
     <string name="riding_display_note_no_sensor" volt:src="e661d391825a20ea95dda645ba91d2825f7bd131">Con «Fissa», imposti il livello con i pulsanti − e + in fondo alla modalità di guida. Questo telefono non ha un sensore di luminosità, quindi «Volt auto» non è disponibile. Quando esci dalla modalità di guida, viene ripristinata la luminosità del telefono.</string>
     <string name="riding_display_reset" volt:src="9ec6ee0367a2f8d73116282ededa7af8b42b318b">Reimposta la luminosità di Volt auto</string>
