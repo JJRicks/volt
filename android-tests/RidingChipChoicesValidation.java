@@ -106,6 +106,12 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         show("halo-speeds-sideways", SPEEDS, sideways, 1f, false);
         show("halo-speeds-wide", SPEEDS, wide, 1f, false);
         show("halo-speeds-wide-large", SPEEDS, wide, 1.5f, false);
+        // Trace's default chips in their column, which now fits its chips too: they must still show as before.
+        String traceDefault = "{\"v\":1,\"frame\":\"trace\",\"frames\":{}}";
+        for (Object[] c : new Object[][]{{"344", phone, 1f}, {"344-large", phone, 1.5f}, {"split", split, 1f}, {"sideways", sideways, 1f}}) {
+            show("trace-default-" + c[0], traceDefault, (int[]) c[1], (Float) c[2], false);
+            requireDefaultTrace("trace-default-" + c[0]);
+        }
         show("trace-344", TRACE, phone, 1f, false);
         show("trace-344-large", TRACE, phone, 1.5f, false);
         show("trace-split", TRACE, split, 1f, false);
@@ -183,6 +189,19 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         require(iconOnlySpeeds < 2, label + ": Average and Max speed both on the speedometer alone");
         if (!stacked) require(used <= group.getWidth(), label + ": the row needs " + used + " of " + group.getWidth());
         return out.toString();
+    }
+
+    /** Trace's default column keeps both chips (drive mode and battery temperature) whole, as before this change. */
+    private void requireDefaultTrace(String label) {
+        main(() -> {
+            List<?> chips = (List<?>) field(field(activity, "screen"), "chips");
+            for (Object chip : chips) {
+                String content = (String) field(chip, "content");
+                boolean wanted = (Boolean) field(chip, "wanted");
+                // A drive mode the simulator hasn't sent yet steps aside, as it always has.
+                if (wanted) require(((View) chip).getVisibility() == View.VISIBLE, label + ": default chip " + content + " stepped aside");
+            }
+        });
     }
 
     private static String fullName(String content) {
