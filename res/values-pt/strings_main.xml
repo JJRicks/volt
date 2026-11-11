@@ -39,13 +39,13 @@
     <!-- src:dc6742d6d9ee09ea554a81f62fada24d6c4b1562 -->
     <string name="main_lock_updating">A atualizar…</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="main_lock_locked">Bloqueada</string>
+    <string name="main_lock_locked">Bloqueado</string>
     <!-- src:ef86a799d35017977069c35386ac0e45e68a5f2d -->
-    <string name="main_lock_locked_short">Bloqueada</string>
+    <string name="main_lock_locked_short">Bloqueado</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="main_lock_unlocked">Desbloqueada</string>
+    <string name="main_lock_unlocked">Desbloqueado</string>
     <!-- src:2b5c62e79ca9b79c8b8d286daecedcbb25d1a409 -->
-    <string name="main_lock_unlocked_short">Desbloqueada</string>
+    <string name="main_lock_unlocked_short">Desbloqueado</string>
     <!-- src:36f14d262822b32749a3c8c5c1b8d1ecb19c9061 -->
     <string name="main_lock_state_unknown">Estado do bloqueio desconhecido</string>
     <!-- src:d9fd5d3e078c6993bbc97c106b541a2f7231c050 -->
@@ -53,9 +53,9 @@
     <!-- src:221b9aaeff7de550efb40684f35c6fc6fdcf4c47 -->
     <string name="main_lock_connecting">A conectar</string>
     <!-- src:b5596f644e48ce36bb37ba88f68e3f80c16d7a1d -->
-    <string name="main_lock_last_known_full_locked">Último estado conhecido do bloqueio: bloqueada. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_locked">Último estado conhecido do bloqueio: bloqueado. Volta a conectar a trotinete para verificar.</string>
     <!-- src:7457e04c3b27606a15f4665afe45f7036fd6cfbd -->
-    <string name="main_lock_last_known_full_unlocked">Último estado conhecido do bloqueio: desbloqueada. Volta a conectar a trotinete para verificar.</string>
+    <string name="main_lock_last_known_full_unlocked">Último estado conhecido do bloqueio: desbloqueado. Volta a conectar a trotinete para verificar.</string>
     <!-- src:c6756f4fe7786b80d0090d4a301f6a27fc196ae5 -->
     <string name="main_lock_last_known_full">Último estado conhecido do bloqueio: %1$s. Volta a conectar a trotinete para verificar.</string>
     <!-- src:d2a01535219dab3bcbefee1117d528a7a278b0e6 -->
@@ -63,9 +63,9 @@
     <!-- src:e414882e1866d36c116e9e4b55c7db25e4cf6a57 -->
     <string name="main_lock_your_scooter">a tua trotinete</string>
     <!-- src:69c68eaf954d861bca93225823142ac87043ce89 -->
-    <string name="main_lock_last_known_word_locked">Última leitura: bloqueada</string>
+    <string name="main_lock_last_known_word_locked">Última leitura: bloqueado</string>
     <!-- src:2eeafca10bc9c4f48ea9f32c39c9df6ef7464e02 -->
-    <string name="main_lock_last_known_word_unlocked">Última leitura: desbloqueada</string>
+    <string name="main_lock_last_known_word_unlocked">Última leitura: desbloqueado</string>
     <!-- src:e9ee49efdd68626631938b8704277801bc8567b5 -->
     <string name="main_lock_last_known_word">Última leitura: %1$s</string>
     <!-- src:edb38098ef78ddbd0b658ad242943c1c69b99f46 -->
