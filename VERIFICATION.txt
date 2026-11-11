@@ -48,9 +48,12 @@ November 11, 2026
     The validation runner was built with the same key.
 - run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
   synthetic data, Bluetooth off), split over four emulators at once, one
-  step per --only run. All 163 listed steps ran exactly once. That includes
-  this release's new maintenance-offline-344, maintenance-offline-725 and
-  riding-chip-choices steps. The sweep took 57 minutes, including
+  step per --only run. All 163 listed steps were invoked exactly once: 154
+  ran their checks, and 9 pseudo-locale steps returned skipped before
+  their checks ran, because no pseudo-locale APK was supplied. The 154
+  include this release's new maintenance-offline-344,
+  maintenance-offline-725 and riding-chip-choices steps. The sweep took 57
+  minutes, including
   rides-timing and the ride auto-save check. Closing numbers, as printed:
   - Gating steps: 94 passed, 0 failed.
   - Report-only steps (never counted as passes): 60 ran, 0 did not finish,
