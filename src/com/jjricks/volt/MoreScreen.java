@@ -2364,7 +2364,7 @@ public final class MoreScreen implements AppScreen {
     /** Its own request code; MainActivity ignores the answer, and the job checks the permission when it posts. */
     private static final int UPDATE_NOTICE_PERMISSION = 5626;
 
-    /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs. */
+    /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs (the browser does). */
     void checkForUpdates() {
         if (closed) return;
         SharedPreferences settings = service().settings;
@@ -2400,7 +2400,10 @@ public final class MoreScreen implements AppScreen {
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
             // Seen here: the automatic check does not announce this version again.
             UpdateCheckJob.seen(settings(), r.latest);
-            box = dialogBox(T.moreUpdateAvailable(r.latest), T.moreUpdateAvailableBody(installed));
+            // Download hands the browser the release's APK; without one in the reply, the release page as before.
+            box = dialogBox(T.moreUpdateAvailable(r.latest), r.direct()
+                    ? T.moreUpdateAvailableBodyDownload(installed)
+                    : T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
                 String language = UpdateCheck.notesLanguageNote();
@@ -2419,14 +2422,22 @@ public final class MoreScreen implements AppScreen {
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
         AlertDialog dialog = builder.setView(inner).create();
         if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE)
-            dialogButtons(box, T.commonClose(), dialog::dismiss, T.moreUpdateOpen(), () -> { dialog.dismiss(); openReleasePage(r.url); });
+            dialogButtons(box, T.commonClose(), dialog::dismiss, r.direct()
+                    ? T.moreUpdateDownload()
+                    : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
     }
-    private void openReleasePage(String url) {
-        if (!UpdateCheck.safePage(url)) return;
+    /** The browser gets the APK (safeDownload) or the release page (safePage), never anything else; Volt downloads nothing. */
+    private void openRelease(UpdateCheck.Result r) {
+        boolean direct = r.direct();
+        String url = r.target();
+        if (direct ? !UpdateCheck.safeDownload(url) : !UpdateCheck.safePage(url)) return;
         try { host.activity().startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))); }
-        catch (android.content.ActivityNotFoundException none) { host.toast(T.moreUpdateNoBrowser()); }
+        catch (android.content.ActivityNotFoundException none) {
+            if (direct) host.toast(T.moreUpdateNoBrowserDownload());
+            else host.toast(T.moreUpdateNoBrowser());
+        }
     }
 
     /** An email draft to Volt's report address: a prompt, then Volt's and Android's versions, the phone model and the scooter's model name. */

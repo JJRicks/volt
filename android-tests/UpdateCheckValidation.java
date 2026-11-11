@@ -33,10 +33,12 @@ import com.jjricks.volt.ScooterProfiles;
  * Fresh disposable emulator only; never reaches the network. More → About & permissions →
  * Check for updates with GitHub's reply replaced in-process: the first tap asks before any
  * request (Cancel sends nothing), then newer, current, unreachable and unsafe replies show the
- * right result. Open release page hands the browser only Volt's release page (intercepted).
+ * right result. Open release page hands the browser only Volt's release page (intercepted); when the reply lists the
+ * release's own volt-<version>.apk, Download hands the browser exactly that file, and nothing else.
  */
 public final class UpdateCheckValidation extends Instrumentation {
     private static final String PAGE = "https://github.com/JJRicks/volt/releases/tag/v9.9.9";
+    private static final String APK = "https://github.com/JJRicks/volt/releases/download/v9.9.9/volt-9.9.9.apk";
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;
@@ -100,6 +102,22 @@ public final class UpdateCheckValidation extends Instrumentation {
             tap(); await(() -> showing("Couldn't check for updates"), "A reply pointing elsewhere was offered");
             press("OK"); settle();
             require(opened.get() == null, "A page outside Volt's releases was opened");
+
+            // The reply lists the release's APK beside SHA256SUMS and the source zip: Download opens exactly the APK.
+            reply.set(releaseWithApk("v9.9.9", APK)); opened.set(null);
+            tap(); await(() -> showing("Volt 9.9.9 is available"), "A newer release with its APK was not offered");
+            require(text(dialogView(), "Download") != null && text(dialogView(), "Open release page") == null, "Download replaces Open release page");
+            require(text(dialogView(), "You have " + installed() + ". Download the new version and install it over this one; your data stays.") != null, "Download wording");
+            settle(); SystemClock.sleep(600); screenshot("available-download");
+            press("Download"); settle();
+            require(APK.equals(opened.get()) && showingCount() == 0, "Download did not open the release's APK");
+
+            // An APK that is not exactly Volt's (here on another host) is never offered: the release page as before.
+            reply.set(releaseWithApk("v9.9.9", "https://example.com/JJRicks/volt/releases/download/v9.9.9/volt-9.9.9.apk")); opened.set(null);
+            tap(); await(() -> showing("Volt 9.9.9 is available"), "A newer release was not offered");
+            require(text(dialogView(), "Download") == null, "A foreign APK was offered");
+            press("Open release page"); settle();
+            require(PAGE.equals(opened.get()) && showingCount() == 0, "A foreign APK did not fall back to the release page");
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -118,6 +136,14 @@ public final class UpdateCheckValidation extends Instrumentation {
     private static String release(String tag, String url) {
         return "{\"html_url\":\"" + url + "\",\"tag_name\":\"" + tag + "\",\"draft\":false,\"prerelease\":false,"
                 + "\"assets\":[{\"name\":\"volt.apk\"}],\"body\":\"Shorter range estimate, longer rides.\"}";
+    }
+    private static String releaseWithApk(String tag, String apk) {
+        String base = "https://github.com/JJRicks/volt/releases/download/" + tag + "/";
+        return "{\"html_url\":\"" + PAGE + "\",\"tag_name\":\"" + tag + "\",\"draft\":false,\"prerelease\":false,\"assets\":["
+                + "{\"name\":\"SHA256SUMS\",\"state\":\"uploaded\",\"browser_download_url\":\"" + base + "SHA256SUMS\"},"
+                + "{\"name\":\"volt-9.9.9-source.zip\",\"state\":\"uploaded\",\"browser_download_url\":\"" + base + "volt-9.9.9-source.zip\"},"
+                + "{\"name\":\"volt-9.9.9.apk\",\"state\":\"uploaded\",\"browser_download_url\":\"" + apk + "\"}],"
+                + "\"body\":\"Shorter range estimate, longer rides.\"}";
     }
     /** Replaces GitHub in-process: the reply is the fixture, or an IOException when it is null. */
     private void stubGitHub() throws Exception {
