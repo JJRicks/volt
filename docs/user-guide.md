@@ -10,7 +10,7 @@ Open **More → App preferences → Units** for distance/speed, temperature and 
 
 Choose the range source under **Scooter → Range estimate**: **Scooter's estimate** (the default, following drive mode) or **Volt's estimate (learned)**. The choice is saved separately for each scooter. [Learned range](#range-learned-from-your-rides) uses that scooter's completed recordings for a preliminary dashboard estimate.
 
-For UI testing, open **More → Developer options**. Its **Simulate scooter as connected** switch supplies sample readings, local control responses and generated chart previews. A persistent sample-data banner includes **Exit**. Simulation closes the real Bluetooth connection, cannot start a ride or phone sensors, and never saves fake telemetry into your history, last-seen cache or battery analysis. Finish any active recording before enabling it. It is temporary and turns off when the service/app process restarts; normal profile and dashboard settings remain yours.
+For UI testing, open **More → Developer options**. Its **Simulate scooter as connected** switch supplies sample readings, local control responses and generated chart previews. A persistent sample-data banner includes **Exit**. Simulation closes the real Bluetooth connection, cannot start a ride or phone sensors, and never saves fake telemetry into your history, last-seen cache or battery analysis. Finish any active recording before enabling it. It needs a saved scooter: with none, the switch stays off. It is temporary and turns off when the service/app process restarts; normal profile and dashboard settings remain yours.
 
 ## Back up and restore
 

@@ -1,5 +1,7 @@
 # Releasing Volt
 
+This is the maintainers' process. Contributors don't need it: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 Release from a reviewed commit on `main`. Keep the repository's existing visibility; publishing a release does not require making it public.
 
 For the first public release, complete [Public release readiness](docs/public-release.md) before changing visibility. The manufacturer-sourced photo is still a placeholder: replacing the current asset alone does not remove copies in older tags, PR refs or release downloads. Decide how to handle those copies before making the existing repository and releases public. Keep permission/provenance records and retain required notices.
