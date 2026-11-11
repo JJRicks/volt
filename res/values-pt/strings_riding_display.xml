@@ -26,6 +26,10 @@
     <string name="riding_display_hide_status_bar">Ocultar a barra de estado</string>
     <!-- src:03db3298afb18d03c892194dbf078cf840626b15 -->
     <string name="riding_display_hide_status_bar_sub">Relógio e bateria ocultos durante a condução</string>
+    <!-- src:1405ce4019d106ca660efb737167d4c344f68c66 -->
+    <string name="riding_display_clock_seconds">Mostrar segundos no relógio</string>
+    <!-- src:261bfcfc8d876fb1b35f8d1baebce1c605873d99 -->
+    <string name="riding_display_clock_seconds_sub">O relógio da vista de condução conta cada segundo</string>
     <!-- src:8e56a632424ab5f9b6eedf68668a69ee5ac00d1d -->
     <string name="riding_display_note">Em «Volt auto», o − e o + na parte inferior da vista de condução ensinam à Volt o teu nível para a luz em que estás. O brilho do teu telemóvel volta ao normal quando sais da vista de condução.</string>
     <!-- src:e661d391825a20ea95dda645ba91d2825f7bd131 -->

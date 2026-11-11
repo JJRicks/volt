@@ -26,6 +26,10 @@
     <string name="riding_display_hide_status_bar">Masquer la barre d’état</string>
     <!-- src:03db3298afb18d03c892194dbf078cf840626b15 -->
     <string name="riding_display_hide_status_bar_sub">Heure et batterie masquées pendant que vous roulez</string>
+    <!-- src:1405ce4019d106ca660efb737167d4c344f68c66 -->
+    <string name="riding_display_clock_seconds">Afficher les secondes dans l’heure</string>
+    <!-- src:261bfcfc8d876fb1b35f8d1baebce1c605873d99 -->
+    <string name="riding_display_clock_seconds_sub">L’heure du mode en route avance à chaque seconde</string>
     <!-- src:8e56a632424ab5f9b6eedf68668a69ee5ac00d1d -->
     <string name="riding_display_note">Avec « Volt auto », les boutons − et + en bas du mode en route apprennent à Volt le niveau que vous voulez pour la lumière ambiante. La luminosité habituelle de votre téléphone revient quand vous quittez le mode en route.</string>
     <!-- src:e661d391825a20ea95dda645ba91d2825f7bd131 -->
