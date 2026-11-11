@@ -113,6 +113,17 @@ November 11, 2026
   mode closing after an automatic end, inferred regen on a GT3 Max), the
   live charging card through a real charge and an unplug, and Test
   scheduled charging during a charge.
+- After publishing (GitHub release published 11:08 UTC on November 11,
+  4:08 AM MST): the published APK is a release-key build of the merge
+  commit 2314022d (SHA-256
+  08c2e17d954be463f6758dc9a4729d2ceb1515c6ebd0f7bc02a09260de8c1546), and
+  its content outside META-INF is identical to the swept candidate's. The
+  release assets were downloaded again and matched the final build byte
+  for byte, release-gates.py apk passed on the downloaded APK, and tag
+  v1.13.1 points at 2314022d. The latest release lists volt-1.13.1.apk at
+  the exact address the update check's Download button accepts. The
+  homepage was deployed from the tag at 11:10 UTC: every served file
+  matched the build, and the look the owner chose stayed live.
 
 --- Previous verification ---
 
