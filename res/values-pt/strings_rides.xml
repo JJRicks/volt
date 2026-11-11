@@ -5,7 +5,7 @@
     <!-- src:23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28 -->
     <string name="rides_live_recording">Gravação</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
-    <string name="rides_live_disconnected">Desconectada</string>
+    <string name="rides_live_disconnected">Desconectado</string>
     <!-- src:9afa9d3c1e3f7ceba6c4539bcfc4697d7282adba -->
     <string name="rides_live_power_now">W agora</string>
     <!-- src:f837028fb81f56db8fce1193c854d72fff524222 -->
@@ -133,15 +133,15 @@
     <!-- src:f5318811729e6b04a5d4ef166cf9a1b7342d6e03 -->
     <string name="rides_tile_avg_speed">Vel. média</string>
     <!-- src:bd5454ada3dd47ff513fe2425116d98bcc142545 -->
-    <string name="rides_tile_max_speed">Vel. ponta</string>
+    <string name="rides_tile_max_speed">Vel. máxima</string>
     <!-- src:d0627952bee838eaf46325575b5a50830674b41f -->
-    <string name="rides_reason_odometer_reset">Reposição do odómetro</string>
+    <string name="rides_reason_odometer_reset">Reposição da distância total</string>
     <!-- src:212c96ac43105bc54ba5d9f1e4c48ae8c60f9722 -->
     <string name="rides_battery_energy">Bateria e energia</string>
     <!-- src:b4fa7ba6f0445fe68eb76be51ff0365bcce818a5 -->
     <string name="rides_tile_battery_gain">Ganho de bateria</string>
     <!-- src:d3d93e34e90b305ccc959d189d4991eac89fc588 -->
-    <string name="rides_tile_battery_drop">Queda de bateria</string>
+    <string name="rides_tile_battery_drop">Consumo de bateria</string>
     <!-- src:07a0404d3d27d10505e3d4a66522e107b794162d -->
     <string name="rides_tile_per_distance">Por distância</string>
     <!-- src:4a842a3095a87fac0d579dbe4a97c4066ec88683 -->
@@ -249,7 +249,7 @@
     <!-- src:751d2b3a49d9b5b28452341742e96f8841ccbdaf -->
     <string name="rides_delete_ride">Eliminar viagem</string>
     <!-- src:d3f039e9f5a1e9deb5f3016da541a4c4e1f48622 -->
-    <string name="rides_reason_no_odometer">Sem distância do odómetro</string>
+    <string name="rides_reason_no_odometer">Sem dados da distância total</string>
     <!-- src:2d1cab3cec98af1473368e4b9024e7f52af96406 -->
     <string name="rides_reason_too_short">Demasiado curta</string>
     <!-- src:356a228db1b025cf3ee84525e9f6f329304e68af -->
@@ -525,12 +525,12 @@
         <item quantity="other">Ganho de bateria, %1$d pontos percentuais</item>
     </plurals>
     <!-- src:37e945858bdbf1baa3433ae959e03f54cb85d93a -->
-    <string name="rides_battery_drop_description">Queda de bateria, %1$d pontos percentuais</string>
+    <string name="rides_battery_drop_description">Consumo de bateria, %1$d pontos percentuais</string>
     <!-- src:bf48bffa26436a38fa16d2e7931011baa20ea33f -->
     <plurals name="rides_battery_drop_description_count">
-        <item quantity="one">Queda de bateria, %1$d ponto percentual</item>
-        <item quantity="many">Queda de bateria, %1$d de pontos percentuais</item>
-        <item quantity="other">Queda de bateria, %1$d pontos percentuais</item>
+        <item quantity="one">Consumo de bateria, %1$d ponto percentual</item>
+        <item quantity="many">Consumo de bateria, %1$d de pontos percentuais</item>
+        <item quantity="other">Consumo de bateria, %1$d pontos percentuais</item>
     </plurals>
     <!-- src:6397385545235cfd0802d0d904d29ca00d4d4e48 -->
     <string name="rides_direction_confirmed_for">Confirmado durante %1$s</string>

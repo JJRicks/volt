@@ -53,6 +53,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.MoreMenuValidation" android:targetPackage="com.jjricks.volt" android:label="More menu rows line up on phone and wide layouts" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatibilityGatingValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated model compatibility gating validation" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatControlsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated OEM control families validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.MaintenanceOfflineValidation" android:targetPackage="com.jjricks.volt" android:label="Maintenance reminders added with no connection" />
   <instrumentation android:name="com.jjricks.volt.tests.ScooterMenuEditValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated Scooter menu editor validation" />
   <instrumentation android:name="com.jjricks.volt.tests.Ut5SimulationScreens" android:targetPackage="com.jjricks.volt" android:label="Isolated UT5 MAX simulator screen capture" />
   <instrumentation android:name="com.jjricks.volt.GuidedTestValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator guided setting test validation (synthetic link)" />

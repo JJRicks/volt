@@ -6,16 +6,23 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Manual check for a newer Volt release on GitHub, only after the owner's consent. It reads one
- * small JSON reply and links to the release page; it never downloads or installs anything.
+ * small JSON reply and offers its release page, plus that release's APK address when the reply lists exactly the file
+ * Volt expects (Result.download), for the browser to open. Volt itself never downloads or installs anything.
  */
 final class UpdateCheck {
     static final String ENDPOINT = "https://api.github.com/repos/JJRicks/volt/releases/latest";
     /** Only a release page in Volt's own repository is ever offered. */
     static final String RELEASES = "https://github.com/JJRicks/volt/releases/";
+    /** A release's files: releases/download/<tag>/<file>. Only volt-<version>.apk is ever offered from there. */
+    static final String DOWNLOADS = RELEASES + "download/";
+    static final String APK_PREFIX = "volt-", APK_SUFFIX = ".apk";
+    /** The longest page or APK address Volt will hand the browser. */
+    static final int MAX_URL = 200;
     /** app_settings: the owner agreed that Volt may ask GitHub. */
     static final String CONSENT = "update_check_consented";
     static final int MAX_BYTES = 256 * 1024, MAX_NOTES = 3000;
@@ -52,11 +59,16 @@ final class UpdateCheck {
 
     enum Outcome { AVAILABLE, CURRENT, UNREADABLE }
     static final class Result {
-        final Outcome outcome; final String latest, url, notes;
-        Result(Outcome outcome, String latest, String url, String notes) {
-            this.outcome = outcome; this.latest = latest; this.url = url; this.notes = notes;
+        /** url: the release page (safePage). download: its APK (safeDownload), or "" when the reply lists none. */
+        final Outcome outcome; final String latest, url, download, notes;
+        Result(Outcome outcome, String latest, String url, String download, String notes) {
+            this.outcome = outcome; this.latest = latest; this.url = url; this.download = download; this.notes = notes;
         }
-        static Result unreadable() { return new Result(Outcome.UNREADABLE, "", "", ""); }
+        static Result unreadable() { return new Result(Outcome.UNREADABLE, "", "", "", ""); }
+        /** Download opens the APK; without one it falls back to the release page. */
+        boolean direct() { return !download.isEmpty(); }
+        /** What Download hands the browser: the APK when there is one, else the page. */
+        String target() { return direct() ? download : url; }
     }
 
     /** The same User-Agent the map tiles send. */
@@ -80,7 +92,8 @@ final class UpdateCheck {
             String notes = body instanceof String ? plain((String) body) : "";
             if (notes.length() > MAX_NOTES) notes = notes.substring(0, MAX_NOTES).trim() + "…";
             String name = ((String) tag).startsWith("v") ? ((String) tag).substring(1) : (String) tag;
-            return new Result(compare(latest, mine) > 0 ? Outcome.AVAILABLE : Outcome.CURRENT, name, (String) url, notes);
+            return new Result(compare(latest, mine) > 0 ? Outcome.AVAILABLE : Outcome.CURRENT, name, (String) url,
+                    apk((String) tag, release.get("assets")), notes);
         } catch (IOException | RuntimeException unreadable) {
             return Result.unreadable();
         }
@@ -101,7 +114,7 @@ final class UpdateCheck {
 
     /** Only a release page in Volt's repository: releases/latest or releases/tag/<tag>, never a download or anything else. */
     static boolean safePage(String url) {
-        if (url == null || url.length() > 200) return false;
+        if (url == null || url.length() > MAX_URL) return false;
         if (url.equals(RELEASES + "latest")) return true;
         if (!url.startsWith(RELEASES + "tag/")) return false;
         String tag = url.substring((RELEASES + "tag/").length());
@@ -111,6 +124,47 @@ final class UpdateCheck {
             if (!(Character.isLetterOrDigit(c) || c == '.' || c == '-' || c == '_')) return false;
         }
         return true;
+    }
+
+    /**
+     * The only APK address Volt hands the browser for a release tag: releases/download/<tag>/volt-<version>.apk,
+     * where version is the tag without its leading "v" (v1.13.1 → volt-1.13.1.apk). Null for a tag that is empty,
+     * has anything but ASCII letters, digits, '.', '-' and '_', contains "..", or makes the address too long.
+     */
+    static String expectedApk(String tag) {
+        if (tag == null || tag.isEmpty() || tag.contains("..")) return null;
+        for (int i = 0; i < tag.length(); i++) {
+            char c = tag.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_')) return null;
+        }
+        String version = tag.startsWith("v") ? tag.substring(1) : tag;
+        if (version.isEmpty()) return null;
+        String url = DOWNLOADS + tag + "/" + APK_PREFIX + version + APK_SUFFIX;
+        return url.length() > MAX_URL ? null : url;
+    }
+
+    /** An APK address of exactly expectedApk's form for the tag it names; everything else is refused. */
+    static boolean safeDownload(String url) {
+        if (url == null || url.length() > MAX_URL || !url.startsWith(DOWNLOADS)) return false;
+        int slash = url.indexOf('/', DOWNLOADS.length());
+        return slash > DOWNLOADS.length() && url.equals(expectedApk(url.substring(DOWNLOADS.length(), slash)));
+    }
+
+    /**
+     * The release's APK from its reply: expectedApk(tag), only when an uploaded asset's browser_download_url is
+     * exactly that address. "" otherwise (assets missing or malformed, the file renamed or still uploading), and
+     * Download then opens the release page. SHA256SUMS and the source zip never match.
+     */
+    static String apk(String tag, Object assets) {
+        String expected = expectedApk(tag);
+        if (expected == null || !(assets instanceof List)) return "";
+        for (Object item : (List<?>) assets) {
+            if (!(item instanceof Map)) continue;
+            Map<?, ?> asset = (Map<?, ?>) item;
+            // GitHub lists a file still being uploaded with state "starter"; its address would not download yet.
+            if (expected.equals(asset.get("browser_download_url")) && "uploaded".equals(asset.get("state"))) return expected;
+        }
+        return "";
     }
 
     /** One bounded HTTPS GET: no redirects, short timeouts, at most MAX_BYTES. */

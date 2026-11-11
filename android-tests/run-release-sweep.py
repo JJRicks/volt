@@ -185,6 +185,9 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# Maintenance reminders added with no connection (never-read and stale scooters, a restart), phone and wide.
+STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
+          for case in (PHONE, WIDE)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),

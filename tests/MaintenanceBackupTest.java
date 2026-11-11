@@ -59,9 +59,45 @@ public final class MaintenanceBackupTest {
             check("local".equals(app.get(MaintenanceStore.seenKey(C))) && !app.containsKey(MaintenanceStore.seenKey(A)), "this phone's notified bookkeeping stays; the backup's never arrives");
             moved.distance.observe(77.7, 32, WALL + 1);
             check(moved.distance.accumulatedKm == was.distance.accumulatedKm, "the mapped scooter's first reading adds nothing");
+            offlineAdded(root);
         } finally {
             BackupTestStore.delete(root);
         }
-        System.out.println("MaintenanceBackupTest: " + checks + " checks passed (exact restore, merge moves reminders and clears the baseline, device key stays)");
+        System.out.println("MaintenanceBackupTest: " + checks + " checks passed (exact restore, merge moves reminders and clears the baseline, device key stays, reminders added before any reading)");
+    }
+
+    /**
+     * Reminders added with no connection before Volt ever read the odometer (owner, Nov 11): a custom distance one
+     * waiting for its first reading and a custom time one. Both restore exactly and once, both ways, and the first
+     * reading afterwards starts the distance count: nothing due, nothing reset.
+     */
+    private static void offlineAdded(File root) throws Exception {
+        MaintenanceStore.Settings s = new MaintenanceStore.Settings();
+        s.on = true;
+        MaintenancePolicy.add(s.reminders, MaintenancePolicy.create("oil", "", "Oil the hinge", 300.0, 0, 0, true, WALL, Double.NaN, WALL));
+        MaintenancePolicy.add(s.reminders, MaintenancePolicy.create("bell", "", "Check the bell", null, 0, 2, true, WALL, Double.NaN, WALL));
+        String offline = MaintenanceStore.encode(s);
+        BackupTestStore source = BackupTestStore.rich(new File(root, "offline-source"));
+        source.put("app_settings", MaintenanceStore.key(A), offline);
+        byte[] backup = source.export(BackupTestStore.all());
+
+        BackupTestStore fresh = new BackupTestStore(new File(root, "offline-fresh"));
+        fresh.restore(backup, BackupTestStore.all(), true, null);
+        check(offline.equals(fresh.preferences().get("app_settings").get(MaintenanceStore.key(A))), "reminders added before any reading restore exactly");
+
+        BackupTestStore phone = BackupArchiveTest.phone(new File(root, "offline-merge"));
+        BackupArchive.Prepared staged = phone.stage(backup);
+        Map<String, String> chosen = new LinkedHashMap<>(); chosen.put(A, C); chosen.put(B, B);
+        BackupTransaction.apply(phone, BackupArchive.plan(phone, staged, BackupTestStore.all(), false, chosen));
+        String moved = (String) phone.preferences().get("app_settings").get(MaintenanceStore.key(C));
+        check(offline.equals(moved), "onto another scooter: nothing was read, so nothing is dropped");
+
+        MaintenanceStore.Settings back = MaintenanceStore.decode(moved);
+        check(back.reminders.size() == 2 && MaintenancePolicy.pending(back.find("oil")) && !MaintenancePolicy.pending(back.find("bell")), "restored once each, the distance one still waiting");
+        back.distance.observe(4321.0, 32, WALL + 86_400_000L);
+        check(MaintenancePolicy.settle(back.reminders, back.distance.accumulatedKm), "the first reading afterwards settles it");
+        MaintenancePolicy.Status oil = MaintenancePolicy.status(back.find("oil"), WALL + 86_400_000L, back.distance.accumulatedKm, java.time.ZoneId.of("UTC"));
+        check(oil.state == MaintenancePolicy.State.OK && oil.kmLeft == 300, "not due at the first connection: the whole 300 km left");
+        check(back.find("oil").baseWall == WALL && back.find("bell").baseWall == WALL, "no count start was reset");
     }
 }

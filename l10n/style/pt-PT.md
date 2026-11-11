@@ -1,8 +1,8 @@
 # Volt style guide: European Portuguese (pt-PT)
 
-**Status: Claude-only proposal (2026-11-05), not final.** Claude drafted it alone from the sources in section 10; the three-vendor debate decides later. No native speaker has reviewed it. It ships in `values-pt`, so every Portuguese phone that is not Brazilian gets this text: Portugal, Angola, Mozambique and the rest. Brazil has its own guide (`pt-BR`). Write European Portuguese, not a blend.
+**Status: Claude-only proposal (2026-11-05), not final.** Claude drafted it alone from the sources in section 10; the three-vendor debate decides later. A native Portuguese speaker reviewed the shipped text in November 2026, and the owner's decisions from that review (2026-11-11) are written into this guide, the glossary and `l10n/owner-decisions/pt-PT.jsonl`: masculine standalone states, *Velocidade máxima* for top speed, *Consumo de bateria*, *Distância total* for the odometer. It ships in `values-pt`, so every Portuguese phone that is not Brazilian gets this text: Portugal, Angola, Mozambique and the rest. Brazil has its own guide (`pt-BR`). Write European Portuguese, not a blend.
 
-Spelling follows the 1990 agreement (AO90), as Android and Microsoft do: *ativar*, *direção*, *elétrica*, *selecionar*, *ação*. Keep the European accents: *eletrónico*, *quilómetro*, *Odómetro*, *logótipo*.
+Spelling follows the 1990 agreement (AO90), as Android and Microsoft do: *ativar*, *direção*, *elétrica*, *selecionar*, *ação*. Keep the European accents: *eletrónico*, *quilómetro*, *logótipo*.
 
 ## 1. Register and form of address
 
@@ -23,7 +23,7 @@ Spelling follows the 1990 agreement (AO90), as Android and Microsoft do: *ativar
 - A sentence-final period goes outside closing quotes and parentheses. No space before `:`, `;`, `?`, `!` or `%`.
 - Lists use commas with no serial comma before *e* or *ou*.
 - Keep the English's `·` separators and `…` as written. Use the single character `…`, never three dots.
-- A colon is followed by lower case unless a name follows: *Último estado conhecido: bloqueada*.
+- A colon is followed by lower case unless a name follows: *Último estado conhecido: bloqueado*.
 - Contract prepositions with articles: *à trotinete*, *da bateria*, *no telemóvel*, *pela trotinete*. **A placeholder can't contract.** With a name or a phrase that carries its own article (`main_lock_your_scooter`, *a tua trotinete*), a preposition before it gives *a a tua trotinete*. Use a colon instead: *A conectar: %1$s*. Don't write *à %1$s* or *ao %1$s*.
 - Keep placeholders, `**` marks, backticks, file names and commands unchanged. Saira has every Portuguese letter, `«»“”…·` and `°` in all four weights (checked with `tools/l10n/fontmetrics.py`).
 
@@ -59,7 +59,7 @@ Real ladders from the catalog:
 |---|---|---|---|
 | `readings_temperature_c` | Temperatura da bateria | Temp. da bateria | Temp. |
 | `readings_voltage_v` | Tensão da bateria | Tensão da bateria | Tensão |
-| `readings_odometer_km` | Odómetro total | Odómetro | Odóm. |
+| `readings_odometer_km` | Distância total | Distância total | Dist. total |
 | `readings_trip_km` | Distância do trajeto atual | Distância do trajeto | Distância |
 | `more_lab_status_untested` | Não testado no teu modelo | Não testado aqui | Não testado |
 | `dashboard_charging_power` | Potência de carregamento | | Potência |
@@ -68,10 +68,9 @@ Accepted abbreviations:
 
 | Full | Abbreviated | Width at 12.5sp (dp) | Note |
 |---|---|---|---|
-| Velocidade máxima | **Vel. máxima**, then **Vel. máx.** | 112 → 71 → 52 | The setting. Fits the 90dp tile |
-| Velocidade de ponta | **Vel. de ponta**, then **Vel. ponta** | 117 → 75 → 58 | The measured value. Never *Vel. máx.* |
+| Velocidade máxima | **Vel. máxima**, then **Vel. máx.** | 112 → 71 → 52 | The setting and the measured top speed alike (owner, 2026-11-11). Fits the 90dp tile; Riding mode's 80dp@15sp label takes *Vel. máx.* |
 | Velocidade média | **Vel. média** | 102 → 60 | |
-| Odómetro | **Odóm.** | 58 → 38 | The accent stays |
+| Distância total | **Dist. total** | 83 → 56 | The odometer (owner, 2026-11-11). *Dist.* only in *Dist. total* |
 | Temperatura | **Temp.** | 74 → 35 | |
 | Capacidade | **Capac.** | 66 → 38 | |
 | estimado, estimada, estimativa | **est.** | | *Autonomia est.* (88) |
@@ -80,7 +79,7 @@ Accepted abbreviations:
 | máximo, mínimo | **máx.**, **mín.** | | |
 | informações | **info** | | A short word, no period: *Info e permissões* on the 64dp shortcut (102 on one line, wraps at a space); the one-line tile says *Permissões* |
 
-Measured words that fit as they are, under the 62dp tile budget: *Bloqueio* 51, *Definições* 60.6 (tight), *Bateria* 42, *Viagens* 47. For the 90dp tile: *Condução* 57 for Ride settings, *Trotinetes* 59 for My scooters, *Em direto* 56 for Live Stats (*Dados em direto* is 94.5), *Histórico* 51 for Data & history, *Experimental* 77 for Experimental controls, *Preferências* 73 for App preferences, *Permissões* 67 for About & permissions, *Carga até* 55 for Charge done by, *Hora limite* 64 for its time, *Carreg. progr.* 78.6 for Charge schedule (never *Carregamento* alone, which reads as the charging status), *PIN e prox.* (about 64) for PIN & proximity (the tile always shows the short name, so it names both parts of the menu). *Bloqueada* is 62.2, so it can't take a 62dp budget: the tile that names the feature says *Bloqueio*. Report any state that doesn't fit; don't shorten it.
+Measured words that fit as they are, under the 62dp tile budget: *Bloqueio* 51, *Definições* 60.6 (tight), *Bateria* 42, *Viagens* 47. For the 90dp tile: *Condução* 57 for Ride settings, *Trotinetes* 59 for My scooters, *Em direto* 56 for Live Stats (*Dados em direto* is 94.5), *Histórico* 51 for Data & history, *Experimental* 77 for Experimental controls, *Preferências* 73 for App preferences, *Permissões* 67 for About & permissions, *Carga até* 55 for Charge done by, *Hora limite* 64 for its time, *Carreg. progr.* 78.6 for Charge schedule (never *Carregamento* alone, which reads as the charging status), *PIN e prox.* (about 64) for PIN & proximity (the tile always shows the short name, so it names both parts of the menu). *Bloqueada* is 62.2 and *Bloqueado* 62.4, so neither can take a 62dp budget: the tile that names the feature says *Bloqueio*. Report any state that doesn't fit; don't shorten it.
 
 An abbreviation ends in a period, and the period counts toward the width.
 
@@ -90,7 +89,7 @@ An abbreviation ends in a period, and the period counts toward the width.
 - **Quick access button, 64dp at 12sp (`dashboard_model_qa_*`):** two lines, and three lines shrink to 10sp. A single word wider than the line breaks mid-word. A word from 64 to 76.8dp at 12sp is only safe if the name then runs to three lines and shrinks: *PIN e proximidade* does, *Preferências da app* (*Preferência|s da app*) doesn't, so that button says *Opções da app*. A word over 76.8dp breaks either way: *experimentais* is 79.6, no accepted short form exists, and it is reported as a design overflow.
 - The width check measures the whole name on one line, so it reports *Luzes de linha* and *Luzes de estrela* although they wrap cleanly at the space. Leave them; never cut to *Luz linha*.
 
-**Never abbreviate:** *Bloquear, Desbloquear, Bloqueada, Desbloqueada, Bloqueio, Desbloqueio, Não verificado, Desconhecido, Nunca, Sempre, Alarme, PIN*. *Bloq.* and *Desbl.* are not allowed. If one of these doesn't fit, write the full word and report it in your notes: an overflow is a design problem that gets fixed.
+**Never abbreviate:** *Bloquear, Desbloquear, Bloqueado, Desbloqueado, Bloqueada, Desbloqueada, Bloqueio, Desbloqueio, Não verificado, Desconhecido, Nunca, Sempre, Alarme, PIN*. *Bloq.* and *Desbl.* are not allowed. If one of these doesn't fit, write the full word and report it in your notes: an overflow is a design problem that gets fixed.
 
 ## 6. Safety wording
 
@@ -100,9 +99,9 @@ Use exactly these words. They match the glossary; don't use synonyms.
 |---|---|---|
 | Lock (action) | **Bloquear** | Button or action. Official wording. Never *Trancar*, *Fechar* |
 | Lock (noun, card title) | **Bloqueio** | Never *Cadeado*, *Fechadura*, *Tranca* |
-| Locked | **Bloqueada** | Agrees with *trotinete*. *Bloqueado* only with a masculine subject |
+| Locked | **Bloqueado** | A standalone state is masculine (owner, 2026-11-11, on a native speaker's review). *Bloqueada* only where *trotinete* is named in the same expression or sentence: *trotinete bloqueada*. The shipped lock keys still say *Bloqueada* until they pass the council's safety path again |
 | Unlock (action) | **Desbloquear** | Noun: **Desbloqueio** |
-| Unlocked | **Desbloqueada** | Agrees with *trotinete*. Never *aberta* or *livre* |
+| Unlocked | **Desbloqueado** | As Locked: masculine alone, *desbloqueada* only beside *trotinete*. Never *aberto*, *aberta* or *livre* |
 | Lock state unverified | **Estado do bloqueio não verificado** | Must never read as confirmed. Keep *não*. Keep *do*: *estado de bloqueio* can mean a locked state |
 | Lock state unknown | **Estado do bloqueio desconhecido** | Must never read as confirmed. Keep *do* |
 | Unknown (alone) | **Desconhecido** | *Desconhecida* with a feminine subject |
@@ -125,7 +124,7 @@ Words that look right and mean something else:
 
 - **Bloqueada and Desbloqueada differ only by *Des-*.** Keep both whole, never truncate, and in sentences keep the full word.
 - **Bloqueio de segurança is taken.** NAVEE's manual uses it for the physical folding latch. Volt's lock control is **bloqueio eletrónico**, never *bloqueio de segurança*.
-- **Ligar and desligar are power, here.** They also mean connect and disconnect in Portugal. To keep a scooter that is on apart from one that is connected, power and lights use **ligar**, **desligar**, **ligada**, **desligada**, and the Bluetooth link uses **conectar**, **desconectar**, **conectada**, **desconectada**, as NAVEE's manual does in *Conectar à App NAVEE*. So *Scooter parked and powered on* is *Trotinete parada e ligada*, *Connected* is *Conectada*. Never *Desligar* for Disconnect: it would read as turning the scooter off. The noun for the link is **ligação** (*Detalhes da ligação*, *Sem ligação*), which never means power.
+- **Ligar and desligar are power, here.** They also mean connect and disconnect in Portugal. To keep a scooter that is on apart from one that is connected, power and lights use **ligar**, **desligar**, **ligada**, **desligada**, and the Bluetooth link uses **conectar**, **desconectar**, **conectada**, **desconectada**, as NAVEE's manual does in *Conectar à App NAVEE*. So *Scooter parked and powered on* is *Trotinete parada e ligada*, *Connected* is *Conectado*. Never *Desligar* for Disconnect: it would read as turning the scooter off. The noun for the link is **ligação** (*Detalhes da ligação*, *Sem ligação*), which never means power.
 - **Cables and chargers take ligar.** With a cable or charger named as the object, *ligar* and *desligar* are what a native writes: *Liga o carregador*, *Desliga o cabo e volta a ligá-lo*, *Liga o telemóvel com o cabo de dados*. Never *conectar o carregador*. *Plugged in* and *unplugged* are plain *ligado* and *desligado*: name the wall socket only where the English does, because a charger in the wall but not in the scooter must not pass the check. A phone to a computer or to a website also takes *ligar*: *Ligar ao computador*, *O site ligou-se ao telemóvel*. Intransitive *conectar* needs an object: *conecta a trotinete*. The glossary check warns about *Connect* on these keys; that warning is expected, so leave the text. Bare *Ligada* and *Desligada* still mean scooter power, and the scooter's Bluetooth link stays *conectar*.
 - **Carregar has three meanings:** to charge, to press and to load. Keep it for charging a battery. Press is **premir** (*prime o botão*), tap is **tocar** (*toca em «Parar»*), and data doesn't *carregar*: loading is *A abrir…* or *A ler…*, uploading is **enviar**. A progress line that says *A carregar…* must mean the battery.
 - **Para** is both "stop!" and "for". Don't use it as a bare imperative. For the alarm button write *Toca em «Parar»*. For an instruction to stop something write *Tens de parar*: *Tens de parar a trotinete primeiro*, *Tens de parar a gravação para experimentar*.
@@ -142,9 +141,10 @@ Further rules:
 
 The glossary is authoritative; this explains the distinctions it can't.
 
-- **Trotinete** is feminine: *a trotinete*, *conectada*, *bloqueada*, *simulada*. NAVEE's manual mixes *trotineta*, *trotinete*, *patinete* and *scooter*; only *trotinete* is used here.
-- **Three speeds:** the setting is **Velocidade máxima**. A limit below it is **Limite de velocidade**. The measured value on a trip or ride is **Velocidade de ponta**. Never swap them.
-- **The English now follows the same split (D3, merged):** Maximum speed and Max. speed are the setting (`main_speed_*`, `dashboard_model_tile_top_speed`, `controls_experimental_speed_limit`), and top speed is the measured value (the `readings_maximum_speed_kmh` ladder and `rides_tile_max_speed`). Translate them like any other key, with **Velocidade máxima** for the setting and **Velocidade de ponta** for the measured value. `rides_tile_max_speed` is measured: *Vel. ponta*, never *Vel. máx.*
+- **Trotinete** is feminine: *a trotinete*, *trotinete conectada*, *trotinete bloqueada*, *trotinete simulada*. A state shown on its own, with no *trotinete* in the same expression or sentence, is masculine (owner, 2026-11-11, on a native speaker's review): *Conectado*, *Desconectado*, *Não conectado*, *Bloqueado*, *Desbloqueado*, *Conectado · %1$s*, *Proprietário · conectado*. Words that agree with another named noun keep that noun's gender: *Simulação desconectada*, *A Volt mantém-se conectada*, *Viagem guardada*. NAVEE's manual mixes *trotineta*, *trotinete*, *patinete* and *scooter*; only *trotinete* is used here.
+- **Speeds:** the setting is **Velocidade máxima**, and so is the measured top speed on a trip or ride (owner, 2026-11-11, on a native speaker's review: riders in Portugal don't say *velocidade de ponta*; never use it). A limit below the setting is **Limite de velocidade**. The English keeps D3's split (Maximum speed and Max. speed are the setting; top speed is the measured value in the `readings_maximum_speed_kmh` ladder, `rides_tile_max_speed` and Riding mode), and the screen tells the two apart: *Vel. máxima do trajeto*, *vel. máxima 32 km/h* under the ring.
+- **Odometer:** the scooter's total distance is **Distância total** (narrow: *Dist. total*), never *Odómetro* (owner, 2026-11-11, on a native speaker's review). The speaker proposed *km totais*, but every odometer value can be shown in miles, so a label beside a value says *Distância total*, and a sentence says *a distância total*. *km totais* only where the value is always in km. The Maintenance strings still say *odómetro* until that area can be decided again: its `maintenance_row_due` waits for a judge ruling since its budget was widened (#299), and the owner's texts for them are ready.
+- **Battery drop:** the battery percentage used on a ride is **Consumo de bateria**, in the tile, descriptions and every plural form. Never *Queda de bateria* (owner, 2026-11-11).
 - **Rides vs trips:** a recorded ride is a **viagem**, the manual's word, and so are the rides stored on the scooter (*Stored trips* is *Viagens guardadas*). *Trip* (the distance since a reset) is **trajeto**. A path on the map is a **rota**.
 - **Try vs test:** *Try* as a verb is **Experimentar**; its results and titles use **tentativa**. A guided test is the noun **teste**, and as a verb **fazer o teste**: *Faz o teste com a trotinete parada*. *Test scheduled charging* is a check, so it's **Verificar o carregamento programado**. A compatibility check is **verificação de compatibilidade**. *Controls to try* is **Controlos a experimentar**. A generic retry is **Tentar novamente**, *tenta novamente*; *Experimentar* is only for attempting a control.
 - **Standing start** is **Arranque a partir de parado**, or *A partir de parado* where the setting's name is beside it: the value 0 of Kick-start speed, where the motor helps from a standstill. Never *Arranque parado*, which can read as a start that is stopped or turned off, so a rider may not expect the scooter to pull away. Not *Arranque sem impulso* either: the English has no negation, so the polarity check fails *sem* on this safety key.

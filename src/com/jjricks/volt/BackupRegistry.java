@@ -102,6 +102,7 @@ final class BackupRegistry {
         add(app, RidingBrightness.FIXED_KEY, Float.class, PREFERENCES);
         add(app, RidingRotation.KEY, String.class, PREFERENCES);
         add(app, RidingBars.HIDE_STATUS_BAR_KEY, Boolean.class, PREFERENCES);
+        add(app, RidingClockSeconds.KEY, Boolean.class, PREFERENCES);
         // Volt auto's learned levels belong to this phone's light sensor and screen.
         for (String key : RidingBrightness.BAND_KEYS) exclude(app, key, Float.class, DEVICE);
         // Night vision's choices (NightSchedule) are app preferences. The answer about using the last

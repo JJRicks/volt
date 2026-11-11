@@ -55,7 +55,7 @@ final class MaintenanceScreen {
             TAG_DONE = "maintenance_mark_done", TAG_SNOOZE = "maintenance_snooze", TAG_DUE = "maintenance_due_card",
             TAG_CONFIRM = "maintenance_confirm", TAG_DELETE = "maintenance_delete", TAG_EDIT = "maintenance_edit",
             TAG_MODE = "maintenance_mode", TAG_UNIT = "maintenance_unit", TAG_CHANGE = "maintenance_change";
-    private static final String TAG_NOTIFY = "maintenance_notify";
+    private static final String TAG_NOTIFY = "maintenance_notify", TAG_DISTANCE_NOTE = "maintenance_distance_note";
 
     private final ScreenHost host;
     private final Ui ui;
@@ -143,7 +143,7 @@ final class MaintenanceScreen {
             long reset = s.distance.resetWall;
             left.addView(note(T.maintenanceReset(), () -> change(x -> x.extra.put(RESET_SEEN, reset))));
         }
-        if (anyDistance && s.distance.stale(now)) left.addView(note(T.maintenanceStale(date(s.distance.lastWall)), null));
+        if (anyDistance && s.distance.stale(now)) left.addView(note(staleNote(s), null));
         List<MaintenancePolicy.Reminder> due = MaintenanceView.dueNow(s, now, zone()), coming = MaintenanceView.comingUp(s, now, zone());
         if (!due.isEmpty()) {
             left.addView(ui.sectionLabel(T.maintenanceDueNow()));
@@ -191,6 +191,9 @@ final class MaintenanceScreen {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2); p.bottomMargin = ui.dp(10); note.setLayoutParams(p);
         return note;
     }
+
+    /** The stale-odometer note, on the page and in the add and edit sheets: the last reading's date. */
+    private static String staleNote(MaintenanceStore.Settings s) { return T.maintenanceStale(date(s.distance.lastWall)); }
 
     private View disclaimer() {
         TextView line = ui.caption(T.maintenanceDisclaimer()); line.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(4));
@@ -527,17 +530,18 @@ final class MaintenanceScreen {
         });
         // Remind me after: Distance, Time or Either.
         content.addView(fieldLabel(T.maintenanceRemindAfter()));
-        // Distance and Either need an odometer reading, except for a manual interval: it keeps its distance
-        // part, which counts from the next reading (MaintenancePolicy.settle). An edited distance reminder keeps its own.
-        boolean early = existing == null && suggested != null && suggested.byDistance() && !read;
-        boolean distanceOk = read || early || existing != null && existing.byDistance();
-        int initialMode = shown == null ? (read ? 0 : 1) : !distanceOk || !shown.byDistance() ? 1 : shown.byTime() ? 2 : 0;
+        // Every mode works disconnected and before the first odometer reading: a distance part saved without a
+        // reading waits with no base and counts from the next one (MaintenancePolicy.settle); after an old reading
+        // it counts from the last known odometer. The note under the modes says which, for Distance and Either.
+        MaintenanceView.DistanceNote distanceNote = MaintenanceView.distanceNote(s.distance, existing, System.currentTimeMillis());
+        int initialMode = shown == null ? (read ? 0 : 1) : !shown.byDistance() ? 1 : shown.byTime() ? 2 : 0;
         final int[] mode = {initialMode};
         LinearLayout modes = new LinearLayout(host.activity());
         String[] modeNames = {T.maintenanceByDistance(), T.maintenanceByTime(), T.maintenanceByEither()};
         TextView[] modeChips = new TextView[3];
         content.addView(modes);
-        TextView reason = ui.caption(early ? T.maintenanceDistanceNext() : T.maintenanceNeverRead()); reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(reason);
+        TextView reason = ui.caption(distanceNote == MaintenanceView.DistanceNote.STALE ? staleNote(s) : T.maintenanceDistanceNext());
+        reason.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); reason.setTag(TAG_DISTANCE_NOTE); content.addView(reason);
         TextView either = ui.caption(T.maintenanceEitherNote()); either.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); content.addView(either);
         // Distance: a number in the rider's units and neutral shortcut chips.
         LinearLayout distanceBox = column();
@@ -620,17 +624,14 @@ final class MaintenanceScreen {
             distanceBox.setVisibility(mode[0] != 1 ? View.VISIBLE : View.GONE);
             timeBox.setVisibility(mode[0] != 0 ? View.VISIBLE : View.GONE);
             either.setVisibility(mode[0] == 2 ? View.VISIBLE : View.GONE);
+            reason.setVisibility(mode[0] != 1 && distanceNote != MaintenanceView.DistanceNote.NONE ? View.VISIBLE : View.GONE);
         };
         for (int i = 0; i < 3; i++) {
             int index = i;
             modeChips[i] = ui.chip(modeNames[i], mode[0] == i, () -> { mode[0] = index; showMode.run(); }); modeChips[i].setTag(TAG_MODE + i);
-            // Distance and Either need an odometer reading first; time reminders always work.
-            boolean allowed = i == 1 || distanceOk;
-            modeChips[i].setEnabled(allowed); if (!allowed) modeChips[i].setAlpha(0.45f);
             LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(-2, -2); if (i > 0) mp.leftMargin = ui.dp(6);
             modes.addView(modeChips[i], mp);
         }
-        reason.setVisibility(read || !early && existing != null && existing.byDistance() ? View.GONE : View.VISIBLE);
         showMode.run();
         TextView save = ui.button(T.maintenanceSave(), () -> {
             String typed = name.getText().toString().trim();
@@ -661,21 +662,10 @@ final class MaintenanceScreen {
             long now = System.currentTimeMillis(), base = earlier[0] ? fromWall[0] : now; double atKm = typedKm;
             boolean notifyOn = notify[0];
             MaintenanceDistance.Backdate[] refused = {null};
+            // The baseline comes from the document being written, so readings that arrived while the sheet was open count before it.
             boolean saved = change(x -> {
-                if (existing == null) {
-                    // The baseline comes from the document being written, so readings that arrived while the sheet was open count before it.
-                    MaintenanceDistance.AtRaw at = MaintenanceView.baseline(x.distance, atKm);
-                    if (at.kind != MaintenanceDistance.Backdate.OK) { refused[0] = at.kind; return; }
-                    MaintenancePolicy.Reminder r = MaintenancePolicy.create(MaintenanceView.newId(x, now), chosenTask, customName, interval, intervalDays, intervalMonths,
-                            notifyOn, base, at.accKm, now);
-                    MaintenancePolicy.add(x.reminders, r);
-                } else {
-                    MaintenancePolicy.Reminder r = x.find(existing.id); if (r == null) return;
-                    r.task = chosenTask; r.name = MaintenancePolicy.cut(customName); r.km = interval; r.days = intervalDays; r.months = intervalMonths;
-                    r.notify = notifyOn;
-                    // A reminder that gains a distance part before the odometer was ever read counts it from now.
-                    if (r.byDistance() && Double.isNaN(r.baseAccKm) && x.distance.everRead()) r.baseAccKm = x.distance.accumulatedKm;
-                }
+                if (existing == null) refused[0] = MaintenanceView.add(x, chosenTask, customName, interval, intervalDays, intervalMonths, notifyOn, base, atKm, now);
+                else MaintenanceView.edit(x, existing.id, chosenTask, customName, interval, intervalDays, intervalMonths, notifyOn);
             });
             if (refused[0] != null) { odometer.setError(backdateError(refused[0])); return; }
             if (saved) close();

@@ -118,6 +118,14 @@ final class RidingScreen implements AppScreen {
     private final RidingDisplay display;
     /** Night vision: the red layer on this screen and the moon at the top bar's end. */
     private final RidingNight night;
+    /** The tune menu's clock seconds switch, as it was when this screen was built (a change rebuilds it). */
+    private final boolean clockSeconds;
+    /** Redraws the Clock readings each second while seconds show (RidingClockSeconds); idle otherwise. */
+    private final RidingClockSeconds.Tick clockTick;
+    private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable clockRun = this::tickClock;
+    /** Pauses and resumes the tick with the activity; registered only while seconds show. */
+    private final android.app.Application.ActivityLifecycleCallbacks clockLifecycle;
 
     RidingScreen(ScreenHost host, RidingSession session, Runnable leave) {
         this.host = host;
@@ -130,6 +138,7 @@ final class RidingScreen implements AppScreen {
         config = new RidingConfig(preferences, session.profileId);
         layout = config.layout();
         frameId = layout.frame();
+        clockSeconds = RidingClockSeconds.on(preferences.getAll().get(RidingClockSeconds.KEY));
         large = RidingFocus.largeText(ui.textScale * context.getResources().getConfiguration().fontScale);
         android.content.res.Configuration configuration = context.getResources().getConfiguration();
         side = RidingFocus.sideBySide(configuration.screenWidthDp, configuration.screenHeightDp, large);
@@ -273,7 +282,46 @@ final class RidingScreen implements AppScreen {
         top.addView(night.button(), RidingNight.slot(ui));
         // The big watt number sits on the bar's zero line, so the eye always finds it in the same place.
         body.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> bar.post(this::alignZero));
+        clockTick = new RidingClockSeconds.Tick(clockSeconds, clockShown(), host.resumed(), new RidingClockSeconds.Timer() {
+            @Override public void post(long delayMs) { clockHandler.postDelayed(clockRun, delayMs); }
+            @Override public void cancel() { clockHandler.removeCallbacks(clockRun); }
+        });
+        clockLifecycle = clockSeconds && clockShown() ? clockLifecycle() : null;
+        if (clockLifecycle != null) host.activity().getApplication().registerActivityLifecycleCallbacks(clockLifecycle);
         refresh();
+    }
+
+    /** Whether the frame as built shows a Clock reading: a cell, or a chip (chips are built only while they're on). */
+    private boolean clockShown() {
+        for (Cell cell : cells) if (RidingLayout.CLOCK.equals(cell.content)) return true;
+        for (Chip chip : chips) if (RidingLayout.CLOCK.equals(chip.content)) return true;
+        return false;
+    }
+
+    /** The activity's pause stops the tick at once; its resume starts it again (a refresh would too, within a second). */
+    private android.app.Application.ActivityLifecycleCallbacks clockLifecycle() {
+        android.app.Activity activity = host.activity();
+        return new android.app.Application.ActivityLifecycleCallbacks() {
+            @Override public void onActivityResumed(android.app.Activity a) { if (a == activity) clockTick.resumed(true, System.currentTimeMillis()); }
+            @Override public void onActivityPaused(android.app.Activity a) { if (a == activity) clockTick.resumed(false, 0); }
+            @Override public void onActivityCreated(android.app.Activity a, android.os.Bundle saved) { }
+            @Override public void onActivityStarted(android.app.Activity a) { }
+            @Override public void onActivityStopped(android.app.Activity a) { }
+            @Override public void onActivitySaveInstanceState(android.app.Activity a, android.os.Bundle out) { }
+            @Override public void onActivityDestroyed(android.app.Activity a) { }
+        };
+    }
+
+    /**
+     * Just after each second turns: only the Clock readings redraw, from the wall clock read now. The rest of
+     * the screen (burn-in drift, chrome dimming, gauges) keeps to its own refresh.
+     */
+    private void tickClock() {
+        if (!clockTick.fired(System.currentTimeMillis())) return;
+        long now = SystemClock.elapsedRealtime();
+        String units = units();
+        for (Cell cell : cells) if (RidingLayout.CLOCK.equals(cell.content)) cell.show(now, units);
+        for (Chip chip : chips) if (RidingLayout.CLOCK.equals(chip.content)) chip.show(now, units);
     }
 
     // The frames. Each returns the area right of the power bar.
@@ -590,6 +638,8 @@ final class RidingScreen implements AppScreen {
         if (disc != null) disc.stop();
         stoppedMotion.stop();
         stopPulse();
+        clockTick.close();
+        if (clockLifecycle != null) host.activity().getApplication().unregisterActivityLifecycleCallbacks(clockLifecycle);
         display.detach();
         night.detach();
     }
@@ -723,6 +773,7 @@ final class RidingScreen implements AppScreen {
         frame.setTranslationY(ui.dp(offset[1]));
         float alpha = RidingBurnIn.chromeAlpha(now - session.openedMs);
         for (View v : chrome) v.setAlpha(alpha);
+        clockTick.sync(wallNow);
     }
 
     /**
@@ -1035,6 +1086,32 @@ final class RidingScreen implements AppScreen {
         Double inferredWatts;
         RidingValues.Band band;
         double percent = Double.NaN;
+        /**
+         * A clock showing seconds: main is the time to the second, in figures of one width so it never changes
+         * size as it ticks, and spoken stays the minute, so a screen reader isn't told of every second (it hears
+         * the seconds when it reaches the reading: spokenNow).
+         */
+        boolean seconds;
+        /** The same time without its AM/PM, for a spot too tight for both; null when there's none (24-hour). */
+        CharSequence mainShort;
+    }
+
+    /** The clock with seconds, when the tune menu's switch is on. */
+    private void showSeconds(Shown s) {
+        if (!clockSeconds) return;
+        String[] time = DisplayTime.clockSeconds(host.activity(), preferences, System.currentTimeMillis());
+        s.seconds = true;
+        s.main = time[0];
+        s.mainShort = time[1];
+    }
+
+    /**
+     * What a screen reader hears for a Clock reading with seconds when it reaches it: the time to the second
+     * then, whatever rung the reading shows. Null for every other reading, which keeps its description.
+     */
+    private String spokenNow(String content) {
+        if (!clockSeconds || !RidingLayout.CLOCK.equals(content)) return null;
+        return spokenReading(T.ridingLabelClock(), DisplayTime.clockSeconds(host.activity(), preferences, System.currentTimeMillis())[0]);
     }
 
     private Shown shown(String content, long now, String units) {
@@ -1185,6 +1262,7 @@ final class RidingScreen implements AppScreen {
                 s.icon = "clock";
                 s.main = DisplayTime.clock(host.activity(), preferences, System.currentTimeMillis());
                 s.spoken = s.main.toString();
+                showSeconds(s);
                 break;
             }
             case RidingLayout.POWER: {
@@ -1382,6 +1460,7 @@ final class RidingScreen implements AppScreen {
                 int rung = RidingPowerCue.rungOfLabel(label.picked);
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts, RidingValues.Direction.REGEN_INFERRED, rung))), Fmt.unit(UnitCode.WATT)));
             }
+            number.clock(s.seconds, s.mainShort);
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.name();
             setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
@@ -1390,6 +1469,11 @@ final class RidingScreen implements AppScreen {
                 if (fit == null) ((View) gauge).setVisibility(battery ? VISIBLE : INVISIBLE);
                 if (battery) gauge.set(s.percent, s.band, s.color == ui.dim);
             }
+        }
+        @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            String now = spokenNow(content);
+            if (now != null) info.setContentDescription(now);
         }
     }
 
@@ -1496,17 +1580,22 @@ final class RidingScreen implements AppScreen {
             this.color = color; this.unitColor = unitColor;
             invalidate();
         }
-        /** The number's baseline in this view, once drawn: where the power bar puts its zero line. */
-        float baselineY() { return baseline > 0 ? baseline - capHeight(big) / 2 : getHeight() / 2f; }
-        private float capHeight(Paint p) {
-            Rect r = new Rect();
-            String eight = Fmt.integer(8);
-            p.getTextBounds(eight, 0, eight.length(), r);
-            return r.height();
+        /** A clock with seconds is drawn with the font's tabular figures and its AM/PM can step aside. */
+        private boolean tabular;
+        private CharSequence mainShort;
+        /**
+         * Draws the clock with seconds (true) in figures of one width, so the reading never changes width as it
+         * ticks; shortMain is the same time without its AM/PM, drawn when the whole of it would be too small.
+         */
+        void clock(boolean seconds, CharSequence shortMain) {
+            if (tabular == seconds && TextUtils.equals(mainShort, shortMain)) return;
+            tabular = seconds;
+            mainShort = shortMain;
+            big.setFontFeatureSettings(seconds ? "tnum" : null);
+            invalidate();
         }
-        @Override protected void onDraw(Canvas canvas) {
-            float w = getWidth(), h = getHeight();
-            if (w <= 0 || h <= 0 || main.length() == 0) return;
+        /** The size main draws at: maxPx, or less until it fits this view. */
+        private float fitSize(CharSequence main, float w, float h) {
             // The no-reading dash is a mark, not a number: half size, so it never reads as a bar.
             float size = TextUtils.equals(main, T.ridingNoValue()) ? maxPx * .5f : maxPx;
             float fractionShare = .46f, unitShare = unitBelow ? .30f : .42f;
@@ -1522,6 +1611,27 @@ final class RidingScreen implements AppScreen {
                 if (scale >= .999f) break;
                 size *= scale;
             }
+            return size;
+        }
+        /** The number's baseline in this view, once drawn: where the power bar puts its zero line. */
+        float baselineY() { return baseline > 0 ? baseline - capHeight(big) / 2 : getHeight() / 2f; }
+        private float capHeight(Paint p) {
+            Rect r = new Rect();
+            String eight = Fmt.integer(8);
+            p.getTextBounds(eight, 0, eight.length(), r);
+            return r.height();
+        }
+        @Override protected void onDraw(Canvas canvas) {
+            float w = getWidth(), h = getHeight();
+            if (w <= 0 || h <= 0 || main.length() == 0) return;
+            CharSequence main = this.main;
+            float size = fitSize(main, w, h);
+            // A clock with seconds too tight for its AM/PM drops the marker, never the seconds, before it gets small.
+            if (mainShort != null && !RidingClockSeconds.keepsMarker(size, maxPx, ui.dp(RidingClockSeconds.MARKER_MIN_DP))) {
+                main = mainShort;
+                size = fitSize(main, w, h);
+            }
+            float fractionShare = .46f, unitShare = unitBelow ? .30f : .42f;
             big.setTextSize(size);
             small.setTextSize(size * unitShare);
             float cap = capHeight(big);
@@ -1858,6 +1968,9 @@ final class RidingScreen implements AppScreen {
         private String[] names = new String[0];
         /** False for a chip with nothing to say (no drive mode yet): it steps aside. */
         boolean wanted = true;
+        /** The reading, and the clock with seconds without its AM/PM for the tightest rung (null for any other). */
+        private String full, tight;
+        private int rung = RidingChipFit.FULL;
         Chip(String content) {
             super(host.activity());
             this.content = content;
@@ -1895,6 +2008,15 @@ final class RidingScreen implements AppScreen {
             probe = label();
             // TextView needs layout params to re-measure after a text change, even off screen.
             probe.setLayoutParams(new LayoutParams(-2, -2));
+            if (clockSeconds && RidingLayout.CLOCK.equals(content)) {
+                // Figures of one width, so the chip never changes width as the seconds tick.
+                text.setFontFeatureSettings("tnum");
+                probe.setFontFeatureSettings("tnum");
+            }
+        }
+        /** The text this chip shows at a rung: the clock's AM/PM goes on the tightest one, before the chip would. */
+        private CharSequence textAt(int rung) {
+            return rung == RidingChipFit.TIGHT && tight != null ? tight : full != null ? full : text.getText();
         }
         private TextView label() {
             TextView label = ui.text(T.ridingNoValue(), labelSp(17), true);
@@ -1929,10 +2051,10 @@ final class RidingScreen implements AppScreen {
             if (step != RidingChipFit.NAME_ICON || icon == null || names.length == 0) return false;
             return ui.dp(ICON_DP) < measured(nameProbe, names[names.length - 1]);
         }
-        /** This chip's whole width at a RidingChipFit rung and name step, with its current text. */
+        /** This chip's whole width at a RidingChipFit rung and name step, with the text it shows there (textAt). */
         int widthAt(int rung, int step) {
             probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            int value = measured(probe, text.getText());
+            int value = measured(probe, textAt(rung));
             int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
             int mark = 0;
             if (namesItself) mark = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP) : 0;
@@ -1940,12 +2062,14 @@ final class RidingScreen implements AppScreen {
             else if (nameAt(step) != null) mark = measured(nameProbe, nameAt(step)) + ui.dp(ICON_GAP_DP);
             return padding + mark + value;
         }
+        /** The name step this chip last took, beside its rung (-1 before its first fit, or with no name). */
+        int shownStep = -1;
         /** Shows this chip at a RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
-        /** The rung and name step this chip last took (for the validation; -1 before its first fit). */
-        int shownRung = -1, shownStep = -1;
         void useRung(int rung, int step) {
-            shownRung = rung;
+            this.rung = rung;
             shownStep = step;
+            CharSequence shown = textAt(rung);
+            if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             boolean iconShown, nameShown;
             if (namesItself) { iconShown = rung < RidingChipFit.NO_ICONS; nameShown = false; }
@@ -1991,7 +2115,12 @@ final class RidingScreen implements AppScreen {
             }
             // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48", "14.2 mph"), or the dash.
             String value = s.spoken != null ? s.spoken : s.main.toString();
-            if (!TextUtils.equals(text.getText(), value)) text.setText(value);
+            // The clock with seconds shows its time to the second; a screen reader still hears the minute.
+            if (s.seconds) value = s.main.toString();
+            full = value;
+            tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
+            CharSequence shown = textAt(rung);
+            if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             int color = mode ? ui.onAccent : s.color;
             if (text.getCurrentTextColor() != color) text.setTextColor(color);
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
@@ -2003,6 +2132,11 @@ final class RidingScreen implements AppScreen {
             }
             String spokenName = s.rungs.length > 0 ? s.name() : s.main.toString();
             setContentDescription(spokenReading(spokenName, s.spoken == null ? null : s.spokenFull()));
+        }
+        @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            String now = spokenNow(content);
+            if (now != null) info.setContentDescription(now);
         }
     }
 

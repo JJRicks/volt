@@ -211,7 +211,7 @@
     <!-- src:3b0a36d8f6d3c120de05e3e2cc58d59d31720aab -->
     <string name="main_group_headlights">Faróis</string>
     <!-- src:19e4ffbba7448e522406f346b2626f240378932b -->
-    <string name="main_search_top_speed">velocidade de ponta velocidade máxima modo sport limite mph km/h</string>
+    <string name="main_search_top_speed">velocidade máxima modo sport limite mph km/h</string>
     <!-- src:eab92c8bf5f1a81fcbbc4c77b79a8eabd1fff486 -->
     <string name="main_search_done_by">carga pronta até hora de carga pronta terminar carregamento hora limite</string>
     <!-- src:d6100971d533c46f28a4913b96dfee6a2caa60db -->
@@ -247,7 +247,7 @@
     <!-- src:1f17401c574aee23f88aed47fc2e41b97fd9e219 -->
     <string name="main_controls_lights_title">Luzes</string>
     <!-- src:95147b39ffcde610427a035ba0e264fd07ec2207 -->
-    <string name="main_controls_last_seen">Última leitura (desconectada)</string>
+    <string name="main_controls_last_seen">Última leitura (desconectado)</string>
     <!-- src:9d087c810cbe1d3da20889a6a829b131419a26ac -->
     <string name="main_controls_identify">Identificar</string>
     <!-- src:3969a4abb9a765df45508c907767c4de1d0a3f72 -->
@@ -703,7 +703,7 @@
     <!-- src:1ab40a605da2bc18ed58beccb24f21c2e5d745fd -->
     <string name="main_edit_apply">Aplicar</string>
     <!-- src:188490eaa6ecd6b05fd354c8aa752241f6ae6a82 -->
-    <string name="main_edit_not_connected">Não conectada</string>
+    <string name="main_edit_not_connected">Não conectado</string>
     <!-- src:93150918ece1d786b43b4e52a9bd663cceb5c7cb -->
     <string name="main_edit_updated">Atualizado na trotinete</string>
     <!-- src:013595d4988a93adacae7d4abbdd83e099acf322 -->

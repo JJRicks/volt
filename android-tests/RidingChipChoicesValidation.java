@@ -76,7 +76,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             try { java.nio.file.Files.write(new File(evidence, "notes.txt").toPath(), notes); } catch (Exception ignored) { }
             if (activity != null) try { main(() -> { invoke(activity, "closeRiding"); activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
             try {
-                prefs().edit().remove("text_scale").remove("riding_night_vision").remove("riding_layout_v1_" + profileId).commit();
+                prefs().edit().remove("text_scale").remove("riding_night_vision").remove("riding_clock_seconds").remove("time_format").remove("riding_layout_v1_" + profileId).commit();
                 shell("wm size reset"); shell("wm density reset");
                 shell(immersivePrevious == null || immersivePrevious.isEmpty() || immersivePrevious.equals("null") ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
             } catch (Throwable ignored) { }
@@ -136,6 +136,47 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         sweep("icons", ICONS, phone);
         sweep("ranges", RANGES, phone);
         sweep("times", TIMES, phone);
+        // Clock seconds (the tune menu's switch, 12-hour): the clock chip fits its rungs, gives up its AM/PM (never its
+        // seconds) on the tightest rung before it would step aside, and the chips hold still as the seconds tick.
+        prefs().edit().putBoolean("riding_clock_seconds", true).putString("time_format", "12h").commit();
+        String haloDefault = "{\"v\":1,\"frame\":\"halo\",\"frames\":{}}";
+        show("halo-default-344-seconds", haloDefault, phone, 1f, false);
+        requireSteady("halo-default-344-seconds");
+        show("halo-default-344-large-seconds", haloDefault, phone, 1.5f, false);
+        requireSteady("halo-default-344-large-seconds");
+        show("halo-icons-344-seconds", ICONS, phone, 1f, false);
+        requireSteady("halo-icons-344-seconds");
+        show("halo-icons-split-seconds", ICONS, split, 1f, false);
+        sweep("icons-seconds", ICONS, phone);
+        String traceClock = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"max_speed\",\"chip_2\":\"clock\"}}}}";
+        show("trace-clock-344-seconds", traceClock, phone, 1f, false);
+        requireSteady("trace-clock-344-seconds");
+        show("trace-clock-344-large-seconds", traceClock, phone, 1.5f, false);
+        requireSteady("trace-clock-344-large-seconds");
+        prefs().edit().remove("riding_clock_seconds").remove("time_format").commit();
+    }
+
+    /** Over a few ticks of the seconds, every chip keeps its rung, name, icon and (with as many figures) its width. */
+    private void requireSteady(String label) {
+        String[] first = new String[1];
+        main(() -> first[0] = steadySignature());
+        for (int i = 0; i < 3; i++) {
+            SystemClock.sleep(1100);
+            String[] now = new String[1];
+            main(() -> now[0] = steadySignature());
+            require(first[0].equals(now[0]), label + ": the chips moved as the seconds ticked: " + first[0] + " then " + now[0]);
+        }
+        notes.add(label + " steady over 3 s: " + first[0]);
+    }
+
+    private String steadySignature() {
+        StringBuilder out = new StringBuilder(signature());
+        for (Object c : chipList()) {
+            TextView value = (TextView) field(c, "text");
+            out.append(" | ").append(field(c, "content")).append(" w=").append(((View) c).getWidth()).append(" len=").append(value.getText().length())
+                    .append(" rung=").append(field(c, "rung"));
+        }
+        return out.toString();
     }
 
     private void setup(String layout, int[] window, float text, boolean night) throws Exception {
@@ -257,6 +298,9 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             int natural = 0;
             for (int i = 0; i < row.getChildCount(); i++) if (row.getChildAt(i).getVisibility() != View.GONE) natural += row.getChildAt(i).getMeasuredWidth() + margins(row.getChildAt(i));
             int lastCount = Integer.MAX_VALUE, shortAt = -1, iconAt = -1, dropAt = -1, fullAt = -1, rangeIconAt = -1, timeIconAt = -1;
+            int markerGoneAt = -1, clockDropAt = -1;
+            String lastClock = null;
+            int lastClockRung = -1;
             for (int width = natural + 40; width >= 0; width--) {
                 row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), unbounded);
                 String once = signature();
@@ -293,6 +337,28 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                 require(used <= width, label + " width " + width + ": chips and gaps need " + used);
                 require(count <= lastCount, label + " width " + width + ": a chip came back on a narrower row");
                 if (count < lastCount && lastCount != Integer.MAX_VALUE && dropAt < 0) dropAt = width;
+                if (label.endsWith("-seconds")) {
+                    String clockText = null;
+                    int clockRung = -1;
+                    for (int i = 0; i < row.getChildCount(); i++) {
+                        Object c = chips.get(i);
+                        if (!"clock".equals(field(c, "content")) || row.getChildAt(i).getVisibility() == View.GONE) continue;
+                        clockText = ((TextView) field(c, "text")).getText().toString();
+                        clockRung = (Integer) field(c, "rung");
+                    }
+                    if (clockText != null) {
+                        require(clockText.matches(".*\\d:\\d\\d:\\d\\d.*"), label + " width " + width + ": the clock lost its seconds: '" + clockText + "'");
+                        boolean marker = clockText.matches("(?is).*\\b(am|pm|a\\.m\\.|p\\.m\\.).*");
+                        require(marker == (clockRung != 5), label + " width " + width + ": AM/PM '" + clockText + "' at rung " + clockRung + " (it goes at the tightest rung only)");
+                        if (!marker && markerGoneAt < 0) markerGoneAt = width;
+                    } else if (lastClock != null && clockDropAt < 0) {
+                        clockDropAt = width;
+                        require(lastClockRung == 5 && !lastClock.matches("(?is).*\\b(am|pm)\\b.*"), label + " width " + width
+                                + ": the clock stepped aside before giving up its AM/PM (last '" + lastClock + "' at rung " + lastClockRung + ")");
+                    }
+                    lastClock = clockText;
+                    lastClockRung = clockRung;
+                }
                 if (anyFull && fullAt < 0) fullAt = width;
                 if (anyShort && count == 3 && shortAt < 0) shortAt = width;
                 if (anyIcon && count == 3 && iconAt < 0) iconAt = width;
@@ -303,10 +369,13 @@ public final class RidingChipChoicesValidation extends Instrumentation {
                 require(fullAt > 0 && shortAt > 0 && dropAt > 0 && shortAt > dropAt, label + ": rungs out of order full=" + fullAt + " short=" + shortAt + " drop=" + dropAt);
             if (label.equals("ranges")) require(rangeIconAt > 0, "ranges: Volt's range never took the route icon after Scooter's range stepped aside");
             if (label.equals("times")) require(timeIconAt > 0, "times: Ride time never took its icon once the clock face had gone");
+            if (label.endsWith("-seconds")) require(markerGoneAt > 0 && clockDropAt > 0 && markerGoneAt > clockDropAt,
+                    label + ": AM/PM should go before the clock does (AM/PM gone at " + markerGoneAt + ", clock gone at " + clockDropAt + ")");
             if (label.equals("icons")) require(iconAt > 0 && iconAt < shortAt && iconAt > dropAt, label + ": icons out of order icon=" + iconAt + " short=" + shortAt + " drop=" + dropAt);
             if (label.equals("speeds")) require(iconAt < 0, "speeds: Average and Max must keep their names (shared speedometer), odometer has no icon");
             verdict[0] = label + " sweep: natural " + natural + " full until " + fullAt + " short at " + shortAt + " icons at " + iconAt + " first drop at " + dropAt
-                    + (rangeIconAt > 0 ? " range icon at " + rangeIconAt : "") + (timeIconAt > 0 ? " ride time icon at " + timeIconAt : "");
+                    + (rangeIconAt > 0 ? " range icon at " + rangeIconAt : "") + (timeIconAt > 0 ? " ride time icon at " + timeIconAt : "")
+                    + (markerGoneAt > 0 ? " AM/PM gone at " + markerGoneAt + " clock gone at " + clockDropAt : "");
         });
         notes.add(verdict[0]);
         android.util.Log.i("VoltChips", verdict[0]);
@@ -337,7 +406,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         for (Object c : chips) if (((View) c).getVisibility() != View.GONE) shown.add(c);
         for (Object c : shown) {
             String content = (String) field(c, "content");
-            int rung = (Integer) field(c, "shownRung"), step = (Integer) field(c, "shownStep");
+            int rung = (Integer) field(c, "rung"), step = (Integer) field(c, "shownStep");
             require(rung >= 0, label + ": " + content + " shown without a fit");
             String mine = displayedMark(c);
             for (Object o : shown) {
