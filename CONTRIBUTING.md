@@ -21,7 +21,7 @@ This is the whole path from idea to merge. Each step is explained further down.
    - new or changed English text, by string key;
    - what's untested;
    - screenshots.
-6. **Review.** An independent automated review is posted as a comment from the maintainer's account, headed as an independent review. It usually arrives within minutes of marking the pull request ready. The maintainer may comment too. Findings marked **[P1]** or **[P2]** need a fix or a reasoned reply. When you've pushed fixes, say on the pull request that it's ready for another look. CI must be green on the final commit.
+6. **Review.** An independent automated review is posted as a comment from the maintainer's account, headed as an independent review. Reviews run when a maintainer is reviewing, so one usually arrives the same day you mark the pull request ready; if none has arrived after a day or two, comment on the pull request to ask for one. The maintainer may comment too. Findings marked **[P1]** or **[P2]** need a fix or a reasoned reply. When you've pushed fixes, say on the pull request that it's ready for another look. CI must be green on the final commit.
 7. **The maintainers' part.** They run the emulator validations and the standard screenshot set, update any validation that fails only because something moved or was renamed, translate new text, merge, and cut releases. You never need the release signing key, [RELEASING.md](RELEASING.md), translations, validation code or a release installed on a phone to finish a pull request.
 
 If this is your first pull request from a fork, GitHub holds its CI run until a maintainer approves it. That's normal.
@@ -61,15 +61,15 @@ python3 -m unittest discover -s tools/l10n
 python3 tools/l10n/gen_catalog.py --check
 python3 tools/l10n/ship_check.py
 bash tests/l10n/golden.sh
-python3 tools/l10n/ci_gates.py --base origin/main
+python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"
 ```
 
-`tests/run.sh` and the `tools/l10n` unit tests take a few minutes each; the rest take seconds. `ci_gates.py` judges your last commit against the base, so commit first and fetch the base. In a fork, `origin/main` is your fork's copy, so compare with this repository instead:
+`tests/run.sh` and the `tools/l10n` unit tests take a few minutes each; the rest take seconds. `ci_gates.py` judges your last commit against the base, so commit first and fetch the base. `--pr-head` makes it run the same checks CI runs on a pull request, including that characterization tests come first (`G5`); without it, that check is skipped. In a fork, `origin/main` is your fork's copy, so compare with this repository instead:
 
 ```sh
 git remote add upstream https://github.com/JJRicks/volt.git
 git fetch upstream
-python3 tools/l10n/ci_gates.py --base upstream/main
+python3 tools/l10n/ci_gates.py --base upstream/main --pr-head "$(git rev-parse HEAD)"
 ```
 
 Then build the app (this needs the Android SDK; see the [build guide](docs/building.md)):

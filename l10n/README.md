@@ -682,7 +682,7 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   prefer putting new text in the catalog). If it changes a report format, update the goldens with
   `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run CI's localization steps
   (`python3 -m unittest discover -s tools/l10n`, `python3 tools/l10n/gen_catalog.py --check`,
-  `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main`), then, as for any
+  `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"`), then, as for any
   change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
   pull request does not need it.
   If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a

@@ -29,7 +29,7 @@ python3 setup/shizuku-dependencies.py --fetch
 bash build.sh
 ```
 
-Replace the SDK and JDK paths with your installed locations. If you leave them unset, `build.sh` looks for an SDK with platform 36 in `~/Library/Android/sdk`, `~/Android/Sdk` and `/opt/android-sdk`, and for a JDK in Android Studio's bundled runtime, then `/usr/libexec/java_home`, then your `PATH`. The dependency fetch is explicit and verifies pinned hashes; subsequent Android builds verify and use the cached dependencies offline. [Shizuku build details](../setup/SHIZUKU.md#dependencies-and-build) describe the included components.
+Replace the SDK and JDK paths with your installed locations. If you leave them unset, `build.sh` looks for an SDK with platform 36 in `~/Library/Android/sdk`, `~/Android/Sdk` and `/opt/android-sdk`, and for a JDK in Android Studio's bundled runtime, then `/usr/libexec/java_home`, then your `PATH`. The `adb` commands below run in your own shell, so they still need `ANDROID_SDK_ROOT` exported; see [Install your build](#install-your-build). The dependency fetch is explicit and verifies pinned hashes; subsequent Android builds verify and use the cached dependencies offline. [Shizuku build details](../setup/SHIZUKU.md#dependencies-and-build) describe the included components.
 
 The build signs the APK and verifies its signature and alignment. Its default output is:
 
@@ -37,11 +37,16 @@ The build signs the APK and verifies its signature and alignment. Its default ou
 dist/volt.apk
 ```
 
-To install on your own connected test device:
+### Install your build
+
+Use the SDK's `adb`. If you let `build.sh` find the SDK, export its location in this shell first. This is the macOS default; on Linux it is usually `$HOME/Android/Sdk`:
 
 ```sh
-adb install -r dist/volt.apk
+export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+"$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 install -r dist/volt.apk
 ```
+
+`emulator-5554` is the first running emulator. To install on your own phone instead, use the phone's serial in place of it; that needs the phone connected with USB debugging on.
 
 **A fresh clone creates its own local signing key.** It cannot update a project release signed with a different key. Export a backup before uninstalling or replacing an existing installation. Keep the same private key for future local updates; the project release key is not needed to contribute.
 
@@ -75,7 +80,12 @@ These are three of the checks CI runs. [CONTRIBUTING](../CONTRIBUTING.md#build-a
 
 You can try most screens on an emulator or your own phone with no scooter. Developer simulation fills them with fake readings, sends nothing over Bluetooth and records nothing. It needs a saved scooter profile first, and without one the switch doesn't turn on. The repository has a synthetic backup with one made-up scooter:
 
-1. Copy `tests/fixtures/legacy/full-v1.voltbackup` to the device's Downloads folder. For the first emulator: `"$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 push tests/fixtures/legacy/full-v1.voltbackup /sdcard/Download/`
+1. [Install your build](#install-your-build), then copy `tests/fixtures/legacy/full-v1.voltbackup` to the device's Downloads folder. For the first emulator, with `ANDROID_SDK_ROOT` exported as above:
+
+   ```sh
+   "$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 push tests/fixtures/legacy/full-v1.voltbackup /sdcard/Download/
+   ```
+
 2. In Volt, open More › Back up & restore › Restore, choose that file and enter the password `synthetic fixture password`.
 3. Review the contents, choose Replace everything, then Close Volt and reopen it. Home shows **Synthetic UT5**, disconnected.
 4. Open More › Developer options and turn on **Simulate scooter as connected**. A red **Simulation · Exit** bar appears, and Home shows readings.
@@ -86,7 +96,7 @@ Restoring replaces the app's data on that device, so do it only in a build or em
 
 **This is optional.** You are not required to run Android validations; the maintainers run the affected ones on every UI pull request. If you'd like to see one pass, or to check a fix to a validation, this section is how.
 
-You need the emulator and a virtual device (see [Requirements](#requirements)). Start it from Android Studio's Device Manager, with its system language set to **English (United States)**: the checks run Volt in English and stop otherwise. The first emulator's serial is `emulator-5554`. Check it is running:
+You need the emulator and a virtual device (see [Requirements](#requirements)). Start it from Android Studio's Device Manager, with its system language set to **English (United States)**: the checks run Volt in English and stop otherwise. The first emulator's serial is `emulator-5554`. These commands need `ANDROID_SDK_ROOT` exported, as in [Install your build](#install-your-build). Check the emulator is running:
 
 ```sh
 "$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 get-state

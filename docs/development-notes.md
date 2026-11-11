@@ -87,7 +87,7 @@ The localization gates decide what one pull request can hold. Its kind comes fro
 - **Moving code within one file** keeps that file's catalog references the same, so the pull request stays `ordinary` unless it changes other things.
 - **Moving code that calls `T.` or `M.` into another file** makes it a `batch`, because the new file gained catalog references. That passes if the moved code has no text or data literals other than lower-case ids.
 - **Moving code that has both catalog calls and other literals** (such as `"Locked"` or a section id like `"Lights"`) into another file fails `G1`: the literal counts as removed from one file and new in the other. Move only the catalog calls in that pull request, and ask on the issue about the literals; the maintainers record them.
-- **A `batch` may not edit an existing test**, except to add whole statements, may not touch `tests/run.sh`, `android-tests/build.sh` or the files under `tools/l10n/`, may not change goldens, and may only shrink `l10n/baseline/`. So a test that reads a file you restructured, or a validation that needs more than added statements, can't be fixed in the same `batch`.
+- **A `batch` may not edit the tests directly under `tests/l10n/` at all**, not even by adding a statement: they count as proof tooling, like `tests/run.sh`, `android-tests/build.sh` and `tools/l10n/`. That includes the dashboard text tests named above. Other existing tests (`tests/*.java`, `android-tests/*.java`) may only gain whole statements. A `batch` also may not change goldens, and may only shrink `l10n/baseline/`. So a test that reads a file you restructured, or a validation that needs more than added statements, can't be fixed in the same `batch`.
 
 That gives a large move this order:
 
