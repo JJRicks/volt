@@ -2898,6 +2898,8 @@ public final class MoreScreen implements AppScreen {
             content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
             // Off by default: the status bar keeps the phone's clock and battery (#254).
             content.addView(toggle(T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(), RidingBars.HIDE_STATUS_BAR_KEY, "preference_riding_hide_status_bar", true, null));
+            // Off by default: the clock reading shows seconds, ticking only while one is on screen (a tester's request).
+            content.addView(toggle(T.ridingDisplayClockSeconds(), T.ridingDisplayClockSecondsSub(), RidingClockSeconds.KEY, "preference_riding_clock_seconds", true, null));
             gap();
             LinearLayout box = ui.groupCard();
             box.setTag("preference_riding_brightness");
@@ -2939,15 +2941,18 @@ public final class MoreScreen implements AppScreen {
             else save.run();
         }
 
+        /** A switch's stored state: only a stored true is on, so a missing or malformed value shows off rather than failing. */
+        private boolean stored(String key) { return RidingClockSeconds.on(preferences.getAll().get(key)); }
+
         /** One switch; applies: riding mode needs rebuilding with it. beforeOn runs ahead of a turn-on and is given the save to run, as in More. */
         private View toggle(String title, String detail, String key, String tag, boolean applies, Consumer<Runnable> beforeOn) {
             View[] row = new View[1];
-            row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, preferences.getBoolean(key, false), true, enabled -> {
+            row[0] = ui.toggleRow(title, Ui.NO_ICON, detail, stored(key), true, enabled -> {
                 // Whatever happened, the switch and TalkBack say what's now stored; the row outlives the save here.
                 Runnable showStored = () -> {
                     ViewGroup parent = (ViewGroup) row[0];
                     Switch toggle = (Switch) parent.getChildAt(parent.getChildCount() - 1);
-                    boolean stored = preferences.getBoolean(key, false);
+                    boolean stored = stored(key);
                     toggle.setChecked(stored);
                     describeSwitch(toggle, stored);
                 };
