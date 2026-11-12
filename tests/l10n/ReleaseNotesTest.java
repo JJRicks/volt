@@ -11,7 +11,7 @@ public final class ReleaseNotesTest {
     private static int checks;
 
     public static void main(String[] args) {
-        blocks(); inline(); fallbacks(); release(); clip(); nothingLost();
+        blocks(); inline(); fallbacks(); asGitHubReadsIt(); release(); clip(); nothingLost();
         System.out.println("ReleaseNotesTest: " + checks + " checks passed");
     }
 
@@ -89,6 +89,34 @@ public final class ReleaseNotesTest {
         check(one("snake_case_name").spans.isEmpty() && one("**not closed").spans.isEmpty(), "no style from markup that doesn't close");
         check(one("a *b* c").spans.size() == 1, "an italic word inside text");
         check(ReleaseNotes.plainText(ReleaseNotes.parse("- one\n  1. two\n\n## Done")).equals("• one\n  1. two\nDone"), "plain text form");
+    }
+
+    /** Cases where a looser reading would drop or move characters that GitHub shows. */
+    private static void asGitHubReadsIt() {
+        // A bare address is kept exactly as written: no emphasis inside it, and trailing punctuation is not part of it.
+        String bare = "See https://example.com/_docs_/x and https://x.y/a*b*c";
+        ReleaseNotes.Block b = one(bare);
+        check(b.text.equals(bare) && b.spans.isEmpty(), "bare addresses stay as written: " + b.text + " " + b.spans);
+        b = one("Docs (https://example.com/a_b_c_d). Also *https://x.y/a_b_* and mailto:me@example.com");
+        check(b.text.equals("Docs (https://example.com/a_b_c_d). Also https://x.y/a_b_ and mailto:me@example.com"), "address edges: " + b.text);
+        span(b, ReleaseNotes.Style.ITALIC, "https://x.y/a_b_");
+        check(one("https://").text.equals("https://") && one("snake_https://x_y_").text.equals("snake_https://x_y_"), "no address, no change");
+
+        // A numbered item breaks into a paragraph only when it starts at 1.
+        block(one("Battery at\n80. percent"), ReleaseNotes.Kind.PARAGRAPH, 0, "", "Battery at\n80. percent");
+        List<ReleaseNotes.Block> list = ReleaseNotes.parse("Steps:\n1. Open More\n2. Tap Update");
+        check(list.size() == 3, "a list from 1 interrupts: " + list.size());
+        block(list.get(0), ReleaseNotes.Kind.PARAGRAPH, 0, "", "Steps:");
+        block(list.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "Tap Update");
+        block(ReleaseNotes.parse("- item\n3. next").get(1), ReleaseNotes.Kind.NUMBERED, 0, "3.", "next");
+
+        // A backslash is a hard break only when a line follows it in the same block.
+        block(one("a\\\nb"), ReleaseNotes.Kind.PARAGRAPH, 0, "", "a\nb");
+        check(one("C:\\").text.equals("C:\\"), "a last backslash stays: " + one("C:\\").text);
+        List<ReleaseNotes.Block> ends = ReleaseNotes.parse("Settings are in C:\\\n\n- Use a backslash \\\n");
+        block(ends.get(0), ReleaseNotes.Kind.PARAGRAPH, 0, "", "Settings are in C:\\");
+        block(ends.get(1), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "Use a backslash \\");
+        block(one("odd \\\\\\\nnext"), ReleaseNotes.Kind.PARAGRAPH, 0, "", "odd \\\nnext");
     }
 
     /** The shape the project's release notes have used: a bold lead, highlights, links and known limits. */

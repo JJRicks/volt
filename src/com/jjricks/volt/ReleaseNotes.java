@@ -13,9 +13,10 @@ import java.util.regex.Pattern;
  * <p>It reads the common GitHub-flavoured forms: ATX ({@code ## Title}) and setext headings, bullet and numbered
  * lists nested by indent, quotes, fenced code, rules, and paragraphs with their line breaks (GitHub shows a single
  * newline in release notes as a break); inline, bold, italic, strikethrough, code spans, links and images
- * ({@code [text](url)}, shown as "text (url)") and autolinks ({@code <https://...>}). Anything else (tables, HTML,
- * reference links, an unclosed {@code **}) stays as its literal text. Only the markup itself is dropped, plus a code
- * fence's language name, so every other character of the notes is shown. Links are never made tappable here.
+ * ({@code [text](url)}, shown as "text (url)") and autolinks ({@code <https://...>}); a bare address stays exactly as
+ * written. Anything else (tables, HTML, reference links, an unclosed {@code **}) stays as its literal text. Only the
+ * markup itself is dropped, plus a code fence's language name, so every other character of the notes is shown. Links
+ * are never made tappable here.
  */
 final class ReleaseNotes {
     enum Kind { PARAGRAPH, HEADING, BULLET, NUMBERED, QUOTE, CODE, RULE }
@@ -133,7 +134,12 @@ final class ReleaseNotes {
             }
             if (RULE.matcher(line).matches()) { close(); listIndents.clear(); out.add(new Block(Kind.RULE, 0, "", "", new ArrayList<Span>())); return; }
             if ((m = BULLET_ITEM.matcher(line)).matches()) { item(Kind.BULLET, m.group(1), BULLET, m.group(3)); return; }
-            if ((m = NUMBERED_ITEM.matcher(line)).matches()) { item(Kind.NUMBERED, m.group(1), m.group(2), m.group(3)); return; }
+            // As on GitHub, a numbered item breaks into a paragraph only when it starts at 1, so prose wrapped onto
+            // a line such as "80. percent" stays in its paragraph.
+            if ((m = NUMBERED_ITEM.matcher(line)).matches() && (open != Kind.PARAGRAPH || startsAtOne(m.group(2)))) {
+                item(Kind.NUMBERED, m.group(1), m.group(2), m.group(3));
+                return;
+            }
             if ((m = QUOTE.matcher(line)).matches()) {
                 if (open != Kind.QUOTE) { close(); listIndents.clear(); start(Kind.QUOTE, 0, ""); }
                 append(m.group(1));
@@ -169,12 +175,19 @@ final class ReleaseNotes {
 
         private void start(Kind kind, int level, String marker) { open = kind; openLevel = level; openMarker = marker; raw.setLength(0); }
 
-        /** One more line of the open block; a trailing backslash or two spaces (a hard break) becomes a plain break. */
+        /**
+         * One more line of the open block. A hard break (two spaces, or a backslash, at the end of the line before)
+         * becomes a plain break; a backslash only counts as one when a line follows it, so a block's last one stays.
+         */
         private void append(String line) {
-            String text = line.trim();
-            if (text.endsWith("\\") && !text.endsWith("\\\\")) text = text.substring(0, text.length() - 1).trim();
-            if (raw.length() > 0) raw.append('\n');
-            raw.append(text);
+            if (raw.length() > 0) {
+                if (trailingBackslashes(raw) % 2 == 1) {
+                    raw.setLength(raw.length() - 1);
+                    while (raw.length() > 0 && (raw.charAt(raw.length() - 1) == ' ' || raw.charAt(raw.length() - 1) == '\t')) raw.setLength(raw.length() - 1);
+                }
+                raw.append('\n');
+            }
+            raw.append(line.trim());
         }
 
         private void close() {
@@ -224,10 +237,41 @@ final class ReleaseNotes {
                         text.append(s, i + 1, close); i = close + 1; continue;
                     }
                 }
+                if (bareLinkStart(i)) {
+                    int end = bareLinkEnd(i, to);
+                    if (end > 0) { text.append(s, i, end); i = end; continue; }
+                }
                 if (c == '*' || c == '_' || c == '~') { i = emphasis(i, to, c); continue; }
                 text.append(c); i++;
             }
         }
+
+        /** Where GitHub starts a bare address: at the start, after a blank, or after one of *, _, ~ and (. */
+        private boolean bareLinkStart(int i) {
+            char c = s.charAt(i);
+            if (c != 'h' && c != 'm') return false;
+            return i == 0 || Character.isWhitespace(s.charAt(i - 1)) || "*_~(".indexOf(s.charAt(i - 1)) >= 0;
+        }
+
+        /**
+         * The end of the bare address at i, kept exactly as written (no emphasis inside it), or -1 when none starts
+         * there. As on GitHub, trailing punctuation and an unmatched closing parenthesis are not part of it.
+         */
+        private int bareLinkEnd(int i, int to) {
+            Matcher m = AUTOLINK.matcher(s).region(i, to);
+            if (!m.lookingAt()) return -1;
+            int end = m.end();
+            while (end > i) {
+                char last = s.charAt(end - 1);
+                if ("?!.,:*_~'\"".indexOf(last) >= 0) { end--; continue; }
+                if (last == ')' && count(i, end, ')') > count(i, end, '(')) { end--; continue; }
+                break;
+            }
+            int scheme = s.startsWith("mailto:", i) ? i + 7 : s.indexOf("://", i) + 3;
+            return end > scheme ? end : -1;
+        }
+
+        private int count(int from, int to, char c) { int n = 0; for (int j = from; j < to; j++) if (s.charAt(j) == c) n++; return n; }
 
         /** A code span between equal runs of backticks, or the backticks as they are when no run closes it. */
         private int code(int i, int to) {
@@ -374,6 +418,15 @@ final class ReleaseNotes {
     }
 
     private static boolean punctuation(char c) { return c < 128 && "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".indexOf(c) >= 0; }
+
+    /** A numbered item's marker ("1.", "01)") that starts its list at 1. */
+    private static boolean startsAtOne(String marker) { return Integer.parseInt(marker.substring(0, marker.length() - 1)) == 1; }
+
+    private static int trailingBackslashes(CharSequence text) {
+        int n = 0;
+        while (n < text.length() && text.charAt(text.length() - 1 - n) == '\\') n++;
+        return n;
+    }
 
     private static int leadingSpaces(String line) { int i = 0; while (i < line.length() && line.charAt(i) == ' ') i++; return i; }
 
