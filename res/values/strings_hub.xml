@@ -136,8 +136,8 @@
     <!-- ===== Ride › Recording settings ===== -->
     <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
     <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>
-    <!-- Under that switch. Android does not let Volt turn on location from the background, so such a ride has no map. -->
-    <string name="hub_recording_auto_background_note" volt:screen="Recording settings" volt:purpose="caption" volt:safety="ride" volt:dnt="Volt|GPS">A ride that starts while Volt is in the background has no GPS route.</string>
+    <!-- Under that switch. A locked phone or a dark screen counts as the background too. Android does not let Volt turn on location from the background, so such a ride has no map. -->
+    <string name="hub_recording_auto_background_note" volt:screen="Recording settings" volt:purpose="caption" volt:safety="ride" volt:dnt="Volt|GPS">A ride that starts while Volt is in the background or with the screen locked has no GPS route.</string>
 
     <!-- ===== Battery & charging page: the summary card at the top ===== -->
     <!-- %1$s is the battery level as a percent ("72%"), %2$s the estimated range left with its unit ("14 mi"). -->
