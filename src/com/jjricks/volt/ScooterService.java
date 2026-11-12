@@ -523,6 +523,8 @@ public final class ScooterService extends Service {
         });return true;
     }
     /** The profile is captured before work starts so changing screens cannot export a different scooter. */
+    /** "Charge recordings could not be exported": the export failed, or Email to Volt couldn't prepare its attachment. */
+    static CharSequence chargeExportFailed(){return M.serviceChargeExportFailed();}
     public boolean exportChargeRecordings(Consumer<File> completion){
         if(destroyed||chargeStore==null||isChargeRecording()||chargeExporting||activeProfileId().isEmpty())return false;
         final String profile=activeProfileId();chargeExporting=true;
@@ -539,7 +541,7 @@ public final class ScooterService extends Service {
                     count=chargeStore.exportJson(profile,writer);
                 }
                 if(count==0){output.delete();output=null;error=M.serviceChargeExportEmpty();}
-            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=M.serviceChargeExportFailed();}
+            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=chargeExportFailed();}
             final File result=output;final CharSequence message=error;
             handler.post(()->{chargeExporting=false;if(destroyed){if(result!=null)result.delete();return;}
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});
@@ -1858,7 +1860,8 @@ public final class ScooterService extends Service {
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
-     * Auto-record, on every Bluetooth change and service tick, in the background too. It starts a ride as startRide does
+     * Auto-record, on every Bluetooth change and service tick, in the background too (where it starts a ride only with
+     * the background switch on; AutoStartPolicy.recordsNow). It starts a ride as startRide does
      * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
      */
     private void observeAutoStart(long mono){
@@ -1868,7 +1871,8 @@ public final class ScooterService extends Service {
         // linked(), not ready(): out of sight the status poll runs every 15 s, so a healthy authenticated link is past
         // ready()'s 7 s window for half of each cycle. The speed sample's own freshness is checked by autoStartMoving.
         boolean canStart=ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
-        if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
+        boolean enabled=AutoStartPolicy.recordsNow(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY,false),visible);
+        if(!autoStart.shouldRecord(enabled,autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
         try{
             beginRide(RidesScreen.defaultRideName(this));
             // Any action but a stop re-evaluates START_STICKY, like the rider's start.

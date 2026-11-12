@@ -425,9 +425,11 @@ public final class CompatControlsValidation extends Instrumentation {
             closeSheet();
         } else {
             main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:prompt_tone")); settle();
-            main(() -> require(field(activity, "quickMenuDialog") != null && field(activity, "choiceSheet") == null, "UT5 MAX prompt tone tile left the Lab"));
+            // A control the Lab tries opens its test in Service › Experimental controls, as a page (hub layout, PR 4).
+            main(() -> require("service.experimental".equals(field(activity, "selectedPage")) && field(activity, "quickMenuDialog") == null
+                    && field(activity, "choiceSheet") == null, "UT5 MAX prompt tone tile did not open its Lab test"));
             screenshot(label + "-tile-prompt-lab");
-            main(() -> invoke(activity, "closeQuickMenu")); settle();
+            main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
         }
         main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll != null) scroll.scrollTo(0, 0); }); settle();
         checks.add(label + ": " + counts[0] + " toggle and " + counts[1] + " open tiles follow the decided variant");

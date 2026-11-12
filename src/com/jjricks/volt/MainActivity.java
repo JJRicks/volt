@@ -142,6 +142,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
+    /** A quick-control sheet over Home (HubRoutes.sheetFor): its control rows and charge-schedule rows refresh with the body. */
+    private AlertDialog quickMenuDialog;
+    private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
+    private final ArrayList<ChargeDoneRow> quickChargeRows = new ArrayList<>();
     private Runnable pendingRideLocation;
     private boolean rideLocationResolved,rideLocationCancelled,autoRecordLocationCancelled;
     private android.window.OnBackInvokedCallback systemBack;
@@ -171,6 +175,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
+            // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
+            ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
             rebuild();
         }
@@ -222,13 +228,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
+        // A notice tap still waiting for riding mode or setup to close survives a cold start (into unfinished setup, say), as on main.
+        maintenancePending|=MaintenanceScreen.pending(preferences);
         selectedPage=nav.current();
         if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"),saved.getDoubleArray("riding_speed"),saved.getLong("riding_auto_ends",-1),saved.getBoolean("riding_link_seen",false),saved.getLongArray("riding_leave"));
         // A fresh start has no stack to keep, so a clock left by the last run never cuts a notice's route short.
         if(saved!=null)expireAway();else clearAway();
         // A maintenance notice's tap opens Service › Maintenance reminders, for the active scooter only.
         MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
-        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE)showMaintenanceFromNotice();
+        // Also kept as pending until a page is built outside setup: setup shown first replaces the stack when it finishes.
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE){showMaintenanceFromNotice();pendMaintenance(true);}
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
@@ -248,8 +257,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         MaintenanceNotices.Tap tap=MaintenanceNotices.tapped(intent,preferences,scooterService!=null&&scooterService.profiles!=null?scooterService.profiles:new ScooterProfiles(this));
         if(tap==null)return;
         if(tap.route!=MaintenanceNotify.Route.OPEN_PAGE){maintenanceTapOther(tap);return;}
-        // Focus mode stays up; the page opens as soon as riding mode or setup closes.
-        if(riding!=null||onboarding!=null){maintenancePending=true;return;}
+        // Focus mode stays up; the page opens as soon as riding mode or setup closes (riding mode still waiting to be
+        // restored counts: the page would open under it and be lost).
+        if(riding!=null||onboarding!=null||ridingRestore){pendMaintenance(true);return;}
         captureScroll();showMaintenanceFromNotice();preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
     /** Settings, then the manual update check's dialog once Settings is on screen (showUpdateCheck). */
@@ -263,8 +273,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
-    /** A maintenance notice was tapped while riding mode or setup was up (onNewIntent); kept across recreation. */
+    /**
+     * A maintenance notice was tapped while riding mode or setup was up (onNewIntent), or at a cold start: its page opens
+     * as soon as they close. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
+     */
     private boolean maintenancePending;
+    private void pendMaintenance(boolean on){maintenancePending=on;MaintenanceScreen.pending(preferences,on);}
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
     private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
@@ -306,10 +320,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
+        ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
     }
@@ -414,6 +429,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
+        for (ControlRow row : quickMenuRows) row.refresh();
+        for (ChargeDoneRow row : quickChargeRows) row.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -435,6 +452,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
+        closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
@@ -470,7 +488,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         // A maintenance tap deferred while riding mode or setup was up opens as soon as they close: before the header, so the
         // header is built for Maintenance reminders (back row and title), not for the Home they closed onto.
-        if(maintenancePending){maintenancePending=false;showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
+        if(maintenancePending&&!ridingRestore){pendMaintenance(false);showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         LinearLayout shell=column();root.addView(shell,new FrameLayout.LayoutParams(-1,-1));
         simulationNotice = design.text(T.mainSimulationBanner(), 12, true);
         simulationNotice.setTag("simulation-banner");
@@ -582,6 +600,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(moreHosted&&scooterService==null)return new LoadingScreen();
         switch(page){
             case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
+            // Usable ride energy (Experimental) below the page's rows: Clean Home has no widgets to hold it (part 8).
+            case HubPages.BATTERY_ESTIMATES:return new HubPageScreen(this,new ControlsScreen(spec),new UsableEnergyPanel(this,homeActions()));
             case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
             case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
             case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
@@ -1128,6 +1148,42 @@ public final class MainActivity extends Activity implements ScreenHost {
      * so every route uses Home's page stack. Home closes every page above it.
      */
     private void select(String page){open(page,null);}
+    // The floating tab bar and the side rail the Hub replaced (parts 1-10). Not shown since part 11, but kept, unused, until
+    // the owner has used the Hub and says they can go (owner's answer 8 on #383): Hub layout part 14 leaves them in place too.
+    // Volt order: Scooter was the raised centre button of the floating tab bar. Each tab opened its root page (HubPages.TABS).
+    private final String[] pages=HubPages.TABS.toArray(new String[0]);
+    private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
+    /** The tab names as shown; names above are ids, in the same order. */
+    private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
+    /** The rail's one-line tab captions when a full name does not fit (Ui.nav); the screen reader keeps the full name. */
+    private String[] navShortNames(){return new String[]{T.mainNavHomeShort(),T.mainNavStatsShort(),T.mainNavScooterShort(),T.mainNavRidesShort(),T.mainNavMoreShort()};}
+    private final String[] icons={"home","stats","scooter","rides","more"};
+    private static final int NAV_CENTER=2;
+    /** The Scooter tab (the phone's raised button, or the rail item) for the maintenance dot, and whether it is the raised button. */
+    private View scooterTab;private boolean scooterTabCorner;
+    private int navFrom = -1;
+    /** Whether the shown page belongs to this tab (HubPages.tabOf). */
+    private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
+    private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
+    /** The phone's floating tab bar as it was added over the page (unused since part 11; HubDock took its place). */
+    private View floatingTabBar(){
+        View bar=design.floatingNav(navNames(),icons,tabIndex(selectedPage),navFrom,NAV_CENTER,i->select(pages[i]));
+        scooterTab=((ViewGroup)bar).getChildCount()>1?((ViewGroup)bar).getChildAt(1):null;scooterTabCorner=true;
+        return bar;
+    }
+    /** The wide window's side rail (92 dp wide) as it was (unused since part 11), or the plain bar when rail is false. */
+    private View navigation(boolean rail){
+        LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
+        View selected=null;
+        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],onTab(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(onTab(page))selected=item;}
+        if(rail){scooterTab=nav.getChildAt(java.util.Arrays.asList(pages).indexOf(HubPages.SCOOTER));scooterTabCorner=false;}
+        if(!rail)return nav;
+        // App text and Android font size compound. Let two-line captions determine each
+        // item's height, and keep every destination reachable in a short or large-text rail.
+        ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);scroller.setVerticalScrollBarEnabled(false);scroller.addView(nav,new ScrollView.LayoutParams(-1,-2));
+        View current=selected;if(current!=null)scroller.post(()->current.requestRectangleOnScreen(new Rect(0,0,current.getWidth(),current.getHeight()),true));
+        return scroller;
+    }
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){
@@ -1759,6 +1815,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
+        /** The index's search results that open a light family's page (card -> page id): they carry the old zones row's words. */
+        private final LinkedHashMap<View,String> searchLinks=new LinkedHashMap<>();
         /** The index's Maintenance row (search finds it; it opens Service › Maintenance reminders) and its value. */
         private TextView maintenanceValue;
         /** Shown under the index's search while nothing is typed (the subject list); null elsewhere. */
@@ -1869,6 +1927,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
             shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
             rowId(MaintenanceScreen.ROW,maintenanceLine.card);
+            // Line lights and Star lights replaced the zones row: the index's search finds their links by its words.
+            if(spec.search)for(String target:ControlsPages.SEARCHED_LINKS){
+                String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
+                addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
+                shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
+            }
             pageBody=spec.search?null:design.groupCard();
             if(pageBody!=null){
                 for(String id:spec.rows){
@@ -1876,7 +1940,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                     if(target!=null){place(linkRow(target));continue;}
                     View card=rowViews.get(id);if(card==null)continue;
                     place(card);View done=gluedBelow.get(card);if(done!=null)place(done);
-                    for(ControlRow control:rows)if(control.card==card&&control.feature.experimental){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
+                    // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
+                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
                 }
                 view.addView(pageBody,new LinearLayout.LayoutParams(-1,-2));
             }
@@ -1890,15 +1955,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             pageBody.addView(card);
         }
         /** A row that opens one of this page's sub-pages. */
-        private View linkRow(String target){
+        private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
+        private View linkCard(String target){
             SettingLine link=new SettingLine(linkIcon(target),HubText.rowTitle(target),null);link.chevron(()->open(target));
-            link.line.setTag("hub-link-"+target);links.put(link.card,target);return link.card;
+            link.line.setTag("hub-link-"+target);return link.card;
         }
         private String linkIcon(String page){
             switch(page){
                 case HubPages.CONTROLS_ASSISTS:return design.featureIcon("hill_start_assist");
                 case HubPages.CONTROLS_LIMITS:return "speed";
                 case HubPages.BATTERY_MODES:case HubPages.BATTERY_ESTIMATES:return "battery";
+                // The chart its Charge recordings row draws, not the light pages' star (#387 review).
+                case HubPages.BATTERY_HISTORY:return "chart";
                 default:return "star";
             }
         }
@@ -1908,15 +1976,34 @@ public final class MainActivity extends Activity implements ScreenHost {
          */
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
-            entry.value.setText(HubText.experimentalBadge());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
+            // The badge sits under the name on every entry (beside a short name it moved to the row's end).
+            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
-        /** The Lab lists the control for this model, and it is not an ordinary row here. */
-        private boolean labOffered(String key){
-            if(scooterService==null||rowOffered(key))return false;
-            CapabilityResolver.Decision decision=scooterService.ble.decision(key);
-            return decision.support==CapabilityResolver.Support.KNOWN_ENCODING&&decision.variant!=null&&decision.variant.lab;
+        /**
+         * More's Experimental controls lists the control for this model (its Lab list and experimentalDecision, exactly as
+         * MoreScreen.refreshLab builds it), and it is not an ordinary row here (ControlsPages.labEntryShown).
+         */
+        private boolean labOffered(String key,java.util.List<String> lab){
+            if(scooterService==null)return false;
+            boolean ordinary=rowOffered(key)||key.equals("maximum_speed")&&topSpeedCard();
+            return ControlsPages.labEntryShown(ordinary,lab.contains(key),!ordinary&&lab.contains(key)&&scooterService.ble.experimentalDecision(key).experimental());
+        }
+        private String labModel="";private java.util.List<String> labKeys=java.util.Collections.emptyList();
+        /** The model's Lab list (ModelRegistry.experimental), rebuilt when the model changes, as MoreScreen keeps it. */
+        private java.util.List<String> modelLab(){
+            if(scooterService==null)return java.util.Collections.emptyList();
+            DeviceDescriptor d=scooterService.ble.descriptor();ModelRegistry.Resolution r=ModelRegistry.resolve(d);
+            String model=r.layer+"|"+r.matchedPrefix+"|"+r.conflict+"|"+d.rulePid()+"|"+d.pidSource();
+            if(!model.equals(labModel)){labModel=model;labKeys=ModelRegistry.experimental(d);}
+            return labKeys;
+        }
+        /** A row id this page would show now (a link's page counts it): an ordinary row or its Experimental entry; hand-built rows count as shown. */
+        private boolean rowShown(String id,java.util.List<String> lab){
+            View card=rowViews.get(id);
+            for(ControlRow row:rows)if(row.card==card)return rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab);
+            return true;
         }
         private void refreshMaintenance(){
             MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
@@ -1934,39 +2021,38 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(f.key.equals("headlight")||f.key.equals("auto_sensor")||ScooterCommands.oemOnly(f.key))return "Lights";
             return f.group.equals("Ride")?"Ride":f.group.equals("Battery")?"Battery":f.group.equals("Security")?"Security":"Dashboard & sound";
         }
-        /** A light family (line_, star_) this model offers: its sub-page's link shows. */
-        private boolean familyOffered(String prefix){boolean found=false;for(ControlRow row:rows)found|=row.feature.key.startsWith(prefix)&&offered(row.feature.key);return found;}
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=spec.search&&!needle.isEmpty();int count=0;
+            java.util.List<String> lab=modelLab();
             java.util.HashSet<String> visible=new java.util.HashSet<>();
             for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):spec.includes(row.feature.key));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
                 boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):spec.includes(idOf(e.getKey()));
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
+                String linked=searchLinks.get(e.getKey());if(linked!=null&&!ControlsPages.linkShown(linked,id->rowShown(id,lab)))match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
             boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
-            for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey())?View.VISIBLE:View.GONE);
-            for(Map.Entry<View,String> e:links.entrySet()){
-                String target=e.getValue();
-                boolean shown=target.equals(HubPages.LIGHTS_LINE)?familyOffered("line_"):target.equals(HubPages.LIGHTS_STAR)?familyOffered("star_"):true;
-                e.getKey().setVisibility(shown?View.VISIBLE:View.GONE);
-            }
+            for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey(),lab)?View.VISIBLE:View.GONE);
+            // A sub-page's link shows only while that page has a row or an Experimental entry to show.
+            for(Map.Entry<View,String> e:links.entrySet())e.getKey().setVisibility(ControlsPages.linkShown(e.getValue(),id->rowShown(id,lab))?View.VISIBLE:View.GONE);
             for(Map.Entry<String,LinearLayout> e:sections.entrySet()){
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
                 hideDividers(bodies.get(e.getKey()));
             }
-            if(pageBody!=null)hideDividers(pageBody);
+            // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
+            if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
-        /** A divider shows only between two shown rows (each divider's tag is the row after it). */
-        private void hideDividers(LinearLayout body){
+        /** A divider shows only between two shown rows (each divider's tag is the row after it). True when a row shows. */
+        private boolean hideDividers(LinearLayout body){
             boolean hasVisible=false;
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
+            return hasVisible;
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
@@ -1999,7 +2085,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             banner.setVisibility(ready?View.GONE:View.VISIBLE);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
-            bannerAction.setVisibility(connecting?View.GONE:View.VISIBLE);
+            bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
             readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();
@@ -2021,7 +2107,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
             StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
-            for(String key:labEntries.keySet())offered.append(labOffered(key)?'1':'0');
+            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
+            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
@@ -2059,9 +2147,16 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own two (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
+        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
+            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
+            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
+            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
+            showChargeAlerts(); return;
+        }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
@@ -2071,13 +2166,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
         if (ridingMode) { openRiding(); return; }
-        // A shortcut that opened a quick-access sheet opens the page that holds the same rows (HubRoutes).
+        // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
+        String sheet = HubRoutes.sheetFor(id);
+        if (sheet != null) { showQuickSettings(sheet); return; }
         String page = HubRoutes.pageFor(id);
-        if (page != null) { openRoute(page, null); return; }
+        if (page != null) { closeQuickMenu(); openRoute(page, null); return; }
         if (id.equals("section:Profile")) { renameScooter(); return; }
         ScooterCommands.Feature feature = entry.feature();
         if (feature == null) return;
-        if (feature.key.equals("range_algorithm")) { showRangeSource(); return; }
+        if (feature.key.equals("range_algorithm")) { closeQuickMenu(); showRangeSource(); return; }
         // The same resolver as the settings rows and the write gate: an unmapped control says why.
         CapabilityResolver.Decision decision = scooterService.ble.decision(feature.key);
         if (decision.support != CapabilityResolver.Support.KNOWN_ENCODING) { toast(decision.reasonMessage()); return; }
@@ -2109,9 +2206,56 @@ public final class MainActivity extends Activity implements ScreenHost {
                 redraw();
             });
         } else {
+            closeQuickMenu();
             if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
             editFeature(feature);
         }
+    }
+
+    private void closeQuickMenu() {
+        AlertDialog old = quickMenuDialog; quickMenuDialog = null;
+        quickMenuRows.clear();
+        quickChargeRows.clear();
+        if (old != null) old.dismiss();
+    }
+
+    /**
+     * A quick-control group shown above Home, keeping the underlying layout untouched: Lights, and the Ride, Battery,
+     * Line lights, Star lights and Dashboard & sound groups (HubRoutes.sheetFor). A single setting changed in a moment
+     * keeps its pop-up sheet (owner's answer 3, #383); whole settings pages open as pages.
+     */
+    private void showQuickSettings(String section) {
+        closeQuickMenu();
+        if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
+        final AlertDialog[] self = new AlertDialog[1];
+        LinearLayout body = sheetContent(sectionTitle(section), null, () -> { if (self[0] != null) self[0].dismiss(); });
+        body.setTag("quick-settings-sheet");
+        LinearLayout settings = design.groupCard(); body.addView(settings);
+        ArrayList<ScooterCommands.Feature> features = new ArrayList<>(ScooterCommands.catalog());
+        // Another model's own light controls join the Lights sheet only where it maps them.
+        for (ScooterCommands.Feature f : ScooterCommands.oemOnly()) if (scooterService.ble.controlOffered(f.key)) features.add(f);
+        for (ScooterCommands.Feature f : features) {
+            if (f.experimental && !ordinaryOemRow(f.key) || f.sensitive || f.key.equals("lock") || f.key.equals("proximity_key")) continue;
+            boolean match = section.equals("Lights") && (f.key.equals("headlight") || f.key.equals("auto_sensor") || ScooterCommands.oemOnly(f.key)
+                            || f.key.startsWith("line_") || f.key.startsWith("star_"))
+                    || section.equals("Line lights") && f.key.startsWith("line_")
+                    || section.equals("Star lights") && f.key.startsWith("star_")
+                    || section.equals("Dashboard & sound") && (f.group.equals("Preferences")
+                            || f.key.equals("turn_sound"))
+                    || section.equals(f.group);
+            if (!match) continue;
+            if (settings.getChildCount() > 0) design.divider(settings);
+            ControlRow row = new ControlRow(f); quickMenuRows.add(row);
+            settings.addView(row.card); row.refresh();
+            if((f.key.equals("timed_charging")||f.key.equals("charge_start"))&&chargeDoneOffered()){
+                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));
+                quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
+            }
+        }
+        AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            if (quickMenuDialog == dialog) { quickMenuDialog = null; quickMenuRows.clear(); quickChargeRows.clear(); }
+        });
     }
 
     /** How long a failure chip outlives the first fresh readback that follows it. */
@@ -3217,6 +3361,34 @@ public final class MainActivity extends Activity implements ScreenHost {
         CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
         showEmailSheet(subject,body,report,null,null);return true;
     }
+    /**
+     * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
+     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
+     * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
+     * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
+     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
+     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
+     */
+    /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
+    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
+    @Override public void emailChargeRecordings(File recordings){
+        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
+        if(d!=null&&d.simulated)d=null;
+        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+        String subject=IssueReport.chargeRecordingsSubject(version,model);
+        String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
+        new Thread(()->{
+            Uri uri;try{uri=DiagnosticsProvider.adopt(this,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
+            final Uri attached=uri;
+            handler.post(()->{
+                if(destroyed)return;
+                // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
+                ChargeSend.Outcome outcome=ChargeSend.outcome(attached!=null,attached!=null&&sendWithUri(subject,body,attached));
+                if(outcome==ChargeSend.Outcome.EXPORT_FAILED)toast(ScooterService.chargeExportFailed());
+                else if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
+            });
+        },"Volt-email-export").start();
+    }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
@@ -3297,6 +3469,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private boolean emailWithFile(String subject,String body,String bundle){
         Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
+        return sendWithUri(subject,body,uri);
+    }
+    /** emailWithFile's send, for a snapshot DiagnosticsProvider already holds; false when no app can take it. */
+    private boolean sendWithUri(String subject,String body,Uri uri){
         Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
         send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
         send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));
@@ -3826,7 +4002,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String unavailable=scooterService==null?null:scooterService.dataMaintenanceUnavailable();
         if(unavailable!=null){toast(unavailable);return;}
         enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=false;
-        if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
+        closeQuickMenu();if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
         if(screen!=null){screen.close();screen=null;}onboarding=null;
         preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         handler.removeCallbacksAndMessages(null);fold.stop();

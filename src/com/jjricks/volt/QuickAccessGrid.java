@@ -185,7 +185,9 @@ final class QuickAccessGrid extends ViewGroup {
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
-            cell.setContentDescription(description);
+            // The RIDE action is spoken as the RIDE pill is ("Open riding mode"), not as a shortcut that opens a menu.
+            Msg spoken = tiles ? null : HubText.quickActionDescription(cell.entry.id);
+            cell.setContentDescription(spoken == null ? description : spoken.render());
             if (android.os.Build.VERSION.SDK_INT >= 30) cell.setStateDescription(state);
         }
     }
@@ -236,14 +238,22 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
+        /**
+         * Clean Home's way into riding mode (owner's answer 6 on #383): it reads as entering another mode, not as a
+         * shortcut to a settings menu, so it takes the Widgets header's RIDE pill look: accent fill, a pill shape,
+         * the speedometer and the word in onAccent, letter-spaced. Only Clean holds this id; Widgets' pill is untouched.
+         */
+        final boolean ride;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
+            ride = !tiles && HomeQuickActions.RIDING.equals(entry.id);
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
             // Narrow rows must not depend on a device-specific RippleDrawable outline
             // when their pressed/selected state or dimensions change.
             setOutlineProvider(new ViewOutlineProvider() {
                 @Override public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), ui.dp(cornerRadius()));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(),
+                            Math.min(ui.dp(cornerRadius()), Math.min(view.getWidth(), view.getHeight()) / 2f));
                 }
             });
             setClipToOutline(true);
@@ -279,10 +289,14 @@ final class QuickAccessGrid extends ViewGroup {
             setTag("quick-action:" + entry.id);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setMinimumHeight(ui.dp(48));
-            icon = ui.icon(entry.icon, 20, ui.accent);
+            icon = ui.icon(entry.icon, 20, ride ? ui.onAccent : ui.accent);
             addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
             label = ui.text(entry.label(), 12, false);
             label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
+            if (ride) {
+                label.setTypeface(label.getTypeface(), android.graphics.Typeface.BOLD);
+                label.setTextColor(ui.onAccent); label.setLetterSpacing(.06f);
+            }
             label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
             addView(label, new LinearLayout.LayoutParams(-1, -2));
             value = ui.text("", 11, false); value.setTypeface(ui.medium());
@@ -310,12 +324,18 @@ final class QuickAccessGrid extends ViewGroup {
                         ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
+            if (ride) {
+                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.onAccent, 40)),
+                        ui.shape(ui.accent, radius, 0), ui.shape(android.graphics.Color.WHITE, radius, 0)));
+                return;
+            }
             setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
                     ui.shape(isSelected() ? Ui.withAlpha(ui.accent, 35) : ui.raised, radius,
                             isSelected() ? Ui.withAlpha(ui.accent, 100) : 0),
                     ui.shape(android.graphics.Color.WHITE, radius, 0)));
         }
-        private float cornerRadius() { return tiles ? 20 : 12; }
+        /** The RIDE action is a pill: its radius is clamped to half the shorter side by the drawable and the outline. */
+        private float cornerRadius() { return tiles ? 20 : ride ? 100 : 12; }
         int blendAccent() {
             float a = ui.dark ? .14f : .08f;
             int from = ui.surface, to = ui.accent;

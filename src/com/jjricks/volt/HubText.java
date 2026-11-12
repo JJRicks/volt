@@ -120,10 +120,10 @@ public final class HubText {
         return cruiseOn ? M.hubSummaryControlsCruiseOn(mode) : M.hubSummaryControlsCruiseOff(mode);
     }
 
-    /** Lights & sound while the headlight is on automatic. */
-    public static Msg headlightAuto() { return M.hubSummaryLightsAuto(); }
-    /** Lights & sound while the headlight is set on or off. */
-    public static Msg headlight(boolean on) { return on ? M.hubSummaryLightsOn() : M.hubSummaryLightsOff(); }
+    /** Lights & sound while the Automatic lights setting is on. */
+    public static Msg automaticLights() { return M.hubSummaryLightsAutomatic(); }
+    /** Lights & sound from the Tail light setting, on or off (feature key {@code headlight} drives the tail light). */
+    public static Msg tailLight(boolean on) { return on ? M.hubSummaryLightsTailOn() : M.hubSummaryLightsTailOff(); }
 
     /** Security, once both states are known (an unknown state shows no summary). */
     public static Msg security(boolean pin, boolean proximity) {
@@ -137,6 +137,43 @@ public final class HubText {
     public static Msg serviceClear() { return M.hubSummaryServiceClear(); }
     /** Data's summary. */
     public static Msg dataSummary() { return M.hubSummaryData(); }
+
+    // ===== Battery & charging › Charge history & recordings =====
+
+    /** The row that emails this scooter's charge recordings to Volt (the Compatibility panel's words). */
+    public static Msg chargeSendRow() { return M.compatEmail(); }
+    /** Under that row: why sending them helps (charging time estimates for the scooter's model). */
+    public static Msg chargeSendNote() { return M.hubChargeSendNote(); }
+    /** When no email app can open that email. */
+    public static Msg chargeSendNoEmail() { return M.hubChargeSendNoEmail(); }
+    /** Toast when that row is tapped while a charge is being recorded (recordings are sent only once capture stops). */
+    public static Msg chargeSendBusy() { return M.hubChargeSendBusy(); }
+    /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
+    public static Msg chargerRow() { return M.mainRowCharger(); }
+    /** That row's value while Automatic has not recognized the charger. */
+    public static Msg chargerAutomatic() { return M.mainRowAutomatic(); }
+    /** That row's value for a known charger; detected when Automatic recognized it rather than the owner choosing it. */
+    public static Msg chargerValue(boolean highSpeed, boolean detected) {
+        Msg family = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
+        return detected ? M.mainRowAutoFamily(family) : family;
+    }
+    /**
+     * That row's detail line, chosen as the Charger row chooses it: while this scooter's charge is being recorded
+     * (the label comes from the recording); else when Automatic recognized the charger from charging power; else
+     * while another scooter's charge is being recorded (the charger can't change then). Null when there is none.
+     */
+    public static Msg chargerDetail(boolean recordingThisScooter, boolean detected, boolean recordingOther) {
+        if (recordingThisScooter) return M.mainRowRecordingLabel();
+        if (detected) return M.mainRowDetected();
+        return recordingOther ? M.mainRowStopRecording() : null;
+    }
+
+    // ===== Ride › Recording settings =====
+
+    /** The switch that lets Record rides automatically also start while Volt is in the background. */
+    public static Msg recordInBackground() { return M.hubRecordingAutoBackground(); }
+    /** Under it: such a ride has no GPS route. */
+    public static Msg recordInBackgroundNote() { return M.hubRecordingAutoBackgroundNote(); }
 
     // ===== Battery & charging page, summary card =====
 
@@ -195,24 +232,42 @@ public final class HubText {
     /** Screen-reader text of a slot; position counts from 1, action is the name of the action in it. */
     public static Msg editQuickSlot(long position, CharSequence action) { return M.homeEditQuickSlot(position, action); }
 
-    /** The name of one of Clean's own quick actions (HomeQuickActions); null for any other id. */
+    /**
+     * The name of one of Clean's own quick actions (HomeQuickActions); null for any other id. The way into riding
+     * mode is named RIDE, with the Widgets header's RIDE button's own words, so it reads as entering riding mode
+     * rather than as a settings shortcut (owner's answer 6 on #383).
+     */
     public static Msg quickActionLabel(String id) {
         if (id == null) return null;
         switch (id) {
-            case HomeQuickActions.RIDING: return M.homeQaRiding();
+            case HomeQuickActions.RIDING: return M.ridingRideButton();
             case HomeQuickActions.RECORD: return M.homeQaRecord();
+            case HomeQuickActions.CHARGE_ALERTS: return M.homeQaChargeAlerts();
             default: return null;
         }
     }
 
-    /** The short rung of one of Clean's own quick actions, for a button too narrow for the name; null for any other id. */
+    /**
+     * The short rung of one of Clean's own quick actions, for a button too narrow for the name; null for any other
+     * id. RIDE is already its own short form (its next rung is the icon alone, as in the Widgets header).
+     */
     public static Msg quickActionShortLabel(String id) {
         if (id == null) return null;
         switch (id) {
-            case HomeQuickActions.RIDING: return M.homeQaRidingShort();
+            case HomeQuickActions.RIDING: return M.ridingRideButton();
             case HomeQuickActions.RECORD: return M.homeQaRecordShort();
+            case HomeQuickActions.CHARGE_ALERTS: return M.homeQaChargeAlertsShort();
             default: return null;
         }
+    }
+
+    /**
+     * Screen-reader text of one of Clean's own quick actions where its name alone does not say what it does: the
+     * RIDE action, spoken as the RIDE button is ("Open riding mode"). Null for any other id (its name is read).
+     */
+    public static Msg quickActionDescription(String id) {
+        if (HomeQuickActions.RIDING.equals(id)) return M.ridingRideDescription();
+        return null;
     }
 
     /** The Record action's value while a ride is being recorded. */
@@ -237,6 +292,14 @@ public final class HubText {
     /** The sheet's second button: keep Widgets. */
     public static Msg whatsNewKeep() { return M.homeWhatsNewKeep(); }
     public static Msg whatsNewLater() { return M.homeWhatsNewLater(); }
+    /** The heading above this release's notes (owner's answers 9, 10 and 12); version as Volt shows it ("1.14.0"). */
+    public static Msg whatsNewChanges(CharSequence version) { return M.homeWhatsNewChanges(version); }
+    /** The line above the notes while Volt is not in English: the notes come in English (the update check's line). */
+    public static Msg whatsNewNotesInEnglish() { return M.compatUpdateNotesInEnglish(); }
+    /** The link under the notes that opens the release page with the full notes (the update check's button). */
+    public static Msg whatsNewReleasePage() { return M.moreUpdateOpen(); }
+    /** The message when no browser can open the release page (the update check's). */
+    public static Msg whatsNewNoBrowser() { return M.moreUpdateNoBrowser(); }
 
     // ===== Search (hub layout plan 1.12) =====
 
@@ -253,6 +316,11 @@ public final class HubText {
     public static Msg searchGroupRides() { return M.hubSearchGroupRides(); }
     /** The line under a result naming the subject it lives in; subject is that subject's title. */
     public static Msg searchIn(CharSequence subject) { return M.hubSearchIn(subject); }
+    /**
+     * Words search matches for the Charge history and recordings page ({@link HubPages#BATTERY_HISTORY}), never shown:
+     * its rows record, export, clear and email charge recordings, which its title alone does not name.
+     */
+    public static Msg batteryHistorySearchWords() { return M.hubSearchBatteryHistory(); }
 
     /**
      * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
@@ -307,9 +375,13 @@ public final class HubText {
 
     // ===== Widgets Home's dock and the wide Home's right pane =====
 
-    /** The dock's handle, and the title of the sheet listing every subject. */
+    /** The dock's handle, what TalkBack reads for the dock's "All" item, and the title of the sheet listing every subject. */
     public static Msg dockAll() { return M.hubDockAll(); }
-    /** The right pane's link back to the list of all subjects. */
+    /**
+     * The right pane's link back to the list of all subjects, and the short label under the dock's "All" item on a
+     * phone (owner's answer 8 on #383: a portrait dock that is not cramped shows fewer icons, each labelled, and
+     * this item opens the rest); read by {@link #dockAll()}. As narrow as the subjects' short names (64 dp at 12 sp).
+     */
     public static Msg all() { return M.hubAll(); }
     /** The Service card: its title, and its line when no reminder is set. */
     public static Msg serviceCardTitle() { return M.hubServiceCardTitle(); }

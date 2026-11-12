@@ -22,7 +22,7 @@
     <!-- Drive modes, cruise control, assists and speed limits. -->
     <string name="hub_subject_controls" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Controls</string>
     <string name="hub_subject_controls_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Controls</string>
-    <!-- Headlight, ambient lights and the scooter's sounds. -->
+    <!-- The scooter's lights and sounds. -->
     <string name="hub_subject_lights" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Lights &amp; sound</string>
     <string name="hub_subject_lights_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Lights</string>
     <!-- Lock, PIN and proximity unlock. -->
@@ -54,7 +54,7 @@
     <!-- Past charging sessions, and recordings of a charge's curve. -->
     <string name="hub_page_battery_history" volt:screen="Battery &amp; charging page" volt:purpose="row and page title">Charge history &amp; recordings</string>
 
-    <!-- The scooter's riding assists, such as starting and braking aids. -->
+    <!-- The scooter's assists: Walk Assist, Power Assist, hill descent control and kick-start speed. -->
     <string name="hub_page_controls_assists" volt:screen="Controls page" volt:purpose="row and page title">Assists</string>
     <!-- Limits set once: a custom speed limit, a speed limit per drive mode, and overspeed control. -->
     <string name="hub_page_controls_limits" volt:screen="Controls page" volt:purpose="row and page title">Speed limits</string>
@@ -110,10 +110,11 @@
     <string name="hub_summary_controls_cruise_on" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise on</string>
     <!-- %1$s is the drive mode as Home shows it, with its top speed. -->
     <string name="hub_summary_controls_cruise_off" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise off</string>
-    <!-- The headlight turns itself on in the dark. -->
-    <string name="hub_summary_lights_auto" volt:screen="Home subject summaries" volt:purpose="summary">Headlight auto</string>
-    <string name="hub_summary_lights_on" volt:screen="Home subject summaries" volt:purpose="summary">Headlight on</string>
-    <string name="hub_summary_lights_off" volt:screen="Home subject summaries" volt:purpose="summary">Headlight off</string>
+    <!-- The Automatic lights setting is on. Use the same words as the Automatic lights row. -->
+    <string name="hub_summary_lights_automatic" volt:screen="Home subject summaries" volt:purpose="summary">Automatic lights</string>
+    <!-- The Tail light setting. Use the same words for "Tail light" as the Tail light row. -->
+    <string name="hub_summary_lights_tail_on" volt:screen="Home subject summaries" volt:purpose="summary">Tail light on</string>
+    <string name="hub_summary_lights_tail_off" volt:screen="Home subject summaries" volt:purpose="summary">Tail light off</string>
     <!-- The handlebar PIN, and unlocking when the owner's phone comes near. -->
     <string name="hub_summary_security_pin_on_proximity_on" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity on</string>
     <string name="hub_summary_security_pin_on_proximity_off" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity off</string>
@@ -123,6 +124,20 @@
     <string name="hub_summary_service_due" volt:screen="Home subject summaries" volt:purpose="summary">%1$s: %2$s</string>
     <string name="hub_summary_service_clear" volt:screen="Home subject summaries" volt:purpose="summary">No checks due</string>
     <string name="hub_summary_data" volt:screen="Home subject summaries" volt:purpose="summary">Live readings, charts</string>
+
+    <!-- ===== Battery & charging › Charge history & recordings ===== -->
+    <!-- Under the row that emails this scooter's charge recordings to Volt (the row reads "Email to Volt"). Volt uses the recordings to make its charging time estimates more accurate for this scooter's model. -->
+    <string name="hub_charge_send_note" volt:screen="Charge history &amp; recordings" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Sending your charge recordings to Volt helps improve charging time estimates for your scooter\'s model.</string>
+    <!-- Toast when no email app on the phone can open the email with the charge recordings attached. -->
+    <string name="hub_charge_send_no_email" volt:screen="Charge history &amp; recordings" volt:purpose="toast">No email app could open the charge recordings.</string>
+    <!-- Toast when the owner taps "Email to Volt" while a charge is being recorded: the recordings can be sent only once the recording stops. -->
+    <string name="hub_charge_send_busy" volt:screen="Charge history &amp; recordings" volt:purpose="toast" volt:safety="charge">Stop charge recording before sending the recordings</string>
+
+    <!-- ===== Ride › Recording settings ===== -->
+    <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
+    <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>
+    <!-- Under that switch. Android does not let Volt turn on location from the background, so such a ride has no map. -->
+    <string name="hub_recording_auto_background_note" volt:screen="Recording settings" volt:purpose="caption" volt:safety="ride" volt:dnt="Volt|GPS">A ride that starts while Volt is in the background has no GPS route.</string>
 
     <!-- ===== Battery & charging page: the summary card at the top ===== -->
     <!-- %1$s is the battery level as a percent ("72%"), %2$s the estimated range left with its unit ("14 mi"). -->
@@ -153,14 +168,16 @@
     <string name="hub_search_group_rides" volt:screen="Search page" volt:purpose="section label">Rides</string>
     <!-- Small line under a result naming the subject it lives in. %1$s is that subject's name ("Battery & charging"). -->
     <string name="hub_search_in" volt:screen="Search page" volt:purpose="caption">In %1$s</string>
+    <!-- Words search matches for the Charge history &amp; recordings page under Battery &amp; charging (its charge recording, Export, Clear charge recordings and Email to Volt rows), never shown; the English stays searchable too. -->
+    <string name="hub_search_battery_history" volt:screen="Search page" volt:purpose="search keywords">charge history recordings record recording capture export download email send clear delete charger stock fast</string>
 
     <!-- ===== Widgets Home: the dock of subjects at the bottom ===== -->
-    <!-- The dock's handle (swipe up or tap it) and the title of the sheet that lists every subject with its summary. -->
-    <string name="hub_dock_all" volt:screen="Widgets Home dock" volt:purpose="handle and sheet title">All subjects</string>
+    <!-- The dock's handle (swipe up or tap it), what TalkBack reads for the dock's "All" item, and the title of the sheet that lists every subject with its summary. -->
+    <string name="hub_dock_all" volt:screen="Widgets Home dock" volt:purpose="handle, accessibility and sheet title">All subjects</string>
 
     <!-- ===== Wide Home (tablets and unfolded phones): the right pane ===== -->
-    <!-- Link at the top of the right pane that goes back to the list of all subjects. -->
-    <string name="hub_all" volt:screen="Wide Home, right pane" volt:purpose="back link" volt:max="96dp@14sp">All</string>
+    <!-- Link at the top of the right pane that goes back to the list of all subjects; also the label under the Widgets Home dock's last item, which opens that list on a phone. Keep it as short as the subjects' short names. -->
+    <string name="hub_all" volt:screen="Wide Home, right pane; Widgets Home dock" volt:purpose="back link and dock label" volt:max="64dp@12sp">All</string>
     <!-- Title of the card listing the next maintenance checks. -->
     <string name="hub_service_card_title" volt:screen="Wide Home, Service card" volt:purpose="title">Next checks</string>
     <!-- Shown in that card when no maintenance reminder is set. -->

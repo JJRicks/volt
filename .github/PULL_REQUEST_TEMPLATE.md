@@ -1,4 +1,5 @@
-<!-- Keep this a draft until it's finished: review starts when you mark it ready.
+<!-- Keep this a draft until it's finished: drafts aren't reviewed. When it's ready
+     and checks are green, ask for review in a comment (CONTRIBUTING.md, "Ask for a review").
      The steps are in CONTRIBUTING.md, "Hand your pull request to the maintainers". -->
 
 ## What changes
@@ -36,5 +37,6 @@ Before and after, for what you changed.
 - [ ] Existing profiles, recordings, dashboards and backups remain compatible, or migration is explained.
 - [ ] Documentation and third-party notices match the change.
 - [ ] No validation was deleted or disabled.
+- [ ] Once this is ready and checks are green, I'll ask for review in a comment (CONTRIBUTING.md, "Ask for a review").
 
 The maintainers run the emulator validations and do the translations as part of review.

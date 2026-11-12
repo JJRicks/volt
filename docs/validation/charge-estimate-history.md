@@ -38,7 +38,8 @@ scoped. App backups preserve the new files without a separate migration.
 
 ## Graph interpretation
 
-More → Developer options → Charge recordings lists saved charges. Each recording
+Scooter → Battery & charging → Charge history & recordings → Charge recordings
+(formerly in More → Developer options) lists saved charges. Each recording
 uses the same multi-series chart renderer as ride recordings: colored category
 toggles, fullscreen, pinch zoom, timeline panning, Fit and touch/drag inspection.
 Drawing uses pixel buckets that retain spikes; inspection keeps every raw sample.
