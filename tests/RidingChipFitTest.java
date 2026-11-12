@@ -96,7 +96,8 @@ public final class RidingChipFitTest {
 
     private static void names() {
         String speed = RidingChipFit.iconMark("speed"), route = RidingChipFit.iconMark("route"), clock = RidingChipFit.iconMark("clock");
-        // Average and Max speed side by side: their short names differ, their icons don't, so they keep names.
+        // Two readings whose short names differ and whose icons don't (Average and Max speed before they had a dot and a
+        // marker on the speedometer): they keep names.
         String[][] marks = {{"Average speed", "Avg", speed}, {"Max speed", "Max", speed}, {null, null, clock}};
         String[] contents = {"average_speed", "max_speed", "clock"};
         step(marks, contents, 0, RidingChipFit.FULL, RidingChipFit.NAME_FULL, "full names first");
@@ -121,7 +122,8 @@ public final class RidingChipFitTest {
         // The same reading in two chips is the rider's choice: they don't push each other to full names.
         String[][] same = {{"Average speed", "Avg", speed}, {"Average speed", "Avg", speed}};
         step(same, new String[]{"average_speed", "average_speed"}, 1, RidingChipFit.ICON_NAMES, RidingChipFit.NAME_ICON, "a repeated reading");
-        // No icon (Voltage): the icon step falls back to the short name; one name: the short is the full.
+        // No icon (as Voltage had before it gained the voltmeter): the icon step falls back to the short name; one name:
+        // the short is the full.
         String[][] volts = {{"Voltage", "Voltage", null}};
         step(volts, new String[]{"voltage"}, 0, RidingChipFit.TIGHT, RidingChipFit.NAME_SHORT, "no icon keeps the name");
         // A chip with no names yet (before its first reading) or a missing mark list never throws.
