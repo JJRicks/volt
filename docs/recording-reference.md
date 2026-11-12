@@ -249,8 +249,8 @@ default; `ride_auto_export_json`), that saves each ride you end into one folder,
 
 ## Background connections and foldable phones
 
-More offers dark/light/system appearance, text scale and miles/km/both units;
-Live Stats > Data & history offers comfortable/dense Stats rows. More > App preferences > Units > Time format follows the
+Settings offers dark/light/system appearance, text scale and miles/km/both units;
+Live Stats > Data & history offers comfortable/dense Stats rows. Settings > Units > Time format follows the
 phone by default, or uses an explicit 12-hour/24-hour clock for displayed times.
 Stats omits repeated explanatory UI text while retaining interpretation details. App units affect display; Dashboard units is a
 separate scooter setting. Kick-start, maximum-speed and Lab cap selectors follow

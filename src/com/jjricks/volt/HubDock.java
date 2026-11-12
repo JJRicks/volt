@@ -30,13 +30,13 @@ final class HubDock {
     static String tag(String subject) { return "hub-dock-" + subject; }
 
     /**
-     * A phone's dock: the handle's full-width strip over a 52 dp row of icons, and the gap above the screen's edge. The
-     * strip is shorter than 48 dp so the dock stays near the tab bar's height; it spans the dock's width, and an upward
-     * swipe anywhere on the dock does the same.
+     * A phone's dock (plan 1.10): the handle's 48 dp-tall full-width target over a 52 dp row of icons, and the gap above
+     * the screen's edge. Side margins are 4 dp and the row has no padding, so seven icons get at least 48 dp each at 344 dp
+     * (7 x 48 = 336). An upward swipe anywhere on the dock opens the same list as the handle.
      */
-    private static final int HANDLE_DP = 28, ROW_DP = 52, BOTTOM_DP = 10;
-    /** A wide window: each item is at most this wide, so seven sit centred under the dashboard. */
-    private static final int WIDE_ITEM_DP = 96;
+    private static final int HANDLE_DP = 48, ROW_DP = 52, BOTTOM_DP = 10, PHONE_SIDE_DP = 4, ITEM_MIN_DP = 48;
+    /** A wide window: each item is at most this wide, so seven sit centred under the dashboard; narrower when room is short. */
+    private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24, WIDE_PADDING_DP = 8;
 
     private final ScreenHost host;
     private final Ui ui;
@@ -67,15 +67,16 @@ final class HubDock {
         LinearLayout row = new LinearLayout(host.activity());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER);
-        row.setPadding(ui.dp(wide ? 8 : 2), 0, ui.dp(wide ? 8 : 2), ui.dp(wide ? 6 : 4));
+        row.setPadding(ui.dp(wide ? WIDE_PADDING_DP : 0), 0, ui.dp(wide ? WIDE_PADDING_DP : 0), ui.dp(wide ? 6 : 4));
         for (String subject : HubPages.SUBJECTS) {
             View item = wide ? wideItem(subject) : phoneItem(subject);
             item.setTag(tag(subject));
             items.add(item);
             if (subject.equals(HubPages.SERVICE)) service = item;
-            row.addView(item, new LinearLayout.LayoutParams(wide ? ui.dp(WIDE_ITEM_DP) : 0, -2, wide ? 0 : 1));
+            // Weighted in both layouts: a wide dock caps its own width (Dock.onMeasure), so seven always fit the window.
+            row.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
         }
-        view.addView(row, new LinearLayout.LayoutParams(wide ? -2 : -1, -2));
+        view.addView(row, new LinearLayout.LayoutParams(-1, -2));
         // Editing toggles inside the dashboard with no rebuild: follow it before each frame, so the dock never covers the editor.
         follow = () -> { applyHidden(); return true; };
         view.getViewTreeObserver().addOnPreDrawListener(follow);
@@ -85,10 +86,10 @@ final class HubDock {
 
     View view() { return view; }
 
-    /** The layout the dock takes at the bottom of the page frame: full width less 14 dp on a phone, centred when wide. */
+    /** The layout the dock takes at the bottom of the page frame: full width less 4 dp a side on a phone, centred when wide. */
     FrameLayout.LayoutParams layoutParams() {
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(wide ? -2 : -1, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.leftMargin = params.rightMargin = ui.dp(wide ? 24 : 14);
+        params.leftMargin = params.rightMargin = ui.dp(wide ? WIDE_SIDE_DP : PHONE_SIDE_DP);
         params.bottomMargin = ui.dp(BOTTOM_DP);
         return params;
     }
@@ -143,7 +144,7 @@ final class HubDock {
     private View phoneItem(String subject) {
         FrameLayout item = new FrameLayout(host.activity());
         item.setMinimumHeight(ui.dp(ROW_DP));
-        item.setMinimumWidth(ui.dp(44));
+        item.setMinimumWidth(ui.dp(ITEM_MIN_DP));
         View icon = ui.icon(HubPages.icon(subject), 23, ui.text);
         item.addView(icon, new FrameLayout.LayoutParams(ui.dp(23), ui.dp(23), Gravity.CENTER));
         Msg name = HubText.title(subject);
@@ -200,6 +201,16 @@ final class HubDock {
         private boolean swiped;
 
         Dock() { super(host.activity()); }
+
+        /** Wide: at most seven 96 dp items plus padding, and never wider than the room the page frame gives. */
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            if (wide) {
+                int max = ui.dp(WIDE_ITEM_DP) * HubPages.SUBJECTS.size() + 2 * ui.dp(WIDE_PADDING_DP);
+                int width = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? max : Math.min(max, MeasureSpec.getSize(widthSpec));
+                widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY);
+            }
+            super.onMeasure(widthSpec, heightSpec);
+        }
 
         @Override public boolean onInterceptTouchEvent(MotionEvent event) {
             switch (event.getActionMasked()) {

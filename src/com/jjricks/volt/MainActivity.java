@@ -224,7 +224,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         else nav=new HubNav();
         selectedPage=nav.current();
         if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"),saved.getDoubleArray("riding_speed"),saved.getLong("riding_auto_ends",-1),saved.getBoolean("riding_link_seen",false),saved.getLongArray("riding_leave"));
-        if(saved!=null)expireAway();
+        // A fresh start has no stack to keep, so a clock left by the last run never cuts a notice's route short.
+        if(saved!=null)expireAway();else clearAway();
         // A maintenance notice's tap opens Service › Maintenance reminders, for the active scooter only.
         MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
         if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE)showMaintenanceFromNotice();
@@ -253,7 +254,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Settings, then the manual update check's dialog once Settings is on screen (showUpdateCheck). */
     private void openUpdateCheck(boolean now){
-        updateCheckPending=true;
+        updateCheckPending=true;clearAway();
         if(!now){showPage(HubPages.SETTINGS);return;}
         if(selectedPage.equals(HubPages.SETTINGS))showUpdateCheck();else open(HubPages.SETTINGS);
     }
@@ -265,7 +266,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice was tapped while riding mode or setup was up (onNewIntent); kept across recreation. */
     private boolean maintenancePending;
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
-    private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
+    private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
@@ -467,6 +468,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
         }
+        // A maintenance tap deferred while riding mode or setup was up opens as soon as they close: before the header, so the
+        // header is built for Maintenance reminders (back row and title), not for the Home they closed onto.
+        if(maintenancePending){maintenancePending=false;showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         LinearLayout shell=column();root.addView(shell,new FrameLayout.LayoutParams(-1,-1));
         simulationNotice = design.text(T.mainSimulationBanner(), 12, true);
         simulationNotice.setTag("simulation-banner");
@@ -491,8 +495,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             View spacer=new View(this);spacer.setBackgroundColor(design.bg);content.addView(spacer,new LinearLayout.LayoutParams(-1,Math.max(design.dp(12),fold.hinge.height())));
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
-        // A maintenance tap deferred while riding mode or setup was up opens as soon as they close.
-        if(maintenancePending){maintenancePending=false;showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         HubNav.Args args=pageArgs;pageArgs=null;
         screen=createScreen(selectedPage,args);
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
@@ -1186,6 +1188,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * Back on screen: after a minute or more away, or a reboot, the open sub-pages close back to their subject (Home is
      * never forced; generalizes More's old one-minute submenu rule). The away clock stops either way. True when the stack changed.
      */
+    /** A deliberate route (a fresh start, a notice's tap, the update check) beats an expired return: stop the away clock. */
+    private void clearAway(){
+        if(preferences.contains(HUB_AWAY_AT)||preferences.contains(HUB_AWAY_BOOT))preferences.edit().remove(HUB_AWAY_AT).remove(HUB_AWAY_BOOT).apply();
+    }
     private boolean expireAway(){
         long away=preferences.getLong(HUB_AWAY_AT,-1);
         if(away<0)return false;

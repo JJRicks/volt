@@ -510,7 +510,7 @@ a kick-start below 3 km/h where 3-5 is offered: it shows as it is, and only
 3-5 can be chosen (from Experimental controls too, where that try can't be
 set back).
 
-More > Compatibility runs a read-only check (nine known reads, at most 30 s)
+Service > Compatibility test runs a read-only check (nine known reads, at most 30 s)
 and builds a report for review: model ID, derived region, firmware, read
 outcomes, status-field presence and control decisions, with no serial, address,
 owner key, PIN, names or routes. On models other than the UT5 MAX, optional
@@ -869,7 +869,7 @@ Entering/leaving editing slides the grid and pops its controls in/out in 210 ms.
 Visible editing cards have a subtle 0.2-degree wiggle, paused for the active
 move/resize card and stopped on focus loss, hidden views, detach or close.
 Appearance and unit choices use rounded selectors with sliding highlights.
-Distance/speed, temperature and time format are grouped under App preferences >
+Distance/speed, temperature and time format are grouped under Settings >
 Units. Narrow controls may scroll sideways; light-pattern controls fit or wrap
 to show every choice. Their highlight follows confirmed scooter state, with
 pending writes disabled and rejected/unknown values represented honestly.
@@ -888,7 +888,7 @@ Short page-arrival and button-press effects accompany deliberate interactions.
 Subtle haptics mark tabs and segmented choices, Top speed presets, switches and
 stars, picking up and moving a widget or favourite, the lock slider crossing its
 midpoint, and the scooter confirming a lock change or a ride starting/saving.
-App preferences → Haptic feedback turns them off (on by default); Android's
+Settings → Haptic feedback turns them off (on by default); Android's
 Touch feedback setting also applies. Half-folding a foldable leaves the screen
 unchanged.
 Removal uses a 200 ms shrink/fade with soft puffs without delaying the grid update.
@@ -950,7 +950,7 @@ Connected,
 Connecting with an inline spinner, or Disconnected plus the last verified
 connection time. Older connections include a date; tapping status opens details
 or errors. The timestamp remains tied to a successful authenticated connection.
-More > App preferences > Units > Time format follows the phone by default or selects
+Settings > Units > Time format follows the phone by default or selects
 12-hour/24-hour clocks for displayed times.
 
 Live trend, including battery power, offers a two-minute time window. Its
@@ -1014,7 +1014,7 @@ unobserved battery levels limit accuracy. See docs/validation/learned-range.md.
 
 BACK UP AND RESTORE
 
-More > About & permissions > Back up & restore is the single entry. Back up
+Settings > Back up & restore is the single entry. Back up
 lists seven categories with counts (Scooters & setup keys, Dashboards, App
 preferences, Rides, Charges, Readings history, Scooter preferences); any
 subset, or Select all for a complete copy, is saved as a password-encrypted
