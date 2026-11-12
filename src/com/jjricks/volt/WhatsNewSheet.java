@@ -13,7 +13,9 @@ import android.widget.TextView;
  * the two styles drawn side by side (stacked on a narrow window or with large text), then "Switch to Clean" and
  * "Keep Widgets". Either button is an explicit choice (HomeStylePrefs.markChosen); closing the sheet any other way
  * keeps Widgets and records nothing, and MainActivity has already recorded that it was shown, so it never returns.
- * Below them, this version's changelog with a link to the full release notes (owner's answers 9, 10 and 12 on #383).
+ * Below them, for an updating owner who records rides automatically, the notice that background starts are now off
+ * with the switch to turn them on (owner's answer on #403), then this version's changelog with a link to the full
+ * release notes (owner's answers 9, 10 and 12 on #383).
  * Text from HubText only; the notes are the bundled CHANGELOG.md section, in English.
  */
 final class WhatsNewSheet {
@@ -21,6 +23,12 @@ final class WhatsNewSheet {
     static final String TAG = "home-whats-new", TAG_SWITCH = "home-whats-new-switch", TAG_KEEP = "home-whats-new-keep";
     /** View tags: this version's notes, and the link to its release page. */
     static final String TAG_NOTES = "home-whats-new-notes", TAG_RELEASE_PAGE = "home-whats-new-release-page";
+    /**
+     * View tags: the notice for owners who record rides automatically (owner's answer on #403), its Start recording in
+     * the background switch, and its link to Ride › Recording settings.
+     */
+    static final String TAG_BACKGROUND = "home-whats-new-background", TAG_BACKGROUND_SWITCH = "home-whats-new-background-switch",
+            TAG_RECORDING_SETTINGS = "home-whats-new-recording-settings";
 
     private WhatsNewSheet() { }
 
@@ -64,6 +72,7 @@ final class WhatsNewSheet {
         later.setGravity(Gravity.CENTER_HORIZONTAL);
         later.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), 0);
         content.addView(later, new LinearLayout.LayoutParams(-1, -2));
+        addBackgroundNotice(host, ui, content, preferences, close);
         addNotes(host, ui, content);
         shown[0] = host.showSheet(content);
         return shown[0];
@@ -109,6 +118,58 @@ final class WhatsNewSheet {
         page.setTag(TAG_RELEASE_PAGE);
         LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);
         pageSpace.topMargin = ui.dp(14);
+        box.addView(page, pageSpace);
+        content.addView(box, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    /**
+     * The notice for an updating owner who has Record rides automatically on (owner's answer on #403; the rule is
+     * HomeStyle.whatsNewBackgroundNotice): a recording now starts in the background only when they turn that on.
+     * Right under it, Recording settings' own Start recording in the background switch, so turning it back on is one
+     * tap, and a link to Ride › Recording settings, the page that holds it with its note. The switch writes the same
+     * key as that page (AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY); it is never greyed here, because the notice only
+     * shows while Record rides automatically is on.
+     */
+    private static void addBackgroundNotice(ScreenHost host, Ui ui, LinearLayout content, SharedPreferences preferences, Runnable close) {
+        boolean autoRecord, background;
+        try {
+            autoRecord = preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
+            background = preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
+        } catch (ClassCastException wrongType) {
+            return;
+        }
+        String origin;
+        try {
+            origin = preferences.getString(HomeStyle.ORIGIN_KEY, null);
+        } catch (ClassCastException wrongType) {
+            origin = null;
+        }
+        if (!HomeStyle.whatsNewBackgroundNotice(origin, autoRecord)) return;
+        LinearLayout box = new LinearLayout(host.activity());
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setTag(TAG_BACKGROUND);
+        View rule = new View(host.activity());
+        rule.setBackgroundColor(ui.outline);
+        LinearLayout.LayoutParams ruleSpace = new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(1)));
+        ruleSpace.topMargin = ui.dp(18);
+        ruleSpace.bottomMargin = ui.dp(14);
+        box.addView(rule, ruleSpace);
+        TextView notice = ui.text(HubText.whatsNewBackgroundNotice(), 14, false);
+        notice.setLineSpacing(ui.dp(2), 1);
+        box.addView(notice, new LinearLayout.LayoutParams(-1, -2));
+        View toggle = ui.toggleRow(HubText.whatsNewBackgroundSwitch().render(), "walk", null, background, true,
+                enabled -> preferences.edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply());
+        toggle.setTag(TAG_BACKGROUND_SWITCH);
+        LinearLayout.LayoutParams toggleSpace = new LinearLayout.LayoutParams(-1, -2);
+        toggleSpace.topMargin = ui.dp(10);
+        box.addView(toggle, toggleSpace);
+        TextView page = ui.secondaryButton(HubText.whatsNewRecordingSettings().render(), () -> {
+            close.run();
+            host.open(HubPages.RIDE_RECORDING);
+        });
+        page.setTag(TAG_RECORDING_SETTINGS);
+        LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);
+        pageSpace.topMargin = ui.dp(8);
         box.addView(page, pageSpace);
         content.addView(box, new LinearLayout.LayoutParams(-1, -2));
     }
