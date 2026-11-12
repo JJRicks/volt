@@ -1,0 +1,5 @@
+# Record charges automatically (ChargeAutoRecordPolicy, off by default) and the store's automatic recordings.
+src/com/jjricks/volt/ChargeAutoRecordPolicy.java
+src/com/jjricks/volt/AutoStartPolicy.java
+src/com/jjricks/volt/ChargeSessionStore.java
+tests/l10n/ChargeAutoRecordPolicyTest.java
