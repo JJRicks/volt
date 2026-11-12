@@ -91,6 +91,9 @@ public final class HubPages {
         MORE_SECTIONS.put("Units", SETTINGS_UNITS);
         MORE_SECTIONS.put("Compatibility", SERVICE_COMPATIBILITY);
         MORE_SECTIONS.put("CompatibilityRecovery", SERVICE_COMPATIBILITY);
+        // Sections cut out of Developer options and More's index for their subject pages (PR 4).
+        MORE_SECTIONS.put("Charging", BATTERY_HISTORY);
+        MORE_SECTIONS.put("Reports", SERVICE_REPORTS);
     }
 
     public static boolean known(String id) { return id != null && PARENTS.containsKey(id); }
@@ -154,7 +157,10 @@ public final class HubPages {
         }
     }
 
-    /** The page that holds one of More's sections (MoreScreen.SECTIONS, Units and both Compatibility ids); Settings otherwise. */
+    /**
+     * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging
+     * and Reports sections the subject pages show); Settings otherwise.
+     */
     public static String fromMoreSection(String section) {
         String page = section == null ? null : MORE_SECTIONS.get(section);
         return page == null ? SETTINGS : page;

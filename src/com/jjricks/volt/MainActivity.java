@@ -143,6 +143,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private String selectedPage=HubPages.HOME,scrollPage=HubPages.HOME;
     /** One-shot arguments for the next page built (ScreenHost.open); taken by rebuild, never saved. */
     private HubNav.Args pageArgs;
+    /** Review's recovery-only Compatibility page: pageArgs is one-shot, so this keeps it through rebuilds while the page is in the stack. */
+    private boolean compatibilityRecovery;
     private boolean bound,binding,resumed,destroyed,pendingConnect,pendingScan,expanded,rebuilding,applyingOwnerImport,importWaitNotified,bodyRefreshScheduled;
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
@@ -150,8 +152,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
+    /** A quick-control sheet over Home (HubRoutes.sheetFor): its control rows and charge-schedule rows refresh with the body. */
     private AlertDialog quickMenuDialog;
-    private MoreScreen quickMoreScreen;
     private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
     private final ArrayList<ChargeDoneRow> quickChargeRows = new ArrayList<>();
     private Runnable pendingRideLocation;
@@ -184,6 +186,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
+            // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
+            ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
             rebuild();
         }
@@ -232,7 +236,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
         // A notice tap still waiting for the Scooter tab survives a cold start (into unfinished setup, say), as on main.
@@ -285,7 +289,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean maintenancePending;
     private void pendMaintenance(boolean on){maintenancePending=on;MaintenanceScreen.pending(preferences,on);}
     /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
-    private void showMaintenanceFromNotice(){pageArgs=null;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
+    private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
@@ -327,12 +331,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
+        ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
-        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);
+        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
@@ -382,7 +387,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
     private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){pageArgs=null;nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -431,7 +436,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
-        if (quickMoreScreen != null) quickMoreScreen.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -549,7 +553,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AppScreen createScreen(String page,HubNav.Args args){
         switch(HubPages.tabOf(page)){
             case HubPages.HOME:return new DashboardScreen(this,new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}});
-            case HubPages.SCOOTER:return scooterPage(page);
+            case HubPages.SCOOTER:return scooterPage(page,args);
             default:break;
         }
         if(scooterService==null)return new LoadingScreen();
@@ -559,11 +563,33 @@ public final class MainActivity extends Activity implements ScreenHost {
             default:return new MoreScreen(this);
         }
     }
-    /** A page under the Scooter tab (hub layout plan, PR 3); its index for the tab's root and for a page not built yet. */
-    private AppScreen scooterPage(String page){
+    /** A page under the Scooter tab (hub layout plan, PRs 3 and 4); its index for the tab's root and for a page not built yet. */
+    private AppScreen scooterPage(String page,HubNav.Args args){
         ControlsPages.Spec spec=ControlsPages.spec(page);
+        // Pages with More's sections need the service (as the More tab does); their rows read its settings.
+        boolean moreHosted=page.equals(HubPages.SECURITY)||page.equals(HubPages.BATTERY_HISTORY)||page.startsWith(HubPages.SERVICE+".")&&!page.equals(HubPages.SERVICE_MAINTENANCE);
+        if(moreHosted&&scooterService==null)return new LoadingScreen();
+        switch(page){
+            case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
+            case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
+            case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
+            case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
+            case HubPages.SERVICE_COMPATIBILITY:{
+                // The one-shot args choose the route; a rebuild (rotation, theme, text size) keeps it.
+                if(args!=null)compatibilityRecovery=args.recovery;
+                return new HubCompatibilityPage(this,compatibilityRecovery);
+            }
+            case HubPages.SERVICE_EXPERIMENTAL:{
+                MoreScreen lab=new MoreScreen(this,"Lab",true);
+                // A shortcut or an Experimental entry names its control: its try opens once the page is on screen.
+                ScooterCommands.Feature inspect=args==null||args.inspect==null?null:ScooterCommands.find(args.inspect);
+                if(inspect!=null)handler.post(()->{if(screen==lab)lab.inspectQuickFeature(inspect);});
+                return lab;
+            }
+            default:break;
+        }
         if(spec!=null&&!spec.search)return new ControlsScreen(spec);
-        if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this));
+        if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
             MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded);
@@ -577,6 +603,28 @@ public final class MainActivity extends Activity implements ScreenHost {
         HubListScreen subjects=new HubListScreen(this,HubSubjects.scooterIndex(this));
         search.indexList(subjects.view());
         return new HubPageScreen(this,search,subjects);
+    }
+    /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
+    private AppScreen securityLock(){
+        // makeCompactHeader dropped any earlier lock before this page was built.
+        View lock=makeDashboardLock(false,true);lock.setTag("hub-security-lock");
+        LinearLayout part=column();
+        float scale=Math.max(1f,design.textScale*getResources().getConfiguration().fontScale);
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,Math.round(design.dp(64)*scale)-design.dp(10));params.bottomMargin=design.dp(12);
+        part.addView(lock,params);
+        return new AppScreen(){
+            @Override public View view(){return part;}
+            @Override public void refresh(){}
+        };
+    }
+    /** Service's Diagnostics & connection activity row: Data is their one home, so it opens Live Stats on Diagnostics. */
+    private void openDiagnostics(){
+        // A deliberate shortcut wins over Live Stats' expired return state (as openMoreSection does for More):
+        // with the away timer cleared, leaving() keeps Diagnostics instead of resetting to Overview.
+        expireStatsSection(true);markStatsActive();
+        preferences.edit().putString("stats_section","Diagnostics").apply();
+        scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
+        open(HubPages.DATA);
     }
     private void styleSystemBars(){
         // Samsung's Window getter can dereference a missing decor during onCreate.
@@ -946,7 +994,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 body.addView(why);body.addView(reasons);
             }else if(BleController.OWNER_REJECTED.equals(error)){
                 TextView check=connectionLink(T.mainConnectionCheckOwner());
-                check.setOnClickListener(v->{if(controlDialog!=null)controlDialog.dismiss();openMoreSection("Scooters");});body.addView(check);
+                check.setOnClickListener(v->{if(controlDialog!=null)controlDialog.dismiss();openRoute(HubPages.SETTINGS_SCOOTERS,null);});body.addView(check);
             }
         }
         boolean noProfile=profile==null||!profile.configured();
@@ -955,7 +1003,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 .setNegativeButton(primary,(d,which)->{
                     String primaryAction=permission&&!bluetoothOff&&noProfile&&!simulated?ADD_SCOOTER:null;
                     if(active){if(ble!=null)ble.disconnect();redraw();}
-                    else if(ADD_SCOOTER.equals(primaryAction))openMoreSection("Scooters");
+                    else if(ADD_SCOOTER.equals(primaryAction))openRoute(HubPages.SETTINGS_SCOOTERS,null);
                     // Connect asks for Nearby devices or turns on Bluetooth first, then connects.
                     else connect();
                 }).create();
@@ -1003,6 +1051,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Other tabs: a tappable connection line above the page title. The lock lives on Home. */
     private LinearLayout makeCompactHeader(){
+        // A page other than Home starts with no lock registered; Security's page part registers its own after this.
+        clearDashboardLock();
         LinearLayout header=column();header.setPadding(design.dp(expanded?24:18),design.dp(10),design.dp(expanded?24:18),design.dp(6));
         String pageName="";int tab=tabIndex(selectedPage);if(tab>=0)pageName=names[tab];
         // A page below a tab's root shows a back link to the page under it, and its own title (HubText).
@@ -1083,6 +1133,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** The stack changed from page from: show its top, sliding in from the tab's side, or by depth within a tab. */
     private void arrived(String from){
         String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();
+        if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
         int before=tabIndex(from),after=tabIndex(page);
         navFrom=before;transitionRebuild(before!=after?Integer.signum(after-before):HubNav.direction(from,page));navFrom=-1;
     }
@@ -1143,6 +1194,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         compactLock=true;lockTitle=design.text(T.mainLockTitle(),15,true);
         lockControl=new LockControl();lockControl.compact=true;lockControl.stoppedGate=stopped;
         return registerDashboardLock(lockControl);
+    }
+    /**
+     * A Quick access shortcut's page (HubRoutes). Settings and Data storage open More on their section until those
+     * sections become pages (PR 5); a tab's root resets to that tab; any other page opens above the current one.
+     */
+    private void openRoute(String page,HubNav.Args args){
+        String section=HubRoutes.moreSectionOf(page);
+        if(section!=null){openMoreSection(section);return;}
+        if(HubPages.TABS.contains(page))select(page);else open(page,args);
     }
     private void openMoreSection(String section){
         // A deliberate shortcut wins over the older submenu's expired return state.
@@ -1715,7 +1775,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             testBanner.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             testBanner.addView(design.icon("lab",18,design.text),new LinearLayout.LayoutParams(design.dp(18),design.dp(18)));
             testBannerText=design.text(T.mainControlsUnfinishedTest(),13,false);LinearLayout.LayoutParams testWords=new LinearLayout.LayoutParams(0,-2,1);testWords.leftMargin=design.dp(10);testWords.rightMargin=design.dp(8);testBanner.addView(testBannerText,testWords);
-            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();openMoreSection(running!=null&&!running.terminal()&&running.keeps()?"Lab":MoreScreen.COMPATIBILITY_RECOVERY);});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(testReviewAction);
+            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();if(running!=null&&!running.terminal()&&running.keeps())open(HubPages.SERVICE_EXPERIMENTAL);else open(HubPages.SERVICE_COMPATIBILITY,HubNav.Args.recovery());});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(testReviewAction);
             testBanner.setVisibility(View.GONE);view.addView(testBanner,new LinearLayout.LayoutParams(-1,-2));
             ((LinearLayout.LayoutParams)testBanner.getLayoutParams()).bottomMargin=design.dp(10);
             // The index: search over every page's rows. Other pages have no field (the index's search finds their rows).
@@ -1774,7 +1834,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             String batteryGroup=groupOf(ScooterCommands.find("charge_limit"));
             addRow(batteryGroup,chargeLive.row.card);extras.put(chargeLive.row.card,new String[]{batteryGroup,M.chargeLiveRow().english()});
             shownExtras.put(chargeLive.row.card,new String[]{T.chargeLiveRow()});
-            SettingLine security=new SettingLine("shield",T.mainRowSecurity(),null);security.chevron(()->openMoreSection("Security"));
+            SettingLine security=new SettingLine("shield",T.mainRowSecurity(),null);security.chevron(()->open(HubPages.SECURITY));
             addRow("Security",security.card);extras.put(security.card,new String[]{"Security","pin password proximity unlock pairing bluetooth bond security"});
             // Rename stays in More › My scooters (and Home's edit mode); the index's search still finds it here.
             SettingLine identity=new SettingLine("pencil",T.mainRenameTitle(),null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
@@ -1835,6 +1895,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 case HubPages.CONTROLS_ASSISTS:return design.featureIcon("hill_start_assist");
                 case HubPages.CONTROLS_LIMITS:return "speed";
                 case HubPages.BATTERY_MODES:case HubPages.BATTERY_ESTIMATES:return "battery";
+                // The chart its Charge recordings row draws, not the light pages' star (#387 review).
+                case HubPages.BATTERY_HISTORY:return "chart";
                 default:return "star";
             }
         }
@@ -1845,7 +1907,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
             // The badge sits under the name on every entry (beside a short name it moved to the row's end).
-            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->showQuickMore("Lab",feature));
+            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
@@ -1911,14 +1973,16 @@ public final class MainActivity extends Activity implements ScreenHost {
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
                 hideDividers(bodies.get(e.getKey()));
             }
-            if(pageBody!=null)hideDividers(pageBody);
+            // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
+            if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
-        /** A divider shows only between two shown rows (each divider's tag is the row after it). */
-        private void hideDividers(LinearLayout body){
+        /** A divider shows only between two shown rows (each divider's tag is the row after it). True when a row shows. */
+        private boolean hideDividers(LinearLayout body){
             boolean hasVisible=false;
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
+            return hasVisible;
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
@@ -1951,7 +2015,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             banner.setVisibility(ready?View.GONE:View.VISIBLE);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
-            bannerAction.setVisibility(connecting?View.GONE:View.VISIBLE);
+            bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
             readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();
@@ -2020,31 +2084,26 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
-        if (id.equals("lights")) { showQuickSettings("Lights"); return; }
-        if (id.equals("controls")) { showQuickSettings("Settings"); return; }
-        if (id.startsWith("more:")) { showQuickMore(id.substring(5), null); return; }
-        if (id.startsWith("section:")) {
-            String section = id.substring(8);
-            if (section.equals("Security")) showQuickMore("Security", null);
-            else if (section.equals("Profile")) renameScooter();
-            else showQuickSettings(section);
-            return;
-        }
+        // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
+        String sheet = HubRoutes.sheetFor(id);
+        if (sheet != null) { showQuickSettings(sheet); return; }
+        String page = HubRoutes.pageFor(id);
+        if (page != null) { closeQuickMenu(); openRoute(page, null); return; }
+        if (id.equals("section:Profile")) { renameScooter(); return; }
         ScooterCommands.Feature feature = entry.feature();
         if (feature == null) return;
         if (feature.key.equals("range_algorithm")) { closeQuickMenu(); showRangeSource(); return; }
         // The same resolver as the settings rows and the write gate: an unmapped control says why.
         CapabilityResolver.Decision decision = scooterService.ble.decision(feature.key);
         if (decision.support != CapabilityResolver.Support.KNOWN_ENCODING) { toast(decision.reasonMessage()); return; }
-        if (decision.variant != null && decision.variant.lab) { showQuickMore("Lab", feature); return; }
+        if (decision.variant != null && decision.variant.lab) { openRoute(HubRoutes.forFeature(feature, true), HubNav.Args.inspect(feature.key)); return; }
         // Another model's region, firmware or full-ID rule refuses it: say why, as its Scooter row does (never on the UT5 MAX).
         if (decision.reason == CapabilityResolver.Reason.REGION_RULE || decision.reason == CapabilityResolver.Reason.FIRMWARE_UNKNOWN
                 || decision.reason == CapabilityResolver.Reason.FIRMWARE_OLD || decision.reason == CapabilityResolver.Reason.FULL_PID_NEEDED) {
             toast(decision.reasonMessage()); return;
         }
-        if (feature.sensitive || feature.key.equals("proximity_key")) {
-            showQuickMore("Security", null); return;
-        }
+        String securityPage = HubRoutes.forFeature(feature, false);
+        if (securityPage != null) { openRoute(securityPage, null); return; }
         BleController ble = scooterService.ble;
         if (!ble.ready()) { toast(T.mainQuickConnectChange()); return; }
         if (ble.pending() != null) { toast(T.mainQuickWaitChange()); return; }
@@ -2073,20 +2132,21 @@ public final class MainActivity extends Activity implements ScreenHost {
 
     private void closeQuickMenu() {
         AlertDialog old = quickMenuDialog; quickMenuDialog = null;
-        MoreScreen oldMore = quickMoreScreen; quickMoreScreen = null;
         quickMenuRows.clear();
         quickChargeRows.clear();
-        if (oldMore != null) oldMore.close();
         if (old != null) old.dismiss();
     }
 
-    /** A named scooter settings group shown above Home, keeping the underlying layout untouched. */
+    /**
+     * A quick-control group shown above Home, keeping the underlying layout untouched: Lights, and the Ride, Battery,
+     * Line lights, Star lights and Dashboard & sound groups (HubRoutes.sheetFor). A single setting changed in a moment
+     * keeps its pop-up sheet (owner's answer 3, #383); whole settings pages open as pages.
+     */
     private void showQuickSettings(String section) {
         closeQuickMenu();
         if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
         final AlertDialog[] self = new AlertDialog[1];
-        LinearLayout body = sheetContent(section.equals(SECTION_SETTINGS) ? T.mainQuickScooterSettings() : sectionTitle(section),
-                null, () -> { if (self[0] != null) self[0].dismiss(); });
+        LinearLayout body = sheetContent(sectionTitle(section), null, () -> { if (self[0] != null) self[0].dismiss(); });
         body.setTag("quick-settings-sheet");
         LinearLayout settings = design.groupCard(); body.addView(settings);
         ArrayList<ScooterCommands.Feature> features = new ArrayList<>(ScooterCommands.catalog());
@@ -2094,8 +2154,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         for (ScooterCommands.Feature f : ScooterCommands.oemOnly()) if (scooterService.ble.controlOffered(f.key)) features.add(f);
         for (ScooterCommands.Feature f : features) {
             if (f.experimental && !ordinaryOemRow(f.key) || f.sensitive || f.key.equals("lock") || f.key.equals("proximity_key")) continue;
-            boolean match = section.equals("Settings")
-                    || section.equals("Lights") && (f.key.equals("headlight") || f.key.equals("auto_sensor") || ScooterCommands.oemOnly(f.key)
+            boolean match = section.equals("Lights") && (f.key.equals("headlight") || f.key.equals("auto_sensor") || ScooterCommands.oemOnly(f.key)
                             || f.key.startsWith("line_") || f.key.startsWith("star_"))
                     || section.equals("Line lights") && f.key.startsWith("line_")
                     || section.equals("Star lights") && f.key.startsWith("star_")
@@ -2111,45 +2170,10 @@ public final class MainActivity extends Activity implements ScreenHost {
                 quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
             }
         }
-        if (section.equals("Settings")) {
-            for (String id : new String[]{"section:Security", "section:Profile", "more:App"}) {
-                QuickAccessActions.Entry shortcut = QuickAccessActions.find(id);
-                design.divider(settings);
-                SettingLine row = new SettingLine(shortcut.icon, shortcut.label(), null);
-                row.chevron(() -> quickAction(id)); settings.addView(row.card);
-            }
-        }
         AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
         dialog.setOnDismissListener(d -> {
             if (quickMenuDialog == dialog) { quickMenuDialog = null; quickMenuRows.clear(); quickChargeRows.clear(); }
         });
-    }
-
-    /** Reuses the existing PIN/experimental approvals and application preferences in a temporary panel. */
-    private void showQuickMore(String section, ScooterCommands.Feature inspect) {
-        closeQuickMenu();
-        if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
-        final AlertDialog[] self = new AlertDialog[1];
-        String title = section.equals("Security") ? T.mainRowSecurity()
-                : section.equals("Lab") ? T.mainQuickExperimental()
-                : section.equals("App") ? T.mainQuickApp()
-                : section.equals("Scooters") ? T.mainQuickScooters()
-                : section.equals(SECTION_COMPATIBILITY) ? T.mainQuickCompatibility()
-                : section.equals("Data") ? T.mainQuickData() : T.mainQuickAbout();
-        LinearLayout body = sheetContent(title, null,
-                () -> { if (self[0] != null) self[0].dismiss(); });
-        body.setTag("quick-more-sheet");
-        MoreScreen overlay = new MoreScreen(this, section);
-        quickMoreScreen = overlay;
-        body.addView(overlay.view(), new LinearLayout.LayoutParams(-1,
-                Math.max(design.dp(200), Math.round(getResources().getDisplayMetrics().heightPixels * .64f))));
-        AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
-        dialog.setOnDismissListener(d -> {
-            if (quickMenuDialog == dialog) {
-                quickMenuDialog = null; quickMoreScreen = null; overlay.close();
-            }
-        });
-        if (inspect != null) overlay.inspectQuickFeature(inspect);
     }
 
     /** How long a failure chip outlives the first fresh readback that follows it. */
@@ -3255,6 +3279,34 @@ public final class MainActivity extends Activity implements ScreenHost {
         CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
         showEmailSheet(subject,body,report,null,null);return true;
     }
+    /**
+     * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
+     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
+     * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
+     * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
+     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
+     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
+     */
+    /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
+    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
+    @Override public void emailChargeRecordings(File recordings){
+        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
+        if(d!=null&&d.simulated)d=null;
+        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+        String subject=IssueReport.chargeRecordingsSubject(version,model);
+        String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
+        new Thread(()->{
+            Uri uri;try{uri=DiagnosticsProvider.adopt(this,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
+            final Uri attached=uri;
+            handler.post(()->{
+                if(destroyed)return;
+                // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
+                ChargeSend.Outcome outcome=ChargeSend.outcome(attached!=null,attached!=null&&sendWithUri(subject,body,attached));
+                if(outcome==ChargeSend.Outcome.EXPORT_FAILED)toast(ScooterService.chargeExportFailed());
+                else if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
+            });
+        },"Volt-email-export").start();
+    }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
@@ -3335,6 +3387,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private boolean emailWithFile(String subject,String body,String bundle){
         Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
+        return sendWithUri(subject,body,uri);
+    }
+    /** emailWithFile's send, for a snapshot DiagnosticsProvider already holds; false when no app can take it. */
+    private boolean sendWithUri(String subject,String body,Uri uri){
         Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
         send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
         send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));

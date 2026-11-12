@@ -140,6 +140,10 @@ public final class HubPagesTest {
                 && HubPages.fromMoreSection(recovery.group(1)).equals(HubPages.SERVICE_COMPATIBILITY), "Both Compatibility ids");
         require(HubPages.fromMoreSection("Data").equals(HubPages.DATA_STORAGE) && HubPages.fromMoreSection("Lab").equals(HubPages.SERVICE_EXPERIMENTAL)
                 && HubPages.fromMoreSection("Security").equals(HubPages.SECURITY), "Sections move to their subjects");
+        require(HubPages.fromMoreSection("Charging").equals(HubPages.BATTERY_HISTORY)
+                && HubPages.fromMoreSection("Reports").equals(HubPages.SERVICE_REPORTS), "Charging and Reports are subject pages");
+        for (String section : new String[] {"Charging", "Reports"})
+            require(source.contains("\"" + section + "\""), "MoreScreen builds the " + section + " section");
         require(HubPages.fromMoreSection(null).equals(HubPages.SETTINGS) && HubPages.fromMoreSection("").equals(HubPages.SETTINGS),
                 "More's index is Settings");
     }

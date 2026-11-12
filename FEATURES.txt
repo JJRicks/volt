@@ -500,7 +500,8 @@ server located in Russia; Volt can't see that location, so it doesn't. The
 scooter's firmware can still reject a setting. A control that is Lab
 on the UT5 MAX is an ordinary row on a model the official app maps it for.
 Controls the official app hides for an identified model can be tried from
-More > Experimental controls (see EXPERIMENTAL CONTROLS below); the rows above
+Scooter > Service > Experimental controls (see EXPERIMENTAL CONTROLS below),
+and appear on their subject page labelled Experimental; the rows above
 are unchanged.
 Firmware conditions need the version read in the current connection, and a
 value the scooter reports outside the mapped choices reads as unknown, except
@@ -568,7 +569,8 @@ retain honest raw labels; firmware faults are not silently cleared.
 
 EXPERIMENTAL CONTROLS (FORMERLY FIRMWARE LAB)
 
-More > Experimental controls lists, for the connected (or last identified)
+Scooter > Service > Experimental controls (formerly More > Experimental
+controls) lists, for the connected (or last identified)
 scooter, controls the official NAVEE app does not offer for that model, so an
 owner can try them while parked. Everything the official app offers for the
 model keeps its place in Scooter settings, verified or not.
@@ -668,8 +670,9 @@ APP TOOLS AND REMAINING VALIDATION
 
 The app includes local profiles, appearance/text/unit choices, fold-aware
 layouts, charts, ride recording, notes, comparison and exports. More uses saved
-App, Scooters, Security, Lab, Data and About sections, showing one at a time without
-rebuilding their controls. Submenus reset after one minute away from More or the
+App, Scooters, Data, About and Developer sections, showing one at a time without
+rebuilding their controls. Security and Experimental controls are subject pages
+(Scooter > Security, Scooter > Service > Experimental controls). Submenus reset after one minute away from More or the
 app, while active use and quick returns preserve the section. First-time owner setup stays visible when needed.
 
 Keep idle connection in background defaults off. When off with no recording,
@@ -1094,8 +1097,13 @@ changes estimates only: High-speed opts out of the bundled stock reference.
 It neither sets charger output nor starts recording, and cannot change during
 an active capture. The recording screen uses the same saved selection.
 
-Explicit Charge recording lives in Developer options, with a manual Stock or
-High-speed charger selection. There is no automatic charger detection. Bounded
+Explicit Charge recording lives in Scooter > Battery & charging > Charge history
+& recordings (formerly Developer options), with a manual Stock or
+High-speed charger selection. Its Charger row shows the charger for estimates and
+opens its one home, Battery & charging > Estimates & charger > Charger; Developer
+options no longer has a charger selector. Email to Volt on the same page attaches
+this scooter's recordings to an email to Volt's report address, which helps tune
+charging time estimates for that model. There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
@@ -1118,7 +1126,8 @@ names, MAC addresses, PINs and location are excluded.
 
 New charge samples also retain the original full/limit time estimates, limit,
 estimator version and source (live rate, stock reference or personal curve).
-More → Developer options → Charge recordings shows Time remaining and Predicted
+Scooter → Battery & charging → Charge history & recordings → Charge recordings
+shows Time remaining and Predicted
 finish graphs with full-resolution touch inspection and fullscreen views. An
 observed 100% finish provides a reference and prediction error; incomplete
 recordings and lower cutoffs are never compared to a guessed completion time.
@@ -1134,8 +1143,8 @@ charger is unplugged, after 3 minutes with stale readings, after 12 hours, about
 Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
-a Live Update (status-bar chip and segmented bar); More > Developer options >
-Live Update status reports the outcome. It keeps only the battery reads Volt
+a Live Update (status-bar chip and segmented bar); Scooter > Battery & charging >
+Charge history & recordings > Live Update status reports the outcome. It keeps only the battery reads Volt
 already makes and sends no new scooter command. Out of sight, the card, the
 connection notice and Charge done by / Scheduled charging read the scooter on
 the 15 s background cadence without treating the gap as a lost link; schedule
@@ -1202,9 +1211,13 @@ legacy unverified cache entries require refresh. No bulk prefetch is performed.
 QUICK ACCESS
 
 Choose two to eight ordered shortcuts in the widget options. Direct toggles use
-the same live-value and parked checks as Scooter settings. Choices/sliders and
-settings submenus open over Home; PIN/proximity and experimental controls retain
-their existing guarded flows. Stats and Rides are still page shortcuts. Legacy
+the same live-value and parked checks as Scooter settings. Choices/sliders open
+over Home, and so do the quick-control groups (Lights, Ride settings, Battery
+settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
+Shortcuts to whole settings pages open the page: Settings opens the Scooter
+tab, PIN/proximity opens Scooter > Security, experimental controls open
+their test in Scooter > Service > Experimental controls, and app-preference
+shortcuts open More on that menu. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.

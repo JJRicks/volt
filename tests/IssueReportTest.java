@@ -5,6 +5,8 @@ public final class IssueReportTest {
     private static int assertions;
     public static void main(String[] args) {
         check(IssueReport.subject("1.5.1").equals("Volt issue report · Volt 1.5.1"), "Subject names the Volt version");
+        check(IssueReport.chargeRecordingsSubject("1.5.1", "UT5 MAX").equals("Volt charge recordings · Volt 1.5.1 · UT5 MAX")
+                && IssueReport.chargeRecordingsSubject("1.5.1", "").equals("Volt charge recordings · Volt 1.5.1"), "Email to Volt's subject names the version and model");
         String ut5 = IssueReport.body("1.5.1", "16", 36, "Google Pixel 9 ", "UT5 MAX", false);
         check(ut5.equals("What happened, and what did you expect instead?\n\n\n\nVolt 1.5.1 · Android 16 (API 36) · Google Pixel 9\nScooter: UT5 MAX\n"), "Body: " + ut5);
         check(IssueReport.body("1.5.1", "16", 36, "Google Pixel 9", "", false).endsWith("· Google Pixel 9\n")

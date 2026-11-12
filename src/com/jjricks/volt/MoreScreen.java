@@ -66,6 +66,11 @@ public final class MoreScreen implements AppScreen {
     /** Unfolded/tablet width: the menu stays on the left and the chosen submenu opens on the right. */
     private final boolean wide;
     private final boolean standalone;
+    /**
+     * A Hub page shows one section as its body (hub layout plan): standalone, inside the page's own scroller, with no
+     * section header (the page header has the title); a link to another section opens that section's page.
+     */
+    private final boolean embedded;
     /** Wide mode only: each pane scrolls on its own. */
     private ScrollView menuScroll, sectionScroll;
     private final Row[] menuRows = new Row[SECTIONS.length];
@@ -94,6 +99,13 @@ public final class MoreScreen implements AppScreen {
             T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
+    /**
+     * Sections only Hub pages show (hub layout plan, PR 4): charge history and charge recordings, cut out of Developer
+     * options (Battery & charging › Charge history & recordings), and the issue report (Service › Issue reports).
+     */
+    static final String CHARGING_SECTION = "Charging", REPORTS_SECTION = "Reports";
+    /** Sections that moved to their subject pages (Security, Service › Experimental controls): More's menu no longer lists them. */
+    private static boolean subjectSection(String section) { return "Security".equals(section) || "Lab".equals(section); }
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
     /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
@@ -128,7 +140,10 @@ public final class MoreScreen implements AppScreen {
     private LinearLayout chargeCurve;
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
     private ChargeHistoryDialog chargeHistoryDialog;
-    private SegmentedSelector chargeChargerSelector;
+    /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
+    private Row chargerLinkRow, sendChargeRow;
+    /** The Charger row's detail line, under the charger's name (its sub-line). */
+    private TextView chargerDetail;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -157,21 +172,28 @@ public final class MoreScreen implements AppScreen {
 
     public MoreScreen(ScreenHost host) { this(host, null); }
 
-    /** Dashboard sheet: the existing controls, without changing More's saved navigation state. */
-    MoreScreen(ScreenHost host, String initialSection) {
+    /** One section on its own, without changing More's saved navigation state. */
+    MoreScreen(ScreenHost host, String initialSection) { this(host, initialSection, false); }
+
+    /** embedded: the section is a Hub page's body (see {@link #embedded}); it needs an initialSection. */
+    MoreScreen(ScreenHost host, String initialSection, boolean embedded) {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
+        this.embedded = embedded && standalone;
         wide = !standalone && ui.wideLayout() && !layoutKey().equals(onePaneAt);
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();
-        if (wide) content.setPadding(ui.dp(24), ui.dp(6), ui.dp(24), 0);
+        if (this.embedded) content.setPadding(0, 0, 0, 0);
+        else if (wide) content.setPadding(ui.dp(24), ui.dp(6), ui.dp(24), 0);
         else content.setPadding(ui.dp(18), ui.dp(6), ui.dp(18), ui.dp(24));
-        scroll.addView(content, new ScrollView.LayoutParams(-1, wide ? -1 : -2));
+        // A Hub page scrolls the whole page itself, so an embedded section is never put in a scroller of its own.
+        if (!this.embedded) scroll.addView(content, new ScrollView.LayoutParams(-1, wide ? -1 : -2));
         String savedSection = standalone ? initialSection : settings().getString("more_section", "");
         compatibilityRecovery = COMPATIBILITY_RECOVERY.equals(savedSection);
         selectedSection = compatibilityRecovery ? "Compatibility" : savedSection;
-        if (!knownSection(selectedSection)) selectedSection = "";
+        // A More tab saved on Security or Experimental controls opens on More's menu: both are subject pages now.
+        if (!knownSection(selectedSection) || !standalone && subjectSection(selectedSection)) selectedSection = "";
 
         LinearLayout menuParent = content, sectionParent = content;
         if (wide) {
@@ -191,7 +213,7 @@ public final class MoreScreen implements AppScreen {
         if (wide) backup.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
-            if (!knownSection(section)) continue;
+            if (!knownSection(section) || subjectSection(section)) continue;
             Row row = row(sectionMenu, SECTION_ICONS[i], T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
@@ -209,15 +231,7 @@ public final class MoreScreen implements AppScreen {
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
         indexView.addView(footer, new LinearLayout.LayoutParams(-1, -2));
-        TextView report = ui.text(T.moreReportIssue(), 13.5f, false);
-        report.setTypeface(ui.medium()); report.setTextColor(ui.accent); report.setGravity(Gravity.CENTER);
-        report.setMinHeight(ui.dp(48)); report.setPadding(ui.dp(16), 0, ui.dp(16), 0);
-        report.setFocusable(true); report.setClickable(true); report.setTag("more-report-issue");
-        report.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null, ui.shape(0xFFFFFFFF, 14, 0)));
-        report.setOnClickListener(v -> reportIssue());
-        LinearLayout.LayoutParams reportParams = new LinearLayout.LayoutParams(-2, -2);
-        reportParams.gravity = Gravity.CENTER_HORIZONTAL; reportParams.bottomMargin = ui.dp(8);
-        indexView.addView(report, reportParams);
+        reportLink(indexView);
 
         sectionHeader = column(); sectionParent.addView(sectionHeader, new LinearLayout.LayoutParams(-1, -2));
         sectionBack = backLink(); sectionHeader.addView(sectionBack, new LinearLayout.LayoutParams(-2, -2));
@@ -244,6 +258,17 @@ public final class MoreScreen implements AppScreen {
         cardDestination = column(); sections.put("Units", cardDestination);
         sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
         units();
+        // Each is built only for the Hub page that shows it, so its rows' tags stay unique (not on Security or Lab).
+        if (CHARGING_SECTION.equals(initialSection)) {
+            cardDestination = column(); sections.put(CHARGING_SECTION, cardDestination);
+            sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
+            charging();
+        }
+        if (REPORTS_SECTION.equals(initialSection)) {
+            cardDestination = column(); sections.put(REPORTS_SECTION, cardDestination);
+            sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
+            reportLink(cardDestination);
+        }
         if (knownSection("Compatibility")) {
             cardDestination = column(); sections.put("Compatibility", cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
@@ -254,7 +279,7 @@ public final class MoreScreen implements AppScreen {
         refresh();
         restoreWideScroll();
     }
-    @Override public View view() { return scroll; }
+    @Override public View view() { return embedded ? content : scroll; }
     @Override public void close() {
         saveWideScroll();
         closed = true;
@@ -301,6 +326,8 @@ public final class MoreScreen implements AppScreen {
 
     /** Units returns to its parent; otherwise wide Back leaves the tab, keeping its selected pane. */
     @Override public boolean back() {
+        // A Hub page's Back is the page stack's.
+        if (embedded) return false;
         if ("Units".equals(selectedSection)) { selectSection("App"); return true; }
         if ("Compatibility".equals(selectedSection) && !standalone) {
             selectSection(compatibilityRecovery ? "" : "Developer"); return true;
@@ -314,6 +341,7 @@ public final class MoreScreen implements AppScreen {
 
     private boolean knownSection(String section) {
         if ("Units".equals(section) || "Compatibility".equals(section)) return true;
+        if (standalone && (CHARGING_SECTION.equals(section) || REPORTS_SECTION.equals(section))) return true;
         for (String candidate : SECTIONS) if (candidate.equals(section)) return true;
         return false;
     }
@@ -329,7 +357,7 @@ public final class MoreScreen implements AppScreen {
         indexView.setVisibility(index || wide ? View.VISIBLE : View.GONE);
         boolean units = "Units".equals(shown);
         boolean compatibility = "Compatibility".equals(shown);
-        sectionHeader.setVisibility(index || (standalone && !units) ? View.GONE : View.VISIBLE);
+        sectionHeader.setVisibility(index || embedded || (standalone && !units) ? View.GONE : View.VISIBLE);
         sectionBack.setVisibility(units || compatibility || !wide ? View.VISIBLE : View.GONE);
         String parent = units ? T.moreSectionApp() : compatibility && !compatibilityRecovery ? T.moreSectionDeveloper() : T.moreTitle();
         sectionBackLabel.setText(parent);
@@ -350,7 +378,15 @@ public final class MoreScreen implements AppScreen {
                 selected ? ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 46 : 30), 14, 0) : null, ui.shape(Color.WHITE, 14, 0)));
     }
     private void selectSection(String section) {
-        if (closed || (!section.isEmpty() && !knownSection(section)) || section.equals(selectedSection)) return;
+        if (closed || section.equals(selectedSection)) return;
+        if (embedded) {
+            // Another section is another Hub page; the compatibility check keeps its recovery-only view as a page argument.
+            String page = HubPages.fromMoreSection(section);
+            if (page.equals(HubPages.SERVICE_COMPATIBILITY)) host.open(page, compatibilityRecovery ? HubNav.Args.recovery() : null);
+            else host.open(page);
+            return;
+        }
+        if (!section.isEmpty() && !knownSection(section)) return;
         final ScrollView pane = sectionScroller();
         String leaving = shownSection();
         sectionScrollPositions.put(leaving, pane.getScrollY());
@@ -2508,9 +2544,6 @@ public final class MoreScreen implements AppScreen {
         LinearLayout diagnostics = group();
         row(diagnostics, "check", T.moreDevCompat(), T.moreDevCompatSub(),
                 () -> openCompatibility(false)).view.setTag("developer-compatibility-check");
-        // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
-        liveUpdateRow = row(diagnostics, "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
-        liveUpdateRow.view.setTag("developer_live_update");
         LinearLayout controls = group();
         simulationRow = toggleRow(controls, "scooter", T.moreDevSimulate(), null, enabled -> {
             ScooterService s = service();
@@ -2518,7 +2551,7 @@ public final class MoreScreen implements AppScreen {
             s.setSimulation(enabled);
             // The service may refuse while a ride or phone recording is active. Always show
             // its actual state, never the tentative state of a performed switch click.
-            refreshDeveloper(); host.redraw();
+            refreshSimulation(); host.redraw();
         });
         simulationRow.view.setTag("developer-simulation-row");
         simulationRow.toggle.setTag("developer-simulation-toggle");
@@ -2528,21 +2561,34 @@ public final class MoreScreen implements AppScreen {
         simulationStatus.setTag("developer-simulation-status");
         simulationStatus.setTextColor(ui.orange);
         simulationStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        label(T.moreDevTestLayouts());
+        LinearLayout backups = group();
+        row(backups, "grid", T.moreDevSlot3(), null, () -> {
+            ScooterProfiles.Profile profile = active();
+            if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
+            confirm(T.moreDevSlot3Title(), T.moreDevSlot3Body(), T.moreDevSlot3Action(), () -> {
+                boolean saved = new DashboardConfig(settings(), profile.id).forceExampleSlot();
+                host.toast(saved ? T.moreDevSlot3Saved() : T.moreDevSlot3Failed());
+            });
+        }).view.setTag("developer-example-slot");
+    }
+
+    /**
+     * Battery & charging › Charge history & recordings (hub layout plan, PR 4): charge recordings, the learned charge
+     * curves, the recorded charges, their export and their email to Volt, and the live charging card's Live Update
+     * status. Cut out of Developer options with their tags. The charger has one home, Estimates & charger › Charger
+     * (owner, #383): the row here only shows it and opens that page, which refuses a change while a charge is recorded.
+     */
+    private void charging() {
         label(T.moreDevChargeRecording());
-        TextView attached = ui.text(T.moreDevCharger(), 12.5f, false); attached.setTextColor(ui.muted);
-        attached.setPadding(ui.dp(2), 0, ui.dp(2), ui.dp(6)); cardDestination.addView(attached);
-        ScooterService current=service();
-        ChargeSessionStore.Charger chosen=current==null?null:current.chargeCharger();
-        chargeChargerSelector=new SegmentedSelector(ui,T.moreDevCharger(),new String[]{T.moreDevAuto(),T.moreDevStock(),T.moreDevHighSpeed()},choice->{
-            ScooterService s=service();if(s==null||s.isChargeRecording())return;
-            s.setChargeCharger(choice==0?null:choice==1?ChargeSessionStore.Charger.STOCK:ChargeSessionStore.Charger.HIGH_SPEED);
-            refreshDeveloper();
-        });
-        chargeChargerSelector.setTag("charge-charger-selector");chargeChargerSelector.select(chosen==null?0:chosen==ChargeSessionStore.Charger.STOCK?1:2,false);
-        preferenceSelectors.add(chargeChargerSelector);
-        LinearLayout.LayoutParams chargerParams=new LinearLayout.LayoutParams(-1,-2);chargerParams.bottomMargin=ui.dp(12);
-        cardDestination.addView(chargeChargerSelector,chargerParams);
-        footnote(T.moreDevChargerNote());
+        // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
+        chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
+        chargerLinkRow.view.setTag("charge-charger-selector");
+        // The charger's name goes under the title, full width, as other rows' sub-lines do, never in the 140 dp value
+        // beside it, where a long name (German at large text) broke inside a word and squeezed the title (#387 review).
+        // Its detail line, when there is one, sits under it.
+        chargerDetail=ui.text("",11.5f,false);chargerDetail.setTextColor(ui.muted);chargerDetail.setPadding(0,ui.dp(2),0,0);
+        chargerDetail.setVisibility(View.GONE);((LinearLayout)chargerLinkRow.sub.getParent()).addView(chargerDetail);
         // Count qualified evidence without claiming every range is ready at a fixed session count.
         chargeCurve=ui.card();chargeCurve.setTag("charge-learning-status");
         LinearLayout curveHead=row();
@@ -2555,7 +2601,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout capture=group();
         chargeCaptureRow=row(capture,"battery",T.moreDevRecord(),null,()->{
             ScooterService s=service();if(s==null)return;
-            if(s.isChargeRecording()){s.stopChargeRecording();refreshDeveloper();return;}
+            if(s.isChargeRecording()){s.stopChargeRecording();refreshCharging();return;}
             String unavailable=s.chargeCaptureUnavailable();if(unavailable!=null){host.toast(unavailable);return;}
             recordChargeDialog(s);
         });chargeCaptureRow.view.setTag("charge-capture-action");
@@ -2571,24 +2617,59 @@ public final class MoreScreen implements AppScreen {
                 if(closed||host.activity().isDestroyed())return;
                 if(file==null){host.toast(s.chargeCaptureStatus());return;}
                 host.saveFile("charge-recordings.json","application/json",file);
-            }))host.toast(T.moreDevExportBusy());
+            }))exportBusy();
         });exportChargeRow.view.setTag("charge-export-action");
         clearChargeRow=row(chargeData,"trash",T.moreDevClearCharges(),null,()->{
             ScooterService s=service();if(s==null||s.isChargeRecording())return;
             AlertDialog dialog=new AlertDialog.Builder(host.activity()).setTitle(T.moreDevClearChargesTitle())
                     .setMessage(T.moreDevClearChargesBody())
-                    .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.moreDevClearRecordings(),(d,which)->s.clearChargeRecordings(this::refreshDeveloper)).create();show(dialog);
+                    .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.moreDevClearRecordings(),(d,which)->s.clearChargeRecordings(this::refreshCharging)).create();show(dialog);
         });clearChargeRow.view.setTag("charge-clear-action");
-        label(T.moreDevTestLayouts());
-        LinearLayout backups = group();
-        row(backups, "grid", T.moreDevSlot3(), null, () -> {
-            ScooterProfiles.Profile profile = active();
-            if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
-            confirm(T.moreDevSlot3Title(), T.moreDevSlot3Body(), T.moreDevSlot3Action(), () -> {
-                boolean saved = new DashboardConfig(settings(), profile.id).forceExampleSlot();
-                host.toast(saved ? T.moreDevSlot3Saved() : T.moreDevSlot3Failed());
-            });
-        }).view.setTag("developer-example-slot");
+        // Recordings tune the charging time estimates for this model (owner, #383): say so, and send them in one tap.
+        sendChargeRow=row(group(),"export",HubText.chargeSendRow(),null,this::sendChargeRecordings);
+        sendChargeRow.view.setTag("charge-send-action");
+        footnote(HubText.chargeSendNote().render()).setTag("charge-send-note");
+        // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
+        liveUpdateRow = row(group(), "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
+        liveUpdateRow.view.setTag("developer_live_update");
+    }
+
+    /**
+     * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
+     * to Volt's report address (the report emails' attachment flow). Refused with no scooter chosen ("Choose a scooter
+     * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
+     * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
+     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email.
+     */
+    private void sendChargeRecordings() {
+        ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
+        if (s.exportChargeRecordings(file -> {
+            if (file != null) { ChargeSend.MAILBOX.deliver(file, System.currentTimeMillis()); return; }
+            if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
+        })) return;
+        // Refused: tell the reasons apart from the service's state.
+        ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
+        if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
+        else if (refusal == ChargeSend.Refusal.STOP_RECORDING) host.toast(HubText.chargeSendBusy());
+    }
+
+    /** "Choose a scooter first.": recording or emailing charges needs a chosen scooter. */
+    private void chooseScooterFirst() { host.toast(T.moreHistoryChooseScooter()); }
+
+    /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
+    private void exportBusy() { host.toast(T.moreDevExportBusy()); }
+
+    /** "Report an issue": More's menu ends with it, and it is Service › Issue reports. */
+    private void reportLink(LinearLayout parent) {
+        TextView report = ui.text(T.moreReportIssue(), 13.5f, false);
+        report.setTypeface(ui.medium()); report.setTextColor(ui.accent); report.setGravity(Gravity.CENTER);
+        report.setMinHeight(ui.dp(48)); report.setPadding(ui.dp(16), 0, ui.dp(16), 0);
+        report.setFocusable(true); report.setClickable(true); report.setTag("more-report-issue");
+        report.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null, ui.shape(0xFFFFFFFF, 14, 0)));
+        report.setOnClickListener(v -> reportIssue());
+        LinearLayout.LayoutParams reportParams = new LinearLayout.LayoutParams(-2, -2);
+        reportParams.gravity = Gravity.CENTER_HORIZONTAL; reportParams.bottomMargin = ui.dp(8);
+        parent.addView(report, reportParams);
     }
 
     private void openCompatibility(boolean recovery) {
@@ -2606,18 +2687,14 @@ public final class MoreScreen implements AppScreen {
                     ScooterService current = service();
                     if (closed || current == null) return;
                     current.ble.setSimulationModel(SIMULATION_MODELS[which]); d.dismiss();
-                    refreshDeveloper(); host.redraw();
+                    refreshSimulation(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
     }
 
-    private void refreshDeveloper() {
+    /** Developer options' simulation rows and the simulating note on More's menu. */
+    private void refreshSimulation() {
         ScooterService s = service();
         boolean simulating = s != null && s.simulating();
-        if (liveUpdateRow != null) {
-            ChargeLiveUpdate.Status live = s != null ? s.liveUpdateStatus()
-                    : ChargeLiveUpdate.status(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), liveUpdateAllowed(), false, false, false, null);
-            liveUpdateRow.sub(ChargeLiveUpdate.label(live));
-        }
         if (developerIndexRow != null) {
             developerIndexRow.value(simulating ? T.moreDevSimulating() : null);
             developerIndexRow.value.setTextColor(ui.orange);
@@ -2629,9 +2706,18 @@ public final class MoreScreen implements AppScreen {
             simulationModelRow.value(model == 0 ? "UT5 MAX" : model == 1 ? "Mapped" : "Unknown");
             simulationModelRow.enabled(s != null);
         }
+    }
+
+    /** The Charging section's rows (charging()); nothing while this screen has no Charging section. */
+    private void refreshCharging() {
+        ScooterService s = service();
+        if (liveUpdateRow != null) {
+            ChargeLiveUpdate.Status live = s != null ? s.liveUpdateStatus()
+                    : ChargeLiveUpdate.status(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), liveUpdateAllowed(), false, false, false, null);
+            liveUpdateRow.sub(ChargeLiveUpdate.label(live));
+        }
         if(chargeCaptureRow!=null){
-            ChargeSessionStore.Charger selected=s==null?null:s.chargeCharger();
-            chargeChargerSelector.select(selected==null?0:selected==ChargeSessionStore.Charger.STOCK?1:2,false);
+            refreshChargerLink(s);
             boolean capturing=s!=null&&s.isChargeRecording();
             String unavailable=s==null?T.moreDevConnectFirst():s.chargeCaptureUnavailable();
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
@@ -2641,9 +2727,20 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            chargeChargerSelector.setAlpha(capturing?.5f:1f);
-            setChildrenEnabled(chargeChargerSelector,!capturing);
+            sendChargeRow.enabled(ChargeSend.rowEnabled(s!=null,s!=null&&s.profiles!=null&&s.profiles.active()!=null,s!=null&&s.chargeExporting()));
         }
+    }
+
+    /** The charger row: the family estimates use and why, as Estimates & charger › Charger shows it (HubText). */
+    private void refreshChargerLink(ScooterService s) {
+        ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
+        ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
+                : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        chargerDetail.setText(detail == null ? "" : detail.render());
+        chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
 
     /**
@@ -2652,7 +2749,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
-        if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
+        if (profile == null) { chooseScooterFirst(); return; }
         final String profileId = profile.id;
         // Capture labels train curves, so only an explicit preference is pre-selected; an
         // Automatic guess must never become a label in one tap. An open panel must never start
@@ -2683,7 +2780,7 @@ public final class MoreScreen implements AppScreen {
                 host.toast(T.moreDevScooterChanged()); return;
             }
             if (!s.startChargeRecording(selected[0])) host.toast(s.chargeCaptureStatus());
-            refreshDeveloper();
+            refreshCharging();
         })[1];
         start[0].setTag("charge-confirmation-start");
         title.run();
@@ -2832,7 +2929,7 @@ public final class MoreScreen implements AppScreen {
     @Override public void refresh() {
         if(chargeHistoryDialog!=null)chargeHistoryDialog.refresh();
         ScooterService s = service(); if (s == null) return;
-        refreshDeveloper();
+        refreshSimulation(); refreshCharging();
         if (shownSection().equals("Data")) refreshHistoryStorage();
         if (compatibilityPanel != null) compatibilityPanel.refresh();
         for (Runnable refresh : valueRefreshers) refresh.run();
@@ -2892,7 +2989,8 @@ public final class MoreScreen implements AppScreen {
         pinRow.icon.step(pinOn ? 2 : 1);
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
-        securityConnect.setVisibility(link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
+        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);

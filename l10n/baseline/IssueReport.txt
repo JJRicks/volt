@@ -2,6 +2,7 @@
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
 multiword	" (System default)"
 multiword	"App language: "
+multiword	"Volt charge recordings · Volt "
 multiword	"Volt issue report · Volt "
 multiword	"Volt language request"
 multiword	"Volt translation error ("

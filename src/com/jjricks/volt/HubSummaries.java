@@ -66,6 +66,22 @@ final class HubSummaries {
         return new Battery(percent, limitOffered, charging);
     }
 
+    /** The second line of Battery & charging's summary card (HubBatterySummary): which words it shows. */
+    enum CardState { NOT_CHARGING, CHARGING_TO_LIMIT, CHARGING }
+
+    /**
+     * Battery & charging's summary card, under its level line: "Not charging", "Charging to <limit>" or a plain
+     * "Charging" (the level is already on the line above, so it is never repeated here). charging comes only from a live
+     * reading and the level beside it must be live too (the rule {@link #battery} keeps: a last-seen percentage is never
+     * shown beside a live charging state), else null and the line hides. limit is the charge limit as its row reads it
+     * (HubSubjects.chargeLimit), null when the model has none or it isn't known.
+     */
+    static CardState card(Boolean charging, boolean levelLive, Integer limit) {
+        if (charging == null || !levelLive) return null;
+        if (!charging) return CardState.NOT_CHARGING;
+        return limit != null && limit >= 0 && limit <= 100 ? CardState.CHARGING_TO_LIMIT : CardState.CHARGING;
+    }
+
     /**
      * A setting's value as its row reads it, or null when the row shows it as unknown: a value outside the variant's
      * settings, such as the OEM charge limit's 0 ("Default (80%)", a sentinel Volt treats as unknown). Without a variant

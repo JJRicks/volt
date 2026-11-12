@@ -27,14 +27,32 @@ final class HubSubjects {
         return rows;
     }
 
-    /** Service's single row: the maintenance reminders, with the dot while a check is due. */
-    static List<HubListScreen.Row> service(ScreenHost host) {
+    /**
+     * Service's rows (hub layout plan, PR 4): maintenance reminders (with the dot while a check is due), diagnostics and
+     * connection activity (a link: Data is their one home, so it opens Live Stats on its Diagnostics section), the
+     * compatibility test, issue reports, and every experimental control. diagnostics opens Data's Diagnostics.
+     */
+    static List<HubListScreen.Row> service(ScreenHost host, Runnable diagnostics) {
         ArrayList<HubListScreen.Row> rows = new ArrayList<>();
         String page = HubPages.SERVICE_MAINTENANCE;
         rows.add(new HubListScreen.Row(page, "gear", HubText.title(page),
                 () -> MaintenanceScreen.rowValue(MaintenanceScreen.summary(host.service())),
                 () -> serviceDue(host.service()), null, () -> host.open(page)));
+        rows.add(new HubListScreen.Row(DIAGNOSTICS, "analytics", HubText.diagnosticsRow(), null, null, null, diagnostics));
+        for (String link : new String[] {HubPages.SERVICE_COMPATIBILITY, HubPages.SERVICE_REPORTS, HubPages.SERVICE_EXPERIMENTAL})
+            rows.add(new HubListScreen.Row(link, icon(link), HubText.title(link), null, null, null, () -> host.open(link)));
         return rows;
+    }
+
+    /** The id of Service's diagnostics row (its view tag is "hub-row-" and this): a link, not a page. */
+    static final String DIAGNOSTICS = "service.diagnostics";
+
+    private static String icon(String page) {
+        switch (page) {
+            case HubPages.SERVICE_COMPATIBILITY: return "check";
+            case HubPages.SERVICE_REPORTS: return "export";
+            default: return "lab";
+        }
     }
 
     private static boolean serviceDue(ScooterService service) {
@@ -56,7 +74,7 @@ final class HubSubjects {
                 Double live = level == null ? null : HubSummaries.live(level.number, level.live);
                 Integer percent = live == null ? null : (int) Math.round(live);
                 boolean limitOffered = ordinary(ble, "charge_limit");
-                Integer limit = ordinaryValue(service, "charge_limit");
+                Integer limit = chargeLimit(service);
                 HubSummaries.Battery battery = HubSummaries.battery(limitOffered, limit, percent, charging);
                 if (battery == null) return null;
                 Formatted shown = Fmt.percent(Fmt.integerNumber(battery.percent));
@@ -107,6 +125,15 @@ final class HubSubjects {
         if (ble == null || !ble.controlOffered(key)) return false;
         FeatureVariant variant = ble.decision(key).variant;
         return variant == null || !variant.lab;
+    }
+
+    /**
+     * The charge limit as its row reads it ({@link #ordinaryValue}: an ordinary row, a value the model defines), in
+     * 0-100, or null: the Battery summary and Battery & charging's summary card (HubBatterySummary) state it only then.
+     */
+    static Integer chargeLimit(ScooterService service) {
+        Integer value = service == null ? null : ordinaryValue(service, "charge_limit");
+        return value == null || value < 0 || value > 100 ? null : value;
     }
 
     /**

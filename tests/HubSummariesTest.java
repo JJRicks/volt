@@ -7,6 +7,7 @@ public final class HubSummariesTest {
     public static void main(String[] args) {
         lights();
         battery();
+        batteryCard();
         controls();
         security();
         service();
@@ -64,6 +65,21 @@ public final class HubSummariesTest {
         require(Integer.valueOf(80).equals(HubSummaries.known(oem, 80)) && Integer.valueOf(100).equals(HubSummaries.known(oem, 100)), "Offered limits pass");
         require(HubSummaries.known(oem, 83) == null && HubSummaries.known(oem, null) == null, "Other values and unread are unknown");
         require(Integer.valueOf(0).equals(HubSummaries.known(null, 0)), "No variant: the value as it is");
+    }
+
+    /** Battery & charging's summary card, under the level line (HubBatterySummary; #387 review, finding 4). */
+    private static void batteryCard() {
+        // Charging without a known limit: a plain "Charging", never the level again ("Charging · 78%" under "78% · ...").
+        require(HubSummaries.card(true, true, null) == HubSummaries.CardState.CHARGING, "No limit: plain Charging");
+        require(HubSummaries.card(true, true, 90) == HubSummaries.CardState.CHARGING_TO_LIMIT, "A limit: Charging to it");
+        require(HubSummaries.card(true, true, 101) == HubSummaries.CardState.CHARGING && HubSummaries.card(true, true, -1) == HubSummaries.CardState.CHARGING,
+                "An out-of-range limit is no limit");
+        require(HubSummaries.card(false, true, 90) == HubSummaries.CardState.NOT_CHARGING
+                && HubSummaries.card(false, true, null) == HubSummaries.CardState.NOT_CHARGING, "Not charging");
+        // Charging only from a live state, and only beside a live level (the #404 rule): otherwise the line hides.
+        require(HubSummaries.card(null, true, 90) == null && HubSummaries.card(null, true, null) == null, "Charging unknown: no line");
+        require(HubSummaries.card(true, false, 90) == null && HubSummaries.card(true, false, null) == null
+                && HubSummaries.card(false, false, null) == null, "A last-seen level: no charging line beside it");
     }
 
     private static void controls() {

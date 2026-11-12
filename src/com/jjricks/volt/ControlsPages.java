@@ -27,18 +27,30 @@ final class ControlsPages {
 
     /** The live charging row (ChargeLiveRow); it has no menu id of its own. */
     static final String CHARGE_LIVE = "charge_live";
+    /**
+     * Sub-pages a page links to that another screen builds, not these rows (hub layout plan, PR 4): Battery's
+     * Charge history & recordings is MoreScreen's Charging section.
+     */
+    static final List<String> HOSTED_ELSEWHERE = Collections.unmodifiableList(Arrays.asList(HubPages.BATTERY_HISTORY));
     /** Prefix of a row that opens another page; the rest is the page id. */
     static final String LINK = "link:";
     /** Row ids no page shows any more, each still reachable elsewhere (the plan's "retired" list). */
     static final List<String> RETIRED = Collections.unmodifiableList(Arrays.asList(
             ScooterMenuLayout.SCOOTER_NAME,   // Rename: More › My scooters, Home's edit mode, Quick access "section:Profile"
             ScooterMenuLayout.LIGHT_ZONES,    // replaced by the Line lights and Star lights links
-            "maintenance_reminders"));        // MaintenanceScreen.ROW: Service › Maintenance reminders is a page now
+            "maintenance_reminders",          // MaintenanceScreen.ROW: Service › Maintenance reminders is a page now
+            ScooterMenuLayout.SECURITY_LINK)); // Security is a subject page now (PIN, proximity unlock and pairing are on it)
     /**
      * Pages whose links the Scooter tab's index search finds as results of their own: Line lights and Star lights replaced
      * the zones row ({@link ScooterMenuLayout#LIGHT_ZONES}), and their links carry its search words ("zones", "ambient").
      */
     static final List<String> SEARCHED_LINKS = Collections.unmodifiableList(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR));
+    /**
+     * Pages whose lock bar above the rows already has Connect while disconnected (Security): their last-seen banner leaves
+     * out its own Connect pill, and More's Security section on the page its full-width Connect, so the page shows one
+     * Connect as every other page does (#387 review).
+     */
+    static final List<String> CONNECT_ABOVE = Collections.unmodifiableList(Arrays.asList(HubPages.SECURITY));
     /** Controls never placed as rows (as before the Hub): the lock bar, the handlebar PIN and proximity unlock live elsewhere. */
     static final List<String> NEVER = Collections.unmodifiableList(Arrays.asList("lock", "pin", "proximity_key"));
 
@@ -82,7 +94,7 @@ final class ControlsPages {
         put(HubPages.CONTROLS_LIMITS, false, false, "speed_limit", "drive_speed_limit", "overspeed_control");
         put(HubPages.BATTERY, false, false,
                 "timed_charging", "charge_start", "charge_limit", CHARGE_LIVE, ScooterMenuLayout.CHARGE_ALERT, ScooterMenuLayout.LOW_ALERT,
-                link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES));
+                link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES), link(HubPages.BATTERY_HISTORY));
         put(HubPages.BATTERY_MODES, false, false, "low_power", "long_range_mode");
         put(HubPages.BATTERY_ESTIMATES, false, false, ScooterMenuLayout.CHARGER, "range_algorithm", ScooterMenuLayout.SCHEDULE_TEST);
         ArrayList<String> lights = new ArrayList<>(Arrays.asList(ScooterMenuLayout.HEADLIGHT_INFO, "headlight", "auto_sensor"));
@@ -92,8 +104,8 @@ final class ControlsPages {
         put(HubPages.LIGHTS, false, false, lights.toArray(new String[0]));
         put(HubPages.LIGHTS_LINE, false, false, family("line_"));
         put(HubPages.LIGHTS_STAR, false, false, family("star_"));
-        // PIN, proximity unlock and pairing join this page in PR 4; until then its link opens them in More › Security.
-        put(HubPages.SECURITY, false, false, "lock_expiry", ScooterMenuLayout.SECURITY_LINK);
+        // The Security page puts the lock bar above this row and More's Security section (PIN, proximity unlock, pairing) below it.
+        put(HubPages.SECURITY, false, false, "lock_expiry");
     }
 
     /** A light family's controls (line_, star_), in the catalog's order. */

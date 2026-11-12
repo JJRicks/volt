@@ -99,7 +99,7 @@ public final class ControlsPagesTest {
                 if (!ControlsPages.isLink(id)) continue;
                 String target = ControlsPages.linkTarget(id);
                 require(HubPages.known(target) && page.equals(HubPages.parent(target)), "A link opens one of the page's sub-pages: " + page + " " + target);
-                require(ControlsPages.spec(target) != null, "A linked page has rows: " + target);
+                require(ControlsPages.spec(target) != null || ControlsPages.HOSTED_ELSEWHERE.contains(target), "A linked page has rows: " + target);
             }
         // Every sub-page with rows is linked from its parent, so it is two taps from the Scooter tab.
         for (String page : ControlsPages.pages()) {
@@ -107,6 +107,10 @@ public final class ControlsPagesTest {
             require(ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)), "Linked from its parent: " + page);
         }
         require(ControlsPages.linkTarget("charge_limit") == null && !ControlsPages.isLink(null), "Only links have targets");
+        // Charge history & recordings is MoreScreen's page, linked from Battery & charging (hub layout plan, PR 4).
+        for (String page : ControlsPages.HOSTED_ELSEWHERE)
+            require(ControlsPages.spec(page) == null && ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)),
+                    "Linked from its parent, built elsewhere: " + page);
         // The index's search finds the Line lights and Star lights links (they replaced the zones row and carry its words).
         require(ControlsPages.SEARCHED_LINKS.equals(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR)), "Searched links");
         for (String page : ControlsPages.SEARCHED_LINKS) {
@@ -131,6 +135,24 @@ public final class ControlsPagesTest {
         // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages.
         require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("\"linestarlightszonesambientpatterncolorboost\""),
                 "The index's search finds Line lights and Star lights by the zones row's words");
+        // A page's card hides when none of its rows shows (#387 review: Security's lone lock-duration row on a model
+        // without one left an empty strip).
+        require(source.contains("pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);")
+                && source.contains("privatebooleanhideDividers(LinearLayoutbody)") && source.contains("returnhasVisible;"),
+                "A page's card shows only while one of its rows does");
+        // Disconnected, Security shows one Connect, the lock bar's (#387 review): the banner's pill and More's button hide there.
+        require(ControlsPages.CONNECT_ABOVE.equals(Arrays.asList(HubPages.SECURITY)), "Security's lock bar has the page's Connect");
+        require(source.contains("bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);"),
+                "The last-seen banner leaves out its Connect under a lock bar");
+        String more = new String(Files.readAllBytes(Paths.get(mainActivity).resolveSibling("MoreScreen.java")), StandardCharsets.UTF_8).replaceAll("\\s+", "");
+        require(more.contains("securityConnect.setVisibility(!embedded&&link==BleController.State.DISCONNECTED?View.VISIBLE:View.GONE);"),
+                "More's Security section on the Security page leaves out its Connect");
+        // The Charger row on Charge history & recordings names the charger under its title, full width, never in the
+        // 140 dp value beside it (German at large text broke inside words there; #387 review).
+        require(more.contains("chargerLinkRow.sub((effective==null?HubText.chargerAutomatic()") && !more.contains("chargerLinkRow.value("),
+                "The Charger row's charger is its sub-line");
+        // Charge history & recordings' link draws the chart its recordings row uses, never the default star.
+        require(source.contains("caseHubPages.BATTERY_HISTORY:return\"chart\";"), "Charge history & recordings has the chart icon");
     }
 
     private static void order() {
@@ -208,6 +230,8 @@ public final class ControlsPagesTest {
         require(ControlsPages.linkShown(HubPages.BATTERY_MODES, "long_range_mode"::equals), "One row is enough");
         require(!ControlsPages.linkShown(HubPages.BATTERY_MODES, "charge_limit"::equals), "A row of another page doesn't count");
         require(ControlsPages.linkShown(HubPages.HOME, id -> false), "A page these rows don't build keeps its link");
+        for (String page : ControlsPages.HOSTED_ELSEWHERE)
+            require(ControlsPages.linkShown(page, id -> false), "A page built elsewhere keeps its link: " + page);
         // The GT3 Max's Assists page shows its three Experimental entries and kick-start speed's row or entry, so its link shows.
         DeviceDescriptor gt3 = OemControlsTest.model("24182", "ES");
         require(ControlsPages.linkShown(HubPages.CONTROLS_ASSISTS, id -> shownOn(gt3, id)), "GT3 Max Assists link");
