@@ -112,7 +112,15 @@ public final class HubTestPages {
         if (problem[0] != null) throw new IllegalStateException(problem[0]);
         String name = "the row " + row[0].getTag() + " on page " + from[0];
         tap(instrumentation, activity, row[0], name);
-        awaitPage(instrumentation, activity, wanted, name);
+        try { awaitPage(instrumentation, activity, wanted, name); }
+        catch (IllegalStateException missed) {
+            // Diagnosis only (the step still fails): does the row's own click open the page, so the touch never became a click?
+            String[] after = {null};
+            onMain(instrumentation, () -> { row[0].performClick(); });
+            instrumentation.waitForIdleSync();
+            onMain(instrumentation, () -> after[0] = current(activity) + " pressed=" + row[0].isPressed() + " attached=" + row[0].isAttachedToWindow());
+            throw new IllegalStateException(missed.getMessage() + "; performClick afterwards left " + after[0], missed);
+        }
     }
 
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */
@@ -154,6 +162,8 @@ public final class HubTestPages {
             onMain(instrumentation, () -> {
                 if (!view.isShown()) { problem[0] = "is hidden"; return; }
                 if (!view.isEnabled()) { problem[0] = "is disabled"; return; }
+                // A rider's touch reaches the page only while its window has focus (no dialog or sheet over it).
+                if (!activity.hasWindowFocus()) { problem[0] = "is under another window (the page has no focus)"; return; }
                 Rect visible = new Rect();
                 boolean whole = view.getGlobalVisibleRect(visible) && visible.width() >= view.getWidth() - 1 && visible.height() >= view.getHeight() - 1;
                 if (!centred[0] || !whole) {
@@ -165,6 +175,12 @@ public final class HubTestPages {
                 if (!whole) { problem[0] = "is not fully on screen"; return; }
                 int[] at = new int[2]; view.getLocationOnScreen(at);
                 centre[0] = at[0] + view.getWidth() / 2; centre[1] = at[1] + view.getHeight() / 2;
+                // A scroller still animating (a fling, or the tab's scroll to the top even when already there) takes a
+                // touch as catching the scroll, not as a tap on the row: wait until every scroller around it has stopped.
+                if (scrolling(view)) { problem[0] = "is in a page that is still scrolling"; return; }
+                // Nothing drawn over the row's centre may take the touch instead (a floating bar, a pane, an overlay).
+                View top = topAt(activity.getWindow().getDecorView(), centre[0], centre[1]);
+                if (top != null && !inside(top, view)) { problem[0] = "is covered by " + describe(top); return; }
                 ready[0] = true;
             });
             // Still: the same place on three reads in a row, so nothing is moving it any more.
@@ -180,6 +196,19 @@ public final class HubTestPages {
         try { instrumentation.sendPointerSync(down); instrumentation.sendPointerSync(up); }
         finally { down.recycle(); up.recycle(); }
         instrumentation.waitForIdleSync();
+    }
+
+    /** Whether a ScrollView around the view has an unfinished scroll animation (its touch would stop it instead of tapping). */
+    private static boolean scrolling(View view) {
+        for (Object parent = view.getParent(); parent instanceof View; parent = ((View) parent).getParent()) {
+            if (!(parent instanceof ScrollView)) continue;
+            try {
+                Field scroller = ScrollView.class.getDeclaredField("mScroller");
+                scroller.setAccessible(true);
+                if (!((android.widget.OverScroller) scroller.get(parent)).isFinished()) return true;
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("ScrollView.mScroller", error); }
+        }
+        return false;
     }
 
     /** Scrolls the view's nearest page scroller so the view sits in its middle; false when it has no scroller or is already there. */
@@ -210,7 +239,9 @@ public final class HubTestPages {
             SystemClock.sleep(40);
         }
         String shown = currentOn(instrumentation, activity);
-        if (!there[0]) throw new IllegalStateException("Tapping " + tapped + " did not open " + page + " (" + shown + " is on top)");
+        boolean[] focus = {false};
+        onMain(instrumentation, () -> focus[0] = activity.hasWindowFocus());
+        if (!there[0]) throw new IllegalStateException("Tapping " + tapped + " did not open " + page + " (" + shown + " is on top; window focus " + focus[0] + ")");
         synchronized (TAPPED) {
             Set<String> pages = TAPPED.get(activity);
             if (pages == null) TAPPED.put(activity, pages = new HashSet<>());
@@ -226,6 +257,29 @@ public final class HubTestPages {
     }
 
     private static String capital(String text) { return text.isEmpty() ? text : Character.toUpperCase(text.charAt(0)) + text.substring(1); }
+
+    /** The deepest shown clickable view at a screen point, children drawn last first (as touch dispatch tries them); null if none. */
+    private static View topAt(View view, int x, int y) {
+        if (view.getVisibility() != View.VISIBLE) return null;
+        Rect bounds = new Rect();
+        if (!view.getGlobalVisibleRect(bounds)) return null;
+        int[] origin = new int[2]; view.getLocationOnScreen(origin); int[] window = new int[2]; view.getLocationInWindow(window);
+        bounds.offset(origin[0] - window[0], origin[1] - window[1]);
+        if (!bounds.contains(x, y)) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                View hit = topAt(group.getChildAt(i), x, y);
+                if (hit != null) return hit;
+            }
+        }
+        return view.isClickable() || view.isLongClickable() ? view : null;
+    }
+
+    private static String describe(View view) {
+        String text = view instanceof android.widget.TextView ? " \"" + ((android.widget.TextView) view).getText() + "\"" : "";
+        return view.getClass().getSimpleName() + (view.getTag() instanceof String ? " " + view.getTag() : "") + text;
+    }
 
     private static boolean inside(View view, View ancestor) {
         if (ancestor == null) return false;
