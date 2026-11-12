@@ -14,12 +14,35 @@ final class HubSummaries {
 
     /**
      * tailLight and autoSensor are the scooter's 0/1 values (null when unread). tailLight is feature key {@code headlight},
-     * which drives the tail light (OEM tailIsOn), not the front lamp. Automatic lights win.
+     * which drives the tail light (OEM tailIsOn), not the front lamp. autoOffered: the model offers Automatic lights as an
+     * ordinary row. Automatic lights win; while the model offers them and their value is unread there is no summary (they
+     * may be in charge), and the tail light alone is the basis only on a model with no Automatic lights setting.
      */
-    static Lights lights(Integer tailLight, Integer autoSensor) {
-        if (Integer.valueOf(1).equals(autoSensor)) return Lights.AUTO;
-        if (tailLight == null) return null;
-        return tailLight == 1 ? Lights.ON : Lights.OFF;
+    static Lights lights(boolean autoOffered, Integer tailLight, Integer autoSensor) {
+        if (autoOffered) {
+            Boolean auto = toggle(autoSensor);
+            if (auto == null) return null;
+            if (auto) return Lights.AUTO;
+        }
+        Boolean tail = toggle(tailLight);
+        if (tail == null) return null;
+        return tail ? Lights.ON : Lights.OFF;
+    }
+
+    /**
+     * A switch's value as its row reads it: 1 on, 0 off, null for unread or any other value. A value the model doesn't
+     * define is unknown, as {@link #known} makes it for the charge limit, never "off".
+     */
+    static Boolean toggle(Integer value) {
+        return value == null || (value != 0 && value != 1) ? null : value == 1;
+    }
+
+    /**
+     * A reading's number only while it is live (ScooterService.displayReadings: fresh by the reading's own rule, the one
+     * Home's status line uses for the drive mode), else null: a last-seen or expired value is unknown here.
+     */
+    static Double live(Double number, boolean live) {
+        return !live || number == null || !Double.isFinite(number) ? null : number;
     }
 
     /** Battery & charging: the charge limit where the model has one, else the battery level; and whether it charges. */
@@ -31,10 +54,11 @@ final class HubSummaries {
     }
 
     /**
-     * limitOffered: the model has a charge limit (charge_limit); limit is its value in percent, level the battery's;
-     * charging is the scooter's live charging state. Null when the number the summary needs is unknown or out of range,
-     * or when the charging state is unknown: the line says "charging" or "not charging", so without a live report it
-     * would guess. Missing telemetry stays unavailable (Clean Home and the Scooter tab's index share this rule).
+     * limitOffered: the model has a charge limit (charge_limit); limit is its value in percent, level the battery's from a
+     * live reading (null when there is none: a last-seen percentage is never shown beside a live charging state).
+     * charging comes only from a live reading (null when there is none): without it there is no summary, since HubText
+     * has no wording for a level or limit alone and "not charging" would be a guess. Null too when the number the
+     * summary needs is unknown or out of range.
      */
     static Battery battery(boolean limitOffered, Integer limit, Integer level, Boolean charging) {
         if (charging == null) return null;
@@ -43,9 +67,49 @@ final class HubSummaries {
         return new Battery(percent, limitOffered, charging);
     }
 
-    /** Controls: whether cruise control is on (0/1), null when unread. The drive mode's name comes with it as data. */
+    /** The second line of Battery & charging's summary card (HubBatterySummary): which words it shows. */
+    enum CardState { NOT_CHARGING, CHARGING_TO_LIMIT, CHARGING }
+
+    /**
+     * Battery & charging's summary card, under its level line: "Not charging", "Charging to <limit>" or a plain
+     * "Charging" (the level is already on the line above, so it is never repeated here). charging comes only from a live
+     * reading and the level beside it must be live too (the rule {@link #battery} keeps: a last-seen percentage is never
+     * shown beside a live charging state), else null and the line hides. limit is the charge limit as its row reads it
+     * (HubSubjects.chargeLimit), null when the model has none or it isn't known.
+     */
+    static CardState card(Boolean charging, boolean levelLive, Integer limit) {
+        if (charging == null || !levelLive) return null;
+        if (!charging) return CardState.NOT_CHARGING;
+        return limit != null && limit >= 0 && limit <= 100 ? CardState.CHARGING_TO_LIMIT : CardState.CHARGING;
+    }
+
+    /**
+     * A setting's value as its row reads it, or null when the row shows it as unknown: a value outside the variant's
+     * settings, such as the OEM charge limit's 0 ("Default (80%)", a sentinel Volt treats as unknown). Without a variant
+     * (a profile that has never connected: catalogue rows, unavailable) the value passes as it is.
+     */
+    static Integer known(FeatureVariant variant, Integer value) {
+        if (value == null || variant == null) return value;
+        return variant.allows(value) || variant.shows(value) ? value : null;
+    }
+
+    /**
+     * Controls: the drive mode's name as the riding screen shows it, or null when it is unknown: no live reading
+     * (HubSubjects passes the code through {@link #live} with displayReadings' freshness rule, as Home's status line
+     * uses, since the riding screen's own tracker exists only in riding mode, so a stale one is no reading), or a code
+     * this model's names don't cover (Telemetry marks it "(raw)").
+     */
+    static String driveMode(String label) {
+        if (label == null || label.isEmpty() || Telemetry.rawReading(null, label) || label.equals(Telemetry.drivingModeLabel(0, null))) return null;
+        return label;
+    }
+
+    /**
+     * Controls: whether cruise control is on (0/1), null when unread or neither 0 nor 1 ({@link #toggle}). The drive
+     * mode's name comes with it as data.
+     */
     static Boolean cruise(Integer cruiseControl) {
-        return cruiseControl == null ? null : cruiseControl == 1;
+        return toggle(cruiseControl);
     }
 
     /** Security: both the handlebar PIN and proximity unlock must be known, or there is no summary. */
@@ -58,12 +122,12 @@ final class HubSummaries {
         return pin == null || proximity == null ? null : new Security(pin, proximity);
     }
 
-    /** Service: maintenance reminders, from MaintenanceView.Summary's counts. */
-    enum Service { DUE, SOON, CLEAR }
+    /** Service: maintenance reminders, from MaintenanceView.Summary's counts. OFF: reminders are off (the row's "Off"). */
+    enum Service { DUE, SOON, CLEAR, OFF }
 
-    /** on: reminders are switched on for this scooter; due and soon count the reminders in each state. Null when off. */
+    /** on: reminders are switched on for this scooter; due and soon count the reminders in each state. */
     static Service service(boolean on, int due, int soon) {
-        if (!on) return null;
+        if (!on) return Service.OFF;
         return due > 0 ? Service.DUE : soon > 0 ? Service.SOON : Service.CLEAR;
     }
 }

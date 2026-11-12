@@ -72,11 +72,11 @@ final class WhatsNewSheet {
     /**
      * This version's changelog (owner's answers 9, 10 and 12 on #383): its heading, the line saying the notes are in
      * English while Volt is not, the notes as bullets with their bold leads, and a link to the release page with the
-     * full notes. The notes are the section of CHANGELOG.md that build.sh bundled (ReleaseNotes), so they need no
+     * full notes. The notes are the section of CHANGELOG.md that build.sh bundled (WhatsNewNotes), so they need no
      * network; an APK built without a section for its version shows none of this.
      */
     private static void addNotes(ScreenHost host, Ui ui, LinearLayout content) {
-        ReleaseNotes.Notes notes = ReleaseNotes.parse(bundled(host), AppVersion.name(host.activity()));
+        WhatsNewNotes.Notes notes = WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity()));
         if (notes == null) return;
         LinearLayout box = new LinearLayout(host.activity());
         box.setOrientation(LinearLayout.VERTICAL);
@@ -95,7 +95,7 @@ final class WhatsNewSheet {
             english.setPadding(0, ui.dp(4), 0, 0);
             box.addView(english, new LinearLayout.LayoutParams(-1, -2));
         }
-        for (ReleaseNotes.Item item : notes.items) {
+        for (WhatsNewNotes.Item item : notes.items) {
             TextView line = ui.text("", 14, false);
             line.setText(styled(ui, item));
             line.setLineSpacing(ui.dp(2), 1);
@@ -113,9 +113,9 @@ final class WhatsNewSheet {
         content.addView(box, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    /** The bundled section (ReleaseNotes.ASSET), or null when the APK has none or it can't be read. */
+    /** The bundled section (WhatsNewNotes.ASSET), or null when the APK has none or it can't be read. */
     private static String bundled(ScreenHost host) {
-        try (java.io.InputStream in = host.activity().getAssets().open(ReleaseNotes.ASSET)) {
+        try (java.io.InputStream in = host.activity().getAssets().open(WhatsNewNotes.ASSET)) {
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             byte[] chunk = new byte[4096];
             int read, total = 0;
@@ -127,9 +127,9 @@ final class WhatsNewSheet {
     }
 
     /** One item: a bullet (indented under its lead line), bold leads bold, code in the monospace face. */
-    private static CharSequence styled(Ui ui, ReleaseNotes.Item item) {
+    private static CharSequence styled(Ui ui, WhatsNewNotes.Item item) {
         android.text.SpannableStringBuilder text = new android.text.SpannableStringBuilder();
-        for (ReleaseNotes.Span span : item.spans) {
+        for (WhatsNewNotes.Span span : item.spans) {
             int start = text.length();
             text.append(span.text);
             if (span.bold) text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, text.length(), 0);

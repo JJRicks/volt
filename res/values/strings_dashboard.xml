@@ -264,8 +264,14 @@
     <string name="dashboard_battery" volt:screen="Home battery overview widget" volt:purpose="label">Battery</string>
     <!-- The battery overview's range line: %1$s is the range ("about 31 mi"). -->
     <string name="dashboard_range_left" volt:screen="Home battery overview widget" volt:purpose="value" volt:safety="ride">%1$s left</string>
+    <!-- Spoken for the battery overview widget in place of dashboard_range_left, never drawn: the
+         description's range part, after "Battery 70 percent, " or "Battery not reported, " and sometimes
+         followed by ", last seen <time>" (see the dashboard_overview_*_line forms below). %1$s is the
+         range ("about 31 mi").
+         Say that the distance is the range still left, even where the drawn line shows the value alone. -->
+    <string name="dashboard_range_left_spoken" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="ride">%1$s of range left</string>
     <!-- Spoken for the battery overview widget. %1$s is the level, a whole number of percent; the
-         _line forms add the range line (%1$s or %2$s: "about 31 mi left", or "Charging"); the _seen
+         _line forms add the range part (%1$s or %2$s: "about 31 mi of range left", or "Charging"); the _seen
          forms say when the level was read (the last placeholder: a date and time) when it is not live. -->
     <string name="dashboard_overview_not_reported" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported</string>
     <string name="dashboard_overview_not_reported_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, last seen %1$s</string>

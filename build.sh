@@ -313,7 +313,7 @@ navee_release_translations() {
 }
 
 # The APK's assets: the licence texts as they are in licenses/, and this version's section of
-# CHANGELOG.md as whats-new/notes.md for the one-time What's new sheet (ReleaseNotes; owner's
+# CHANGELOG.md as whats-new/notes.md for the one-time What's new sheet (WhatsNewNotes; owner's
 # answers 9, 10 and 12 on #383). The section is the "## <manifest versionName>" heading and every
 # line up to the next "## " heading; without one (a version whose notes aren't written yet) the
 # file is left out and the sheet shows no notes. The app checks the heading against the installed
