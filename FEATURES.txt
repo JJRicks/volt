@@ -96,8 +96,8 @@ PREVIOUSLY IN 1.12.0
 - Live charging: after you leave Volt during a charge, a live card on the
   lock screen and in notifications shows the level, the finish time and the
   power, with Disconnect; on Android 16 and later it can be a Live Update.
-- Maintenance reminders by distance or time (Scooter > Service > Maintenance
-  reminders), with a quiet notification when a check is due.
+- Maintenance reminders by distance or time (Scooter > Service >
+  Maintenance), with a quiet notification when a check is due.
 - Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French
   and Italian, all beta, and a Language row with Units and Text size.
 - More > Updates with an opt-in daily update check; one Export ride data
