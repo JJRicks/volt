@@ -15,6 +15,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
@@ -36,6 +37,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -2432,7 +2434,8 @@ public final class MoreScreen implements AppScreen {
     private void updateResult(String installed, UpdateCheck.Result r) {
         LinearLayout box;
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
+        boolean available = r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE;
+        if (available) {
             // Seen here: the automatic check does not announce this version again.
             UpdateCheckJob.seen(settings(), r.latest);
             // Download hands the browser the release's APK; without one in the reply, the release page as before.
@@ -2440,10 +2443,13 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateAvailableBodyDownload(installed)
                     : T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
-                TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
+                // The notes with their headings, lists and emphasis (ReleaseNotesView), on a card of their own.
+                TextView notes = ReleaseNotesView.of(ui, r.markdown, r.notes); notes.setTextIsSelectable(true);
+                notes.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12)); notes.setBackground(ui.shape(ui.bg, 14, 0));
                 String language = UpdateCheck.notesLanguageNote();
                 if (!language.isEmpty()) { TextView english = ui.caption(language); english.setPadding(0, ui.dp(10), 0, 0); box.addView(english); }
-                notes.setTag("update-notes"); box.addView(notes);
+                LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, -2); card.topMargin = ui.dp(12); card.bottomMargin = ui.dp(4);
+                notes.setTag("update-notes"); box.addView(notes, card);
             }
         } else if (r != null && r.outcome == UpdateCheck.Outcome.CURRENT) {
             box = dialogBox(T.moreUpdateCurrent(), VersionName.dev(installed)
@@ -2454,14 +2460,60 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateNoAnswer()
                     : T.moreUpdateUnreadable());
         }
-        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
-        AlertDialog dialog = builder.setView(inner).create();
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE)
-            dialogButtons(box, T.commonClose(), dialog::dismiss, r.direct()
+        ScrollView inner = new ScrollView(host.activity());
+        // A new release: the title, wording and notes scroll above the buttons, which stay in view however long
+        // the notes are (the scroll area takes what the dialog has left after them). In a window too short for both
+        // (PinnedFooter) the buttons scroll with the notes instead, so the title and notes can always be reached.
+        LinearLayout frame = column(), foot = column(), content = column();
+        content.addView(box); inner.addView(content);
+        if (available) {
+            frame.addView(inner, new LinearLayout.LayoutParams(-1, 0, 1));
+            foot.setPadding(ui.dp(22), 0, ui.dp(22), ui.dp(10)); frame.addView(foot, new LinearLayout.LayoutParams(-1, -2));
+            frame.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if (footerMisplaced(frame, foot, box, content)) frame.post(() -> {
+                    if (!footerMisplaced(frame, foot, box, content)) return;
+                    boolean scrolls = foot.getParent() == frame;
+                    // Moving the buttons drops their focus (keyboard, D-pad or TalkBack): give it back, in view.
+                    View focused = foot.findFocus();
+                    View held = accessibilityFocused(foot);
+                    ((ViewGroup) foot.getParent()).removeView(foot);
+                    (scrolls ? content : frame).addView(foot, new LinearLayout.LayoutParams(-1, -2));
+                    if (focused != null) focused.requestFocus();
+                    if (held != null) held.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+                    if (scrolls && (focused != null || held != null)) foot.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                        @Override public void onLayoutChange(View f, int l, int t, int r2, int b, int ol, int ot, int or, int ob) {
+                            foot.removeOnLayoutChangeListener(this);
+                            inner.requestChildRectangleOnScreen(foot, new Rect(0, 0, foot.getWidth(), foot.getHeight()), true);
+                        }
+                    });
+                });
+            });
+        }
+        AlertDialog dialog = builder.setView(available ? frame : inner).create();
+        if (available)
+            dialogButtons(foot, T.commonClose(), dialog::dismiss, r.direct()
                     ? T.moreUpdateDownload()
                     : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
+    }
+    /** The view in this group that holds TalkBack's focus, or null. */
+    private static View accessibilityFocused(View view) {
+        if (view.createAccessibilityNodeInfo().isAccessibilityFocused()) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = accessibilityFocused(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+    /** Whether the update dialog's buttons sit on the wrong side of its scroller for the window's height now. */
+    private boolean footerMisplaced(LinearLayout frame, LinearLayout foot, View body, LinearLayout content) {
+        if (closed || foot.getParent() == null) return false;
+        boolean scrolls = PinnedFooter.scrolls(frame.getHeight(), foot.getHeight(), body.getHeight(), ui.dp(PinnedFooter.MIN_BODY_DP));
+        return scrolls != (foot.getParent() == content);
     }
     /** The browser gets the APK (safeDownload) or the release page (safePage), never anything else; Volt downloads nothing. */
     private void openRelease(UpdateCheck.Result r) {
@@ -2575,19 +2627,22 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
-     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded.
+     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded (said in a
+     * toast) or while an earlier export is still being written (quiet: a double tap; ChargeSend.refusal).
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) return;
-        if (s.isChargeRecording()) { host.toast(HubText.chargeSendBusy()); return; }
-        if (!s.exportChargeRecordings(file -> {
+        if (s.exportChargeRecordings(file -> {
             if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
             if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
             host.emailChargeRecordings(file);
-        })) exportBusy();
+        })) return;
+        // Refused: tell the two reasons apart from the service's state.
+        if (ChargeSend.refusal(s.isChargeRecording(), s.chargeExporting()) == ChargeSend.Refusal.STOP_RECORDING)
+            host.toast(HubText.chargeSendBusy());
     }
 
-    /** An export (the file or Email to Volt) is refused: a charge is being recorded, or another export is running. */
+    /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
     private void exportBusy() { host.toast(T.moreDevExportBusy()); }
 
     /** "Report an issue": More's menu ends with it, and it is Service › Issue reports. */
