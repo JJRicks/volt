@@ -143,6 +143,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private String selectedPage=HubPages.HOME,scrollPage=HubPages.HOME;
     /** One-shot arguments for the next page built (ScreenHost.open); taken by rebuild, never saved. */
     private HubNav.Args pageArgs;
+    /** Review's recovery-only Compatibility page: pageArgs is one-shot, so this keeps it through rebuilds while the page is in the stack. */
+    private boolean compatibilityRecovery;
     private boolean bound,binding,resumed,destroyed,pendingConnect,pendingScan,expanded,rebuilding,applyingOwnerImport,importWaitNotified,bodyRefreshScheduled;
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
@@ -228,7 +230,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
         selectedPage=nav.current();
@@ -274,7 +276,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice was tapped while riding mode or setup was up (onNewIntent); kept across recreation. */
     private boolean maintenancePending;
     /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
-    private void showMaintenanceFromNotice(){pageArgs=null;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
+    private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
@@ -321,7 +323,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
-        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);
+        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
@@ -371,7 +373,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
     private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){pageArgs=null;nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -554,7 +556,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
             case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
             case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
-            case HubPages.SERVICE_COMPATIBILITY:return new HubCompatibilityPage(this,args!=null&&args.recovery);
+            case HubPages.SERVICE_COMPATIBILITY:{
+                // The one-shot args choose the route; a rebuild (rotation, theme, text size) keeps it.
+                if(args!=null)compatibilityRecovery=args.recovery;
+                return new HubCompatibilityPage(this,compatibilityRecovery);
+            }
             case HubPages.SERVICE_EXPERIMENTAL:{
                 MoreScreen lab=new MoreScreen(this,"Lab",true);
                 // A shortcut or an Experimental entry names its control: its try opens once the page is on screen.
@@ -582,8 +588,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
     private AppScreen securityLock(){
-        // The page header's connection line stays; only the previous page's lock views are dropped.
-        TextView header=connectionTitle;clearDashboardLock();connectionTitle=header;
+        // makeCompactHeader dropped any earlier lock before this page was built.
         View lock=makeDashboardLock(false,true);lock.setTag("hub-security-lock");
         LinearLayout part=column();
         float scale=Math.max(1f,design.textScale*getResources().getConfiguration().fontScale);
@@ -596,7 +601,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Service's Diagnostics & connection activity row: Data is their one home, so it opens Live Stats on Diagnostics. */
     private void openDiagnostics(){
+        // A deliberate shortcut wins over Live Stats' expired return state (as openMoreSection does for More):
+        // with the away timer cleared, leaving() keeps Diagnostics instead of resetting to Overview.
+        expireStatsSection(true);markStatsActive();
         preferences.edit().putString("stats_section","Diagnostics").apply();
+        scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
         open(HubPages.DATA);
     }
     private void styleSystemBars(){
@@ -1024,6 +1033,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Other tabs: a tappable connection line above the page title. The lock lives on Home. */
     private LinearLayout makeCompactHeader(){
+        // A page other than Home starts with no lock registered; Security's page part registers its own after this.
+        clearDashboardLock();
         LinearLayout header=column();header.setPadding(design.dp(expanded?24:18),design.dp(10),design.dp(expanded?24:18),design.dp(6));
         String pageName="";int tab=tabIndex(selectedPage);if(tab>=0)pageName=names[tab];
         // A page below a tab's root shows a back link to the page under it, and its own title (HubText).
@@ -1104,6 +1115,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** The stack changed from page from: show its top, sliding in from the tab's side, or by depth within a tab. */
     private void arrived(String from){
         String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();
+        if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
         int before=tabIndex(from),after=tabIndex(page);
         navFrom=before;transitionRebuild(before!=after?Integer.signum(after-before):HubNav.direction(from,page));navFrom=-1;
     }
@@ -2032,15 +2044,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         // The same resolver as the settings rows and the write gate: an unmapped control says why.
         CapabilityResolver.Decision decision = scooterService.ble.decision(feature.key);
         if (decision.support != CapabilityResolver.Support.KNOWN_ENCODING) { toast(decision.reasonMessage()); return; }
-        if (decision.variant != null && decision.variant.lab) { openRoute(HubRoutes.forFeature(true, false), HubNav.Args.inspect(feature.key)); return; }
+        if (decision.variant != null && decision.variant.lab) { openRoute(HubRoutes.forFeature(feature, true), HubNav.Args.inspect(feature.key)); return; }
         // Another model's region, firmware or full-ID rule refuses it: say why, as its Scooter row does (never on the UT5 MAX).
         if (decision.reason == CapabilityResolver.Reason.REGION_RULE || decision.reason == CapabilityResolver.Reason.FIRMWARE_UNKNOWN
                 || decision.reason == CapabilityResolver.Reason.FIRMWARE_OLD || decision.reason == CapabilityResolver.Reason.FULL_PID_NEEDED) {
             toast(decision.reasonMessage()); return;
         }
-        if (feature.sensitive || feature.key.equals("proximity_key")) {
-            openRoute(HubRoutes.forFeature(false, true), null); return;
-        }
+        String securityPage = HubRoutes.forFeature(feature, false);
+        if (securityPage != null) { openRoute(securityPage, null); return; }
         BleController ble = scooterService.ble;
         if (!ble.ready()) { toast(T.mainQuickConnectChange()); return; }
         if (ble.pending() != null) { toast(T.mainQuickWaitChange()); return; }

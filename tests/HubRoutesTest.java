@@ -43,14 +43,24 @@ public final class HubRoutesTest {
     }
 
     private static void features() {
-        require(HubPages.SERVICE_EXPERIMENTAL.equals(HubRoutes.forFeature(true, false))
-                && HubPages.SERVICE_EXPERIMENTAL.equals(HubRoutes.forFeature(true, true)), "A Lab try opens Experimental controls");
-        require(HubPages.SECURITY.equals(HubRoutes.forFeature(false, true)), "PIN and proximity open Security");
-        require(HubRoutes.forFeature(false, false) == null, "Other controls keep their toggle or editor");
-        // The controls that route to Security: sensitive ones and proximity unlock (MainActivity.quickAction's rule).
-        for (ScooterCommands.Feature f : ScooterCommands.catalog())
-            if (f.sensitive || f.key.equals("proximity_key"))
+        // MainActivity.quickAction routes every control shortcut through forFeature: a Lab try opens Experimental
+        // controls (with its inspect), sensitive controls and proximity unlock open Security, the rest stay direct.
+        int security = 0;
+        for (ScooterCommands.Feature f : ScooterCommands.catalog()) {
+            require(HubPages.SERVICE_EXPERIMENTAL.equals(HubRoutes.forFeature(f, true)), "A Lab try opens Experimental controls: " + f.key);
+            boolean onSecurity = f.sensitive || f.key.equals("proximity_key");
+            String page = HubRoutes.forFeature(f, false);
+            if (onSecurity) {
+                security++;
+                require(HubPages.SECURITY.equals(page), "A sensitive or proximity control opens Security: " + f.key);
                 require(QuickAccessActions.find(QuickAccessActions.FEATURE_PREFIX + f.key) != null, "Security control has a shortcut id: " + f.key);
+            } else {
+                require(page == null, "Other controls keep their toggle or editor: " + f.key);
+            }
+        }
+        require(security > 0 && HubPages.SECURITY.equals(HubRoutes.forFeature(ScooterCommands.find("proximity_key"), false)),
+                "Proximity unlock and the PIN controls route to Security");
+        require(HubRoutes.forFeature(null, false) == null, "No feature, no page");
     }
 
     /** Until PR 5 the Settings and Data pages open in More's sections; every other page is built by MainActivity. */

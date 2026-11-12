@@ -671,8 +671,9 @@ APP TOOLS AND REMAINING VALIDATION
 
 The app includes local profiles, appearance/text/unit choices, fold-aware
 layouts, charts, ride recording, notes, comparison and exports. More uses saved
-App, Scooters, Security, Lab, Data and About sections, showing one at a time without
-rebuilding their controls. Submenus reset after one minute away from More or the
+App, Scooters, Data, About and Developer sections, showing one at a time without
+rebuilding their controls. Security and Experimental controls are subject pages
+(Scooter > Security, Scooter > Service > Experimental controls). Submenus reset after one minute away from More or the
 app, while active use and quick returns preserve the section. First-time owner setup stays visible when needed.
 
 Keep idle connection in background defaults off. When off with no recording,

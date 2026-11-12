@@ -45,11 +45,17 @@ final class HubRoutes {
 
     /**
      * A control's shortcut that can't be a direct toggle or editor on Home: one the Lab tries on this model opens its
-     * test in Service › Experimental controls; the handlebar PIN and proximity unlock open Security. Null for the rest.
+     * test in Service › Experimental controls (lab: the resolver's variant is a Lab try); the handlebar PIN and the
+     * other sensitive controls, and proximity unlock, open Security. Null for the rest, which keep their toggle or editor.
      */
-    static String forFeature(boolean lab, boolean securityControl) {
+    static String forFeature(ScooterCommands.Feature feature, boolean lab) {
         if (lab) return HubPages.SERVICE_EXPERIMENTAL;
-        return securityControl ? HubPages.SECURITY : null;
+        return feature != null && securityControl(feature) ? HubPages.SECURITY : null;
+    }
+
+    /** The controls whose rows live on Security, so their shortcuts open it. */
+    static boolean securityControl(ScooterCommands.Feature feature) {
+        return feature.sensitive || feature.key.equals("proximity_key");
     }
 
     /**

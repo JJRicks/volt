@@ -253,11 +253,13 @@ public final class MoreScreen implements AppScreen {
         cardDestination = column(); sections.put("Units", cardDestination);
         sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
         units();
-        // Built only for the Hub pages that show them, so their rows' tags stay unique in More.
-        if (standalone) {
+        // Each is built only for the Hub page that shows it, so its rows' tags stay unique (not on Security or Lab).
+        if (CHARGING_SECTION.equals(initialSection)) {
             cardDestination = column(); sections.put(CHARGING_SECTION, cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
             charging();
+        }
+        if (REPORTS_SECTION.equals(initialSection)) {
             cardDestination = column(); sections.put(REPORTS_SECTION, cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
             reportLink(cardDestination);
