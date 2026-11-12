@@ -1,6 +1,7 @@
 package com.jjricks.volt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -161,25 +162,25 @@ public final class LinkFreshnessTest {
         chain.start(tick[0]);
         check(timer.live.size() == 1 && chain.running(), "start: one pending poll");
         clock.runUntil(T0 + 46 * S);
-        check(ticks.equals(List.of(T0 + 15 * S, T0 + 30 * S, T0 + 45 * S)), "slow: every 15 s " + ticks);
+        check(ticks.equals(Arrays.asList(T0 + 15 * S, T0 + 30 * S, T0 + 45 * S)), "slow: every 15 s " + ticks);
         // In sight at T0 + 50 s with a refresh just queued: the next poll 2 s after it, then every 2 s.
         clock.runUntil(T0 + 50 * S);ticks.clear();
         check(chain.cadence(true) && chain.fastSinceMs() == T0 + 50 * S, "the switch is recorded");
         chain.requested();chain.retime();
         check(timer.live.size() == 1, "retime replaces the pending poll");
         clock.runUntil(T0 + 57 * S);
-        check(ticks.equals(List.of(T0 + 52 * S, T0 + 54 * S, T0 + 56 * S)), "fast from the switch: " + ticks);
+        check(ticks.equals(Arrays.asList(T0 + 52 * S, T0 + 54 * S, T0 + 56 * S)), "fast from the switch: " + ticks);
         // Out of sight: the 2 s chain does not continue; the next poll is 15 s after the last request.
         ticks.clear();clock.runUntil(T0 + 57_500);
         check(chain.cadence(false), "the switch to slow");chain.retime();
         clock.runUntil(T0 + 90 * S);
-        check(ticks.equals(List.of(T0 + 71 * S, T0 + 86 * S)), "slow from the last request at 56 s: " + ticks);
+        check(ticks.equals(Arrays.asList(T0 + 71 * S, T0 + 86 * S)), "slow from the last request at 56 s: " + ticks);
         // A recording starts out of sight with an old last request: the retimed poll is due now; the ride start's own
         // refresh queued in the same instant moves it once, to 2 s after that refresh.
         ticks.clear();clock.runUntil(T0 + 95 * S);
         chain.cadence(true);chain.retime();chain.requested();
         clock.runUntil(T0 + 100 * S);
-        check(ticks.equals(List.of(T0 + 97 * S, T0 + 99 * S)), "no doubled read after the ride start's refresh: " + ticks);
+        check(ticks.equals(Arrays.asList(T0 + 97 * S, T0 + 99 * S)), "no doubled read after the ride start's refresh: " + ticks);
         // Stop: nothing pending, nothing runs, retime does nothing.
         chain.stop();ticks.clear();
         check(!chain.running() && timer.live.isEmpty(), "stop leaves nothing pending");
@@ -389,7 +390,7 @@ public final class LinkFreshnessTest {
                     s.run(back + after + 10 * S);
                     if (old) { if (!s.results.isEmpty() && s.results.get(0) != null) oldInterrupted++; continue; }
                     check(s.results.size() == 1 && s.results.get(0) == null, "started " + after + " ms after the return (phase " + phase + "): completed " + s.results + " " + s.refused);
-                    check(s.sent.equals(List.of("clock", "time", "on")) && s.refused.isEmpty(), "clock, time and the switch all went out " + s.sent);
+                    check(s.sent.equals(Arrays.asList("clock", "time", "on")) && s.refused.isEmpty(), "clock, time and the switch all went out " + s.sent);
                     check(s.controller.view().manualEnabled && !s.controller.busy(), "Scheduled charging is on");
                 }
         check(oldInterrupted > 0, "the old chain refused or interrupted some of these: " + oldInterrupted);
@@ -408,14 +409,14 @@ public final class LinkFreshnessTest {
             check(s.controller.busy() && r.now() - r.statusMs == 8 * S, "in flight, last status 8 s old");
             r.visibility(true, false);s.controller.observe();
             s.run(reply + 20 * S);
-            if (old) { check(s.results.size() == 1 && s.results.get(0) != null && s.sent.equals(List.of("clock", "time")), "the old rule interrupted it at the return " + s.results); continue; }
-            check(s.results.size() == 1 && s.results.get(0) == null && s.sent.equals(List.of("clock", "time", "on")), "not interrupted: it completed " + s.results + " " + s.sent);
+            if (old) { check(s.results.size() == 1 && s.results.get(0) != null && s.sent.equals(Arrays.asList("clock", "time")), "the old rule interrupted it at the return " + s.results); continue; }
+            check(s.results.size() == 1 && s.results.get(0) == null && s.sent.equals(Arrays.asList("clock", "time", "on")), "not interrupted: it completed " + s.results + " " + s.sent);
         }
         // A genuinely lost link still interrupts and sends nothing more.
         Rig r = new Rig(false);Schedule s = new Schedule(r);r.visible = true;r.chain.cadence(true);r.connect();
         s.run(T0 + 10 * S);s.timeAck = 5 * S;s.controller.setManualEnabled(true, s.results::add);s.run(T0 + 11 * S);
         r.fail("NATIVE_DISCONNECT");s.run(T0 + 20 * S);
-        check(s.results.size() == 1 && s.results.get(0) != null && s.sent.equals(List.of("clock", "time")), "a lost link interrupts, nothing more is sent " + s.results + " " + s.sent);
+        check(s.results.size() == 1 && s.results.get(0) != null && s.sent.equals(Arrays.asList("clock", "time")), "a lost link interrupts, nothing more is sent " + s.results + " " + s.sent);
     }
 
     /** Silence is still caught within the existing limits, also across a return and while pushed frames continue. */
@@ -457,13 +458,13 @@ public final class LinkFreshnessTest {
         long last = r.requests.get(r.requests.size() - 1);r.visibility(false, false);before = r.requests.size();
         r.run(last + 61 * S);
         List<Long> slow = r.requests.subList(before, r.requests.size());
-        check(slow.equals(List.of(last + 15 * S, last + 30 * S, last + 45 * S, last + 60 * S)), "out of sight: every 15 s from the last read " + slow);
+        check(slow.equals(Arrays.asList(last + 15 * S, last + 30 * S, last + 45 * S, last + 60 * S)), "out of sight: every 15 s from the last read " + slow);
         // A recording starts out of sight; the ride start's refresh goes in the same instant: one read, then every 2 s.
         long start = r.now();before = r.requests.size();
         r.visibility(false, true);r.requestStatus();
         r.run(start + 7 * S);
         List<Long> rec = r.requests.subList(before, r.requests.size());
-        check(rec.equals(List.of(start, start + 2 * S, start + 4 * S, start + 6 * S)), "recording: the refresh, then every 2 s " + rec);
+        check(rec.equals(Arrays.asList(start, start + 2 * S, start + 4 * S, start + 6 * S)), "recording: the refresh, then every 2 s " + rec);
         check(r.maxPending <= 1 && !r.failed() && r.ready(), "still one chain, healthy");
         // Rotation: pause and resume in the same instant, repeatedly.
         for (int i = 0; i < 5; i++) { r.visibility(false, false);r.visibility(true, false); }
