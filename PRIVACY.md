@@ -29,7 +29,7 @@ It has a shared **50 MiB** budget: detailed samples for up to seven days, minute
 summaries for up to 30 days, and daily summaries for up to two years. Older detail
 can be removed sooner to meet the budget. Turning it off retains last-seen values;
 clearing history also clears the selected last-seen cache. Controls are in
-**More → Data & history**.
+**Live Stats → Data & history**.
 
 Ride files are separate from connected history and remain until you delete them
 or clear app storage. Charge recording retains up to 20 sessions across profiles
@@ -81,7 +81,7 @@ still interrupt background work.
 **Basemap is optional and starts off if you have not saved a choice.** Existing
 explicit choices are preserved. The **Basemap** switch directly below a ride map,
 including the full-screen map, shares its remembered state with
-**App preferences → Map settings**. The first new enable explains that the
+**Rides → Recording settings → Map settings**. The first new enable explains that the
 provider receives your IP address and viewed map area; choose **Enable basemap** or
 **Cancel**. Cancel keeps tiles off. Once you approve, that acknowledgement is
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
@@ -146,7 +146,7 @@ if you do not want them retained there.
 Exports only go to a destination you choose through the file picker or helper.
 A destination may itself sync to a cloud service.
 
-**Auto-save rides** (More → Data & history, off by default) is the one export
+**Auto-save rides** (Rides → Recording settings, off by default) is the one export
 that runs without a prompt: after each ride you end, Volt writes that ride's
 Everything in one JSON (the same file as the Export ride data sheet's) into one
 folder you chose through Android's folder picker. It holds the ride's analysis

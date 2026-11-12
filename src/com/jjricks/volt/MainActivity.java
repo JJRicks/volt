@@ -547,8 +547,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         showUpdateCheck();
     }
     /**
-     * The screen for a page. While the tab bar remains, each tab's pages show that tab's screen (HubPages.tabOf);
-     * args are the page's one-shot arguments (ScreenHost.open), or null.
+     * The screen for a page. Home's pages show the dashboard; the Scooter tab's subject pages, the Ride pages (ride.rides,
+     * ride.recording, ride.riding), data.storage and Settings' sub-pages (settings.scooters/units/about/developer) have
+     * screens of their own; any other page, one with no screen yet such as settings.home, shows its tab's screen
+     * (HubPages.tabOf). args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
         switch(HubPages.tabOf(page)){
@@ -557,11 +559,24 @@ public final class MainActivity extends Activity implements ScreenHost {
             default:break;
         }
         if(scooterService==null)return new LoadingScreen();
-        switch(HubPages.tabOf(page)){
+        switch(page){
             case HubPages.DATA:return new StatsScreen(this);
-            case HubPages.RIDE:return new RidesScreen(this);
-            default:return new MoreScreen(this);
+            case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
+            case HubPages.RIDE_RIDES:{
+                RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);
+                // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
+                String ride=args==null?null:args.ride;
+                if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride);});
+                return rides;
+            }
+            case HubPages.RIDE_RECORDING:return new HubPageScreen(this,new MoreScreen(this,MoreScreen.RECORDING_SECTION,true),new RidesScreen(this,RidesScreen.SENSORS));
+            case HubPages.RIDE_RIDING:return new HubRidingSettings(this);
+            case HubPages.SETTINGS:return new MoreScreen(this);
+            default:break;
         }
+        // Settings' sub-pages and Data & history: More's section as the page's body.
+        String section=HubRoutes.moreSectionOf(page);
+        return section!=null?new MoreScreen(this,section,true):new MoreScreen(this);
     }
     /** A page under the Scooter tab (hub layout plan, PRs 3 and 4); its index for the tab's root and for a page not built yet. */
     private AppScreen scooterPage(String page,HubNav.Args args){
@@ -1061,7 +1076,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
         connectionTitle.setTypeface(design.regular());header.addView(connectionTitle);
         liveStatsTitle=null;
-        if(onTab(HubPages.DATA)){
+        // Data's own page keeps Live Stats' title with its live dot; a page under it shows its own title.
+        if(onTab(HubPages.DATA)&&!subpage){
             liveStatsTitle=new LiveStatsTitle(design);header.addView(liveStatsTitle);
         }else{
             Msg hubTitle=subpage?HubText.title(selectedPage):null;
@@ -1196,14 +1212,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         return registerDashboardLock(lockControl);
     }
     /**
-     * A Quick access shortcut's page (HubRoutes). Settings and Data storage open More on their section until those
-     * sections become pages (PR 5); a tab's root resets to that tab; any other page opens above the current one.
+     * A Quick access shortcut's page (HubRoutes). Settings is More's tab while the tabs remain, so its shortcut opens More
+     * on App preferences, as it always has; a tab's root resets to that tab; any other page opens above the current one.
      */
     private void openRoute(String page,HubNav.Args args){
-        String section=HubRoutes.moreSectionOf(page);
-        if(section!=null){openMoreSection(section);return;}
+        if(page.equals(HubPages.SETTINGS)){openMoreSection(HubRoutes.moreSectionOf(page));return;}
         if(HubPages.TABS.contains(page))select(page);else open(page,args);
     }
+    /** More's tab on one of its own sections ("" for its menu): Settings' shortcut and the update check (PR 5: nothing else). */
     private void openMoreSection(String section){
         // A deliberate shortcut wins over the older submenu's expired return state.
         expireMoreSection(true);markMoreActive();
@@ -1524,7 +1540,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();
         if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingConnect=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
         if(scooterService==null){pendingConnect=true;ensureService();return;}
-        ScooterProfiles.Profile profile=scooterService.profiles.active();if(profile==null||!profile.configured()){select("more");return;}
+        ScooterProfiles.Profile profile=scooterService.profiles.active();
+        // No scooter: My scooters has Add scooter. A scooter not yet set up: More's index, whose checklist imports the owner setup.
+        if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
+        if(!profile.configured()){openMoreSection("");return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
         scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
     }
@@ -1570,7 +1589,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService.isRecording()){toast(T.mainScanStopRecording());return;}
         if(scooterService.ble.pending()!=null){toast(T.mainScanBusy());return;}
         android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingScan=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
-        if(scooterService.profiles.active()==null){select("more");return;}
+        if(scooterService.profiles.active()==null){open(HubPages.SETTINGS_SCOOTERS);return;}
         if(start){scooterService.ble.disconnect();scooterService.ble.scan();}
         if(scanDialog!=null&&scanDialog.isShowing()){updateScan();return;}
         final AlertDialog[] sheet=new AlertDialog[1];
@@ -2078,7 +2097,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
         if (entry == null) return;
-        if (id.equals("stats") || id.equals("rides")) { select(id); return; }
+        if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
@@ -3284,15 +3303,14 @@ public final class MainActivity extends Activity implements ScreenHost {
      * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
      * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
-     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
-     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
+     * and that model, as Report an issue does. The model line comes with the file, taken when the row was tapped
+     * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
+     * prepared, or no email app can take it.
      */
     /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
-    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
-    @Override public void emailChargeRecordings(File recordings){
-        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
-        if(d!=null&&d.simulated)d=null;
-        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+    private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{if(destroyed)export.file.delete();else emailChargeRecordings(export.file,export.model);};
+    @Override public void emailChargeRecordings(File recordings,String model){
+        String version=AppVersion.name(this);
         String subject=IssueReport.chargeRecordingsSubject(version,model);
         String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
         new Thread(()->{

@@ -85,8 +85,8 @@ for the evidence threshold, fallback and limitations.
    on the screen layout remaining visible. It is designed to continue while
    folded, rotated, outside the app or with the screen off. The connection
    notification provides Stop. Active ride/charge work uses immediate foreground
-   notification and a renewed bounded CPU wake lock. App preferences > Background
-   recording explains Android notification and battery settings. Keep-screen-awake
+   notification and a renewed bounded CPU wake lock. Rides > Recording settings >
+   Battery use opens Android's battery setting for Volt. Keep-screen-awake
    is optional. Real manufacturer battery policy remains a testing limit.
 4. Stop to save the session. New sessions preserve previous sessions. With
    [Auto-save rides](#auto-save-rides) on, the saved ride is then copied to your
@@ -117,7 +117,7 @@ data while it sleeps or is outside Bluetooth range.
 
 Basemap tiles are separate from GPS, the local route and recording. They start
 off when no preference is saved; existing explicit choices remain. Use Basemap
-below either map view or in App preferences > Map settings. The first new enable
+below either map view or in Rides > Recording settings > Map settings. The first new enable
 explains provider access to your IP address and viewed area, with Enable basemap/Cancel
 choices. The switch and acknowledgement are remembered across views and included
 in a full app backup. Recording does not enable or request map tiles.
@@ -194,7 +194,7 @@ gaps efficiently. Raw journals remain available for export.
 
 ### Auto-save rides
 
-**More → Data & history → Ride auto-save** has one switch, **Auto-save rides** (off by
+**Rides → Recording settings → Ride auto-save** has one switch, **Auto-save rides** (off by
 default; `ride_auto_export_json`), that saves each ride you end into one folder, and a
 **Folder** row. Each ride gets one file:
 
@@ -249,8 +249,8 @@ default; `ride_auto_export_json`), that saves each ride you end into one folder,
 
 ## Background connections and foldable phones
 
-More offers dark/light/system appearance, text scale, miles/km/both units and
-comfortable/dense Stats rows. More > App preferences > Units > Time format follows the
+More offers dark/light/system appearance, text scale and miles/km/both units;
+Live Stats > Data & history offers comfortable/dense Stats rows. More > App preferences > Units > Time format follows the
 phone by default, or uses an explicit 12-hour/24-hour clock for displayed times.
 Stats omits repeated explanatory UI text while retaining interpretation details. App units affect display; Dashboard units is a
 separate scooter setting. Kick-start, maximum-speed and Lab cap selectors follow
@@ -289,7 +289,7 @@ no-motion rule):
 
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.
-App preferences > End rides automatically turns this off. Exact rules:
+Rides > Recording settings > End rides automatically turns this off. Exact rules:
 [ride auto-end](validation/ride-auto-stop.md). An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh

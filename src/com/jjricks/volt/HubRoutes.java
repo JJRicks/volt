@@ -67,8 +67,9 @@ final class HubRoutes {
     }
 
     /**
-     * Until More's sections become pages of their own (PR 5): the More section that shows a Settings or Data page, or null
-     * for a page MainActivity builds itself. More › App preferences stands in for Settings, as the More sheet did.
+     * The More section a Settings or Data page shows as its body (hub layout plan, PR 5), or null for a page MainActivity
+     * builds otherwise. Settings itself is still More's tab while the tabs remain: a shortcut to it (more:App) opens More
+     * on App preferences, as it always has.
      */
     static String moreSectionOf(String page) {
         if (page == null) return null;

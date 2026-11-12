@@ -45,55 +45,76 @@ public final class ChargeSendTest {
         try {
             File dir = Files.createTempDirectory("charge-send").toFile();
             List<File> mailed = new ArrayList<>();
-            Consumer<File> first = mailed::add, second = mailed::add;
+            Consumer<ChargeSend.Export> first = x -> mailed.add(x.file), second = x -> mailed.add(x.file);
             // A page rebuilt by a rotation closes, but the activity stays registered: the email opens.
             ChargeSend.Mailbox box = new ChargeSend.Mailbox();
             box.register(first, 0);
             File a = file(dir, "a");
-            box.deliver(a, 1);
+            box.deliver(new ChargeSend.Export(a, "M"), 1);
             require(mailed.equals(Arrays.asList(a)), "Delivered to the registered activity");
             // Recreated (theme, text size): the file arriving between the two activities waits for the next one.
             box.unregister(first, true);
             File b = file(dir, "b");
-            box.deliver(b, 1_000);
+            box.deliver(new ChargeSend.Export(b, "M"), 1_000);
             require(mailed.size() == 1 && b.exists(), "Held while no activity shows Volt");
             box.register(second, 2_000);
             require(mailed.equals(Arrays.asList(a, b)), "The next activity emails it");
             // An older activity going away later doesn't unregister the new one.
             box.unregister(first, false);
             File c = file(dir, "c");
-            box.deliver(c, 3_000);
+            box.deliver(new ChargeSend.Export(c, "M"), 3_000);
             require(mailed.size() == 3 && mailed.get(2) == c, "Only its own receiver unregisters");
             // Held too long: deleted, never emailed.
             box.unregister(second, true);
             File d = file(dir, "d");
-            box.deliver(d, 4_000);
+            box.deliver(new ChargeSend.Export(d, "M"), 4_000);
             box.register(first, 4_000 + ChargeSend.Mailbox.HOLD_MS);
             require(mailed.size() == 3 && !d.exists(), "A stale held export is deleted");
             // Closed for good (not a recreation): a file that arrives is deleted, and one held is too.
             box.unregister(first, true);
             File e = file(dir, "e");
-            box.deliver(e, 5_000);
+            box.deliver(new ChargeSend.Export(e, "M"), 5_000);
             box.unregister(first, false);
             require(e.exists(), "Unregistering another receiver changes nothing");
             box.register(first, 5_100);
             require(mailed.size() == 4 && mailed.get(3) == e, "Held one delivered");
             box.unregister(first, false);
             File f = file(dir, "f");
-            box.deliver(f, 6_000);
+            box.deliver(new ChargeSend.Export(f, "M"), 6_000);
             require(mailed.size() == 4 && !f.exists(), "After the app closed, an export is deleted, never emailed later");
             // Two held: only the newer waits.
             ChargeSend.Mailbox two = new ChargeSend.Mailbox();
             File g = file(dir, "g"), h = file(dir, "h");
-            two.deliver(g, 0); two.deliver(h, 1);
+            two.deliver(new ChargeSend.Export(g, "M"), 0); two.deliver(new ChargeSend.Export(h, "M"), 1);
             require(!g.exists() && h.exists(), "One held at a time");
             two.deliver(null, 2);
+            two.deliver(new ChargeSend.Export(null, "M"), 2);
             List<File> got = new ArrayList<>();
-            two.register(got::add, 3);
+            two.register(x -> got.add(x.file), 3);
             require(got.equals(Arrays.asList(h)), "Null is no export");
+            exportModel(dir);
         } catch (IOException failed) {
             throw new AssertionError(failed);
         }
+    }
+
+    /**
+     * #387 round-2 review, finding 3: the model line taken at the tap travels with the file, held or not, so the email
+     * names the scooter whose recordings it holds whichever scooter is selected when the export arrives.
+     */
+    private static void exportModel(File dir) throws IOException {
+        List<ChargeSend.Export> got = new ArrayList<>();
+        ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+        box.register(got::add, 0);
+        File a = file(dir, "model-a");
+        box.deliver(new ChargeSend.Export(a, "Model: Navee N65"), 1);
+        require(got.size() == 1 && got.get(0).file == a && got.get(0).model.equals("Model: Navee N65"), "Delivered with its model");
+        ChargeSend.Mailbox held = new ChargeSend.Mailbox();
+        File b = file(dir, "model-b");
+        held.deliver(new ChargeSend.Export(b, "Model: Navee S65C"), 1_000);
+        held.register(got::add, 2_000);
+        require(got.size() == 2 && got.get(1).file == b && got.get(1).model.equals("Model: Navee S65C"), "Held, it keeps its model");
+        require(new ChargeSend.Export(b, null).model.isEmpty(), "No model is empty, never null");
     }
 
     private static File file(File dir, String name) throws IOException {

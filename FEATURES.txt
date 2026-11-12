@@ -774,8 +774,8 @@ open or Follow phone), Hide status bar (off by default), Show seconds on clock
 (off by default; every Clock reading in riding mode then ticks each second
 while it's on screen, dropping AM/PM before seconds where a spot is narrow,
 and TalkBack isn't told each tick) and night vision, plus
-Record rides automatically and Open automatically, which are also in More >
-App preferences. Every change saves at once. The menu closes with its close
+Record rides automatically and Open automatically, which are also in Rides >
+Recording settings and Rides > Riding mode. Every change saves at once. The menu closes with its close
 button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
 a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is
@@ -795,7 +795,7 @@ to about 10 km, after asking) or the time zone, or custom times; a moon tap
 lasts until the next switch. Nothing is sent. Tested with simulated samples
 on emulators only.
 
-Auto-start (More > App preferences, both off by default): Record rides
+Auto-start (Rides > Recording settings and Rides > Riding mode, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
 above zero, also in the background with Stay connected in background on (a
 ride started that way has no GPS route). Riding mode > Open automatically
@@ -978,7 +978,7 @@ are trimmed earlier under storage pressure. Charts use numeric data actually
 reported; text-only/unsupported selections do not create numeric points.
 Reported health remains a controller value, not a capacity measurement.
 
-More > Data & history shows usage and can disable new timeline samples or clear
+Live Stats > Data & history shows usage and can disable new timeline samples or clear
 one/all scooters' connected history. Disabling keeps the last-known cache.
 Clearing removes the selected timelines and cache, preserving explicit rides
 and owner setup. Fresh data can accumulate again while connected. Connected
@@ -1168,7 +1168,7 @@ whole route. Center, zoom, overlay and inspected point survive opening/closing
 the expanded view. Pinch, pan, zoom buttons and inspection work in either view.
 Phone raw, linear and earth-frame
 acceleration are retained in CSV when the relevant sensors are available.
-Auto-save rides (More > Data & history > Ride auto-save, off by default): Auto-save
+Auto-save rides (Rides > Recording settings > Ride auto-save, off by default): Auto-save
 Route CSV and Auto-save ride JSON copy each ride you end into one folder chosen once through
 Android's folder picker, byte for byte the Route CSV and All (JSON) exports (Export
 JSON for a ride with no phone recording). Names come from the ride id; a hidden
@@ -1195,7 +1195,7 @@ GPS. Pocket IMU quality and outdoor GPS/pressure need physical ride validation.
 
 Basemap starts off if no preference is saved; existing explicit choices remain.
 A remembered Basemap switch directly below both inline and full-screen maps
-shares its state with App preferences > Map settings. The first new enable
+shares its state with Rides > Recording settings > Map settings and About & permissions. The first new enable
 explains that the provider receives your IP address and viewed area, then asks
 for Enable basemap or Cancel. Approval is remembered; cancellation keeps tiles off.
 Backups with App preferences include the choice and acknowledgement; the restore
@@ -1216,8 +1216,9 @@ over Home, and so do the quick-control groups (Lights, Ride settings, Battery
 settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
 Shortcuts to whole settings pages open the page: Settings opens the Scooter
 tab, PIN/proximity opens Scooter > Security, experimental controls open
-their test in Scooter > Service > Experimental controls, and app-preference
-shortcuts open More on that menu. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
+their test in Scooter > Service > Experimental controls, app-preference
+shortcuts open More on that menu, and Data & history opens Live Stats > Data &
+history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.

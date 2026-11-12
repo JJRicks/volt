@@ -94,6 +94,8 @@ public final class HubPages {
         // Sections cut out of Developer options and More's index for their subject pages (PR 4).
         MORE_SECTIONS.put("Charging", BATTERY_HISTORY);
         MORE_SECTIONS.put("Reports", SERVICE_REPORTS);
+        // Recording switches and ride auto-save, cut out of App preferences and Data & history (PR 5).
+        MORE_SECTIONS.put("Recording", RIDE_RECORDING);
     }
 
     public static boolean known(String id) { return id != null && PARENTS.containsKey(id); }
@@ -158,8 +160,8 @@ public final class HubPages {
     }
 
     /**
-     * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging
-     * and Reports sections the subject pages show); Settings otherwise.
+     * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,
+     * Reports and Recording sections the subject pages show); Settings otherwise.
      */
     public static String fromMoreSection(String section) {
         String page = section == null ? null : MORE_SECTIONS.get(section);

@@ -79,7 +79,10 @@ public final class HubRoutesTest {
         require(HubRoutes.forFeature(null, false) == null, "No feature, no page");
     }
 
-    /** Until PR 5 the Settings and Data pages open in More's sections; every other page is built by MainActivity. */
+    /**
+     * Settings' sub-pages and Data & history are More's sections as pages of their own (PR 5); More's tab stands for
+     * Settings itself, on App preferences. Every other page is built by MainActivity.
+     */
     private static void moreSections() {
         for (String page : HubPages.ALL) {
             String section = HubRoutes.moreSectionOf(page);
@@ -88,12 +91,23 @@ public final class HubRoutesTest {
             String back = HubPages.fromMoreSection(section);
             require(back.equals(page), "The section's page is the page: " + page + " " + section);
         }
+        for (String page : new String[] {HubPages.SETTINGS, HubPages.SETTINGS_SCOOTERS, HubPages.SETTINGS_UNITS, HubPages.SETTINGS_ABOUT,
+                HubPages.SETTINGS_DEVELOPER, HubPages.DATA_STORAGE})
+            require(HubRoutes.moreSectionOf(page) != null, "Built from its More section: " + page);
+        require(HubRoutes.moreSectionOf(HubPages.SETTINGS).equals("App"), "A Settings shortcut opens More on App preferences");
         for (String page : HubRoutes.pages().values())
             require(HubRoutes.moreSectionOf(page) != null || !HubPages.subjectOf(page).equals(HubPages.SETTINGS),
-                    "A Settings route has a More section until PR 5: " + page);
+                    "A Settings route has a More section: " + page);
         require(HubRoutes.moreSectionOf(HubPages.SECURITY) == null && HubRoutes.moreSectionOf(HubPages.SERVICE_EXPERIMENTAL) == null
                 && HubRoutes.moreSectionOf(HubPages.BATTERY_HISTORY) == null, "Subject pages are built as pages");
         require(HubRoutes.moreSectionOf(null) == null && HubRoutes.moreSectionOf(HubPages.SETTINGS_HOME) == null, "No section for the rest");
+        // Ride and Data are pages of their own, never More's: Recording settings is a page with More's section as its top part.
+        for (String page : new String[] {HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING, HubPages.DATA})
+            require(HubRoutes.moreSectionOf(page) == null, "Not a More section: " + page);
+        require(HubPages.fromMoreSection("Recording").equals(HubPages.RIDE_RECORDING), "The Recording section's page");
+        // The Live Stats and Rides shortcuts open their tabs' roots, the Data and Ride pages.
+        for (String id : new String[] {"stats", "rides"})
+            require(HubPages.TABS.contains(HubRoutes.pageFor(id)), "A tab root: " + id);
     }
 
     private static void require(boolean condition, String message) {
