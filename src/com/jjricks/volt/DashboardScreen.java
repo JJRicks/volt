@@ -267,6 +267,9 @@ public final class DashboardScreen implements AppScreen {
         /** The scooter this Home was built for; another one being active means Clean rebuilds. */
         String profileId() { return profileId; }
 
+        /** A scooter's model identity, as the widget dashboard compares it to let default tiles follow the model. */
+        String identity(ScooterProfiles.Profile profile) { return DashboardScreen.identity(profile); }
+
         /** Charging is freshly reported: the same predicate as the charging takeover; stale readings never count. */
         boolean charging() { return !closed && chargingEstimate(readings()).charging; }
 

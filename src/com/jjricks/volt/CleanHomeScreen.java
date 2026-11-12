@@ -49,6 +49,8 @@ final class CleanHomeScreen implements AppScreen {
     private final QuickAccessGrid quick;
     private final CleanSubjects subjects;
     private final List<String> quickIds;
+    /** The scooter's model as known when this Home was built; the default quick actions follow it. */
+    private final String modelIdentity;
     private int moment = -1;
     private boolean closed;
     private android.app.AlertDialog editSheet;
@@ -107,6 +109,8 @@ final class CleanHomeScreen implements AppScreen {
         lockSize.topMargin = ui.dp(12);
         page.addView(lock, lockSize);
 
+        ScooterService built = host.service();
+        modelIdentity = parts.identity(built == null ? null : built.profiles.active());
         quickIds = loadQuick();
         quick = new QuickAccessGrid(host, quickIds, this::quickAction, HomeQuickActions::entry);
         quick.setTag(TAG_QUICK);
@@ -142,6 +146,10 @@ final class CleanHomeScreen implements AppScreen {
         ScooterService service = host.service();
         ScooterProfiles.Profile current = service == null ? null : service.profiles.active();
         if (!parts.profileId().equals(current == null ? "unconfigured" : current.id)) { host.rebuild(); return; }
+        // This scooter's model became known (or changed): untouched default quick actions follow it, as the widget
+        // dashboard's default tiles do. Not while Edit is open; the four stored by the owner never change here.
+        if (current != null && !modelIdentity.equals(parts.identity(current)) && (editSheet == null || !editSheet.isShowing())
+                && preferences.getString(HomeQuickActions.key(current.id), null) == null) { host.rebuild(); return; }
         parts.refresh();
         // Just back (the last ride) arrives with the next part; until then Clean shows parked or charging.
         int next = HomeMoment.choose(HomeMoment.on(stored(HomeMoment.CHARGING_KEY)), parts.charging(),

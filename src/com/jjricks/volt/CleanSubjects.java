@@ -36,8 +36,13 @@ final class CleanSubjects {
     private final List<TextView> names = new ArrayList<>(), values = new ArrayList<>();
     private final List<View> dots = new ArrayList<>();
     private boolean closed;
-    /** Ride's line and when it was worked out: listing the rides folder waits at least RIDE_EVERY_MS between refreshes. */
-    private CharSequence rideLine;
+    /**
+     * The newest finished ride and when the rides were last looked at: listing the rides folder waits at least
+     * RIDE_EVERY_MS between refreshes. Only the data is kept; its line is written again on every refresh, so a new
+     * language, units or day shows at once.
+     */
+    private boolean ridesKnown;
+    private RideStore.Summary lastRide;
     private long rideAt = Long.MIN_VALUE;
     private static final long RIDE_EVERY_MS = 30_000;
 
@@ -132,17 +137,19 @@ final class CleanSubjects {
         switch (subject) {
             case HubPages.RIDE: {
                 long now = android.os.SystemClock.elapsedRealtime();
-                if (rideLine == null || now - rideAt >= RIDE_EVERY_MS) { rideLine = ride(service); rideAt = now; }
-                return rideLine;
+                if (!ridesKnown || now - rideAt >= RIDE_EVERY_MS) { scanRides(service); rideAt = now; }
+                return ride();
             }
             case HubPages.BATTERY: {
                 Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
                 TelemetryHistory.Reading level = readings.get("battery_percent"), state = readings.get("charging_state");
-                boolean charging = state != null && state.live && state.number != null && state.number == 1;
+                // "Charging" or "not charging" only from a live report: with no live state the line would guess.
+                if (state == null || !state.live || state.number == null) return null;
+                boolean charging = state.number == 1;
                 Integer limit = ble != null && ble.controlOffered("charge_limit") ? feature(service, "charge_limit") : null;
                 if (limit != null && limit > 0 && limit <= 100)
                     return HubText.batteryLimit(Fmt.percent(Fmt.integerNumber(limit)), charging).render();
-                if (level == null || level.number == null || !Double.isFinite(level.number)) return null;
+                if (level == null || !level.live || level.number == null || !Double.isFinite(level.number)) return null;
                 long percent = Math.round(Math.max(0, Math.min(100, level.number)));
                 return HubText.batteryLevel(Fmt.percent(Fmt.integerNumber(percent)), charging).render();
             }
@@ -179,17 +186,22 @@ final class CleanSubjects {
      * Ride: the newest finished ride's distance and when it ended (today, yesterday or its date), or "No rides yet".
      * Only rides already in memory (RideStore.listCached); with nothing cached yet the line waits for a later refresh.
      */
-    private CharSequence ride(ScooterService service) {
-        if (service.rides == null) return null;
-        List<RideStore.Summary> rides = service.rides.listCached();
-        if (rides == null) return null;
-        RideStore.Summary last = null;
+    private void scanRides(ScooterService service) {
+        List<RideStore.Summary> rides = service.rides == null ? null : service.rides.listCached();
+        ridesKnown = rides != null;
+        lastRide = null;
+        if (rides == null) return;
         for (RideStore.Summary ride : rides)
-            if (!ride.active && (last == null || ride.shownEndWallMs > last.shownEndWallMs)) last = ride;
+            if (!ride.active && (lastRide == null || ride.shownEndWallMs > lastRide.shownEndWallMs)) lastRide = ride;
+    }
+
+    /** Ride's line from the last scan, written now. */
+    private CharSequence ride() {
+        if (!ridesKnown) return null;
+        RideStore.Summary last = lastRide;
         if (last == null) return HubText.rideNone().render();
         if (last.distanceKm == null || !Double.isFinite(last.distanceKm)) return null;
-        String units = preferences.getString("units", "mi");
-        String distance = DisplayUnits.metricText(String.format(Locale.US, "%.1f km", last.distanceKm), units);
+        CharSequence distance = distance(last.distanceKm, preferences.getString("units", "mi"));
         Calendar then = Calendar.getInstance(), day = Calendar.getInstance();
         then.setTimeInMillis(last.shownEndWallMs);
         if (sameDay(then, day)) return HubText.rideLastToday(distance).render();
@@ -199,6 +211,13 @@ final class CleanSubjects {
         String date = new java.text.SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
                 .format(new java.util.Date(last.shownEndWallMs));
         return HubText.rideLastOn(distance, date).render();
+    }
+
+    /** A distance at one decimal in the "units" preference, as RideText writes it at two: "6.2 mi", "10.0 km" or both. */
+    private static CharSequence distance(double km, String units) {
+        Formatted metric = Fmt.quantity(Fmt.decimalNumber(Locale.US, km, 1), Fmt.unit(UnitCode.KM));
+        Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, km / RideStore.KM_PER_MILE, 1), Fmt.unit(UnitCode.MI));
+        return "dual".equals(units) ? Fmt.dual(miles, metric) : "km".equals(units) ? metric : miles;
     }
 
     private static boolean sameDay(Calendar a, Calendar b) {
