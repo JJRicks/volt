@@ -1,11 +1,18 @@
 package com.jjricks.volt;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Hub layout plan, PR 7: Home's text through HubText (Home style, Clean's top area, its Edit sheet and quick
@@ -24,6 +31,20 @@ public final class HomeTextTest {
     private static void check(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
     private static void equal(String expected, CharSequence actual, String message) {
         check(actual != null && expected.equals(actual.toString()), message + ": expected <" + expected + "> but was <" + actual + ">");
+    }
+
+    /** Every name of a string or plurals entry in res/values/strings_home.xml (the suite runs from the repository root). */
+    private static Set<String> homeCatalogKeys() {
+        String xml;
+        try {
+            xml = new String(Files.readAllBytes(Paths.get("res/values/strings_home.xml")), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        Set<String> keys = new HashSet<>();
+        Matcher m = Pattern.compile("<(?:string|plurals)\\s+name=\"([^\"]+)\"").matcher(xml);
+        while (m.find()) keys.add(m.group(1));
+        return keys;
     }
 
     public static void main(String[] args) {
@@ -87,7 +108,7 @@ public final class HomeTextTest {
         equal("Quick actions", HubText.editQuickActions(), "edit section");
         equal("Quick action 3: Charge done by. Change", HubText.editQuickSlot(3, "Charge done by"), "slot");
         equal("Ride", HubText.quickActionLabel(HomeQuickActions.RIDING), "riding");
-        equal("Record", HubText.quickActionLabel(HomeQuickActions.RECORD), "record");
+        equal("Record ride", HubText.quickActionLabel(HomeQuickActions.RECORD), "record");
         equal("Ride", HubText.quickActionShortLabel(HomeQuickActions.RIDING), "riding short");
         equal("Record", HubText.quickActionShortLabel(HomeQuickActions.RECORD), "record short");
         for (String id : new String[]{HomeQuickActions.RIDING, HomeQuickActions.RECORD}) {
@@ -140,8 +161,11 @@ public final class HomeTextTest {
             equal("⟦" + T.key(msg.id()) + "⟧", msg.render(), "one whole key");
             if (T.key(msg.id()).startsWith("home_")) homeKeys.add(T.key(msg.id()));
         }
-        // Every key of strings_home.xml is reached through HubText, each by its own method.
-        check(homeKeys.size() == 36, "thirty-six Home keys, each reached: " + homeKeys.size());
+        // Every key of strings_home.xml is reached through HubText, each by its own method: the set read from
+        // the catalog file equals the set reached, so a key added later without a HubText method fails here.
+        Set<String> catalogKeys = homeCatalogKeys();
+        check(!catalogKeys.isEmpty(), "strings_home.xml has keys");
+        check(catalogKeys.equals(homeKeys), "every Home key reached: catalog " + catalogKeys + " but reached " + homeKeys);
         // The English of a message stays English whatever language is installed.
         equal("Charging to your 90% limit", HubText.chargingToLimit("90%").english(), "english() under another source");
     }

@@ -2,9 +2,10 @@ package com.jjricks.volt;
 
 /**
  * The Hub's text (hub layout plan): page titles, link rows, the page header's back link, Home's
- * subject summaries and Home's two styles (Clean and Widgets, res/values/strings_home.xml). Every catalog read for the Hub's pages lives here, so the screens that build them
- * hold no catalog references of their own. Everything returns a {@link Msg}, which renders when shown:
- * keep the Msg, never the rendered text (rule R2).
+ * subject summaries and Home's two styles (Clean and Widgets, res/values/strings_home.xml). Every
+ * catalog read for the Hub's pages lives here, so the screens that build them hold no catalog
+ * references of their own. Everything returns a {@link Msg}, which renders when shown: keep the Msg,
+ * never the rendered text (rule R2).
  *
  * Pages are named by their {@link HubPages} id. Each summary is a whole line chosen by its state, with
  * only values filled in; values arrive formatted ({@code Fmt}, {@code DisplayUnits}, {@code DisplayTime}).

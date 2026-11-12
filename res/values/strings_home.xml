@@ -72,7 +72,7 @@
     <string name="home_qa_riding" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">Ride</string>
     <string name="home_qa_riding_short" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp*2">Ride</string>
     <!-- Starts recording a ride, or stops the ride being recorded. -->
-    <string name="home_qa_record" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">Record</string>
+    <string name="home_qa_record" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">Record ride</string>
     <string name="home_qa_record_short" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp*2">Record</string>
     <!-- The Record button's value while a ride is being recorded. -->
     <string name="home_qa_recording" volt:screen="Quick actions" volt:purpose="value" volt:safety="ride">Recording</string>
