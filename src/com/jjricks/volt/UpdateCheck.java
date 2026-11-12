@@ -59,10 +59,18 @@ final class UpdateCheck {
 
     enum Outcome { AVAILABLE, CURRENT, UNREADABLE }
     static final class Result {
-        /** url: the release page (safePage). download: its APK (safeDownload), or "" when the reply lists none. */
-        final Outcome outcome; final String latest, url, download, notes;
+        /**
+         * url: the release page (safePage). download: its APK (safeDownload), or "" when the reply lists none.
+         * notes: the release notes as plain text (plain). markdown: the same notes as GitHub wrote them, cut the
+         * same way (ReleaseNotes.clip), for the dialog to draw with their formatting (ReleaseNotesView).
+         */
+        final Outcome outcome; final String latest, url, download, notes, markdown;
         Result(Outcome outcome, String latest, String url, String download, String notes) {
+            this(outcome, latest, url, download, notes, notes);
+        }
+        Result(Outcome outcome, String latest, String url, String download, String notes, String markdown) {
             this.outcome = outcome; this.latest = latest; this.url = url; this.download = download; this.notes = notes;
+            this.markdown = markdown;
         }
         static Result unreadable() { return new Result(Outcome.UNREADABLE, "", "", "", ""); }
         /** Download opens the APK; without one it falls back to the release page. */
@@ -91,9 +99,10 @@ final class UpdateCheck {
             if (latest == null || mine == null) return Result.unreadable();
             String notes = body instanceof String ? plain((String) body) : "";
             if (notes.length() > MAX_NOTES) notes = notes.substring(0, MAX_NOTES).trim() + "…";
+            String markdown = body instanceof String ? ReleaseNotes.clip((String) body, MAX_NOTES) : "";
             String name = ((String) tag).startsWith("v") ? ((String) tag).substring(1) : (String) tag;
             return new Result(compare(latest, mine) > 0 ? Outcome.AVAILABLE : Outcome.CURRENT, name, (String) url,
-                    apk((String) tag, release.get("assets")), notes);
+                    apk((String) tag, release.get("assets")), notes, markdown);
         } catch (IOException | RuntimeException unreadable) {
             return Result.unreadable();
         }

@@ -27,6 +27,8 @@ public final class ControlsPagesTest {
         links();
         doneBy(args.length > 0 ? args[0] : "src/com/jjricks/volt/MainActivity.java");
         order();
+        experimental();
+        linkVisibility();
         System.out.println("ControlsPages: " + checks + " checks passed");
     }
 
@@ -131,6 +133,77 @@ public final class ControlsPagesTest {
         List<String> lights = ControlsPages.spec(HubPages.LIGHTS).rows;
         require(lights.indexOf(ScooterMenuLayout.HEADLIGHT_INFO) == 0, "Lights opens with the headlight's note");
         require(lights.indexOf(ControlsPages.link(HubPages.LIGHTS_STAR)) < lights.indexOf("turn_sound"), "Lights before sounds");
+    }
+
+    /** A row the page would show on this model with no status yet: an ordinary row, or its Experimental entry. */
+    private static boolean shownOn(DeviceDescriptor d, String id) {
+        boolean feature = ScooterCommands.oemOnly(id);
+        for (ScooterCommands.Feature f : ScooterCommands.catalog()) feature |= f.key.equals(id);
+        if (!feature) return true; // hand-built rows
+        CapabilityResolver.Runtime rt = new CapabilityResolver.Runtime();
+        CapabilityResolver.Decision ordinary = CapabilityResolver.decide(id, d, StatusFields.NONE, rt);
+        boolean row = ordinary.support == CapabilityResolver.Support.KNOWN_ENCODING && ordinary.variant != null && !ordinary.variant.lab;
+        return row || ControlsPages.labEntryShown(row, ModelRegistry.experimental(d).contains(id),
+                CapabilityResolver.decideExperimental(id, d, StatusFields.NONE, rt).experimental());
+    }
+
+    private static void experimental() {
+        // The GT3 Max (24182): its Lab tries the three assists, Prompt tone and the custom speed cap, none an ordinary row.
+        // Each gets an entry on its page, shown as More lists it.
+        DeviceDescriptor gt3 = OemControlsTest.model("24182", "ES");
+        List<String> lab = ModelRegistry.experimental(gt3);
+        require(ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS_ASSISTS), lab)
+                .equals(Arrays.asList("parking_assist", "hill_start_assist", "hill_descent_control")), "GT3 Max assists: " + lab);
+        require(ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS_LIMITS), lab).equals(Arrays.asList("speed_limit")), "GT3 Max speed cap");
+        require(ControlsPages.labEntries(ControlsPages.spec(HubPages.LIGHTS), lab).contains("prompt_tone"), "GT3 Max Prompt tone");
+        for (String key : new String[] {"parking_assist", "hill_start_assist", "hill_descent_control", "prompt_tone", "speed_limit"}) {
+            // The assists aren't flagged experimental in the catalogue (the old builder never made their entries); Prompt tone
+            // and the speed cap are (UT5 MAX Lab controls), but the old check asked the ordinary decision and hid them.
+            if (key.endsWith("assist") || key.equals("hill_descent_control")) require(!ScooterCommands.find(key).experimental, "Not a catalogue Lab control: " + key);
+            CapabilityResolver.Runtime rt = new CapabilityResolver.Runtime();
+            CapabilityResolver.Decision ordinary = CapabilityResolver.decide(key, gt3, StatusFields.NONE, rt);
+            boolean row = ordinary.support == CapabilityResolver.Support.KNOWN_ENCODING && ordinary.variant != null && !ordinary.variant.lab;
+            require(!row, "No ordinary row on the GT3 Max: " + key);
+            // The ordinary decision has no Lab variant here (the old check hid the entry); the experimental one does.
+            require(!(ordinary.support == CapabilityResolver.Support.KNOWN_ENCODING && ordinary.variant != null && ordinary.variant.lab),
+                    "The ordinary decision is no Lab try: " + key);
+            boolean tryNow = CapabilityResolver.decideExperimental(key, gt3, StatusFields.NONE, rt).experimental();
+            require(tryNow && ControlsPages.labEntryShown(row, lab.contains(key), tryNow), "The GT3 Max entry shows: " + key);
+        }
+        // Traction control is an ordinary OEM-mapped row on the GT3 Max: no entry.
+        require(!lab.contains("traction_control") && ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS), lab).stream().noneMatch("traction_control"::equals),
+                "GT3 Max traction control is a row, not an entry");
+        // The UT5 MAX keeps its catalogue Lab controls' entries (Acceleration profile, Dual motor drive).
+        DeviceDescriptor ut5 = ModelRegistryTest.serial("Q2538ZZ9US7777777");
+        List<String> ut5Lab = ModelRegistry.experimental(ut5);
+        List<String> controls = ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS), ut5Lab);
+        require(controls.contains("acceleration") && controls.contains("dual_drive"), "UT5 MAX entries on Controls: " + controls);
+        for (ScooterCommands.Feature f : ScooterCommands.catalog())
+            if (ut5Lab.contains(f.key) && ControlsPages.pageOf(f.key) != null)
+                require(ControlsPages.labEntries(ControlsPages.spec(ControlsPages.pageOf(f.key)), ut5Lab).contains(f.key), "Every Lab control on its page: " + f.key);
+        // The rule: never beside an ordinary row, never outside the model's Lab list, only with a Lab try decision.
+        require(!ControlsPages.labEntryShown(true, true, true) && !ControlsPages.labEntryShown(false, false, true)
+                && !ControlsPages.labEntryShown(false, true, false) && ControlsPages.labEntryShown(false, true, true), "labEntryShown");
+        require(ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS), Arrays.asList(ControlsPages.link(HubPages.CONTROLS_ASSISTS))).isEmpty()
+                && ControlsPages.labEntries(null, lab).isEmpty() && ControlsPages.labEntries(ControlsPages.spec(HubPages.CONTROLS), null).isEmpty(),
+                "Links and missing input give no entries");
+    }
+
+    private static void linkVisibility() {
+        // A link shows only while its page has a row or an entry to show.
+        for (String page : ControlsPages.pages()) {
+            if (HubPages.depth(page) < 2) continue;
+            require(!ControlsPages.linkShown(page, id -> false), "Nothing to show hides the link: " + page);
+            require(ControlsPages.linkShown(page, id -> true), "Anything to show keeps the link: " + page);
+        }
+        require(ControlsPages.linkShown(HubPages.BATTERY_MODES, "long_range_mode"::equals), "One row is enough");
+        require(!ControlsPages.linkShown(HubPages.BATTERY_MODES, "charge_limit"::equals), "A row of another page doesn't count");
+        require(ControlsPages.linkShown(HubPages.HOME, id -> false), "A page these rows don't build keeps its link");
+        // The GT3 Max's Assists page shows its three Experimental entries and kick-start speed's row or entry, so its link shows.
+        DeviceDescriptor gt3 = OemControlsTest.model("24182", "ES");
+        require(ControlsPages.linkShown(HubPages.CONTROLS_ASSISTS, id -> shownOn(gt3, id)), "GT3 Max Assists link");
+        require(ControlsPages.linkShown(HubPages.CONTROLS_LIMITS, id -> shownOn(gt3, id)), "GT3 Max Speed limits link (the cap's entry)");
+        require(ControlsPages.linkShown(HubPages.BATTERY_ESTIMATES, id -> shownOn(gt3, id)), "Estimates & charger always has its own rows");
     }
 
     private static int places(String id) {

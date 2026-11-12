@@ -68,30 +68,35 @@ final class HubSubjects {
             case HubPages.BATTERY: {
                 Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
                 TelemetryHistory.Reading level = readings.get("battery_percent"), state = readings.get("charging_state");
-                boolean charging = state != null && state.live && state.number != null && state.number == 1;
+                // Charging only from a live reading: a last-seen or missing state is not "not charging".
+                Boolean charging = state == null || !state.live || state.number == null ? null : state.number == 1;
                 Integer percent = level == null || level.number == null || !Double.isFinite(level.number) ? null : (int) Math.round(level.number);
-                HubSummaries.Battery battery = HubSummaries.battery(ble != null && ble.controlOffered("charge_limit"),
-                        feature(service, "charge_limit"), percent, charging);
+                boolean limitOffered = ordinary(ble, "charge_limit");
+                Integer limit = limitOffered ? HubSummaries.known(ble.decision("charge_limit").variant, feature(service, "charge_limit")) : null;
+                HubSummaries.Battery battery = HubSummaries.battery(limitOffered, limit, percent, charging);
                 if (battery == null) return null;
                 Formatted shown = Fmt.percent(Fmt.integerNumber(battery.percent));
                 return battery.limit ? HubText.batteryLimit(shown, battery.charging) : HubText.batteryLevel(shown, battery.charging);
             }
             case HubPages.CONTROLS: {
-                Boolean cruise = HubSummaries.cruise(feature(service, "cruise_control"));
+                Boolean cruise = HubSummaries.cruise(ordinary(ble, "cruise_control") ? feature(service, "cruise_control") : null);
                 Double code = ble != null && ble.ready() ? ble.telemetry.number("driving_mode") : null;
                 if (cruise == null || code == null) return null;
                 ScooterProfiles.Profile profile = service.profiles == null ? null : service.profiles.active();
-                String mode = Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), code);
-                return HubText.controls(mode, cruise);
+                String mode = HubSummaries.driveMode(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), code));
+                return mode == null ? null : HubText.controls(mode, cruise);
             }
             case HubPages.LIGHTS: {
-                HubSummaries.Lights lights = HubSummaries.lights(feature(service, "headlight"), feature(service, "auto_sensor")); // "headlight" is the tail light
+                boolean autoOffered = ordinary(ble, "auto_sensor");
+                HubSummaries.Lights lights = HubSummaries.lights(autoOffered, // "headlight" is the tail light
+                        ordinary(ble, "headlight") ? feature(service, "headlight") : null, autoOffered ? feature(service, "auto_sensor") : null);
                 if (lights == null) return null;
                 return lights == HubSummaries.Lights.AUTO ? HubText.automaticLights() : HubText.tailLight(lights == HubSummaries.Lights.ON);
             }
             case HubPages.SECURITY: {
                 ScooterCommands.PinState pin = ble == null || !ble.ready() ? null : ble.pinState();
                 Boolean pinOn = pin == null || pin.status != 0 ? null : pin.configured && Boolean.TRUE.equals(pin.enabled);
+                // As More › Security's row reads it (featureValue never takes a Lab rule for this sensitive control).
                 Integer proximity = ble == null || !ble.ready() ? null : ble.featureValue("proximity_key");
                 HubSummaries.Security security = HubSummaries.security(pinOn, proximity == null ? null : proximity == 1);
                 return security == null ? null : HubText.security(security.pin, security.proximity);
@@ -100,13 +105,24 @@ final class HubSubjects {
                 MaintenanceView.Summary summary = MaintenanceScreen.summary(service);
                 HubSummaries.Service state = summary == null ? null : HubSummaries.service(summary.on, summary.due, summary.soon);
                 if (state == null) return null;
+                // Off, due or soon: the words its own row on the Service page shows.
                 return state == HubSummaries.Service.CLEAR ? HubText.serviceClear() : MaintenanceScreen.rowValue(summary);
             }
             default: return null;
         }
     }
 
-    /** The scooter's value: live while connected, else the last one seen. */
+    /**
+     * The model offers this control as an ordinary row (the check its Scooter page row makes), not only as a Lab try:
+     * BleController.featureValue falls back to the Lab's rule, and a summary never states what only an experiment reads.
+     */
+    private static boolean ordinary(BleController ble, String key) {
+        if (ble == null || !ble.controlOffered(key)) return false;
+        FeatureVariant variant = ble.decision(key).variant;
+        return variant == null || !variant.lab;
+    }
+
+    /** The scooter's value: live while connected, else the last one seen. Callers check ordinary() first. */
     private static Integer feature(ScooterService service, String key) {
         BleController ble = service.ble;
         Integer live = ble == null ? null : ble.featureValue(key);
