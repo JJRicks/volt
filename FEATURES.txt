@@ -1103,7 +1103,9 @@ High-speed charger selection. Its Charger row shows the charger for estimates an
 opens its one home, Battery & charging > Estimates & charger > Charger; Developer
 options no longer has a charger selector. Email to Volt on the same page attaches
 this scooter's recordings to an email to Volt's report address, which helps tune
-charging time estimates for that model. There is no automatic charger detection. Bounded
+charging time estimates for that model. The attachment is
+volt-charge-recordings.json (gzip-compressed as volt-charge-recordings.json.gz
+when over 25 MB). There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.

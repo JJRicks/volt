@@ -2638,7 +2638,8 @@ public final class MoreScreen implements AppScreen {
      * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
      * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
      * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email,
-     * with the model of the scooter chosen at the tap.
+     * with the model of the scooter chosen at the tap. The export ends ready to attach (over 25 MB, compressed), so the
+     * row stays busy and the hand-over waits until the attachment is final (#412 review).
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
@@ -2646,7 +2647,7 @@ public final class MoreScreen implements AppScreen {
         // scooter's model is left out: the recordings are the real profile's.
         DeviceDescriptor d = s.ble.descriptor();
         String model = ModelRegistry.modelLine(d != null && d.simulated ? null : d);
-        if (s.exportChargeRecordings(file -> {
+        if (s.exportChargeRecordings(true, file -> {
             if (file != null) { ChargeSend.MAILBOX.deliver(new ChargeSend.Export(file, model), System.currentTimeMillis()); return; }
             if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
         })) return;
