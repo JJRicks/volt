@@ -34,10 +34,12 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(() -> { invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen) field(activity, "screen"); }); settle();
             verifyRideNaming();
             if (args.getString("start_only", "false").equals("true")) { result.putString("result", "PASS"); return; }
-            main(() -> invoke(screen, "phoneOptions", new Class[0])); settle();
-            AlertDialog optionsDialog = (AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1);
-            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors sheet has no placement choice"); optionsDialog.dismiss(); });
-            settle(); check(!optionsDialog.isShowing(), "Phone options sheet closed before reading the ride");
+            // The Rides tab's Phone sensors sheet became Ride › Recording settings' phone sensors card in the Hub layout (#389),
+            // which nothing opens the sheet from any more: the same no-placement-choice check runs on the card.
+            main(() -> HubTestPages.open(activity, "ride.recording")); settle();
+            main(() -> { View options = ((RidesScreen) HubTestPages.part(activity, "RidesScreen")).view(); check(caseText(options, "Phone sensors") != null, "Phone options test targets its own card"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors card has no placement choice"); });
+            main(() -> { invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen) field(activity, "screen"); }); settle();
+            check(screen.view().isAttachedToWindow(), "Rides shown again before reading the ride");
             if (!Boolean.TRUE.equals(field(screen, "wide"))) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
             settle();
             check(text(screen.view(), "Energy direction") == null, "Redundant current-direction selection removed");
@@ -872,6 +874,8 @@ public final class RidesAnalysisValidation extends Instrumentation {
             setField(map, "provider", instance);
         } catch (Exception failure) { throw new IllegalStateException("Synthetic map provider", failure); }
     }
+    /** A TextView whose text matches, ignoring case (a section label may show in capitals). */
+    TextView caseText(View view, String label) { if (view instanceof TextView && ((TextView) view).getText().toString().equalsIgnoreCase(label)) return (TextView) view; if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = caseText(((ViewGroup) view).getChildAt(i), label); if (found != null) return found; } return null; }
     TextView text(View view, String label) { if(view instanceof TextView && label.contentEquals(((TextView)view).getText()))return (TextView)view; if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){TextView item=text(((ViewGroup)view).getChildAt(i),label);if(item!=null)return item;}return null; }
     void seed() throws Exception {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 240000;
