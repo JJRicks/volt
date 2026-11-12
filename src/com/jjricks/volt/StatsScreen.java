@@ -448,6 +448,24 @@ public final class StatsScreen implements AppScreen {
         shownSearch.put(metric.key, new String[] {name, ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)});
         rows.put(metric.key, created); styleStar(created);
     }
+    /**
+     * Every reading Live Stats lists, for Hub search (hub layout plan 1.12): its key, the name its row shows, its English
+     * search words (as the Readings search matches them), the full name and group it is also found by, and its value
+     * as the row writes it, read when the result shows. The same names and values as addMetric's rows.
+     */
+    static List<HubSearch.Entry> readingEntries(ScooterService service) {
+        List<HubSearch.Entry> entries = new ArrayList<>();
+        if (service == null) return entries;
+        for (TelemetryHistory.Reading metric : service.displayReadings().values()) {
+            String name = rowLabel(service, metric), key = metric.key;
+            String english = name + " " + (metric.label == null ? "" : metric.label) + " " + metric.group;
+            entries.add(HubSearch.reading(key, english + " " + ScooterReadingLabels.full(key, metric.label) + " " + ScooterReadingLabels.group(metric.group), name, () -> {
+                TelemetryHistory.Reading now = service.displayReadings().get(key);
+                return now == null ? null : display(service, now);
+            }));
+        }
+        return entries;
+    }
     private void styleStar(Row row) {
         boolean on = favourites.contains(row.key);
         row.star.setText(on ? "★" : "☆"); row.star.setTextColor(on ? ui.orange : ui.dim); row.star.setSelected(on);
@@ -775,12 +793,14 @@ public final class StatsScreen implements AppScreen {
         savedSectionScroll = wide ? sectionScroll.getScrollY() : 0;
         savedReadingsScroll = wide ? readingsScroll.getScrollY() : 0;
     }
-    private boolean isKnownDriveMode(String key) {
+    private boolean isKnownDriveMode(String key) { return isKnownDriveMode(service, key); }
+    private static boolean isKnownDriveMode(ScooterService service, String key) {
         ScooterProfiles.Profile profile = service.profiles.active();
         return key.equals("driving_mode") && ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()) != 0;
     }
     /** UT5 MAX drive-mode names come only from the registry's UT5 MAX layer. */
-    private int driveModeProduct() {
+    private int driveModeProduct() { return driveModeProduct(service); }
+    private static int driveModeProduct(ScooterService service) {
         ScooterProfiles.Profile profile = service.profiles.active();
         return ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor());
     }
@@ -801,19 +821,20 @@ public final class StatsScreen implements AppScreen {
         return isKnownDriveMode(metric.key) ? T.statsDriveMode() : ScooterReadingLabels.label(metric.key, metric.label);
     }
     /** readingLabel with fallback for a reading the catalogue does not name (Telemetry's English label otherwise). */
-    private String readingLabel(TelemetryHistory.Reading metric, String fallback) {
+    private static String readingLabel(ScooterService service, TelemetryHistory.Reading metric, String fallback) {
         if (metric.key.equals("remaining_range_km")) return T.statsScooterRange();
-        return isKnownDriveMode(metric.key) ? T.statsDriveMode() : ScooterReadingLabels.label(metric.key, fallback);
+        return isKnownDriveMode(service, metric.key) ? T.statsDriveMode() : ScooterReadingLabels.label(metric.key, fallback);
     }
     /**
      * Row name: "raw" is said once, by the chip beside a supplied value, so the name drops it.
      * (Rows are named before values arrive; every raw-named field gets the chip once it has one.)
      */
-    private String rowLabel(TelemetryHistory.Reading metric) {
+    private String rowLabel(TelemetryHistory.Reading metric) { return rowLabel(service, metric); }
+    private static String rowLabel(ScooterService service, TelemetryHistory.Reading metric) {
         // Each raw-named reading has its own row name, so a language need not spell "(raw)" one way.
         String row = StatsLabels.row(metric.key);
         if (row != null) return row;
-        return readingLabel(metric, metric.label == null ? null : metric.label.replace(StatsLabels.RAW_MARK, ""));
+        return readingLabel(service, metric, metric.label == null ? null : metric.label.replace(StatsLabels.RAW_MARK, ""));
     }
     private boolean raw(TelemetryHistory.Reading metric) {
         if (metric.value == null) return false;
@@ -872,10 +893,13 @@ public final class StatsScreen implements AppScreen {
             canvas.drawText(text, start, end, x + padX, centre - (own.ascent + own.descent) / 2f, label);
         }
     }
-    private String display(TelemetryHistory.Reading metric) {
+    private String display(TelemetryHistory.Reading metric) { return display(service, metric); }
+    /** A reading's value as Live Stats writes it (units, temperature unit, drive mode name); also Hub search's value. */
+    private static String display(ScooterService service, TelemetryHistory.Reading metric) {
+        SharedPreferences preferences = service.settings;
         if (metric.value == null) return T.commonNotReported();
-        if (isKnownDriveMode(metric.key) && metric.number != null)
-            return Telemetry.displayValue(metric.key, Telemetry.drivingModeLabel(driveModeProduct(), metric.number), metric.number);
+        if (isKnownDriveMode(service, metric.key) && metric.number != null)
+            return Telemetry.displayValue(metric.key, Telemetry.drivingModeLabel(driveModeProduct(service), metric.number), metric.number);
         if (DisplayTemperature.isTemperature(metric.key) && metric.number != null)
             return DisplayTemperature.format(metric.number, preferences.getString("temperature_unit", "c"), 0);
         String units = preferences.getString("units", "mi");

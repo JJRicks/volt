@@ -41,10 +41,10 @@ public final class DashboardScreen implements AppScreen {
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
 
-        /** Clean Home's search button. */
+        /** Home header's search button (Clean, and the widget dashboard's since PR 12). */
         default void openSearch() { }
 
-        /** Clean Home's Settings button. */
+        /** Home header's Settings button (Clean, and the widget dashboard's since PR 12). */
         default void openSettings() { }
 
         /** Clean Home's scooter name: switch scooter. */
@@ -59,6 +59,8 @@ public final class DashboardScreen implements AppScreen {
     private final DashboardConfig config;
     private final String profileId;
     private final LinearLayout view, toolbar, tools, headerActions, historyActions;
+    /** The header's search and Settings buttons (hub layout plan 1.5), beside the status line; hidden while editing. */
+    private LinearLayout hubButtons;
     private final View undo, redo;
     private final DashboardEditHistory editHistory = new DashboardEditHistory();
     private WidgetRemovalEffect removalEffect;
@@ -138,10 +140,23 @@ public final class DashboardScreen implements AppScreen {
         toolbar.setPadding(0, ui.dp(8), 0, ui.dp(10));
         LinearLayout words = column();
         status = statusLine();
-        LinearLayout.LayoutParams statusSize = new LinearLayout.LayoutParams(-1, -2);
+        // Row 1, as on Clean Home: the status line, then search and Settings (hub layout plan 1.5); the buttons step
+        // aside while editing, when the header holds the editor's controls.
+        LinearLayout statusRow = row();
+        statusRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams statusSize = new LinearLayout.LayoutParams(0, -2, 1);
         statusSize.topMargin = -ui.dp(15);
         statusSize.bottomMargin = -ui.dp(15);
-        words.addView(status, statusSize);
+        statusRow.addView(status, statusSize);
+        hubButtons = row();
+        hubButtons.setGravity(Gravity.CENTER_VERTICAL);
+        hubButtons.addView(CleanHomeScreen.roundButton(host, ui, "search", HubText.searchDescription(), CleanHomeScreen.TAG_SEARCH,
+                () -> { if (!editing) actions.openSearch(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        hubButtons.addView(CleanHomeScreen.roundButton(host, ui, "gear", HubText.settingsDescription(), CleanHomeScreen.TAG_SETTINGS,
+                () -> { if (!editing) actions.openSettings(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        hubButtons.setVisibility(editing ? View.GONE : View.VISIBLE);
+        statusRow.addView(hubButtons, new LinearLayout.LayoutParams(-2, -2));
+        words.addView(statusRow, new LinearLayout.LayoutParams(-1, -2));
         profileName = nameLine();
         renameControl = roundAction("pencil", T.dashboardRenameScooter(), 24, 12, actions::rename);
         LinearLayout nameRow =
@@ -815,6 +830,7 @@ public final class DashboardScreen implements AppScreen {
         ui.editToggle(edit, editing, T.commonDone());
         edit.setContentDescription(editing ? T.dashboardFinishEditing() : T.dashboardEditDashboard());
         ride.setVisibility(editing ? View.GONE : View.VISIBLE);
+        if (hubButtons != null) hubButtons.setVisibility(editing ? View.GONE : View.VISIBLE);
         updateHistoryControls();
         renameControl.setVisibility(
                 editing && service != null && service.profiles.active() != null ? View.VISIBLE : View.GONE);

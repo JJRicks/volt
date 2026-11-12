@@ -1916,7 +1916,8 @@ public final class RidesScreen implements AppScreen {
             show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(T.ridesCompareSheetRides(), T.ridesCompareSheetTitle())).setView(scroller).setPositiveButton(T.commonDone(), null).create(), PAGE, null);
         } catch (IOException e) { host.toast(T.ridesToastCompareFailed()); }
     }
-    private static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
+    /** A ride's name: the owner's, or the default name (also Hub search's ride results). */
+    static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
     private View compareName(RideStore.Summary s) {
         LinearLayout column = vertical(); column.setGravity(Gravity.END);
         TextView name = ui.text(nameOf(s), 14, true); name.setGravity(Gravity.END); name.setMaxLines(2); name.setEllipsize(TextUtils.TruncateAt.END);

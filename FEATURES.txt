@@ -713,8 +713,9 @@ on Clean Home and in the dock at the bottom of Widgets Home (icons; swipe up
 for names and summaries). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
-link. The gear opens Settings; Home's search button finds a scooter setting on
-any page. The former arrange-and-hide editor is gone, and settings hidden with
+link. The gear opens Settings; Home's search button finds pages, settings and
+controls, live readings (with their value) and rides, each with its subject,
+and opens the result's page with the row on screen. The former arrange-and-hide editor is gone, and settings hidden with
 it show again. Rename the local scooter profile in Settings > My scooters or
 with its widget pencil while editing Home. Maintenance
 (Service > Maintenance, off by default) keeps local reminders by
