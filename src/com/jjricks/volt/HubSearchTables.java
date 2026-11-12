@@ -23,8 +23,12 @@ final class HubSearchTables {
     static final String ROW_TOP_SPEED = ScooterMenuLayout.TOP_SPEED;
     /** Live charging: not a menu layout row, so its view tag (MainActivity's charge_live card). */
     static final String ROW_CHARGE_LIVE = "charge_live";
-    /** Maintenance's row: its menu layout id and view tag. */
-    static final String ROW_MAINTENANCE = MaintenanceScreen.ROW;
+    /**
+     * Maintenance's row: its menu layout id and view tag, the value of MaintenanceScreen.ROW. Spelled out because
+     * HubText switches on it and the JVM suite compiles HubText without Android (MaintenanceScreen needs it);
+     * tests/l10n/HubSearchTextTest.java checks the two stay equal.
+     */
+    static final String ROW_MAINTENANCE = "maintenance_reminders";
     /** The "Done by" row below scheduled charging: no menu layout id (it follows its parent row), so its view tag. */
     static final String ROW_CHARGE_DONE_BY = "charge-done-by";
 

@@ -9,15 +9,15 @@ package com.jjricks.volt;
  *
  * Pages are named by their {@link HubPages} id. Each summary is a whole line chosen by its state, with
  * only values filled in; values arrive formatted ({@code Fmt}, {@code DisplayUnits}, {@code DisplayTime}).
- * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java, tests/l10n/HomeTextTest.java).
+ * Search, the Widgets dock and the wide Home's right pane (PR 10) name the rows they find by the names the rows
+ * already show, through {@link #controlRowTitle} and {@link #settingTitle}.
+ * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java, tests/l10n/HomeTextTest.java,
+ * tests/l10n/HubSearchTextTest.java).
  */
 public final class HubText {
     private HubText() { }
 
-    /**
-     * A page's title, also its link row's name and the back link's target name. Null for a page whose
-     * title arrives later in the plan ({@link HubPages#SEARCH} in PR 10) and for an unknown id.
-     */
+    /** A page's title, also its link row's name and the back link's target name. Null for an unknown id. */
     public static Msg title(String page) {
         if (page == null) return null;
         switch (page) {
@@ -51,6 +51,7 @@ public final class HubText {
             case HubPages.SETTINGS_SCOOTERS: return M.moreSectionScooters();
             case HubPages.SETTINGS_ABOUT: return M.moreSectionAbout();
             case HubPages.SETTINGS_DEVELOPER: return M.moreSectionDeveloper();
+            case HubPages.SEARCH: return M.hubPageSearch();
             default: return null;
         }
     }
@@ -236,4 +237,82 @@ public final class HubText {
     /** The sheet's second button: keep Widgets. */
     public static Msg whatsNewKeep() { return M.homeWhatsNewKeep(); }
     public static Msg whatsNewLater() { return M.homeWhatsNewLater(); }
+
+    // ===== Search (hub layout plan 1.12) =====
+
+    /** The hint inside the empty search field. */
+    public static Msg searchHint() { return M.hubSearchHint(); }
+    /** Shown in place of results when nothing matches. */
+    public static Msg searchNone() { return M.hubSearchNone(); }
+    /** The count of results, read out as it changes; count is the number of results. */
+    public static Msg searchCount(long count) { return M.hubSearchCount(count, count); }
+    /** The label above a group of results. */
+    public static Msg searchGroupPages() { return M.hubSearchGroupPages(); }
+    public static Msg searchGroupSettings() { return M.hubSearchGroupSettings(); }
+    public static Msg searchGroupReadings() { return M.hubSearchGroupReadings(); }
+    public static Msg searchGroupRides() { return M.hubSearchGroupRides(); }
+    /** The line under a result naming its page; page is that page's title. */
+    public static Msg searchIn(CharSequence page) { return M.hubSearchIn(page); }
+
+    /**
+     * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
+     * row's ScooterMenuLayout id or view tag), for search's results; null for any other id. Feature rows are
+     * named by their feature (ScooterCommands.Feature#label).
+     */
+    public static Msg controlRowTitle(String row) {
+        if (row == null) return null;
+        switch (row) {
+            case HubSearchTables.ROW_HEADLIGHT_INFO: return M.mainRowHeadlight();
+            case HubSearchTables.ROW_LIGHT_ZONES: return M.mainRowZones();
+            case HubSearchTables.ROW_CLOCK_SYNC: return M.mainRowClock();
+            case HubSearchTables.ROW_SCHEDULE_TEST: return M.mainScheduleTestRow();
+            case HubSearchTables.ROW_CHARGE_DONE_BY: return M.mainScheduleDoneBy();
+            case HubSearchTables.ROW_CHARGER: return M.mainRowCharger();
+            case HubSearchTables.ROW_CHARGE_ALERT: return M.mainAlertCharge();
+            case HubSearchTables.ROW_LOW_ALERT: return M.mainAlertLow();
+            case HubSearchTables.ROW_CHARGE_LIVE: return M.chargeLiveRow();
+            case HubSearchTables.ROW_SECURITY_LINK: return M.mainRowSecurity();
+            case HubSearchTables.ROW_SCOOTER_NAME: return M.mainRenameTitle();
+            case HubSearchTables.ROW_MAINTENANCE: return M.maintenanceRow();
+            case HubSearchTables.ROW_TOP_SPEED: return M.mainSpeedTitle();
+            default: return null;
+        }
+    }
+
+    /**
+     * The name a settings row already shows, by its view tag ({@link HubSearchTables#SETTINGS}), for search's
+     * results; null for any other tag. The display card's tag stands for its Text size row, the one row in it
+     * with no tag of its own; the riding-mode boxes for brightness and night vision are named by their labels.
+     */
+    public static Msg settingTitle(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            case HubSearchTables.SETTING_HOME_STYLE: return M.homeStyleTitle();
+            case HubSearchTables.SETTING_UNITS: return M.morePrefsUnits();
+            case HubSearchTables.SETTING_DISPLAY: return M.morePrefsTextSize();
+            case HubSearchTables.SETTING_LANGUAGE: return M.moreLanguageTitle();
+            case HubSearchTables.SETTING_RIDING_AUTO_OPEN: return M.ridingDisplayAutoOpen();
+            case HubSearchTables.SETTING_RIDING_AUTO_RECORD: return M.morePrefsAutoRecord();
+            case HubSearchTables.SETTING_RIDING_HIDE_STATUS_BAR: return M.ridingDisplayHideStatusBar();
+            case HubSearchTables.SETTING_RIDING_CLOCK_SECONDS: return M.ridingDisplayClockSeconds();
+            case HubSearchTables.SETTING_RIDING_BRIGHTNESS: return M.ridingDisplayBrightness();
+            case HubSearchTables.SETTING_RIDING_NIGHT: return M.ridingNightVision();
+            case HubSearchTables.SETTING_UPDATE_AUTO: return M.moreUpdatesAuto();
+            case HubSearchTables.SETTING_CHECK_UPDATES: return M.moreAboutCheckUpdates();
+            case HubSearchTables.SETTING_BACKUP: return M.moreBackupRestore();
+            case HubSearchTables.SETTING_REPORT_ISSUE: return M.moreReportIssue();
+            case HubSearchTables.SETTING_DEVELOPER: return M.moreSectionDeveloper();
+            default: return null;
+        }
+    }
+
+    // ===== Widgets Home's dock and the wide Home's right pane =====
+
+    /** The dock's handle, and the title of the sheet listing every subject. */
+    public static Msg dockAll() { return M.hubDockAll(); }
+    /** The right pane's link back to the list of all subjects. */
+    public static Msg all() { return M.hubAll(); }
+    /** The Service card: its title, and its line when no reminder is set. */
+    public static Msg serviceCardTitle() { return M.hubServiceCardTitle(); }
+    public static Msg serviceCardNone() { return M.hubServiceCardNone(); }
 }

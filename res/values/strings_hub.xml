@@ -130,4 +130,39 @@
     <!-- %1$s is the percent the charge stops at ("90%"). -->
     <string name="hub_battery_charging_to" volt:screen="Battery &amp; charging summary" volt:purpose="status" volt:safety="charge">Charging to %1$s</string>
     <string name="hub_battery_not_charging" volt:screen="Battery &amp; charging summary" volt:purpose="status" volt:safety="charge">Not charging</string>
+
+    <!-- ===== Search (hub layout plan, PR 10): one page that finds pages, settings, live readings and rides ===== -->
+    <!-- Title of the search page, opened from the magnifier in Home's header. Also the back link's target name. -->
+    <string name="hub_page_search" volt:screen="Search page" volt:purpose="title">Search</string>
+    <!-- Hint inside the empty search field. -->
+    <string name="hub_search_hint" volt:screen="Search page" volt:purpose="hint">Search settings, readings and rides</string>
+    <!-- Shown in place of results when nothing matches what was typed. -->
+    <string name="hub_search_none" volt:screen="Search page" volt:purpose="status">No matches</string>
+    <!-- Count of results under the field, also read out by screen readers as the results change. %1$d is the number of results. -->
+    <plurals name="hub_search_count" volt:screen="Search page" volt:purpose="status">
+        <item quantity="one">%1$d result</item>
+        <item quantity="other">%1$d results</item>
+    </plurals>
+    <!-- Label above results that are pages (Battery & charging, Speed limits and so on). -->
+    <string name="hub_search_group_pages" volt:screen="Search page" volt:purpose="section label">Pages</string>
+    <!-- Label above results that are settings and controls. -->
+    <string name="hub_search_group_settings" volt:screen="Search page" volt:purpose="section label">Settings</string>
+    <!-- Label above results that are readings from the scooter right now (speed, battery temperature and so on). -->
+    <string name="hub_search_group_readings" volt:screen="Search page" volt:purpose="section label">Live readings</string>
+    <!-- Label above results that are saved rides. -->
+    <string name="hub_search_group_rides" volt:screen="Search page" volt:purpose="section label">Rides</string>
+    <!-- Small line under a result naming the page it is on. %1$s is that page's name ("Battery & charging"). -->
+    <string name="hub_search_in" volt:screen="Search page" volt:purpose="caption">In %1$s</string>
+
+    <!-- ===== Widgets Home: the dock of subjects at the bottom ===== -->
+    <!-- The dock's handle (swipe up or tap it) and the title of the sheet that lists every subject with its summary. -->
+    <string name="hub_dock_all" volt:screen="Widgets Home dock" volt:purpose="handle and sheet title">All subjects</string>
+
+    <!-- ===== Wide Home (tablets and unfolded phones): the right pane ===== -->
+    <!-- Link at the top of the right pane that goes back to the list of all subjects. -->
+    <string name="hub_all" volt:screen="Wide Home, right pane" volt:purpose="back link" volt:max="96dp@14sp">All</string>
+    <!-- Title of the card listing the next maintenance checks. -->
+    <string name="hub_service_card_title" volt:screen="Wide Home, Service card" volt:purpose="title">Next checks</string>
+    <!-- Shown in that card when no maintenance reminder is set. -->
+    <string name="hub_service_card_none" volt:screen="Wide Home, Service card" volt:purpose="status">No checks set</string>
 </resources>
