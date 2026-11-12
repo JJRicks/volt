@@ -164,6 +164,14 @@ public final class HomeTextTest {
         check(T.key(HubText.whatsNewReleasePage().id()).equals("more_update_open"), "the update check's button");
         equal("No browser could open the release page", HubText.whatsNewNoBrowser(), "no browser");
         check(T.key(HubText.whatsNewNoBrowser().id()).equals("more_update_no_browser"), "the update check's message");
+        // Owner's answer on #403: riders who already record rides automatically get a one-time notice that
+        // background starts are now off, with Recording settings' own switch one tap away.
+        equal("Volt now starts recording in the background only if you turn it on. A ride started in the background or with the screen locked has no GPS route.",
+                HubText.whatsNewBackgroundNotice(), "background notice");
+        equal("Start recording in the background", HubText.whatsNewBackgroundSwitch(), "background switch");
+        check(T.key(HubText.whatsNewBackgroundSwitch().id()).equals("hub_recording_auto_background"), "Recording settings' own switch");
+        equal("Recording settings", HubText.whatsNewRecordingSettings(), "recording settings link");
+        check(T.key(HubText.whatsNewRecordingSettings().id()).equals("hub_page_ride_recording"), "the page's own title");
     }
 
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
@@ -184,7 +192,8 @@ public final class HomeTextTest {
                 HubText.qaRecording(), HubText.searchDescription(), HubText.settingsDescription(),
                 HubText.switchScooterDescription("x"), HubText.setupStyleTitle(), HubText.setupStyleBody(),
                 HubText.whatsNewTitle(), HubText.whatsNewBody(), HubText.whatsNewSwitch(), HubText.whatsNewKeep(),
-                HubText.whatsNewLater()));
+                HubText.whatsNewLater(), HubText.whatsNewBackgroundNotice(), HubText.whatsNewBackgroundSwitch(),
+                HubText.whatsNewRecordingSettings()));
         Set<String> homeKeys = new HashSet<>();
         for (Msg msg : all) {
             check(msg != null && msg.id() >= 0, "a catalog message, not verbatim text");
