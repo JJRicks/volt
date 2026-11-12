@@ -102,16 +102,24 @@ public final class MoreScreen implements AppScreen {
      * options (Battery & charging › Charge history & recordings), and the issue report (Service › Issue reports).
      */
     static final String CHARGING_SECTION = "Charging", REPORTS_SECTION = "Reports";
-    /** Sections that moved to their subject pages (Security, Service › Experimental controls): More's menu no longer lists them. */
-    private static boolean subjectSection(String section) { return "Security".equals(section) || "Lab".equals(section); }
+    /**
+     * Ride › Recording settings (hub layout plan, PR 5): automatic recording and ending, keeping the screen awake, battery
+     * use and the map, cut out of App preferences, and ride auto-save, cut out of Data & history.
+     */
+    static final String RECORDING_SECTION = "Recording";
+    /**
+     * Sections that moved to their subject pages (Security, Service › Experimental controls, Data › Data & history):
+     * More's menu no longer lists them.
+     */
+    private static boolean subjectSection(String section) {
+        return "Security".equals(section) || "Lab".equals(section) || "Data".equals(section);
+    }
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
     /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
     private boolean compatibilityRecovery;
     /** Saved more_section value for the recovery-only route; it is shown as the Compatibility section. */
     static final String COMPATIBILITY_RECOVERY = "CompatibilityRecovery";
-    /** TelemetryHistory's database file; only its size on disk is read here, never its contents. */
-    private static final String HISTORY_DATABASE = "telemetry-history.db";
     private final Map<String,LinearLayout> sections = new LinkedHashMap<>();
     private final Map<String,Integer> sectionScrollPositions = new LinkedHashMap<>();
     private String selectedSection;
@@ -123,7 +131,7 @@ public final class MoreScreen implements AppScreen {
     private LinearLayout scooterList;
     private TextView addScooterButton, scooterListNotice;
     private final Map<String, ScooterCard> scooterCards = new LinkedHashMap<>();
-    private Row scootersIndexRow, dataIndexRow;
+    private Row scootersIndexRow;
     private Row setPinRow, bondRow, pinRow, proximityRow;
     private View pinRefresh, pinSpinner, proximitySpinner;
     private TextView proximityPinChip, proximityPairedChip, securityConnect;
@@ -214,7 +222,6 @@ public final class MoreScreen implements AppScreen {
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
             if (section.equals("Scooters")) scootersIndexRow = row;
-            else if (section.equals("Data")) dataIndexRow = row;
             else if (section.equals("Lab")) badge(row.value, T.moreLabBadge());
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
@@ -258,6 +265,11 @@ public final class MoreScreen implements AppScreen {
             cardDestination = column(); sections.put(CHARGING_SECTION, cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
             charging();
+        }
+        if (RECORDING_SECTION.equals(initialSection)) {
+            cardDestination = column(); sections.put(RECORDING_SECTION, cardDestination);
+            sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
+            recording();
         }
         if (REPORTS_SECTION.equals(initialSection)) {
             cardDestination = column(); sections.put(REPORTS_SECTION, cardDestination);
@@ -336,7 +348,7 @@ public final class MoreScreen implements AppScreen {
 
     private boolean knownSection(String section) {
         if ("Units".equals(section) || "Compatibility".equals(section)) return true;
-        if (standalone && (CHARGING_SECTION.equals(section) || REPORTS_SECTION.equals(section))) return true;
+        if (standalone && (CHARGING_SECTION.equals(section) || REPORTS_SECTION.equals(section) || RECORDING_SECTION.equals(section))) return true;
         for (String candidate : SECTIONS) if (candidate.equals(section)) return true;
         return false;
     }
@@ -362,7 +374,6 @@ public final class MoreScreen implements AppScreen {
         for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(T.render(SECTION_TITLE_IDS[i]));
         for (Map.Entry<String,LinearLayout> section : sections.entrySet())
             section.getValue().setVisibility(section.getKey().equals(shown) ? View.VISIBLE : View.GONE);
-        if (index || wide) dataIndexRow.value(historyFileSize());
         if (wide) for (int i = 0; i < SECTIONS.length; i++)
             if (menuRows[i] != null) markMenuRow(menuRows[i], SECTIONS[i].equals(units ? "App" : compatibility ? "Developer" : shown));
     }
@@ -805,18 +816,6 @@ public final class MoreScreen implements AppScreen {
         view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         return view;
     }
-    private String historyFileSize() {
-        try {
-            File base = host.activity().getDatabasePath(HISTORY_DATABASE); long total = 0;
-            for (String suffix : new String[] {"", "-journal", "-wal", "-shm"}) {
-                File file = new File(base.getPath() + suffix); if (file.isFile()) total += file.length();
-            }
-            return mib(total);
-        } catch (RuntimeException unavailable) { return ""; }
-    }
-    private static String mib(long bytes) {
-        return bytes <= 0 ? "" : T.fmtQuantity(Fmt.decimal(Locale.US, bytes / 1048576.0, 1), T.moreUnitMib());
-    }
 
     // ---- Index --------------------------------------------------------------------------
 
@@ -953,6 +952,40 @@ public final class MoreScreen implements AppScreen {
         cardDestination.addView(scooterListNotice);
         scooterList = column(); scooterList.setTag("scooters-list");
         cardDestination.addView(scooterList);
+        // How Volt keeps in touch with the scooter (moved here from App preferences, hub layout plan, PR 5).
+        label(T.morePrefsConnection());
+        LinearLayout connection = group();
+        Row rate = row(connection, "clock", T.morePrefsRefresh(), null, this::telemetryRate);
+        valueRefreshers.add(() -> rate.value(T.fmtQuantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
+        preferenceToggle(connection, "bluetooth", T.morePrefsAutoConnect(), null, "auto_connect", true);
+        preferenceToggle(connection, "bluetooth", T.morePrefsBackground(), T.morePrefsBackgroundSub(), "background_connection", false);
+    }
+
+    // ---- Recording settings (Ride › Recording settings) ---------------------------------
+
+    /** The ride recording switches, battery use and the map, then ride auto-save (RECORDING_SECTION). */
+    private void recording() {
+        LinearLayout connection = group();
+        connection.setTag("preference-recording-options");
+        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
+        // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
+        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
+        preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Battery use is the one setting that decides whether long background recordings survive:
+        // show it as the value and open Android's page for this app directly.
+        Row background = row(connection, "battery", T.morePrefsBattery(), null,
+                () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
+        valueRefreshers.add(() -> {
+            boolean unrestricted = batteryUnrestricted();
+            background.value(unrestricted ? T.morePrefsBatteryValueUnrestricted() : T.morePrefsBatteryValueOptimized());
+            background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
+            background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
+                    : T.morePrefsBatteryOptimized());
+        });
+        Row map = row(connection, "map", T.morePrefsMap(), null, this::mapSettings);
+        valueRefreshers.add(() -> map.value(basemapSummary()));
+        autoSaveGroup();
     }
 
     private final class ScooterCard {
@@ -1139,8 +1172,6 @@ public final class MoreScreen implements AppScreen {
     private void preferences() {
         segmentedField(T.morePrefsAppearance(), "theme", new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()},
                 new String[]{"dark", "system", "light"}, "dark");
-        segmentedField(T.morePrefsStatsDetail(), "stats_density", new String[]{T.morePrefsComfortable(), T.morePrefsDense()},
-                new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout display = group();
@@ -1152,40 +1183,6 @@ public final class MoreScreen implements AppScreen {
         Row text = row(display, "text", T.morePrefsTextSize(), null, this::textSize);
         valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
         preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
-        Row map = row(display, "map", T.morePrefsMap(), null, this::mapSettings);
-        valueRefreshers.add(() -> map.value(basemapSummary()));
-        label(T.morePrefsConnection());
-        LinearLayout connection = group();
-        Row rate = row(connection, "clock", T.morePrefsRefresh(), null, this::telemetryRate);
-        valueRefreshers.add(() -> rate.value(T.fmtQuantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
-        preferenceToggle(connection, "bluetooth", T.morePrefsAutoConnect(), null, "auto_connect", true);
-        preferenceToggle(connection, "bluetooth", T.morePrefsBackground(), T.morePrefsBackgroundSub(), "background_connection", false);
-        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
-        // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
-        // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
-        preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
-        // Battery use is the one setting that decides whether long background recordings survive:
-        // show it as the value and open Android's page for this app directly.
-        Row background = row(connection, "battery", T.morePrefsBattery(), null,
-                () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
-        valueRefreshers.add(() -> {
-            boolean unrestricted = batteryUnrestricted();
-            background.value(unrestricted ? T.morePrefsBatteryValueUnrestricted() : T.morePrefsBatteryValueOptimized());
-            background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
-            background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
-                    : T.morePrefsBatteryOptimized());
-        });
-        ridingPreferences();
-    }
-    /** Riding mode's settings now live in its own tune menu (RidingSettingsMenu); this one stays here too. */
-    private void ridingPreferences() {
-        label(RidingSettingsMenu.section());
-        LinearLayout box = group();
-        box.setTag("preference_riding_display");
-        // Off by default. MainActivity/AutoStartPolicy decide; this only stores the choice.
-        preferenceToggle(box, "speed", RidingSettingsMenu.autoOpenTitle(), RidingSettingsMenu.autoOpenSub(), AutoStartPolicy.AUTO_RIDE_MODE_KEY, false)
-                .view.setTag("preference_riding_auto_open");
     }
     private boolean batteryUnrestricted() {
         try {
@@ -1316,11 +1313,13 @@ public final class MoreScreen implements AppScreen {
     // ---- Data & history -----------------------------------------------------------------
 
     private void dataHistory() {
+        // How much Data's readings show (moved here from App preferences, hub layout plan, PR 5).
+        segmentedField(T.morePrefsStatsDetail(), "stats_density", new String[]{T.morePrefsComfortable(), T.morePrefsDense()},
+                new String[]{"comfortable", "dense"}, "comfortable");
         label(T.moreHistoryConnected());
         LinearLayout recording = group();
         Row history = preferenceToggle(recording, "history", T.moreHistorySave(), T.moreHistoryWhileConnected(), "history_enabled", true);
         valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? T.moreHistoryWhileConnected() : T.moreHistoryOffKept()));
-        autoSaveGroup();
 
         LinearLayout storage = ui.card(); historyStorageCard = storage; cardDestination.addView(storage);
         LinearLayout head = row();
@@ -1430,7 +1429,6 @@ public final class MoreScreen implements AppScreen {
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
             historyStorageCard.setContentDescription(T.moreHistoryStorageDescription(used,
                     T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
-            dataIndexRow.value(mib(storage.bytes));
         });
     }
     private void clearHistory(boolean all) {

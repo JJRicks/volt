@@ -82,6 +82,8 @@ public final class StatsScreen implements AppScreen {
     private final LinearLayout favouritesCard, deviceCard, eventsCard;
     private final View deviceLabel;
     private final Ui.BatteryRing batteryRing;
+    /** The Data & history row at the foot of the sections. */
+    private final HubListScreen storageLink;
     private static final class Row {
         final String key, group, label, search;
         final LinearLayout layout;
@@ -109,7 +111,10 @@ public final class StatsScreen implements AppScreen {
         }
     }
 
-    public StatsScreen(ScreenHost host) {
+    public StatsScreen(ScreenHost host) { this(host, false); }
+
+    /** paneHosted: shown in a pane beside another page (hub layout plan, PR 13), so never in two panes of its own. */
+    StatsScreen(ScreenHost host, boolean paneHosted) {
         this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings;
         dense = "dense".equals(preferences.getString("stats_density", "comfortable"));
         favourites = new LinkedHashSet<String>(preferences.getStringSet("stats_favourites", new LinkedHashSet<String>()));
@@ -117,7 +122,7 @@ public final class StatsScreen implements AppScreen {
         query = preferences.getString("stats_query", "");
         int widthDp = host.activity().getResources().getConfiguration().screenWidthDp;
         // Same rule as MainActivity's side rail (Ui.wideLayout: width over text scale), so panes appear exactly with it.
-        wide = ui.wideLayout();
+        wide = !paneHosted && ui.wideLayout();
         selectedSection = validSection(preferences.getString("stats_section", "Overview"));
         // Readings has its own pane when wide; a saved Readings tab opens Overview beside it (the saved choice is kept).
         if (wide && selectedSection.equals("Readings")) selectedSection = "Overview";
@@ -260,6 +265,11 @@ public final class StatsScreen implements AppScreen {
         rawValues = ui.text(T.statsNoneYet(), 11, false); rawValues.setTypeface(Typeface.MONOSPACE); rawValues.setTextColor(ui.muted);
         rawValues.setTextIsSelectable(true); inset.addView(rawValues); rawCard.addView(inset, new LinearLayout.LayoutParams(-1, -2));
         diagnosticsSection.addView(rawCard);
+        // Under every section: Data's link to the storage settings and the detail density (hub layout plan, PR 5).
+        storageLink = new HubListScreen(host, java.util.Collections.singletonList(new HubListScreen.Row(HubPages.DATA_STORAGE, "history",
+                HubText.title(HubPages.DATA_STORAGE), null, null, null, () -> host.open(HubPages.DATA_STORAGE))));
+        LinearLayout.LayoutParams linkParams = new LinearLayout.LayoutParams(-1, -2); linkParams.topMargin = ui.dp(6);
+        page.addView(storageLink.view(), linkParams);
         applyFilter(); showSection(); refresh();
     }
     private LinearLayout vertical() { LinearLayout result = new LinearLayout(host.activity()); result.setOrientation(LinearLayout.VERTICAL); return result; }
