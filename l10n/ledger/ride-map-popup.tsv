@@ -1,0 +1,7 @@
+# Ledger for ride-map-popup: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/RouteMapView.java:467	["≈", {"spec": "%s", "arg": 1, "value": "signedPercent", "as": "signedPercent"}, "%% grade"]	maps_route_grade	format	the ride map popup's grade line; the signed number comes from Fmt.signedDecimal in grade() (prep PR #400), passed through %s as it is
+src/com/jjricks/volt/RouteMapView.java:476	[{"spec": "%s", "arg": 1, "value": "signedMps2", "as": "signedMps2"}, " m/s² GPS accel"]	maps_route_accel	format	the popup's GPS acceleration line; signed number from Fmt.signedDecimal in accel()
+src/com/jjricks/volt/RouteMapView.java:487	["Elevation ", {"spec": "%s", "arg": 1, "value": "signedFeet", "as": "signedFeet"}, " ft"]	maps_route_elevation_ft	format	the popup's elevation line in feet; signed number from Fmt.signedDecimal in elevation()
+src/com/jjricks/volt/RouteMapView.java:492	["Elevation ", {"spec": "%s", "arg": 1, "value": "signedMeters", "as": "signedMeters"}, " m"]	maps_route_elevation_m	format	the popup's elevation line in metres; signed number from Fmt.signedDecimal in elevation()

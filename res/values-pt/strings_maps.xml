@@ -116,6 +116,8 @@
     <string name="maps_route_accel_not_measured">Aceleração do GPS não medida</string>
     <!-- src:528749ecef0162ba9996ea389dbd583dad8411bb -->
     <string name="maps_route_power_not_measured">Potência não medida</string>
+    <!-- src:3281a1893eb01bb50fa336c241fed1eb7054f268 -->
+    <string name="maps_route_grade">≈%1$s%% de inclinação</string>
     <!-- src:80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a -->
     <string name="maps_chart_ride">Gráfico da viagem</string>
     <!-- src:b77c503c54be648b7df6a02be88206ec789e2829 -->

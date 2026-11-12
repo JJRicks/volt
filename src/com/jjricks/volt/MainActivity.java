@@ -186,6 +186,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
+            // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
+            ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
             rebuild();
         }
@@ -329,6 +331,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
+        ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
     }
@@ -1761,6 +1764,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
+        /** The index's search results that open a light family's page (card -> page id): they carry the old zones row's words. */
+        private final LinkedHashMap<View,String> searchLinks=new LinkedHashMap<>();
         /** The index's Maintenance row (search finds it; it opens Service › Maintenance reminders) and its value. */
         private TextView maintenanceValue;
         /** Shown under the index's search while nothing is typed (the subject list); null elsewhere. */
@@ -1871,6 +1876,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
             shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
             rowId(MaintenanceScreen.ROW,maintenanceLine.card);
+            // Line lights and Star lights replaced the zones row: the index's search finds their links by its words.
+            if(spec.search)for(String target:ControlsPages.SEARCHED_LINKS){
+                String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
+                addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
+                shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
+            }
             pageBody=spec.search?null:design.groupCard();
             if(pageBody!=null){
                 for(String id:spec.rows){
@@ -1893,15 +1904,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             pageBody.addView(card);
         }
         /** A row that opens one of this page's sub-pages. */
-        private View linkRow(String target){
+        private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
+        private View linkCard(String target){
             SettingLine link=new SettingLine(linkIcon(target),HubText.rowTitle(target),null);link.chevron(()->open(target));
-            link.line.setTag("hub-link-"+target);links.put(link.card,target);return link.card;
+            link.line.setTag("hub-link-"+target);return link.card;
         }
         private String linkIcon(String page){
             switch(page){
                 case HubPages.CONTROLS_ASSISTS:return design.featureIcon("hill_start_assist");
                 case HubPages.CONTROLS_LIMITS:return "speed";
                 case HubPages.BATTERY_MODES:case HubPages.BATTERY_ESTIMATES:return "battery";
+                // The chart its Charge recordings row draws, not the light pages' star (#387 review).
+                case HubPages.BATTERY_HISTORY:return "chart";
                 default:return "star";
             }
         }
@@ -1959,17 +1973,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=spec.search&&!needle.isEmpty();int count=0;
+            java.util.List<String> lab=modelLab();
             java.util.HashSet<String> visible=new java.util.HashSet<>();
             for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):spec.includes(row.feature.key));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
                 boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):spec.includes(idOf(e.getKey()));
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
+                String linked=searchLinks.get(e.getKey());if(linked!=null&&!ControlsPages.linkShown(linked,id->rowShown(id,lab)))match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
             boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
-            java.util.List<String> lab=modelLab();
             for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey(),lab)?View.VISIBLE:View.GONE);
             // A sub-page's link shows only while that page has a row or an Experimental entry to show.
             for(Map.Entry<View,String> e:links.entrySet())e.getKey().setVisibility(ControlsPages.linkShown(e.getValue(),id->rowShown(id,lab))?View.VISIBLE:View.GONE);
@@ -1977,14 +1992,16 @@ public final class MainActivity extends Activity implements ScreenHost {
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
                 hideDividers(bodies.get(e.getKey()));
             }
-            if(pageBody!=null)hideDividers(pageBody);
+            // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
+            if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
-        /** A divider shows only between two shown rows (each divider's tag is the row after it). */
-        private void hideDividers(LinearLayout body){
+        /** A divider shows only between two shown rows (each divider's tag is the row after it). True when a row shows. */
+        private boolean hideDividers(LinearLayout body){
             boolean hasVisible=false;
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
+            return hasVisible;
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
@@ -2017,7 +2034,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             banner.setVisibility(ready?View.GONE:View.VISIBLE);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
-            bannerAction.setVisibility(connecting?View.GONE:View.VISIBLE);
+            bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
             readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();
@@ -2040,6 +2057,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
             StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
             java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
@@ -3286,8 +3304,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
      * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
-     * profile's. Toasts when no email app can take it.
+     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
      */
+    /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
+    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
     @Override public void emailChargeRecordings(File recordings){
         DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
         if(d!=null&&d.simulated)d=null;
@@ -3299,7 +3319,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             final Uri attached=uri;
             handler.post(()->{
                 if(destroyed)return;
-                if(attached==null||!sendWithUri(subject,body,attached))toast(HubText.chargeSendNoEmail());
+                // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
+                ChargeSend.Outcome outcome=ChargeSend.outcome(attached!=null,attached!=null&&sendWithUri(subject,body,attached));
+                if(outcome==ChargeSend.Outcome.EXPORT_FAILED)toast(ScooterService.chargeExportFailed());
+                else if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
             });
         },"Volt-email-export").start();
     }

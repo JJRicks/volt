@@ -523,6 +523,8 @@ public final class ScooterService extends Service {
         });return true;
     }
     /** The profile is captured before work starts so changing screens cannot export a different scooter. */
+    /** "Charge recordings could not be exported": the export failed, or Email to Volt couldn't prepare its attachment. */
+    static CharSequence chargeExportFailed(){return M.serviceChargeExportFailed();}
     public boolean exportChargeRecordings(Consumer<File> completion){
         if(destroyed||chargeStore==null||isChargeRecording()||chargeExporting||activeProfileId().isEmpty())return false;
         final String profile=activeProfileId();chargeExporting=true;
@@ -539,7 +541,7 @@ public final class ScooterService extends Service {
                     count=chargeStore.exportJson(profile,writer);
                 }
                 if(count==0){output.delete();output=null;error=M.serviceChargeExportEmpty();}
-            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=M.serviceChargeExportFailed();}
+            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=chargeExportFailed();}
             final File result=output;final CharSequence message=error;
             handler.post(()->{chargeExporting=false;if(destroyed){if(result!=null)result.delete();return;}
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});

@@ -150,6 +150,8 @@ public final class MoreScreen implements AppScreen {
     private ChargeHistoryDialog chargeHistoryDialog;
     /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
     private Row chargerLinkRow, sendChargeRow;
+    /** The Charger row's detail line, under the charger's name (its sub-line). */
+    private TextView chargerDetail;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -2580,6 +2582,11 @@ public final class MoreScreen implements AppScreen {
         // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
         chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
         chargerLinkRow.view.setTag("charge-charger-selector");
+        // The charger's name goes under the title, full width, as other rows' sub-lines do, never in the 140 dp value
+        // beside it, where a long name (German at large text) broke inside a word and squeezed the title (#387 review).
+        // Its detail line, when there is one, sits under it.
+        chargerDetail=ui.text("",11.5f,false);chargerDetail.setTextColor(ui.muted);chargerDetail.setPadding(0,ui.dp(2),0,0);
+        chargerDetail.setVisibility(View.GONE);((LinearLayout)chargerLinkRow.sub.getParent()).addView(chargerDetail);
         // Count qualified evidence without claiming every range is ready at a fixed session count.
         chargeCurve=ui.card();chargeCurve.setTag("charge-learning-status");
         LinearLayout curveHead=row();
@@ -2627,20 +2634,25 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
-     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded (said in a
-     * toast) or while an earlier export is still being written (quiet: a double tap; ChargeSend.refusal).
+     * to Volt's report address (the report emails' attachment flow). Refused with no scooter chosen ("Choose a scooter
+     * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
+     * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
+     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email.
      */
     private void sendChargeRecordings() {
-        ScooterService s = service(); if (s == null) return;
+        ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
         if (s.exportChargeRecordings(file -> {
-            if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
-            if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
-            host.emailChargeRecordings(file);
+            if (file != null) { ChargeSend.MAILBOX.deliver(file, System.currentTimeMillis()); return; }
+            if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
         })) return;
-        // Refused: tell the two reasons apart from the service's state.
-        if (ChargeSend.refusal(s.isChargeRecording(), s.chargeExporting()) == ChargeSend.Refusal.STOP_RECORDING)
-            host.toast(HubText.chargeSendBusy());
+        // Refused: tell the reasons apart from the service's state.
+        ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
+        if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
+        else if (refusal == ChargeSend.Refusal.STOP_RECORDING) host.toast(HubText.chargeSendBusy());
     }
+
+    /** "Choose a scooter first.": recording or emailing charges needs a chosen scooter. */
+    private void chooseScooterFirst() { host.toast(T.moreHistoryChooseScooter()); }
 
     /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
     private void exportBusy() { host.toast(T.moreDevExportBusy()); }
@@ -2713,7 +2725,7 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            sendChargeRow.enabled(s!=null&&!s.chargeExporting());
+            sendChargeRow.enabled(ChargeSend.rowEnabled(s!=null,s!=null&&s.profiles!=null&&s.profiles.active()!=null,s!=null&&s.chargeExporting()));
         }
     }
 
@@ -2722,10 +2734,11 @@ public final class MoreScreen implements AppScreen {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
         boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
-        chargerLinkRow.value((effective == null ? HubText.chargerAutomatic()
+        chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
         Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
-        chargerLinkRow.sub(detail == null ? null : detail.render());
+        chargerDetail.setText(detail == null ? "" : detail.render());
+        chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
 
     /**
@@ -2734,7 +2747,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
-        if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
+        if (profile == null) { chooseScooterFirst(); return; }
         final String profileId = profile.id;
         // Capture labels train curves, so only an explicit preference is pre-selected; an
         // Automatic guess must never become a label in one tap. An open panel must never start
@@ -2974,7 +2987,8 @@ public final class MoreScreen implements AppScreen {
         pinRow.icon.step(pinOn ? 2 : 1);
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
-        securityConnect.setVisibility(link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
+        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
