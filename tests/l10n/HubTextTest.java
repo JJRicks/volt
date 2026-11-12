@@ -41,7 +41,6 @@ public final class HubTextTest {
                 shortTitles();
                 rows();
                 summaries();
-                chargeHistoryAndRecording();
             }
             Locale.setDefault(Locale.US);
             T.install(ECHO);
@@ -50,8 +49,8 @@ public final class HubTextTest {
             T.install(null);
             Locale.setDefault(saved);
         }
-        System.out.println("HubTextTest: " + checks + " checks passed (page titles, short rungs, link rows, summaries, "
-                + "charge history and recording settings, in English and under the key-echo source)");
+        System.out.println("HubTextTest: " + checks + " checks passed (page titles, short rungs, link rows, summaries "
+                + "in English and under the key-echo source)");
     }
 
     private static void titles() {
@@ -157,30 +156,6 @@ public final class HubTextTest {
         equal("Charging · limit 80%", HubText.batteryLimit(Msg.verbatim("80%"), true), "a Msg argument");
     }
 
-    /**
-     * The owner's conditions on the tracking issue (#383): Charge history & recordings explains why sending charge
-     * recordings helps and offers to email them (answer 17), with a row that shows the charger and links to the
-     * Charger setting; Recording settings gets an opt-in for starting a recording in the background (answer 18).
-     */
-    private static void chargeHistoryAndRecording() {
-        equal("Email to Volt", HubText.chargeSendRow(), "send row");
-        check(T.key(HubText.chargeSendRow().id()).equals("compat_email"), "the send row reuses the Compatibility panel's words");
-        equal("Sending your charge recordings to Volt helps improve charging time estimates for your scooter's model.",
-                HubText.chargeSendNote(), "send note");
-        equal("No email app could open the charge recordings.", HubText.chargeSendNoEmail(), "no email app");
-        equal("Charger for estimates", HubText.chargerRow(), "charger row");
-        check(T.key(HubText.chargerRow().id()).equals("main_row_charger"), "the charger row reuses the Charger row's name");
-        equal("Automatic", HubText.chargerAutomatic(), "charger automatic");
-        equal("Stock", HubText.chargerValue(false, false), "stock chosen");
-        equal("High-speed", HubText.chargerValue(true, false), "high-speed chosen");
-        equal("Auto · Stock", HubText.chargerValue(false, true), "stock recognized");
-        equal("Auto · High-speed", HubText.chargerValue(true, true), "high-speed recognized");
-        equal("Stop charge recording to change", HubText.chargerStopRecording(), "charger while recording");
-        equal("Start recording in the background", HubText.recordInBackground(), "background switch");
-        equal("A ride that starts while Volt is in the background has no GPS route.", HubText.recordInBackgroundNote(),
-                "background note");
-    }
-
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
     private static void echo() {
         List<Msg> all = new ArrayList<>();
@@ -198,11 +173,7 @@ public final class HubTextTest {
                 HubText.controls("x", false), HubText.automaticLights(), HubText.tailLight(true), HubText.tailLight(false),
                 HubText.security(true, true), HubText.security(true, false), HubText.security(false, true),
                 HubText.security(false, false), HubText.serviceDue("x", "y"), HubText.serviceClear(), HubText.dataSummary(),
-                HubText.batteryLevelRange("x", "y"), HubText.batteryChargingTo("x"), HubText.batteryNotCharging(),
-                HubText.chargeSendRow(), HubText.chargeSendNote(), HubText.chargeSendNoEmail(), HubText.chargerRow(),
-                HubText.chargerAutomatic(), HubText.chargerValue(false, false), HubText.chargerValue(true, false),
-                HubText.chargerValue(false, true), HubText.chargerValue(true, true), HubText.chargerStopRecording(),
-                HubText.recordInBackground(), HubText.recordInBackgroundNote()));
+                HubText.batteryLevelRange("x", "y"), HubText.batteryChargingTo("x"), HubText.batteryNotCharging()));
         Set<String> summaryKeys = new HashSet<>();
         for (Msg msg : all) {
             check(msg.id() >= 0, "a catalog message, not verbatim text");

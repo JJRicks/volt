@@ -136,33 +136,6 @@ public final class HubText {
     /** Data's summary. */
     public static Msg dataSummary() { return M.hubSummaryData(); }
 
-    // ===== Battery & charging › Charge history & recordings =====
-
-    /** The row that emails this scooter's charge recordings to Volt (the Compatibility panel's words). */
-    public static Msg chargeSendRow() { return M.compatEmail(); }
-    /** Under that row: why sending them helps (charging time estimates for the scooter's model). */
-    public static Msg chargeSendNote() { return M.hubChargeSendNote(); }
-    /** When no email app can open that email. */
-    public static Msg chargeSendNoEmail() { return M.hubChargeSendNoEmail(); }
-    /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
-    public static Msg chargerRow() { return M.mainRowCharger(); }
-    /** That row's value while Automatic has not recognized the charger. */
-    public static Msg chargerAutomatic() { return M.mainRowAutomatic(); }
-    /** That row's value for a known charger; detected when Automatic recognized it rather than the owner choosing it. */
-    public static Msg chargerValue(boolean highSpeed, boolean detected) {
-        Msg family = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
-        return detected ? M.mainRowAutoFamily(family) : family;
-    }
-    /** That row's detail while a charge is being recorded (the charger can't change then). */
-    public static Msg chargerStopRecording() { return M.mainRowStopRecording(); }
-
-    // ===== Ride › Recording settings =====
-
-    /** The switch that lets Record rides automatically also start while Volt is in the background. */
-    public static Msg recordInBackground() { return M.hubRecordingAutoBackground(); }
-    /** Under it: such a ride has no GPS route. */
-    public static Msg recordInBackgroundNote() { return M.hubRecordingAutoBackgroundNote(); }
-
     // ===== Battery & charging page, summary card =====
 
     /** Level (a formatted percent) and the estimated range left (with its unit). */
