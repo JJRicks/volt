@@ -42,7 +42,7 @@ How Volt returns to a place:
 - Tapping a tab, or `select(page)` with a tab root, shows that tab with only Home below it. `select` with any other page, and `open(page)` (`ScreenHost`), put the page on top of the current one; `open` can carry one-shot arguments (`HubNav.Args`) that are dropped on the next page change. Tapping the page already shown scrolls it to the top.
 - Back first goes to onboarding or riding mode when they are showing, then to the screen's own `back()` (ending dashboard editing, clearing a search, or going up from a More section), then to the page below in the stack, and closes the app from Home.
 - More remembers its open section in `more_section` for one minute away from the app, and forgets it after a reboot. The Scooter tab's pages are in the page stack; `scooter_section` is retired and no longer written.
-- Quick access ids never change: `HubRoutes.pageFor` gives the page each former sheet shortcut opens (`lights`, `controls`, `section:*`, `more:*`), and a control's shortcut that the Lab tries, or the PIN or proximity unlock, opens `service.experimental` (with the control as `HubNav.Args.inspect`) or `security`. Until the Settings sections become pages, `HubRoutes.moreSectionOf` opens More on the section instead. `tests/HubRoutesTest.java` checks every catalog id.
+- Quick access ids never change: `HubRoutes.pageFor` gives the page a shortcut to a whole settings page opens (`controls`, `section:Security`, `more:*`), and `HubRoutes.sheetFor` the quick-control sheet that `lights` and the scooter groups (`section:Ride`, `section:Battery`, `section:Line lights`, `section:Star lights`, `section:Dashboard & sound`) keep over Home (`MainActivity.showQuickSettings`, owner's answer 3 on #383); and a control's shortcut that the Lab tries, or the PIN or proximity unlock, opens `service.experimental` (with the control as `HubNav.Args.inspect`) or `security`. Until the Settings sections become pages, `HubRoutes.moreSectionOf` opens More on the section instead. `tests/HubRoutesTest.java` checks every catalog id.
 - A `MoreScreen` built with `embedded` shows one section as a page's body: no section header, no scroller of its own, Back left to the page stack, and a link to another section opens that section's page (`HubPages.fromMoreSection`).
 - Notification taps route by intent: a maintenance notice opens Scooter › Service › Maintenance (`MaintenanceNotices.tapped`, `MaintenanceScreen.PAGE`; during riding mode or setup, on the next Scooter tab page shown, kept across recreation), the update notice opens More and its update check (`UpdateCheckJob.opened`), and the connection notification just opens the app.
 
@@ -388,7 +388,8 @@ item list in each widget. Never accept arbitrary commands or navigation routes.
 The dashboard invokes existing MainActivity editors and BleController gates;
 experimental/security shortcuts must keep their explanatory approval flow: they
 open their page (Service › Experimental controls, Security; HubRoutes), where the
-same Lab try sheet and PIN forms apply. There are no quick-access sheets.
+same Lab try sheet and PIN forms apply. Only the quick-control groups keep a
+quick-access sheet (HubRoutes.sheetFor); whole settings pages open as pages.
 QuickAccessGrid measures real label heights; do not clip them or shrink targets
 below 48 dp to hide a scrollbar. The widget options no longer duplicate Size.
 WidgetReveal is bounded and drawing-only: cancel on touch, render, focus loss,

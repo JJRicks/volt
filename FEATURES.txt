@@ -1091,7 +1091,11 @@ an active capture. The recording screen uses the same saved selection.
 
 Explicit Charge recording lives in Scooter > Battery & charging > Charge history
 & recordings (formerly Developer options), with a manual Stock or
-High-speed charger selection. There is no automatic charger detection. Bounded
+High-speed charger selection. Its Charger row shows the charger for estimates and
+opens its one home, Battery & charging > Estimates & charger > Charger; Developer
+options no longer has a charger selector. Email to Volt on the same page attaches
+this scooter's recordings to an email to Volt's report address, which helps tune
+charging time estimates for that model. There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
@@ -1200,11 +1204,12 @@ QUICK ACCESS
 
 Choose two to eight ordered shortcuts in the widget options. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders open
-over Home. Scooter groups open their page under Scooter (Lights & sound,
-Controls, Battery & charging, Security), PIN/proximity opens Scooter > Security,
-experimental controls open their test in Scooter > Service > Experimental
-controls, and app-preference shortcuts open More on that menu. Stats and Rides
-are still page shortcuts. Every saved shortcut keeps working. Legacy
+over Home, and so do the quick-control groups (Lights, Ride settings, Battery
+settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
+Shortcuts to whole settings pages open the page: Settings opens Scooter >
+Controls, PIN/proximity opens Scooter > Security, experimental controls open
+their test in Scooter > Service > Experimental controls, and app-preference
+shortcuts open More on that menu. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.
