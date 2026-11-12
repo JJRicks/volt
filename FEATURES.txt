@@ -457,6 +457,9 @@ Long range mode    OEM-mapped   Parked; 2745 and the 2543 group; its status
 Charge ceiling,    OEM-mapped   Parked; 2416/2443/2529, 2547/2585 and the 2543
 scheduled charging              group; four IDs need the full model ID; start
 and start time                  times on the hour, within 48 hours
+Battery alerts     Volt's own   Identified models without the charge ceiling
+                                above (such as the GT3 Max); Charge done by
+                                needs scheduled charging and its start time
 Lock duration      OEM-mapped   Parked; firmware read this session where the
                                 official app checks it
 Walk, power and    OEM-mapped   Parked; 2547, 2585, 2619, 2620, 2646
@@ -1215,7 +1218,10 @@ Shortcuts to whole settings pages open the page: Settings opens the Scooter
 tab, PIN/proximity opens Scooter > Security, experimental controls open
 their test in Scooter > Service > Experimental controls, app-preference
 shortcuts open More on that menu, and Data & history opens Live Stats > Data &
-history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
+history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Which
+controls, scheduled charging and battery alerts each model has: see the UT5 MAX
+tables and OTHER NAVEE MODELS above. There is no drive mode shortcut: the
+scooter's drive mode is changed on the scooter, never from the app. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.

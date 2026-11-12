@@ -7,7 +7,7 @@ import java.util.List;
 /** HomeQuickActions: Clean Home's four quick actions, defaults and storage (hub layout plan 1.9, PR 6). */
 public final class HomeQuickActionsTest {
     private static int checks;
-    private static final String MAX = "feature:maximum_speed", TIMED = "feature:timed_charging";
+    private static final String MAX = "feature:maximum_speed", CRUISE = "feature:cruise_control";
 
     public static void main(String[] args) {
         cleanOnly();
@@ -23,35 +23,60 @@ public final class HomeQuickActionsTest {
                 "Neither is in the Quick access catalog, so no widget dashboard, slot or transfer can hold one");
         require(!QuickAccessActions.normalize(Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD)).contains(HomeQuickActions.RIDING),
                 "Widgets' normalize still drops them");
-        require(HomeQuickActions.cleanOnly("riding") && HomeQuickActions.cleanOnly("record") && !HomeQuickActions.cleanOnly("rides"), "cleanOnly");
+        require(HomeQuickActions.cleanOnly("riding") && HomeQuickActions.cleanOnly("record") && HomeQuickActions.cleanOnly("charge_alerts")
+                && !HomeQuickActions.cleanOnly("rides"), "cleanOnly");
+        require(HomeQuickActions.known(HomeQuickActions.CHARGE_ALERTS) && QuickAccessActions.find(HomeQuickActions.CHARGE_ALERTS) == null,
+                "Charge alerts is Clean's own too, never in the Quick access catalog");
         for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) require(HomeQuickActions.known(entry.id), "Every catalog id is offered: " + entry.id);
         require(!HomeQuickActions.known("bogus") && !HomeQuickActions.known(null) && !HomeQuickActions.known(""), "Unknown ids are not");
-        require(!HomeQuickActions.ICON_RIDING.isEmpty() && !HomeQuickActions.ICON_RECORD.isEmpty(), "Both have icons");
+        require(!HomeQuickActions.ICON_RIDING.isEmpty() && !HomeQuickActions.ICON_RECORD.isEmpty() && !HomeQuickActions.ICON_CHARGE_ALERTS.isEmpty(), "All have icons");
     }
 
     private static void defaults() {
-        List<String> ut5 = HomeQuickActions.defaults(true, true, Arrays.asList(MAX, TIMED));
-        require(ut5.equals(Arrays.asList("riding", "record", "charge_done_by", MAX)), "Ride, Record, Charge done by, Drive mode (Joel 3)");
+        // The UT5 MAX: scheduled charging, no charge alerts (it has a charge limit), cruise control first.
+        List<String> ut5 = HomeQuickActions.defaults(true, false, offers("cruise_control", "traction_control", "maximum_speed", "timed_charging"));
+        require(ut5.equals(Arrays.asList("riding", "record", "charge_done_by", CRUISE)), "Ride, Record, Charge done by, then a control the scooter offers (answer 11)");
         require(!ut5.contains("lights"), "No lights action by default");
-        require(HomeQuickActions.defaults(false, true, Arrays.asList(MAX)).get(2).equals(TIMED), "No Charge done by: Timed charging");
-        require(HomeQuickActions.defaults(false, false, Arrays.asList(MAX)).get(2).equals("rides"), "Neither: Rides");
-        require(HomeQuickActions.defaults(true, true, Arrays.asList("feature:cruise_control", MAX)).get(3).equals(MAX), "Maximum speed wins wherever it is");
-        require(HomeQuickActions.defaults(true, true, Arrays.asList("feature:cruise_control", "feature:headlight")).get(3).equals("feature:cruise_control"),
-                "Otherwise the model's first setting tile");
-        require(HomeQuickActions.defaults(false, true, Arrays.asList(TIMED, "feature:cruise_control")).get(3).equals("feature:cruise_control"),
-                "A tile already listed is skipped");
-        require(HomeQuickActions.defaults(true, true, Collections.<String>emptyList()).get(3).equals("controls"), "No tiles: Settings");
-        require(HomeQuickActions.defaults(true, true, null).get(3).equals("controls"), "Unknown model: Settings");
-        require(HomeQuickActions.defaults(true, true, Arrays.asList("bogus")).get(3).equals("controls"), "Unknown tile ids are ignored");
-        for (boolean a : new boolean[]{false, true}) for (boolean b : new boolean[]{false, true}) {
-            List<String> ids = HomeQuickActions.defaults(a, b, ModelTiles.DEFAULT);
-            require(ids.size() == 4 && ids.stream().distinct().count() == 4 && ids.stream().allMatch(HomeQuickActions::known), "Four distinct known defaults");
+        require(!ut5.contains(MAX), "Maximum speed is no longer the Drive mode default");
+        require(HomeQuickActions.defaults(false, true, offers("cruise_control")).equals(Arrays.asList("riding", "record", "charge_alerts", CRUISE)),
+                "No scheduled charging: charge alerts take Charge done by's place");
+        require(HomeQuickActions.defaults(true, true, offers("cruise_control")).get(2).equals("charge_done_by"), "Scheduled charging wins over alerts");
+        require(HomeQuickActions.defaults(false, false, offers("cruise_control", "traction_control")).equals(Arrays.asList("riding", "record", CRUISE, "feature:traction_control")),
+                "Neither: a second offered control fills the third slot");
+        require(HomeQuickActions.defaults(true, false, offers("traction_control", "hill_start_assist")).get(3).equals("feature:hill_start_assist"),
+                "Walk assist comes before traction control");
+        require(HomeQuickActions.defaults(true, false, offers("parking_assist", "traction_control")).get(3).equals("feature:traction_control"),
+                "Traction control comes before power assist");
+        require(HomeQuickActions.defaults(true, false, offers("parking_assist")).get(3).equals("feature:parking_assist"), "Power assist when it is the only one");
+        require(HomeQuickActions.defaults(true, false, offers("maximum_speed", "headlight", "acceleration")).get(3).equals("rides"),
+                "Controls outside the order never become a default; Rides fills in");
+        require(HomeQuickActions.defaults(false, false, null).equals(Arrays.asList("riding", "record", "rides", "controls")), "Nothing offered: Rides, then Settings");
+        for (String key : HomeQuickActions.CONTROL_ORDER) {
+            ScooterCommands.Feature feature = ScooterCommands.find(key);
+            require(feature != null && !feature.sensitive, "Every control in the order is a catalog control: " + key);
+            require(HomeQuickActions.known(QuickAccessActions.FEATURE_PREFIX + key), "and a quick action: " + key);
         }
+        require(!HomeQuickActions.CONTROL_ORDER.contains("maximum_speed") && !HomeQuickActions.CONTROL_ORDER.contains("dual_drive"),
+                "No drive mode stand-in among the default controls");
+        require(!HomeQuickActions.CONTROL_ORDER.contains("acceleration"), "Nor the Eco/Turbo acceleration profile, which reads the drive mode");
+        // The drive mode is a reading set on the scooter: never a quick action Clean offers (answer 11).
+        require(!HomeQuickActions.known("driving_mode") && !HomeQuickActions.known(QuickAccessActions.FEATURE_PREFIX + "driving_mode"), "No drive mode action");
+        for (boolean a : new boolean[]{false, true}) for (boolean b : new boolean[]{false, true})
+            for (java.util.function.Predicate<String> p : Arrays.<java.util.function.Predicate<String>>asList(null, k -> true, k -> false, k -> k.equals("hill_descent_control"))) {
+                List<String> ids = HomeQuickActions.defaults(a, b, p);
+                require(ids.size() == 4 && ids.stream().distinct().count() == 4 && ids.stream().allMatch(HomeQuickActions::known), "Four distinct known defaults");
+                require(ids.get(0).equals("riding") && ids.get(1).equals("record"), "Ride and Record always lead");
+            }
         try { ut5.add("x"); require(false, "Defaults are read-only"); } catch (UnsupportedOperationException expected) { checks++; }
     }
 
+    private static java.util.function.Predicate<String> offers(String... keys) {
+        List<String> offered = Arrays.asList(keys);
+        return offered::contains;
+    }
+
     private static void normalize() {
-        List<String> d = HomeQuickActions.defaults(true, true, Arrays.asList(MAX));
+        List<String> d = HomeQuickActions.defaults(true, false, offers("cruise_control"));
         require(HomeQuickActions.normalize(null, d).equals(d), "Nothing stored: the defaults");
         require(HomeQuickActions.normalize(Arrays.asList("lights", "stats", "record", "rides"), d).equals(Arrays.asList("lights", "stats", "record", "rides")), "The owner's four in order");
         require(HomeQuickActions.normalize(Arrays.asList("lights", "bogus", "lights"), d).equals(Arrays.asList("lights", "riding", "record", "charge_done_by")),
@@ -75,8 +100,11 @@ public final class HomeQuickActionsTest {
         require(HomeQuickActions.parse(null) == null && HomeQuickActions.parse(" ") == null && HomeQuickActions.parse(",,") == null, "Blank is nothing stored");
         require(HomeQuickActions.parse(" lights , stats ").equals(Arrays.asList("lights", "stats")), "Spaces around ids are ignored");
         require(HomeQuickActions.encode(Arrays.asList("lights", "a,b", "", null, "stats")).equals("lights,stats"), "Ids that can't be stored are skipped");
-        List<String> d = HomeQuickActions.defaults(true, true, Arrays.asList(MAX));
+        List<String> d = HomeQuickActions.defaults(true, false, offers("cruise_control"));
         require(HomeQuickActions.load(null, d).equals(d) && HomeQuickActions.load("record,lights", d).equals(Arrays.asList("record", "lights", "riding", "charge_done_by")), "load");
+        require(HomeQuickActions.load(" , ", d).equals(d) && HomeQuickActions.load("bogus,nonsense", d).equals(d), "Unreadable: the defaults");
+        require(HomeQuickActions.load("feature:maximum_speed,lights,stats,rides", d).equals(Arrays.asList(MAX, "lights", "stats", "rides")),
+                "An owner's stored four are kept as stored, Maximum speed included");
     }
 
     private static void require(boolean condition, String message) {
