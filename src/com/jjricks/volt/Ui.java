@@ -472,9 +472,16 @@ public final class Ui {
         toggle.setMinimumWidth(dp(56)); toggle.setMinimumHeight(dp(48));
         styleSwitch(toggle);
         toggle.setContentDescription(value == null ? T.uiToggleStateNotReported(label) : String.valueOf(label));
+        String stateOn = T.commonOn(), stateOff = T.commonOff();
         if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(value == null ? T.commonNotReported()
-                : value ? T.commonOn() : T.commonOff());
-        toggle.setOnClickListener(v -> { if (toggle.isEnabled() && onChange != null) onChange.accept(toggle.isChecked()); });
+                : value ? stateOn : stateOff);
+        toggle.setOnClickListener(v -> {
+            if (!toggle.isEnabled()) return;
+            // Keep TalkBack's state in step with the tap; an explicit stateDescription replaces the
+            // switch's own checked announcement. Screens that redraw after the change overwrite it.
+            if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(toggle.isChecked() ? stateOn : stateOff);
+            if (onChange != null) onChange.accept(toggle.isChecked());
+        });
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(-2, -2);
         toggleParams.leftMargin = dp(14); row.addView(toggle, toggleParams);
         row.setOnClickListener(v -> { if (toggle.isEnabled()) toggle.performClick(); });
