@@ -410,14 +410,6 @@ final class CleanHomeScreen implements AppScreen {
 
     /** A round icon button: a disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
     private View round(String icon, Msg label, String tag, Runnable action) {
-        return roundButton(host, ui, icon, label, tag, () -> { if (!closed) action.run(); });
-    }
-
-    /**
-     * Home header's round button (search, Settings, Edit): a 48 dp target around a soft disc, read by its label, which a
-     * long press shows. Shared with the widget dashboard's header (hub layout plan 1.5, PR 12).
-     */
-    static View roundButton(ScreenHost host, Ui ui, String icon, Msg label, String tag, Runnable action) {
         FrameLayout target = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
@@ -432,7 +424,7 @@ final class CleanHomeScreen implements AppScreen {
         target.setClickable(true);
         target.setMinimumWidth(ui.dp(48));
         target.setMinimumHeight(ui.dp(48));
-        target.setOnClickListener(v -> action.run());
+        target.setOnClickListener(v -> { if (!closed) action.run(); });
         return target;
     }
 
