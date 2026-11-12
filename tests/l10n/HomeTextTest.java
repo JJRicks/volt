@@ -79,8 +79,9 @@ public final class HomeTextTest {
         // Owner's answers 9, 10 and 12: setup shows detailed pictures, and each is spoken as what it shows.
         equal("Picture of the Clean Home: the battery card, the lock, a row of four quick actions starting with RIDE, "
                 + "and your scooter's subjects below.", HubText.homeStylePreview(true), "clean preview");
-        equal("Picture of the Widgets Home: the RIDE button at the top, then battery, Quick access and reading widgets "
-                + "in a grid you arrange.", HubText.homeStylePreview(false), "widgets preview");
+        equal("Picture of the Widgets Home: the RIDE button at the top, then the scooter overview, the lock bar, "
+                + "reading and setting tiles and the ride recorder, in a grid you arrange.",
+                HubText.homeStylePreview(false), "widgets preview");
         equal("Switching keeps your widget layout.", HubText.homeStyleKeepsLayout(), "keeps layout");
         equal("Show charging while plugged in", HubText.momentCharging(), "moment charging");
         equal("Home shows the charge by itself when charging starts.", HubText.momentChargingDescription(), "moment charging sub");

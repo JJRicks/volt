@@ -34,7 +34,7 @@
          can choose without seeing it. "RIDE" is the RIDE button's name (riding_ride_button): use its
          translation. -->
     <string name="home_style_clean_preview" volt:screen="Setup, Settings and What's new" volt:purpose="accessibility">Picture of the Clean Home: the battery card, the lock, a row of four quick actions starting with RIDE, and your scooter\'s subjects below.</string>
-    <string name="home_style_widgets_preview" volt:screen="Setup, Settings and What's new" volt:purpose="accessibility">Picture of the Widgets Home: the RIDE button at the top, then battery, Quick access and reading widgets in a grid you arrange.</string>
+    <string name="home_style_widgets_preview" volt:screen="Setup, Settings and What's new" volt:purpose="accessibility">Picture of the Widgets Home: the RIDE button at the top, then the scooter overview, the lock bar, reading and setting tiles and the ride recorder, in a grid you arrange.</string>
 
     <!-- ===== Settings › Home style: what Clean's top area shows by itself ===== -->
     <!-- Switch: Clean Home's top area changes to the charging view while the scooter charges. -->
