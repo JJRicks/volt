@@ -146,12 +146,16 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Precondition: not recording, hold cleared");
         goHome();
         require(!resumed(), "Volt is in the background");
+        moving(); settle(); moving(); settle();
+        require(!recording(), "Start recording in the background off (the default): no start while Volt is in the background");
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         moving(); await(this::recording, "Auto-record starts in the background");
         require(!ridingOpen(), "Auto ride mode stayed off");
         moving(); main(() -> service.stopRide());
         require(!recording(), "Manual stop in the background holds too");
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     private void autoRide() throws Exception {
@@ -212,6 +216,7 @@ public final class AutoStartValidation extends Instrumentation {
      */
     private void backgroundCadence() throws Exception {
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         reconnect(); stopped(); settle();
         goHome();
         ageStatus(9000);
@@ -232,6 +237,7 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Stopped the background recording");
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     /** Turning the switch on is the location choice; a backup-restored switch or a Phone GPS that is off never prompts. */
@@ -576,6 +582,7 @@ public final class AutoStartValidation extends Instrumentation {
         prefs().edit().putBoolean("background_connection", false).commit();
         reconnect(); stopped(); settle();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         stopped(); settle();
         require(!recording(), "Precondition: not recording");
         goHome();

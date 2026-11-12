@@ -72,7 +72,10 @@ PREVIOUSLY IN 1.12.1
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
   screen, and it has Lock and Record buttons while the scooter is stopped.
 - Start automatically, off by default: Record rides automatically and Riding
-  mode's Open automatically act when the connected scooter moves.
+  mode's Open automatically act when the connected scooter moves. Record rides
+  automatically starts while Volt is in the background only with Rides >
+  Recording settings > Start recording in the background, also off by default;
+  such a ride has no GPS route.
 - The live charging card clears about 15 s after unplugging and, on Android 16
   and later, shows the level on a dial.
 - Charge done by and Scheduled charging say when the scooter has confirmed the

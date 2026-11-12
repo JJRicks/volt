@@ -973,6 +973,14 @@ public final class MoreScreen implements AppScreen {
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
         preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Off by default, absent is off (owner's answer 18 on #383): lets that switch also start a ride while Volt is in the
+        // background, where Android gives Volt no location, so the note under it says such a ride has no GPS route. It only
+        // counts while Record rides automatically is on, so it waits greyed until then. AutoStartPolicy.recordsNow decides.
+        Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
+                enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
+        inBackground.view.setTag("preference-auto-record-background");
+        valueRefreshers.add(() -> refreshSwitch(inBackground, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false),
+                settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false)));
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
