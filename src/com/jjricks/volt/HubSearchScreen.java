@@ -72,6 +72,8 @@ final class HubSearchScreen implements AppScreen {
         search.setSingleLine(true);
         search.setHint(HubText.searchHint());
         ui.styleSearch(search);
+        // TalkBack names the field as Home's search button does (the field it replaced had its own description).
+        search.setContentDescription(HubText.searchDescription());
         search.setTag(TAG_FIELD);
         search.setText(this.query);
         view.addView(search, ui.searchLayout());
@@ -141,7 +143,7 @@ final class HubSearchScreen implements AppScreen {
         index.addAll(HubSearch.controls(gates, HubText::experimentalBadge));
         index.addAll(HubSearch.rows(gates));
         index.addAll(HubSearch.settings());
-        index.addAll(StatsScreen.readingEntries(host.service()));
+        index.addAll(StatsScreen.readingEntries(host.service(), ui));
         index.addAll(rideEntries());
         return index;
     }
@@ -202,7 +204,7 @@ final class HubSearchScreen implements AppScreen {
         name.setEllipsize(TextUtils.TruncateAt.END);
         ui.decorate(name, HubPages.icon(entry.page));
         words.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        Msg where = where(entry.page);
+        Msg where = where(entry);
         if (where != null) {
             TextView caption = ui.caption(where.render());
             caption.setMaxLines(1);
@@ -236,10 +238,14 @@ final class HubSearchScreen implements AppScreen {
         return line;
     }
 
-    /** "In <subject>" for a result below a subject (or Settings); null for a subject or Settings itself. */
-    private static Msg where(String page) {
-        String subject = HubPages.subjectOf(page);
-        if (subject.equals(page) || subject.equals(HubPages.HOME)) return null;
+    /**
+     * "In <subject>": the subject (or Settings) every result lives in, a row on a subject's own page included ("In
+     * Controls", a reading "In Data"); null only for a page result that is that subject (or Settings) itself.
+     */
+    private static Msg where(HubSearch.Entry entry) {
+        String subject = HubPages.subjectOf(entry.page);
+        if (subject.equals(HubPages.HOME)) return null;
+        if (entry.kind == HubSearch.Kind.PAGE && subject.equals(entry.page)) return null;
         Msg title = HubText.title(subject);
         return title == null ? null : HubText.searchIn(title);
     }
@@ -251,8 +257,10 @@ final class HubSearchScreen implements AppScreen {
             TextView value = values.get(i);
             CharSequence now = entry.value == null ? null : entry.value.get();
             if (now == null || now.length() == 0) { value.setText(""); value.setVisibility(View.GONE); continue; }
-            String text = now.toString();
-            if (!TextUtils.equals(text, value.getText())) value.setText(text);
+            // As written (a raw reading keeps Live Stats' RAW chip); rewritten only when its text changed.
+            if (!TextUtils.equals(now.toString(), value.getText().toString())) value.setText(now);
+            // A reading's value as Live Stats colours it: live in the text colour, a saved one muted.
+            if (entry.live != null) value.setTextColor(Boolean.TRUE.equals(entry.live.get()) ? ui.text : ui.muted);
             value.setVisibility(View.VISIBLE);
         }
     }

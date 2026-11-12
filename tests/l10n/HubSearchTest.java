@@ -198,8 +198,10 @@ public final class HubSearchTest {
             check(page == null || page.equals(e.page), "a control opens its row's page: " + e.anchor);
         }
         // Readings and rides.
-        HubSearch.Entry reading = HubSearch.reading("battery_percent", "Battery level", "Battery level", () -> "80 %");
+        HubSearch.Entry reading = HubSearch.reading("battery_percent", "Battery level", "Battery level", () -> "80 %", () -> false);
         check(reading.page.equals(HubPages.DATA) && reading.target == HubSearch.Target.READING && reading.english.contains("batterypercent"), "a reading opens Data, by its key too");
+        check(reading.live != null && !reading.live.get(), "a reading says whether its value is live (a saved one is muted)");
+        check(HubSearch.rows(ALL).get(0).live == null, "a row has no liveness");
         HubSearch.Entry ride = HubSearch.ride("r1", "Commute Mar 3", "Commute", () -> "Mar 3");
         check(ride.page.equals(HubPages.RIDE_RIDES) && ride.target == HubSearch.Target.RIDE && "r1".equals(ride.anchor), "a ride opens All rides with its id");
         // English words find what the Scooter tab's search found.
@@ -246,5 +248,21 @@ public final class HubSearchTest {
         check(HubSearch.rank(charger, "schätz") == 1, "a shown word start ranks");
         List<HubSearch.Entry> rows = HubSearch.rows(ALL);
         check(!HubSearch.search(rows, "ladegerät").isEmpty(), "rows match by the names they show");
+        // The translated main_search_* words and a control's short label (Gates.words) and description match too,
+        // as on the Scooter tab's search; ranking still reads the shown name.
+        HubSearch.Gates words = new HubSearch.Gates() {
+            @Override public boolean row(String id) { return true; }
+            @Override public boolean lab(String key) { return false; }
+            @Override public boolean page(String page) { return true; }
+            @Override public CharSequence[] words(String id) { return new CharSequence[] {"Schnellladegerät " + id}; }
+        };
+        List<HubSearch.Entry> found = HubSearch.search(HubSearch.rows(words), "schnellladegerät " + HubSearchTables.ROW_CHARGER);
+        check(!found.isEmpty() && found.get(0).page.equals(HubSearchTables.rowPage(HubSearchTables.ROW_CHARGER)), "a row's shown search words match: " + found.size());
+        check(HubSearch.search(HubSearch.rows(ALL), "schnellladegerät").isEmpty(), "not without them");
+        check(!HubSearch.search(HubSearch.controls(words, () -> "Experimental"), "schnellladegerät").isEmpty(), "a control's shown words match");
+        HubSearch.Entry described = new HubSearch.Entry(HubSearch.Kind.SETTING, HubPages.BATTERY, "charger", "Ladegerät",
+                new CharSequence[] {"Zeit bis voll"}, null, HubSearch.Target.PAGE, null, null);
+        check(HubSearch.matches(described, "bis voll"), "a description in the current language matches");
+        check(HubSearch.rank(described, "bis voll") == 3, "ranked as an extra word, not by the name");
     }
 }

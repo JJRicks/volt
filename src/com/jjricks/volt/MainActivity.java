@@ -630,6 +630,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             @Override public boolean row(String id){return searchRowOffered(id);}
             @Override public boolean lab(String key){return labOffered(key);}
             @Override public boolean page(String page){return page.equals(HubPages.LIGHTS_LINE)?lightFamilyOffered("line_"):!page.equals(HubPages.LIGHTS_STAR)||lightFamilyOffered("star_");}
+            // As the scooter pages' search: a hand-built row's main_search_* words, a control's short label.
+            @Override public CharSequence[] words(String id){
+                String row=rowSearchWords(id);if(row!=null)return new CharSequence[]{row};
+                if(HubSearchTables.rowWords(id)!=null)return null;
+                return new CharSequence[]{shortLabel(ScooterCommands.find(id))};
+            }
         };
     }
     /** A feature row or a hand-built row (HubSearchTables.ROWS) shows on its page now (ControlsScreen.applyFilter's rules). */
@@ -658,7 +664,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             case READING:{
                 // As Service's Diagnostics row: a deliberate route wins over Live Stats' expired return state.
                 expireStatsSection(true);markStatsActive();
-                preferences.edit().putString("stats_section","Readings").putString("stats_query",String.valueOf(entry.shown)).apply();
+                // The reading's key, not its shown name: a stored query stays locale-independent, and Live Stats' filter matches row keys.
+                preferences.edit().putString("stats_section","Readings").putString("stats_query",entry.anchor).apply();
                 scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
                 open(HubPages.DATA);return;
             }
@@ -1877,7 +1884,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));chargeRows.add(done);
                     addRow("Battery",done.row.card);gluedBelow.put(control.card,done.row.card);gluedTo.put(done.row.card,control.card);
                     extras.put(done.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
-                    shownExtras.put(done.row.card,new String[]{T.mainSearchDoneBy(),T.mainScheduleDoneBy()});
+                    shownExtras.put(done.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGE_DONE_BY),T.mainScheduleDoneBy()});
                 }
             }
             // Lights page: a read-only first row says the front headlight is switched on the scooter itself.
@@ -1891,16 +1898,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-2,-2);clockParams.leftMargin=design.dp(10);clockLine.line.addView(clockButton,clockParams);
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
-            shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
+            shownExtras.put(clockLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_CLOCK_SYNC),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
             extras.put(scheduleTest.row.card,new String[]{"Battery","test scheduled charging check scooter clock schedule resume"});
             chargerLine=new SettingLine("battery",M.mainRowCharger(),null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
             chargerLine.line.setTag("estimate-charger-setting");chargerLine.value.setTag("estimate-charger-value");
             addRow("Battery",chargerLine.card);extras.put(chargerLine.card,new String[]{"Battery","charger for estimates automatic auto stock high speed charging time remaining"});
-            shownExtras.put(chargerLine.card,new String[]{T.mainSearchCharger(),T.mainRowCharger()});
+            shownExtras.put(chargerLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGER),T.mainRowCharger()});
             chargeAlert=new ChargeAlertRow(false);lowAlert=new ChargeAlertRow(true);
             addRow("Battery",chargeAlert.row.card);extras.put(chargeAlert.row.card,new String[]{"Battery","charge alert battery alerts level reached full charged notify notification alarm sound"});
-            shownExtras.put(chargeAlert.row.card,new String[]{T.mainSearchChargeAlert(),T.mainAlertCharge()});
+            shownExtras.put(chargeAlert.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGE_ALERT),T.mainAlertCharge()});
             addRow("Battery",lowAlert.row.card);extras.put(lowAlert.row.card,new String[]{"Battery","low battery alert battery alerts notify notification alarm sound"});
             // Live charging: every model, shown under the Battery section; search finds it by its shown name.
             chargeLive=new ChargeLiveRow();
@@ -1912,11 +1919,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Rename stays in More › My scooters (and Home's edit mode); the index's search still finds it here.
             SettingLine identity=new SettingLine("pencil",T.mainRenameTitle(),null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
             addRow("Profile",identity.card);extras.put(identity.card,new String[]{"Profile","scooter name rename profile"});
-            shownExtras.put(identity.card,new String[]{T.mainSearchName(),T.mainRenameTitle()});
-            shownExtras.put(headlightRow,new String[]{T.mainSearchHeadlight(),T.mainRowHeadlight()});
-            shownExtras.put(scheduleTest.row.card,new String[]{T.mainSearchTest(),T.mainScheduleTestRow()});
-            shownExtras.put(lowAlert.row.card,new String[]{T.mainSearchLowAlert(),T.mainAlertLow()});
-            shownExtras.put(security.card,new String[]{T.mainSearchSecurity(),T.mainRowSecurity()});
+            shownExtras.put(identity.card,new String[]{rowSearchWords(HubSearchTables.ROW_SCOOTER_NAME),T.mainRenameTitle()});
+            shownExtras.put(headlightRow,new String[]{rowSearchWords(HubSearchTables.ROW_HEADLIGHT_INFO),T.mainRowHeadlight()});
+            shownExtras.put(scheduleTest.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_SCHEDULE_TEST),T.mainScheduleTestRow()});
+            shownExtras.put(lowAlert.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_LOW_ALERT),T.mainAlertLow()});
+            shownExtras.put(security.card,new String[]{rowSearchWords(HubSearchTables.ROW_SECURITY_LINK),T.mainRowSecurity()});
             rowId(ScooterMenuLayout.HEADLIGHT_INFO,headlightRow);rowId(ScooterMenuLayout.CLOCK_SYNC,clockLine.card);
             rowId(ScooterMenuLayout.SCHEDULE_TEST,scheduleTest.row.card);rowId(ScooterMenuLayout.CHARGER,chargerLine.card);rowId(ScooterMenuLayout.CHARGE_ALERT,chargeAlert.row.card);
             rowId(ScooterMenuLayout.LOW_ALERT,lowAlert.row.card);rowId(ScooterMenuLayout.SECURITY_LINK,security.card);rowId(ScooterMenuLayout.SCOOTER_NAME,identity.card);
@@ -1928,7 +1935,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             SettingLine maintenanceLine=new SettingLine("gear",T.maintenanceRow(),null);maintenanceLine.chevron(()->open(HubPages.SERVICE_MAINTENANCE));maintenanceValue=maintenanceLine.value;
             maintenanceLine.line.setTag(MaintenanceScreen.ROW);
             addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
-            shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
+            shownExtras.put(maintenanceLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_MAINTENANCE),T.maintenanceRow()});
             rowId(MaintenanceScreen.ROW,maintenanceLine.card);
             pageBody=spec.search?null:design.groupCard();
             if(pageBody!=null){
@@ -2002,7 +2009,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
-            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
+            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,rowSearchWords(HubSearchTables.ROW_TOP_SPEED),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
             for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey())?View.VISIBLE:View.GONE);
             for(Map.Entry<View,String> e:links.entrySet()){
@@ -2024,6 +2031,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
         }
         @Override public boolean busy(){return !query.isEmpty();}
+        // The controls rules are MainActivity's (Hub search shares them); these keep the names validations call on this screen.
+        private boolean offered(String key){return MainActivity.this.offered(key);}
+        private boolean topSpeedCard(){return MainActivity.this.topSpeedCard();}
+        private boolean rowOffered(String key){return MainActivity.this.rowOffered(key);}
+        private boolean labOffered(String key){return MainActivity.this.labOffered(key);}
         /** A row by its id for search's result (a "Done by" row: the one shown); a Lab try's Experimental entry when that shows instead. */
         @Override public View anchor(String id){
             if(HubSearchTables.ROW_CHARGE_DONE_BY.equals(id)){for(ChargeDoneRow row:chargeRows)if(row.row.card.getVisibility()==View.VISIBLE)return row.row.card;return null;}
@@ -2117,6 +2129,26 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null||rowOffered(key))return false;
         CapabilityResolver.Decision decision=scooterService.ble.decision(key);
         return decision.support==CapabilityResolver.Support.KNOWN_ENCODING&&decision.variant!=null&&decision.variant.lab;
+    }
+    /**
+     * A hand-built row's search words in the current language (main_search_*, volt:purpose "search keywords"): the
+     * scooter pages' search and Hub search both match them. Null for a row with none (Live charging: its name only).
+     */
+    private static String rowSearchWords(String row){
+        switch(row){
+            case HubSearchTables.ROW_CHARGE_DONE_BY:return T.mainSearchDoneBy();
+            case HubSearchTables.ROW_CLOCK_SYNC:return T.mainSearchClock();
+            case HubSearchTables.ROW_CHARGER:return T.mainSearchCharger();
+            case HubSearchTables.ROW_CHARGE_ALERT:return T.mainSearchChargeAlert();
+            case HubSearchTables.ROW_SCOOTER_NAME:return T.mainSearchName();
+            case HubSearchTables.ROW_HEADLIGHT_INFO:return T.mainSearchHeadlight();
+            case HubSearchTables.ROW_SCHEDULE_TEST:return T.mainSearchTest();
+            case HubSearchTables.ROW_LOW_ALERT:return T.mainSearchLowAlert();
+            case HubSearchTables.ROW_SECURITY_LINK:return T.mainSearchSecurity();
+            case HubSearchTables.ROW_MAINTENANCE:return T.maintenanceSearch();
+            case HubSearchTables.ROW_TOP_SPEED:return T.mainSearchTopSpeed();
+            default:return null;
+        }
     }
     /** The scooter pages' row groups, in order. A group's English is its id (maps, stored section: actions); its render() is shown. */
     private static Msg[] settingsGroups(){return new Msg[]{M.mainGroupRide(),M.mainGroupBattery(),M.mainGroupLights(),M.mainGroupLineLights(),M.mainGroupStarLights(),M.mainGroupDashboardSound(),M.mainGroupSecurity(),M.mainGroupProfile()};}

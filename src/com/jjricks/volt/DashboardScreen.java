@@ -151,9 +151,9 @@ public final class DashboardScreen implements AppScreen {
         hubButtons = row();
         hubButtons.setGravity(Gravity.CENTER_VERTICAL);
         hubButtons.addView(CleanHomeScreen.roundButton(host, ui, "search", HubText.searchDescription(), CleanHomeScreen.TAG_SEARCH,
-                () -> { if (!editing) actions.openSearch(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+                () -> { if (!closed && !editing) actions.openSearch(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         hubButtons.addView(CleanHomeScreen.roundButton(host, ui, "gear", HubText.settingsDescription(), CleanHomeScreen.TAG_SETTINGS,
-                () -> { if (!editing) actions.openSettings(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+                () -> { if (!closed && !editing) actions.openSettings(); }), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         hubButtons.setVisibility(editing ? View.GONE : View.VISIBLE);
         statusRow.addView(hubButtons, new LinearLayout.LayoutParams(-2, -2));
         words.addView(statusRow, new LinearLayout.LayoutParams(-1, -2));

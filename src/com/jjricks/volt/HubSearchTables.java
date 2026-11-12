@@ -132,7 +132,7 @@ final class HubSearchTables {
         switch (tag) {
             case SETTING_HOME_STYLE: return "home style clean widgets dashboard layout";
             case SETTING_UNITS: return "units miles kilometres kilometers km mi temperature celsius fahrenheit";
-            case SETTING_DISPLAY: return "text size font large display";
+            case SETTING_DISPLAY: return "text size font large display haptic haptics vibration vibrate feedback";
             case SETTING_LANGUAGE: return "language translation locale";
             case SETTING_RIDING_AUTO_OPEN: return "riding mode open automatically auto start";
             case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record";
@@ -174,11 +174,11 @@ final class HubSearchTables {
             case HubPages.SERVICE_COMPATIBILITY: return "compatibility test check model";
             case HubPages.SERVICE_REPORTS: return "reports report issue";
             case HubPages.DATA: return "data live stats readings charts diagnostics";
-            case HubPages.DATA_STORAGE: return "data history storage export backup";
+            case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable";
             case HubPages.SETTINGS: return "settings preferences options";
             case HubPages.SETTINGS_HOME: return "home style clean widgets";
             case HubPages.SETTINGS_UNITS: return "units miles kilometres";
-            case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect";
+            case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect automatically background stay connected telemetry refresh";
             case HubPages.SETTINGS_ABOUT: return "about permissions version licenses";
             case HubPages.SETTINGS_DEVELOPER: return "developer options simulate";
             default: return "";

@@ -453,7 +453,7 @@ public final class StatsScreen implements AppScreen {
      * search words (as the Readings search matches them), the full name and group it is also found by, and its value
      * as the row writes it, read when the result shows. The same names and values as addMetric's rows.
      */
-    static List<HubSearch.Entry> readingEntries(ScooterService service) {
+    static List<HubSearch.Entry> readingEntries(ScooterService service, Ui ui) {
         List<HubSearch.Entry> entries = new ArrayList<>();
         if (service == null) return entries;
         for (TelemetryHistory.Reading metric : service.displayReadings().values()) {
@@ -461,7 +461,11 @@ public final class StatsScreen implements AppScreen {
             String english = name + " " + (metric.label == null ? "" : metric.label) + " " + metric.group;
             entries.add(HubSearch.reading(key, english + " " + ScooterReadingLabels.full(key, metric.label) + " " + ScooterReadingLabels.group(metric.group), name, () -> {
                 TelemetryHistory.Reading now = service.displayReadings().get(key);
-                return now == null ? null : display(service, now);
+                return now == null ? null : amountText(service, ui, now);
+            }, () -> {
+                // Fresh as Live Stats' refresh() decides it: a saved value from an earlier session is muted there and here.
+                TelemetryHistory.Reading now = service.displayReadings().get(key);
+                return now != null && now.live && now.value != null;
             }));
         }
         return entries;
@@ -836,24 +840,28 @@ public final class StatsScreen implements AppScreen {
         if (row != null) return row;
         return readingLabel(service, metric, metric.label == null ? null : metric.label.replace(StatsLabels.RAW_MARK, ""));
     }
-    private boolean raw(TelemetryHistory.Reading metric) {
+    private boolean raw(TelemetryHistory.Reading metric) { return raw(service, metric); }
+    private static boolean raw(ScooterService service, TelemetryHistory.Reading metric) {
         if (metric.value == null) return false;
-        if (isKnownDriveMode(metric.key) && metric.number != null)
-            return Telemetry.drivingModeLabel(driveModeProduct(), metric.number).endsWith(" (raw)");
+        if (isKnownDriveMode(service, metric.key) && metric.number != null)
+            return Telemetry.drivingModeLabel(driveModeProduct(service), metric.number).endsWith(" (raw)");
         return Telemetry.rawReading(metric.label, metric.value);
     }
     /** The value column: a small RAW chip before a monospace value for undecoded fields. */
-    private CharSequence amountText(TelemetryHistory.Reading metric) {
-        String shown = display(metric);
-        if (!raw(metric)) return shown;
+    private CharSequence amountText(TelemetryHistory.Reading metric) { return amountText(service, ui, metric); }
+    /** amountText for a service and theme (also Hub search's value for a reading, written as this row writes it). */
+    private static CharSequence amountText(ScooterService service, Ui ui, TelemetryHistory.Reading metric) {
+        String shown = display(service, metric);
+        if (!raw(service, metric)) return shown;
         SpannableStringBuilder text = new SpannableStringBuilder();
-        appendChip(text, T.statsRawChip()); text.append('\u00A0');
+        appendChip(ui, text, T.statsRawChip()); text.append('\u00A0');
         int start = text.length(); text.append(shown);
         text.setSpan(new TypefaceSpan("monospace"), start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return text;
     }
     private String spokenValue(TelemetryHistory.Reading metric) { return raw(metric) ? T.statsRawSaid(display(metric)) : display(metric); }
-    private void appendChip(SpannableStringBuilder text, String chip) {
+    private void appendChip(SpannableStringBuilder text, String chip) { appendChip(ui, text, chip); }
+    private static void appendChip(Ui ui, SpannableStringBuilder text, String chip) {
         int start = text.length(); text.append(chip);
         text.setSpan(new ChipSpan(ui.raised, ui.muted, ui.dp(5), ui.dp(2), ui.dp(6)), start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
