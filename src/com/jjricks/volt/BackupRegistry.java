@@ -124,6 +124,7 @@ final class BackupRegistry {
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
         // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
+        // Retired with the menu editor (hub layout PR 3; owner's decision 5 in #383, approved in his answers 1 and 5 there): never read again, kept so older backups restore.
         prefix(app, "scooter_menu_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "charge_alert_state_", true, String.class, null, "Charge in progress on this installation; a restored copy could silence the next alert", true, false, false));
         // Maintenance reminders travel with the scooter (MaintenanceStore); a merge onto another scooter drops the raw
@@ -138,6 +139,8 @@ final class BackupRegistry {
         for (String key : "more_wide_menu_scroll more_away_boot stats_away_boot".split(" ")) exclude(app, key, Integer.class, DEVICE);
         exclude(app, "more_away_elapsed", Long.class, DEVICE);exclude(app, "stats_away_elapsed", Long.class, DEVICE);
         exclude(app, "dashboard_editing", Boolean.class, DEVICE);
+        // scooter_section above now only holds a pending maintenance notice tap (MaintenanceScreen.PENDING_PREF, hub layout PR 3);
+        // the editor's flag here is retired (no longer written, still classified).
         exclude(app, ScooterMenuLayout.EDITING, Boolean.class, DEVICE);
         // The language choice belongs to this phone; on Android 13 and later the system owns it (AppLanguage).
         exclude(app, "app_language", String.class, DEVICE);exclude(app, "app_language_migrated", Boolean.class, DEVICE);

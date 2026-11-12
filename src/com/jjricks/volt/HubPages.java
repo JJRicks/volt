@@ -62,7 +62,11 @@ public final class HubPages {
     /** While the tab bar remains: each tab's root page, in the bar's order (Scooter is the raised centre button). */
     public static final List<String> TABS = Collections.unmodifiableList(Arrays.asList(HOME, DATA, SCOOTER, RIDE, SETTINGS));
 
-    /** Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts). */
+    /**
+     * Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts).
+     * Of the scooter subjects only Controls, Battery & charging and Lights & sound (the owner's answer 21 on #383); every
+     * other subject, sub-page, form or setup flow blocks it.
+     */
     private static final Set<String> CLEAR_FOR_RIDING = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             HOME, SCOOTER, RIDE, RIDE_RIDES, DATA, CONTROLS, BATTERY, LIGHTS)));
 
@@ -72,8 +76,6 @@ public final class HubPages {
         LEGACY.put("stats", DATA);
         LEGACY.put("rides", RIDE);
         LEGACY.put("more", SETTINGS);
-        // The Scooter tab's id until the Controls page exists (PR 3).
-        LEGACY.put(CONTROLS, SCOOTER);
     }
 
     /** More's section ids and the page that holds each one. */

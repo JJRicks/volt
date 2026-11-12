@@ -41,12 +41,15 @@ import java.util.*;
  * simulator's memory-only reminders. Volt sends no scooter command from here.
  */
 final class MaintenanceScreen {
-    /** The Scooter tab's section and row (ScooterMenuLayout ids, like Top speed's). */
+    /** The Scooter tab index's search section and row (its search still finds the page). */
     static final String SECTION = "maintenance", ROW = "maintenance_reminders";
-    /** The Scooter tab's page preference while this subpage is open (the Lights page uses its own value). */
-    static final String PAGE_PREF = "scooter_section";
-    /** MainActivity's Scooter tab page id and the preference that remembers the page shown. */
-    static final String PAGE = "controls", LAST_PAGE = "last_page";
+    /** The Hub page (Service › Maintenance reminders) and the preference that remembers the page shown. */
+    static final String PAGE = HubPages.SERVICE_MAINTENANCE, LAST_PAGE = "last_page";
+    /**
+     * A maintenance notice's tap waiting for the next Scooter tab page (MainActivity), so it survives a cold start into
+     * unfinished setup: SECTION while pending, as main's Scooter tab remembered its open Maintenance page in this key.
+     */
+    static final String PENDING_PREF = "scooter_section";
     /** The row's English search words: none, its catalog search words serve every language. */
     static final String NO_WORDS = "";
     private static final String UNITS_PREF = "units", UNITS_DEFAULT = "mi", RESET_SEEN = "reset_seen";
@@ -65,9 +68,16 @@ final class MaintenanceScreen {
     private String shown;
     private AlertDialog sheet;
 
+    /** back null: a Hub page, whose header already shows the title and the back link. */
     MaintenanceScreen(ScreenHost host, Runnable back, boolean wide) {
         this.host = host; this.ui = host.ui(); this.back = back; this.wide = wide;
         view = column();
+        if (back != null) header();
+        body = column(); view.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        refresh();
+    }
+
+    private void header() {
         LinearLayout backRow = new LinearLayout(host.activity()); backRow.setGravity(Gravity.CENTER_VERTICAL); backRow.setMinimumHeight(ui.dp(48));
         backRow.addView(ui.icon("back", 16, ui.accent), new LinearLayout.LayoutParams(ui.dp(16), ui.dp(16)));
         TextView backText = ui.text(T.mainControlsBack(), 13.5f, false); backText.setTypeface(ui.medium()); backText.setTextColor(ui.accent);
@@ -79,8 +89,6 @@ final class MaintenanceScreen {
         TextView title = ui.text(T.maintenanceTitle(), 24, true); title.setPadding(0, 0, 0, ui.dp(10));
         if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
         view.addView(title);
-        body = column(); view.addView(body, new LinearLayout.LayoutParams(-1, -2));
-        refresh();
     }
 
     View view() { return view; }
@@ -855,10 +863,9 @@ final class MaintenanceScreen {
 
     // ---- The Scooter tab's row and dot --------------------------------------------------------
 
-    /** Whether the Maintenance page was open (it reopens after a rebuild). */
-    static boolean remembered(SharedPreferences preferences) { return SECTION.equals(preferences.getString(PAGE_PREF, "")); }
+    static boolean pending(SharedPreferences preferences) { return SECTION.equals(preferences.getString(PENDING_PREF, "")); }
 
-    static void remember(SharedPreferences preferences, boolean open) { preferences.edit().putString(PAGE_PREF, open ? SECTION : "").apply(); }
+    static void pending(SharedPreferences preferences, boolean on) { preferences.edit().putString(PENDING_PREF, on ? SECTION : "").apply(); }
 
     /** The active scooter's counts, or null without a service or an active scooter. */
     static MaintenanceView.Summary summary(ScooterService service) {

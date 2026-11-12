@@ -32,7 +32,7 @@ public final class HubPagesTest {
         Pattern id = Pattern.compile("[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*");
         for (String page : HubPages.ALL) {
             require(id.matcher(page).matches(), "Lower-case id: " + page);
-            require(HubPages.known(page) && HubPages.canonical(page).equals(page) || page.equals(HubPages.CONTROLS),
+            require(HubPages.known(page) && HubPages.canonical(page).equals(page),
                     "A page is its own canonical id: " + page);
             // Acyclic and rooted: walking parents reaches Home within the page count.
             String at = page; int steps = 0;
@@ -62,11 +62,12 @@ public final class HubPagesTest {
         require(HubPages.canonical("stats").equals(HubPages.DATA), "Live Stats is Data");
         require(HubPages.canonical("rides").equals(HubPages.RIDE), "Rides is Ride");
         require(HubPages.canonical("more").equals(HubPages.SETTINGS), "More is Settings");
-        require(HubPages.canonical("controls").equals(HubPages.SCOOTER), "Until PR 3, controls is the Scooter tab");
+        // The Scooter tab's old id is the Controls page's (PR 3): an old Bundle or last_page opens Controls on that tab.
+        require(HubPages.canonical("controls").equals(HubPages.CONTROLS), "controls is the Controls page");
         require(HubPages.canonical(null).equals(HubPages.HOME) && HubPages.canonical("bogus").equals(HubPages.HOME)
                 && HubPages.canonical("").equals(HubPages.HOME), "Anything else opens Home");
         for (String legacy : new String[] {"home", "stats", "controls", "rides", "more"})
-            require(HubPages.TABS.contains(HubPages.canonical(legacy)), "Each of today's tabs opens a tab root: " + legacy);
+            require(HubPages.TABS.contains(HubPages.tabOf(HubPages.canonical(legacy))), "Each of today's tabs opens a page on its tab: " + legacy);
     }
 
     private static void subjects() {
@@ -106,6 +107,15 @@ public final class HubPagesTest {
                 HubPages.SERVICE_COMPATIBILITY, HubPages.RIDE_RIDING, HubPages.RIDE_RECORDING, HubPages.DATA_STORAGE, HubPages.SEARCH})
             require(!HubPages.clearForRiding(page), "Riding mode waits on " + page);
         require(!HubPages.clearForRiding(null) && !HubPages.clearForRiding("more"), "Unknown ids are busy");
+        // The owner's answer 21 (#383): of the Scooter pages, only the index, Controls, Battery & charging and Lights & sound
+        // let it open; every other subject and every sub-page blocks it. Checked over every page so a new page can't slip in.
+        Set<String> clear = new HashSet<>(java.util.Arrays.asList(HubPages.HOME, HubPages.SCOOTER, HubPages.RIDE, HubPages.RIDE_RIDES,
+                HubPages.DATA, HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS));
+        for (String page : HubPages.ALL)
+            require(HubPages.clearForRiding(page) == clear.contains(page), "Only the agreed pages let riding mode open: " + page);
+        for (String page : HubPages.ALL)
+            if (HubPages.depth(page) > HubPages.depth(HubPages.subjectOf(page)))
+                require(!HubPages.clearForRiding(page) || page.equals(HubPages.RIDE_RIDES), "A sub-page blocks it: " + page);
         // Today's rule with the tab roots: only More blocks by page.
         for (String tab : HubPages.TABS) require(HubPages.clearForRiding(tab) == !tab.equals(HubPages.SETTINGS), "Tab rule: " + tab);
     }
