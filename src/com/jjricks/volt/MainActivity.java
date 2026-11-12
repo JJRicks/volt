@@ -2007,7 +2007,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
                 // Each family's own words, its title among them (#404 review): "star" doesn't list Line lights.
                 addRow(section,card);extras.put(card,new String[]{section,HubSearchTables.pageWords(target)});
-                // And the zones row's translated words (main_search_zones) in another language, as Hub search (#404 review, P3 3).
+                // And the zones row's translated words (main_search_zones) in another language, as Hub search (#404 review, P3 3); shownWords drops them for a query naming only the other family.
                 Msg zones=HubText.lightZonesSearchWords();String zonesShown=zones.render();
                 shownExtras.put(card,zonesShown.equals(zones.english())?new String[]{HubText.rowTitle(target).render()}:new String[]{HubText.rowTitle(target).render(),zonesShown});searchLinks.put(card,target);
             }
@@ -2025,6 +2025,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
+        }
+        /** A row's shown search words; a light link's shared zones words drop out when the query names only the other family (HubSearch.otherFamilyOnly, #404 review). */
+        private String[] shownWords(View card,String query){
+            String[] shown=shownExtras.get(card);String linked=searchLinks.get(card);
+            return shown!=null&&shown.length>1&&linked!=null&&HubSearch.otherFamilyOnly(linked,query)?new String[]{shown[0]}:shown;
         }
         /** Moves a row into the page's card (out of its section body, whose divider stays behind), with a divider before it. */
         private void place(View card){
@@ -2089,7 +2094,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):spec.includes(row.feature.key));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
-                boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):spec.includes(idOf(e.getKey()));
+                boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownWords(e.getKey(),query)):spec.includes(idOf(e.getKey()));
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
                 String linked=searchLinks.get(e.getKey());if(linked!=null&&!ControlsPages.linkShown(linked,id->rowShown(id,lab)))match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}

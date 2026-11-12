@@ -99,9 +99,12 @@ final class HubSearch {
         String needle = normalize(query);
         if (needle.isEmpty()) return false;
         if (entry.english.contains(needle)) return true;
-        String[] shown = new String[entry.words.length + 1];
+        // A light page's shared zones words name both families: a query naming only the other family skips them.
+        CharSequence[] words = entry.kind == Kind.PAGE && sharedPageWords(entry.page) && otherFamilyOnly(entry.page, query)
+                ? new CharSequence[0] : entry.words;
+        String[] shown = new String[words.length + 1];
         shown[0] = entry.shown == null ? null : entry.shown.toString();
-        for (int i = 0; i < entry.words.length; i++) shown[i + 1] = entry.words[i] == null ? null : entry.words[i].toString();
+        for (int i = 0; i < words.length; i++) shown[i + 1] = words[i] == null ? null : words[i].toString();
         return StatsLabels.matchesShown(query, shown);
     }
 
@@ -184,6 +187,24 @@ final class HubSearch {
     /** The light families' pages, whose pageSearchWords name both families (matched only in a translation). */
     static boolean sharedPageWords(String page) {
         return HubPages.LIGHTS_LINE.equals(page) || HubPages.LIGHTS_STAR.equals(page);
+    }
+
+    /**
+     * Whether the query names the other light family (its title or group name in the current language) but not this
+     * page's own: then this page's shared zones words don't match it, so "estrella" in Spanish lists Star lights only
+     * while "zonas" (and "luces", in both names) still finds both pages (#404 review). False for any other page.
+     */
+    static boolean otherFamilyOnly(String page, String query) {
+        if (!sharedPageWords(page) || query == null) return false;
+        String other = HubPages.LIGHTS_LINE.equals(page) ? HubPages.LIGHTS_STAR : HubPages.LIGHTS_LINE;
+        return StatsLabels.matchesShown(query, rendered(HubText.lightFamilyNames(other)))
+                && !StatsLabels.matchesShown(query, rendered(HubText.lightFamilyNames(page)));
+    }
+
+    private static String[] rendered(Msg[] names) {
+        String[] out = new String[names.length];
+        for (int i = 0; i < names.length; i++) out[i] = names[i] == null ? null : names[i].toString();
+        return out;
     }
 
     /**

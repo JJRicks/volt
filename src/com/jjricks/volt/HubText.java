@@ -328,6 +328,18 @@ public final class HubText {
      * index's links to them match these in the current language.
      */
     public static Msg lightZonesSearchWords() { return M.mainSearchZones(); }
+    /**
+     * The names a light family goes by in the current language ({@link HubPages#LIGHTS_LINE} or
+     * {@link HubPages#LIGHTS_STAR}): its page title and its on/off control's already-translated name
+     * (ScooterCommands' line_light or star_light). Search uses them so a family name in the shared zones words
+     * (lightZonesSearchWords) reaches only its own page (#404 review); empty for any other page.
+     */
+    public static Msg[] lightFamilyNames(String page) {
+        String family = HubPages.LIGHTS_LINE.equals(page) ? "line_light" : HubPages.LIGHTS_STAR.equals(page) ? "star_light" : null;
+        if (family == null) return new Msg[0];
+        ScooterCommands.Feature control = ScooterCommands.find(family);
+        return new Msg[] {title(page), control == null ? null : control.label()};
+    }
 
     /**
      * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the

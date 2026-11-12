@@ -29,10 +29,17 @@ public final class HubSearchTest {
         @Override public String language() { return "es"; }
     };
 
-    /** Spanish as the catalog ships it for the zones row's words (main_search_zones); every other string a stand-in. */
+    /**
+     * Spanish as the catalog ships it for the zones row's words (main_search_zones) and the light families' group names
+     * (controls_feature_*_lights); every other string a stand-in.
+     */
     private static final T.Source ZONES = new T.Source() {
         @Override public String string(int id) {
-            return "main_search_zones".equals(T.key(id)) ? "luces de línea luces estrella zonas ambiente patrón color" : "Otra página";
+            String key = T.key(id);
+            if ("main_search_zones".equals(key)) return "luces de línea luces de estrella zonas ambiente patrón color Boost";
+            if ("controls_feature_line_lights".equals(key)) return "Luces de línea";
+            if ("controls_feature_star_lights".equals(key)) return "Luces de estrella";
+            return "Otra página";
         }
         @Override public String plural(int id, long quantity) { return "Otra"; }
         @Override public String language() { return "es"; }
@@ -311,6 +318,18 @@ public final class HubSearchTest {
         Set<String> zones = new HashSet<>();
         for (HubSearch.Entry e : HubSearch.search(pages, "zones")) zones.add(e.page);
         check(zones.contains(HubPages.LIGHTS_LINE) && zones.contains(HubPages.LIGHTS_STAR), "the English words still match");
+        // A family's name in the shared words reaches only its own page (#404 review): "estrella" doesn't list Line lights.
+        Set<String> star = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "estrella")) star.add(e.page);
+        check(star.contains(HubPages.LIGHTS_STAR) && !star.contains(HubPages.LIGHTS_LINE), "\"estrella\" lists Star lights only: " + star);
+        Set<String> line = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "línea")) line.add(e.page);
+        check(line.contains(HubPages.LIGHTS_LINE) && !line.contains(HubPages.LIGHTS_STAR), "\"línea\" lists Line lights only: " + line);
+        Set<String> both = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "luces")) both.add(e.page);
+        check(both.contains(HubPages.LIGHTS_LINE) && both.contains(HubPages.LIGHTS_STAR), "\"luces\", in both names, finds both");
+        check(HubSearch.otherFamilyOnly(HubPages.LIGHTS_LINE, "Estrella") && !HubSearch.otherFamilyOnly(HubPages.LIGHTS_STAR, "Estrella"),
+                "the old index's light links skip the shared words the same way");
     }
 
     /** In another language the shown name matches too, and its words rank it. */
