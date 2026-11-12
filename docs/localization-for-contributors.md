@@ -79,6 +79,8 @@ Placeholders are positional and numbered from 1 with no gaps:
 
 `%n$s` takes no width, precision or flag.
 
+A number shown with its sign (`%+.1f`, "+2.5") has no catalog form. Format it first with `Fmt.signedDecimal(Locale.US, value, 1)`, which prints exactly what `%+.1f` printed while the app is in English, and pass it as `%1$s`. In an ordinary pull request first, replace the signed specifier with a plain `%s` fed by `Fmt.signedDecimal`, keeping the line one whole literal (`"≈%s%% grade"`) so `G8` still lists it: the batch check accepts only the specifiers listed in [l10n/README.md](../l10n/README.md) (`%.Nf`, `%,.Nf`, `%,d`, `%d` and a plain `%s`), so a `%+.1f` left in the format string fails `G1`. `RouteMapView.gradeLine` is an example.
+
 ### Plurals
 
 ```xml
@@ -174,7 +176,7 @@ T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
 
 | Need | Use |
 |---|---|
-| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`, `Fmt.groupedInteger(Locale.US, n)` for a grouped whole number (`%,d`). `Locale.US` applies only in English; other languages use their own |
+| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`, `Fmt.groupedInteger(Locale.US, n)` for a grouped whole number (`%,d`), `Fmt.signedDecimal(Locale.US, v, places)` for a number shown with its sign (`%+.Nf`), passed as `%1$s`. `Locale.US` applies only in English; other languages use their own |
 | Number with unit, range, percent | `T.fmtQuantity`, `T.fmtRange`, `T.fmtPercent` |
 | Clock or date on screen | `DisplayTime.clock`, `DisplayTime.dateTime`, `Fmt.datePattern` |
 | Speed | `DisplayUnits.speed` |
