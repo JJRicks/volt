@@ -45,7 +45,7 @@ metadata are absent.
 - A recognized UT5 MAX with no charger selection, or a Stock selection, uses the
   reference only when measured power is plausible. Explicit High-speed selection
   disables this default; unknown models retain the live current-rate estimate.
-  The manual choice is available under **Scooter → Battery → Charger for estimates**
+  The manual choice is available under **Scooter → Battery & charging → Estimates & charger → Charger for estimates**
   without Developer options, including offline; it is saved per scooter and
   cannot change during an active capture. It sends no scooter command.
 - Below 89%, bulk duration uses the reported rated Ah, missing percentage and
@@ -152,7 +152,7 @@ unavailable-reading states and the low-current warning remain visible. Detailed
 estimate status remains available through the time tile's tooltip and accessibility
 description; estimate source metadata remains available to recording and analysis.
 
-Charger selection remains under **Scooter → Battery → Charger for estimates** and
+Charger selection remains under **Scooter → Battery & charging → Estimates & charger → Charger for estimates** and
 in the charge-recording flow. The dashboard cleanup does not alter the selected
 charger or its per-scooter storage.
 

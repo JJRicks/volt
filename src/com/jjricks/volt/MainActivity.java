@@ -1685,6 +1685,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
+        /** The index's search results that open a light family's page (card -> page id): they carry the old zones row's words. */
+        private final LinkedHashMap<View,String> searchLinks=new LinkedHashMap<>();
         /** The index's Maintenance row (search finds it; it opens Service › Maintenance reminders) and its value. */
         private TextView maintenanceValue;
         /** Shown under the index's search while nothing is typed (the subject list); null elsewhere. */
@@ -1795,6 +1797,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
             shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
             rowId(MaintenanceScreen.ROW,maintenanceLine.card);
+            // Line lights and Star lights replaced the zones row: the index's search finds their links by its words.
+            if(spec.search)for(String target:ControlsPages.SEARCHED_LINKS){
+                String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
+                addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
+                shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
+            }
             pageBody=spec.search?null:design.groupCard();
             if(pageBody!=null){
                 for(String id:spec.rows){
@@ -1817,9 +1825,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             pageBody.addView(card);
         }
         /** A row that opens one of this page's sub-pages. */
-        private View linkRow(String target){
+        private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
+        private View linkCard(String target){
             SettingLine link=new SettingLine(linkIcon(target),HubText.rowTitle(target),null);link.chevron(()->open(target));
-            link.line.setTag("hub-link-"+target);links.put(link.card,target);return link.card;
+            link.line.setTag("hub-link-"+target);return link.card;
         }
         private String linkIcon(String page){
             switch(page){
@@ -1883,17 +1892,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=spec.search&&!needle.isEmpty();int count=0;
+            java.util.List<String> lab=modelLab();
             java.util.HashSet<String> visible=new java.util.HashSet<>();
             for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):spec.includes(row.feature.key));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
                 boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):spec.includes(idOf(e.getKey()));
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
+                String linked=searchLinks.get(e.getKey());if(linked!=null&&!ControlsPages.linkShown(linked,id->rowShown(id,lab)))match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
             boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
-            java.util.List<String> lab=modelLab();
             for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey(),lab)?View.VISIBLE:View.GONE);
             // A sub-page's link shows only while that page has a row or an Experimental entry to show.
             for(Map.Entry<View,String> e:links.entrySet())e.getKey().setVisibility(ControlsPages.linkShown(e.getValue(),id->rowShown(id,lab))?View.VISIBLE:View.GONE);
@@ -1964,6 +1974,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
             StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
             java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
