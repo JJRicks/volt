@@ -72,6 +72,16 @@ public final class HubRideDataTest {
         check(headingTag.contains("below = heading.getMeasuredWidth() + gap() + tag.getMeasuredWidth() > available")
                 && headingTag.contains("top + heading.getMeasuredHeight()"), "HeadingTag puts the tag under the heading when they don't fit");
 
+        // Live Stats' Data & history link shows the stored history's size as its value, as More's Data row did, kept
+        // current by the history's storage refresh (council review of #389, finding 4). StatsScreen sits beside MoreScreen.
+        String stats = read(Paths.get(args[0]).resolveSibling("StatsScreen.java").toString());
+        check(stats.contains("HubText.title(HubPages.DATA_STORAGE), () -> storedSize,"), "the Data & history link has the stored size as its value");
+        String storedSize = body(stats, "private void refreshStoredSize()");
+        check(storedSize.contains("history.storage(") && storedSize.contains("storedSize = MoreScreen.mib(storage.bytes); storageLink.refresh();"),
+                "the value comes from the storage refresh, in Data & history's MiB form");
+        check(body(stats, "@Override public void refresh()").contains("refreshStoredSize();"), "Live Stats' refresh keeps it current");
+        check(more.contains("static String mib(long bytes) { return bytes <= 0 ? \"\" :"), "nothing stored: no value, as More's row had");
+
         System.out.println("HubRideData: " + checks + " checks passed");
     }
 

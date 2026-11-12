@@ -961,7 +961,7 @@ public final class MoreScreen implements AppScreen {
         label(T.morePrefsConnection());
         LinearLayout connection = group();
         Row rate = row(connection, "clock", T.morePrefsRefresh(), null, this::telemetryRate);
-        valueRefreshers.add(() -> rate.value(T.fmtQuantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
+        valueRefreshers.add(() -> rate.value(quantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
         preferenceToggle(connection, "bluetooth", T.morePrefsAutoConnect(), null, "auto_connect", true);
         preferenceToggle(connection, "bluetooth", T.morePrefsBackground(), T.morePrefsBackgroundSub(), "background_connection", false);
     }
@@ -1426,7 +1426,7 @@ public final class MoreScreen implements AppScreen {
         historyStorageChecked = now; historyStoragePending = true;
         service().history.storage(storage -> {
             historyStoragePending = false; if (closed) return;
-            String used = T.moreHistoryUsed(Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1), Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0), T.moreUnitMib());
+            String used = T.moreHistoryUsed(Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1), Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0), mibUnit());
             historyUsage.setText(used);
             float share = storage.limitBytes <= 0 ? 0f : Math.max(0f, Math.min(1f, storage.bytes / (float) storage.limitBytes));
             // A visible sliver shows that something is stored even when it rounds to nothing.
@@ -1444,6 +1444,15 @@ public final class MoreScreen implements AppScreen {
                     T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
         });
     }
+    /**
+     * The stored history's size as Data & history gives it, "0.1 MiB"; empty when nothing is stored. Live Stats' Data &
+     * history link shows it as its value, as More's Data row did before the Hub layout (StatsScreen.refreshStoredSize).
+     */
+    static String mib(long bytes) { return bytes <= 0 ? "" : quantity(Fmt.decimal(Locale.US, bytes / 1048576.0, 1), mibUnit()); }
+    /** "MiB", the unit Data & history's storage card and mib() use. */
+    private static String mibUnit() { return T.moreUnitMib(); }
+    /** A number with its unit, "2 s" or "0.1 MiB", in the current language's form. */
+    private static String quantity(CharSequence number, CharSequence unit) { return T.fmtQuantity(number, unit); }
     private void clearHistory(boolean all) {
         ScooterProfiles.Profile profile = active();
         if (!all && profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
