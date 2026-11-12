@@ -11,7 +11,8 @@ public final class ReleaseNotesTest {
     private static int checks;
 
     public static void main(String[] args) {
-        blocks(); inline(); fallbacks(); asGitHubReadsIt(); release(); clip(); nothingLost();
+        blocks(); inline(); fallbacks(); asGitHubReadsIt(); numbering(); quotes(); itemParagraphs(); release(); clip();
+        footer(); nothingLost();
         System.out.println("ReleaseNotesTest: " + checks + " checks passed");
     }
 
@@ -119,6 +120,90 @@ public final class ReleaseNotesTest {
         block(one("odd \\\\\\\nnext"), ReleaseNotes.Kind.PARAGRAPH, 0, "", "odd \\\nnext");
     }
 
+    /** A numbered list counts up from its first item's number, as GitHub shows it, whatever the later items say. */
+    private static void numbering() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("1. Alpha\n1. Beta\n1. Gamma");
+        check(b.size() == 3, "three items: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.NUMBERED, 0, "1.", "Alpha");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "2.", "Beta");
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "3.", "Gamma");
+        check(b.get(2).written.equals("1."), "the number as written is kept: " + b.get(2).written);
+        b = ReleaseNotes.parse("3) Third\n7) Next\n\n- bullet\n\n5. Five\n1. Six");
+        block(b.get(0), ReleaseNotes.Kind.NUMBERED, 0, "3)", "Third");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "4)", "Next");
+        block(b.get(3), ReleaseNotes.Kind.NUMBERED, 0, "5.", "Five");
+        block(b.get(4), ReleaseNotes.Kind.NUMBERED, 0, "6.", "Six");
+        // Nested lists count on their own; the outer list carries on after them.
+        b = ReleaseNotes.parse("1. One\n   1. a\n   1. b\n1. Two\n   1. c");
+        check(ReleaseNotes.plainText(b).equals("1. One\n  1. a\n  2. b\n2. Two\n  1. c"), "nested numbering: " + ReleaseNotes.plainText(b));
+        // A change from "." to ")", or a list ended by a heading or paragraph, starts counting again.
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n1) b\n1) c")).equals("1. a\n1) b\n2) c"), "delimiter change");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n\nText\n\n1. b\n\n# H\n1. c")).equals("1. a\nText\n1. b\nH\n1. c"), "a list ends");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n- b\n1. c")).equals("1. a\n• b\n1. c"), "bullets between start again");
+    }
+
+    /** A quote's lines are read as blocks of their own: lists, headings and code inside it show without their marks. */
+    private static void quotes() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("> - quoted item\n> - another\n>\n> # quoted heading\n> 1. one\n> 1. two\n\nafter");
+        check(b.size() == 6, "quoted blocks: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "quoted item");
+        block(b.get(1), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "another");
+        block(b.get(2), ReleaseNotes.Kind.HEADING, 1, "", "quoted heading");
+        block(b.get(3), ReleaseNotes.Kind.NUMBERED, 0, "1.", "one");
+        block(b.get(4), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+        for (int i = 0; i < 5; i++) check(b.get(i).quoted, "inside the quote: " + i);
+        block(b.get(5), ReleaseNotes.Kind.PARAGRAPH, 0, "", "after");
+        check(!b.get(5).quoted, "a blank line ends the quote");
+        b = ReleaseNotes.parse("> - item\ncarries on\n> ## Then\n> ```\n> **code**\n> ```\n> > deeper *quote*");
+        block(b.get(0), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "item\ncarries on");
+        block(b.get(1), ReleaseNotes.Kind.HEADING, 2, "", "Then");
+        block(b.get(2), ReleaseNotes.Kind.CODE, 0, "", "**code**");
+        block(b.get(3), ReleaseNotes.Kind.QUOTE, 0, "", "deeper quote");
+        span(b.get(3), ReleaseNotes.Style.ITALIC, "quote");
+        check(b.size() == 4 && b.get(0).quoted && b.get(2).quoted && b.get(3).quoted, "all quoted: " + b.size());
+        // A line that starts a block of its own ends the quote; prose without ">" carries the quote's paragraph on.
+        b = ReleaseNotes.parse("> quoted\nlazy\n- outside");
+        block(b.get(0), ReleaseNotes.Kind.QUOTE, 0, "", "quoted\nlazy");
+        block(b.get(1), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "outside");
+        check(b.get(0).quoted && !b.get(1).quoted, "the item is outside the quote");
+        StringBuilder deep = new StringBuilder();
+        for (int i = 0; i < 5000; i++) deep.append('>');
+        b = ReleaseNotes.parse(deep + " # deep\n" + deep + " text");
+        check(ReleaseNotes.plainText(b).equals("deep\ntext") && b.get(0).kind == ReleaseNotes.Kind.HEADING && b.get(1).quoted,
+                "quotes nested very deep: " + ReleaseNotes.plainText(b));
+    }
+
+    /** A list item's indented second paragraph keeps its list open, so the next item is an item again. */
+    private static void itemParagraphs() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("1. one\n\n   continued\n2. two");
+        check(b.size() == 3, "item, paragraph, item: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.NUMBERED, 0, "1.", "one");
+        block(b.get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued");
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+        // The list stays open through the paragraph, so it keeps counting.
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n\n   more\n\n1. b\n   1. c\n\n      deeper\n   1. d")).equals("1. a\nmore\n2. b\n  1. c\ndeeper\n  2. d"),
+                "counting through paragraphs");
+        // A paragraph less indented than the item's text ends the list, and a later number can't break into it.
+        block(ReleaseNotes.parse("1. one\n\n  not in it\n2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "not in it\n2. two");
+        block(ReleaseNotes.parse("1. one\n\ncontinued\n2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued\n2. two");
+        // As indented as the item's text, the line is still the paragraph's.
+        block(ReleaseNotes.parse("1. one\n\n   continued\n   2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued\n2. two");
+        block(ReleaseNotes.parse("- one\n\n  continued\n2. two").get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+    }
+
+    /** The update dialog keeps its buttons pinned unless that would leave the title and notes too little room. */
+    private static void footer() {
+        check(!PinnedFooter.scrolls(1600, 200, 3000, 300), "a tall window keeps the buttons pinned");
+        check(!PinnedFooter.scrolls(700, 200, 500, 300), "short notes that fit keep them pinned");
+        check(!PinnedFooter.scrolls(500, 200, 3000, 300), "exactly the minimum left");
+        check(PinnedFooter.scrolls(499, 200, 3000, 300), "less than the minimum left");
+        check(PinnedFooter.scrolls(550, 550, 3000, 300), "a footer as tall as the dialog");
+        check(PinnedFooter.scrolls(600, 700, 3000, 300), "a footer taller than the dialog");
+        check(!PinnedFooter.scrolls(260, 200, 60, 300), "a body that fits in what is left needs no more");
+        check(PinnedFooter.scrolls(259, 200, 60, 300), "a body that no longer fits");
+        check(!PinnedFooter.scrolls(0, 0, 0, 300) && !PinnedFooter.scrolls(0, 200, 3000, 300), "not laid out yet");
+    }
+
     /** The shape the project's release notes have used: a bold lead, highlights, links and known limits. */
     private static void release() {
         String notes = "**Faster charging estimates, and a tidier Home.** The estimate learns from each charge.\n\n"
@@ -160,6 +245,16 @@ public final class ReleaseNotesTest {
         String solid = ReleaseNotes.clip("0123456789012345678901234", 10);
         check(solid.equals("0123456789…"), "cut anywhere without a break");
         check(ReleaseNotes.clip("abcd😀efgh", 5).equals("abcd…"), "never halves a surrogate pair");
+        // A line break far from the limit would drop most of what follows it: a word break nearer the limit wins.
+        String first = words(1600), second = words(1500);
+        String longCut = ReleaseNotes.clip(first + "\n" + second, 3000);
+        check(longCut.length() > 2900 && longCut.length() <= 3001 && longCut.startsWith(first + "\n") && longCut.endsWith("word…"),
+                "cut near the limit: " + longCut.length());
+        // A line break within the last fifth still wins, so a cut list ends on a whole item.
+        String nearBreak = ReleaseNotes.clip(words(2500) + "\n" + words(1000), 3000);
+        check(nearBreak.equals(words(2500) + "…"), "a line break near the limit: " + nearBreak.length());
+        check(ReleaseNotes.clip(words(2390) + "\n" + words(1000), 3000).length() > 2900, "a line break before the last fifth is passed by");
+        check(ReleaseNotes.clip("a", 1).equals("a") && ReleaseNotes.clip("ab", 1).equals("a…"), "the smallest limit");
     }
 
     /** Random Markdown-like text: never throws, ranges stay in their block, and every letter and digit survives in order. */
@@ -177,15 +272,37 @@ public final class ReleaseNotesTest {
             for (ReleaseNotes.Block block : blocks)
                 for (ReleaseNotes.Span span : block.spans)
                     check(span.start >= 0 && span.start < span.end && span.end <= block.text.length(), "range inside its block: " + input);
-            String shown = ReleaseNotes.plainText(blocks);
+            // A numbered item shows its place in the list; with the numbers as written, nothing else may change.
+            String shown = asWritten(blocks);
             check(letters(shown).equals(letters(input)), "letters and digits survive: [" + input + "] -> [" + shown + "]");
+            for (ReleaseNotes.Block block : blocks)
+                check(block.kind == ReleaseNotes.Kind.NUMBERED ? block.marker.matches("[0-9]+[.)]") && block.marker.endsWith(block.written.substring(block.written.length() - 1))
+                        : block.marker.equals(block.kind == ReleaseNotes.Kind.BULLET ? ReleaseNotes.BULLET : ""), "markers: " + input);
         }
+    }
+
+    /** As plainText, with each list item's marker as the notes wrote it. */
+    private static String asWritten(List<ReleaseNotes.Block> blocks) {
+        StringBuilder out = new StringBuilder();
+        for (ReleaseNotes.Block block : blocks) {
+            if (out.length() > 0) out.append('\n');
+            if (!block.written.isEmpty()) out.append(block.written).append(' ');
+            out.append(block.text);
+        }
+        return out.toString();
     }
 
     private static String letters(String text) {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < text.length(); i++) if (Character.isLetterOrDigit(text.charAt(i))) out.append(text.charAt(i));
         return out.toString();
+    }
+
+    /** Words ("word ") filling length characters, without a trailing space. */
+    private static String words(int length) {
+        StringBuilder out = new StringBuilder();
+        while (out.length() < length) out.append("word ");
+        return out.substring(0, length).trim();
     }
 
     private static ReleaseNotes.Block one(String text) {

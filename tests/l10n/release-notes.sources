@@ -1,5 +1,7 @@
 # The update dialog's release notes: GitHub's Markdown read into blocks and style ranges (ReleaseNotes, pure Java),
 # which ReleaseNotesView draws with Android spans. tests/run.sh compiles every path listed in tests/l10n/*.sources
 # and runs each tests/l10n/**Test.java from the repository root. UpdateCheck and BackupJson are in tests/run.sh's own list.
+# PinnedFooter decides whether the dialog's buttons stay pinned under the notes or scroll with them.
 src/com/jjricks/volt/ReleaseNotes.java
+src/com/jjricks/volt/PinnedFooter.java
 tests/l10n/ReleaseNotesTest.java

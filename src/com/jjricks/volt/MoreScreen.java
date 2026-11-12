@@ -2426,13 +2426,23 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateNoAnswer()
                     : T.moreUpdateUnreadable());
         }
-        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
+        ScrollView inner = new ScrollView(host.activity());
         // A new release: the title, wording and notes scroll above the buttons, which stay in view however long
-        // the notes are (the scroll area takes what the dialog has left after them).
-        LinearLayout frame = column(), foot = column();
+        // the notes are (the scroll area takes what the dialog has left after them). In a window too short for both
+        // (PinnedFooter) the buttons scroll with the notes instead, so the title and notes can always be reached.
+        LinearLayout frame = column(), foot = column(), content = column();
+        content.addView(box); inner.addView(content);
         if (available) {
             frame.addView(inner, new LinearLayout.LayoutParams(-1, 0, 1));
             foot.setPadding(ui.dp(22), 0, ui.dp(22), ui.dp(10)); frame.addView(foot, new LinearLayout.LayoutParams(-1, -2));
+            frame.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if (footerMisplaced(frame, foot, box, content)) frame.post(() -> {
+                    if (!footerMisplaced(frame, foot, box, content)) return;
+                    boolean scrolls = foot.getParent() == frame;
+                    ((ViewGroup) foot.getParent()).removeView(foot);
+                    (scrolls ? content : frame).addView(foot, new LinearLayout.LayoutParams(-1, -2));
+                });
+            });
         }
         AlertDialog dialog = builder.setView(available ? frame : inner).create();
         if (available)
@@ -2441,6 +2451,12 @@ public final class MoreScreen implements AppScreen {
                     : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
+    }
+    /** Whether the update dialog's buttons sit on the wrong side of its scroller for the window's height now. */
+    private boolean footerMisplaced(LinearLayout frame, LinearLayout foot, View body, LinearLayout content) {
+        if (closed || foot.getParent() == null) return false;
+        boolean scrolls = PinnedFooter.scrolls(frame.getHeight(), foot.getHeight(), body.getHeight(), ui.dp(PinnedFooter.MIN_BODY_DP));
+        return scrolls != (foot.getParent() == content);
     }
     /** The browser gets the APK (safeDownload) or the release page (safePage), never anything else; Volt downloads nothing. */
     private void openRelease(UpdateCheck.Result r) {

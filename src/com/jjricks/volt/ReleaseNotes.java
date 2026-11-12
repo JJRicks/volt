@@ -11,12 +11,13 @@ import java.util.regex.Pattern;
  * ReleaseNotesView draws with Android spans. Pure Java: no Android, no HTML and no network.
  *
  * <p>It reads the common GitHub-flavoured forms: ATX ({@code ## Title}) and setext headings, bullet and numbered
- * lists nested by indent, quotes, fenced code, rules, and paragraphs with their line breaks (GitHub shows a single
- * newline in release notes as a break); inline, bold, italic, strikethrough, code spans, links and images
+ * lists nested by indent (a numbered list counted up from its first item's number, as GitHub shows it), quotes with
+ * whatever blocks they hold, fenced code, rules, and paragraphs with their line breaks (GitHub shows a single newline in
+ * release notes as a break); inline, bold, italic, strikethrough, code spans, links and images
  * ({@code [text](url)}, shown as "text (url)") and autolinks ({@code <https://...>}); a bare address stays exactly as
  * written. Anything else (tables, HTML, reference links, an unclosed {@code **}) stays as its literal text. Only the
- * markup itself is dropped, plus a code fence's language name, so every other character of the notes is shown. Links
- * are never made tappable here.
+ * markup itself is dropped, plus a code fence's language name, so every other character of the notes is shown (a
+ * numbered item shows its place in the list, not the number written). Links are never made tappable here.
  */
 final class ReleaseNotes {
     enum Kind { PARAGRAPH, HEADING, BULLET, NUMBERED, QUOTE, CODE, RULE }
@@ -25,6 +26,8 @@ final class ReleaseNotes {
 
     /** Deepest list level kept; deeper items sit at this level. */
     static final int MAX_DEPTH = 3;
+    /** Deepest quote read as one; the ">" of quotes deeper still are dropped and their lines join this one. */
+    static final int MAX_QUOTES = 8;
     static final String BULLET = "•";
 
     static final class Span {
@@ -37,15 +40,23 @@ final class ReleaseNotes {
         final Kind kind;
         /** A heading's level (1 to 6), a list item's depth (0 to MAX_DEPTH), else 0. */
         final int level;
-        /** A list item's marker, BULLET or the number as written ("3." or "3)"); else "". */
+        /** A list item's marker, BULLET or its number in the list ("3." or "3)"); else "". */
         final String marker;
+        /** A list item's marker as the notes wrote it ("-", "1." for a third item written "1."); else "". */
+        final String written;
+        /** Inside a quote: drawn with the quote's bar. A paragraph inside one is a QUOTE block. */
+        final boolean quoted;
         /** The block's text without its markup; "\n" for each line break inside it. */
         final String text;
         /** Style ranges over text, outermost after the ranges inside them. */
         final List<Span> spans;
-        Block(Kind kind, int level, String marker, String text, List<Span> spans) {
-            this.kind = kind; this.level = level; this.marker = marker; this.text = text;
-            this.spans = Collections.unmodifiableList(spans);
+        Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, boolean quoted) {
+            this.kind = kind; this.level = level; this.marker = marker; this.written = written; this.text = text;
+            this.spans = Collections.unmodifiableList(spans); this.quoted = quoted;
+        }
+        /** This block as it reads inside a quote. */
+        Block inQuote() {
+            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, true);
         }
     }
 
@@ -58,24 +69,28 @@ final class ReleaseNotes {
     private static final Pattern SETEXT = Pattern.compile("^ {0,3}(=+|-+)" + BLANK + "*$");
     private static final Pattern RULE = Pattern.compile("^ {0,3}([-*_])(?:" + BLANK + "*\\1){2,}" + BLANK + "*$");
     private static final Pattern QUOTE = Pattern.compile("^ {0,3}>" + BLANK + "?(.*)$");
-    private static final Pattern BULLET_ITEM = Pattern.compile("^(" + BLANK + "*)([-*+])" + BLANK + "+" + TEXT + "$");
-    private static final Pattern NUMBERED_ITEM = Pattern.compile("^(" + BLANK + "*)([0-9]{1,9}[.)])" + BLANK + "+" + TEXT + "$");
+    private static final Pattern BULLET_ITEM = Pattern.compile("^(" + BLANK + "*)([-*+])(" + BLANK + "+)" + TEXT + "$");
+    private static final Pattern NUMBERED_ITEM = Pattern.compile("^(" + BLANK + "*)([0-9]{1,9}[.)])(" + BLANK + "+)" + TEXT + "$");
     private static final Pattern AUTOLINK = Pattern.compile("(?:https?://|mailto:)[^\\s<>]+");
 
-    /** The notes cut to at most max characters (before the ellipsis), at a line or word break where one is near. */
+    /**
+     * The notes cut to at most max characters (before the ellipsis): at a line break in the last fifth before the
+     * limit, else at the last word break past halfway, else at the limit. A line break further back would drop more of
+     * the notes than a cut between words.
+     */
     static String clip(String markdown, int max) {
         String text = normalize(markdown).trim();
         if (text.length() <= max) return text;
-        int cut = text.lastIndexOf('\n', max);
-        if (cut < max / 2) cut = text.lastIndexOf(' ', max);
+        int line = text.lastIndexOf('\n', max);
+        int cut = line >= max - max / 5 ? line : Math.max(line, text.lastIndexOf(' ', max));
         if (cut < max / 2) cut = max;
-        if (Character.isHighSurrogate(text.charAt(cut - 1))) cut--;
+        if (cut > 0 && Character.isHighSurrogate(text.charAt(cut - 1))) cut--;
         return text.substring(0, cut).trim() + "…";
     }
 
     /** The notes' blocks, in order. Never throws for any text; null reads as no notes. */
     static List<Block> parse(String markdown) {
-        Parser parser = new Parser();
+        Parser parser = new Parser(0);
         for (String line : normalize(markdown).split("\n", -1)) parser.line(line);
         parser.finish();
         return Collections.unmodifiableList(parser.out);
@@ -99,55 +114,107 @@ final class ReleaseNotes {
         return markdown == null ? "" : markdown.replace("\r\n", "\n").replace('\r', '\n');
     }
 
-    /** Line by line: one block is open at a time, and a blank line or a new block's first line closes it. */
+    /**
+     * Line by line: one block is open at a time, and a blank line or a new block's first line closes it. A quote's
+     * lines, without their ">", go to a parser of their own, so lists, headings and code inside it are read as such.
+     */
     private static final class Parser {
         final List<Block> out = new ArrayList<>();
-        /** The open block's kind, or null; its level, marker and raw lines. */
-        Kind open; int openLevel; String openMarker = ""; final StringBuilder raw = new StringBuilder();
-        /** The indents of the list items above this one, outermost first. */
-        final List<Integer> listIndents = new ArrayList<>();
+        /** How many quotes this parser's lines are inside. */
+        final int depth;
+        /** The open block's kind, or null; its level, markers and raw lines. */
+        Kind open; int openLevel; String openMarker = "", openWritten = ""; final StringBuilder raw = new StringBuilder();
+        /** The list items above this one, outermost first. */
+        final List<Level> levels = new ArrayList<>();
+        /**
+         * For an open paragraph after a list item: the item's content column, past which a line still belongs to the
+         * item; -1 for a paragraph outside a list.
+         */
+        int paragraphContent = -1;
         /** Inside a fence: its character and length, and how far its opening line was indented. */
         char fenceChar; int fenceLength, fenceIndent; boolean fenced;
         /** The fence has had a line, so the next one starts after a break. */
         boolean codeStarted;
+        /** The open quote's own parser, or null. */
+        Parser quote;
+
+        Parser(int depth) { this.depth = depth; }
 
         void line(String line) {
             if (fenced) { fenceLine(line); return; }
             Matcher m;
+            if (quote != null) {
+                if ((m = QUOTE.matcher(line)).matches()) { quote.line(m.group(1)); return; }
+                // A line without ">" carries on the quote's paragraph, unless it starts a block of its own.
+                if (!line.trim().isEmpty() && !startsBlock(line) && quote.lazy(line)) return;
+                endQuote();
+            }
+            if (depth >= MAX_QUOTES) while ((m = QUOTE.matcher(line)).matches()) line = m.group(1);
             if (line.trim().isEmpty()) { close(); return; }
-            if ((m = FENCE.matcher(line)).matches() && !(m.group(2).charAt(0) == '`' && m.group(3).indexOf('`') >= 0)) {
-                close(); listIndents.clear();
+            if ((m = FENCE.matcher(line)).matches() && fenceOpens(m)) {
+                close(); levels.clear();
                 fenced = true; fenceChar = m.group(2).charAt(0); fenceLength = m.group(2).length(); fenceIndent = m.group(1).length();
-                open = Kind.CODE; openLevel = 0; openMarker = "";
+                open = Kind.CODE; openLevel = 0; openMarker = ""; openWritten = "";
                 return;
             }
             if ((m = HEADING.matcher(line)).matches()) {
-                close(); listIndents.clear();
+                close(); levels.clear();
                 String title = m.group(2) == null ? "" : m.group(2);
-                add(Kind.HEADING, m.group(1).length(), "", title);
+                add(Kind.HEADING, m.group(1).length(), "", "", title);
                 return;
             }
             if (open == Kind.PARAGRAPH && (m = SETEXT.matcher(line)).matches()) {
                 String title = raw.toString(); raw.setLength(0); open = null;
-                add(Kind.HEADING, m.group(1).charAt(0) == '=' ? 1 : 2, "", title);
+                add(Kind.HEADING, m.group(1).charAt(0) == '=' ? 1 : 2, "", "", title);
                 return;
             }
-            if (RULE.matcher(line).matches()) { close(); listIndents.clear(); out.add(new Block(Kind.RULE, 0, "", "", new ArrayList<Span>())); return; }
-            if ((m = BULLET_ITEM.matcher(line)).matches()) { item(Kind.BULLET, m.group(1), BULLET, m.group(3)); return; }
+            if (RULE.matcher(line).matches()) { close(); levels.clear(); out.add(new Block(Kind.RULE, 0, "", "", "", new ArrayList<Span>(), false)); return; }
+            if ((m = BULLET_ITEM.matcher(line)).matches()) { item(Kind.BULLET, m); return; }
             // As on GitHub, a numbered item breaks into a paragraph only when it starts at 1, so prose wrapped onto
-            // a line such as "80. percent" stays in its paragraph.
-            if ((m = NUMBERED_ITEM.matcher(line)).matches() && (open != Kind.PARAGRAPH || startsAtOne(m.group(2)))) {
-                item(Kind.NUMBERED, m.group(1), m.group(2), m.group(3));
+            // a line such as "80. percent" stays in its paragraph. A paragraph that belongs to a list item ends,
+            // though, at a line less indented than the item's text: that line is the list's next item.
+            if ((m = NUMBERED_ITEM.matcher(line)).matches() && (open != Kind.PARAGRAPH || startsAtOne(m.group(2))
+                    || paragraphContent >= 0 && columns(m.group(1)) < paragraphContent)) {
+                item(Kind.NUMBERED, m);
                 return;
             }
             if ((m = QUOTE.matcher(line)).matches()) {
-                if (open != Kind.QUOTE) { close(); listIndents.clear(); start(Kind.QUOTE, 0, ""); }
-                append(m.group(1));
+                close(); levels.clear();
+                quote = new Parser(depth + 1);
+                quote.line(m.group(1));
                 return;
             }
-            if (open == null) { listIndents.clear(); start(Kind.PARAGRAPH, 0, ""); }
-            // A line that follows a paragraph, list item or quote continues it, after a line break.
+            if (open == null) {
+                // After a blank line, a paragraph indented as far as a list item's text belongs to that item and
+                // keeps its list open; one less indented ends the list.
+                int indent = columns(line.substring(0, line.length() - line.replaceFirst("^" + BLANK + "+", "").length()));
+                while (!levels.isEmpty() && indent < levels.get(levels.size() - 1).content) levels.remove(levels.size() - 1);
+                paragraphContent = levels.isEmpty() ? -1 : levels.get(levels.size() - 1).content;
+                start(Kind.PARAGRAPH, 0, "", "");
+            }
+            // A line that follows a paragraph or list item continues it, after a line break.
             append(line);
+        }
+
+        /** Whether a line not marked with ">" starts a block, which ends a quote above it. */
+        private static boolean startsBlock(String line) {
+            Matcher m;
+            return (m = FENCE.matcher(line)).matches() && fenceOpens(m) || HEADING.matcher(line).matches() || RULE.matcher(line).matches()
+                    || BULLET_ITEM.matcher(line).matches() || NUMBERED_ITEM.matcher(line).matches();
+        }
+
+        /** A line that carries on the open paragraph or list item, inside quotes as deep as they go; false if none is open. */
+        boolean lazy(String line) {
+            if (quote != null) return quote.lazy(line);
+            if (fenced || open == null || open == Kind.CODE) return false;
+            append(line);
+            return true;
+        }
+
+        private void endQuote() {
+            quote.finish();
+            for (Block block : quote.out) out.add(block.inQuote());
+            quote = null;
         }
 
         private void fenceLine(String line) {
@@ -163,17 +230,41 @@ final class ReleaseNotes {
             raw.append(line.substring(strip));
         }
 
-        private void item(Kind kind, String indentText, String marker, String rest) {
+        /**
+         * A list item: groups 1 to 4 of BULLET_ITEM or NUMBERED_ITEM are its indent, marker, the blanks after the
+         * marker and its text. A numbered item that continues its list shows the next number, as GitHub does.
+         */
+        private void item(Kind kind, Matcher m) {
             close();
-            int indent = columns(indentText);
-            while (!listIndents.isEmpty() && indent < listIndents.get(listIndents.size() - 1)) listIndents.remove(listIndents.size() - 1);
+            String indentText = m.group(1), written = m.group(2);
+            int indent = columns(indentText), markerEnd = columns(indentText + written);
+            int content = columns(indentText + written + m.group(3));
+            // Text five or more columns past the marker would be indented code on GitHub; the item's text starts one
+            // column after its marker then.
+            if (content - markerEnd > 4) content = markerEnd + 1;
+            while (!levels.isEmpty() && indent < levels.get(levels.size() - 1).indent) levels.remove(levels.size() - 1);
             // An item two or more columns further in than the one above nests under it; less is the same level.
-            if (listIndents.isEmpty() || indent >= listIndents.get(listIndents.size() - 1) + 2) listIndents.add(indent);
-            start(kind, Math.min(MAX_DEPTH, listIndents.size() - 1), marker);
-            append(rest);
+            boolean fresh = levels.isEmpty() || indent >= levels.get(levels.size() - 1).indent + 2;
+            if (fresh) levels.add(new Level(indent));
+            Level level = levels.get(levels.size() - 1);
+            level.content = content;
+            String marker = BULLET;
+            if (kind == Kind.NUMBERED) {
+                char delimiter = written.charAt(written.length() - 1);
+                // A new list, or a change of kind or of "." and ")", starts counting from the number written.
+                if (fresh || level.kind != Kind.NUMBERED || level.delimiter != delimiter)
+                    level.next = Long.parseLong(written.substring(0, written.length() - 1));
+                level.delimiter = delimiter;
+                marker = level.next++ + String.valueOf(delimiter);
+            }
+            level.kind = kind;
+            start(kind, Math.min(MAX_DEPTH, levels.size() - 1), marker, written);
+            append(m.group(4));
         }
 
-        private void start(Kind kind, int level, String marker) { open = kind; openLevel = level; openMarker = marker; raw.setLength(0); }
+        private void start(Kind kind, int level, String marker, String written) {
+            open = kind; openLevel = level; openMarker = marker; openWritten = written; raw.setLength(0);
+        }
 
         /**
          * One more line of the open block. A hard break (two spaces, or a backslash, at the end of the line before)
@@ -193,24 +284,36 @@ final class ReleaseNotes {
         private void close() {
             if (open == null) return;
             if (open == Kind.CODE) { closeCode(); return; }
-            add(open, openLevel, openMarker, raw.toString());
+            add(open, openLevel, openMarker, openWritten, raw.toString());
             open = null; raw.setLength(0);
         }
 
         private void closeCode() {
-            out.add(new Block(Kind.CODE, 0, "", raw.toString(), new ArrayList<Span>()));
+            out.add(new Block(Kind.CODE, 0, "", "", raw.toString(), new ArrayList<Span>(), false));
             open = null; raw.setLength(0); codeStarted = false;
         }
 
-        /** An unclosed fence runs to the end, as on GitHub. */
-        void finish() { fenced = false; close(); }
+        /** An unclosed fence runs to the end, as on GitHub, and so does an open quote. */
+        void finish() {
+            if (quote != null) endQuote();
+            fenced = false; close();
+        }
 
-        private void add(Kind kind, int level, String marker, String source) {
+        private void add(Kind kind, int level, String marker, String written, String source) {
             StringBuilder text = new StringBuilder(); List<Span> spans = new ArrayList<>();
             new Inline(source, text, spans).run(0, source.length());
-            out.add(new Block(kind, level, marker, text.toString(), spans));
+            out.add(new Block(kind, level, marker, written, text.toString(), spans, false));
         }
     }
+
+    /** One level of open lists: its items' indent and text column, and for a numbered list its "." or ")" and next number. */
+    private static final class Level {
+        final int indent; int content; Kind kind; char delimiter; long next;
+        Level(int indent) { this.indent = indent; }
+    }
+
+    /** A fence line opens a fence unless it is a backtick fence with a backtick after it (an inline code span). */
+    private static boolean fenceOpens(Matcher fence) { return !(fence.group(2).charAt(0) == '`' && fence.group(3).indexOf('`') >= 0); }
 
     /** Inline markup over one block's source, appended to text with its style ranges. */
     private static final class Inline {
