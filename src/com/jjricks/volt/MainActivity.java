@@ -1794,7 +1794,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                     if(target!=null){place(linkRow(target));continue;}
                     View card=rowViews.get(id);if(card==null)continue;
                     place(card);View done=gluedBelow.get(card);if(done!=null)place(done);
-                    for(ControlRow control:rows)if(control.card==card&&control.feature.experimental){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
+                    // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
+                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
                 }
                 view.addView(pageBody,new LinearLayout.LayoutParams(-1,-2));
             }
@@ -1826,15 +1827,34 @@ public final class MainActivity extends Activity implements ScreenHost {
          */
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
-            entry.value.setText(HubText.experimentalBadge());entry.chevron(()->showQuickMore("Lab",feature));
+            // The badge sits under the name on every entry (beside a short name it moved to the row's end).
+            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->showQuickMore("Lab",feature));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
-        /** The Lab lists the control for this model, and it is not an ordinary row here. */
-        private boolean labOffered(String key){
-            if(scooterService==null||rowOffered(key))return false;
-            CapabilityResolver.Decision decision=scooterService.ble.decision(key);
-            return decision.support==CapabilityResolver.Support.KNOWN_ENCODING&&decision.variant!=null&&decision.variant.lab;
+        /**
+         * More's Experimental controls lists the control for this model (its Lab list and experimentalDecision, exactly as
+         * MoreScreen.refreshLab builds it), and it is not an ordinary row here (ControlsPages.labEntryShown).
+         */
+        private boolean labOffered(String key,java.util.List<String> lab){
+            if(scooterService==null)return false;
+            boolean ordinary=rowOffered(key)||key.equals("maximum_speed")&&topSpeedCard();
+            return ControlsPages.labEntryShown(ordinary,lab.contains(key),!ordinary&&lab.contains(key)&&scooterService.ble.experimentalDecision(key).experimental());
+        }
+        private String labModel="";private java.util.List<String> labKeys=java.util.Collections.emptyList();
+        /** The model's Lab list (ModelRegistry.experimental), rebuilt when the model changes, as MoreScreen keeps it. */
+        private java.util.List<String> modelLab(){
+            if(scooterService==null)return java.util.Collections.emptyList();
+            DeviceDescriptor d=scooterService.ble.descriptor();ModelRegistry.Resolution r=ModelRegistry.resolve(d);
+            String model=r.layer+"|"+r.matchedPrefix+"|"+r.conflict+"|"+d.rulePid()+"|"+d.pidSource();
+            if(!model.equals(labModel)){labModel=model;labKeys=ModelRegistry.experimental(d);}
+            return labKeys;
+        }
+        /** A row id this page would show now (a link's page counts it): an ordinary row or its Experimental entry; hand-built rows count as shown. */
+        private boolean rowShown(String id,java.util.List<String> lab){
+            View card=rowViews.get(id);
+            for(ControlRow row:rows)if(row.card==card)return rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab);
+            return true;
         }
         private void refreshMaintenance(){
             MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
@@ -1852,8 +1872,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(f.key.equals("headlight")||f.key.equals("auto_sensor")||ScooterCommands.oemOnly(f.key))return "Lights";
             return f.group.equals("Ride")?"Ride":f.group.equals("Battery")?"Battery":f.group.equals("Security")?"Security":"Dashboard & sound";
         }
-        /** A light family (line_, star_) this model offers: its sub-page's link shows. */
-        private boolean familyOffered(String prefix){boolean found=false;for(ControlRow row:rows)found|=row.feature.key.startsWith(prefix)&&offered(row.feature.key);return found;}
         private void addRow(String group,View child){LinearLayout body=bodies.get(group);if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(child);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}body.addView(child);}
         private void applyFilter(){
             String needle=normalize(query);boolean searching=spec.search&&!needle.isEmpty();int count=0;
@@ -1867,12 +1885,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
-            for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey())?View.VISIBLE:View.GONE);
-            for(Map.Entry<View,String> e:links.entrySet()){
-                String target=e.getValue();
-                boolean shown=target.equals(HubPages.LIGHTS_LINE)?familyOffered("line_"):target.equals(HubPages.LIGHTS_STAR)?familyOffered("star_"):true;
-                e.getKey().setVisibility(shown?View.VISIBLE:View.GONE);
-            }
+            java.util.List<String> lab=modelLab();
+            for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey(),lab)?View.VISIBLE:View.GONE);
+            // A sub-page's link shows only while that page has a row or an Experimental entry to show.
+            for(Map.Entry<View,String> e:links.entrySet())e.getKey().setVisibility(ControlsPages.linkShown(e.getValue(),id->rowShown(id,lab))?View.VISIBLE:View.GONE);
             for(Map.Entry<String,LinearLayout> e:sections.entrySet()){
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
                 hideDividers(bodies.get(e.getKey()));
@@ -1939,7 +1955,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
             StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
-            for(String key:labEntries.keySet())offered.append(labOffered(key)?'1':'0');
+            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");

@@ -16,9 +16,11 @@ import java.util.Map;
  * so every order lives in this one table). There is no saved arrangement: the Scooter tab's arrange-and-hide editor
  * is gone (owner's decision 5 in #383, approved in his answers 1 and 5 there), and {@code scooter_menu_v1_<pid>} is no longer read.
  *
- * <p>A "Done by" row follows its parent ({@code timed_charging}, {@code charge_start}) wherever that row goes. An
- * experimental control (ScooterCommands.Feature.experimental) shows as an ordinary row where its model maps it
- * normally, otherwise as an "Experimental" entry that opens its test.
+ * <p>A "Done by" row follows its parent ({@code timed_charging}, {@code charge_start}) wherever that row goes. A
+ * control the model's Lab tries (ModelRegistry.experimental, the list More's Experimental controls is built from) and
+ * doesn't offer as an ordinary row shows as an "Experimental" entry in that row's place, which opens its test
+ * ({@link #labEntries}, {@link #labEntryShown}). A link to a sub-page shows only while that page has a row or an entry
+ * to show ({@link #linkShown}).
  */
 final class ControlsPages {
     private ControlsPages() { }
@@ -101,6 +103,45 @@ final class ControlsPages {
 
     /** Every page with rows, in a stable order. */
     static List<String> pages() { return Collections.unmodifiableList(new ArrayList<>(SPECS.keySet())); }
+
+    /**
+     * The page's controls that get an "Experimental" entry on this model: each of its feature rows the model's Lab list
+     * contains (modelLab: ModelRegistry.experimental for the device), in the page's order. Links and hand-built rows never do.
+     */
+    static List<String> labEntries(Spec spec, List<String> modelLab) {
+        ArrayList<String> out = new ArrayList<>();
+        if (spec == null || modelLab == null) return out;
+        for (String id : spec.rows) if (!isLink(id) && modelLab.contains(id)) out.add(id);
+        return out;
+    }
+
+    /**
+     * Whether a control's "Experimental" entry shows, exactly as More's Experimental controls lists it: the model's Lab
+     * list holds it and its experimental decision (BleController.experimentalDecision) is a Lab try; never while the page
+     * shows it as an ordinary row.
+     */
+    static boolean labEntryShown(boolean ordinaryRow, boolean inModelLab, boolean experimentalDecision) {
+        return !ordinaryRow && inModelLab && experimentalDecision;
+    }
+
+    /**
+     * Whether a link to a page shows: the page has at least one row (shown: a row id the page would show now, an
+     * ordinary row or its Experimental entry) or a link that shows. A page these rows don't build always shows its link.
+     */
+    static boolean linkShown(String page, java.util.function.Predicate<String> shown) {
+        return linkShown(page, shown, new java.util.HashSet<>());
+    }
+
+    private static boolean linkShown(String page, java.util.function.Predicate<String> shown, java.util.Set<String> seen) {
+        Spec spec = spec(page);
+        if (spec == null) return true;
+        if (!seen.add(page)) return false;
+        for (String id : spec.rows) {
+            String target = linkTarget(id);
+            if (target != null ? linkShown(target, shown, seen) : shown.test(id)) return true;
+        }
+        return false;
+    }
 
     /** The page that shows a row (a "Done by" row's parent decides for it); null when no page does. */
     static String pageOf(String id) {
