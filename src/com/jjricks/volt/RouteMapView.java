@@ -455,8 +455,8 @@ public final class RouteMapView extends View {
     }
 
     // The popup's signed lines: each number is formatted with its sign first (Fmt.signedDecimal), and
-    // one small method per line puts the words around it, so each line can take a catalog string
-    // holding a plain %1$s.
+    // one small method per line puts it into the line's whole format string through a plain %s, so
+    // each line can take a catalog string holding %1$s.
 
     private static String grade(Double percent) {
         return percent == null ? null : gradeLine(Fmt.signedDecimal(Locale.US, percent, 1));
@@ -464,7 +464,7 @@ public final class RouteMapView extends View {
 
     /** "≈+2.5% grade": signedPercent is the signed percentage, without its percent sign. */
     private static String gradeLine(String signedPercent) {
-        return "≈" + signedPercent + "% grade";
+        return String.format(Locale.US, "≈%s%% grade", signedPercent);
     }
 
     private static String accel(Double mps2) {
@@ -473,7 +473,7 @@ public final class RouteMapView extends View {
 
     /** "+0.25 m/s² GPS accel": signedMps2 is the signed acceleration in m/s². */
     private static String accelLine(String signedMps2) {
-        return signedMps2 + " m/s² GPS accel";
+        return String.format(Locale.US, "%s m/s² GPS accel", signedMps2);
     }
 
     /** The elevation line for a height relative to the ride's start, in feet when imperial. */
@@ -484,12 +484,12 @@ public final class RouteMapView extends View {
 
     /** "Elevation +12 ft": signedFeet is the signed whole number of feet. */
     private static String elevationFeetLine(String signedFeet) {
-        return "Elevation " + signedFeet + " ft";
+        return String.format(Locale.US, "Elevation %s ft", signedFeet);
     }
 
     /** "Elevation +4 m": signedMeters is the signed whole number of metres. */
     private static String elevationMetersLine(String signedMeters) {
-        return "Elevation " + signedMeters + " m";
+        return String.format(Locale.US, "Elevation %s m", signedMeters);
     }
 
     private String speed(Double mps) {

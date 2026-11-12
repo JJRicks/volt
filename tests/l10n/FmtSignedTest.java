@@ -68,10 +68,17 @@ public final class FmtSignedTest {
         }
     }
 
-    /** A shipped language: the display locale's separator, the same sign, Latin digits. */
+    /**
+     * Every shipped language other than English: the display locale's separator, the same sign, Latin
+     * digits. All of today's (de, fr, it, nl, pl, pt-BR, pt-PT, sv, tr, es) use a decimal comma.
+     */
     private static void shipped() {
         Locale.setDefault(Locale.US);
-        for (String language : new String[] {"pt-PT", "de", "fr"}) {
+        int languages = 0;
+        for (int i = 0; i < AppLanguages.size(); i++) {
+            String language = AppLanguages.tag(i);
+            if (AppLanguages.ENGLISH.equals(language) || !AppLanguages.shipped(i)) continue;
+            languages++;
             T.install(source(language));
             String where = "a source in " + language;
             check(!Fmt.legacy(), where + ": not legacy");
@@ -87,6 +94,7 @@ public final class FmtSignedTest {
             equal("-0,25", Fmt.signedDecimal(Locale.US, -.25, 2), where, "acceleration with a decimal comma");
             equal("+12", Fmt.signedDecimal(Locale.US, 12, 0), where, "a whole number has no separator");
         }
+        check(languages > 0, "at least one shipped language other than English");
     }
 
     private static T.Source source(String language) {

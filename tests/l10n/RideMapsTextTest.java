@@ -70,7 +70,7 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.gradeLine(). */
     static String gradeLine(String signedPercent) {
-        return "≈" + signedPercent + "% grade";
+        return String.format(Locale.US, "≈%s%% grade", signedPercent);
     }
 
     /** RouteMapView.accel(). */
@@ -80,7 +80,7 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.accelLine(). */
     static String accelLine(String signedMps2) {
-        return signedMps2 + " m/s² GPS accel";
+        return String.format(Locale.US, "%s m/s² GPS accel", signedMps2);
     }
 
     /** RouteMapView.elevation(). */
@@ -91,12 +91,12 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.elevationFeetLine(). */
     static String elevationFeetLine(String signedFeet) {
-        return "Elevation " + signedFeet + " ft";
+        return String.format(Locale.US, "Elevation %s ft", signedFeet);
     }
 
     /** RouteMapView.elevationMetersLine(). */
     static String elevationMetersLine(String signedMeters) {
-        return "Elevation " + signedMeters + " m";
+        return String.format(Locale.US, "Elevation %s m", signedMeters);
     }
 
     /** RouteMapView.drawTooltip()'s two lines; imperial is RouteMapView.imperial(). */
