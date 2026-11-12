@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Steadier connection when Volt is in the background or you come back to it.** Volt no longer drops and remakes a healthy connection 18 seconds after connecting while it's out of sight, and controls (and a Scheduled charging change on its way) no longer refuse or stop for a few seconds after you return to Volt: it asks the scooter for its status at the in-sight pace as soon as you're back.
+
 ## 1.13.1 — 2026-11-11
 
 - **Download straight from the update check.** When **More › Updates** finds a newer version, its **Download** button now opens that release's `volt-<version>.apk` in your browser, which downloads it; open the file to install it over this version, and your data stays. If GitHub doesn't list the file yet (a release still uploading, say), the button is **Open release page**, as before. Volt itself still downloads and installs nothing, and the automatic check's notification opens the same dialog. The button is new in this version, so Volt 1.13.0 still offers this update through the release page.

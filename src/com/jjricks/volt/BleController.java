@@ -24,6 +24,11 @@ public final class BleController {
     public static final UUID SERVICE=UUID.fromString("0000d0ff-3c17-d293-8e48-14fe2e4da212"),WRITE=UUID.fromString("0000b002-0000-1000-8000-00805f9b34fb"),NOTIFY=UUID.fromString("0000b003-0000-1000-8000-00805f9b34fb"),CCCD=UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     public final Telemetry telemetry=new Telemetry();
     private final Context context;private final ScooterProfiles profiles;private final Handler handler=new Handler(Looper.getMainLooper());private final BluetoothAdapter adapter;
+    /** The status poll chain and the cadence the link has been on (StatusCadence.Chain): one pending poll per session at most. */
+    private final StatusCadence.Chain cadence=new StatusCadence.Chain(new StatusCadence.Timer(){
+        @Override public long now(){return BleController.now();}
+        @Override public void post(Runnable task,long delayMs){handler.postDelayed(task,delayMs);}
+        @Override public void cancel(Runnable task){handler.removeCallbacks(task);}});
     private final Protocol.Decoder decoder=new Protocol.Decoder();private final ArrayDeque<byte[]> queue=new ArrayDeque<>();private final ArrayList<String> events=new ArrayList<>();
     /** Ownership is per queued frame, so stopping discovery never cancels ordinary polls or writes. */
     private final IdentityHashMap<byte[],DiscoveryCoordinator> discoveryQueue=new IdentityHashMap<>();
@@ -124,13 +129,16 @@ public final class BleController {
     private void simulationUnavailable(String action){notice(action+" is unavailable in simulation. No scooter command was sent.");}
     public State state(){return state;}public String message(){return ConnectionText.english(message);}public boolean ready(){if(simulating())return simulation!=null&&state==State.READY;return workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&statusMs>0&&now()-statusMs<=7000&&!serial.isEmpty();}
     /**
-     * The link is up and answering on the cadence it is on (StatusCadence): with Volt open or recording, exactly ready();
-     * out of sight, where status is asked for every 15 s, a status read up to the background silence limit still counts.
-     * For background facts (the live charging card, charge alerts, the charge reference gate), never for controls.
+     * The link is up and answering on the cadence it has actually been on (StatusCadence.linked with fastSinceMs): with
+     * Volt open or recording, ready()'s answer once a status has arrived at the fast rate; for the first 7 s after a
+     * switch from the background, a status from the 15 s poll still counts; out of sight, a status read up to the
+     * background silence limit. For decisions that judge the link (the connect timeout, background facts, the live
+     * charging card, charge alerts, the charge reference gate, a schedule change in flight), never for controls.
      */
-    public boolean linked(){if(simulating()||visible||recording)return ready();return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),false);}
-    /** How old a reading with this own rule (TelemetryHistory.freshnessMs, say) may be on the cadence the link is on (StatusCadence.readingFreshMs). */
-    public long readingFreshMs(long baseMs){return StatusCadence.readingFreshMs(baseMs,simulating()||visible||recording);}
+    public boolean linked(){if(simulating())return ready();return linkUp();}
+    private boolean linkUp(){return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),cadence.fast(),cadence.fastSinceMs());}
+    /** How old a reading with this own rule (TelemetryHistory.freshnessMs, say) may be on the cadence the link has been on (StatusCadence.readingFreshMs). */
+    public long readingFreshMs(long baseMs){return simulating()?StatusCadence.readingFreshMs(baseMs,true):StatusCadence.readingFreshMs(baseMs,cadence.fast(),cadence.fastSinceMs(),now());}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
@@ -381,7 +389,11 @@ public final class BleController {
     public void watchBattery(long untilMono){batteryWatchUntilMs=simulating()?0:Math.max(0,untilMono);}
     private boolean batteryWatch(){return batteryWatchUntilMs>now();}
     public void visibility(boolean v,boolean r){visibility(v,r,0);}
-    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(resumed&&authenticated)refresh(false);}
+    /**
+     * The cadence follows visible||recording at once (StatusCadence.Chain): after the resume refresh is queued, the pending
+     * poll moves to the new cadence, one period after the last status request, so no slow timer outlives a return.
+     */
+    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
     public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
@@ -447,14 +459,15 @@ public final class BleController {
         journal.attempt(p.id);recordDiagnostic(ConnectionEventLog.Reason.CONNECT_ATTEMPT,-1,p.id);close(State.CONNECTING);if(discoveryProfileId!=null&&!discoveryProfileId.equals(p.id))clearDiscovery();profile=p;telemetry.clear();sessionFirmware=null;pinState=null;loadResults();message=M.bleStatusConnecting();changed();
         if(!mac.equals(pendingAdvertisedMac)){pendingAdvertised=null;pendingAdvertisedMac="";}
         try{gatt=adapter.getRemoteDevice(mac).connectGatt(context,false,callbacks,BluetoothDevice.TRANSPORT_LE);}catch(Exception e){failed(M.bleFailedConnection(),true,ConnectionEventLog.Reason.CONNECT_FAILED,-1);return;}
-        int session=generation;handler.postDelayed(()->{if(session==generation&&gatt!=null&&!ready())failed(M.bleFailedTimedOut(),true,ConnectionEventLog.Reason.CONNECT_TIMEOUT,-1);},18000);
+        // linkUp(), not ready(): out of sight a healthy link's status is up to 15 s old by now; one that never became ready still times out.
+        int session=generation;handler.postDelayed(()->{if(session==generation&&gatt!=null&&!linkUp())failed(M.bleFailedTimedOut(),true,ConnectionEventLog.Reason.CONNECT_TIMEOUT,-1);},18000);
     }
     private void close(State next){
         if(discovering){discovery.onDisconnect(now());finishDiscovery();event("Compatibility check interrupted");}
         // Disconnect, Bluetooth off, background pause or service end: the test stays outstanding and is never resumed automatically.
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
-        ++generation;generationStartMs=now();++writeOperation;stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
+        ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
         queue.clear();discoveryQueue.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
@@ -513,7 +526,7 @@ public final class BleController {
     private void send(byte[] frame){send(frame,null);}
     private void send(byte[] frame,DiscoveryCoordinator owner){if(simulating())return;if(!workAllowed()||gatt==null||writer==null)return;
         // Last line of defence: a write that is not the admitted mutation never reaches the queue.
-        if(!MutationGate.mayTransmit(frame,mutation==null?null:mutation.bytes)){event("Unadmitted write dropped");return;}if(frame.length==7)for(byte[] existing:queue)if(discoveryQueue.get(existing)==owner&&Arrays.equals(frame,existing))return;if(owner!=null)discoveryQueue.put(frame,owner);if(frame.length>7&&authenticated)queue.addFirst(frame);else queue.addLast(frame);pump();}
+        if(!MutationGate.mayTransmit(frame,mutation==null?null:mutation.bytes)){event("Unadmitted write dropped");return;}if(frame.length==7&&(frame[3]&255)==0x70)cadence.requested();if(frame.length==7)for(byte[] existing:queue)if(discoveryQueue.get(existing)==owner&&Arrays.equals(frame,existing))return;if(owner!=null)discoveryQueue.put(frame,owner);if(frame.length>7&&authenticated)queue.addFirst(frame);else queue.addLast(frame);pump();}
     private void pump(){
         if(simulating()){queue.clear();discoveryQueue.clear();writing=false;return;}
         if(!workAllowed()||writing||queue.isEmpty()||gatt==null||writer==null)return;byte[] frame=queue.removeFirst();int cmd=frame[3]&255;int type=(writer.getProperties()&BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)!=0?BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE:BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
@@ -648,7 +661,10 @@ public final class BleController {
         if(readPolicy==null)readPolicy=identified?ReadPolicy.forLayer(layer):ReadPolicy.legacy();else readPolicy.layer(layer,identified);
         return readPolicy;
     }
-    private void poll(int session){if(simulating())return;handler.postDelayed(()->{if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long silentLimit=StatusCadence.silenceMs(visible||recording);if((lastFrameMs>0&&now()-lastFrameMs>silentLimit)||(statusMs>0&&now()-statusMs>silentLimit)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();poll(session);},StatusCadence.pollMs(visible||recording));}
+    /** Starts this session's poll chain (StatusCadence.Chain), replacing any other. */
+    private void poll(int session){if(simulating())return;cadence.start(()->pollTick(session));}
+    /** One status poll; silence is judged on the cadence the link has been on (StatusCadence.silent). */
+    private void pollTick(int session){if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;long at=now(),since=cadence.fastSinceMs();boolean fast=cadence.fast();if(StatusCadence.silent(lastFrameMs,at,fast,since)||StatusCadence.silent(statusMs,at,fast,since)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}if(readPolicy!=null)readPolicy.tick(now());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();cadence.next();}
     /** Every write's admission: the resolver decision for this request, on this session's fresh state. */
     private CapabilityResolver.Decision check(MutationGate.Request r){return duringDiscovery(MutationGate.check(r,descriptor(),status(),runtime(r.feature)));}
     private boolean gate(MutationGate.Request r){CapabilityResolver.Decision d=check(r);if(d.available())return true;refused(r,d);return false;}

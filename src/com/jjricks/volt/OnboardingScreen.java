@@ -434,7 +434,8 @@ public final class OnboardingScreen implements AppScreen {
     private void stopConnecting() {
         prefs.edit().remove(KEY_CONNECT).apply();
         ScooterService service = host.service();
-        if (service == null || service.isRecording() || service.ble.ready()) return;
+        // linked(), not ready(): a link that is up is never torn down here, even in the moment after a return before a fresh status.
+        if (service == null || service.isRecording() || service.ble.linked()) return;
         if (service.ble.state() != BleController.State.DISCONNECTED) service.ble.disconnect();
     }
 
