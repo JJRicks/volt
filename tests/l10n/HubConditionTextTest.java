@@ -59,7 +59,13 @@ public final class HubConditionTextTest {
         equal("High-speed", HubText.chargerValue(true, false), "high-speed chosen");
         equal("Auto · Stock", HubText.chargerValue(false, true), "stock recognized");
         equal("Auto · High-speed", HubText.chargerValue(true, true), "high-speed recognized");
-        equal("Stop charge recording to change", HubText.chargerStopRecording(), "charger while recording");
+        equal("Recording label · stop to change", HubText.chargerDetail(true, false, false), "charger while this scooter records");
+        equal("Recording label · stop to change", HubText.chargerDetail(true, true, false), "recording wins over detected");
+        equal("Detected from power", HubText.chargerDetail(false, true, false), "charger detected");
+        equal("Detected from power", HubText.chargerDetail(false, true, true), "detected wins over another scooter recording");
+        equal("Stop charge recording to change", HubText.chargerDetail(false, false, true), "charger while another scooter records");
+        check(HubText.chargerDetail(false, false, false) == null, "no detail otherwise");
+        equal("Stop charge recording before sending the recordings", HubText.chargeSendBusy(), "send while recording");
         equal("Start recording in the background", HubText.recordInBackground(), "background switch");
         equal("A ride that starts while Volt is in the background has no GPS route.", HubText.recordInBackgroundNote(),
                 "background note");
@@ -70,7 +76,8 @@ public final class HubConditionTextTest {
         List<Msg> all = Arrays.asList(HubText.chargeSendRow(), HubText.chargeSendNote(), HubText.chargeSendNoEmail(),
                 HubText.chargerRow(), HubText.chargerAutomatic(), HubText.chargerValue(false, false),
                 HubText.chargerValue(true, false), HubText.chargerValue(false, true), HubText.chargerValue(true, true),
-                HubText.chargerStopRecording(), HubText.recordInBackground(), HubText.recordInBackgroundNote());
+                HubText.chargerDetail(true, false, false), HubText.chargerDetail(false, true, false),
+                HubText.chargerDetail(false, false, true), HubText.chargeSendBusy(), HubText.recordInBackground(), HubText.recordInBackgroundNote());
         for (Msg msg : all) {
             check(msg.id() >= 0, "a catalog message, not verbatim text");
             check(!msg.isPlural(), "nothing here counts anything: " + T.key(msg.id()));

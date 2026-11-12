@@ -144,6 +144,8 @@ public final class HubText {
     public static Msg chargeSendNote() { return M.hubChargeSendNote(); }
     /** When no email app can open that email. */
     public static Msg chargeSendNoEmail() { return M.hubChargeSendNoEmail(); }
+    /** Toast when that row is tapped while a charge is being recorded (recordings are sent only once capture stops). */
+    public static Msg chargeSendBusy() { return M.hubChargeSendBusy(); }
     /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
     public static Msg chargerRow() { return M.mainRowCharger(); }
     /** That row's value while Automatic has not recognized the charger. */
@@ -153,8 +155,16 @@ public final class HubText {
         Msg family = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
         return detected ? M.mainRowAutoFamily(family) : family;
     }
-    /** That row's detail while a charge is being recorded (the charger can't change then). */
-    public static Msg chargerStopRecording() { return M.mainRowStopRecording(); }
+    /**
+     * That row's detail line, chosen as the Charger row chooses it: while this scooter's charge is being recorded
+     * (the label comes from the recording); else when Automatic recognized the charger from charging power; else
+     * while another scooter's charge is being recorded (the charger can't change then). Null when there is none.
+     */
+    public static Msg chargerDetail(boolean recordingThisScooter, boolean detected, boolean recordingOther) {
+        if (recordingThisScooter) return M.mainRowRecordingLabel();
+        if (detected) return M.mainRowDetected();
+        return recordingOther ? M.mainRowStopRecording() : null;
+    }
 
     // ===== Ride › Recording settings =====
 

@@ -130,6 +130,8 @@
     <string name="hub_charge_send_note" volt:screen="Charge history &amp; recordings" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Sending your charge recordings to Volt helps improve charging time estimates for your scooter\'s model.</string>
     <!-- Toast when no email app on the phone can open the email with the charge recordings attached. -->
     <string name="hub_charge_send_no_email" volt:screen="Charge history &amp; recordings" volt:purpose="toast">No email app could open the charge recordings.</string>
+    <!-- Toast when the owner taps "Email to Volt" while a charge is being recorded: the recordings can be sent only once the recording stops. -->
+    <string name="hub_charge_send_busy" volt:screen="Charge history &amp; recordings" volt:purpose="toast" volt:safety="charge">Stop charge recording before sending the recordings</string>
 
     <!-- ===== Ride › Recording settings ===== -->
     <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
