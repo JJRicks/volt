@@ -81,7 +81,8 @@ public final class HubSummariesTest {
         require(raw.endsWith("(raw)") && HubSummaries.driveMode(raw) == null, "A raw code shows nothing: " + raw);
         require(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, null)) == null && HubSummaries.driveMode(null) == null
                 && HubSummaries.driveMode("") == null, "No reading");
-        // A stale drive-mode reading is no reading, as on the riding screen: the index never says SPORT from an old report.
+        // A stale drive-mode reading is no reading (displayReadings' freshness rule, as Home's status line uses): the index
+        // never says SPORT from an old report.
         require(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, HubSummaries.live(3.0, false))) == null, "A stale mode shows nothing");
         require("SPORT".equals(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, HubSummaries.live(3.0, true)))), "A live mode");
     }
@@ -106,7 +107,7 @@ public final class HubSummariesTest {
         return shown == null ? null : (int) Math.round(shown);
     }
 
-        private static void require(boolean ok, String message) {
+    private static void require(boolean ok, String message) {
         checks++;
         if (!ok) throw new AssertionError(message);
     }

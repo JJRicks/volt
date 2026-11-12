@@ -77,9 +77,10 @@ final class HubSummaries {
     }
 
     /**
-     * Controls: the drive mode's name as the riding screen shows it, or null when it is unknown there: no live reading
-     * (HubSubjects passes the code through {@link #live}, so a stale one is no reading), or a code this model's names
-     * don't cover (Telemetry marks it "(raw)").
+     * Controls: the drive mode's name as the riding screen shows it, or null when it is unknown: no live reading
+     * (HubSubjects passes the code through {@link #live} with displayReadings' freshness rule, as Home's status line
+     * uses, since the riding screen's own tracker exists only in riding mode, so a stale one is no reading), or a code
+     * this model's names don't cover (Telemetry marks it "(raw)").
      */
     static String driveMode(String label) {
         if (label == null || label.isEmpty() || Telemetry.rawReading(null, label) || label.equals(Telemetry.drivingModeLabel(0, null))) return null;

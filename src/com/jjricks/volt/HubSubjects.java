@@ -64,7 +64,8 @@ final class HubSubjects {
             }
             case HubPages.CONTROLS: {
                 Boolean cruise = HubSummaries.cruise(ordinaryValue(service, "cruise_control"));
-                // A stale drive-mode reading is unknown, as on the riding screen: only a live one names the mode.
+                // A stale drive-mode reading is unknown: only a live one (displayReadings' freshness rule, as Home's
+                // status line uses; the riding screen's own tracker exists only in riding mode) names the mode.
                 TelemetryHistory.Reading drive = ble != null && ble.ready() ? service.displayReadings().get("driving_mode") : null;
                 Double code = drive == null ? null : HubSummaries.live(drive.number, drive.live);
                 if (cruise == null || code == null) return null;
