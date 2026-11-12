@@ -464,7 +464,7 @@ public final class RouteMapView extends View {
 
     /** "≈+2.5% grade": signedPercent is the signed percentage, without its percent sign. */
     private static String gradeLine(String signedPercent) {
-        return String.format(Locale.US, "≈%s%% grade", signedPercent);
+        return T.mapsRouteGrade(signedPercent);
     }
 
     private static String accel(Double mps2) {
@@ -473,7 +473,7 @@ public final class RouteMapView extends View {
 
     /** "+0.25 m/s² GPS accel": signedMps2 is the signed acceleration in m/s². */
     private static String accelLine(String signedMps2) {
-        return String.format(Locale.US, "%s m/s² GPS accel", signedMps2);
+        return T.mapsRouteAccel(signedMps2);
     }
 
     /** The elevation line for a height relative to the ride's start, in feet when imperial. */
@@ -484,12 +484,12 @@ public final class RouteMapView extends View {
 
     /** "Elevation +12 ft": signedFeet is the signed whole number of feet. */
     private static String elevationFeetLine(String signedFeet) {
-        return String.format(Locale.US, "Elevation %s ft", signedFeet);
+        return T.mapsRouteElevationFt(signedFeet);
     }
 
     /** "Elevation +4 m": signedMeters is the signed whole number of metres. */
     private static String elevationMetersLine(String signedMeters) {
-        return String.format(Locale.US, "Elevation %s m", signedMeters);
+        return T.mapsRouteElevationM(signedMeters);
     }
 
     private String speed(Double mps) {
