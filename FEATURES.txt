@@ -1208,8 +1208,9 @@ over Home, and so do the quick-control groups (Lights, Ride settings, Battery
 settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
 Shortcuts to whole settings pages open the page: Settings opens the Scooter
 tab, PIN/proximity opens Scooter > Security, experimental controls open
-their test in Scooter > Service > Experimental controls, and app-preference
-shortcuts open More on that menu. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
+their test in Scooter > Service > Experimental controls, app-preference
+shortcuts open More on that menu, and Data & history opens Live Stats > Data &
+history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.
