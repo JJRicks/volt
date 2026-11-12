@@ -3330,13 +3330,14 @@ public final class DashboardScreen implements AppScreen {
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
                 bar.set(level, live, charging);
+                String said = BatteryOverviewSpeech.line(charging, distance);
                 spoken = level == null
-                        ? (line.isEmpty()
+                        ? (said.isEmpty()
                                 ? (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : M.dashboardOverviewNotReported())
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(line)))
-                        : (line.isEmpty()
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(said, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(said)))
+                        : (said.isEmpty()
                                 ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeenCount(Math.round(level), amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercentCount(Math.round(level), amount))
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, line, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, line)));
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, said, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, said)));
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }

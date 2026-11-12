@@ -1082,10 +1082,59 @@ public final class Ui {
                 p.moveTo(12, 7); p.lineTo(10.5f, 14); p.lineTo(7, 21);
                 p.moveTo(10.5f, 14); p.lineTo(15, 16); p.lineTo(16.5f, 21);
                 canvas.drawPath(p, paint);
-            } else if (key.equals("speed")) {
+            } else if (key.equals("speed") || key.equals("speed_average") || key.equals("speed_max")) {
+                // The speedometer. Average and Max speed mark it as Halo's ring marks the ride: the needle points up to a
+                // dot on the dial for the average, and out to a solid marker past the dial's upper right for the max.
+                boolean average = key.equals("speed_average"), max = key.equals("speed_max");
                 canvas.drawArc(new RectF(3, 4, 21, 22), 160, 220, false, paint);
-                p.moveTo(5, 18); p.lineTo(19, 18); p.moveTo(12, 15); p.lineTo(17, 8); canvas.drawPath(p, paint);
+                p.moveTo(5, 18); p.lineTo(19, 18); p.moveTo(12, 15);
+                if (average) p.lineTo(12, 8); else p.lineTo(max ? 16.6f : 17, max ? 9.2f : 8);
+                canvas.drawPath(p, paint);
                 paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 15, 1.7f, paint);
+                if (average) canvas.drawCircle(12, 4, 2.4f, paint);
+                if (max) {
+                    // A solid marker just outside the dial's upper right, pointing in at the needle.
+                    Path mark = new Path(); mark.moveTo(18.9f, 6.1f); mark.lineTo(22.5f, 5.3f); mark.lineTo(19.7f, 2.5f); mark.close();
+                    paint.setStyle(Paint.Style.FILL_AND_STROKE); canvas.drawPath(mark, paint);
+                }
+            } else if (key.equals("trip")) {
+                // The distance ridden: from a start point along the way to a flag where the rider is now. (Range keeps the
+                // route, two points with the way between them.)
+                canvas.drawCircle(5, 19, 2.5f, paint);
+                p.moveTo(7.5f, 19); p.cubicTo(12, 19, 11, 15, 16, 15);
+                p.moveTo(16, 15); p.lineTo(16, 3); p.lineTo(21, 5.5f); p.lineTo(16, 8);
+                canvas.drawPath(p, paint);
+            } else if (key.equals("stopwatch")) {
+                // Ride time: a stopwatch, its crown on top and its side button, so it isn't taken for the clock.
+                canvas.drawCircle(12, 13.5f, 7.5f, paint);
+                p.moveTo(12, 6); p.lineTo(12, 3.5f); p.moveTo(9.5f, 2.5f); p.lineTo(14.5f, 2.5f);
+                p.moveTo(17.6f, 7.9f); p.lineTo(19.2f, 6.3f); p.moveTo(12, 13.5f); p.lineTo(15, 10.5f);
+                canvas.drawPath(p, paint);
+            } else if (key.equals("efficiency")) {
+                // Energy per distance: a leaf, its midrib running from the stem to the tip.
+                p.moveTo(5, 19); p.cubicTo(3, 9, 10, 3, 20, 4); p.cubicTo(21, 14, 15, 21, 5, 19); p.close();
+                p.moveTo(5, 19); p.lineTo(14, 10); p.moveTo(3, 21); p.lineTo(5, 19); canvas.drawPath(p, paint);
+            } else if (key.equals("voltage") || key.equals("current")) {
+                // The meter symbols of a circuit diagram: a circle around a V (voltmeter) or an A (ammeter).
+                canvas.drawCircle(12, 12, 9, paint);
+                if (key.equals("voltage")) { p.moveTo(8.5f, 7.5f); p.lineTo(12, 16.5f); p.lineTo(15.5f, 7.5f); }
+                else { p.moveTo(8.3f, 16.5f); p.lineTo(12, 7.5f); p.lineTo(15.7f, 16.5f); p.moveTo(9.6f, 13.4f); p.lineTo(14.4f, 13.4f); }
+                canvas.drawPath(p, paint);
+            } else if (key.equals("mode")) {
+                // Drive mode: a gear-shift pattern, the gates of a gearbox with a knob at each end.
+                for (float x = 6; x <= 18; x += 6) canvas.drawCircle(x, 5, 2, paint);
+                canvas.drawCircle(6, 19, 2, paint); canvas.drawCircle(12, 19, 2, paint);
+                p.moveTo(6, 7); p.lineTo(6, 17); p.moveTo(12, 7); p.lineTo(12, 17); p.moveTo(18, 7); p.lineTo(18, 12);
+                p.moveTo(6, 12); p.lineTo(18, 12); canvas.drawPath(p, paint);
+            } else if (key.equals("distance")) {
+                // The odometer's distance: an arrow spanning two end marks.
+                p.moveTo(3, 7); p.lineTo(3, 17); p.moveTo(21, 7); p.lineTo(21, 17); p.moveTo(6, 12); p.lineTo(18, 12);
+                p.moveTo(9, 9); p.lineTo(6, 12); p.lineTo(9, 15); p.moveTo(15, 9); p.lineTo(18, 12); p.lineTo(15, 15);
+                canvas.drawPath(p, paint);
+            } else if (key.equals("recording")) {
+                // Recording time: the record mark, a ring around a solid dot.
+                canvas.drawCircle(12, 12, 8.5f, paint);
+                paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 4.5f, paint);
             } else if (key.equals("appearance")) {
                 canvas.drawCircle(12, 12, 8, paint); paint.setStyle(Paint.Style.FILL);
                 canvas.drawArc(new RectF(4, 4, 20, 20), 90, 180, true, paint);

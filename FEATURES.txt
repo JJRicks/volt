@@ -99,10 +99,8 @@ PREVIOUSLY IN 1.12.0
 - Live charging: after you leave Volt during a charge, a live card on the
   lock screen and in notifications shows the level, the finish time and the
   power, with Disconnect; on Android 16 and later it can be a Live Update.
-- Maintenance reminders by distance or time (Scooter > Maintenance), with a
-  quiet notification when a check is due.
-- Arrange the Scooter tab: reorder, hide and add back its sections and
-  settings, per scooter.
+- Maintenance reminders by distance or time (Scooter > Service >
+  Maintenance), with a quiet notification when a check is due.
 - Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French
   and Italian, all beta, and a Language row with Units and Text size.
 - More > Updates with an opt-in daily update check; one Export ride data
@@ -145,9 +143,10 @@ PREVIOUSLY IN 1.10.0
   turn the schedule off so charging starts now (one notification if Volt is in
   the background). A schedule the scooter applied after a lost confirmation is
   tracked too. Report diagnostics include the schedule's times and outcome.
-- UT5 MAX: Test scheduled charging (Scooter > Battery) pauses a charge, sets
-  the scooter to resume about 2 minutes later and checks that it does, so a
-  scooter that isn't keeping its clock shows up in minutes, not overnight.
+- UT5 MAX: Test scheduled charging (Scooter > Battery & charging > Estimates &
+  charger) pauses a charge, sets the scooter to resume about 2 minutes later
+  and checks that it does, so a scooter that isn't keeping its clock shows up
+  in minutes, not overnight.
 
 PREVIOUSLY IN 1.9.0
 ------------
@@ -400,9 +399,9 @@ Useful details:
   lamp output. A separate manual main-headlight command has not been verified;
   use the scooter's power button. The OEM says manually changing the headlight
   temporarily suspends automatic control until the scooter restarts.
-- Scooter > Range estimate > Scooter's estimate enables drive-mode following,
-  choosing a supported firmware estimator while fresh status confirms the
-  scooter is stationary.
+- Scooter > Battery & charging > Estimates & charger > Range estimate >
+  Scooter's estimate enables drive-mode following, choosing a supported
+  firmware estimator while fresh status confirms the scooter is stationary.
   Firmware without Eco support uses D-mode for Eco/Walk. Automatic attempts
   remain bounded across reconnects. This changes the scooter's prediction, not
   battery capacity or measured odometer; active Boost detection is unavailable.
@@ -741,6 +740,15 @@ falling back to Volt's or the scooter's range), battery, trip, ride time,
 battery temperature and power. In Focus, Battery brings its gauge to whichever
 spot shows it (segments, a strip under the big number or a thin bar under a
 tile), and the gauge is left out where it would squeeze the number.
+With Battery in Halo's ring, its percentage shows under the speed's unit.
+Halo's two small readings, and the two tiles under the ring, show their names
+one way: both words, or both icons where one name doesn't fit. The full-width
+range under the ring keeps its name whenever it fits, even beside tile icons
+(its name says which range it is), and shows its icon only when it doesn't.
+Each reading has its own icon (Average and Max speed mark the speedometer with a
+dot and a marker, Trip a flag, Ride time a stopwatch; speed, efficiency,
+voltage, current, drive mode and the odometer gained one), and a name is never
+cut short.
 Ride time, trip distance, Max and Average speed start from zero each time riding
 mode opens and keep counting through rotation and while the phone is locked;
 Back and reopening starts them over. Average counts only time spent moving. A recording that ends automatically

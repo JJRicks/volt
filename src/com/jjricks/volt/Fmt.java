@@ -88,6 +88,19 @@ public final class Fmt {
         return String.format(locale(legacy), "%." + precision + "f", value);
     }
 
+    /** The signed patterns, by decimals: "%+.Nf". */
+    private static final String[] SIGNED = {"%+.0f", "%+.1f", "%+.2f", "%+.3f", "%+.4f", "%+.5f", "%+.6f"};
+
+    /**
+     * value with its sign always shown ("+2.5", "-0.25", "+0") and a fixed number of decimals (0 to
+     * 6), rounded half up, without grouping: exactly String.format(legacy, "%+.<decimals>f", value)
+     * while {@link #legacy()}. A shipped language gets its decimal separator ("+2,5"). A catalog string
+     * takes the result as a plain %1$s, since the catalog's number specifiers have no sign flag.
+     */
+    public static String signedDecimal(Locale legacy, double value, int decimals) {
+        return String.format(locale(legacy), SIGNED[Math.max(0, Math.min(6, decimals))], value);
+    }
+
     /** The grouped patterns, by decimals: "%,.Nf". */
     private static final String[] GROUPED = {"%,.0f", "%,.1f", "%,.2f", "%,.3f", "%,.4f", "%,.5f", "%,.6f"};
 

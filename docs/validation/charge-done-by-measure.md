@@ -140,7 +140,7 @@ Nobody has yet run a real scheduled charge end to end: plug in, measure, arm, pa
 100%. With this build:
 
 1. Plug in the standard charger (for the measuring step, before opening Volt).
-2. Start **Developer options → Charge recording** (Stock).
+2. Start **Scooter → Battery & charging → Charge history & recordings → Record this charge** (formerly in Developer options), with Stock.
 3. Turn on Charge done by and choose **Measure first**.
 
 The recording then keeps the measuring minutes, the pause and the resumed charge in one journal.

@@ -214,8 +214,8 @@
     <string name="maintenance_notify_detail" volt:screen="Add reminder" volt:purpose="switch detail">A notification once when it\'s due</string>
     <!-- Name of the notification channel in Android's settings. It makes no sound. -->
     <string name="maintenance_channel" volt:screen="Android notification settings" volt:purpose="channel name">Maintenance reminders</string>
-    <!-- Description of the Maintenance reminders channel in Android's settings. "Scooter › Maintenance" is where reminders are set. -->
-    <string name="maintenance_channel_detail" volt:screen="Android notification settings" volt:purpose="channel description">Checks you set in Scooter › Maintenance, once when each is due</string>
+    <!-- Description of the Maintenance reminders channel in Android's settings. "Scooter › Service › Maintenance" is where reminders are set: the Scooter tab, its Service page, and the Maintenance page on it. -->
+    <string name="maintenance_channel_detail" volt:screen="Android notification settings" volt:purpose="channel description">Checks you set in Scooter › Service › Maintenance, once when each is due</string>
     <!-- The notice's title: %1$d is how many checks are due, %2$s is the scooter's name. -->
     <plurals name="maintenance_notice_title" volt:screen="Notifications" volt:purpose="title">
         <item quantity="one">%1$d check due on %2$s</item>

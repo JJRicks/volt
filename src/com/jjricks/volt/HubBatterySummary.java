@@ -10,8 +10,9 @@ import java.util.Map;
 /**
  * The summary at the top of Battery & charging (hub layout plan, PR 4): the battery level with the range left, then
  * whether it is charging and to which limit. Readings come from ScooterService.dashboardReadings(), so the range is
- * the learned one where the owner chose it, as on Home. A level that isn't known hides the card. All words come from
- * HubText; numbers and units from Fmt, and a refresh sets them again, so nothing rendered is kept.
+ * the learned one where the owner chose it, as on Home. A level that isn't known hides the card. Words come from
+ * HubText, and the plain "Charging" (no known limit) from BatteryOverviewSpeech, as Home's battery card says it;
+ * numbers and units from Fmt, and a refresh sets them again, so nothing rendered is kept.
  */
 final class HubBatterySummary implements AppScreen {
     private static final double KM_PER_MILE = 1.609344;
@@ -43,12 +44,18 @@ final class HubBatterySummary implements AppScreen {
         CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
         level.setText(range == null ? percent : HubText.batteryLevelRange(percent, range));
         level.setTextColor(soc.live ? ui.text : ui.muted);
+        // Charging or not only from a live reading (as the Scooter tab's Battery summary), and only beside a live level:
+        // a last-seen or missing state, or a last-seen level above it, hides the line (HubSummaries.card).
         TelemetryHistory.Reading charge = readings.get("charging_state");
-        boolean charging = charge != null && charge.live && charge.number != null && charge.number == 1;
-        Integer limit = limit(service);
-        state.setText(!charging ? HubText.batteryNotCharging()
-                : limit != null ? HubText.batteryChargingTo(Fmt.percent(Fmt.integerNumber(limit)))
-                : HubText.batteryLevel(percent, true));
+        Boolean charging = charge == null || !charge.live || charge.number == null ? null : charge.number == 1;
+        Integer limit = HubSubjects.chargeLimit(service);
+        HubSummaries.CardState shown = HubSummaries.card(charging, HubSummaries.live(soc.number, soc.live) != null, limit);
+        if (shown == null) { state.setVisibility(View.GONE); return; }
+        state.setVisibility(View.VISIBLE);
+        // Charging without a known limit: a plain "Charging", the word Home's battery card uses (the level is on the line above).
+        state.setText(shown == HubSummaries.CardState.NOT_CHARGING ? HubText.batteryNotCharging()
+                : shown == HubSummaries.CardState.CHARGING_TO_LIMIT ? HubText.batteryChargingTo(Fmt.percent(Fmt.integerNumber(limit)))
+                : BatteryOverviewSpeech.line(true, ""));
     }
 
     /** The range left in the rider's units ("mi", "km" or "dual"), or null when there is none. */
@@ -58,14 +65,5 @@ final class HubBatterySummary implements AppScreen {
         Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, range.number / KM_PER_MILE, 0), Fmt.unit(UnitCode.MI));
         if ("km".equals(units)) return km;
         return "dual".equals(units) ? Fmt.dual(miles, km) : miles;
-    }
-
-    /** The charge limit in percent where the model has one and its value is known; null otherwise. */
-    private static Integer limit(ScooterService service) {
-        BleController ble = service.ble;
-        if (ble == null || !ble.controlOffered("charge_limit")) return null;
-        Integer live = ble.featureValue("charge_limit");
-        Integer value = live != null ? live : service.displayFeatures().get("charge_limit");
-        return value == null || value < 0 || value > 100 ? null : value;
     }
 }
