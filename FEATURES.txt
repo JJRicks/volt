@@ -1041,6 +1041,9 @@ docs/app-data-backup.md and docs/user-guide.md.
 
 USABLE RIDE ENERGY (EXPERIMENTAL; FORMERLY CAPACITY EXPERIMENT)
 
+Also shown under Experimental at the bottom of Scooter > Battery & charging >
+Estimates & charger (90-day window, the model's rated energy; no reference
+can be set there), so Clean Home owners find it without a widget.
 Analyzes explicit rides for the selected scooter using:
   100 x summed recorded Wh / summed battery-percentage points used.
 Confirmed-direction rides use net energy drawn minus returned. Unconfirmed

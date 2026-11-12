@@ -578,6 +578,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(moreHosted&&scooterService==null)return new LoadingScreen();
         switch(page){
             case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
+            // Usable ride energy (Experimental) below the page's rows: Clean Home has no widgets to hold it (part 8).
+            case HubPages.BATTERY_ESTIMATES:return new HubPageScreen(this,new ControlsScreen(spec),new UsableEnergyPanel(this,homeActions()));
             case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
             case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
             case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
