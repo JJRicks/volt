@@ -54,17 +54,18 @@ import com.jjricks.volt.ScooterService;
  *   search, and Back returns through the search to Home.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown.</li>
- *   <li><b>Widgets Home</b>: the dock shows on Widgets Home only (never on a subject page, never on Clean), each
- *   shown subject's icon opens it, and its All item opens the sheet listing all seven subjects, whose rows open
- *   their subject and close the sheet. With -e wide true or false, the dock must hold all seven (wide) or the
+ *   <li><b>Widgets Home</b>: its header's search and gear (as on Clean Home's header, since part 11) open Search and
+ *   Settings over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only (never on a subject
+ *   page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet listing all seven
+ *   subjects, whose rows open their subject and close the sheet. With -e wide true or false, the dock must hold all seven (wide) or the
  *   phone's most-used ones (HubPages.dockSubjects).</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
  *
- * Pass -e mode all (the default) for all of the above. -e mode widgets-header checks, on its own, that Widgets Home's
- * header has the search and gear buttons the product spec gives both Homes ("Settings (gear icon in the Home
- * header)"), and that they open Search and Settings. -e theme dark|light and -e text_scale (1 by default) as the other
+ * Pass -e mode all (the default) for all of the above. -e mode widgets-header checks only Widgets Home's header,
+ * starting on Widgets: it has the search and gear buttons the product spec gives both Homes ("Settings (gear icon in
+ * the Home header)"), and they open Search and Settings. -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. Every word it types or reads is English: run it with the emulator in en-US.
  */
 public final class HubValidation extends Instrumentation {
@@ -106,7 +107,7 @@ public final class HubValidation extends Instrumentation {
             seed();
             launch();
             simulate();
-            if (widgetsFirst) widgetsHeader();
+            if (widgetsFirst) widgetsHeader(true);
             else {
                 cleanSubjects();
                 pageStack();
@@ -251,6 +252,7 @@ public final class HubValidation extends Instrumentation {
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
         screenshot("widgets-home");
+        widgetsHeader(false);
         for (String subject : shown) {
             main(() -> { View item = root().findViewWithTag("hub-dock-" + subject); require(shown(item), "The dock has no " + subject + " item");
                 require(item.getContentDescription() != null && item.getContentDescription().length() > 0, "The dock's " + subject + " item has no spoken name"); });
@@ -290,10 +292,13 @@ public final class HubValidation extends Instrumentation {
         checks.add("Home style switches between Clean and Widgets in place; only Widgets has the dock");
     }
 
-    /** Widgets Home's header: the search and gear buttons both Homes have (product spec), opening Search and Settings. */
-    private void widgetsHeader() throws Exception {
+    /**
+     * Widgets Home's header: the search and gear buttons both Homes have (product spec), opening Search and Settings.
+     * Alone (-e mode widgets-header) it takes its own screenshot; in the main walk, widgets-home shows the header.
+     */
+    private void widgetsHeader(boolean alone) throws Exception {
         requireHome("DashboardScreen");
-        screenshot("widgets-header");
+        if (alone) screenshot("widgets-header");
         main(() -> require(shown(root().findViewWithTag("home-search")), "Widgets Home's header has no search button (home-search)"));
         main(() -> require(shown(root().findViewWithTag("home-settings")), "Widgets Home's header has no gear for Settings (home-settings)"));
         tapTag("home-search");
