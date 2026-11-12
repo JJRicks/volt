@@ -158,8 +158,8 @@
     <!-- The road grade (slope) at the tapped point, such as "≈+2.5% grade": %1$s is the signed
          percentage without its percent sign (+2.5, -0.8), already formatted for your language; %%
          prints the percent sign. ≈ marks the grade as a smoothed estimate. It is the tooltip's first
-         line when the route is coloured by grade, otherwise part of its smaller second line. The
-         tooltip shortens a line that does not fit with an ellipsis. -->
+         line when the route is coloured by grade, and on its smaller second line when the route is
+         coloured by power. The tooltip shortens a line that does not fit with an ellipsis. -->
     <string name="maps_route_grade" volt:screen="Rides, map tooltip" volt:purpose="tooltip" volt:max="208dp@14sp">≈%1$s%% grade</string>
     <!-- The acceleration measured from phone GPS at the tapped point, such as "+0.25 m/s² GPS accel":
          %1$s is the signed acceleration (+0.25, -1.10), already formatted for your language; m/s² is
