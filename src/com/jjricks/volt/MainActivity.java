@@ -304,13 +304,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override protected void onStart(){
         super.onStart();
         if(startupRedirect||enteringMaintenance)return;
-        ScooterService.setUiStarted(true);
         if(riding!=null&&scooterService!=null&&riding.lostOnReturn(scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){dropRiding();rebuild();}
     }
     @Override protected void onStop(){
         if(!startupRedirect&&!enteringMaintenance)noteRidingLeft();
-        // A locked or dark screen stops Volt too: background for auto-record from here (AutoStartPolicy.onScreen).
-        ScooterService.setUiStarted(false);
         super.onStop();
     }
     /** A configuration change recreates the activity on screen: not a leave. */
