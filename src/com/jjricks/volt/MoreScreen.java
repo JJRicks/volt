@@ -2629,19 +2629,22 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
-     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded.
+     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded (said in a
+     * toast) or while an earlier export is still being written (quiet: a double tap; ChargeSend.refusal).
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) return;
-        if (s.isChargeRecording()) { host.toast(HubText.chargeSendBusy()); return; }
-        if (!s.exportChargeRecordings(file -> {
+        if (s.exportChargeRecordings(file -> {
             if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
             if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
             host.emailChargeRecordings(file);
-        })) exportBusy();
+        })) return;
+        // Refused: tell the two reasons apart from the service's state.
+        if (ChargeSend.refusal(s.isChargeRecording(), s.chargeExporting()) == ChargeSend.Refusal.STOP_RECORDING)
+            host.toast(HubText.chargeSendBusy());
     }
 
-    /** An export (the file or Email to Volt) is refused: a charge is being recorded, or another export is running. */
+    /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
     private void exportBusy() { host.toast(T.moreDevExportBusy()); }
 
     /** "Report an issue": More's menu ends with it, and it is Service › Issue reports. */
