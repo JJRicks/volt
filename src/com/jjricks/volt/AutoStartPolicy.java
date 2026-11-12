@@ -95,6 +95,12 @@ final class AutoStartPolicy {
         return autoRecord && (onScreen || backgroundAllowed);
     }
 
+    /**
+     * How Recording settings draws Start recording in the background: on only while Record rides automatically is on,
+     * since it counts only then. While that is off the switch is greyed and drawn off; the stored value is kept.
+     */
+    static boolean backgroundSwitchDrawnOn(boolean autoRecord, boolean backgroundAllowed) { return autoRecord && backgroundAllowed; }
+
     /** Whether to start a recording now. Refusal reasons are inputs here so that the automatic start stays silent. */
     boolean shouldRecord(boolean enabled, boolean moving, boolean recording, boolean chargeRecording, boolean simulating,
             boolean phoneSaving, boolean canStart) {

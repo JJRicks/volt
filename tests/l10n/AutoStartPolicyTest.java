@@ -182,6 +182,9 @@ public final class AutoStartPolicyTest {
         AutoStartPolicy q = new AutoStartPolicy();
         q.observeLink(true, 1);
         check(!q.shouldRecord(AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(true, true)), false, false, false, false, false, true), "back on screen, scooter stopped: nothing");
+        // The switch is drawn off while Record rides automatically is off; its stored value is not touched.
+        check(!AutoStartPolicy.backgroundSwitchDrawnOn(false, true), "parent off, stored on: drawn off");
+        check(AutoStartPolicy.backgroundSwitchDrawnOn(true, true) && !AutoStartPolicy.backgroundSwitchDrawnOn(true, false) && !AutoStartPolicy.backgroundSwitchDrawnOn(false, false), "otherwise drawn as stored");
     }
 
     private static void locationPrompt() {
