@@ -190,6 +190,7 @@ public final class HubValidation extends Instrumentation {
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
+        if (pane[0] != null) checks.add("Wide Clean Home: Settings › Home style shows both style previews inside the page pane, no wider than it");
         tapTag("hub-back");
         requireHome("CleanHomeScreen");
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
@@ -287,7 +288,7 @@ public final class HubValidation extends Instrumentation {
         }
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         if (Boolean.parseBoolean(arguments.getString("wide", "false"))) main(() -> {
-            // Wide (part 13): the phone's dock, centred under the full-width page.
+            // Wide (part 13): the dock in the phone's style (all seven subjects and All), centred under the full-width page.
             View bar = root().findViewWithTag("hub-dock"), frame = (View) bar.getParent();
             int left = bar.getLeft(), right = frame.getWidth() - bar.getRight();
             require(Math.abs(left - right) <= 2, "The wide dock is not centred: " + left + " px left, " + right + " px right");
