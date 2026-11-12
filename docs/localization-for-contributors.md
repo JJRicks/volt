@@ -79,7 +79,7 @@ Placeholders are positional and numbered from 1 with no gaps:
 
 `%n$s` takes no width, precision or flag.
 
-A number shown with its sign (`%+.1f`, "+2.5") has no catalog form. Format it first with `Fmt.signedDecimal(Locale.US, value, 1)`, which prints exactly what `%+.1f` printed while the app is in English, and pass it as `%1$s`. In an ordinary pull request first, replace the signed specifier with a plain `%s` fed by `Fmt.signedDecimal`, keeping the line one whole literal (`"≈%s%% grade"`) so `G8` still lists it: the batch check accepts only the specifiers listed in [l10n/README.md](../l10n/README.md) (`%.Nf`, `%,.Nf`, `%,d`, `%d` and a plain `%s`), so a `%+.1f` left in the format string fails `G1`. `RouteMapView.gradeLine` is an example.
+A number shown with its sign (`%+.1f`, "+2.5") has no catalog form. Format it first with `Fmt.signedDecimal(Locale.US, value, 1)`, which prints exactly what `%+.1f` printed while the app is in English, and pass it as `%1$s`. In an ordinary pull request first, replace the signed specifier with a plain `%s` fed by `Fmt.signedDecimal`, keeping the line one whole literal (`"≈%s%% grade"`) so `G8` still lists it: the batch check accepts only the specifiers listed in [l10n/README.md](../l10n/README.md) (`%.Nf`, `%,.Nf`, `%,d`, `%d` and a plain `%s`), so a `%+.1f` left in the format string fails `G1`. `RouteMapView.grade` and `gradeLine` show both steps: #400 fed `Fmt.signedDecimal` into `String.format(Locale.US, "≈%s%% grade", …)`, and #401 replaced that with `T.mapsRouteGrade(signedPercent)` for the key `maps_route_grade` (`≈%1$s%% grade`).
 
 ### Plurals
 
