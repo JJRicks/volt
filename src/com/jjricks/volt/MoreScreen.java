@@ -2400,7 +2400,8 @@ public final class MoreScreen implements AppScreen {
     private void updateResult(String installed, UpdateCheck.Result r) {
         LinearLayout box;
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
+        boolean available = r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE;
+        if (available) {
             // Seen here: the automatic check does not announce this version again.
             UpdateCheckJob.seen(settings(), r.latest);
             // Download hands the browser the release's APK; without one in the reply, the release page as before.
@@ -2408,10 +2409,13 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateAvailableBodyDownload(installed)
                     : T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
-                TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
+                // The notes with their headings, lists and emphasis (ReleaseNotesView), on a card of their own.
+                TextView notes = ReleaseNotesView.of(ui, r.markdown, r.notes); notes.setTextIsSelectable(true);
+                notes.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12)); notes.setBackground(ui.shape(ui.bg, 14, 0));
                 String language = UpdateCheck.notesLanguageNote();
                 if (!language.isEmpty()) { TextView english = ui.caption(language); english.setPadding(0, ui.dp(10), 0, 0); box.addView(english); }
-                notes.setTag("update-notes"); box.addView(notes);
+                LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, -2); card.topMargin = ui.dp(12); card.bottomMargin = ui.dp(4);
+                notes.setTag("update-notes"); box.addView(notes, card);
             }
         } else if (r != null && r.outcome == UpdateCheck.Outcome.CURRENT) {
             box = dialogBox(T.moreUpdateCurrent(), VersionName.dev(installed)
@@ -2423,9 +2427,16 @@ public final class MoreScreen implements AppScreen {
                     : T.moreUpdateUnreadable());
         }
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
-        AlertDialog dialog = builder.setView(inner).create();
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE)
-            dialogButtons(box, T.commonClose(), dialog::dismiss, r.direct()
+        // A new release: the title, wording and notes scroll above the buttons, which stay in view however long
+        // the notes are (the scroll area takes what the dialog has left after them).
+        LinearLayout frame = column(), foot = column();
+        if (available) {
+            frame.addView(inner, new LinearLayout.LayoutParams(-1, 0, 1));
+            foot.setPadding(ui.dp(22), 0, ui.dp(22), ui.dp(10)); frame.addView(foot, new LinearLayout.LayoutParams(-1, -2));
+        }
+        AlertDialog dialog = builder.setView(available ? frame : inner).create();
+        if (available)
+            dialogButtons(foot, T.commonClose(), dialog::dismiss, r.direct()
                     ? T.moreUpdateDownload()
                     : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());

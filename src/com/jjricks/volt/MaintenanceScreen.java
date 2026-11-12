@@ -45,6 +45,11 @@ final class MaintenanceScreen {
     static final String SECTION = "maintenance", ROW = "maintenance_reminders";
     /** The Hub page (Service › Maintenance reminders) and the preference that remembers the page shown. */
     static final String PAGE = HubPages.SERVICE_MAINTENANCE, LAST_PAGE = "last_page";
+    /**
+     * A maintenance notice's tap waiting for the next Scooter tab page (MainActivity), so it survives a cold start into
+     * unfinished setup: SECTION while pending, as main's Scooter tab remembered its open Maintenance page in this key.
+     */
+    static final String PENDING_PREF = "scooter_section";
     /** The row's English search words: none, its catalog search words serve every language. */
     static final String NO_WORDS = "";
     private static final String UNITS_PREF = "units", UNITS_DEFAULT = "mi", RESET_SEEN = "reset_seen";
@@ -857,6 +862,10 @@ final class MaintenanceScreen {
     }
 
     // ---- The Scooter tab's row and dot --------------------------------------------------------
+
+    static boolean pending(SharedPreferences preferences) { return SECTION.equals(preferences.getString(PENDING_PREF, "")); }
+
+    static void pending(SharedPreferences preferences, boolean on) { preferences.edit().putString(PENDING_PREF, on ? SECTION : "").apply(); }
 
     /** The active scooter's counts, or null without a service or an active scooter. */
     static MaintenanceView.Summary summary(ScooterService service) {
