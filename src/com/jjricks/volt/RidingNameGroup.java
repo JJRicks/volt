@@ -9,11 +9,15 @@ package com.jjricks.volt;
  * temperature showed its thermometer and Battery its name in English, the other way round in
  * Portuguese). So the group decides together: when any reading has no name that fits and has an
  * icon to show instead, every reading in the group that has an icon shows its icon; otherwise every
- * reading shows a name. Icons only help while they tell the readings apart, so when two readings in
- * the group would show the same icon (Range at this pace and Trip both show the route, Average and
- * Max speed the speedometer), the group keeps names, as the chips never give two readings one icon
- * (RidingChipFit.nameStep). A reading with no icon (Speed, Voltage, Odometer and the like) always
- * shows its name, because it has nothing else to show. Pure, so the host tests run it.
+ * reading shows a name. Icons only help while they tell the readings apart: readings that can sit side
+ * by side have icons of their own (RidingLayout.icon), and when two readings in the group would still
+ * show the same icon (two of the range readings, which share the route), the group keeps names, as the
+ * chips never give two readings one icon (RidingChipFit.nameStep). Whatever the group decides, a
+ * reading with an icon never shows a name cut short: with no name that fits, it shows its icon, even
+ * when that means a word beside it or the same icon twice (the project's rule for narrow labels: full
+ * name, short name, icon, never a word cut mid-way). Every reading a tile or the strip can show has an
+ * icon; a member offering none (inferred power while a rung carrying its cue fits, see {@link #offered})
+ * keeps its name, because it has nothing else to show. Pure, so the host tests run it.
  */
 final class RidingNameGroup {
     private RidingNameGroup() {}
@@ -57,8 +61,23 @@ final class RidingNameGroup {
      */
     static int shown(int fit, int rungs, boolean icon, boolean icons) {
         if (fit == UNMEASURED) return 0;
-        if (icons && icon) return ICON;
+        // A name that doesn't fit is never cut while there's an icon to show instead, whatever the group chose.
+        if (icon && (icons || fit < 0)) return ICON;
         // A name that doesn't fit and has no icon shows its shortest rung, cut at its end, as a lone label does.
         return fit >= 0 ? fit : rungs - 1;
+    }
+
+    /**
+     * The icon a member offers its group's choice: none while a rung that carries a cue beyond the name fits (inferred
+     * power's "direction unknown" caption and short cue, which the number's minus sign depends on), so the group never
+     * swaps the cue for an icon. Its plain name carries no cue, so at that rung, or with no rung that fits, it takes
+     * part like any other reading.
+     *
+     * @param icon the member's icon key, or null
+     * @param cueRungs how many of its first rungs carry the cue (0 for an ordinary reading)
+     * @param fit its own ladder choice, as in {@link #icons}
+     */
+    static String offered(String icon, int cueRungs, int fit) {
+        return fit >= 0 && fit < cueRungs ? null : icon;
     }
 }
