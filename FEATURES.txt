@@ -733,6 +733,15 @@ falling back to Volt's or the scooter's range), battery, trip, ride time,
 battery temperature and power. In Focus, Battery brings its gauge to whichever
 spot shows it (segments, a strip under the big number or a thin bar under a
 tile), and the gauge is left out where it would squeeze the number.
+With Battery in Halo's ring, its percentage shows under the speed's unit.
+Halo's two small readings, and the two tiles under the ring, show their names
+one way: both words, or both icons where one name doesn't fit. The full-width
+range under the ring keeps its name whenever it fits, even beside tile icons
+(its name says which range it is), and shows its icon only when it doesn't.
+Each reading has its own icon (Average and Max speed mark the speedometer with a
+dot and a marker, Trip a flag, Ride time a stopwatch; speed, efficiency,
+voltage, current, drive mode and the odometer gained one), and a name is never
+cut short.
 Ride time, trip distance, Max and Average speed start from zero each time riding
 mode opens and keep counting through rotation and while the phone is locked;
 Back and reopening starts them over. Average counts only time spent moving. A recording that ends automatically

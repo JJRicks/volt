@@ -140,8 +140,8 @@ final class RidingChipFit {
     /**
      * The name step a chip takes at a rung: the one the rung asks for, unless that step is missing or
      * another chip in the group (one showing a different reading) carries the same mark, in which case it
-     * keeps a longer one. So Average and Max speed never both show the speedometer alone, and two range
-     * readings never both show "Range". A decorative icon (the clock face, the thermometer) counts as
+     * keeps a longer one. So two range readings never both show the route alone, nor
+     * both show "Range". A decorative icon (the clock face, the thermometer) counts as
      * taken while it shows, so not from {@link #NO_ICONS} on.
      *
      * @param marks each chip's marks, [chip][step], null where the chip has no such step; a chip that
