@@ -314,7 +314,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -529,6 +529,26 @@ public final class MainActivity extends Activity implements ScreenHost {
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
         rebuilding=false;redraw();
         showUpdateCheck();
+        // The one-time What's new sheet about Home styles: checked once per rebuild, never on a telemetry refresh.
+        handler.post(this::maybeShowWhatsNew);
+    }
+    /** The What's new sheet while it shows; closed with the activity. */
+    private AlertDialog whatsNewSheet;
+    /**
+     * Shows the one-time What's new sheet about Home styles (Joel 6) when HomeStyle.showWhatsNew says so: an updated
+     * installation whose owner never chose a style and never saw it, on the widget dashboard, resumed, with neither
+     * setup nor riding mode open. Recorded as shown (committed) before it appears, so a crash or rotation never shows it again.
+     */
+    private void maybeShowWhatsNew(){
+        if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
+        java.util.Map<String,?> all;
+        try{all=preferences.getAll();}catch(RuntimeException e){return;}
+        Object origin=all.get(HomeStyle.ORIGIN_KEY);
+        // On the widget dashboard, and not while it is being edited.
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&screen instanceof DashboardScreen&&!screen.busy();
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
+        preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY,true).commit();
+        whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
      * The screen for a page. While the tab bar remains, each tab's pages show that tab's screen (HubPages.tabOf);

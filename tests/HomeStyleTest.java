@@ -8,6 +8,7 @@ public final class HomeStyleTest {
         stored();
         seed();
         whatsNew();
+        setup();
         keys();
         System.out.println("HomeStyle: " + checks + " checks passed");
     }
@@ -69,6 +70,29 @@ public final class HomeStyleTest {
         require(!HomeStyle.showWhatsNew(u, false, false, false, true, true, true), "Not in riding mode");
         require(!HomeStyle.showWhatsNew(u, false, false, false, false, false, true), "Only on Home");
         require(!HomeStyle.showWhatsNew(u, false, false, false, false, true, false), "Only while resumed");
+    }
+
+    /** Setup's last step (PR 9): what it preselects, and what a skipped setup leaves stored. */
+    private static void setup() {
+        require(HomeStyle.setupChoice(null, false, null).equals(HomeStyle.CLEAN), "A new install's setup preselects Clean");
+        require(HomeStyle.setupChoice(null, true, "widgets").equals(HomeStyle.WIDGETS), "A rerun preselects the current style");
+        require(HomeStyle.setupChoice(null, true, "clean").equals(HomeStyle.CLEAN), "including Clean");
+        require(HomeStyle.setupChoice(null, true, null).equals(HomeStyle.WIDGETS), "A rerun with no stored style shows what Home shows: Widgets");
+        require(HomeStyle.setupChoice(null, false, "widgets").equals(HomeStyle.WIDGETS), "An earlier owner's stored style is kept");
+        require(HomeStyle.setupChoice("widgets", false, null).equals(HomeStyle.WIDGETS), "A pick on the step wins, through rotation");
+        require(HomeStyle.setupChoice("clean", true, "widgets").equals(HomeStyle.CLEAN), "also on a rerun");
+        require(HomeStyle.setupChoice("bogus", false, null).equals(HomeStyle.CLEAN), "An unknown pick is ignored");
+
+        String[] fresh = HomeStyle.afterSkippedSetup(null, false);
+        require(HomeStyle.CLEAN.equals(fresh[0]) && HomeStyle.ORIGIN_INSTALL.equals(fresh[1]), "A skipped new install: Clean and origin install");
+        require(!HomeStyle.showWhatsNew(fresh[1], false, false, false, false, true, true), "so it never sees What's new");
+        String[] update = HomeStyle.afterSkippedSetup(HomeStyle.ORIGIN_UPDATE, true);
+        require(update[0] == null && update[1] == null, "An earlier owner skipping a rerun changes nothing");
+        String[] kept = HomeStyle.afterSkippedSetup(HomeStyle.ORIGIN_INSTALL, true);
+        require(kept[0] == null && kept[1] == null, "A stored style is never changed by skipping");
+        String[] restored = HomeStyle.afterSkippedSetup(HomeStyle.ORIGIN_UPDATE, false);
+        require(restored[0] == null && restored[1] == null, "An update whose style a restore dropped is left to the seed (Widgets)");
+        require(HomeStyle.reseed(fresh[1], false, false, false, false, 1, 1)[0].equals(fresh[0]), "and the next start's seed agrees with it");
     }
 
     private static void keys() {

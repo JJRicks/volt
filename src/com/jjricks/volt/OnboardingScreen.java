@@ -82,6 +82,10 @@ public final class OnboardingScreen implements AppScreen {
             KEY_CREATED = "created_profile_id", KEY_PENDING_NAME = "pending_name",
             KEY_IMPORT_FAILED = "import_failed", KEY_ASKED_NEARBY = "nearby_asked",
             KEY_CONNECT = "connect_requested", KEY_TRIED = "connect_tried", KEY_TICK = "tick_";
+    /** The Home style picked on the last step, held until setup ends (then HomeStylePrefs.markChosen stores it). */
+    static final String KEY_HOME_STYLE = "home_style_pick";
+    /** View tag of the last step's Home style choice. */
+    static final String TAG_HOME_STYLE = "onboarding-home-style";
     /** MainActivity's private staging file for a picked owner file awaiting the service. */
     private static final String PENDING_OWNER_FILE = "pending-owner-import.json";
 
@@ -395,7 +399,13 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     private void finish(boolean skipped) {
+        String style = homeStyle();
         prefs.edit().clear().putBoolean(KEY_DONE, true).commit();
+        // Finishing is an explicit Home style choice (the one shown on the last step, Clean preselected on a new
+        // install); skipping chooses nothing and only records a new install's origin (no What's new for it).
+        SharedPreferences app = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        if (skipped) HomeStylePrefs.setupSkipped(app);
+        else HomeStylePrefs.markChosen(app, style);
         closed = true;
         if (identityField != null) identityField.setText("");
         if (listener != null) { if (skipped) listener.onSkipped(); else listener.onFinished(); }
@@ -1313,7 +1323,33 @@ public final class OnboardingScreen implements AppScreen {
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10);
             group.addView(revoke, rp);
         }
+        content.addView(homeStyleChoice(), new LinearLayout.LayoutParams(-1, -2));
         primary(T.onboardingDoneHome(), () -> finish(false));
+    }
+
+    /** The last step's Home style choice: its title, one line and the two styles. Stored when setup finishes. */
+    private View homeStyleChoice() {
+        LinearLayout section = column();
+        section.setTag(TAG_HOME_STYLE);
+        section.setPadding(0, ui.dp(24), 0, ui.dp(8));
+        TextView heading = ui.text(HubText.setupStyleTitle(), 20, true);
+        if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
+        section.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        TextView body = ui.caption(HubText.setupStyleBody().render());
+        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f * ui.textScale);
+        body.setPadding(0, ui.dp(6), 0, ui.dp(12));
+        section.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        section.addView(HomeStylePicker.build(host, homeStyle(), picked -> prefs.edit().putString(KEY_HOME_STYLE, picked).apply()),
+                new LinearLayout.LayoutParams(-1, -2));
+        return section;
+    }
+
+    /** The style the last step shows: the one picked there, else the current one on a rerun or an earlier owner, else Clean. */
+    private String homeStyle() {
+        Object stored;
+        try { stored = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE).getAll().get(HomeStyle.KEY); }
+        catch (RuntimeException e) { stored = null; }
+        return HomeStyle.setupChoice(prefs.getString(KEY_HOME_STYLE, null), prefs.getBoolean(KEY_RERUN, false), stored);
     }
 
     // ---------------------------------------------------------------- troubleshooting sheet

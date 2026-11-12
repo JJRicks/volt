@@ -120,7 +120,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | Key | Class | Holds |
 |---|---|---|
 | `onboarding_done` | Durable | Setup finished. |
-| `rerun`, `step`, `path`, `profile_id`, `created_profile_id`, `pending_name`, `import_failed`, `nearby_asked`, `connect_requested`, `connect_tried`, `tick_<n>` | Pending | Wizard position and choices for a setup in progress on this installation. `nearby_asked` relates to an Android permission prompt. |
+| `rerun`, `step`, `path`, `profile_id`, `created_profile_id`, `pending_name`, `import_failed`, `nearby_asked`, `connect_requested`, `connect_tried`, `tick_<n>`, `home_style_pick` | Pending | Wizard position and choices for a setup in progress on this installation. `nearby_asked` relates to an Android permission prompt. `home_style_pick` is the Home style chosen on the last step (`clean` or `widgets`) until setup finishes and stores it as `home_style`. |
 
 ### `pending_documents` (Pending)
 

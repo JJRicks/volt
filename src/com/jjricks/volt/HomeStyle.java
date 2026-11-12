@@ -7,8 +7,8 @@ package com.jjricks.volt;
  *
  * <p>Absent or unknown means Widgets everywhere: an older Volt never wrote the key, and Widgets is the Home
  * whose saved layouts must keep showing. The seed (VoltApp, at each app start while no style is stored)
- * writes nothing on a clean new installation, so its app data stays empty until the owner picks (setup, a
- * later part); it records Widgets and {@link #ORIGIN_UPDATE} when it finds an earlier owner, and once an
+ * writes nothing on a clean new installation, so its app data stays empty until setup ends (its last step's
+ * pick, or Clean when setup is skipped); it records Widgets and {@link #ORIGIN_UPDATE} when it finds an earlier owner, and once an
  * origin is stored it only re-derives the style from it (a restore that dropped the style). Switching style
  * only writes {@link #KEY}; nothing in either Home's storage is touched.
  */
@@ -76,6 +76,28 @@ final class HomeStyle {
         return ORIGIN_INSTALL.equals(storedOrigin) || ORIGIN_UPDATE.equals(storedOrigin) ? storedOrigin : ORIGIN_INSTALL;
     }
 
+    /**
+     * The style setup's last step shows selected: the one already picked there (pending), else the stored style on a
+     * rerun of setup or on an installation that has one (absent reads as Widgets), else Clean, the preselected choice of
+     * a new install (Joel 6).
+     */
+    static String setupChoice(String pending, boolean rerun, Object storedStyle) {
+        if (CLEAN.equals(pending) || WIDGETS.equals(pending)) return pending;
+        if (rerun || storedStyle != null) return of(storedStyle);
+        return CLEAN;
+    }
+
+    /**
+     * What a skipped setup leaves stored, as {style, origin}; null for either means unchanged. It chooses nothing: an
+     * installation with no origin records {@link #ORIGIN_INSTALL}, and one whose origin is install and that has no style
+     * gets Clean, the style the seed would give it at the next start anyway. A stored style is never changed.
+     */
+    static String[] afterSkippedSetup(String storedOrigin, boolean styleStored) {
+        String origin = storedOrigin == null ? ORIGIN_INSTALL : null;
+        String style = !styleStored && ORIGIN_INSTALL.equals(storedOrigin == null ? ORIGIN_INSTALL : storedOrigin) ? CLEAN : null;
+        return new String[]{style, origin};
+    }
+
     private static boolean existingOwner(boolean onboardingDone, boolean hasProfile, boolean hasLastPage, boolean hasDashboard,
                                          long firstInstallTime, long lastUpdateTime) {
         return onboardingDone || hasProfile || hasLastPage || hasDashboard || firstInstallTime != lastUpdateTime;
@@ -89,7 +111,7 @@ final class HomeStyle {
     /**
      * Whether the one-time What's new sheet shows now (Joel 6): only on an installation the seed found updated,
      * whose owner never chose a style and never saw the sheet, on Home, resumed, with neither setup nor riding
-     * mode open. A fresh installation never sees it once setup recorded its origin (HomeStylePrefs.recordNewInstall
+     * mode open. A fresh installation never sees it once setup recorded its origin (HomeStylePrefs.setupSkipped
      * or markChosen); neither does a restore that brought an explicit choice.
      */
     static boolean showWhatsNew(String origin, boolean chosen, boolean shown, boolean onboardingShowing,

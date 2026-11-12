@@ -37,6 +37,18 @@ final class HomeMoment {
         return PARKED;
     }
 
+    /** How often Clean looks for a newer finished ride while nothing else says one may have ended. */
+    static final long RIDES_RECHECK_MS = 30_000L;
+
+    /**
+     * Whether Clean looks at the saved rides again: on its first refresh (lastLook &lt; 0), when recording started or
+     * stopped since it last looked, or once {@link #RIDES_RECHECK_MS} passed (a ride saved by another path, such as
+     * an automatic stop while the screen stayed open). Times are elapsed-realtime ms.
+     */
+    static boolean lookAgain(long lastLook, long now, boolean recordingChanged) {
+        return lastLook < 0 || recordingChanged || now - lastLook >= RIDES_RECHECK_MS || now < lastLook;
+    }
+
     /** Whole minutes since the ride ended, for "Ride saved N minutes ago" (0 for a future end). */
     static long minutesAgo(long lastRideEndWall, long now) {
         return Math.max(0, now - lastRideEndWall) / 60_000L;

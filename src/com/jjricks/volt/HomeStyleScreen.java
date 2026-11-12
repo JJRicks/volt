@@ -11,7 +11,7 @@ import android.widget.TextView;
 /**
  * Settings › Home style (page {@link HubPages#SETTINGS_HOME}, hub layout plan PR 8): the style choice with its two
  * drawings, then Clean Home's two moments, "Show charging while plugged in" and "Show the last ride after riding".
- * The second switch is stored already; Clean shows the last ride from the next part on. Text from HubText only.
+ * Text from HubText only.
  */
 final class HomeStyleScreen implements AppScreen {
     /** View tags of the two moment switches: the keys they write. */

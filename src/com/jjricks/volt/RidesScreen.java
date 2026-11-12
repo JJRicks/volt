@@ -650,7 +650,7 @@ public final class RidesScreen implements AppScreen {
         }
     }
     /** Reads only accepted GPS fixes from the phone journal, never more than 16 MB, and keeps a 64-point outline. */
-    private static float[] readThumb(File file) {
+    static float[] readThumb(File file) {
         if (!file.isFile() || file.length() > 16L * 1024 * 1024) return NO_ROUTE;
         ArrayList<double[]> fixes = new ArrayList<double[]>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))) {

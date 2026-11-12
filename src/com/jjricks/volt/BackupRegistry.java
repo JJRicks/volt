@@ -165,6 +165,8 @@ final class BackupRegistry {
         exclude("onboarding", "nearby_asked", Boolean.class, PERMISSION);
         exclude("onboarding", "step", Integer.class, WIZARD);
         for (String key : "path profile_id created_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
+        // The Home style picked on setup's last step, until setup finishes (OnboardingScreen.KEY_HOME_STYLE).
+        exclude("onboarding", "home_style_pick", String.class, WIZARD);
         RULES.add(new Rule("onboarding", "tick_", true, Boolean.class, null, WIZARD, false, false, false));
     }
     /** Avoid an Android dependency on OnboardingScreen for this pure table. */

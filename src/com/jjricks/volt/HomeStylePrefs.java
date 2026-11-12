@@ -34,11 +34,19 @@ final class HomeStylePrefs {
     }
 
     /**
-     * Setup ending on a new install, finished or skipped (the onboarding part calls it): records origin install when
-     * none is stored, so a later start never mistakes this owner's own setup for an earlier owner. Writes no style.
+     * Setup skipped (OnboardingScreen): no choice is recorded (home_style_chosen stays false), only what
+     * HomeStyle.afterSkippedSetup says: a new install's origin, and Clean when it has no style yet.
      */
-    static void recordNewInstall(SharedPreferences prefs) {
-        if (!prefs.contains(HomeStyle.ORIGIN_KEY)) prefs.edit().putString(HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL).apply();
+    static void setupSkipped(SharedPreferences prefs) {
+        Object stored;
+        try { stored = prefs.getAll().get(HomeStyle.ORIGIN_KEY); } catch (RuntimeException e) { stored = null; }
+        String origin = stored instanceof String ? (String) stored : null;
+        String[] after = HomeStyle.afterSkippedSetup(origin, prefs.contains(HomeStyle.KEY));
+        if (after[0] == null && after[1] == null) return;
+        SharedPreferences.Editor edit = prefs.edit();
+        if (after[0] != null) edit.putString(HomeStyle.KEY, after[0]);
+        if (after[1] != null) edit.putString(HomeStyle.ORIGIN_KEY, after[1]);
+        edit.apply();
     }
 
     /**
