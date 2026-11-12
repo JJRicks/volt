@@ -2007,7 +2007,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
                 // Each family's own words, its title among them (#404 review): "star" doesn't list Line lights.
                 addRow(section,card);extras.put(card,new String[]{section,HubSearchTables.pageWords(target)});
-                shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
+                // And the zones row's translated words (main_search_zones) in another language, as Hub search (#404 review, P3 3).
+                Msg zones=HubText.lightZonesSearchWords();String zonesShown=zones.render();
+                shownExtras.put(card,zonesShown.equals(zones.english())?new String[]{HubText.rowTitle(target).render()}:new String[]{HubText.rowTitle(target).render(),zonesShown});searchLinks.put(card,target);
             }
             pageBody=spec.search?null:design.groupCard();
             if(pageBody!=null){

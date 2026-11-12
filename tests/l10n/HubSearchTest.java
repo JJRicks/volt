@@ -29,6 +29,15 @@ public final class HubSearchTest {
         @Override public String language() { return "es"; }
     };
 
+    /** Spanish as the catalog ships it for the zones row's words (main_search_zones); every other string a stand-in. */
+    private static final T.Source ZONES = new T.Source() {
+        @Override public String string(int id) {
+            return "main_search_zones".equals(T.key(id)) ? "luces de línea luces estrella zonas ambiente patrón color" : "Otra página";
+        }
+        @Override public String plural(int id, long quantity) { return "Otra"; }
+        @Override public String language() { return "es"; }
+    };
+
     private static void check(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
 
     private static final HubSearch.Gates ALL = new HubSearch.Gates() {
@@ -59,6 +68,8 @@ public final class HubSearchTest {
             sources();
             gates();
             reviewNotes();
+            T.install(ZONES);
+            zones();
             T.install(FOREIGN);
             shown();
         } finally {
@@ -251,6 +262,8 @@ public final class HubSearchTest {
         Set<String> zones = new HashSet<>();
         for (HubSearch.Entry e : HubSearch.search(pages, "zones")) zones.add(e.page);
         check(zones.contains(HubPages.LIGHTS_LINE) && zones.contains(HubPages.LIGHTS_STAR), "\"zones\" finds both light pages");
+        for (HubSearch.Entry e : pages)
+            if (HubSearch.sharedPageWords(e.page)) check(e.words.length == 0, "in English a light page has no shared words: " + e.page);
         // Charge history & recordings' rows are found through its page by part 10's words (#387 review, note 8).
         for (String word : new String[] {"export", "recordings", "email"}) {
             Set<String> found = new HashSet<>();
@@ -283,6 +296,21 @@ public final class HubSearchTest {
     private static HubSearch.Entry first(List<HubSearch.Entry> found, String anchor) {
         for (HubSearch.Entry e : found) if (anchor.equals(e.anchor)) return e;
         return null;
+    }
+
+    /**
+     * The light pages carry the zones row's translated words (main_search_zones), as the controls' search did: "zonas"
+     * finds both in Spanish (#404 review, P3 3). In English they match only by each family's own words (reviewNotes).
+     */
+    private static void zones() {
+        List<HubSearch.Entry> pages = HubSearch.pages(ALL);
+        Set<String> found = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "zonas")) found.add(e.page);
+        check(found.contains(HubPages.LIGHTS_LINE) && found.contains(HubPages.LIGHTS_STAR), "\"zonas\" finds both light pages");
+        check(found.size() == 2, "and no other page: " + found);
+        Set<String> zones = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "zones")) zones.add(e.page);
+        check(zones.contains(HubPages.LIGHTS_LINE) && zones.contains(HubPages.LIGHTS_STAR), "the English words still match");
     }
 
     /** In another language the shown name matches too, and its words rank it. */

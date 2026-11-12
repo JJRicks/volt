@@ -158,8 +158,12 @@ final class HubSearch {
             Msg title = HubText.title(page);
             if (title == null) continue;
             Msg more = pageSearchWords(page);
-            String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null ? "" : " " + more.english());
-            entries.add(new Entry(Kind.PAGE, page, english, title, more == null ? null : new CharSequence[] {more}, null, Target.PAGE, null, null));
+            // Words shared by both light families match only as a translation: in English each family keeps its own
+            // words and title (pageWords), so "star" doesn't list Line lights (#404 review).
+            boolean shared = more != null && sharedPageWords(page);
+            String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null || shared ? "" : " " + more.english());
+            CharSequence[] words = more == null || (shared && more.toString().equals(more.english())) ? null : new CharSequence[] {more};
+            entries.add(new Entry(Kind.PAGE, page, english, title, words, null, Target.PAGE, null, null));
         }
         return entries;
     }
@@ -167,10 +171,19 @@ final class HubSearch {
     /**
      * Search words in every shipped language for a page whose rows search has no entries of their own: Charge history
      * & recordings (MoreScreen's Charging section: record, export, email and clear charge recordings) is found by
-     * them (#387 review). Null for every other page.
+     * them (#387 review); Line lights and Star lights by the zones row's translated words (main_search_zones), so
+     * "zonas" finds both light pages in Spanish as "zones" does in English (#404 review, P3 3). Null for every other
+     * page.
      */
     static Msg pageSearchWords(String page) {
-        return HubPages.BATTERY_HISTORY.equals(page) ? HubText.batteryHistorySearchWords() : null;
+        if (HubPages.BATTERY_HISTORY.equals(page)) return HubText.batteryHistorySearchWords();
+        if (sharedPageWords(page)) return HubText.lightZonesSearchWords();
+        return null;
+    }
+
+    /** The light families' pages, whose pageSearchWords name both families (matched only in a translation). */
+    static boolean sharedPageWords(String page) {
+        return HubPages.LIGHTS_LINE.equals(page) || HubPages.LIGHTS_STAR.equals(page);
     }
 
     /**

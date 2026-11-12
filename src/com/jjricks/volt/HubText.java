@@ -324,7 +324,8 @@ public final class HubText {
     /**
      * Words search matches for the Line lights and Star lights rows, never shown: the scooter's light zones,
      * patterns and colours. The existing, already-translated words the controls' own search matched them by
-     * (main_search_zones), so PR 12 gives those entries their words without a catalog reference of its own.
+     * (main_search_zones): Hub search's Line lights and Star lights pages (HubSearch.pageSearchWords) and the old
+     * index's links to them match these in the current language.
      */
     public static Msg lightZonesSearchWords() { return M.mainSearchZones(); }
 
