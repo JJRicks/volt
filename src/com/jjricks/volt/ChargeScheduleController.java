@@ -24,6 +24,28 @@ public final class ChargeScheduleController {
     public enum Outcome { NONE, TARGET_REACHED, ENDED, START_PASSED, MISSED, STARTED_EARLY, CHANGED_ON_SCOOTER, TURNED_OFF }
     static final int ALERT_NONE=0, ALERT_PENDING=1, ALERT_SHOWN=2;
     public interface Store { String read(String scope); void write(String scope, String value); }
+    /** A schedule operation the report diagnostics trace (ChargeEvidence). Ids only: append, never rename. */
+    public enum Op { DONE_BY_ON, DONE_BY_OFF, DONE_BY_TIME, MANUAL_ON, MANUAL_OFF, MANUAL_TIME, MISSED_OFF, TEST_START, TEST_CANCEL, TEST_END, TEST_CLEANUP,
+        MEASURE_START, MEASURE_CANCEL, MEASURE_ARM, MEASURE_NOT_SET }
+    /** How an operation ended, as an id: what its completion said, never the shown text. Append only. */
+    public enum Result { OK, BLOCKED_WAIT_CHANGE, BLOCKED_WAIT_TEST, BLOCKED_DISABLE_DONE_BY, BLOCKED_CONNECT_CHARGER, BLOCKED_CHOOSE_SCOOTER,
+        BLOCKED_CONNECT_SCOOTER, BLOCKED_NOT_ON_MODEL, BLOCKED_TURN_OFF_DONE_BY, BLOCKED_TURN_OFF_SCHEDULED, BLOCKED_WAIT_READINGS, BLOCKED_AT_LIMIT,
+        BLOCKED_CONTROL_UNAVAILABLE, BLOCKED_OTHER, ESTIMATE_UNAVAILABLE, INVALID_TIME, FRESH_ESTIMATE_NEEDED, WAIT_ESTIMATE, AT_LIMIT, OUTSIDE_RANGE,
+        CHARGING_NOW, CHOOSE_START_FIRST, START_WITHIN_48H, WHOLE_HOUR, CANCEL_NOT_CONFIRMED, RESTORE_FAILED, CLOCK_FAILED, BATTERY_CHANGED,
+        START_NOT_CONFIRMED, LIMIT_CHANGED, START_CHANGED_ESTIMATE, START_PASSED, PASSED_NOT_CANCELLED, LIMIT_SAVED_NO_ESTIMATE,
+        BATTERY_SAVED_NO_ESTIMATE, ENABLE_NOT_CONFIRMED, INTERRUPTED, OTHER }
+    /** Why an operation or a test was cut off. Append only. */
+    public enum Interruption { LINK_NOT_READY, SCOOTER_CHANGED, GENERATION_CHANGED, TIME_ZONE_CHANGED, UTC_OFFSET_CHANGED, DATA_MAINTENANCE,
+        SIMULATION, SERVICE_ENDED, PHONE_CLOCK_CHANGED, READINGS_STALE, READINGS_MISSING, UNKNOWN }
+    /**
+     * Report diagnostics only: hears each saved record (a typed snapshot) and how each operation ended. It cannot send,
+     * change the record or block: a journal that throws is ignored, and it is never asked anything back.
+     */
+    public interface Journal {
+        void saved(String scope, Diagnostics record);
+        /** testWallMs: the test this belongs to (when it began), else 0; testOutcome null outside a test. */
+        void operation(String scope, Op op, Result result, Interruption why, long durationMs, long testWallMs, ChargeScheduleTest.Outcome testOutcome);
+    }
     public interface Driver {
         Context context();
         void clock(Consumer<Boolean> completion);
@@ -74,7 +96,9 @@ public final class ChargeScheduleController {
         public final long testWallMs, testStartWallMs;
         public final Integer testOffsetSeconds, testScheduleOff;
         public final boolean testPaused;
-        private Diagnostics(State s,Context c){
+        /** Volt saw the current intention charging at or after its start. */
+        public final boolean started;
+        private Diagnostics(State s,Context c){started=s.started;
             mode=s.mode;outcomeMode=s.outcomeMode;alert=s.alert;armedWallMs=s.armed;startWallMs=s.start;deadlineWallMs=s.mode==2?s.deadline:0;wireStart=s.wire;
             // The offset sent with the start is implied by the two; a pair from different writes is not reported.
             long offset=s.wire-Math.floorDiv(s.start,1000L);clockOffsetSeconds=s.wire>0&&s.start>0&&Math.abs(offset)<=18*3600?(int)offset:null;
