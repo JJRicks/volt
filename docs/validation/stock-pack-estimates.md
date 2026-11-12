@@ -160,8 +160,8 @@ it is a possible follow-up, outside this change.
 
 ## More data that would help most
 
-- **More completed standard charges, recorded from plug-in to 100%** (Developer options → Charge
-  recording), especially:
+- **More completed standard charges, recorded from plug-in to 100%** (Scooter → Battery & charging →
+  Charge history & recordings → Record this charge; formerly in Developer options), especially:
   - other chargers, because the warm-up amplitude differs between the two seen so far;
   - different start levels, to firm up how catch-up size depends on discharge depth;
   - a cold pack.

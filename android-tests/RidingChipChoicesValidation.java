@@ -30,7 +30,7 @@ import com.jjricks.volt.ScooterService;
  * and Trace's two are set to named readings (Average and Max speed side by side, odometer, current, battery, trip, ride time)
  * on the simulator, at 344 dp, a split-screen half, sideways, wide, large text and night vision. At each it checks that every
  * chip shown is whole, carries its name or icon unless it names itself, that Average and Max never stand on the same icon
- * alone, and that each chip's spoken text names its reading and value. Halo's row is then measured at every width from roomy
+ * alone (each has its own mark on the speedometer), and that each chip's spoken text names its reading and value. Halo's row is then measured at every width from roomy
  * to nothing, so it lands on each rung: names shorten, then turn into icons, and only then does the last chip go. Screenshots
  * go to the evidence folder. Simulator only.
  */
@@ -90,7 +90,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
     // Volt's and Scooter's range share "Range" and the route icon, with Battery between them (the case review found):
     // once Scooter's range steps aside, Volt's range may take the icon, and Battery must not step aside for a stale clash.
     private static final String RANGES = halo("range_volt", "battery", "range_scooter");
-    // Ride time's clock icon matches the clock chip's face, which goes at the no-icons rung.
+    // Ride time beside the clock: its stopwatch now stands apart from the clock chip's face, so it may take its icon.
     private static final String TIMES = halo("ride_time", "clock", "trip");
     private static final String TRACE_RANGES = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"range_volt\",\"chip_2\":\"range_scooter\"}}}}";
     private static final String TRACE = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"max_speed\",\"chip_2\":\"ride_time\"}}}}";
@@ -214,6 +214,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         require(!chips.isEmpty(), label + ": no chips");
         ViewGroup group = (ViewGroup) ((View) chips.get(0)).getParent();
         int used = 0, shown = 0, iconOnlySpeeds = 0;
+        java.util.Set<String> speedIcons = new java.util.HashSet<>();
         boolean stacked = group instanceof LinearLayout && ((LinearLayout) group).getOrientation() == LinearLayout.VERTICAL;
         for (Object chip : chips) {
             View v = (View) chip;
@@ -233,7 +234,10 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             boolean self = content.equals("drive_mode") || content.equals("battery_temperature") || content.equals("clock");
             if (!self) require(nameShown || iconShown, label + ": " + content + " shows a bare value '" + value.getText() + "'");
             if (!self) require(!(nameShown && iconShown), label + ": " + content + " shows both name and icon");
-            if (!nameShown && iconShown && (content.equals("average_speed") || content.equals("max_speed"))) iconOnlySpeeds++;
+            if (!nameShown && iconShown && (content.equals("average_speed") || content.equals("max_speed"))) {
+                iconOnlySpeeds++;
+                speedIcons.add((String) field(chip, "iconKey"));
+            }
             // What a screen reader gets on reaching the chip: with clock seconds on, the clock says the time to the second
             // then (#374), so it may be a tick past the one drawn, and its AM/PM can be off the tightest rung's text.
             CharSequence spoken = v.createAccessibilityNodeInfo().getContentDescription();
@@ -251,7 +255,7 @@ public final class RidingChipChoicesValidation extends Instrumentation {
         }
         require(shown > 0, label + ": every chip gone");
         requireFairNames(label, chips);
-        require(iconOnlySpeeds < 2, label + ": Average and Max speed both on the speedometer alone");
+        require(speedIcons.size() == iconOnlySpeeds, label + ": Average and Max speed both on the same icon alone");
         if (!stacked) require(used <= group.getWidth(), label + ": the row needs " + used + " of " + group.getWidth());
         return out.toString();
     }
@@ -372,11 +376,13 @@ public final class RidingChipChoicesValidation extends Instrumentation {
             if (label.equals("speeds") || label.equals("icons"))
                 require(fullAt > 0 && shortAt > 0 && dropAt > 0 && shortAt > dropAt, label + ": rungs out of order full=" + fullAt + " short=" + shortAt + " drop=" + dropAt);
             if (label.equals("ranges")) require(rangeIconAt > 0, "ranges: Volt's range never took the route icon after Scooter's range stepped aside");
-            if (label.equals("times")) require(timeIconAt > 0, "times: Ride time never took its icon once the clock face had gone");
+            if (label.equals("times")) require(timeIconAt > 0, "times: Ride time never took its stopwatch");
             if (label.endsWith("-seconds")) require(markerGoneAt > 0 && clockDropAt > 0 && markerGoneAt > clockDropAt,
                     label + ": AM/PM should go before the clock does (AM/PM gone at " + markerGoneAt + ", clock gone at " + clockDropAt + ")");
             if (label.equals("icons")) require(iconAt > 0 && iconAt < shortAt && iconAt > dropAt, label + ": icons out of order icon=" + iconAt + " short=" + shortAt + " drop=" + dropAt);
-            if (label.equals("speeds")) require(iconAt < 0, "speeds: Average and Max must keep their names (shared speedometer), odometer has no icon");
+            // Average and Max speed have their own marks on the speedometer and the odometer its distance arrow, so the
+            // speeds row may go to icons too, but only after its short names.
+            if (label.equals("speeds")) require(iconAt < 0 || iconAt < shortAt, "speeds: icons before short names icon=" + iconAt + " short=" + shortAt);
             verdict[0] = label + " sweep: natural " + natural + " full until " + fullAt + " short at " + shortAt + " icons at " + iconAt + " first drop at " + dropAt
                     + (rangeIconAt > 0 ? " range icon at " + rangeIconAt : "") + (timeIconAt > 0 ? " ride time icon at " + timeIconAt : "")
                     + (markerGoneAt > 0 ? " AM/PM gone at " + markerGoneAt + " clock gone at " + clockDropAt : "");

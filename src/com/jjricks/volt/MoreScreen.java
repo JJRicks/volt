@@ -15,6 +15,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
@@ -36,6 +37,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -148,6 +150,8 @@ public final class MoreScreen implements AppScreen {
     private ChargeHistoryDialog chargeHistoryDialog;
     /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
     private Row chargerLinkRow, sendChargeRow;
+    /** The Charger row's detail line, under the charger's name (its sub-line). */
+    private TextView chargerDetail;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -2445,7 +2449,8 @@ public final class MoreScreen implements AppScreen {
     private void updateResult(String installed, UpdateCheck.Result r) {
         LinearLayout box;
         AlertDialog.Builder builder = new AlertDialog.Builder(host.activity());
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE) {
+        boolean available = r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE;
+        if (available) {
             // Seen here: the automatic check does not announce this version again.
             UpdateCheckJob.seen(settings(), r.latest);
             // Download hands the browser the release's APK; without one in the reply, the release page as before.
@@ -2453,10 +2458,13 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateAvailableBodyDownload(installed)
                     : T.moreUpdateAvailableBody(installed));
             if (!r.notes.isEmpty()) {
-                TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
+                // The notes with their headings, lists and emphasis (ReleaseNotesView), on a card of their own.
+                TextView notes = ReleaseNotesView.of(ui, r.markdown, r.notes); notes.setTextIsSelectable(true);
+                notes.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12)); notes.setBackground(ui.shape(ui.bg, 14, 0));
                 String language = UpdateCheck.notesLanguageNote();
                 if (!language.isEmpty()) { TextView english = ui.caption(language); english.setPadding(0, ui.dp(10), 0, 0); box.addView(english); }
-                notes.setTag("update-notes"); box.addView(notes);
+                LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, -2); card.topMargin = ui.dp(12); card.bottomMargin = ui.dp(4);
+                notes.setTag("update-notes"); box.addView(notes, card);
             }
         } else if (r != null && r.outcome == UpdateCheck.Outcome.CURRENT) {
             box = dialogBox(T.moreUpdateCurrent(), VersionName.dev(installed)
@@ -2467,14 +2475,60 @@ public final class MoreScreen implements AppScreen {
                     ? T.moreUpdateNoAnswer()
                     : T.moreUpdateUnreadable());
         }
-        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
-        AlertDialog dialog = builder.setView(inner).create();
-        if (r != null && r.outcome == UpdateCheck.Outcome.AVAILABLE)
-            dialogButtons(box, T.commonClose(), dialog::dismiss, r.direct()
+        ScrollView inner = new ScrollView(host.activity());
+        // A new release: the title, wording and notes scroll above the buttons, which stay in view however long
+        // the notes are (the scroll area takes what the dialog has left after them). In a window too short for both
+        // (PinnedFooter) the buttons scroll with the notes instead, so the title and notes can always be reached.
+        LinearLayout frame = column(), foot = column(), content = column();
+        content.addView(box); inner.addView(content);
+        if (available) {
+            frame.addView(inner, new LinearLayout.LayoutParams(-1, 0, 1));
+            foot.setPadding(ui.dp(22), 0, ui.dp(22), ui.dp(10)); frame.addView(foot, new LinearLayout.LayoutParams(-1, -2));
+            frame.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                if (footerMisplaced(frame, foot, box, content)) frame.post(() -> {
+                    if (!footerMisplaced(frame, foot, box, content)) return;
+                    boolean scrolls = foot.getParent() == frame;
+                    // Moving the buttons drops their focus (keyboard, D-pad or TalkBack): give it back, in view.
+                    View focused = foot.findFocus();
+                    View held = accessibilityFocused(foot);
+                    ((ViewGroup) foot.getParent()).removeView(foot);
+                    (scrolls ? content : frame).addView(foot, new LinearLayout.LayoutParams(-1, -2));
+                    if (focused != null) focused.requestFocus();
+                    if (held != null) held.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+                    if (scrolls && (focused != null || held != null)) foot.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                        @Override public void onLayoutChange(View f, int l, int t, int r2, int b, int ol, int ot, int or, int ob) {
+                            foot.removeOnLayoutChangeListener(this);
+                            inner.requestChildRectangleOnScreen(foot, new Rect(0, 0, foot.getWidth(), foot.getHeight()), true);
+                        }
+                    });
+                });
+            });
+        }
+        AlertDialog dialog = builder.setView(available ? frame : inner).create();
+        if (available)
+            dialogButtons(foot, T.commonClose(), dialog::dismiss, r.direct()
                     ? T.moreUpdateDownload()
                     : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
+    }
+    /** The view in this group that holds TalkBack's focus, or null. */
+    private static View accessibilityFocused(View view) {
+        if (view.createAccessibilityNodeInfo().isAccessibilityFocused()) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = accessibilityFocused(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+    /** Whether the update dialog's buttons sit on the wrong side of its scroller for the window's height now. */
+    private boolean footerMisplaced(LinearLayout frame, LinearLayout foot, View body, LinearLayout content) {
+        if (closed || foot.getParent() == null) return false;
+        boolean scrolls = PinnedFooter.scrolls(frame.getHeight(), foot.getHeight(), body.getHeight(), ui.dp(PinnedFooter.MIN_BODY_DP));
+        return scrolls != (foot.getParent() == content);
     }
     /** The browser gets the APK (safeDownload) or the release page (safePage), never anything else; Volt downloads nothing. */
     private void openRelease(UpdateCheck.Result r) {
@@ -2541,6 +2595,11 @@ public final class MoreScreen implements AppScreen {
         // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
         chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
         chargerLinkRow.view.setTag("charge-charger-selector");
+        // The charger's name goes under the title, full width, as other rows' sub-lines do, never in the 140 dp value
+        // beside it, where a long name (German at large text) broke inside a word and squeezed the title (#387 review).
+        // Its detail line, when there is one, sits under it.
+        chargerDetail=ui.text("",11.5f,false);chargerDetail.setTextColor(ui.muted);chargerDetail.setPadding(0,ui.dp(2),0,0);
+        chargerDetail.setVisibility(View.GONE);((LinearLayout)chargerLinkRow.sub.getParent()).addView(chargerDetail);
         // Count qualified evidence without claiming every range is ready at a fixed session count.
         chargeCurve=ui.card();chargeCurve.setTag("charge-learning-status");
         LinearLayout curveHead=row();
@@ -2588,19 +2647,27 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
-     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded.
+     * to Volt's report address (the report emails' attachment flow). Refused with no scooter chosen ("Choose a scooter
+     * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
+     * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
+     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email.
      */
     private void sendChargeRecordings() {
-        ScooterService s = service(); if (s == null) return;
-        if (s.isChargeRecording()) { host.toast(HubText.chargeSendBusy()); return; }
-        if (!s.exportChargeRecordings(file -> {
-            if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
-            if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
-            host.emailChargeRecordings(file);
-        })) exportBusy();
+        ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
+        if (s.exportChargeRecordings(file -> {
+            if (file != null) { ChargeSend.MAILBOX.deliver(file, System.currentTimeMillis()); return; }
+            if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
+        })) return;
+        // Refused: tell the reasons apart from the service's state.
+        ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
+        if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
+        else if (refusal == ChargeSend.Refusal.STOP_RECORDING) host.toast(HubText.chargeSendBusy());
     }
 
-    /** An export (the file or Email to Volt) is refused: a charge is being recorded, or another export is running. */
+    /** "Choose a scooter first.": recording or emailing charges needs a chosen scooter. */
+    private void chooseScooterFirst() { host.toast(T.moreHistoryChooseScooter()); }
+
+    /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
     private void exportBusy() { host.toast(T.moreDevExportBusy()); }
 
     /** "Report an issue": More's menu ends with it, and it is Service › Issue reports. */
@@ -2671,7 +2738,7 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            sendChargeRow.enabled(s!=null&&!s.chargeExporting());
+            sendChargeRow.enabled(ChargeSend.rowEnabled(s!=null,s!=null&&s.profiles!=null&&s.profiles.active()!=null,s!=null&&s.chargeExporting()));
         }
     }
 
@@ -2680,10 +2747,11 @@ public final class MoreScreen implements AppScreen {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
         boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
-        chargerLinkRow.value((effective == null ? HubText.chargerAutomatic()
+        chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
         Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
-        chargerLinkRow.sub(detail == null ? null : detail.render());
+        chargerDetail.setText(detail == null ? "" : detail.render());
+        chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
 
     /**
@@ -2692,7 +2760,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
-        if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
+        if (profile == null) { chooseScooterFirst(); return; }
         final String profileId = profile.id;
         // Capture labels train curves, so only an explicit preference is pre-selected; an
         // Automatic guess must never become a label in one tap. An open panel must never start
@@ -2932,7 +3000,8 @@ public final class MoreScreen implements AppScreen {
         pinRow.icon.step(pinOn ? 2 : 1);
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
-        securityConnect.setVisibility(link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
+        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);

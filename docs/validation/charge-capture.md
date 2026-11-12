@@ -10,9 +10,12 @@ Validated October 14, 2026. This change is stacked on
 
 ## User-visible behavior
 
-- Developer options has an explicit **Record this charge** action and a Stock /
-  High-speed charger selector. The selection describes the charger the user
-  attached; no hardware identification is inferred. It is saved per scooter.
+- **Scooter → Battery & charging → Charge history & recordings** (formerly
+  Developer options) has an explicit **Record this charge** action, whose
+  confirmation asks Stock or High-speed. Developer options' charger selector is
+  gone: the saved choice is made at **Battery & charging → Estimates & charger →
+  Charger**, and the page's Charger row shows it. The selection describes the charger the user attached; no hardware
+  identification is inferred. It is saved per scooter.
 - Starting requires a genuine authenticated connection to the selected scooter,
   fresh charging/SOC/paired electrical data, developer options, and enabled
   notifications. Simulation and concurrent ride capture are refused. The start
@@ -186,7 +189,8 @@ shortcuts to Android notification/app battery settings. Nothing changes those
 system settings without user action. Force stop, permission revocation, OEM
 battery controls and Bluetooth loss can still interrupt work.
 
-Developer options → Export charge recordings streams all saved valid journals
+Scooter → Battery & charging → Charge history & recordings → Export charge
+recordings (formerly in Developer options) streams all saved valid journals
 for the selected scooter into a versioned JSON file using Android's save picker.
 It includes manually selected charger type, start clocks, stop reason, learning
 qualification and original signed current/power, voltage, SOC, nullable
