@@ -788,10 +788,12 @@ Auto-start (More > App preferences, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
 above zero, also in the background with Stay connected in background on (a
 ride started that way has no GPS route). Riding mode > Open automatically
-(also in riding mode's tune menu) opens riding mode the same way, only while Volt is on screen and no dialog
-or sheet is open; of the Scooter pages, only over the subject list, Controls,
-Battery & charging and Lights & sound (not their sub-pages, Security or Service). A manual stop or backing out holds that switch until the
-scooter reconnects; a ride that ends by itself does not. Emulator-tested.
+(also in riding mode's tune menu) opens riding mode the same way, only while
+Volt is on screen and no dialog or sheet is open; of the Scooter pages, only
+over the subject list, Controls, Battery & charging and Lights & sound (not
+their sub-pages, Security or Service). A manual stop or backing out holds that
+switch until the scooter reconnects; a ride that ends by itself does not.
+Emulator-tested.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size
 (Volt's Text size times the system font scale), so a 725 dp unfolded phone uses
