@@ -65,7 +65,7 @@ their original direction interpretation. The obsolete direction picker is gone.
 Unconfirmed old intervals remain absolute throughput, not net consumption.
 Returned/input energy may include wall charging; it is not necessarily regen.
 
-**Scooter → Range estimate → Scooter's estimate** enables drive-mode following,
+**Scooter → Battery & charging → Estimates & charger → Range estimate → Scooter's estimate** enables drive-mode following,
 which selects a supported firmware range estimator when fresh reports confirm
 the scooter is stationary. Eco falls back to D-mode where firmware lacks an Eco
 estimator. Unconfirmed attempts are bounded across reconnects.

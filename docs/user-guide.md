@@ -263,13 +263,13 @@ When your rides recorded the scooter's power, Volt splits the forecast in two. I
 
 The **Scooter** tab lists the scooter's subjects, each with a one-line summary: **Battery & charging**, **Controls**, **Lights & sound**, **Security** and **Service**. Each opens a short page with the most-used settings first; settings you usually set once are on its sub-pages:
 
-- **Controls**: top speed or drive mode, cruise control, energy recovery and traction control, then **Assists** (parking assist, hill start, hill descent, kick-start speed) and **Speed limits**.
+- **Controls**: maximum speed, cruise control, energy recovery and traction control, then **Assists** (Power Assist, Walk Assist, Hill descent control and kick-start speed) and **Speed limits**. Drive mode is changed on the scooter; Volt only shows it.
 - **Battery & charging**: scheduled charging and **Charge done by**, charge limit, live charging and battery alerts, then **Battery modes** and **Estimates & charger** (charger for estimates, range estimate, test scheduled charging).
 - **Lights & sound**: the headlight note, tail light and automatic lights, **Line lights** and **Star lights** where the scooter has them, then sounds, the scooter's display units and clock sync.
 - **Security**: lock duration, and a link to PIN, proximity unlock and pairing in **More → Security**.
 - **Service**: **Maintenance** reminders.
 
-Each page has a back link to the page it came from. **Search settings** at the top of the tab finds any setting on any of these pages, and the control works right there in the results. A control the Lab tries on your model shows on its page with an **Experimental** label; tapping it opens its test. The pages keep a fixed order: earlier versions let you arrange and hide the tab's settings, and any setting you hid there shows again. Rename the scooter in **More → My scooters** or with Home's pencil while editing.
+Each page has a back link to the page it came from. **Search settings** at the top of the tab finds any setting on any of these pages, and the control works right there in the results. A control that **Experimental controls** tries on your model, and that isn't an ordinary setting there, shows on its page with an **Experimental** label; tapping it opens its test. A sub-page with nothing for your model (no setting and no Experimental entry) has no link. The pages keep a fixed order: earlier versions let you arrange and hide the tab's settings, and any setting you hid there shows again. Rename the scooter in **More → My scooters** or with Home's pencil while editing.
 
 ## Lights
 
