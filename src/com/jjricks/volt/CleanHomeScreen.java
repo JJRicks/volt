@@ -28,13 +28,18 @@ import java.util.List;
  * {@code home_quick_v1_<profile id>} in app_settings (HomeQuickActions), its moments follow {@code home_moment_*} (HomeMoment). The
  * header's words, the battery card and the charging view are DashboardScreen's own (DashboardScreen.CleanParts); every
  * other word comes from HubText, so this file holds no catalog references.
+ *
+ * <p>On a wide window (hub layout plan 1.11, PR 13) the same Home is the scooter pane at the left of two (pane mode):
+ * the subjects move to the page pane beside it (HubHomePane) with the search field, so the header leaves out its search
+ * button, and the Service card (HubServiceCard) fills the room left below the quick actions. Page navigation happens in
+ * the other pane; this one is built once per rebuild and never changes while browsing.
  */
 final class CleanHomeScreen implements AppScreen {
     /** View tags: the header's buttons, the top area, the lock slot, the quick actions and the Edit sheet's slots. */
     static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings", TAG_EDIT = "home-edit",
             TAG_NAME = "home-switch-scooter", TAG_TOP = "home-top-area", TAG_LOCK = "home-lock", TAG_QUICK = "home-quick-actions",
             TAG_SLOT = "home-edit-slot-";
-    /** One column at most this wide on a wide window, until the wide two-pane Home arrives (plan 1.11). */
+    /** One column at most this wide on a wide window where the two-pane Home does not fit (plan 1.11). */
     private static final int MAX_WIDTH_DP = 560;
     private static final int CROSSFADE_MS = 180;
 
@@ -59,7 +64,11 @@ final class CleanHomeScreen implements AppScreen {
     /** The ride whose route was asked for, so each ride's route is read once. */
     private String routeAsked;
     private final QuickAccessGrid quick;
+    /** The seven subjects (one-pane Home), or the Service card (the wide Home's scooter pane); the other is null. */
     private final CleanSubjects subjects;
+    private final HubServiceCard serviceCard;
+    /** The wide Home's scooter pane (pane mode). */
+    private final boolean pane;
     private final List<String> quickIds;
     /** The scooter's model as known when this Home was built; the default quick actions follow it. */
     private final String modelIdentity;
@@ -67,15 +76,20 @@ final class CleanHomeScreen implements AppScreen {
     private boolean closed;
     private android.app.AlertDialog editSheet;
 
-    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) {
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) { this(host, actions, false); }
+
+    /** pane: the wide Home's scooter pane (see the class comment); false is the one-pane Home. */
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions, boolean pane) {
         this.host = host;
         this.actions = actions;
+        this.pane = pane;
         ui = host.ui();
         preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         parts = DashboardScreen.cleanParts(host, actions);
         view = new MaxWidth(host.activity(), ui.dp(MAX_WIDTH_DP));
         page = column();
-        view.addView(page, new LinearLayout.LayoutParams(-1, -2));
+        // The scooter pane fills its pane's height, so the Service card can take the room left at its foot.
+        view.addView(page, new LinearLayout.LayoutParams(-1, pane ? -1 : -2));
 
         header = column();
         header.setPadding(0, ui.dp(4), 0, ui.dp(10));
@@ -83,7 +97,8 @@ final class CleanHomeScreen implements AppScreen {
         first.setGravity(Gravity.CENTER_VERTICAL);
         TextView status = parts.status();
         first.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-        first.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        // The wide Home's page pane has the search field (and this button's tag) instead.
+        if (!pane) first.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         first.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(first, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout second = row();
@@ -134,10 +149,20 @@ final class CleanHomeScreen implements AppScreen {
         quickSize.topMargin = ui.dp(12);
         page.addView(quick, quickSize);
 
-        subjects = new CleanSubjects(host);
-        LinearLayout.LayoutParams subjectSize = new LinearLayout.LayoutParams(-1, -2);
-        subjectSize.topMargin = ui.dp(16);
-        page.addView(subjects.view(), subjectSize);
+        if (pane) {
+            subjects = null;
+            serviceCard = new HubServiceCard(host);
+            // Fills what the pane has left; with large text the pane scrolls and the card keeps its own height.
+            LinearLayout.LayoutParams cardSize = new LinearLayout.LayoutParams(-1, -2, 1);
+            cardSize.topMargin = ui.dp(16);
+            page.addView(serviceCard.view(), cardSize);
+        } else {
+            serviceCard = null;
+            subjects = new CleanSubjects(host);
+            LinearLayout.LayoutParams subjectSize = new LinearLayout.LayoutParams(-1, -2);
+            subjectSize.topMargin = ui.dp(16);
+            page.addView(subjects.view(), subjectSize);
+        }
         refresh();
     }
 
@@ -183,7 +208,8 @@ final class CleanHomeScreen implements AppScreen {
         String name = parts.name().getText().toString();
         parts.name().setContentDescription(HubText.switchScooterDescription(name).render());
         quick.refresh();
-        subjects.refresh();
+        if (subjects != null) subjects.refresh();
+        if (serviceCard != null) serviceCard.refresh();
     }
 
     /** Swaps the top area's content: a short crossfade on a change only, never on a telemetry refresh. */
@@ -300,7 +326,8 @@ final class CleanHomeScreen implements AppScreen {
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
         editSheet = null;
         parts.close();
-        subjects.close();
+        if (subjects != null) subjects.close();
+        if (serviceCard != null) serviceCard.close();
     }
 
     private void quickAction(String id) {

@@ -63,7 +63,7 @@ public final class MoreScreen implements AppScreen {
     private final LinearLayout content;
     /**
      * Unfolded/tablet width: the menu stays on the left and the chosen submenu opens on the right. Off since the Hub
-     * (hub layout plan 1.10, PR 11): Settings' sub-pages are Hub pages, so Settings is one column; Panes stays for the
+     * (hub layout plan 1.10, PR 11): Settings' sub-pages are Hub pages, so Settings is one column; its two panes (HubPanes) now serve the
      * wide two-pane Home (PR 13).
      */
     private final boolean wide;
@@ -76,7 +76,7 @@ public final class MoreScreen implements AppScreen {
     /** Wide mode only: each pane scrolls on its own. */
     private ScrollView menuScroll, sectionScroll;
     private final Row[] menuRows = new Row[SECTIONS.length];
-    /** Wide layout: every row in the left (menu) pane, whose longest title words Panes checks. */
+    /** Wide layout: every row in the left (menu) pane, whose longest title words menuWordsBreak checks. */
     private final List<RowLine> menuPaneRows = new ArrayList<>();
     /** The window size, text size and language at which a menu word could not fit: More uses one pane there. */
     private static String onePaneAt = "";
@@ -207,7 +207,7 @@ public final class MoreScreen implements AppScreen {
         if (wide) {
             menuParent = column(); sectionParent = column();
             menuScroll = paneScroll(menuParent); sectionScroll = paneScroll(sectionParent);
-            content.addView(new Panes(menuScroll, sectionScroll), new LinearLayout.LayoutParams(-1, -1));
+            content.addView(panes(menuScroll, sectionScroll), new LinearLayout.LayoutParams(-1, -1));
         }
         indexView = column(); menuParent.addView(indexView, new LinearLayout.LayoutParams(-1, -2));
         cardDestination = indexView;
@@ -476,78 +476,31 @@ public final class MoreScreen implements AppScreen {
         return pane;
     }
     /**
-     * Menu on the left, submenu on the right, 20dp apart. The gap sits on the window's centre line, where
-     * a book-posture hinge falls, so no row lies under the fold; this also gives the menu the narrower
-     * column of the approved mockup. Each pane keeps a usable minimum width.
-     * The narrow-label ladder keeps menu titles whole without moving that gap: when a row's longest title
-     * word cannot fit beside its icon, the decorative icon steps aside (RowLine); when it still cannot fit,
-     * More takes its one-pane (phone) layout at this window size, text size and language (onePaneAt).
+     * Menu on the left, submenu on the right, 20dp apart (HubPanes, extracted from here for the wide Home, hub layout
+     * plan PR 13). The gap sits on the window's centre line, where a book-posture hinge falls, so no row lies under the
+     * fold; this also gives the menu the narrower column of the approved mockup. Each pane keeps a usable minimum width.
+     * The narrow-label ladder keeps menu titles whole without moving that gap: when a row's longest title word cannot
+     * fit beside its icon, the decorative icon steps aside (RowLine); when it still cannot fit, More takes its one-pane
+     * (phone) layout at this window size, text size and language (onePaneAt).
      */
-    private final class Panes extends LinearLayout {
-        final View first, gutter, second;
-        int split = -1;
-        private boolean onePaneAsked;
-        Panes(View left, View right) {
-            super(host.activity()); setOrientation(HORIZONTAL); setBaselineAligned(false);
-            first = left; second = right; gutter = new View(host.activity());
-            addView(first, new LinearLayout.LayoutParams(0, -1));
-            addView(gutter, new LinearLayout.LayoutParams(ui.dp(20), -1));
-            addView(second, new LinearLayout.LayoutParams(0, -1));
+    private HubPanes panes(View left, View right) {
+        HubPanes panes = new HubPanes(host.activity(), ui, left, right, 220, 260, 0.42f, null, this::menuWordsBreak, () -> {
+            onePaneAt = layoutKey();
+            if (!closed) host.rebuild();
+        });
+        return panes;
+    }
+    /**
+     * The ladder's last rung: a menu title word too wide for its row even without the icon. The phone layout never
+     * checks again, so the two layouts can't alternate; another size, text size or language tries two panes.
+     */
+    private boolean menuWordsBreak() {
+        if (closed) return false;
+        for (RowLine line : menuPaneRows) {
+            if (!line.isShown() || line.getMeasuredWidth() == 0) continue;
+            if (line.longestWord() > line.titleRoomAtMost()) return true;
         }
-        private int split(int size) {
-            int gap = ui.dp(20), min = ui.dp(220), max = size - gap - ui.dp(260);
-            if (max < min) return Math.max(0, (size - gap) / 2);
-            int want = Math.round((size - gap) * 0.42f);
-            View window = getRootView();
-            if (isAttachedToWindow() && window != null && window.getWidth() > 0)
-                // Layout position, not on-screen position: a tab transition slides this page in,
-                // and measuring mid-slide used to leave the menu narrow until the next layout.
-                want = window.getWidth() / 2 - gap / 2 - Ui.layoutLeftInWindow(this);
-            return Math.max(min, Math.min(max, want));
-        }
-        @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int size = MeasureSpec.getSize(widthSpec), gap = ui.dp(20);
-            split = split(size);
-            ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
-            ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, size - split - gap);
-            super.onMeasure(widthSpec, heightSpec);
-        }
-        /**
-         * The ladder's last rung: a menu title word too wide for its row even without the icon. Remember this
-         * window size, text size and language and rebuild once with More in one pane. The phone layout never
-         * checks again, so the two layouts can't alternate; another size, text size or language tries two panes.
-         */
-        private void onePaneIfWordsBreak() {
-            if (onePaneAsked || closed) return;
-            for (RowLine line : menuPaneRows) {
-                if (!shownWithin(line, this) || line.getMeasuredWidth() == 0) continue;
-                if (line.longestWord() <= line.titleRoomAtMost()) continue;
-                onePaneAsked = true; onePaneAt = layoutKey();
-                post(() -> { if (!closed) host.rebuild(); });
-                return;
-            }
-        }
-        /** Visible all the way up to root, so this measure pass sized it. */
-        private boolean shownWithin(View view, View root) {
-            for (View v = view; v != null && v != root; v = v.getParent() instanceof View ? (View) v.getParent() : null)
-                if (v.getVisibility() != VISIBLE) return false;
-            return true;
-        }
-        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
-            // The window position is final only now. Re-split before this frame draws rather than
-            // posting another layout, so the first frame already shows the resting widths.
-            int width = r - l, wanted = split(width);
-            if (wanted != split) {
-                split = wanted;
-                int gap = ui.dp(20), height = MeasureSpec.makeMeasureSpec(b - t, MeasureSpec.EXACTLY);
-                ((LinearLayout.LayoutParams) first.getLayoutParams()).width = split;
-                ((LinearLayout.LayoutParams) second.getLayoutParams()).width = Math.max(0, width - split - gap);
-                first.measure(MeasureSpec.makeMeasureSpec(split, MeasureSpec.EXACTLY), height);
-                second.measure(MeasureSpec.makeMeasureSpec(Math.max(0, width - split - gap), MeasureSpec.EXACTLY), height);
-            }
-            super.onLayout(changed, l, t, r, b);
-            onePaneIfWordsBreak();
-        }
+        return false;
     }
 
     // ---- Volt building blocks -------------------------------------------------------------
@@ -658,7 +611,7 @@ public final class MoreScreen implements AppScreen {
             boolean aside = longestWord() > titleRoomWithIcon();
             if (aside == iconAside) return;
             iconAside = aside;
-            // Set the icon's size in place, as Panes does: no layout request from inside a measure pass.
+            // Set the icon's size in place, as HubPanes does: no layout request from inside a measure pass.
             LayoutParams lp = (LayoutParams) row.icon.getLayoutParams();
             lp.width = lp.height = aside ? 0 : ui.dp(34); lp.rightMargin = aside ? 0 : ui.dp(12);
             super.onMeasure(widthSpec, heightSpec);

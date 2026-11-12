@@ -864,6 +864,38 @@ final class MaintenanceScreen {
         return scope.isEmpty() ? null : service.maintenance.summary(scope, System.currentTimeMillis(), zone());
     }
 
+    /** One line of the wide Home's Service card (HubServiceCard): a check's name, what is left, and whether it is due. */
+    static final class Check {
+        final String id, name, left; final boolean due;
+        Check(String id, String name, String left, boolean due) { this.id = id; this.name = name; this.left = left; this.due = due; }
+    }
+
+    /**
+     * The next maintenance checks for the wide Home's Service card (hub layout plan 1.11, PR 13): every due check (the
+     * most overdue first, at most max), then the nearest one coming up, with the page's own words for what is left.
+     * Empty while reminders are off, none is set or there is no active scooter.
+     */
+    static List<Check> nextChecks(ScooterService service, int max) {
+        List<Check> checks = new ArrayList<>();
+        MaintenanceKeeper keeper = service == null ? null : service.maintenance;
+        String scope = service == null || keeper == null ? "" : service.maintenanceScope();
+        MaintenanceStore.Settings s = scope.isEmpty() ? null : keeper.load(scope);
+        if (s == null || !s.on) return checks;
+        SharedPreferences settings = service.settings;
+        String units = settings == null ? UNITS_DEFAULT : settings.getString(UNITS_PREF, UNITS_DEFAULT);
+        long now = System.currentTimeMillis();
+        for (MaintenancePolicy.Reminder r : MaintenanceView.dueNow(s, now, zone())) {
+            if (checks.size() >= max) break;
+            checks.add(new Check(r.id, MaintenanceView.name(r), MaintenanceView.left(r, MaintenanceView.status(s, r, now, zone()), units, now, MaintenanceScreen::date), true));
+        }
+        List<MaintenancePolicy.Reminder> coming = MaintenanceView.comingUp(s, now, zone());
+        if (!coming.isEmpty()) {
+            MaintenancePolicy.Reminder r = coming.get(0);
+            checks.add(new Check(r.id, MaintenanceView.name(r), MaintenanceView.left(r, MaintenanceView.status(s, r, now, zone()), units, now, MaintenanceScreen::date), false));
+        }
+        return checks;
+    }
+
     /** The Reminders row's value; empty without an active scooter. */
     static String rowValue(MaintenanceView.Summary summary) { return summary == null ? "" : MaintenanceView.rowValue(summary); }
 

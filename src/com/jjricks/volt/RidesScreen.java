@@ -138,13 +138,19 @@ public final class RidesScreen implements AppScreen {
     public RidesScreen(ScreenHost host) { this(host, ALL); }
 
     /** mode: SUMMARY, ALL or SENSORS. */
-    RidesScreen(ScreenHost host, int mode) {
+    RidesScreen(ScreenHost host, int mode) { this(host, mode, false); }
+
+    /**
+     * paneHosted: shown in the wide Home's page pane beside the scooter pane (hub layout plan 1.11, PR 13), so never in
+     * two panes of its own: All rides is the list, and a ride opens in its details sheet as on a phone.
+     */
+    RidesScreen(ScreenHost host, int mode, boolean paneHosted) {
         this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings; this.mode = mode;
         selected = new LinkedHashSet<String>(preferences.getStringSet("ride_comparison", new LinkedHashSet<String>()));
         chartKey = preferences.getString("ride_chart_key", "power_w");
         selectedRide = preferences.getString("ride_selected", "");
         // The wide breakpoint (Ui.wideLayout), as every other wide page uses.
-        wide = mode == ALL && ui.wideLayout();
+        wide = mode == ALL && !paneHosted && ui.wideLayout();
         if (mode == SENSORS) {
             // A part of a Hub page, which scrolls the whole page: no scroller of its own.
             page = vertical(); page.addView(phoneSensorsCard()); root = null;
