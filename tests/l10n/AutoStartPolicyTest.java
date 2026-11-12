@@ -12,6 +12,7 @@ public final class AutoStartPolicyTest {
         rideModeHolds();
         backgroundPrerequisite();
         backgroundCadence();
+        backgroundSwitch();
         locationPrompt();
         System.out.println("AutoStartPolicyTest: " + checks + " checks");
     }
@@ -140,6 +141,23 @@ public final class AutoStartPolicyTest {
         check(!p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, sample), false, false, false, false, false), "a link past its cadence, or bound to another scooter, never starts");
         check(!StatusCadence.linked(true, status, status + StatusCadence.SILENCE_SLOW_MS + 1, false), "past the background silence limit the link is gone");
         check(!StatusCadence.linked(false, status, sample, false), "an unauthenticated or unbound link is never up");
+    }
+
+    /** Starting in the background is its own opt-in, off by default (owner's answer 18 on #383): such a ride has no GPS route. */
+    private static void backgroundSwitch() {
+        check(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY.equals("auto_record_background"), "the background switch's stored key");
+        check(AutoStartPolicy.recordsNow(true, false, true), "on screen: Record rides automatically starts as before, background switch off");
+        check(AutoStartPolicy.recordsNow(true, true, true), "on screen with both on: starts");
+        check(!AutoStartPolicy.recordsNow(true, false, false), "in the background with only Record rides automatically on (absent is off): nothing");
+        check(AutoStartPolicy.recordsNow(true, true, false), "in the background with the background switch on: starts");
+        check(!AutoStartPolicy.recordsNow(false, true, false) && !AutoStartPolicy.recordsNow(false, true, true), "the background switch alone never starts a ride");
+        check(!AutoStartPolicy.recordsNow(false, false, true), "both off (the default): nothing");
+        // Held back in the background, then Volt comes on screen while the scooter still moves: no hold was set, so it starts.
+        AutoStartPolicy p = new AutoStartPolicy();
+        p.observeLink(true, 1);
+        check(!p.shouldRecord(AutoStartPolicy.recordsNow(true, false, false), true, false, false, false, false, true), "held back in the background");
+        check(!p.recordHeld() && p.shouldRecord(AutoStartPolicy.recordsNow(true, false, true), true, false, false, false, false, true),
+                "held back is not a hold: on screen it starts");
     }
 
     private static void locationPrompt() {

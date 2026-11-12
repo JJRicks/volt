@@ -72,7 +72,10 @@ PREVIOUSLY IN 1.12.1
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
   screen, and it has Lock and Record buttons while the scooter is stopped.
 - Start automatically, off by default: Record rides automatically and Riding
-  mode's Open automatically act when the connected scooter moves.
+  mode's Open automatically act when the connected scooter moves. Record rides
+  automatically starts while Volt is in the background only with Rides >
+  Recording settings > Start recording in the background, also off by default;
+  such a ride has no GPS route.
 - The live charging card clears about 15 s after unplugging and, on Android 16
   and later, shows the level on a dial.
 - Charge done by and Scheduled charging say when the scooter has confirmed the
@@ -789,11 +792,16 @@ on emulators only.
 
 Auto-start (Rides > Recording settings and Rides > Riding mode, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
-above zero, also in the background with Stay connected in background on (a
-ride started that way has no GPS route). Riding mode > Open automatically
-(also in riding mode's tune menu) opens riding mode the same way, only while Volt is on screen and no dialog
-or sheet is open. A manual stop or backing out holds that switch until the
-scooter reconnects; a ride that ends by itself does not. Emulator-tested.
+above zero while Volt is on screen; it starts one while Volt is in the
+background only with Rides > Recording settings > Start recording in the
+background (also off by default) and Stay connected in background on, and a
+ride started that way has no GPS route. Riding mode > Open automatically
+(also in riding mode's tune menu) opens riding mode the same way, only while
+Volt is on screen and no dialog or sheet is open; of the Scooter pages, only
+over the subject list, Controls, Battery & charging and Lights & sound (not
+their sub-pages, Security or Service). A manual stop or backing out holds that
+switch until the scooter reconnects; a ride that ends by itself does not.
+Emulator-tested.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size
 (Volt's Text size times the system font scale), so a 725 dp unfolded phone uses
@@ -1088,7 +1096,11 @@ an active capture. The recording screen uses the same saved selection.
 
 Explicit Charge recording lives in Scooter > Battery & charging > Charge history
 & recordings (formerly Developer options), with a manual Stock or
-High-speed charger selection. There is no automatic charger detection. Bounded
+High-speed charger selection. Its Charger row shows the charger for estimates and
+opens its one home, Battery & charging > Estimates & charger > Charger; Developer
+options no longer has a charger selector. Email to Volt on the same page attaches
+this scooter's recordings to an email to Volt's report address, which helps tune
+charging time estimates for that model. There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
@@ -1197,11 +1209,13 @@ QUICK ACCESS
 
 Choose two to eight ordered shortcuts in the widget options. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders open
-over Home. Scooter groups open their page under Scooter (Lights & sound,
-Controls, Battery & charging, Security), PIN/proximity opens Scooter > Security,
-experimental controls open their test in Scooter > Service > Experimental
-controls, and app-preference shortcuts open More on that menu. Stats and Rides
-are still page shortcuts. Every saved shortcut keeps working. Legacy
+over Home, and so do the quick-control groups (Lights, Ride settings, Battery
+settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
+Shortcuts to whole settings pages open the page: Settings opens the Scooter
+tab, PIN/proximity opens Scooter > Security, experimental controls open
+their test in Scooter > Service > Experimental controls, app-preference
+shortcuts open More on that menu, and Data & history opens Live Stats > Data &
+history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.

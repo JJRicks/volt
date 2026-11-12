@@ -12,31 +12,47 @@ public final class HubRoutesTest {
         System.out.println("HubRoutes: " + checks + " checks passed");
     }
 
-    /** Every catalog id opens a known page or keeps an action; nothing routes outside HubPages.ALL. */
+    /** Every catalog id opens a known page, keeps its quick-control sheet or keeps an action; nothing routes outside HubPages.ALL. */
     private static void catalog() {
         for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
-            String page = HubRoutes.pageFor(entry.id);
+            String page = HubRoutes.pageFor(entry.id), sheet = HubRoutes.sheetFor(entry.id);
             boolean action = HubRoutes.ACTIONS.contains(entry.id) || entry.id.startsWith(QuickAccessActions.FEATURE_PREFIX);
-            require(page != null ^ action, "Opens a page or runs an action, never both or neither: " + entry.id);
+            int ways = (page != null ? 1 : 0) + (sheet != null ? 1 : 0) + (action ? 1 : 0);
+            require(ways == 1, "Opens a page, a sheet or runs an action, exactly one: " + entry.id);
             if (page != null) require(HubPages.ALL.contains(page) && page.equals(HubPages.canonical(page)), "A Hub page: " + entry.id + " " + page);
         }
         for (String id : HubRoutes.pages().keySet()) require(QuickAccessActions.find(id) != null, "A route for a catalog id: " + id);
+        for (String id : HubRoutes.SHEETS) require(QuickAccessActions.find(id) != null, "A sheet for a catalog id: " + id);
         for (String id : HubRoutes.ACTIONS) require(QuickAccessActions.find(id) != null, "An action for a catalog id: " + id);
-        for (String id : QuickAccessActions.defaultIds()) require(HubRoutes.pageFor(id) != null, "The default shortcuts open pages: " + id);
+        for (String id : QuickAccessActions.defaultIds())
+            require(HubRoutes.pageFor(id) != null || HubRoutes.sheetFor(id) != null, "The default shortcuts open a page or a sheet: " + id);
         require(HubRoutes.pageFor(null) == null && HubRoutes.pageFor("bogus") == null && HubRoutes.pageFor("more:Security") == null,
                 "Unknown ids open nothing");
+        require(HubRoutes.sheetFor(null) == null && HubRoutes.sheetFor("bogus") == null && HubRoutes.sheetFor("section:Security") == null
+                && HubRoutes.sheetFor("section:Profile") == null, "Unknown ids and other sections open no sheet");
     }
 
-    /** The sheets each id opened before the Hub, and the page that holds the same rows now. */
+    /**
+     * The owner's answer 3 (#383): shortcuts to whole settings pages open the page that holds the same rows; the
+     * quick-control groups (maximum speed and energy recovery are in Ride settings) keep their sheet, on its section.
+     */
     private static void sheets() {
         String[][] expected = {
-                {"lights", HubPages.LIGHTS}, {"controls", HubPages.CONTROLS}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
-                {"section:Ride", HubPages.CONTROLS}, {"section:Battery", HubPages.BATTERY},
-                {"section:Line lights", HubPages.LIGHTS_LINE}, {"section:Star lights", HubPages.LIGHTS_STAR},
-                {"section:Dashboard & sound", HubPages.LIGHTS}, {"section:Security", HubPages.SECURITY},
+                {"controls", HubPages.SCOOTER}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
+                {"section:Security", HubPages.SECURITY},
                 {"more:App", HubPages.SETTINGS}, {"more:Scooters", HubPages.SETTINGS_SCOOTERS}, {"more:Lab", HubPages.SERVICE_EXPERIMENTAL},
                 {"more:Data", HubPages.DATA_STORAGE}, {"more:About", HubPages.SETTINGS_ABOUT}};
         for (String[] pair : expected) require(pair[1].equals(HubRoutes.pageFor(pair[0])), "Re-targeted: " + pair[0]);
+        require(HubRoutes.pages().size() == expected.length, "No other id opens a page");
+        String[][] kept = {
+                {"lights", "Lights"}, {"section:Ride", "Ride"}, {"section:Battery", "Battery"},
+                {"section:Line lights", "Line lights"}, {"section:Star lights", "Star lights"},
+                {"section:Dashboard & sound", "Dashboard & sound"}};
+        for (String[] pair : kept) {
+            require(pair[1].equals(HubRoutes.sheetFor(pair[0])), "Keeps its quick-control sheet: " + pair[0]);
+            require(HubRoutes.pageFor(pair[0]) == null, "A quick-control sheet is not a page: " + pair[0]);
+        }
+        require(HubRoutes.SHEETS.size() == kept.length, "No other id keeps a sheet");
         // A "more:" shortcut opens the page of the More section it named.
         for (String id : HubRoutes.pages().keySet())
             if (id.startsWith("more:")) require(HubPages.fromMoreSection(id.substring(5)).equals(HubRoutes.pageFor(id)), "Same page as its section: " + id);
