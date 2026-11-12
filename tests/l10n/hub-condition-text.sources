@@ -1,0 +1,5 @@
+# Hub layout plan, part 3b: text for the owner's conditions on parts 4 and 5b. tests/run.sh compiles every
+# path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/HubConditionTextTest.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java

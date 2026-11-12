@@ -290,7 +290,12 @@ no-motion rule):
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.
 Rides > Recording settings > End rides automatically turns this off. Exact rules:
-[ride auto-end](validation/ride-auto-stop.md). An explicitly
+[ride auto-end](validation/ride-auto-stop.md).
+Rides > Recording settings > Record rides automatically starts a ride when the
+connected scooter moves while Volt is on screen; it starts one while Volt is in
+the background only with Start recording in the background, also off by
+default. Android doesn't let Volt turn on location from the background, so
+such a ride has no GPS route. An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from
