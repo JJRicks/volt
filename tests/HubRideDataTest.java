@@ -53,10 +53,12 @@ public final class HubRideDataTest {
         check(!more.contains("private void ridingPreferences()"), "Open automatically lives in Ride › Riding mode (RidingSettingsMenu) only");
 
         // Ride › Recording settings › Phone sensors: same keys, on by default, built once.
-        String sensors = body(rides, "private LinearLayout phoneSensorsCard()");
+        String sensors = body(rides, "private View phoneSensors(LinearLayout content, boolean sheet)");
         check(sensors.contains("\"phone_gps\", true)") && sensors.contains("\"phone_motion\", true)"), "Phone sensors: same keys, on by default");
         check(lines(rides, "switchRow(", "\"phone_gps\"") == 1 && lines(rides, "switchRow(", "\"phone_motion\"") == 1, "one switch for each phone sensor");
-        check(!rides.contains("phoneOptions("), "the sensors sheet gave way to the Recording settings card");
+        // The card on Recording settings and the Phone sensors sheet (kept for validations) share those switches.
+        check(body(rides, "private LinearLayout phoneSensorsCard()").contains("phoneSensors(content, false)"), "the Recording settings card shows the phone sensors");
+        check(body(rides, "private void phoneOptions(Runnable dismissed)").contains("phoneSensors(content, true)"), "the Phone sensors sheet shows the same switches");
 
         System.out.println("HubRideData: " + checks + " checks passed");
     }

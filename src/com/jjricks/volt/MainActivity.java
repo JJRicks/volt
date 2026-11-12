@@ -529,8 +529,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         showUpdateCheck();
     }
     /**
-     * The screen for a page. While the tab bar remains, each tab's pages show that tab's screen (HubPages.tabOf);
-     * args are the page's one-shot arguments (ScreenHost.open), or null.
+     * The screen for a page. Home's pages show the dashboard; the Scooter tab's subject pages, the Ride pages (ride.rides,
+     * ride.recording, ride.riding), data.storage and Settings' sub-pages (settings.scooters/units/about/developer) have
+     * screens of their own; any other page, one with no screen yet such as settings.home, shows its tab's screen
+     * (HubPages.tabOf). args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
         switch(HubPages.tabOf(page)){
@@ -1520,7 +1522,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();
         if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingConnect=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
         if(scooterService==null){pendingConnect=true;ensureService();return;}
-        ScooterProfiles.Profile profile=scooterService.profiles.active();if(profile==null||!profile.configured()){open(HubPages.SETTINGS_SCOOTERS);return;}
+        ScooterProfiles.Profile profile=scooterService.profiles.active();
+        // No scooter: My scooters has Add scooter. A scooter not yet set up: More's index, whose checklist imports the owner setup.
+        if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
+        if(!profile.configured()){openMoreSection("");return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
         scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
     }

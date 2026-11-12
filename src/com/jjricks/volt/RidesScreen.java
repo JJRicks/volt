@@ -275,7 +275,7 @@ public final class RidesScreen implements AppScreen {
     private LinearLayout horizontal() { LinearLayout result = new LinearLayout(host.activity()); result.setOrientation(LinearLayout.HORIZONTAL); return result; }
     @Override public View view() { return mode == SENSORS ? page : root; }
     @Override public void refresh() {
-        if (mode == SENSORS) { nextRideTag.setVisibility(service.isRecording() ? View.VISIBLE : View.GONE); return; }
+        if (mode == SENSORS) { if (nextRideTag != null) nextRideTag.setVisibility(service.isRecording() ? View.VISIBLE : View.GONE); return; }
         boolean recording = service.isRecording(), ready = service.ble.ready(), saving = service.phoneSaving();
         String error = service.recordingError();
         boolean simulating = service.simulating();
@@ -1326,13 +1326,37 @@ public final class RidesScreen implements AppScreen {
      */
     private LinearLayout phoneSensorsCard() {
         LinearLayout content = vertical();
-        LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.sectionLabel(T.ridesPhoneSensors()));
-        TextView chip = pill(T.ridesNextRide(), ui.blue); LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
-        chipParams.topMargin = ui.dp(8);
+        phoneSensors(content, false);
+        return content;
+    }
+    /** The Phone sensors sheet, as the Rides tab had it: the same switches as the Recording settings card, in a bottom sheet. */
+    private void phoneOptions() { phoneOptions(null); }
+    private void phoneOptions(Runnable dismissed) {
+        LinearLayout content = vertical(); content.setPadding(ui.dp(16), 0, ui.dp(16), ui.dp(20));
+        View close = phoneSensors(content, true);
+        ScrollView scroller = new ScrollView(host.activity()); scroller.addView(content); insetBottom(scroller);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        show(dialog, SHEET, () -> { if (!closed) { refresh(); if (dismissed != null) dismissed.run(); } });
+    }
+    /**
+     * Adds the phone sensors to content: a sheet header (the sheet; its close button is returned) or a section heading
+     * (the card; returns null), then GPS route, the barometer and motion. The Next ride tag shows while a ride records.
+     */
+    private View phoneSensors(LinearLayout content, boolean sheet) {
+        String title = T.ridesPhoneSensors();
+        TextView chip = pill(T.ridesNextRide(), ui.blue);
         chip.setContentDescription(T.ridesChangesNextRide());
-        head.addView(chip, chipParams); nextRideTag = chip;
-        content.addView(head);
+        View close = null;
+        if (sheet) close = sheetHeader(content, title, service.isRecording() ? chip : null);
+        else {
+            LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
+            head.addView(ui.sectionLabel(title));
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
+            chipParams.topMargin = ui.dp(8);
+            head.addView(chip, chipParams); nextRideTag = chip;
+            content.addView(head);
+        }
         LinearLayout sensors = ui.groupCard();
         switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
         ui.divider(sensors);
@@ -1343,7 +1367,7 @@ public final class RidesScreen implements AppScreen {
         switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
-        return content;
+        return close;
     }
     /** The orange LAB badge More uses, placed after a row or section title. */
     private TextView labBadge() {
@@ -1369,14 +1393,19 @@ public final class RidesScreen implements AppScreen {
     private static String shortSourceName(MapSource source) {
         int split = source.name.indexOf(" · "); return split > 0 ? source.name.substring(0, split) : source.name;
     }
-    /** Sheet grab handle, title and a round close button; the caller wires the close action. */
-    private View sheetHeader(LinearLayout content, String title) {
+    /** Sheet grab handle, title (and a tag after it, or null) and a round close button; the caller wires the close action. */
+    private View sheetHeader(LinearLayout content, String title, View tag) {
         View grab = new View(host.activity()); grab.setBackground(ui.shape(ui.outline, 2, 0));
         LinearLayout.LayoutParams grabParams = new LinearLayout.LayoutParams(ui.dp(36), ui.dp(4)); grabParams.gravity = Gravity.CENTER_HORIZONTAL;
         grabParams.topMargin = ui.dp(10); grabParams.bottomMargin = ui.dp(6); content.addView(grab, grabParams);
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(ui.dp(4), 0, 0, ui.dp(8));
         TextView heading = ui.text(title, 22, true); heading(heading);
-        row.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+        if (tag == null) row.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+        else {
+            row.addView(heading);
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
+            row.addView(tag, chipParams); row.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, 1, 1));
+        }
         FrameLayout close = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL); disc.setColor(ui.raised);
         close.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), new InsetDrawable(disc, ui.dp(4)), null));
@@ -1660,7 +1689,7 @@ public final class RidesScreen implements AppScreen {
     /** The sheet: a checkbox per file the ride has (greyed out with a reason when it cannot be made now), a hint and Export. */
     private void showExportSheet(String id, RideStore.Summary summary, RideExportFiles.Phone phone) {
         LinearLayout content = vertical(); content.setPadding(ui.dp(16), 0, ui.dp(16), ui.dp(20));
-        View close = sheetHeader(content, T.ridesExportData());
+        View close = sheetHeader(content, T.ridesExportData(), null);
         Set<RideExportFiles.Format> remembered = RideExportFiles.parse(preferences.getString(RideExportFiles.CHOICE, null));
         Set<RideExportFiles.Format> initial = RideExportFiles.initial(remembered, phone);
         Map<RideExportFiles.Format, CheckBox> boxes = new EnumMap<>(RideExportFiles.Format.class);
