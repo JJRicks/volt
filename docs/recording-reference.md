@@ -294,8 +294,11 @@ Rides > Recording settings > End rides automatically turns this off. Exact rules
 Rides > Recording settings > Record rides automatically starts a ride when the
 connected scooter moves while Volt is on screen; it starts one while Volt is in
 the background only with Start recording in the background, also off by
-default. Android doesn't let Volt turn on location from the background, so
-such a ride has no GPS route. An explicitly
+default. On screen means Volt's activity is started (visible, also unfocused in
+split screen); a locked or dark screen counts as background, and a ride held
+back there starts on return if the scooter is still moving. Android doesn't
+let Volt turn on location from the background, so such a ride has no GPS
+route. An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from

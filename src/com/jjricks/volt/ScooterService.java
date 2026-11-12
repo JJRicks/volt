@@ -26,6 +26,16 @@ public final class ScooterService extends Service {
         if(Looper.myLooper()==Looper.getMainLooper())service.applyVisibility(value);
         else service.handler.post(()->{if(running==service)service.applyVisibility(uiVisible);});
     }
+    /**
+     * MainActivity is between onStart and onStop: on screen for auto-record (AutoStartPolicy.onScreen) even when paused,
+     * as in split screen without focus. Only auto-record reads it; everything else keeps visible (resumed).
+     */
+    private static volatile boolean uiStarted;
+    /** Main calls this from onStart and onStop. Coming back on screen looks again at once for a ride held back while away. */
+    public static void setUiStarted(boolean value){
+        uiStarted=value;ScooterService service=running;if(service==null||!value)return;
+        service.handler.post(()->{if(running==service&&!service.destroyed)service.observeAutoStart(SystemClock.elapsedRealtime());});
+    }
     public final class LocalBinder extends Binder {public ScooterService service(){return ScooterService.this;}}
     private final LocalBinder binder=new LocalBinder();private final Handler handler=new Handler(Looper.getMainLooper());private final NotificationPacer<java.util.function.Supplier<Notification>> notices=new NotificationPacer<>(CHARGE_ALERT_NOTICE);private final Runnable noticeDrain=this::drainNotices;private final LinkedHashSet<Runnable> listeners=new LinkedHashSet<>();
     public ScooterProfiles profiles;public BleController ble;public RideStore rides;public PhoneRideStore phoneRides;public TelemetryHistory history;public SharedPreferences settings;
@@ -1861,7 +1871,8 @@ public final class ScooterService extends Service {
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
      * Auto-record, on every Bluetooth change and service tick, in the background too (where it starts a ride only with
-     * the background switch on; AutoStartPolicy.recordsNow). It starts a ride as startRide does
+     * the background switch on; AutoStartPolicy.recordsNow), and when Volt comes back on screen (setUiStarted). On
+     * screen is started-and-not-stopped (AutoStartPolicy.onScreen), not visible. It starts a ride as startRide does
      * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
      */
     private void observeAutoStart(long mono){
@@ -1871,7 +1882,7 @@ public final class ScooterService extends Service {
         // linked(), not ready(): out of sight the status poll runs every 15 s, so a healthy authenticated link is past
         // ready()'s 7 s window for half of each cycle. The speed sample's own freshness is checked by autoStartMoving.
         boolean canStart=ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
-        boolean enabled=AutoStartPolicy.recordsNow(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY,false),visible);
+        boolean enabled=AutoStartPolicy.recordsNow(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY,false),AutoStartPolicy.onScreen(uiStarted,visible));
         if(!autoStart.shouldRecord(enabled,autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
         try{
             beginRide(RidesScreen.defaultRideName(this));

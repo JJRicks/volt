@@ -74,11 +74,22 @@ final class AutoStartPolicy {
     boolean rideModeHeld() { return rideModeHeld; }
 
     /**
+     * Whether Volt counts as on screen for auto-record: its activity is started and not yet stopped. Started, not
+     * resumed, so a Volt that is visible without focus (split screen on Android 8 and 9, where the other half pauses
+     * it) is on screen. A locked or dark screen and Home stop the activity, so they count as background (owner's
+     * answer on #403), and onStart brings it back on screen.
+     *
+     * @param started between MainActivity's onStart and onStop
+     * @param resumed between its onResume and onPause (ScooterService's visible); a resumed activity is always started
+     */
+    static boolean onScreen(boolean started, boolean resumed) { return started || resumed; }
+
+    /**
      * Whether auto-record is on for where Volt is now: on screen whenever its switch is on, in the background only
      * when the background switch is on too. The result is {@link #shouldRecord}'s enabled. A ride that was held
      * back in the background starts once Volt comes on screen, if the scooter is still moving.
      *
-     * @param onScreen Volt's activity is resumed (ScooterService's visible)
+     * @param onScreen {@link #onScreen}
      */
     static boolean recordsNow(boolean autoRecord, boolean backgroundAllowed, boolean onScreen) {
         return autoRecord && (onScreen || backgroundAllowed);

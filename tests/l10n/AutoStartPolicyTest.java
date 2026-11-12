@@ -13,6 +13,7 @@ public final class AutoStartPolicyTest {
         backgroundPrerequisite();
         backgroundCadence();
         backgroundSwitch();
+        onScreenIsStarted();
         locationPrompt();
         System.out.println("AutoStartPolicyTest: " + checks + " checks");
     }
@@ -158,6 +159,29 @@ public final class AutoStartPolicyTest {
         check(!p.shouldRecord(AutoStartPolicy.recordsNow(true, false, false), true, false, false, false, false, true), "held back in the background");
         check(!p.recordHeld() && p.shouldRecord(AutoStartPolicy.recordsNow(true, false, true), true, false, false, false, false, true),
                 "held back is not a hold: on screen it starts");
+    }
+
+    /**
+     * On screen for auto-record is started-and-not-stopped, not resumed (#403 review, P3 3): an unfocused split-screen
+     * Volt on Android 8 and 9 is paused but on screen; a locked or dark screen stops Volt, so it stays background.
+     */
+    private static void onScreenIsStarted() {
+        check(AutoStartPolicy.onScreen(true, true), "resumed: on screen");
+        check(AutoStartPolicy.onScreen(true, false), "started but paused (split screen without focus): on screen");
+        check(AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(true, false)), "split screen without focus, background switch off: starts");
+        check(!AutoStartPolicy.onScreen(false, false), "stopped (screen locked or dark, Home, another app): background");
+        check(!AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(false, false)), "locked or dark screen, background switch off: nothing");
+        check(AutoStartPolicy.recordsNow(true, true, AutoStartPolicy.onScreen(false, false)), "locked or dark screen, background switch on: starts");
+        // Held back while stopped, then onStart (unlocked, or back from Home) with the scooter still moving: it starts.
+        AutoStartPolicy p = new AutoStartPolicy();
+        p.observeLink(true, 1);
+        check(!p.shouldRecord(AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(false, false)), true, false, false, false, false, true), "held back while stopped");
+        check(!p.recordHeld() && p.shouldRecord(AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(true, false)), true, false, false, false, false, true),
+                "started again while moving: starts before onResume");
+        // Back on screen after the scooter stopped: nothing.
+        AutoStartPolicy q = new AutoStartPolicy();
+        q.observeLink(true, 1);
+        check(!q.shouldRecord(AutoStartPolicy.recordsNow(true, false, AutoStartPolicy.onScreen(true, true)), false, false, false, false, false, true), "back on screen, scooter stopped: nothing");
     }
 
     private static void locationPrompt() {
