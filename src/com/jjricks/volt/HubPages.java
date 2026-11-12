@@ -61,7 +61,49 @@ public final class HubPages {
     public static final List<String> ALL = Collections.unmodifiableList(new ArrayList<>(PARENTS.keySet()));
     /** The seven subjects, in Home's order. */
     public static final List<String> SUBJECTS = Collections.unmodifiableList(Arrays.asList(RIDE, BATTERY, CONTROLS, LIGHTS, SECURITY, SERVICE, DATA));
-    /** Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts). */
+
+    /**
+     * The Widgets dock's subjects, most-used first (owner's answer 8 on #383: a portrait dock must not be cramped): when
+     * not all seven fit at a comfortable width, the dock shows the first of these, in Home's order, and its "All" item
+     * opens the full list. Ride, Battery & charging, Controls and Data come first: the old tab bar's Live Stats and Rides
+     * tabs and the Scooter tab's most-visited pages.
+     */
+    public static final List<String> DOCK_ORDER = Collections.unmodifiableList(Arrays.asList(RIDE, BATTERY, CONTROLS, DATA, LIGHTS, SERVICE, SECURITY));
+    /** The dock's "All" item's icon (the old tab bar's More icon). */
+    public static final String DOCK_ALL_ICON = "more";
+    /** The width one dock item needs at normal text size, in dp: a 48 dp target with room for its one-line label. */
+    public static final int DOCK_ITEM_DP = 60;
+    /** The dock's margin from each side of a phone's window (the old tab bar's) and its inner padding, in dp. */
+    public static final int DOCK_SIDE_DP = 14, DOCK_PADDING_DP = 4;
+
+    /** The room a phone's dock gives its items in a window widthDp wide: the window less the dock's margins and padding. */
+    public static int dockRoom(int widthDp) { return widthDp - 2 * DOCK_SIDE_DP - 2 * DOCK_PADDING_DP; }
+
+    /**
+     * The subjects the dock shows in widthDp of room at this text scale (app text size times Android's font size, at
+     * least 1), in Home's order: all seven when they and the "All" item each get DOCK_ITEM_DP (scaled), else as many of
+     * DOCK_ORDER as fit beside "All", and always at least one. Every subject stays one tap away through "All".
+     */
+    public static List<String> dockSubjects(float widthDp, float textScale) {
+        float item = DOCK_ITEM_DP * Math.max(1f, textScale);
+        int slots = (int) Math.floor(widthDp / item);
+        int count = Math.max(1, Math.min(SUBJECTS.size(), slots - 1));
+        List<String> shown = new ArrayList<>();
+        for (String subject : SUBJECTS) if (DOCK_ORDER.indexOf(subject) < count) shown.add(subject);
+        return Collections.unmodifiableList(shown);
+    }
+    /**
+     * The tab bar's roots, in the bar's order (Scooter was the raised centre button), from parts 1-10. The Hub (PR 11) no
+     * longer shows the tab bar or the side rail; MainActivity keeps their code, unused, until the owner has used the Hub and
+     * says it can go (owner's answer 8 on #383), and this list with it.
+     */
+    public static final List<String> TABS = Collections.unmodifiableList(Arrays.asList(HOME, DATA, SCOOTER, RIDE, SETTINGS));
+
+    /**
+     * Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts).
+     * Of the scooter subjects only Controls, Battery & charging and Lights & sound (the owner's answer 21 on #383); every
+     * other subject, sub-page, form or setup flow blocks it.
+     */
     private static final Set<String> CLEAR_FOR_RIDING = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             HOME, RIDE, RIDE_RIDES, DATA, CONTROLS, BATTERY, LIGHTS)));
 
@@ -142,6 +184,18 @@ public final class HubPages {
 
     /** Whether riding mode may open over this page by itself (AutoStartPolicy); unknown ids count as busy. */
     public static boolean clearForRiding(String id) { return id != null && CLEAR_FOR_RIDING.contains(id); }
+
+    /** The tab that held a page, by its root id in {@link #TABS}: only the kept, unused tab bar and rail code reads it (PR 11). */
+    public static String tabOf(String id) {
+        String page = canonical(id);
+        switch (subjectOf(page)) {
+            case HOME: return HOME;
+            case DATA: return DATA;
+            case RIDE: return RIDE;
+            case SETTINGS: return SETTINGS;
+            default: return SCOOTER;
+        }
+    }
 
     /**
      * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,

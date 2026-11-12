@@ -1,8 +1,6 @@
 package com.jjricks.volt;
 
 import android.app.AlertDialog;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -16,34 +14,42 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /**
- * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had: a grab handle above the seven
- * subjects' icons. Tapping an icon opens its subject on Home's page stack; tapping the handle, or swiping the dock up,
- * opens a sheet listing every subject with its name and live summary (CleanSubjects). Service's icon carries the orange
- * dot while a maintenance check is due. On a phone the icons have no text: each is read by its subject's name, and a
- * long press shows the name. On a wide window each icon has its short label under it (Ui.nav, whose caption ladder
- * falls back to the icon alone). Hidden while the dashboard is being edited. Every word comes from HubText, so this
- * file holds no catalog references.
+ * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
+ * on #383: not cramped on a portrait phone, not drab or out of place): the same rounded floating bar, its surface,
+ * outline, elevation and margins, holding the subjects' icons each with its short name under it (Ui.nav, the rail's
+ * item, whose caption ladder falls back to the icon alone) and an "All" item. Where all seven don't fit at a comfortable
+ * width (HubPages.dockSubjects: a 344 dp phone shows four), it shows the most-used ones; "All" opens a sheet listing
+ * every subject with its name and live summary (CleanSubjects), so each stays one tap away, and so does an upward swipe
+ * on the dock. Tapping an icon opens its subject on Home's page stack. Service's icon carries the orange dot while a
+ * maintenance check is due, or "All" does while Service isn't shown. Each item is read by its subject's full name (All
+ * by HubText.dockAll()), and a long press shows it. On a wide window the dock is centred and holds all seven. Hidden
+ * while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog references.
  */
 final class HubDock {
-    /** View tags: the dock, its handle, and each subject's icon ("hub-dock-" and the subject's page id). */
+    /**
+     * View tags: the dock, its "All" item (which took the old grab handle's place and job, so it keeps the handle's tag),
+     * the sheet, and each shown subject's icon ("hub-dock-" and the subject's page id).
+     */
     static final String TAG = "hub-dock", TAG_HANDLE = "hub-dock-handle", TAG_SHEET = "hub-dock-sheet";
     static String tag(String subject) { return "hub-dock-" + subject; }
 
     /**
-     * A phone's dock (plan 1.10): the handle's 48 dp-tall full-width target over a 52 dp row of icons, and the gap above
-     * the screen's edge. Side margins are 4 dp and the row has no padding, so seven icons get at least 48 dp each at 344 dp
-     * (7 x 48 = 336). An upward swipe anywhere on the dock opens the same list as the handle.
+     * The old floating tab bar's place (Ui.floatingNav as MainActivity added it): 14 dp from each side and 10 dp above the
+     * screen's edge, and its 26 dp corners. Items are Ui.nav's: at least 64 dp tall, growing with the text.
      */
-    private static final int HANDLE_DP = 48, ROW_DP = 52, BOTTOM_DP = 10, PHONE_SIDE_DP = 4, ITEM_MIN_DP = 48;
-    /** A wide window: each item is at most this wide, so seven sit centred under the dashboard; narrower when room is short. */
-    private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24, WIDE_PADDING_DP = 8;
+    private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64,
+            PADDING_DP = HubPages.DOCK_PADDING_DP;
+    /** A wide window: each item is at most this wide, so the dock sits centred under the dashboard; narrower when room is short. */
+    private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24;
 
     private final ScreenHost host;
     private final Ui ui;
     private final boolean wide;
     private final BooleanSupplier hidden;
     private final Dock view;
+    private final List<String> shown;
     private final List<View> items = new ArrayList<>();
+    /** The item that carries Service's due dot: Service's own, or "All" while Service isn't shown. */
     private View service;
     private AlertDialog sheet;
     private CleanSubjects sheetSubjects;
@@ -56,27 +62,27 @@ final class HubDock {
         this.ui = host.ui();
         this.wide = wide;
         this.hidden = hidden;
+        shown = wide ? HubPages.SUBJECTS : HubPages.dockSubjects(phoneRoom(host.contentWidthDp()), textScale());
         view = new Dock();
-        view.setOrientation(LinearLayout.VERTICAL);
-        view.setGravity(Gravity.CENTER_HORIZONTAL);
-        view.setClipChildren(false);
+        view.setOrientation(LinearLayout.HORIZONTAL);
+        view.setGravity(Gravity.CENTER_VERTICAL);
         view.setTag(TAG);
-        view.setBackground(ui.shape(ui.surface, 26, ui.raised));
+        view.setBackground(ui.shape(ui.surface, CORNER_DP, ui.raised));
         view.setElevation(ui.dp(6));
-        view.addView(handle(), new LinearLayout.LayoutParams(-1, ui.dp(HANDLE_DP)));
-        LinearLayout row = new LinearLayout(host.activity());
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER);
-        row.setPadding(ui.dp(wide ? WIDE_PADDING_DP : 0), 0, ui.dp(wide ? WIDE_PADDING_DP : 0), ui.dp(wide ? 6 : 4));
-        for (String subject : HubPages.SUBJECTS) {
-            View item = wide ? wideItem(subject) : phoneItem(subject);
+        view.setPadding(ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP));
+        for (String subject : shown) {
+            View item = item(subject);
             item.setTag(tag(subject));
             items.add(item);
             if (subject.equals(HubPages.SERVICE)) service = item;
-            // Weighted in both layouts: a wide dock caps its own width (Dock.onMeasure), so seven always fit the window.
-            row.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
+            // Weighted: equal widths, and a wide dock caps its own width (Dock.onMeasure), so every item always fits. Each
+            // takes the dock's full height, so the icons stay level even where one label wraps and another doesn't.
+            view.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
         }
-        view.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        View all = allItem();
+        items.add(all);
+        if (service == null) service = all;
+        view.addView(all, new LinearLayout.LayoutParams(0, -1, 1));
         // Editing toggles inside the dashboard with no rebuild: follow it before each frame, so the dock never covers the editor.
         follow = () -> { applyHidden(); return true; };
         view.getViewTreeObserver().addOnPreDrawListener(follow);
@@ -86,19 +92,28 @@ final class HubDock {
 
     View view() { return view; }
 
-    /** The layout the dock takes at the bottom of the page frame: full width less 4 dp a side on a phone, centred when wide. */
+    /** The room a phone's dock gives its items in a window widthDp wide: the window less its margins and padding. */
+    static int phoneRoom(int widthDp) { return HubPages.dockRoom(widthDp); }
+
+    /** The subjects the dock shows, in Home's order (all seven when wide). */
+    List<String> shown() { return shown; }
+
+    /** App text size times Android's font size, at least 1: the dock's items grow with both. */
+    private float textScale() {
+        return Math.max(1f, ui.textScale * host.activity().getResources().getConfiguration().fontScale);
+    }
+
+    /** The layout the dock takes at the bottom of the page frame: the old tab bar's margins on a phone, centred when wide. */
     FrameLayout.LayoutParams layoutParams() {
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(wide ? -2 : -1, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.leftMargin = params.rightMargin = ui.dp(wide ? WIDE_SIDE_DP : PHONE_SIDE_DP);
+        params.leftMargin = params.rightMargin = ui.dp(wide ? WIDE_SIDE_DP : SIDE_DP);
         params.bottomMargin = ui.dp(BOTTOM_DP);
         return params;
     }
 
     /** The room the page's scroller leaves under its last card so it can scroll clear of the dock. */
     int clearance() {
-        float scale = Math.max(1f, ui.textScale * host.activity().getResources().getConfiguration().fontScale);
-        int row = wide ? Math.round(ui.dp(64) * scale) + ui.dp(6) : ui.dp(ROW_DP + 4);
-        return ui.dp(HANDLE_DP) + row + ui.dp(BOTTOM_DP) + ui.dp(16);
+        return Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(BOTTOM_DP) + ui.dp(16);
     }
 
     /** Service's dot and its spoken "check due" text, and the open sheet's summaries. */
@@ -121,50 +136,27 @@ final class HubDock {
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
     }
 
-    /** The grab handle: a short bar in a full-width target; it opens the list of every subject. */
-    private View handle() {
-        FrameLayout target = new FrameLayout(host.activity());
-        View bar = new View(host.activity());
-        bar.setBackground(ui.shape(Ui.withAlpha(ui.muted, 150), 2, 0));
-        bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        target.addView(bar, new FrameLayout.LayoutParams(ui.dp(36), ui.dp(4), Gravity.CENTER));
-        target.setTag(TAG_HANDLE);
-        target.setContentDescription(HubText.dockAll());
-        target.setTooltipText(HubText.dockAll());
-        target.setFocusable(true);
-        target.setClickable(true);
-        target.setMinimumHeight(ui.dp(HANDLE_DP));
-        target.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null,
-                ui.shape(Color.WHITE, 22, 0)));
-        target.setOnClickListener(v -> showAll());
-        return target;
-    }
-
-    /** A phone's icon: no text; read by the subject's name, which a long press shows. */
-    private View phoneItem(String subject) {
-        FrameLayout item = new FrameLayout(host.activity());
-        item.setMinimumHeight(ui.dp(ROW_DP));
-        item.setMinimumWidth(ui.dp(ITEM_MIN_DP));
-        View icon = ui.icon(HubPages.icon(subject), 23, ui.text);
-        item.addView(icon, new FrameLayout.LayoutParams(ui.dp(23), ui.dp(23), Gravity.CENTER));
-        Msg name = HubText.title(subject);
+    /**
+     * A subject's item: its icon over its short name on a phone, or its name when wide (Ui.nav's ladder: that label, the
+     * short name, or the icon alone). TalkBack and the long-press tooltip always give the full name.
+     */
+    private View item(String subject) {
+        Msg shortName = HubText.shortTitle(subject);
+        String name = HubText.title(subject).render();
+        String shortLabel = shortName == null ? name : shortName.render();
+        View item = ui.nav(wide ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
         item.setContentDescription(name);
         item.setTooltipText(name);
-        item.setFocusable(true);
-        item.setClickable(true);
-        item.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null,
-                ui.shape(Color.WHITE, 22, 0)));
-        item.setOnClickListener(v -> { Haptics.tick(v); open(subject); });
-        ui.pressFeedback(item);
         return item;
     }
 
-    /** A wide window's item: the icon over its short label (Ui.nav's two-line ladder), read by the full name. */
-    private View wideItem(String subject) {
-        Msg shortName = HubText.shortTitle(subject);
-        String name = HubText.title(subject).render();
-        View item = ui.nav(name, shortName == null ? name : shortName.render(), HubPages.icon(subject), false, () -> open(subject));
-        item.setTooltipText(name);
+    /** "All": the old tab bar's More icon over HubText.all(); read as HubText.dockAll(). It opens every subject's row. */
+    private View allItem() {
+        String label = HubText.all().render();
+        View item = ui.nav(label, label, HubPages.DOCK_ALL_ICON, false, this::showAll);
+        item.setTag(TAG_HANDLE);
+        item.setContentDescription(HubText.dockAll());
+        item.setTooltipText(HubText.dockAll());
         return item;
     }
 
@@ -202,10 +194,10 @@ final class HubDock {
 
         Dock() { super(host.activity()); }
 
-        /** Wide: at most seven 96 dp items plus padding, and never wider than the room the page frame gives. */
+        /** Wide: at most 96 dp an item plus padding, and never wider than the room the page frame gives. */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             if (wide) {
-                int max = ui.dp(WIDE_ITEM_DP) * HubPages.SUBJECTS.size() + 2 * ui.dp(WIDE_PADDING_DP);
+                int max = ui.dp(WIDE_ITEM_DP) * (shown.size() + 1) + 2 * ui.dp(PADDING_DP);
                 int width = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? max : Math.min(max, MeasureSpec.getSize(widthSpec));
                 widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY);
             }

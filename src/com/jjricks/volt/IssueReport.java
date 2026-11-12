@@ -16,6 +16,14 @@ final class IssueReport {
 
     static String subject(String appVersion) { return "Volt issue report · Volt " + appVersion; }
 
+    /**
+     * Battery & charging › Charge history & recordings › Email to Volt: a fixed English subject for the developer's
+     * inbox, naming Volt's version and the model the recordings are from (scooterModel "" when it isn't known).
+     */
+    static String chargeRecordingsSubject(String appVersion, String scooterModel) {
+        return "Volt charge recordings · Volt " + appVersion + (scooterModel == null || scooterModel.isEmpty() ? "" : " · " + scooterModel);
+    }
+
     /** scooterModel is ModelRegistry.modelLine for the selected scooter ("" when none is known). */
     static String body(String appVersion, String androidRelease, int sdk, String phone, String scooterModel, boolean simulated) {
         StringBuilder out = new StringBuilder("What happened, and what did you expect instead?\n\n\n\n");

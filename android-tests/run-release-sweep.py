@@ -196,6 +196,13 @@ STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', siz
 STEPS += [inst('riding-battery-gauge', T + 'RidingBatteryGaugeValidation')]
 STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden_api=True),
           inst('riding-disconnected-narrow', T + 'RidingDisconnectedValidation', '-e', 'label', 'narrow', size='344x882', hidden_api=True)]
+# The Hub walk (part 11b): both Homes, every subject page and sub-page, the page stack, the dock and its All sheet, Settings
+# and search on the simulator, phone (four dock items) and wide (all seven). hub-widgets-header checks Widgets Home's search
+# and gear on their own, so the main walk's result doesn't hang on them. Widgets Home's header doesn't have them yet, so that
+# step is expected to fail and reports only; drop report_only once the header gets its search and gear.
+STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
+          inst('hub-725', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='725x604'),
+          inst('hub-widgets-header-344', T + 'HubValidation', '-e', 'mode', 'widgets-header', '-e', 'theme', 'dark', size='344x882', report_only=True)]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (

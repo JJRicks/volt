@@ -380,7 +380,7 @@ public final class RouteMapView extends View {
             primary = grade == null ? T.mapsRouteGradeNotMeasured() : grade;
             if (power != null) rest.add(power);
         } else if ("elevation".equals(metric)) {
-            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1));
+            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : elevation(p.relativeAltitudeM, imperial());
             if (power != null) rest.add(power);
         } else if ("accel".equals(metric)) {
             primary = accel == null ? T.mapsRouteAccelNotMeasured() : accel;
@@ -403,14 +403,34 @@ public final class RouteMapView extends View {
         // The zoom/fit buttons occupy a 48 dp column at the right edge; keep the tooltip beside it, not under it.
         float controls = ui.dp(60);
         float maxWidth = Math.max(ui.dp(60), getWidth() - ui.dp(8) - controls);
+        // The context line, joined with " · ". When it is wider than the popup can be, it breaks at
+        // those joins onto further lines rather than cutting a value, as long as the taller popup still
+        // fits the map; otherwise, or when one part alone is too wide, it is cut with an ellipsis.
+        List<String> lines = new ArrayList<String>();
+        if (!secondary.isEmpty()) lines.add(secondary);
+        if (rest.size() > 1 && small.measureText(secondary) > maxWidth - 2 * padX) {
+            List<String> wrapped = new ArrayList<String>();
+            int start = 0;
+            for (int end = 1; end <= rest.size(); end++) {
+                if (end == rest.size()
+                        || small.measureText(android.text.TextUtils.join(" · ", rest.subList(start, end + 1)))
+                                > maxWidth - 2 * padX) {
+                    wrapped.add(android.text.TextUtils.join(" · ", rest.subList(start, end)));
+                    start = end;
+                }
+            }
+            if (h1 + gap + h2 * wrapped.size() + 2 * padY <= getHeight() - 2 * ui.dp(8)) lines = wrapped;
+        }
+        float secondaryWidth = 0;
+        for (String line : lines) secondaryWidth = Math.max(secondaryWidth, small.measureText(line));
         float width =
                 Math.min(
                         maxWidth,
                         Math.max(
                                         big.measureText(primary),
-                                        secondary.isEmpty() ? 0 : small.measureText(secondary))
+                                        secondaryWidth)
                                 + 2 * padX);
-        float height = h1 + gap + h2 + 2 * padY;
+        float height = h1 + gap + h2 * lines.size() + 2 * padY;
         float px = screenX(p), py = screenY(p);
         float left = Math.max(ui.dp(8), Math.min(getWidth() - controls - width, px - width / 2));
         float top = py - ui.dp(16) - height;
@@ -435,14 +455,14 @@ public final class RouteMapView extends View {
                 left + padX,
                 top + padY - bm.ascent,
                 big);
-        if (!secondary.isEmpty()) {
-            small.setColor(Ui.withAlpha(ink(), 185));
+        small.setColor(Ui.withAlpha(ink(), 185));
+        for (int i = 0; i < lines.size(); i++) {
             canvas.drawText(
                     android.text.TextUtils.ellipsize(
-                                    secondary, small, textWidth, android.text.TextUtils.TruncateAt.END)
+                                    lines.get(i), small, textWidth, android.text.TextUtils.TruncateAt.END)
                             .toString(),
                     left + padX,
-                    top + padY + h1 + gap - sm.ascent,
+                    top + padY + h1 + gap + h2 * i - sm.ascent,
                     small);
         }
     }
@@ -454,12 +474,42 @@ public final class RouteMapView extends View {
                 : T.fmtQuantity(Fmt.decimal(Locale.US, watts, 0), T.unitsWatt());
     }
 
+    // The popup's signed lines: each number is formatted with its sign first (Fmt.signedDecimal), and
+    // one small method per line puts it into the line's whole format string through a plain %s, so
+    // each line can take a catalog string holding %1$s.
+
     private static String grade(Double percent) {
-        return percent == null ? null : String.format(Locale.US, "≈%+.1f%% grade", percent);
+        return percent == null ? null : gradeLine(Fmt.signedDecimal(Locale.US, percent, 1));
+    }
+
+    /** "≈+2.5% grade": signedPercent is the signed percentage, without its percent sign. */
+    private static String gradeLine(String signedPercent) {
+        return T.mapsRouteGrade(signedPercent);
     }
 
     private static String accel(Double mps2) {
-        return mps2 == null ? null : String.format(Locale.US, "%+.2f m/s² GPS accel", mps2);
+        return mps2 == null ? null : accelLine(Fmt.signedDecimal(Locale.US, mps2, 2));
+    }
+
+    /** "+0.25 m/s² GPS accel": signedMps2 is the signed acceleration in m/s². */
+    private static String accelLine(String signedMps2) {
+        return T.mapsRouteAccel(signedMps2);
+    }
+
+    /** The elevation line for a height relative to the ride's start, in feet when imperial. */
+    private static String elevation(double relativeAltitudeM, boolean imperial) {
+        String signed = Fmt.signedDecimal(Locale.US, relativeAltitudeM * (imperial ? 3.280839895 : 1), 0);
+        return imperial ? elevationFeetLine(signed) : elevationMetersLine(signed);
+    }
+
+    /** "Elevation +12 ft": signedFeet is the signed whole number of feet. */
+    private static String elevationFeetLine(String signedFeet) {
+        return T.mapsRouteElevationFt(signedFeet);
+    }
+
+    /** "Elevation +4 m": signedMeters is the signed whole number of metres. */
+    private static String elevationMetersLine(String signedMeters) {
+        return T.mapsRouteElevationM(signedMeters);
     }
 
     private String speed(Double mps) {
