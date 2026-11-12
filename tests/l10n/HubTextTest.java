@@ -139,9 +139,9 @@ public final class HubTextTest {
         equal("Charging · 72%", HubText.batteryLevel("72%", true), "level charging");
         equal("Sport 31 mph · cruise on", HubText.controls("Sport 31 mph", true), "cruise on");
         equal("Sport 31 mph · cruise off", HubText.controls("Sport 31 mph", false), "cruise off");
-        equal("Headlight auto", HubText.headlightAuto(), "headlight auto");
-        equal("Headlight on", HubText.headlight(true), "headlight on");
-        equal("Headlight off", HubText.headlight(false), "headlight off");
+        equal("Automatic lights", HubText.automaticLights(), "automatic lights");
+        equal("Tail light on", HubText.tailLight(true), "tail light on");
+        equal("Tail light off", HubText.tailLight(false), "tail light off");
         equal("PIN on · proximity on", HubText.security(true, true), "pin on, proximity on");
         equal("PIN on · proximity off", HubText.security(true, false), "pin on, proximity off");
         equal("PIN off · proximity on", HubText.security(false, true), "pin off, proximity on");
@@ -170,7 +170,7 @@ public final class HubTextTest {
                 HubText.rideLastToday("x"), HubText.rideLastYesterday("x"), HubText.rideLastOn("x", "y"), HubText.rideRecording("x"),
                 HubText.rideNone(), HubText.batteryLimit("x", false), HubText.batteryLimit("x", true),
                 HubText.batteryLevel("x", false), HubText.batteryLevel("x", true), HubText.controls("x", true),
-                HubText.controls("x", false), HubText.headlightAuto(), HubText.headlight(true), HubText.headlight(false),
+                HubText.controls("x", false), HubText.automaticLights(), HubText.tailLight(true), HubText.tailLight(false),
                 HubText.security(true, true), HubText.security(true, false), HubText.security(false, true),
                 HubText.security(false, false), HubText.serviceDue("x", "y"), HubText.serviceClear(), HubText.dataSummary(),
                 HubText.batteryLevelRange("x", "y"), HubText.batteryChargingTo("x"), HubText.batteryNotCharging()));

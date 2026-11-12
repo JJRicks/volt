@@ -15,9 +15,9 @@ public final class HubSummariesTest {
 
     private static void lights() {
         require(HubSummaries.lights(0, 1) == HubSummaries.Lights.AUTO, "Automatic lights win");
-        require(HubSummaries.lights(null, 1) == HubSummaries.Lights.AUTO, "Automatic with the headlight unread");
-        require(HubSummaries.lights(1, 0) == HubSummaries.Lights.ON && HubSummaries.lights(1, null) == HubSummaries.Lights.ON, "On");
-        require(HubSummaries.lights(0, 0) == HubSummaries.Lights.OFF, "Off");
+        require(HubSummaries.lights(null, 1) == HubSummaries.Lights.AUTO, "Automatic with the tail light unread");
+        require(HubSummaries.lights(1, 0) == HubSummaries.Lights.ON && HubSummaries.lights(1, null) == HubSummaries.Lights.ON, "Tail light on");
+        require(HubSummaries.lights(0, 0) == HubSummaries.Lights.OFF, "Tail light off");
         require(HubSummaries.lights(null, 0) == null && HubSummaries.lights(null, null) == null, "Unknown shows nothing");
     }
 

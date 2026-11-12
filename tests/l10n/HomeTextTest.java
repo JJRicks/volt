@@ -76,8 +76,12 @@ public final class HomeTextTest {
         equal("Widgets", HubText.homeStyleName(false), "widgets");
         equal("A fixed Home: battery, lock, four quick actions and your scooter's subjects.", HubText.homeStyleDescription(true), "clean sub");
         equal("The dashboard you arrange yourself, with saved layouts.", HubText.homeStyleDescription(false), "widgets sub");
-        equal("Preview of the Clean Home", HubText.homeStylePreview(true), "clean preview");
-        equal("Preview of the Widgets Home", HubText.homeStylePreview(false), "widgets preview");
+        // Owner's answers 9, 10 and 12: setup shows detailed pictures, and each is spoken as what it shows.
+        equal("Picture of the Clean Home: the battery card, the lock, a row of four quick actions starting with RIDE, "
+                + "and your scooter's subjects below.", HubText.homeStylePreview(true), "clean preview");
+        equal("Picture of the Widgets Home: the RIDE button at the top, then the scooter overview, the lock bar, "
+                + "reading and setting tiles and the ride recorder, in a grid you arrange.",
+                HubText.homeStylePreview(false), "widgets preview");
         equal("Switching keeps your widget layout.", HubText.homeStyleKeepsLayout(), "keeps layout");
         equal("Show charging while plugged in", HubText.momentCharging(), "moment charging");
         equal("Home shows the charge by itself when charging starts.", HubText.momentChargingDescription(), "moment charging sub");
@@ -107,19 +111,33 @@ public final class HomeTextTest {
         equal("Edit Home", HubText.editTitle(), "edit title");
         equal("Quick actions", HubText.editQuickActions(), "edit section");
         equal("Quick action 3: Charge done by. Change", HubText.editQuickSlot(3, "Charge done by"), "slot");
-        equal("Ride", HubText.quickActionLabel(HomeQuickActions.RIDING), "riding");
+        // Owner's answer 6: Clean's way into riding mode reads as the Widgets RIDE button does, with its own keys.
+        equal("RIDE", HubText.quickActionLabel(HomeQuickActions.RIDING), "riding");
+        equal("RIDE", HubText.quickActionShortLabel(HomeQuickActions.RIDING), "riding short");
+        check(T.key(HubText.quickActionLabel(HomeQuickActions.RIDING).id()).equals("riding_ride_button"), "RIDE reuses the RIDE button's key");
+        equal("Open riding mode", HubText.quickActionDescription(HomeQuickActions.RIDING), "riding description");
+        check(T.key(HubText.quickActionDescription(HomeQuickActions.RIDING).id()).equals("riding_ride_description"),
+                "RIDE is spoken as the RIDE button is");
         equal("Record ride", HubText.quickActionLabel(HomeQuickActions.RECORD), "record");
-        equal("Ride", HubText.quickActionShortLabel(HomeQuickActions.RIDING), "riding short");
         equal("Record", HubText.quickActionShortLabel(HomeQuickActions.RECORD), "record short");
-        for (String id : new String[]{HomeQuickActions.RIDING, HomeQuickActions.RECORD}) {
+        // Owner's answer 11: charge alerts take Charge done by's place on a scooter without scheduled charging.
+        equal("Battery alerts", HubText.quickActionLabel(HomeQuickActions.CHARGE_ALERTS), "charge alerts");
+        equal("Alerts", HubText.quickActionShortLabel(HomeQuickActions.CHARGE_ALERTS), "charge alerts short");
+        for (String id : new String[]{HomeQuickActions.RECORD, HomeQuickActions.CHARGE_ALERTS}) {
             Msg full = HubText.quickActionLabel(id), shortRung = HubText.quickActionShortLabel(id);
             check(T.key(shortRung.id()).equals(T.key(full.id()) + "_short"), "the short rung sits beside its full key: " + id);
+            check(HubText.quickActionDescription(id) == null, "no separate description for " + id);
+        }
+        for (String id : new String[]{HomeQuickActions.RIDING, HomeQuickActions.RECORD, HomeQuickActions.CHARGE_ALERTS}) {
             check(HomeQuickActions.cleanOnly(id), "a labelled id is one of Clean's own: " + id);
+            check(HubText.quickActionLabel(id) != null && HubText.quickActionShortLabel(id) != null, "every Clean-only id has a name: " + id);
         }
-        // Catalog ids keep their Quick access names (QuickAccessActions); HubText names only Clean's own two.
+        // Catalog ids keep their Quick access names (QuickAccessActions); HubText names only Clean's own three.
         for (String id : QuickAccessActions.defaultIds()) {
-            check(HubText.quickActionLabel(id) == null && HubText.quickActionShortLabel(id) == null, "no Home name for catalog id " + id);
+            check(HubText.quickActionLabel(id) == null && HubText.quickActionShortLabel(id) == null
+                    && HubText.quickActionDescription(id) == null, "no Home name for catalog id " + id);
         }
+        check(HubText.quickActionDescription(null) == null, "no description for null");
         check(HubText.quickActionLabel(null) == null && HubText.quickActionShortLabel(null) == null, "no name for null");
         check(HubText.quickActionLabel("nowhere") == null, "no name for an unknown id");
         equal("Recording", HubText.qaRecording(), "recording value");
@@ -137,6 +155,15 @@ public final class HomeTextTest {
         equal("Switch to Clean", HubText.whatsNewSwitch(), "switch");
         equal("Keep Widgets", HubText.whatsNewKeep(), "keep");
         equal("You can change this any time in Settings › Home style.", HubText.whatsNewLater(), "later");
+        // Owner's answers 9, 10 and 12: the sheet carries the release's notes, with the update check's own words
+        // for the English-notes line and the release page link.
+        equal("What's new in Volt 1.14.0", HubText.whatsNewChanges("1.14.0"), "changes heading");
+        equal("Release notes are in English.", HubText.whatsNewNotesInEnglish(), "notes in English");
+        check(T.key(HubText.whatsNewNotesInEnglish().id()).equals("compat_update_notes_in_english"), "the update check's line");
+        equal("Open release page", HubText.whatsNewReleasePage(), "release page link");
+        check(T.key(HubText.whatsNewReleasePage().id()).equals("more_update_open"), "the update check's button");
+        equal("No browser could open the release page", HubText.whatsNewNoBrowser(), "no browser");
+        check(T.key(HubText.whatsNewNoBrowser().id()).equals("more_update_no_browser"), "the update check's message");
     }
 
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
@@ -151,6 +178,9 @@ public final class HomeTextTest {
                 HubText.justBackBatteryUsed(), HubText.editTitle(), HubText.editQuickActions(), HubText.editQuickSlot(1, "x"),
                 HubText.quickActionLabel(HomeQuickActions.RIDING), HubText.quickActionLabel(HomeQuickActions.RECORD),
                 HubText.quickActionShortLabel(HomeQuickActions.RIDING), HubText.quickActionShortLabel(HomeQuickActions.RECORD),
+                HubText.quickActionLabel(HomeQuickActions.CHARGE_ALERTS), HubText.quickActionShortLabel(HomeQuickActions.CHARGE_ALERTS),
+                HubText.quickActionDescription(HomeQuickActions.RIDING), HubText.whatsNewChanges("x"),
+                HubText.whatsNewNotesInEnglish(), HubText.whatsNewReleasePage(), HubText.whatsNewNoBrowser(),
                 HubText.qaRecording(), HubText.searchDescription(), HubText.settingsDescription(),
                 HubText.switchScooterDescription("x"), HubText.setupStyleTitle(), HubText.setupStyleBody(),
                 HubText.whatsNewTitle(), HubText.whatsNewBody(), HubText.whatsNewSwitch(), HubText.whatsNewKeep(),

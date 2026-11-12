@@ -296,7 +296,8 @@ public final class DashboardScreen implements AppScreen {
         /** The shortcut picker over Clean's own actions and the catalog; picked gets the chosen id. */
         void chooseQuickAction(List<String> chosen, int index, java.util.function.Consumer<String> picked) {
             if (closed) return;
-            DashboardScreen.this.chooseQuickAction(chosen, index, HomeQuickActions.ownEntries(), id -> {
+            DashboardScreen.this.chooseQuickAction(chosen, index,
+                    HomeQuickActions.ownEntries(service != null && service.chargeAlertsOffered()), id -> {
                 dismiss();
                 picked.accept(id);
             });
