@@ -131,4 +131,15 @@ final class HomeStyle {
                                 boolean riding, boolean onHome, boolean resumed) {
         return ORIGIN_UPDATE.equals(origin) && !chosen && !shown && !onboardingShowing && !riding && onHome && resumed;
     }
+
+    /**
+     * Whether the What's new sheet also carries the notice that a recording now starts in the background only when
+     * the owner turns that on (owner's answer on #403): only on an installation the seed found updated, and only for
+     * an owner who has Record rides automatically on (AutoStartPolicy.AUTO_RECORD_KEY) when the sheet shows, which is
+     * the first time Home shows after the update. An owner who never used it sees nothing about it. It needs no key
+     * of its own: it shows with the rest of the sheet, and the sheet shows once.
+     */
+    static boolean whatsNewBackgroundNotice(String origin, boolean autoRecordOn) {
+        return ORIGIN_UPDATE.equals(origin) && autoRecordOn;
+    }
 }
