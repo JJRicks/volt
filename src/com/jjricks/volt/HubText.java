@@ -231,24 +231,42 @@ public final class HubText {
     /** Screen-reader text of a slot; position counts from 1, action is the name of the action in it. */
     public static Msg editQuickSlot(long position, CharSequence action) { return M.homeEditQuickSlot(position, action); }
 
-    /** The name of one of Clean's own quick actions (HomeQuickActions); null for any other id. */
+    /**
+     * The name of one of Clean's own quick actions (HomeQuickActions); null for any other id. The way into riding
+     * mode is named RIDE, with the Widgets header's RIDE button's own words, so it reads as entering riding mode
+     * rather than as a settings shortcut (owner's answer 6 on #383).
+     */
     public static Msg quickActionLabel(String id) {
         if (id == null) return null;
         switch (id) {
-            case HomeQuickActions.RIDING: return M.homeQaRiding();
+            case HomeQuickActions.RIDING: return M.ridingRideButton();
             case HomeQuickActions.RECORD: return M.homeQaRecord();
+            case HomeQuickActions.CHARGE_ALERTS: return M.homeQaChargeAlerts();
             default: return null;
         }
     }
 
-    /** The short rung of one of Clean's own quick actions, for a button too narrow for the name; null for any other id. */
+    /**
+     * The short rung of one of Clean's own quick actions, for a button too narrow for the name; null for any other
+     * id. RIDE is already its own short form (its next rung is the icon alone, as in the Widgets header).
+     */
     public static Msg quickActionShortLabel(String id) {
         if (id == null) return null;
         switch (id) {
-            case HomeQuickActions.RIDING: return M.homeQaRidingShort();
+            case HomeQuickActions.RIDING: return M.ridingRideButton();
             case HomeQuickActions.RECORD: return M.homeQaRecordShort();
+            case HomeQuickActions.CHARGE_ALERTS: return M.homeQaChargeAlertsShort();
             default: return null;
         }
+    }
+
+    /**
+     * Screen-reader text of one of Clean's own quick actions where its name alone does not say what it does: the
+     * RIDE action, spoken as the RIDE button is ("Open riding mode"). Null for any other id (its name is read).
+     */
+    public static Msg quickActionDescription(String id) {
+        if (HomeQuickActions.RIDING.equals(id)) return M.ridingRideDescription();
+        return null;
     }
 
     /** The Record action's value while a ride is being recorded. */
@@ -273,4 +291,12 @@ public final class HubText {
     /** The sheet's second button: keep Widgets. */
     public static Msg whatsNewKeep() { return M.homeWhatsNewKeep(); }
     public static Msg whatsNewLater() { return M.homeWhatsNewLater(); }
+    /** The heading above this release's notes (owner's answers 9, 10 and 12); version as Volt shows it ("1.14.0"). */
+    public static Msg whatsNewChanges(CharSequence version) { return M.homeWhatsNewChanges(version); }
+    /** The line above the notes while Volt is not in English: the notes come in English (the update check's line). */
+    public static Msg whatsNewNotesInEnglish() { return M.compatUpdateNotesInEnglish(); }
+    /** The link under the notes that opens the release page with the full notes (the update check's button). */
+    public static Msg whatsNewReleasePage() { return M.moreUpdateOpen(); }
+    /** The message when no browser can open the release page (the update check's). */
+    public static Msg whatsNewNoBrowser() { return M.moreUpdateNoBrowser(); }
 }
