@@ -236,18 +236,20 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, i, false);
         Set<String> manual = names();
         require(manual.size() == ChargeSessionStore.MAX_SESSIONS, "Expected 20 manual fixtures");
+        ensureFront();
         plugIn();
-        SystemClock.sleep(8 * S);
+        // The failed start latches the scooter: proof the start was tried, not merely not yet seen.
+        await(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
         require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
-        log("20 manual saved: no automatic recording, all kept");
+        log("20 manual saved: start tried and refused, all kept");
         main(() -> { link.charging(OFF); link.home(); });
-        SystemClock.sleep(4 * S);
+        await(() -> onMain(() -> !latched()), 20 * S, "A not-charging reading did not clear the latch");
         File oldest = saved()[0];
         require(oldest.delete(), "Could not remove a fixture");
         String automatic = fixture(fixtures, 99, true);
         Set<String> before = names();
         plugIn();
-        awaitRecording(10 * S, "with one automatic among 19 manual");
+        awaitRecording(20 * S, "with one automatic among 19 manual");
         Set<String> after = names();
         require(!after.contains(automatic), "The automatic fixture was not the one replaced");
         Set<String> manualLeft = new HashSet<>(before); manualLeft.remove(automatic);
@@ -344,6 +346,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         settle();
     }
     private ChargeSessionStore chargeStore() { return (ChargeSessionStore) field(service, "chargeStore"); }
+    @SuppressWarnings("unchecked")
+    private boolean latched() { return ((Set<String>) field(service, "autoChargeLatched")).contains(profile.id); }
     private boolean holds() { return ChargeAutoRecordPolicy.holds(settings().getString(HOLD, "")).contains(profile.id); }
     private File folder() { return new File(getTargetContext().getFilesDir(), "charge-recordings"); }
     private File[] saved() {

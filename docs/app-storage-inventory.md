@@ -71,6 +71,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `range_source_<pid>` | String | per scooter | Durable | `scooter`/`learned` range estimate. ScooterService. |
 | `range_follow_mode_<pid>` | Boolean | per scooter | Durable | Range follows drive mode. |
 | `charge_charger_<pid>` | String | per scooter | Durable | Manual charger choice (`STOCK`/`HIGH_SPEED`). |
+| `charge_auto_record` | Boolean | global | Durable | Record charges automatically. Default off (absent means off); backed up with App preferences. ScooterService / ChargeAutoRecordPolicy. |
+| `charge_auto_record_hold` | String | global (profile ids) | Device | Scooters whose automatic charge recording the owner stopped by hand, space-separated; each is cleared by that scooter's next fresh not-charging reading. Never backed up: a restored hold could silence a later charge, and a missing one only lets the next charge record. |
 | `charge_schedule_owned_<pid>` | String | per scooter | Durable | Confirmed one-shot charging intent, chosen finish time, actual scheduled start, target and expiry. ScooterService / ChargeScheduleController. Simulation and pending operations never persist; restoring this display state never sends or rearms a scooter command. |
 | `charge_alerts_<pid>` | String | per scooter | Durable | Battery alert choices: charge alert on/level, low battery alert on/level, Notify me, Alarm sound (`charge=1;at=80;low=0;below=20;notify=1;alarm=0`). ScooterService / ChargeAlertPolicy. Everything off when absent or unreadable. |
 | `scooter_menu_v1_<pid>` | String (JSON) | per scooter | Durable | Scooter tab menu layout: section order, each section's row order, hidden sections and rows, and every id seen (`known`). ScooterMenuLayout. Absent or unreadable means the default menu. Hiding never changes a scooter setting. Retired with the menu editor (Hub layout part 3): no longer read or written; still restored from older backups. |
@@ -132,8 +134,9 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `files/rides/<uuid>.csv.mapping` | Pending | — | Temporary profile reassignment; normally only in restore staging. |
 | `files/phone-rides/<uuid>-phone.csv` | Durable | ride's | Phone GPS/pressure/telemetry sidecar. PhoneRideStore. |
 | `files/phone-rides/<uuid>-motion.csv` | Durable | ride's | Raw motion sidecar. |
-| `files/charge-recordings/<uuid>.csv` | Durable | header `charge-v2,<pid>,…` | Complete or interrupted charge journal, including saved estimate samples. ChargeSessionStore. |
-| `files/charge-recordings/<uuid>.active` | Durable | header | Unfinished charge; startup recovery appends `end,INTERRUPTED` and renames it to `.csv`. |
+| `files/charge-recordings/<uuid>.csv` | Durable | header `charge-v2,<pid>,…` | Complete or interrupted charge journal, including saved estimate samples. ChargeSessionStore. The UUID's version digit (character 15) marks a recording Volt started by itself and how its charger label was chosen: `a` chosen, `b` detected, `c` best guess; `4` is a manual recording. Older Volt reads these names unchanged. |
+| `files/charge-recordings/<uuid>.active` | Durable | header | Unfinished charge; startup recovery appends `end,INTERRUPTED` and renames it to `.csv`, then deletes a recovered automatic one too short to keep (under 10 minutes or 5 percentage points). |
+| `files/charge-recordings/<uuid>.active.mapping` | Pending | — | Temporary header rewrite while a running automatic recording follows charger detection to the other label; renamed over the `.active` file. Startup deletes a leftover one. Skipped by backups. |
 | `files/pending-owner-import.json`, `.tmp` | Pending | — | Normalized owner setup waiting to be applied. |
 | `files/pending-export-<ms>` | Pending | — | Export waiting for the save picker. |
 | `databases/telemetry-history.db` | Durable | rows keyed by `profiles.name` = `<pid>` | SQLite v1: `latest` (last-seen readings per profile), `profiles`, `keys`, `detail`, `minute`, `daily` rollups. Rollups outlive pruned detail, so they are data, not a recomputable cache. Delete-journal mode, 24 MiB maximum. TelemetryHistory. |

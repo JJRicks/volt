@@ -300,6 +300,46 @@ A process restart does not silently resume a charge capture. Android 14+ may all
 while unlocked. Force stop, real signal loss and vendor battery policy remain
 limits; no service can collect scooter readings without a connection.
 
+### Automatic charge recordings
+
+**Record charges automatically** (Scooter → Battery & charging → Charge history
+& recordings, off by default; ChargeAutoRecordPolicy) starts a charge recording
+without asking whenever Volt is connected to the selected scooter, on screen or
+not, and a fresh reading says it is charging, if Start charge recording would be
+allowed then (never in simulation). It never connects, keeps a connection or
+turns on any other setting: Volt must already be connected when charging starts,
+which out of sight needs Stay connected in background, and notifications must be
+allowed. While it is on and Volt is out of sight, the slow status poll also reads
+the battery, so a charge that starts there is seen within about 15 seconds.
+Connecting to a scooter that is already charging starts then; the recording is
+partial.
+
+- **Label.** The charger chosen in Estimates & charger; otherwise Volt's
+  detection for this charge; otherwise a best guess: the charger with more
+  qualified recordings for this scooter, or the stock charger on a tie or with
+  none. A detected or guessed label follows detection when it settles on the
+  other charger; a chosen one never changes.
+- **End.** Every rule that ends a recording today, and also: at once when a live
+  speed reading (at most 3 seconds old) is above 4.8 km/h (about 3 mph), so
+  Record rides automatically can start the ride in the same moment; and two
+  minutes after charging stops instead of 30, unless Volt's own charging
+  schedule is holding the current off. Starting a ride by hand ends an automatic
+  recording instead of being refused. Manual recordings are unchanged.
+- **Kept.** An automatic recording under 10 minutes or 5 percentage points is
+  deleted when it ends, including one recovered after a process restart. At the
+  20-recording limit it replaces the oldest automatic recording, never a manual
+  one; with 20 manual recordings it does not start.
+- **Hold.** Stopping an automatic recording by hand (Stop on the page or in the
+  notification, or a ride started by hand) holds that scooter until a fresh
+  reading says it stopped charging, across reconnects and restarts. A recording
+  that ended by itself sets no hold.
+
+An automatic recording's file name records that Volt started it and how its label
+was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
+reads it as an ordinary recording. **Export charge recordings** and **Email to
+Volt** add `started_automatically` (true or false) and `label_source`
+(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge.
+
 The interface adapts to compact/expanded windows. Folding a foldable halfway
 (book or tabletop posture) leaves the screen exactly as it is: a crease never
 reloads or re-splits a page. Only a physical hinge that hides part of the screen
