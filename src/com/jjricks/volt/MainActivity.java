@@ -152,6 +152,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
+    /** A quick-control sheet over Home (HubRoutes.sheetFor): its control rows and charge-schedule rows refresh with the body. */
+    private AlertDialog quickMenuDialog;
+    private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
+    private final ArrayList<ChargeDoneRow> quickChargeRows = new ArrayList<>();
     private Runnable pendingRideLocation;
     private boolean rideLocationResolved,rideLocationCancelled,autoRecordLocationCancelled;
     private android.window.OnBackInvokedCallback systemBack;
@@ -314,7 +318,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -420,6 +424,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
+        for (ControlRow row : quickMenuRows) row.refresh();
+        for (ChargeDoneRow row : quickChargeRows) row.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -441,6 +447,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
+        closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         captureScroll();if(screen!=null)screen.close();
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
@@ -2046,9 +2053,16 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own two (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
+        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
+            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
+            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
+            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
+            showChargeAlerts(); return;
+        }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
@@ -2058,13 +2072,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
         if (ridingMode) { openRiding(); return; }
-        // A shortcut that opened a quick-access sheet opens the page that holds the same rows (HubRoutes).
+        // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
+        String sheet = HubRoutes.sheetFor(id);
+        if (sheet != null) { showQuickSettings(sheet); return; }
         String page = HubRoutes.pageFor(id);
-        if (page != null) { openRoute(page, null); return; }
+        if (page != null) { closeQuickMenu(); openRoute(page, null); return; }
         if (id.equals("section:Profile")) { renameScooter(); return; }
         ScooterCommands.Feature feature = entry.feature();
         if (feature == null) return;
-        if (feature.key.equals("range_algorithm")) { showRangeSource(); return; }
+        if (feature.key.equals("range_algorithm")) { closeQuickMenu(); showRangeSource(); return; }
         // The same resolver as the settings rows and the write gate: an unmapped control says why.
         CapabilityResolver.Decision decision = scooterService.ble.decision(feature.key);
         if (decision.support != CapabilityResolver.Support.KNOWN_ENCODING) { toast(decision.reasonMessage()); return; }
@@ -2096,9 +2112,56 @@ public final class MainActivity extends Activity implements ScreenHost {
                 redraw();
             });
         } else {
+            closeQuickMenu();
             if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
             editFeature(feature);
         }
+    }
+
+    private void closeQuickMenu() {
+        AlertDialog old = quickMenuDialog; quickMenuDialog = null;
+        quickMenuRows.clear();
+        quickChargeRows.clear();
+        if (old != null) old.dismiss();
+    }
+
+    /**
+     * A quick-control group shown above Home, keeping the underlying layout untouched: Lights, and the Ride, Battery,
+     * Line lights, Star lights and Dashboard & sound groups (HubRoutes.sheetFor). A single setting changed in a moment
+     * keeps its pop-up sheet (owner's answer 3, #383); whole settings pages open as pages.
+     */
+    private void showQuickSettings(String section) {
+        closeQuickMenu();
+        if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
+        final AlertDialog[] self = new AlertDialog[1];
+        LinearLayout body = sheetContent(sectionTitle(section), null, () -> { if (self[0] != null) self[0].dismiss(); });
+        body.setTag("quick-settings-sheet");
+        LinearLayout settings = design.groupCard(); body.addView(settings);
+        ArrayList<ScooterCommands.Feature> features = new ArrayList<>(ScooterCommands.catalog());
+        // Another model's own light controls join the Lights sheet only where it maps them.
+        for (ScooterCommands.Feature f : ScooterCommands.oemOnly()) if (scooterService.ble.controlOffered(f.key)) features.add(f);
+        for (ScooterCommands.Feature f : features) {
+            if (f.experimental && !ordinaryOemRow(f.key) || f.sensitive || f.key.equals("lock") || f.key.equals("proximity_key")) continue;
+            boolean match = section.equals("Lights") && (f.key.equals("headlight") || f.key.equals("auto_sensor") || ScooterCommands.oemOnly(f.key)
+                            || f.key.startsWith("line_") || f.key.startsWith("star_"))
+                    || section.equals("Line lights") && f.key.startsWith("line_")
+                    || section.equals("Star lights") && f.key.startsWith("star_")
+                    || section.equals("Dashboard & sound") && (f.group.equals("Preferences")
+                            || f.key.equals("turn_sound"))
+                    || section.equals(f.group);
+            if (!match) continue;
+            if (settings.getChildCount() > 0) design.divider(settings);
+            ControlRow row = new ControlRow(f); quickMenuRows.add(row);
+            settings.addView(row.card); row.refresh();
+            if((f.key.equals("timed_charging")||f.key.equals("charge_start"))&&chargeDoneOffered()){
+                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));
+                quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
+            }
+        }
+        AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            if (quickMenuDialog == dialog) { quickMenuDialog = null; quickMenuRows.clear(); quickChargeRows.clear(); }
+        });
     }
 
     /** How long a failure chip outlives the first fresh readback that follows it. */
@@ -3204,6 +3267,29 @@ public final class MainActivity extends Activity implements ScreenHost {
         CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
         showEmailSheet(subject,body,report,null,null);return true;
     }
+    /**
+     * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
+     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
+     * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
+     * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
+     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
+     * profile's. Toasts when no email app can take it.
+     */
+    @Override public void emailChargeRecordings(File recordings){
+        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
+        if(d!=null&&d.simulated)d=null;
+        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+        String subject=IssueReport.chargeRecordingsSubject(version,model);
+        String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
+        new Thread(()->{
+            Uri uri;try{uri=DiagnosticsProvider.adopt(this,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
+            final Uri attached=uri;
+            handler.post(()->{
+                if(destroyed)return;
+                if(attached==null||!sendWithUri(subject,body,attached))toast(HubText.chargeSendNoEmail());
+            });
+        },"Volt-email-export").start();
+    }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
@@ -3284,6 +3370,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private boolean emailWithFile(String subject,String body,String bundle){
         Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
+        return sendWithUri(subject,body,uri);
+    }
+    /** emailWithFile's send, for a snapshot DiagnosticsProvider already holds; false when no app can take it. */
+    private boolean sendWithUri(String subject,String body,Uri uri){
         Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
         send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
         send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));
@@ -3813,7 +3903,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String unavailable=scooterService==null?null:scooterService.dataMaintenanceUnavailable();
         if(unavailable!=null){toast(unavailable);return;}
         enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=false;
-        if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
+        closeQuickMenu();if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
         if(screen!=null){screen.close();screen=null;}onboarding=null;
         preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         handler.removeCallbacksAndMessages(null);fold.stop();

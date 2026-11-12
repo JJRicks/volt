@@ -8,14 +8,17 @@ package com.jjricks.volt;
 final class HubSummaries {
     private HubSummaries() { }
 
-    /** Lights & sound: the headlight's setting. */
+    /** Lights & sound: Automatic lights, else the Tail light setting. */
     enum Lights { AUTO, ON, OFF }
 
-    /** headlight and autoSensor are the scooter's 0/1 values (null when unread). Automatic lights win. */
-    static Lights lights(Integer headlight, Integer autoSensor) {
+    /**
+     * tailLight and autoSensor are the scooter's 0/1 values (null when unread). tailLight is feature key {@code headlight},
+     * which drives the tail light (OEM tailIsOn), not the front lamp. Automatic lights win.
+     */
+    static Lights lights(Integer tailLight, Integer autoSensor) {
         if (Integer.valueOf(1).equals(autoSensor)) return Lights.AUTO;
-        if (headlight == null) return null;
-        return headlight == 1 ? Lights.ON : Lights.OFF;
+        if (tailLight == null) return null;
+        return tailLight == 1 ? Lights.ON : Lights.OFF;
     }
 
     /** Battery & charging: the charge limit where the model has one, else the battery level; and whether it charges. */

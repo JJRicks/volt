@@ -23,6 +23,12 @@ public final class HubRideDataTest {
         check(recording.contains("\"ride_auto_stop\", true)"), "End rides automatically: same key, on by default");
         check(recording.contains("AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation)"),
                 "Record rides automatically: same key, off by default, the location offer before it turns on");
+        check(recording.contains("HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render()")
+                && recording.contains("getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)")
+                && recording.contains("putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled)"),
+                "Start recording in the background: its own switch, off by default, with the no-GPS-route note under it (part 5b)");
+        check(recording.indexOf("AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation)") < recording.indexOf("HubText.recordInBackground()"),
+                "the background switch follows Record rides automatically");
         check(recording.contains("ACTION_APPLICATION_DETAILS_SETTINGS"), "Battery use opens Android's page for Volt");
         check(recording.contains("this::mapSettings"), "Map settings");
         check(recording.contains("autoSaveGroup();"), "Ride auto-save");
