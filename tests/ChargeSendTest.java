@@ -1,5 +1,13 @@
 package com.jjricks.volt;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
+
 /** ChargeSend: Email to Volt asks the owner to stop a recording only while one is running (council review of #396, P3). */
 public final class ChargeSendTest {
     private static int checks;
@@ -9,7 +17,89 @@ public final class ChargeSendTest {
         require(ChargeSend.refusal(true, true) == ChargeSend.Refusal.STOP_RECORDING, "Recording while an export runs still asks to stop it");
         require(ChargeSend.refusal(false, true) == ChargeSend.Refusal.QUIET, "An earlier export still being written stays quiet");
         require(ChargeSend.refusal(false, false) == ChargeSend.Refusal.QUIET, "Any other refusal never mentions a recording");
+        // #387 review, finding 9: no scooter chosen is said ("Choose a scooter first."), first, and the row is disabled.
+        require(ChargeSend.refusal(true, false, false) == ChargeSend.Refusal.CHOOSE_SCOOTER
+                && ChargeSend.refusal(true, true, true) == ChargeSend.Refusal.CHOOSE_SCOOTER, "No scooter: choose one first");
+        require(ChargeSend.refusal(false, true, false) == ChargeSend.Refusal.STOP_RECORDING
+                && ChargeSend.refusal(false, false, true) == ChargeSend.Refusal.QUIET
+                && ChargeSend.refusal(false, false, false) == ChargeSend.Refusal.QUIET, "With a scooter, as before");
+        require(ChargeSend.rowEnabled(true, true, false), "Enabled with a scooter and no export running");
+        require(!ChargeSend.rowEnabled(true, false, false) && !ChargeSend.rowEnabled(false, false, false)
+                && !ChargeSend.rowEnabled(true, true, true), "Disabled without a scooter, without the service, or while exporting");
+        // Finding 7: an attachment that couldn't be prepared says so, never "No email app".
+        require(ChargeSend.outcome(false, false) == ChargeSend.Outcome.EXPORT_FAILED, "No attachment: the export failed");
+        require(ChargeSend.outcome(true, false) == ChargeSend.Outcome.NO_EMAIL_APP, "Attached, no app took it");
+        require(ChargeSend.outcome(true, true) == ChargeSend.Outcome.SENT, "Attached and opened");
+        // Finding 3: a temporary file under a minute old is another report's being made, and stays.
+        long now = 10_000_000L;
+        require(!ChargeSend.dropTemporary(now, now) && !ChargeSend.dropTemporary(now - 59_999L, now)
+                && !ChargeSend.dropTemporary(now + 30_000L, now), "A young temporary file stays");
+        require(ChargeSend.dropTemporary(now - 60_000L, now) && ChargeSend.dropTemporary(now - 3_600_000L, now)
+                && ChargeSend.dropTemporary(now + 3_600_000L, now), "A left-over one goes");
+        mailbox();
         System.out.println("ChargeSend: " + checks + " checks passed");
+    }
+
+    /** Finding 10: a finished export reaches the activity showing Volt, across a page rebuild or an activity recreation. */
+    private static void mailbox() {
+        try {
+            File dir = Files.createTempDirectory("charge-send").toFile();
+            List<File> mailed = new ArrayList<>();
+            Consumer<File> first = mailed::add, second = mailed::add;
+            // A page rebuilt by a rotation closes, but the activity stays registered: the email opens.
+            ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+            box.register(first, 0);
+            File a = file(dir, "a");
+            box.deliver(a, 1);
+            require(mailed.equals(Arrays.asList(a)), "Delivered to the registered activity");
+            // Recreated (theme, text size): the file arriving between the two activities waits for the next one.
+            box.unregister(first, true);
+            File b = file(dir, "b");
+            box.deliver(b, 1_000);
+            require(mailed.size() == 1 && b.exists(), "Held while no activity shows Volt");
+            box.register(second, 2_000);
+            require(mailed.equals(Arrays.asList(a, b)), "The next activity emails it");
+            // An older activity going away later doesn't unregister the new one.
+            box.unregister(first, false);
+            File c = file(dir, "c");
+            box.deliver(c, 3_000);
+            require(mailed.size() == 3 && mailed.get(2) == c, "Only its own receiver unregisters");
+            // Held too long: deleted, never emailed.
+            box.unregister(second, true);
+            File d = file(dir, "d");
+            box.deliver(d, 4_000);
+            box.register(first, 4_000 + ChargeSend.Mailbox.HOLD_MS);
+            require(mailed.size() == 3 && !d.exists(), "A stale held export is deleted");
+            // Closed for good (not a recreation): a file that arrives is deleted, and one held is too.
+            box.unregister(first, true);
+            File e = file(dir, "e");
+            box.deliver(e, 5_000);
+            box.unregister(first, false);
+            require(e.exists(), "Unregistering another receiver changes nothing");
+            box.register(first, 5_100);
+            require(mailed.size() == 4 && mailed.get(3) == e, "Held one delivered");
+            box.unregister(first, false);
+            File f = file(dir, "f");
+            box.deliver(f, 6_000);
+            require(mailed.size() == 4 && !f.exists(), "After the app closed, an export is deleted, never emailed later");
+            // Two held: only the newer waits.
+            ChargeSend.Mailbox two = new ChargeSend.Mailbox();
+            File g = file(dir, "g"), h = file(dir, "h");
+            two.deliver(g, 0); two.deliver(h, 1);
+            require(!g.exists() && h.exists(), "One held at a time");
+            two.deliver(null, 2);
+            List<File> got = new ArrayList<>();
+            two.register(got::add, 3);
+            require(got.equals(Arrays.asList(h)), "Null is no export");
+        } catch (IOException failed) {
+            throw new AssertionError(failed);
+        }
+    }
+
+    private static File file(File dir, String name) throws IOException {
+        File f = new File(dir, name);
+        Files.write(f.toPath(), new byte[] {1});
+        return f;
     }
 
     private static void require(boolean ok, String message) {

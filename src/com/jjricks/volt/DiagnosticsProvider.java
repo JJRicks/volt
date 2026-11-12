@@ -64,6 +64,8 @@ public final class DiagnosticsProvider extends ContentProvider {
             try {
                 // Same cache volume, so normally a rename; across volumes Files.move copies by streaming.
                 Files.move(source.toPath(), temporary.toPath());
+                // A move keeps the export's own time: date the temporary file now, so prune() knows it is being made.
+                temporary.setLastModified(System.currentTimeMillis());
                 try (java.io.RandomAccessFile synced = new java.io.RandomAccessFile(temporary, "rw")) { synced.getFD().sync(); }
                 publish(temporary, file);
             } finally { Files.deleteIfExists(temporary.toPath()); }
@@ -93,14 +95,19 @@ public final class DiagnosticsProvider extends ContentProvider {
         catch (AtomicMoveNotSupportedException unsupported) { Files.move(temporary.toPath(), file.toPath()); }
     }
 
-    /** Drops snapshots older than a day and all but the newest KEEP, so a recently prepared email keeps its file. */
+    /**
+     * Drops snapshots older than a day and all but the newest KEEP, so a recently prepared email keeps its file. A
+     * temporary file is deleted only once it is a minute old (ChargeSend.dropTemporary): a younger one is another
+     * report's attachment being made (adopt() syncs a large one before moving it into place), never left over.
+     */
     static void prune(File directory, long nowMs) {
         File[] files = directory.listFiles();
         if (files == null) return;
         java.util.List<File> snapshots = new java.util.ArrayList<>();
         for (File f : files) {
             String name = f.getName();
-            if (name.endsWith(".tmp") || name.equals(NAME)) { f.delete(); continue; }
+            if (name.endsWith(".tmp")) { if (ChargeSend.dropTemporary(f.lastModified(), nowMs)) f.delete(); continue; }
+            if (name.equals(NAME)) { f.delete(); continue; }
             if (name.endsWith(".json") && ID.matcher(name.substring(0, name.length() - 5)).matches()) snapshots.add(f);
         }
         snapshots.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));

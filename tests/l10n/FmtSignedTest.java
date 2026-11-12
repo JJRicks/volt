@@ -69,12 +69,22 @@ public final class FmtSignedTest {
     }
 
     /**
+     * The languages whose display locale writes a decimal comma, named so the literal "+2,5" and "-0,25"
+     * checks below run only for them. The locale comparison covers every shipped language, so a shipped
+     * language that writes a decimal point needs no entry here, and a name here that is not shipped is
+     * skipped like any other.
+     */
+    private static final java.util.Set<String> DECIMAL_COMMA = new java.util.HashSet<>(java.util.Arrays.asList(
+            "de", "fr", "it", "nl", "pl", "pt-BR", "pt-PT", "sv", "tr", "es"));
+
+    /**
      * Every shipped language other than English: the display locale's separator, the same sign, Latin
-     * digits. All of today's (de, fr, it, nl, pl, pt-BR, pt-PT, sv, tr, es) use a decimal comma.
+     * digits. The named decimal-comma languages (all of today's: de, fr, it, nl, pl, pt-BR, pt-PT, sv,
+     * tr, es) also print the literal comma forms.
      */
     private static void shipped() {
         Locale.setDefault(Locale.US);
-        int languages = 0;
+        int languages = 0, commaLanguages = 0;
         for (int i = 0; i < AppLanguages.size(); i++) {
             String language = AppLanguages.tag(i);
             if (AppLanguages.ENGLISH.equals(language) || !AppLanguages.shipped(i)) continue;
@@ -90,11 +100,15 @@ public final class FmtSignedTest {
                     for (char ch : actual.toCharArray()) check(!Character.isDigit(ch) || (ch >= '0' && ch <= '9'), where + ": " + actual + " has Latin digits");
                 }
             }
-            equal("+2,5", Fmt.signedDecimal(Locale.US, 2.5, 1), where, "grade with a decimal comma");
-            equal("-0,25", Fmt.signedDecimal(Locale.US, -.25, 2), where, "acceleration with a decimal comma");
+            if (DECIMAL_COMMA.contains(language)) {
+                commaLanguages++;
+                equal("+2,5", Fmt.signedDecimal(Locale.US, 2.5, 1), where, "grade with a decimal comma");
+                equal("-0,25", Fmt.signedDecimal(Locale.US, -.25, 2), where, "acceleration with a decimal comma");
+            }
             equal("+12", Fmt.signedDecimal(Locale.US, 12, 0), where, "a whole number has no separator");
         }
         check(languages > 0, "at least one shipped language other than English");
+        check(commaLanguages > 0, "at least one shipped decimal-comma language printed the literal comma forms");
     }
 
     private static T.Source source(String language) {

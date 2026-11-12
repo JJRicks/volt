@@ -7,6 +7,7 @@ public final class HubSummariesTest {
     public static void main(String[] args) {
         lights();
         battery();
+        batteryCard();
         controls();
         security();
         service();
@@ -27,6 +28,13 @@ public final class HubSummariesTest {
                 "No Automatic lights setting: the tail light");
         require(HubSummaries.lights(false, 1, 1) == HubSummaries.Lights.ON, "A value for a setting the model doesn't offer is ignored");
         require(HubSummaries.lights(false, null, null) == null && HubSummaries.lights(false, null, 1) == null, "Unread tail light shows nothing");
+        // Only 0 and 1 are known: any other value is unknown, never "Tail light off".
+        require(HubSummaries.lights(false, 2, null) == null && HubSummaries.lights(true, 2, 0) == null, "A tail light of 2 shows nothing");
+        require(HubSummaries.lights(true, 1, 2) == null && HubSummaries.lights(true, 0, -1) == null, "Automatic lights of 2 or -1 show nothing");
+        require(HubSummaries.lights(false, 1, 2) == HubSummaries.Lights.ON, "A value for a setting the model doesn't offer is still ignored");
+        require(Boolean.TRUE.equals(HubSummaries.toggle(1)) && Boolean.FALSE.equals(HubSummaries.toggle(0)), "A switch reads 1 and 0");
+        require(HubSummaries.toggle(null) == null && HubSummaries.toggle(2) == null && HubSummaries.toggle(-1) == null
+                && HubSummaries.toggle(255) == null, "Unread and other values are unknown");
     }
 
     private static void battery() {
@@ -43,6 +51,13 @@ public final class HubSummariesTest {
         // No live charging reading (disconnected, or the state unread): never "not charging", so no summary.
         require(HubSummaries.battery(true, 80, 55, null) == null && HubSummaries.battery(false, null, 72, null) == null,
                 "Charging unknown shows nothing");
+        // The level only from a live reading: an expired 60% beside a live "Charging" shows nothing (no "Charging · 60%").
+        require(HubSummaries.battery(false, null, liveLevel(60.0, false), true) == null, "An expired level shows nothing");
+        HubSummaries.Battery fresh = HubSummaries.battery(false, null, liveLevel(59.6, true), true);
+        require(fresh != null && fresh.percent == 60 && fresh.charging, "A live level shows");
+        require(HubSummaries.battery(true, 80, liveLevel(60.0, false), true) != null, "With a limit the level isn't shown, so its age doesn't matter");
+        require(HubSummaries.live(64.0, true) == 64.0 && HubSummaries.live(64.0, false) == null && HubSummaries.live(null, true) == null
+                && HubSummaries.live(Double.NaN, true) == null && HubSummaries.live(Double.POSITIVE_INFINITY, true) == null, "Live numbers only");
         // The OEM charge limit's 0 is "Default (80%)", which the Battery page reads as unknown: never "Limit 0%".
         FeatureVariant oem = ModelRegistry.OEM_CHARGE_LIMIT;
         require(HubSummaries.known(oem, 0) == null, "The OEM sentinel is unknown");
@@ -52,15 +67,40 @@ public final class HubSummariesTest {
         require(Integer.valueOf(0).equals(HubSummaries.known(null, 0)), "No variant: the value as it is");
     }
 
+    /** Battery & charging's summary card, under the level line (HubBatterySummary; #387 review, finding 4). */
+    private static void batteryCard() {
+        // Charging without a known limit: a plain "Charging", never the level again ("Charging · 78%" under "78% · ...").
+        require(HubSummaries.card(true, true, null) == HubSummaries.CardState.CHARGING, "No limit: plain Charging");
+        require(HubSummaries.card(true, true, 90) == HubSummaries.CardState.CHARGING_TO_LIMIT, "A limit: Charging to it");
+        require(HubSummaries.card(true, true, 101) == HubSummaries.CardState.CHARGING && HubSummaries.card(true, true, -1) == HubSummaries.CardState.CHARGING,
+                "An out-of-range limit is no limit");
+        require(HubSummaries.card(false, true, 90) == HubSummaries.CardState.NOT_CHARGING
+                && HubSummaries.card(false, true, null) == HubSummaries.CardState.NOT_CHARGING, "Not charging");
+        // Charging only from a live state, and only beside a live level (the #404 rule): otherwise the line hides.
+        require(HubSummaries.card(null, true, 90) == null && HubSummaries.card(null, true, null) == null, "Charging unknown: no line");
+        require(HubSummaries.card(true, false, 90) == null && HubSummaries.card(true, false, null) == null
+                && HubSummaries.card(false, false, null) == null, "A last-seen level: no charging line beside it");
+    }
+
     private static void controls() {
         require(Boolean.TRUE.equals(HubSummaries.cruise(1)) && Boolean.FALSE.equals(HubSummaries.cruise(0)), "Cruise on and off");
         require(HubSummaries.cruise(null) == null, "Unread cruise");
+        require(HubSummaries.cruise(2) == null && HubSummaries.cruise(-1) == null, "Cruise of 2 is unknown, never \"cruise off\"");
+        // The OEM cruise variant defines 0 and 1 only: known() drops anything else before cruise() reads it.
+        FeatureVariant oemCruise = ModelRegistry.OEM_CRUISE;
+        require(HubSummaries.known(oemCruise, 2) == null && HubSummaries.cruise(HubSummaries.known(oemCruise, 2)) == null, "OEM cruise 2");
+        require(Boolean.TRUE.equals(HubSummaries.cruise(HubSummaries.known(oemCruise, 1))), "OEM cruise on");
+        require(HubSummaries.known(ModelRegistry.OEM_TAIL, 3) == null && HubSummaries.known(ModelRegistry.OEM_AUTO, 3) == null, "OEM light switches");
         // The drive mode as the riding screen names it; a code this model's names don't cover is unknown.
         require("SPORT".equals(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, 3.0))), "A named mode");
         String raw = Telemetry.drivingModeLabel(0, 7.0);
         require(raw.endsWith("(raw)") && HubSummaries.driveMode(raw) == null, "A raw code shows nothing: " + raw);
         require(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, null)) == null && HubSummaries.driveMode(null) == null
                 && HubSummaries.driveMode("") == null, "No reading");
+        // A stale drive-mode reading is no reading (displayReadings' freshness rule, as Home's status line uses): the index
+        // never says SPORT from an old report.
+        require(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, HubSummaries.live(3.0, false))) == null, "A stale mode shows nothing");
+        require("SPORT".equals(HubSummaries.driveMode(Telemetry.drivingModeLabel(2538, HubSummaries.live(3.0, true)))), "A live mode");
     }
 
     private static void security() {
@@ -75,6 +115,12 @@ public final class HubSummariesTest {
         require(HubSummaries.service(true, 1, 2) == HubSummaries.Service.DUE, "Due wins");
         require(HubSummaries.service(true, 0, 2) == HubSummaries.Service.SOON, "Soon");
         require(HubSummaries.service(true, 0, 0) == HubSummaries.Service.CLEAR, "Clear");
+    }
+
+    /** The level HubSubjects passes: a live reading's percent, rounded, else null. */
+    private static Integer liveLevel(double number, boolean live) {
+        Double shown = HubSummaries.live(number, live);
+        return shown == null ? null : (int) Math.round(shown);
     }
 
     private static void require(boolean ok, String message) {

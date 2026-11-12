@@ -11,7 +11,8 @@ public final class ReleaseNotesTest {
     private static int checks;
 
     public static void main(String[] args) {
-        blocks(); inline(); fallbacks(); asGitHubReadsIt(); numbering(); quotes(); itemParagraphs(); release(); clip();
+        blocks(); inline(); fallbacks(); asGitHubReadsIt(); numbering(); quotes(); itemParagraphs(); wrappedNumbers();
+        blocksInItems(); quoteInItem(); nestedQuotes(); release(); clip();
         footer(); nothingLost();
         System.out.println("ReleaseNotesTest: " + checks + " checks passed");
     }
@@ -46,6 +47,7 @@ public final class ReleaseNotesTest {
         block(b.get(1), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "loose item");
         block(b.get(2), ReleaseNotes.Kind.PARAGRAPH, 0, "", "its second paragraph");
         block(b.get(3), ReleaseNotes.Kind.CODE, 0, "", "unclosed fence");
+        check(b.get(0).item == 0 && b.get(2).item == 1 && b.get(3).item == 0, "the second paragraph sits under its item, the fence doesn't");
         check(ReleaseNotes.parse("line one  \nline two\\\nthree").get(0).text.equals("line one\nline two\nthree"), "hard breaks are breaks");
         check(ReleaseNotes.parse("* star\n+ plus").get(1).marker.equals(ReleaseNotes.BULLET), "every bullet character");
         List<ReleaseNotes.Block> tabs = ReleaseNotes.parse("-\tTabbed\n\t1.\tUnder it\n\t# not a heading");
@@ -215,6 +217,108 @@ public final class ReleaseNotesTest {
         block(ReleaseNotes.parse("1. one\n   - sub\n\n     extra\n2. two").get(3), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
         block(ReleaseNotes.parse("- one\n   1. sub\n\n      extra\n   2. two").get(3), ReleaseNotes.Kind.NUMBERED, 1, "2.", "two");
         block(ReleaseNotes.parse("- one\n\n  continued\n1. new").get(2), ReleaseNotes.Kind.NUMBERED, 0, "1.", "new");
+    }
+
+    /**
+     * Prose wrapped inside a list item onto a line that starts with a number and a full stop stays prose, as on
+     * GitHub: only "1." starts a list inside the item's paragraph, so the years below keep the numbers written.
+     */
+    private static void wrappedNumbers() {
+        String years = "- The beta began in\n  2021. The stable release followed in\n  2025. Both can update.";
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse(years);
+        check(b.size() == 1, "one bullet: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "The beta began in\n2021. The stable release followed in\n2025. Both can update.");
+        check(ReleaseNotes.plainText(b).contains("2021.") && ReleaseNotes.plainText(b).contains("2025.") && !ReleaseNotes.plainText(b).contains("2022"),
+                "the years as written: " + ReleaseNotes.plainText(b));
+        // A numbered item's own paragraph, and the same text inside a quote (with or without its ">"), read alike.
+        block(one("1. Released in\n   2025. Update now."), ReleaseNotes.Kind.NUMBERED, 0, "1.", "Released in\n2025. Update now.");
+        block(one("3) Released in\n   2025) Update now."), ReleaseNotes.Kind.NUMBERED, 0, "3)", "Released in\n2025) Update now.");
+        block(one("> - The beta began in\n>   2021. The stable release"), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "The beta began in\n2021. The stable release");
+        block(one("> - The beta began in\n  2021. The stable release"), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "The beta began in\n2021. The stable release");
+        // A number other than 1 under an item's text would start a new list there, which it can't inside a paragraph.
+        b = ReleaseNotes.parse("1. a\n   2. still a\n2. b");
+        check(b.size() == 2, "item, item: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.NUMBERED, 0, "1.", "a\n2. still a");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "2.", "b");
+        // "1." still starts a list inside the item, and its next items follow it; left of the item's text, a number
+        // is the next item of the list it lines up with.
+        b = ReleaseNotes.parse("- Steps:\n  1. Open More\n  2. Tap Update\n- Done");
+        check(ReleaseNotes.plainText(b).equals("• Steps:\n  1. Open More\n  2. Tap Update\n• Done"), "a list inside an item: " + ReleaseNotes.plainText(b));
+        b = ReleaseNotes.parse("1. One\n   1. a\n   7. b\n9. Two");
+        check(ReleaseNotes.plainText(b).equals("1. One\n  1. a\n  2. b\n2. Two"), "items left of the text: " + ReleaseNotes.plainText(b));
+        block(ReleaseNotes.parse("- item\n  - sub\n  3. next").get(2), ReleaseNotes.Kind.NUMBERED, 1, "3.", "next");
+    }
+
+    /** A fence, quote, heading or rule indented under a list item belongs to the item: its list keeps counting. */
+    private static void blocksInItems() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("1. Download\n1. Install it:\n   ```\n   adb install volt.apk\n   ```\n1. Open Volt");
+        check(ReleaseNotes.plainText(b).equals("1. Download\n2. Install it:\nadb install volt.apk\n3. Open Volt"), "count past a fence: " + ReleaseNotes.plainText(b));
+        check(b.get(2).kind == ReleaseNotes.Kind.CODE && b.get(2).item == 1, "the fence sits under its item");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n\n   ```\n   x\n   ```\n\n1. b\n   ## Then\n1. c\n   > note\n\n1. d\n   ***\n1. e"))
+                .equals("1. a\nx\n2. b\nThen\n3. c\nnote\n4. d\n\n5. e"), "count past a fence, heading, quote and rule");
+        b = ReleaseNotes.parse("1. a\n   ## Then\n1. b");
+        check(b.get(1).kind == ReleaseNotes.Kind.HEADING && b.get(1).item == 1, "the heading sits under its item");
+        // Indented under an outer item but not the inner one, the block ends the inner list only.
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n   1. sub\n   1. sub\n   ```\n   x\n   ```\n   1. again\n1. b"))
+                .equals("1. a\n  1. sub\n  2. sub\nx\n  1. again\n2. b"), "a block ends the list it isn't under");
+        // Not indented under the item, the block ends the list and the next "1." starts a new one.
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. a\n```\nx\n```\n1. b\n> q\n\n1. c\n# H\n1. d"))
+                .equals("1. a\nx\n1. b\nq\n1. c\nH\n1. d"), "blocks outside the item end the list");
+        // An item's further paragraphs sit under its text, at its own depth.
+        b = ReleaseNotes.parse("1. one\n\n   second paragraph\n\n2. two\n   - sub\n\n     under sub\n\nafter");
+        check(b.get(1).item == 1 && b.get(4).item == 2 && b.get(5).item == 0, "items of paragraphs: " + b.get(1).item + b.get(4).item + b.get(5).item);
+        for (ReleaseNotes.Block block : b) check(block.marker.isEmpty() || block.item == 0, "an item belongs to no other item");
+    }
+
+    /** A numbered item holding a quote: the next item of its list ends the quote and is drawn as an item. */
+    private static void quoteInItem() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("1. First item\n   > A note about it\n2. Next item");
+        check(b.size() == 3, "item, quote, item: " + b.size());
+        block(b.get(1), ReleaseNotes.Kind.QUOTE, 0, "", "A note about it");
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "Next item");
+        check(b.get(1).quoted && !b.get(2).quoted && !b.get(0).quoted, "only the note is quoted");
+        b = ReleaseNotes.parse("1. First\n   > a note\n   > on two lines\n1. Second\n   > another\n7. Third");
+        check(ReleaseNotes.plainText(b).equals("1. First\na note\non two lines\n2. Second\nanother\n3. Third") && !b.get(4).quoted,
+                "a list with notes: " + ReleaseNotes.plainText(b));
+        b = ReleaseNotes.parse("- A bullet\n  > its note\n3. Numbers");
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "3.", "Numbers");
+        check(!b.get(2).quoted, "a number left of the quote ends it");
+        // Inside a quote, the same.
+        b = ReleaseNotes.parse("> 1. a\n>    > q\n> 2. b");
+        check(b.size() == 3 && b.get(2).quotes == 1 && b.get(1).quotes == 2, "inside a quote: " + b.size());
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "b");
+        // Prose wrapped onto a number as far in as the ">" still carries the quote on.
+        block(ReleaseNotes.parse("1. a\n   > We grew by\n   80. percent").get(1), ReleaseNotes.Kind.QUOTE, 0, "", "We grew by\n80. percent");
+        // A quote indented under an item sits under the item's text, with every block in it; one at the left edge doesn't.
+        b = ReleaseNotes.parse("1. a\n   > q\n   > - x\n   >\n   > > deeper\n2. b");
+        check(b.get(1).quoteItem == 1 && b.get(2).quoteItem == 1 && b.get(3).quoteItem == 1, "the quote is under its item");
+        check(b.get(1).item == 0 && b.get(2).marker.equals(ReleaseNotes.BULLET) && b.get(3).quotes == 2, "quote blocks keep their own item");
+        check(b.get(0).quoteItem == 0 && b.get(4).quoteItem == 0, "items are in no quote");
+        b = ReleaseNotes.parse("- a\n  - sub\n  > r");
+        check(b.size() == 3 && b.get(2).quoteItem == 1, "under the outer item, past the inner one: " + b.size());
+        check(ReleaseNotes.parse("1. a\n> q").get(1).quoteItem == 0 && one("> q").quoteItem == 0 && one("q").quoteItem == 0, "a quote outside items");
+    }
+
+    /** A quote inside a quote keeps its depth, and blocks know which quote at each depth they are in. */
+    private static void nestedQuotes() {
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("> Alice wrote:\n> > The update is ready\n> > > and so is this\n>\n> Back out");
+        check(b.size() == 4, "four blocks: " + b.size());
+        check(b.get(0).quotes == 1 && b.get(1).quotes == 2 && b.get(2).quotes == 3 && b.get(3).quotes == 1, "depths");
+        check(b.get(1).sameQuote(b.get(0), 0) && !b.get(1).sameQuote(b.get(0), 1) && b.get(2).sameQuote(b.get(1), 1)
+                && b.get(3).sameQuote(b.get(2), 0) && !b.get(3).sameQuote(b.get(2), 1), "one outer quote, nested in it");
+        block(b.get(1), ReleaseNotes.Kind.QUOTE, 0, "", "The update is ready");
+        // Two inner quotes in one outer quote are two quotes at the inner depth.
+        b = ReleaseNotes.parse("> > a\n>\n> > b");
+        check(b.size() == 2 && b.get(1).sameQuote(b.get(0), 0) && !b.get(1).sameQuote(b.get(0), 1), "two inner quotes");
+        b = ReleaseNotes.parse("> > a\n> >\n> > b");
+        check(b.size() == 2 && b.get(1).sameQuote(b.get(0), 1), "one inner quote, two paragraphs");
+        b = ReleaseNotes.parse("> a\n\n> b");
+        check(!b.get(1).sameQuote(b.get(0), 0) && !b.get(0).sameQuote(null, 0), "two quotes");
+        check(one("plain").quotes == 0 && !one("plain").sameQuote(one("plain"), 0), "no quote");
+        StringBuilder deep = new StringBuilder();
+        for (int i = 0; i < 5000; i++) deep.append('>');
+        check(ReleaseNotes.parse(deep + " deep").get(0).quotes == ReleaseNotes.MAX_QUOTES, "depth stops at MAX_QUOTES");
+        check(ReleaseNotes.MAX_BARS >= 2 && ReleaseNotes.MAX_BARS <= ReleaseNotes.MAX_QUOTES, "a few bars at most");
     }
 
     /** The update dialog keeps its buttons pinned unless that would leave the title and notes too little room. */

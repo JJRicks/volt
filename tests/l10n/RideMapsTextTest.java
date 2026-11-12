@@ -70,7 +70,7 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.gradeLine(). */
     static String gradeLine(String signedPercent) {
-        return String.format(Locale.US, "≈%s%% grade", signedPercent);
+        return T.mapsRouteGrade(signedPercent);
     }
 
     /** RouteMapView.accel(). */
@@ -80,7 +80,7 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.accelLine(). */
     static String accelLine(String signedMps2) {
-        return String.format(Locale.US, "%s m/s² GPS accel", signedMps2);
+        return T.mapsRouteAccel(signedMps2);
     }
 
     /** RouteMapView.elevation(). */
@@ -91,12 +91,12 @@ public final class RideMapsTextTest {
 
     /** RouteMapView.elevationFeetLine(). */
     static String elevationFeetLine(String signedFeet) {
-        return String.format(Locale.US, "Elevation %s ft", signedFeet);
+        return T.mapsRouteElevationFt(signedFeet);
     }
 
     /** RouteMapView.elevationMetersLine(). */
     static String elevationMetersLine(String signedMeters) {
-        return String.format(Locale.US, "Elevation %s m", signedMeters);
+        return T.mapsRouteElevationM(signedMeters);
     }
 
     /** RouteMapView.drawTooltip()'s two lines; imperial is RouteMapView.imperial(). */
@@ -353,6 +353,12 @@ public final class RideMapsTextTest {
             eq("‹maps_route_speed_dual:22 ‹units_mph› 36 ‹units_kmh››", speed(10.0, "dual"), "GPS speed, both");
             eq("‹maps_route_no_scooter_speed›\n‹maps_route_gps_speed:‹fmt_quantity:22 ‹units_mph›››",
                     tooltip("speed", "mi", true, true, null, null, null, 10.0, null, null, null), "GPS speed line");
+            eq("‹maps_route_grade:+2.5›", grade(2.5), "grade line");
+            eq("‹maps_route_accel:-0.25›", accel(-.25), "acceleration line");
+            eq("‹maps_route_elevation_ft:+41›", elevation(12.4, true), "elevation line, feet");
+            eq("‹maps_route_elevation_m:-12›", elevation(-12.4, false), "elevation line, metres");
+            eq("‹maps_route_power_not_measured›\n‹maps_route_grade:+2.5› · ‹fmt_quantity:36 ‹units_kmh››",
+                    tooltip("power", "km", true, true, null, null, 2.5, 10.0, null, null, null), "power's second line");
             eq("‹units_watt›", unitSymbol("W"), "axis unit symbol");
             eq("Wh/mi", unitSymbol("Wh/mi"), "a unit with no symbol key stays as it is");
         } finally {
