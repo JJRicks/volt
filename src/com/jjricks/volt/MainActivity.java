@@ -186,6 +186,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
+            // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
+            ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
             rebuild();
         }
@@ -329,6 +331,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
+        ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
     }
@@ -3282,8 +3285,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
      * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
-     * profile's. Toasts when no email app can take it.
+     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
      */
+    /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
+    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
     @Override public void emailChargeRecordings(File recordings){
         DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
         if(d!=null&&d.simulated)d=null;
@@ -3295,7 +3300,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             final Uri attached=uri;
             handler.post(()->{
                 if(destroyed)return;
-                if(attached==null||!sendWithUri(subject,body,attached))toast(HubText.chargeSendNoEmail());
+                // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
+                ChargeSend.Outcome outcome=ChargeSend.outcome(attached!=null,attached!=null&&sendWithUri(subject,body,attached));
+                if(outcome==ChargeSend.Outcome.EXPORT_FAILED)toast(ScooterService.chargeExportFailed());
+                else if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
             });
         },"Volt-email-export").start();
     }

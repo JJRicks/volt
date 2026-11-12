@@ -2636,20 +2636,25 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
-     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded (said in a
-     * toast) or while an earlier export is still being written (quiet: a double tap; ChargeSend.refusal).
+     * to Volt's report address (the report emails' attachment flow). Refused with no scooter chosen ("Choose a scooter
+     * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
+     * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
+     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email.
      */
     private void sendChargeRecordings() {
-        ScooterService s = service(); if (s == null) return;
+        ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
         if (s.exportChargeRecordings(file -> {
-            if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
-            if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
-            host.emailChargeRecordings(file);
+            if (file != null) { ChargeSend.MAILBOX.deliver(file, System.currentTimeMillis()); return; }
+            if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
         })) return;
-        // Refused: tell the two reasons apart from the service's state.
-        if (ChargeSend.refusal(s.isChargeRecording(), s.chargeExporting()) == ChargeSend.Refusal.STOP_RECORDING)
-            host.toast(HubText.chargeSendBusy());
+        // Refused: tell the reasons apart from the service's state.
+        ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
+        if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
+        else if (refusal == ChargeSend.Refusal.STOP_RECORDING) host.toast(HubText.chargeSendBusy());
     }
+
+    /** "Choose a scooter first.": recording or emailing charges needs a chosen scooter. */
+    private void chooseScooterFirst() { host.toast(T.moreHistoryChooseScooter()); }
 
     /** Export charge recordings is refused: a charge is being recorded, or another export is running. */
     private void exportBusy() { host.toast(T.moreDevExportBusy()); }
@@ -2722,7 +2727,7 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            sendChargeRow.enabled(s!=null&&!s.chargeExporting());
+            sendChargeRow.enabled(ChargeSend.rowEnabled(s!=null,s!=null&&s.profiles!=null&&s.profiles.active()!=null,s!=null&&s.chargeExporting()));
         }
     }
 
@@ -2744,7 +2749,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
-        if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
+        if (profile == null) { chooseScooterFirst(); return; }
         final String profileId = profile.id;
         // Capture labels train curves, so only an explicit preference is pre-selected; an
         // Automatic guess must never become a label in one tap. An open panel must never start
