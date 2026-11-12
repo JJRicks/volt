@@ -1,0 +1,7 @@
+# The ride map popup's grade, GPS acceleration and elevation lines, moved into the catalog
+# (l10n/ledger/ride-map-popup.tsv). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the base English of RouteMapView's signed popup lines, copied from the merge base, pinned
+# before the batch.
+src/com/jjricks/volt/Fmt.java
+tests/l10n/characterization/RideMapPopupEnglishTest.java
