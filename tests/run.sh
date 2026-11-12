@@ -59,6 +59,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpa
 sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/ScooterMenuLayoutTest.java")
 # Hub subjects: which scooter rows each page shows, and the subjects' summaries (hub layout plan, PR 3).
 sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/ControlsPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubSummaries.java" "$TEST_DIR/HubSummariesTest.java")
+# Hub routes: where each saved Quick access id leads once the quick-access sheets are gone (hub layout plan, PR 4).
+sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
 # A drag in ReorderList counts from where the finger is when the row lifts, past the touch slop.
 sources+=("$APP_DIR/src/com/jjricks/volt/ReorderDrag.java" "$TEST_DIR/ReorderDragTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
@@ -153,6 +155,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest

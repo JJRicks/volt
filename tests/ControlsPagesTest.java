@@ -97,7 +97,7 @@ public final class ControlsPagesTest {
                 if (!ControlsPages.isLink(id)) continue;
                 String target = ControlsPages.linkTarget(id);
                 require(HubPages.known(target) && page.equals(HubPages.parent(target)), "A link opens one of the page's sub-pages: " + page + " " + target);
-                require(ControlsPages.spec(target) != null, "A linked page has rows: " + target);
+                require(ControlsPages.spec(target) != null || ControlsPages.HOSTED_ELSEWHERE.contains(target), "A linked page has rows: " + target);
             }
         // Every sub-page with rows is linked from its parent, so it is two taps from the Scooter tab.
         for (String page : ControlsPages.pages()) {
@@ -105,6 +105,10 @@ public final class ControlsPagesTest {
             require(ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)), "Linked from its parent: " + page);
         }
         require(ControlsPages.linkTarget("charge_limit") == null && !ControlsPages.isLink(null), "Only links have targets");
+        // Charge history & recordings is MoreScreen's page, linked from Battery & charging (hub layout plan, PR 4).
+        for (String page : ControlsPages.HOSTED_ELSEWHERE)
+            require(ControlsPages.spec(page) == null && ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)),
+                    "Linked from its parent, built elsewhere: " + page);
     }
 
     private static void doneBy(String mainActivity) throws IOException {

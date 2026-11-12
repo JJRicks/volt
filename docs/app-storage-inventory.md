@@ -82,7 +82,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `notification_prompted` | Boolean | global | Device | Volt already asked for Android's notification permission on this installation. |
 | `owner_import_applied` | String | global | Pending | Import ID of the last applied `pending-owner-import.json`; protects that file from being applied twice. |
 | `last_page` | String | global | Device | Id of the last page shown (`HubPages`; before the page stack, a tab id such as `stats`). Not read to choose a page. |
-| `more_section`, `scooter_section`, `stats_section` | String | global | Device | Open sections. `scooter_section` is retired (Hub layout part 3: the page stack remembers the Lights and Maintenance pages) and no longer written. |
+| `more_section`, `scooter_section`, `stats_section` | String | global | Device | Open sections. `scooter_section` is retired (Hub layout part 3: the page stack remembers the Lights and Maintenance pages) and no longer written. A saved `more_section` of `Security` or `Lab` opens More's menu since part 4 (both are subject pages now); Service's Diagnostics row writes `stats_section` = `Diagnostics` before opening Live Stats. |
 | `more_wide_section_scroll`, `more_wide_menu_scroll` | String / Integer | global | Device | Wide-window scroll positions; depend on window size. |
 | `more_away_elapsed`, `stats_away_elapsed` | Long | global | Device | `SystemClock.elapsedRealtime()` when the tab was left. Meaningless after a reboot or on another phone. |
 | `more_away_boot`, `stats_away_boot` | Integer | global | Device | Boot count paired with the above. |

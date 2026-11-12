@@ -150,10 +150,6 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
-    private AlertDialog quickMenuDialog;
-    private MoreScreen quickMoreScreen;
-    private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
-    private final ArrayList<ChargeDoneRow> quickChargeRows = new ArrayList<>();
     private Runnable pendingRideLocation;
     private boolean rideLocationResolved,rideLocationCancelled,autoRecordLocationCancelled;
     private android.window.OnBackInvokedCallback systemBack;
@@ -316,7 +312,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -422,9 +418,6 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
-        for (ControlRow row : quickMenuRows) row.refresh();
-        for (ChargeDoneRow row : quickChargeRows) row.refresh();
-        if (quickMoreScreen != null) quickMoreScreen.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -446,7 +439,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
-        closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         captureScroll();if(screen!=null)screen.close();
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
@@ -541,7 +533,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AppScreen createScreen(String page,HubNav.Args args){
         switch(HubPages.tabOf(page)){
             case HubPages.HOME:return new DashboardScreen(this,new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}});
-            case HubPages.SCOOTER:return scooterPage(page);
+            case HubPages.SCOOTER:return scooterPage(page,args);
             default:break;
         }
         if(scooterService==null)return new LoadingScreen();
@@ -551,11 +543,29 @@ public final class MainActivity extends Activity implements ScreenHost {
             default:return new MoreScreen(this);
         }
     }
-    /** A page under the Scooter tab (hub layout plan, PR 3); its index for the tab's root and for a page not built yet. */
-    private AppScreen scooterPage(String page){
+    /** A page under the Scooter tab (hub layout plan, PRs 3 and 4); its index for the tab's root and for a page not built yet. */
+    private AppScreen scooterPage(String page,HubNav.Args args){
         ControlsPages.Spec spec=ControlsPages.spec(page);
+        // Pages with More's sections need the service (as the More tab does); their rows read its settings.
+        boolean moreHosted=page.equals(HubPages.SECURITY)||page.equals(HubPages.BATTERY_HISTORY)||page.startsWith(HubPages.SERVICE+".")&&!page.equals(HubPages.SERVICE_MAINTENANCE);
+        if(moreHosted&&scooterService==null)return new LoadingScreen();
+        switch(page){
+            case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
+            case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
+            case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
+            case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
+            case HubPages.SERVICE_COMPATIBILITY:return new HubCompatibilityPage(this,args!=null&&args.recovery);
+            case HubPages.SERVICE_EXPERIMENTAL:{
+                MoreScreen lab=new MoreScreen(this,"Lab",true);
+                // A shortcut or an Experimental entry names its control: its try opens once the page is on screen.
+                ScooterCommands.Feature inspect=args==null||args.inspect==null?null:ScooterCommands.find(args.inspect);
+                if(inspect!=null)handler.post(()->{if(screen==lab)lab.inspectQuickFeature(inspect);});
+                return lab;
+            }
+            default:break;
+        }
         if(spec!=null&&!spec.search)return new ControlsScreen(spec);
-        if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this));
+        if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
             MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded);
@@ -569,6 +579,25 @@ public final class MainActivity extends Activity implements ScreenHost {
         HubListScreen subjects=new HubListScreen(this,HubSubjects.scooterIndex(this));
         search.indexList(subjects.view());
         return new HubPageScreen(this,search,subjects);
+    }
+    /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
+    private AppScreen securityLock(){
+        // The page header's connection line stays; only the previous page's lock views are dropped.
+        TextView header=connectionTitle;clearDashboardLock();connectionTitle=header;
+        View lock=makeDashboardLock(false,true);lock.setTag("hub-security-lock");
+        LinearLayout part=column();
+        float scale=Math.max(1f,design.textScale*getResources().getConfiguration().fontScale);
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,Math.round(design.dp(64)*scale)-design.dp(10));params.bottomMargin=design.dp(12);
+        part.addView(lock,params);
+        return new AppScreen(){
+            @Override public View view(){return part;}
+            @Override public void refresh(){}
+        };
+    }
+    /** Service's Diagnostics & connection activity row: Data is their one home, so it opens Live Stats on Diagnostics. */
+    private void openDiagnostics(){
+        preferences.edit().putString("stats_section","Diagnostics").apply();
+        open(HubPages.DATA);
     }
     private void styleSystemBars(){
         // Samsung's Window getter can dereference a missing decor during onCreate.
@@ -938,7 +967,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 body.addView(why);body.addView(reasons);
             }else if(BleController.OWNER_REJECTED.equals(error)){
                 TextView check=connectionLink(T.mainConnectionCheckOwner());
-                check.setOnClickListener(v->{if(controlDialog!=null)controlDialog.dismiss();openMoreSection("Scooters");});body.addView(check);
+                check.setOnClickListener(v->{if(controlDialog!=null)controlDialog.dismiss();openRoute(HubPages.SETTINGS_SCOOTERS,null);});body.addView(check);
             }
         }
         boolean noProfile=profile==null||!profile.configured();
@@ -947,7 +976,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 .setNegativeButton(primary,(d,which)->{
                     String primaryAction=permission&&!bluetoothOff&&noProfile&&!simulated?ADD_SCOOTER:null;
                     if(active){if(ble!=null)ble.disconnect();redraw();}
-                    else if(ADD_SCOOTER.equals(primaryAction))openMoreSection("Scooters");
+                    else if(ADD_SCOOTER.equals(primaryAction))openRoute(HubPages.SETTINGS_SCOOTERS,null);
                     // Connect asks for Nearby devices or turns on Bluetooth first, then connects.
                     else connect();
                 }).create();
@@ -1135,6 +1164,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         compactLock=true;lockTitle=design.text(T.mainLockTitle(),15,true);
         lockControl=new LockControl();lockControl.compact=true;lockControl.stoppedGate=stopped;
         return registerDashboardLock(lockControl);
+    }
+    /**
+     * A Quick access shortcut's page (HubRoutes). Settings and Data storage open More on their section until those
+     * sections become pages (PR 5); a tab's root resets to that tab; any other page opens above the current one.
+     */
+    private void openRoute(String page,HubNav.Args args){
+        String section=HubRoutes.moreSectionOf(page);
+        if(section!=null){openMoreSection(section);return;}
+        if(HubPages.TABS.contains(page))select(page);else open(page,args);
     }
     private void openMoreSection(String section){
         // A deliberate shortcut wins over the older submenu's expired return state.
@@ -1705,7 +1743,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             testBanner.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             testBanner.addView(design.icon("lab",18,design.text),new LinearLayout.LayoutParams(design.dp(18),design.dp(18)));
             testBannerText=design.text(T.mainControlsUnfinishedTest(),13,false);LinearLayout.LayoutParams testWords=new LinearLayout.LayoutParams(0,-2,1);testWords.leftMargin=design.dp(10);testWords.rightMargin=design.dp(8);testBanner.addView(testBannerText,testWords);
-            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();openMoreSection(running!=null&&!running.terminal()&&running.keeps()?"Lab":MoreScreen.COMPATIBILITY_RECOVERY);});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(testReviewAction);
+            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();if(running!=null&&!running.terminal()&&running.keeps())open(HubPages.SERVICE_EXPERIMENTAL);else open(HubPages.SERVICE_COMPATIBILITY,HubNav.Args.recovery());});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(testReviewAction);
             testBanner.setVisibility(View.GONE);view.addView(testBanner,new LinearLayout.LayoutParams(-1,-2));
             ((LinearLayout.LayoutParams)testBanner.getLayoutParams()).bottomMargin=design.dp(10);
             // The index: search over every page's rows. Other pages have no field (the index's search finds their rows).
@@ -1764,7 +1802,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             String batteryGroup=groupOf(ScooterCommands.find("charge_limit"));
             addRow(batteryGroup,chargeLive.row.card);extras.put(chargeLive.row.card,new String[]{batteryGroup,M.chargeLiveRow().english()});
             shownExtras.put(chargeLive.row.card,new String[]{T.chargeLiveRow()});
-            SettingLine security=new SettingLine("shield",T.mainRowSecurity(),null);security.chevron(()->openMoreSection("Security"));
+            SettingLine security=new SettingLine("shield",T.mainRowSecurity(),null);security.chevron(()->open(HubPages.SECURITY));
             addRow("Security",security.card);extras.put(security.card,new String[]{"Security","pin password proximity unlock pairing bluetooth bond security"});
             // Rename stays in More › My scooters (and Home's edit mode); the index's search still finds it here.
             SettingLine identity=new SettingLine("pencil",T.mainRenameTitle(),null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
@@ -1826,7 +1864,7 @@ public final class MainActivity extends Activity implements ScreenHost {
          */
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
-            entry.value.setText(HubText.experimentalBadge());entry.chevron(()->showQuickMore("Lab",feature));
+            entry.value.setText(HubText.experimentalBadge());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
@@ -1984,30 +2022,24 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
-        if (id.equals("lights")) { showQuickSettings("Lights"); return; }
-        if (id.equals("controls")) { showQuickSettings("Settings"); return; }
-        if (id.startsWith("more:")) { showQuickMore(id.substring(5), null); return; }
-        if (id.startsWith("section:")) {
-            String section = id.substring(8);
-            if (section.equals("Security")) showQuickMore("Security", null);
-            else if (section.equals("Profile")) renameScooter();
-            else showQuickSettings(section);
-            return;
-        }
+        // A shortcut that opened a quick-access sheet opens the page that holds the same rows (HubRoutes).
+        String page = HubRoutes.pageFor(id);
+        if (page != null) { openRoute(page, null); return; }
+        if (id.equals("section:Profile")) { renameScooter(); return; }
         ScooterCommands.Feature feature = entry.feature();
         if (feature == null) return;
-        if (feature.key.equals("range_algorithm")) { closeQuickMenu(); showRangeSource(); return; }
+        if (feature.key.equals("range_algorithm")) { showRangeSource(); return; }
         // The same resolver as the settings rows and the write gate: an unmapped control says why.
         CapabilityResolver.Decision decision = scooterService.ble.decision(feature.key);
         if (decision.support != CapabilityResolver.Support.KNOWN_ENCODING) { toast(decision.reasonMessage()); return; }
-        if (decision.variant != null && decision.variant.lab) { showQuickMore("Lab", feature); return; }
+        if (decision.variant != null && decision.variant.lab) { openRoute(HubRoutes.forFeature(true, false), HubNav.Args.inspect(feature.key)); return; }
         // Another model's region, firmware or full-ID rule refuses it: say why, as its Scooter row does (never on the UT5 MAX).
         if (decision.reason == CapabilityResolver.Reason.REGION_RULE || decision.reason == CapabilityResolver.Reason.FIRMWARE_UNKNOWN
                 || decision.reason == CapabilityResolver.Reason.FIRMWARE_OLD || decision.reason == CapabilityResolver.Reason.FULL_PID_NEEDED) {
             toast(decision.reasonMessage()); return;
         }
         if (feature.sensitive || feature.key.equals("proximity_key")) {
-            showQuickMore("Security", null); return;
+            openRoute(HubRoutes.forFeature(false, true), null); return;
         }
         BleController ble = scooterService.ble;
         if (!ble.ready()) { toast(T.mainQuickConnectChange()); return; }
@@ -2029,91 +2061,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 redraw();
             });
         } else {
-            closeQuickMenu();
             if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
             editFeature(feature);
         }
-    }
-
-    private void closeQuickMenu() {
-        AlertDialog old = quickMenuDialog; quickMenuDialog = null;
-        MoreScreen oldMore = quickMoreScreen; quickMoreScreen = null;
-        quickMenuRows.clear();
-        quickChargeRows.clear();
-        if (oldMore != null) oldMore.close();
-        if (old != null) old.dismiss();
-    }
-
-    /** A named scooter settings group shown above Home, keeping the underlying layout untouched. */
-    private void showQuickSettings(String section) {
-        closeQuickMenu();
-        if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
-        final AlertDialog[] self = new AlertDialog[1];
-        LinearLayout body = sheetContent(section.equals(SECTION_SETTINGS) ? T.mainQuickScooterSettings() : sectionTitle(section),
-                null, () -> { if (self[0] != null) self[0].dismiss(); });
-        body.setTag("quick-settings-sheet");
-        LinearLayout settings = design.groupCard(); body.addView(settings);
-        ArrayList<ScooterCommands.Feature> features = new ArrayList<>(ScooterCommands.catalog());
-        // Another model's own light controls join the Lights sheet only where it maps them.
-        for (ScooterCommands.Feature f : ScooterCommands.oemOnly()) if (scooterService.ble.controlOffered(f.key)) features.add(f);
-        for (ScooterCommands.Feature f : features) {
-            if (f.experimental && !ordinaryOemRow(f.key) || f.sensitive || f.key.equals("lock") || f.key.equals("proximity_key")) continue;
-            boolean match = section.equals("Settings")
-                    || section.equals("Lights") && (f.key.equals("headlight") || f.key.equals("auto_sensor") || ScooterCommands.oemOnly(f.key)
-                            || f.key.startsWith("line_") || f.key.startsWith("star_"))
-                    || section.equals("Line lights") && f.key.startsWith("line_")
-                    || section.equals("Star lights") && f.key.startsWith("star_")
-                    || section.equals("Dashboard & sound") && (f.group.equals("Preferences")
-                            || f.key.equals("turn_sound"))
-                    || section.equals(f.group);
-            if (!match) continue;
-            if (settings.getChildCount() > 0) design.divider(settings);
-            ControlRow row = new ControlRow(f); quickMenuRows.add(row);
-            settings.addView(row.card); row.refresh();
-            if((f.key.equals("timed_charging")||f.key.equals("charge_start"))&&chargeDoneOffered()){
-                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));
-                quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
-            }
-        }
-        if (section.equals("Settings")) {
-            for (String id : new String[]{"section:Security", "section:Profile", "more:App"}) {
-                QuickAccessActions.Entry shortcut = QuickAccessActions.find(id);
-                design.divider(settings);
-                SettingLine row = new SettingLine(shortcut.icon, shortcut.label(), null);
-                row.chevron(() -> quickAction(id)); settings.addView(row.card);
-            }
-        }
-        AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
-        dialog.setOnDismissListener(d -> {
-            if (quickMenuDialog == dialog) { quickMenuDialog = null; quickMenuRows.clear(); quickChargeRows.clear(); }
-        });
-    }
-
-    /** Reuses the existing PIN/experimental approvals and application preferences in a temporary panel. */
-    private void showQuickMore(String section, ScooterCommands.Feature inspect) {
-        closeQuickMenu();
-        if (controlDialog != null) { controlDialog.dismiss(); controlDialog = null; }
-        final AlertDialog[] self = new AlertDialog[1];
-        String title = section.equals("Security") ? T.mainRowSecurity()
-                : section.equals("Lab") ? T.mainQuickExperimental()
-                : section.equals("App") ? T.mainQuickApp()
-                : section.equals("Scooters") ? T.mainQuickScooters()
-                : section.equals(SECTION_COMPATIBILITY) ? T.mainQuickCompatibility()
-                : section.equals("Data") ? T.mainQuickData() : T.mainQuickAbout();
-        LinearLayout body = sheetContent(title, null,
-                () -> { if (self[0] != null) self[0].dismiss(); });
-        body.setTag("quick-more-sheet");
-        MoreScreen overlay = new MoreScreen(this, section);
-        quickMoreScreen = overlay;
-        body.addView(overlay.view(), new LinearLayout.LayoutParams(-1,
-                Math.max(design.dp(200), Math.round(getResources().getDisplayMetrics().heightPixels * .64f))));
-        AlertDialog dialog = showSheet(body); self[0] = dialog; quickMenuDialog = dialog;
-        dialog.setOnDismissListener(d -> {
-            if (quickMenuDialog == dialog) {
-                quickMenuDialog = null; quickMoreScreen = null; overlay.close();
-            }
-        });
-        if (inspect != null) overlay.inspectQuickFeature(inspect);
     }
 
     /** How long a failure chip outlives the first fresh readback that follows it. */
@@ -3828,7 +3778,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String unavailable=scooterService==null?null:scooterService.dataMaintenanceUnavailable();
         if(unavailable!=null){toast(unavailable);return;}
         enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=false;
-        closeQuickMenu();if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
+        if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
         if(screen!=null){screen.close();screen=null;}onboarding=null;
         preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         handler.removeCallbacksAndMessages(null);fold.stop();

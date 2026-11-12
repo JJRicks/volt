@@ -27,14 +27,32 @@ final class HubSubjects {
         return rows;
     }
 
-    /** Service's single row: the maintenance reminders, with the dot while a check is due. */
-    static List<HubListScreen.Row> service(ScreenHost host) {
+    /**
+     * Service's rows (hub layout plan, PR 4): maintenance reminders (with the dot while a check is due), diagnostics and
+     * connection activity (a link: Data is their one home, so it opens Live Stats on its Diagnostics section), the
+     * compatibility test, issue reports, and every experimental control. diagnostics opens Data's Diagnostics.
+     */
+    static List<HubListScreen.Row> service(ScreenHost host, Runnable diagnostics) {
         ArrayList<HubListScreen.Row> rows = new ArrayList<>();
         String page = HubPages.SERVICE_MAINTENANCE;
         rows.add(new HubListScreen.Row(page, "gear", HubText.title(page),
                 () -> MaintenanceScreen.rowValue(MaintenanceScreen.summary(host.service())),
                 () -> serviceDue(host.service()), null, () -> host.open(page)));
+        rows.add(new HubListScreen.Row(DIAGNOSTICS, "analytics", HubText.diagnosticsRow(), null, null, null, diagnostics));
+        for (String link : new String[] {HubPages.SERVICE_COMPATIBILITY, HubPages.SERVICE_REPORTS, HubPages.SERVICE_EXPERIMENTAL})
+            rows.add(new HubListScreen.Row(link, icon(link), HubText.title(link), null, null, null, () -> host.open(link)));
         return rows;
+    }
+
+    /** The id of Service's diagnostics row (its view tag is "hub-row-" and this): a link, not a page. */
+    static final String DIAGNOSTICS = "service.diagnostics";
+
+    private static String icon(String page) {
+        switch (page) {
+            case HubPages.SERVICE_COMPATIBILITY: return "check";
+            case HubPages.SERVICE_REPORTS: return "export";
+            default: return "lab";
+        }
     }
 
     private static boolean serviceDue(ScooterService service) {
