@@ -321,6 +321,12 @@ public final class HubText {
      * its rows record, export, clear and email charge recordings, which its title alone does not name.
      */
     public static Msg batteryHistorySearchWords() { return M.hubSearchBatteryHistory(); }
+    /**
+     * Words search matches for the Line lights and Star lights rows, never shown: the scooter's light zones,
+     * patterns and colours. The existing, already-translated words the controls' own search matched them by
+     * (main_search_zones), so PR 12 gives those entries their words without a catalog reference of its own.
+     */
+    public static Msg lightZonesSearchWords() { return M.mainSearchZones(); }
 
     /**
      * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
