@@ -1211,6 +1211,21 @@ zooms enlarge available level-16 tiles. HTTP errors and X-Blocked images show a
 status while local routes remain visible. Provider denial pauses further requests;
 legacy unverified cache entries require refresh. No bulk prefetch is performed.
 
+CLEAN HOME
+
+Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
+Home (the pencil on Clean), or from the Home style row at the top of the Layout
+sheet while editing Widgets. Switching never changes widget layouts or saved
+slots. Clean's four quick actions: RIDE (the red pill into riding mode, the same
+look and word as Widgets' RIDE button), Record ride, Charge done by where the
+scooter has scheduled charging, else Battery alerts, then the first offered
+control in this order: cruise control, walk assist, traction control, power
+assist, energy recovery, hill descent control, overspeed control. On a scooter
+with neither scheduled charging nor battery alerts, a second offered control
+takes the third place; any place still empty goes to Rides and then Settings.
+There is no drive mode action. Edit Home changes any of the four per scooter.
+What each model offers: see OTHER NAVEE MODELS above.
+
 QUICK ACCESS
 
 Choose two to eight ordered shortcuts in the widget options. Direct toggles use
