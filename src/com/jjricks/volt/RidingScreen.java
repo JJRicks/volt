@@ -385,9 +385,9 @@ final class RidingScreen implements AppScreen {
         if (side) range.card();
         range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84, false);
-        // The readings under the ring show their names one way: all names, or icons wherever one must be.
+        // The two tiles under the ring show their names one way: both names, or both icons. The range above them is
+        // full width and decides alone (RidingNameGroup): its name, which says which range it is, stays while it fits.
         NameGroup under = new NameGroup();
-        under.add(range);
         for (int i = 0; i < tiles.getChildCount(); i++) if (tiles.getChildAt(i) instanceof Cell) under.add((Cell) tiles.getChildAt(i));
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
@@ -1478,7 +1478,7 @@ final class RidingScreen implements AppScreen {
 
     /**
      * Readings whose names share one presentation (RidingNameGroup): Halo's strip of small readings, and the
-     * readings under its ring. When one of them must fall back to its icon, every one that has an icon shows it,
+     * two tiles under its ring (not the full-width range above them, which decides alone). When one of them must fall back to its icon, every one that has an icon shows it,
      * so a word and an icon never sit side by side because one language's word is longer.
      */
     private static final class NameGroup {
@@ -1559,7 +1559,7 @@ final class RidingScreen implements AppScreen {
                 fit = TileRung.first(widths, room);
             }
             if (group != null) group.settle();
-            else apply(RidingNameGroup.icons(new int[]{fit}, new String[]{groupIcon()}, new String[1]));
+            else apply(RidingNameGroup.alone(fit, groupIcon()));
         }
         /** Shows the rung or icon this label takes when its group shows icons (or not); the rung's dependants follow. */
         void apply(boolean icons) {

@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 /**
  * How a group of riding-mode readings shows their names: Halo's strip of small readings, and the
- * readings under its ring. Each name climbs its own narrow-label ladder (TileRung.first): its full
+ * two tiles under its ring. Each name climbs its own narrow-label ladder (TileRung.first): its full
  * name while it fits, then its short one, then its icon alone. Left to themselves, two readings side
  * by side can land on different rungs of that ladder, one showing a word and the other an icon, and
  * which one gets the icon depends on how long each language's words are (a tester's report: Battery
@@ -17,7 +17,12 @@ package com.jjricks.volt;
  * when that means a word beside it or the same icon twice (the project's rule for narrow labels: full
  * name, short name, icon, never a word cut mid-way). Every reading a tile or the strip can show has an
  * icon; a member offering none (inferred power while a rung carrying its cue fits, see {@link #offered})
- * keeps its name, because it has nothing else to show. Pure, so the host tests run it.
+ * keeps its name, because it has nothing else to show. The full-width range reading under Halo's ring is
+ * not in the tiles' group (the maintainer's decision on PR #398): it has the room, and its name is the only
+ * thing that says which range it is (Range at this pace, or the scooter's own estimate as the fallback), as
+ * the three range readings share one icon. So it decides {@link #alone}: its name whenever one fits, even
+ * while the tiles below show icons, and its icon only when its own name doesn't fit, never a cut name. Pure,
+ * so the host tests run it.
  */
 final class RidingNameGroup {
     private RidingNameGroup() {}
@@ -49,6 +54,17 @@ final class RidingNameGroup {
             }
         }
         return true;
+    }
+
+    /**
+     * True when a reading on its own shows its icon: only when no name of its own fits and it has an icon (a lone
+     * label, and the full-width range reading under Halo's ring, whatever the tiles below it show).
+     *
+     * @param fit its own ladder choice, as in {@link #icons}
+     * @param icon its icon key, or null
+     */
+    static boolean alone(int fit, String icon) {
+        return icons(new int[]{fit}, new String[]{icon}, new String[1]);
     }
 
     /**

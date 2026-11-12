@@ -1,10 +1,10 @@
 package com.jjricks.volt;
 
 /**
- * Riding mode's reading names in a group (Halo's strip, the readings under its ring): icons for every reading that has
+ * Riding mode's reading names in a group (Halo's strip, the two tiles under its ring): icons for every reading that has
  * one, or names for all, by one shared rule, so two readings side by side never mix a word and an icon because one
  * language's word happens to be longer, two different readings never show the same icon, and no reading with an icon
- * ever shows its name cut short.
+ * ever shows its name cut short. The full-width range reading under the ring decides alone: its name whenever it fits.
  */
 public final class RidingNameGroupTest {
     private static final int NONE = -1, U = RidingNameGroup.UNMEASURED, ICON = RidingNameGroup.ICON;
@@ -25,8 +25,8 @@ public final class RidingNameGroupTest {
         // Room for both names: both names, each on the rung it fits.
         expect(new int[]{1, 0}, both, new int[]{2, 1}, new int[]{1, 0}, "both fit: both names");
         expect(new int[]{0, 0}, both, new int[]{2, 2}, new int[]{0, 0}, "both full names");
-        // Range under the ring and a temperature tile: the same rule across the group.
-        expect(new int[]{0, NONE, 0}, new String[]{ROUTE, TEMP, BATT}, new int[]{2, 2, 1}, new int[]{ICON, ICON, ICON}, "under the ring");
+        // Two tiles under the ring, one a temperature tile that runs out of room: the same rule across the tiles.
+        expect(new int[]{NONE, 0}, new String[]{TEMP, BATT}, new int[]{2, 1}, new int[]{ICON, ICON}, "tiles under the ring");
         // A member offering no icon (inferred power at a rung carrying its cue; Odometer before it had its distance arrow)
         // keeps its name; the one that needs its icon still gets it.
         expect(new int[]{0, NONE}, new String[]{null, TEMP}, new int[]{2, 2}, new int[]{0, ICON}, "no icon keeps its name");
@@ -40,15 +40,37 @@ public final class RidingNameGroupTest {
         expect(new int[]{NONE}, new String[]{TEMP}, new int[]{2}, new int[]{ICON}, "alone, icon");
         expect(new int[]{1}, new String[]{TEMP}, new int[]{2}, new int[]{1}, "alone, short name");
         expect(new int[]{NONE}, new String[]{null}, new int[]{2}, new int[]{1}, "alone, no icon");
-        // Halo's defaults under the ring: Range at this pace, Trip and Battery. Trip has its own icon now (a flag at the
-        // end of the way, where Range keeps the route), so when any name doesn't fit all three go to icons together.
-        // (Review of 055bbbc1: with one route icon for both the group kept names and cut Trip's, or Battery's, mid-word.)
-        String[] defaults = {RANGE, TRIP, BATTERY};
-        expect(new int[]{0, NONE, 0}, defaults, new int[]{2, 2, 1}, new int[]{ICON, ICON, ICON}, "range and trip: icons");
-        expect(new int[]{0, 0, NONE}, defaults, new int[]{2, 2, 1}, new int[]{ICON, ICON, ICON}, "battery tight beside range and trip: icons");
-        expect(new int[]{0, 1, 0}, defaults, new int[]{2, 2, 1}, new int[]{0, 1, 0}, "range, trip and battery fit: names");
-        // The tester's tile, Battery temperature, under the ring with Range and Trip: icons for all.
-        expect(new int[]{0, 0, NONE}, new String[]{RANGE, TRIP, TEMP}, new int[]{2, 2, 2}, new int[]{ICON, ICON, ICON}, "temperature tile: icons");
+        // RidingNameGroup.alone is that group of one.
+        for (int f = U; f <= 1; f++) for (String icon : new String[]{null, TEMP})
+            if (RidingNameGroup.alone(f, icon) != RidingNameGroup.icons(new int[]{f}, new String[]{icon}, new String[1]))
+                throw new AssertionError("alone differs from a group of one at " + f + ", " + icon);
+        // Halo's defaults under the ring: Range at this pace full width, then the Trip and Battery tiles. Trip has its own
+        // icon (a flag at the end of the way, where Range keeps the route), so when either tile's name doesn't fit both
+        // tiles go to icons together. (Review of 055bbbc1: with one route icon for both the group kept names and cut
+        // Trip's, or Battery's, mid-word.) The range keeps its name whenever it fits, even while the tiles show icons: it
+        // has the room, and its name is the only thing that says which range it is, as the three range readings share
+        // the route (the maintainer's decision on PR #398). It shows its icon only when its own name doesn't fit.
+        String[] tiles = {TRIP, BATTERY};
+        underRing(0, new int[]{NONE, 0}, tiles, new int[]{2, 1}, 0, new int[]{ICON, ICON}, "trip tight: tile icons, range keeps its name");
+        underRing(0, new int[]{0, NONE}, tiles, new int[]{2, 1}, 0, new int[]{ICON, ICON}, "battery tight: tile icons, range keeps its name");
+        underRing(1, new int[]{NONE, NONE}, tiles, new int[]{2, 1}, 1, new int[]{ICON, ICON}, "both tiles tight: range keeps its short name");
+        underRing(0, new int[]{1, 0}, tiles, new int[]{2, 1}, 0, new int[]{1, 0}, "range, trip and battery fit: names");
+        // The range's own name doesn't fit: its icon, never a cut name, whatever the tiles show.
+        underRing(NONE, new int[]{0, 0}, tiles, new int[]{2, 1}, ICON, new int[]{0, 0}, "range tight, tiles fit: range icon, tile names");
+        underRing(NONE, new int[]{NONE, 0}, tiles, new int[]{2, 1}, ICON, new int[]{ICON, ICON}, "range and trip tight: icons");
+        // The tester's tile, Battery temperature, beside Trip: both tiles' icons; the range above keeps its name.
+        underRing(0, new int[]{0, NONE}, new String[]{TRIP, TEMP}, new int[]{2, 2}, 0, new int[]{ICON, ICON}, "temperature tile: tile icons, range name");
+        // A tile showing another range reading shares the range's route: the tiles still decide only between themselves.
+        underRing(0, new int[]{NONE, 0}, new String[]{ROUTE, BATTERY}, new int[]{2, 1}, 0, new int[]{ICON, ICON}, "range tile beside battery: tile icons");
+        // Whatever the fits, the range follows only its own, and the two tiles always match each other.
+        for (int r = -1; r <= 1; r++) for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++) {
+            int range = RidingNameGroup.shown(r, 2, true, RidingNameGroup.alone(r, RANGE));
+            if (range != (r < 0 ? ICON : r)) throw new AssertionError("range at fit " + r + " shows " + range);
+            boolean group = RidingNameGroup.icons(new int[]{a, b}, tiles, new String[]{"trip", "battery"});
+            int ta = RidingNameGroup.shown(a, 2, true, group), tb = RidingNameGroup.shown(b, 1, true, group);
+            if ((ta == ICON) != (tb == ICON)) throw new AssertionError("tiles differ under the ring: " + a + ", " + b);
+            if ((ta == ICON) != (a < 0 || b < 0)) throw new AssertionError("tiles at " + a + ", " + b + " show " + ta + ", " + tb);
+        }
         // Average and Max speed in the strip: a dot and a tick on the speedometer tell them apart, so they go to icons
         // together, whichever name runs out of room (the review's Portuguese "Velocidade média"/"Velocidade máx." at
         // 344 dp, where even "Méd." or "Vel. máx." didn't fit, and German's "Ø" fitting beside a "Spitze" that didn't).
@@ -136,6 +158,16 @@ public final class RidingNameGroupTest {
                 if (a != U && b != U && (sa == ICON) != (sb == ICON)) throw new AssertionError("mixed icon and name: " + a + ", " + b);
             }
         System.out.println("RidingNameGroupTest passed");
+    }
+
+    /**
+     * Halo's readings under the ring: the full-width range decides alone (RidingNameGroup.alone), the two tiles below it
+     * as one group.
+     */
+    private static void underRing(int rangeFit, int[] tileFits, String[] tileIcons, int[] tileRungs, int rangeShown, int[] tilesShown, String name) {
+        int got = RidingNameGroup.shown(rangeFit, 2, true, RidingNameGroup.alone(rangeFit, RANGE));
+        if (got != rangeShown) throw new AssertionError(name + ": range shows " + got + ", expected " + rangeShown);
+        expect(tileFits, tileIcons, tileRungs, tilesShown, name);
     }
 
     private static void expectEqual(String got, String want, String name) {
