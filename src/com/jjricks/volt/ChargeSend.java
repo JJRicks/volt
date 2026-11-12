@@ -1,7 +1,11 @@
 package com.jjricks.volt;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.function.Consumer;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Email to Volt on Charge history & recordings (hub layout plan, PR 4): what to tell the owner when the service refuses
@@ -108,4 +112,48 @@ final class ChargeSend {
     }
 
     static final Mailbox MAILBOX = new Mailbox();
+
+    /**
+     * The owner's decisions on #383 (2026-11-12) for Email to Volt's attachment: the charge recordings have their own
+     * name, not report diagnostics' volt-diagnostics.json, so the two kinds of email can be told apart on arrival; and a
+     * recordings file over {@link #COMPRESS_OVER_BYTES} (25 MB, more than most email services accept) is attached
+     * gzip-compressed, as volt-charge-recordings.json.gz, which decompresses to the very same file.
+     */
+    static final String NAME = "volt-charge-recordings.json", TYPE = "application/json";
+    static final String COMPRESSED_NAME = NAME + ".gz", COMPRESSED_TYPE = "application/gzip";
+    static final long COMPRESS_OVER_BYTES = 25L * 1000 * 1000;
+
+    /** How a recordings file of some size is attached: its name, its MIME type, and whether it is gzip-compressed. */
+    static final class Attachment {
+        final String name, type;
+        final boolean compressed;
+
+        private Attachment(String name, String type, boolean compressed) { this.name = name; this.type = type; this.compressed = compressed; }
+    }
+
+    private static final Attachment PLAIN = new Attachment(NAME, TYPE, false), COMPRESSED = new Attachment(COMPRESSED_NAME, COMPRESSED_TYPE, true);
+
+    /** The attachment for a recordings file of this many bytes: compressed only when it is over 25 MB. */
+    static Attachment attachment(long bytes) {
+        return bytes > COMPRESS_OVER_BYTES ? COMPRESSED : PLAIN;
+    }
+
+    /** The attachment that carries this name (one of the two above), else null. */
+    static Attachment named(String name) {
+        return NAME.equals(name) ? PLAIN : COMPRESSED_NAME.equals(name) ? COMPRESSED : null;
+    }
+
+    /**
+     * Streams in to out as gzip, a buffer at a time, so a large export is never held in memory; closes neither stream
+     * (the gzip trailer is written). Decompressed, out is exactly the bytes of in.
+     */
+    static void gzip(InputStream in, OutputStream out) throws IOException {
+        GZIPOutputStream zipped = new GZIPOutputStream(new java.io.FilterOutputStream(out) {
+            @Override public void write(byte[] b, int off, int len) throws IOException { out.write(b, off, len); }
+            @Override public void close() throws IOException { out.flush(); }
+        }, 64 * 1024);
+        byte[] buffer = new byte[64 * 1024];
+        for (int n; (n = in.read(buffer)) != -1; ) zipped.write(buffer, 0, n);
+        zipped.close();
+    }
 }

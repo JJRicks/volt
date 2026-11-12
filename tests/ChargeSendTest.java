@@ -37,6 +37,8 @@ public final class ChargeSendTest {
         require(ChargeSend.dropTemporary(now - 60_000L, now) && ChargeSend.dropTemporary(now - 3_600_000L, now)
                 && ChargeSend.dropTemporary(now + 3_600_000L, now), "A left-over one goes");
         mailbox();
+        attachment();
+        compression();
         System.out.println("ChargeSend: " + checks + " checks passed");
     }
 
@@ -115,6 +117,65 @@ public final class ChargeSendTest {
         held.register(got::add, 2_000);
         require(got.size() == 2 && got.get(1).file == b && got.get(1).model.equals("Model: Navee S65C"), "Held, it keeps its model");
         require(new ChargeSend.Export(b, null).model.isEmpty(), "No model is empty, never null");
+    }
+
+    /** The owner's decisions on #383: the recordings' own name, and gzip over 25 MB with a matching name and type. */
+    private static void attachment() {
+        require(ChargeSend.NAME.equals("volt-charge-recordings.json") && !ChargeSend.NAME.equals(DIAGNOSTICS_NAME),
+                "The recordings have their own name, not the diagnostics report's");
+        for (long bytes : new long[] {0L, 1L, 1_000_000L, 25_000_000L}) {
+            ChargeSend.Attachment a = ChargeSend.attachment(bytes);
+            require(!a.compressed && "volt-charge-recordings.json".equals(a.name) && "application/json".equals(a.type),
+                    "Up to 25 MB the file goes as it is (" + bytes + ")");
+        }
+        for (long bytes : new long[] {25_000_001L, 41_500_000L, 4_000_000_000L}) {
+            ChargeSend.Attachment a = ChargeSend.attachment(bytes);
+            require(a.compressed && "volt-charge-recordings.json.gz".equals(a.name) && "application/gzip".equals(a.type),
+                    "Over 25 MB it is gzip-compressed, named and typed so (" + bytes + ")");
+        }
+        require(ChargeSend.named(ChargeSend.NAME) == ChargeSend.attachment(0L)
+                && ChargeSend.named(ChargeSend.COMPRESSED_NAME) == ChargeSend.attachment(Long.MAX_VALUE), "Each name finds its attachment");
+        require(ChargeSend.named(DIAGNOSTICS_NAME) == null && ChargeSend.named(null) == null && ChargeSend.named("") == null
+                && ChargeSend.named("volt-charge-recordings.json.zip") == null, "No other name is a recordings attachment");
+    }
+
+    /** The diagnostics report's own name (DiagnosticsProvider.NAME), which stays as it is. */
+    private static final String DIAGNOSTICS_NAME = "volt-diagnostics.json";
+
+    /** A generated recordings-like file over 25 MB: compressed, it is much smaller and decompresses to the same bytes. */
+    private static void compression() {
+        try {
+            File dir = Files.createTempDirectory("charge-gzip").toFile();
+            File source = new File(dir, "charges.json"), zipped = new File(dir, "charges.json.gz");
+            try (java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(source), java.nio.charset.StandardCharsets.UTF_8))) {
+                java.util.Random random = new java.util.Random(387);
+                w.write("{\"format\":\"volt-charge-sessions-v1\",\"sessions\":[{\"readings\":[");
+                for (int i = 0; source.length() <= ChargeSend.COMPRESS_OVER_BYTES + 1_000_000L || i % 1000 != 0; i++) {
+                    if (i > 0) w.write(',');
+                    w.write("{\"t\":" + (1_700_000_000_000L + i * 1000L) + ",\"soc\":" + (i / 600 % 100) + ",\"v\":" + (36 + random.nextInt(1300) / 100.0)
+                            + ",\"a\":" + (random.nextInt(400) / 100.0) + ",\"w\":" + random.nextInt(200) + ",\"c\":" + (20 + random.nextInt(10)) + "}");
+                    if (i % 1000 == 999) w.flush();
+                }
+                w.write("]}]}");
+            }
+            require(ChargeSend.attachment(source.length()).compressed, "The generated file is over the threshold");
+            try (java.io.InputStream in = new java.io.FileInputStream(source); java.io.OutputStream out = new java.io.FileOutputStream(zipped)) {
+                ChargeSend.gzip(in, out);
+                out.write(new byte[0]); // gzip leaves the caller's stream open
+            }
+            require(zipped.length() > 0 && zipped.length() * 3 < source.length(), "The text shrinks a lot: " + source.length() + " -> " + zipped.length());
+            try (java.io.InputStream a = new java.io.BufferedInputStream(new java.io.FileInputStream(source));
+                 java.io.InputStream b = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(zipped)))) {
+                long at = 0;
+                for (int x, y; ; at++) {
+                    x = a.read(); y = b.read();
+                    if (x != y) { require(false, "Decompressed bytes differ at " + at); break; }
+                    if (x == -1) break;
+                }
+                require(at == source.length(), "Decompressed to the same " + source.length() + " bytes");
+            }
+            require(source.delete() && zipped.delete() && dir.delete(), "Cleaned up");
+        } catch (IOException e) { throw new AssertionError(e); }
     }
 
     private static File file(File dir, String name) throws IOException {

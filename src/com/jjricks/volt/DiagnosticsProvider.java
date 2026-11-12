@@ -22,7 +22,10 @@ import java.util.List;
  * The files report emails attach, read-only. Each prepared report is its own snapshot, cache/diagnostics/<id>.json
  * with a random 128-bit id, written once and never changed, served at content://<authority>/<id>/volt-diagnostics.json.
  * So an email app that opens its attachment late still gets the file the owner previewed, and a read grant on one
- * send intent never reaches another report. Not exported; nothing else in the cache, and no other path, is served.
+ * send intent never reaches another report. Email to Volt's charge recordings are snapshots too, under their own name
+ * (ChargeSend.attachment): cache/diagnostics/<id>.volt-charge-recordings.json[.gz], served at
+ * content://<authority>/<id>/volt-charge-recordings.json[.gz]. Each snapshot is served only under its own name. Not
+ * exported; nothing else in the cache, and no other path, is served.
  */
 public final class DiagnosticsProvider extends ContentProvider {
     static final String DIRECTORY = "diagnostics", NAME = "volt-diagnostics.json", TYPE = "application/json";
@@ -34,7 +37,19 @@ public final class DiagnosticsProvider extends ContentProvider {
     private static final String EXISTS = "Diagnostics snapshot already exists";
     private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
 
-    static Uri uri(Context context, String id) { return new Uri.Builder().scheme("content").authority(authority(context)).appendPath(id).appendPath(NAME).build(); }
+    static Uri uri(Context context, String id, String name) { return new Uri.Builder().scheme("content").authority(authority(context)).appendPath(id).appendPath(name).build(); }
+
+    /** The snapshot file's name after its id, for each name served: the report's .json, or "." and the recordings' name. */
+    private static String suffix(String name) {
+        return NAME.equals(name) ? ".json" : ChargeSend.named(name) != null ? "." + name : null;
+    }
+
+    /** The MIME type of the file served under this name, else null. */
+    static String type(String name) {
+        if (NAME.equals(name)) return TYPE;
+        ChargeSend.Attachment attachment = ChargeSend.named(name);
+        return attachment == null ? null : attachment.type;
+    }
 
     /** Writes this bundle as a new snapshot that never changes, prunes old ones, and returns its own content URI. */
     static Uri write(Context context, String json) throws IOException {
@@ -48,28 +63,38 @@ public final class DiagnosticsProvider extends ContentProvider {
             }
             publish(temporary, file);
         } finally { Files.deleteIfExists(temporary.toPath()); }
-        return uri(context, id);
+        return uri(context, id, NAME);
     }
 
     /**
-     * As write(), for a file too large to hold in memory (Email to Volt's charge recordings): the source file itself
-     * becomes the snapshot, moved (never read into memory) and then gone from where it was. Off the main thread.
+     * As write(), for Email to Volt's charge recordings, a file too large to hold in memory: it becomes a snapshot under
+     * the recordings' own name (ChargeSend.attachment), and is then gone from where it was. Up to 25 MB the file itself
+     * is moved into place, never read into memory; over that it is streamed through gzip into the snapshot, a buffer at
+     * a time, as volt-charge-recordings.json.gz. Off the main thread.
      */
     static Uri adopt(Context context, File source) throws IOException {
         try {
             File directory = directory(context);
             String id = newId();
-            File file = new File(directory, id + ".json"), temporary = new File(directory, id + ".tmp");
+            ChargeSend.Attachment attachment = ChargeSend.attachment(source.length());
+            File file = new File(directory, id + suffix(attachment.name)), temporary = new File(directory, id + ".tmp");
             if (file.exists()) throw new IOException(EXISTS);
             try {
-                // Same cache volume, so normally a rename; across volumes Files.move copies by streaming.
-                Files.move(source.toPath(), temporary.toPath());
-                // A move keeps the export's own time: date the temporary file now, so prune() knows it is being made.
-                temporary.setLastModified(System.currentTimeMillis());
-                try (java.io.RandomAccessFile synced = new java.io.RandomAccessFile(temporary, "rw")) { synced.getFD().sync(); }
+                if (attachment.compressed) {
+                    // Each write dates the temporary file, so prune() leaves it alone while it is being made.
+                    try (java.io.InputStream in = new java.io.FileInputStream(source); FileOutputStream out = new FileOutputStream(temporary)) {
+                        ChargeSend.gzip(in, out); out.flush(); out.getFD().sync();
+                    }
+                } else {
+                    // Same cache volume, so normally a rename; across volumes Files.move copies by streaming.
+                    Files.move(source.toPath(), temporary.toPath());
+                    // A move keeps the export's own time: date the temporary file now, so prune() knows it is being made.
+                    temporary.setLastModified(System.currentTimeMillis());
+                    try (java.io.RandomAccessFile synced = new java.io.RandomAccessFile(temporary, "rw")) { synced.getFD().sync(); }
+                }
                 publish(temporary, file);
             } finally { Files.deleteIfExists(temporary.toPath()); }
-            return uri(context, id);
+            return uri(context, id, attachment.name);
         } finally { Files.deleteIfExists(source.toPath()); }
     }
 
@@ -108,24 +133,36 @@ public final class DiagnosticsProvider extends ContentProvider {
             String name = f.getName();
             if (name.endsWith(".tmp")) { if (ChargeSend.dropTemporary(f.lastModified(), nowMs)) f.delete(); continue; }
             if (name.equals(NAME)) { f.delete(); continue; }
-            if (name.endsWith(".json") && ID.matcher(name.substring(0, name.length() - 5)).matches()) snapshots.add(f);
+            if (snapshot(name)) snapshots.add(f);
         }
         snapshots.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
         for (int i = 0; i < snapshots.size(); i++)
             if (i >= KEEP || nowMs - snapshots.get(i).lastModified() > KEEP_MS) snapshots.get(i).delete();
     }
 
-    /** The snapshot for exactly content://<authority>/<id>/volt-diagnostics.json, else null. */
+    /** Whether a file in the folder is a snapshot: an id and the suffix of a name served (the report's or the recordings'). */
+    private static boolean snapshot(String fileName) {
+        for (String name : new String[] {NAME, ChargeSend.NAME, ChargeSend.COMPRESSED_NAME}) {
+            String suffix = suffix(name);
+            if (fileName.endsWith(suffix) && ID.matcher(fileName.substring(0, fileName.length() - suffix.length())).matches()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The snapshot for exactly content://<authority>/<id>/<name>, where name is volt-diagnostics.json or the charge
+     * recordings' name; it exists only if that snapshot was made under that name. Else null.
+     */
     private File file(Uri uri) {
         Context context = getContext();
         if (context == null || uri == null || !"content".equals(uri.getScheme()) || !authority(context).equals(uri.getAuthority())) return null;
         List<String> path = uri.getPathSegments();
-        if (path.size() != 2 || !ID.matcher(path.get(0)).matches() || !NAME.equals(path.get(1)) || uri.getQuery() != null) return null;
-        return new File(new File(context.getCacheDir(), DIRECTORY), path.get(0) + ".json");
+        if (path.size() != 2 || !ID.matcher(path.get(0)).matches() || suffix(path.get(1)) == null || uri.getQuery() != null) return null;
+        return new File(new File(context.getCacheDir(), DIRECTORY), path.get(0) + suffix(path.get(1)));
     }
 
     @Override public boolean onCreate() { return true; }
-    @Override public String getType(Uri uri) { return file(uri) == null ? null : TYPE; }
+    @Override public String getType(Uri uri) { return file(uri) == null ? null : type(uri.getLastPathSegment()); }
     @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         if (mode == null || !mode.equals("r")) throw new SecurityException("Diagnostics are read-only");
         File file = file(uri);
@@ -140,7 +177,7 @@ public final class DiagnosticsProvider extends ContentProvider {
         MatrixCursor cursor = new MatrixCursor(columns, 1);
         Object[] row = new Object[columns.length];
         for (int i = 0; i < columns.length; i++)
-            row[i] = OpenableColumns.DISPLAY_NAME.equals(columns[i]) ? NAME : OpenableColumns.SIZE.equals(columns[i]) ? (Object) file.length() : null;
+            row[i] = OpenableColumns.DISPLAY_NAME.equals(columns[i]) ? uri.getLastPathSegment() : OpenableColumns.SIZE.equals(columns[i]) ? (Object) file.length() : null;
         cursor.addRow(row);
         return cursor;
     }
