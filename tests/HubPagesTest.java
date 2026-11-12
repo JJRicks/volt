@@ -99,10 +99,12 @@ public final class HubPagesTest {
     private static void dock() {
         require(new HashSet<>(HubPages.DOCK_ORDER).equals(new HashSet<>(HubPages.SUBJECTS)) && HubPages.DOCK_ORDER.size() == 7,
                 "The dock's order lists each subject once");
-        // A 344 dp phone less the dock's 14 dp margins: four subjects and All, each at least 60 dp (well over 48).
-        List<String> phone = HubPages.dockSubjects(344 - 28, 1f);
+        // A 344 dp phone less the dock's 14 dp margins and 4 dp padding (308 dp): four subjects and All, each at least
+        // 60 dp (well over 48).
+        require(HubPages.dockRoom(344) == 308, "A 344 dp phone's dock room: " + HubPages.dockRoom(344));
+        List<String> phone = HubPages.dockSubjects(HubPages.dockRoom(344), 1f);
         require(phone.equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY, HubPages.CONTROLS, HubPages.DATA)), "344 dp: " + phone);
-        require((344 - 28) / (phone.size() + 1) >= 48, "Each item gets 48 dp at 344 dp");
+        require(HubPages.dockRoom(344) / (phone.size() + 1) >= 48, "Each item gets 48 dp at 344 dp");
         for (float scale : new float[] {1f, 1.15f, 1.3f, 1.6f, 2f})
             for (int width = 280; width <= 900; width += 4) {
                 List<String> shown = HubPages.dockSubjects(width, scale);
@@ -117,8 +119,10 @@ public final class HubPagesTest {
                 }
                 require(HubPages.dockSubjects(width + 4, scale).containsAll(shown), "More room never hides a subject: " + width + "/" + scale);
             }
-        require(HubPages.dockSubjects(344 - 28, 1.3f).size() == 3, "Large text: fewer, still comfortable");
-        require(HubPages.dockSubjects(600 - 28, 1f).size() == 7, "A wide phone shows all seven");
+        // At 1.3x text a 344 dp phone shows Ride and Battery & charging beside All, each item about 100 dp.
+        require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
+                "Large text: fewer, still comfortable: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f));
+        require(HubPages.dockSubjects(HubPages.dockRoom(600), 1f).size() == 7, "A wide phone shows all seven");
     }
 
     private static void riding() {

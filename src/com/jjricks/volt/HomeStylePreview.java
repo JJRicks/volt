@@ -97,7 +97,7 @@ final class HomeStylePreview extends View {
             subjectIcons.add(HubPages.icon(subject));
         }
         // A phone's dock at this window's width (a wide window's preview is still a phone, so no wider than a large one).
-        for (String subject : HubPages.dockSubjects(HubDock.phoneRoom(Math.min(host.contentWidthDp(), 412)), 1f)) {
+        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(host.contentWidthDp(), 412)), 1f)) {
             Msg shortName = HubText.shortTitle(subject);
             dockIcons.add(HubPages.icon(subject));
             dockLabels.add((shortName == null ? HubText.title(subject) : shortName).render());

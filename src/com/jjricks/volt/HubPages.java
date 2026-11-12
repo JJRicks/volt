@@ -73,6 +73,11 @@ public final class HubPages {
     public static final String DOCK_ALL_ICON = "more";
     /** The width one dock item needs at normal text size, in dp: a 48 dp target with room for its one-line label. */
     public static final int DOCK_ITEM_DP = 60;
+    /** The dock's margin from each side of a phone's window (the old tab bar's) and its inner padding, in dp. */
+    public static final int DOCK_SIDE_DP = 14, DOCK_PADDING_DP = 4;
+
+    /** The room a phone's dock gives its items in a window widthDp wide: the window less the dock's margins and padding. */
+    public static int dockRoom(int widthDp) { return widthDp - 2 * DOCK_SIDE_DP - 2 * DOCK_PADDING_DP; }
 
     /**
      * The subjects the dock shows in widthDp of room at this text scale (app text size times Android's font size, at

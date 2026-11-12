@@ -37,7 +37,8 @@ final class HubDock {
      * The old floating tab bar's place (Ui.floatingNav as MainActivity added it): 14 dp from each side and 10 dp above the
      * screen's edge, and its 26 dp corners. Items are Ui.nav's: at least 64 dp tall, growing with the text.
      */
-    private static final int SIDE_DP = 14, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64, PADDING_DP = 4;
+    private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64,
+            PADDING_DP = HubPages.DOCK_PADDING_DP;
     /** A wide window: each item is at most this wide, so the dock sits centred under the dashboard; narrower when room is short. */
     private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24;
 
@@ -74,13 +75,14 @@ final class HubDock {
             item.setTag(tag(subject));
             items.add(item);
             if (subject.equals(HubPages.SERVICE)) service = item;
-            // Weighted: equal widths, and a wide dock caps its own width (Dock.onMeasure), so every item always fits.
-            view.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
+            // Weighted: equal widths, and a wide dock caps its own width (Dock.onMeasure), so every item always fits. Each
+            // takes the dock's full height, so the icons stay level even where one label wraps and another doesn't.
+            view.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
         }
         View all = allItem();
         items.add(all);
         if (service == null) service = all;
-        view.addView(all, new LinearLayout.LayoutParams(0, -2, 1));
+        view.addView(all, new LinearLayout.LayoutParams(0, -1, 1));
         // Editing toggles inside the dashboard with no rebuild: follow it before each frame, so the dock never covers the editor.
         follow = () -> { applyHidden(); return true; };
         view.getViewTreeObserver().addOnPreDrawListener(follow);
@@ -91,7 +93,7 @@ final class HubDock {
     View view() { return view; }
 
     /** The room a phone's dock gives its items in a window widthDp wide: the window less its margins and padding. */
-    static int phoneRoom(int widthDp) { return widthDp - 2 * SIDE_DP - 2 * PADDING_DP; }
+    static int phoneRoom(int widthDp) { return HubPages.dockRoom(widthDp); }
 
     /** The subjects the dock shows, in Home's order (all seven when wide). */
     List<String> shown() { return shown; }
@@ -134,11 +136,16 @@ final class HubDock {
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
     }
 
-    /** A subject's item: its icon over its short name (Ui.nav's ladder: the name, its short rung, or the icon alone). */
+    /**
+     * A subject's item: its icon over its short name on a phone, or its name when wide (Ui.nav's ladder: that label, the
+     * short name, or the icon alone). TalkBack and the long-press tooltip always give the full name.
+     */
     private View item(String subject) {
         Msg shortName = HubText.shortTitle(subject);
         String name = HubText.title(subject).render();
-        View item = ui.nav(name, shortName == null ? name : shortName.render(), HubPages.icon(subject), false, () -> open(subject));
+        String shortLabel = shortName == null ? name : shortName.render();
+        View item = ui.nav(wide ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
+        item.setContentDescription(name);
         item.setTooltipText(name);
         return item;
     }
