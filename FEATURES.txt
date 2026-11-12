@@ -1224,7 +1224,12 @@ assist, energy recovery, hill descent control, overspeed control. On a scooter
 with neither scheduled charging nor battery alerts, a second offered control
 takes the third place; any place still empty goes to Rides and then Settings.
 There is no drive mode action. Edit Home changes any of the four per scooter.
-What each model offers: see OTHER NAVEE MODELS above.
+What each model offers: see OTHER NAVEE MODELS above. Setup's last step offers
+the choice (Clean selected on a new install), each style drawn in detail with
+the scooter's photo and sample readings. Owners updating from a Volt without
+Clean keep Widgets and see a one-time What's new sheet: Switch to Clean or Keep
+Widgets, then the installed version's changelog, bundled in the APK, with a
+link to its release page.
 
 QUICK ACCESS
 

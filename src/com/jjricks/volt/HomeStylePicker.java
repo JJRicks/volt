@@ -67,11 +67,12 @@ final class HomeStylePicker {
         card.setTag(clean ? TAG_CLEAN : TAG_WIDGETS);
         card.setBackground(background(ui, selected));
         cards[clean ? 0 : 1] = card;
-        HomeStylePreview preview = new HomeStylePreview(host.activity(), ui, clean);
+        HomeStylePreview preview = new HomeStylePreview(host, clean);
         // The card speaks for itself (name, line, selected); the drawing is decoration inside it.
         preview.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        if (stacked) card.addView(preview, new LinearLayout.LayoutParams(ui.dp(72), ui.dp(116)));
-        else card.addView(preview, new LinearLayout.LayoutParams(-1, ui.dp(150)));
+        // Side by side the drawing takes the card's width and a phone's proportions (HomeStylePreview.onMeasure).
+        if (stacked) card.addView(preview, new LinearLayout.LayoutParams(ui.dp(104), -2));
+        else card.addView(preview, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout words = new LinearLayout(host.activity());
         words.setOrientation(LinearLayout.VERTICAL);
         LinearLayout title = new LinearLayout(host.activity());

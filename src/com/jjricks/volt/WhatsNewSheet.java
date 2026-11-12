@@ -13,11 +13,14 @@ import android.widget.TextView;
  * the two styles drawn side by side (stacked on a narrow window or with large text), then "Switch to Clean" and
  * "Keep Widgets". Either button is an explicit choice (HomeStylePrefs.markChosen); closing the sheet any other way
  * keeps Widgets and records nothing, and MainActivity has already recorded that it was shown, so it never returns.
- * Text from HubText only.
+ * Below them, this version's changelog with a link to the full release notes (owner's answers 9, 10 and 12 on #383).
+ * Text from HubText only; the notes are the bundled CHANGELOG.md section, in English.
  */
 final class WhatsNewSheet {
     /** View tags: the sheet's body and its two buttons. */
     static final String TAG = "home-whats-new", TAG_SWITCH = "home-whats-new-switch", TAG_KEEP = "home-whats-new-keep";
+    /** View tags: this version's notes, and the link to its release page. */
+    static final String TAG_NOTES = "home-whats-new-notes", TAG_RELEASE_PAGE = "home-whats-new-release-page";
 
     private WhatsNewSheet() { }
 
@@ -61,8 +64,90 @@ final class WhatsNewSheet {
         later.setGravity(Gravity.CENTER_HORIZONTAL);
         later.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), 0);
         content.addView(later, new LinearLayout.LayoutParams(-1, -2));
+        addNotes(host, ui, content);
         shown[0] = host.showSheet(content);
         return shown[0];
+    }
+
+    /**
+     * This version's changelog (owner's answers 9, 10 and 12 on #383): its heading, the line saying the notes are in
+     * English while Volt is not, the notes as bullets with their bold leads, and a link to the release page with the
+     * full notes. The notes are the section of CHANGELOG.md that build.sh bundled (ReleaseNotes), so they need no
+     * network; an APK built without a section for its version shows none of this.
+     */
+    private static void addNotes(ScreenHost host, Ui ui, LinearLayout content) {
+        ReleaseNotes.Notes notes = ReleaseNotes.parse(bundled(host), AppVersion.name(host.activity()));
+        if (notes == null) return;
+        LinearLayout box = new LinearLayout(host.activity());
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setTag(TAG_NOTES);
+        View rule = new View(host.activity());
+        rule.setBackgroundColor(ui.outline);
+        LinearLayout.LayoutParams ruleSpace = new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(1)));
+        ruleSpace.topMargin = ui.dp(18);
+        ruleSpace.bottomMargin = ui.dp(14);
+        box.addView(rule, ruleSpace);
+        TextView heading = ui.text(HubText.whatsNewChanges(notes.version), 17, true);
+        if (android.os.Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
+        box.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        if (!Fmt.legacy()) {
+            TextView english = ui.caption(HubText.whatsNewNotesInEnglish().render());
+            english.setPadding(0, ui.dp(4), 0, 0);
+            box.addView(english, new LinearLayout.LayoutParams(-1, -2));
+        }
+        for (ReleaseNotes.Item item : notes.items) {
+            TextView line = ui.text("", 14, false);
+            line.setText(styled(ui, item));
+            line.setLineSpacing(ui.dp(2), 1);
+            // The notes are English whatever the app's language.
+            line.setTextLocale(java.util.Locale.ENGLISH);
+            int start = item.nested ? ui.dp(16) : 0;
+            line.setPaddingRelative(start, ui.dp(item.bullet ? 8 : 12), 0, 0);
+            box.addView(line, new LinearLayout.LayoutParams(-1, -2));
+        }
+        TextView page = ui.secondaryButton(HubText.whatsNewReleasePage().render(), () -> openPage(host, notes.page()));
+        page.setTag(TAG_RELEASE_PAGE);
+        LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);
+        pageSpace.topMargin = ui.dp(14);
+        box.addView(page, pageSpace);
+        content.addView(box, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    /** The bundled section (ReleaseNotes.ASSET), or null when the APK has none or it can't be read. */
+    private static String bundled(ScreenHost host) {
+        try (java.io.InputStream in = host.activity().getAssets().open(ReleaseNotes.ASSET)) {
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[4096];
+            int read, total = 0;
+            while ((read = in.read(chunk)) > 0 && total < 64 * 1024) { out.write(chunk, 0, read); total += read; }
+            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException | RuntimeException none) {
+            return null;
+        }
+    }
+
+    /** One item: a bullet (indented under its lead line), bold leads bold, code in the monospace face. */
+    private static CharSequence styled(Ui ui, ReleaseNotes.Item item) {
+        android.text.SpannableStringBuilder text = new android.text.SpannableStringBuilder();
+        for (ReleaseNotes.Span span : item.spans) {
+            int start = text.length();
+            text.append(span.text);
+            if (span.bold) text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, text.length(), 0);
+            if (span.code) text.setSpan(new android.text.style.TypefaceSpan("monospace"), start, text.length(), 0);
+        }
+        if (item.bullet && text.length() > 0)
+            text.setSpan(new android.text.style.BulletSpan(ui.dp(10), item.nested ? ui.muted : ui.accent), 0, text.length(), 0);
+        return text;
+    }
+
+    /** The release page in the browser: only Volt's own release pages (UpdateCheck.safePage). */
+    private static void openPage(ScreenHost host, String url) {
+        if (!UpdateCheck.safePage(url)) return;
+        try {
+            host.activity().startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)));
+        } catch (android.content.ActivityNotFoundException none) {
+            host.toast(HubText.whatsNewNoBrowser());
+        }
     }
 
     /** One style: its drawing (which names itself for screen readers), its name and its one line. Not a button. */
@@ -71,9 +156,10 @@ final class WhatsNewSheet {
         card.setOrientation(stacked ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         card.setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
         card.setBackground(ui.shape(ui.surface, 16, clean ? ui.accent : ui.outline));
-        HomeStylePreview preview = new HomeStylePreview(host.activity(), ui, clean);
-        if (stacked) card.addView(preview, new LinearLayout.LayoutParams(ui.dp(72), ui.dp(116)));
-        else card.addView(preview, new LinearLayout.LayoutParams(-1, ui.dp(150)));
+        HomeStylePreview preview = new HomeStylePreview(host, clean);
+        // Side by side the drawing takes the card's width and a phone's proportions (HomeStylePreview.onMeasure).
+        if (stacked) card.addView(preview, new LinearLayout.LayoutParams(ui.dp(104), -2));
+        else card.addView(preview, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout words = new LinearLayout(host.activity());
         words.setOrientation(LinearLayout.VERTICAL);
         words.addView(ui.text(HubText.homeStyleName(clean), 15, true), new LinearLayout.LayoutParams(-1, -2));
