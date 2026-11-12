@@ -193,7 +193,7 @@
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
     <string name="dashboard_battery">Bateria</string>
     <!-- src:8206a75d21118fc55fb4ff8545d2cbf4c953f973 -->
-    <string name="dashboard_range_left">Autonomia restante: %1$s</string>
+    <string name="dashboard_range_left">Restam %1$s</string>
     <!-- src:43dd6778ce24b90d06842f406e1e4939192ea7db -->
     <string name="dashboard_overview_not_reported">Bateria sem dados</string>
     <!-- src:ea0748130f30c6687f41cc741f75eca549fa43c4 -->
