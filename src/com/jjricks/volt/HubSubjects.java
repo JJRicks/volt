@@ -55,12 +55,16 @@ final class HubSubjects {
         }
     }
 
-    private static boolean serviceDue(ScooterService service) {
+    /** Whether a maintenance check is due now (the Service row's dot, here and on Clean Home). */
+    static boolean serviceDue(ScooterService service) {
         MaintenanceView.Summary summary = MaintenanceScreen.summary(service);
         return summary != null && summary.dot();
     }
 
-    /** A subject's summary now, or null when its state isn't known. */
+    /**
+     * A scooter subject's summary now (Battery & charging, Controls, Lights & sound, Security, Service), or null when its
+     * state isn't known or the subject has none here. The one source for the Scooter tab's index and Clean Home's list.
+     */
     static CharSequence summary(ScooterService service, String subject) {
         if (service == null) return null;
         BleController ble = service.ble;
@@ -68,8 +72,9 @@ final class HubSubjects {
             case HubPages.BATTERY: {
                 Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
                 TelemetryHistory.Reading level = readings.get("battery_percent"), state = readings.get("charging_state");
-                boolean charging = state != null && state.live && state.number != null && state.number == 1;
-                Integer percent = level == null || level.number == null || !Double.isFinite(level.number) ? null : (int) Math.round(level.number);
+                // Only live reports count: a stale charging state or level would make the line guess.
+                Boolean charging = state == null || !state.live || state.number == null ? null : state.number == 1;
+                Integer percent = level == null || !level.live || level.number == null || !Double.isFinite(level.number) ? null : (int) Math.round(level.number);
                 HubSummaries.Battery battery = HubSummaries.battery(ble != null && ble.controlOffered("charge_limit"),
                         feature(service, "charge_limit"), percent, charging);
                 if (battery == null) return null;

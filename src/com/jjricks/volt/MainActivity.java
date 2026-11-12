@@ -632,8 +632,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
             public void openSearch(){open(HubPages.SCOOTER);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
-            // Switch scooter: My scooters (its list has Use and Connect); a Hub page once Settings holds it.
-            public void switchScooter(){openMoreSection("Scooters");}};
+            // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
+            public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
     }
     /** Puts the cursor in the page's first search field and shows the keyboard (Home's search button). */
     private void focusPageSearch(){

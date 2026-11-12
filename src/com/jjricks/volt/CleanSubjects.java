@@ -16,13 +16,13 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Clean Home's seven subjects (hub layout plan, PR 8), in Home's order: each row has the subject's icon, name and a
- * live one-line summary, and opens the subject's page (ScreenHost.open; until the Hub replaces the tabs, a page opens
- * on the tab that holds it today). Service carries an orange dot while a maintenance check is due. A summary whose
- * state isn't known shows no line. Words from HubText; values formatted as the rest of Volt formats them.
+ * live one-line summary, and opens the subject's own page (ScreenHost.open with its HubPages id: the pages parts 3-5
+ * built, as the Scooter tab's index opens them). Service carries an orange dot while a maintenance check is due. A
+ * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary, the same
+ * source as the Scooter tab's index; Ride's and Data's lines are Clean's own. Words from HubText.
  */
 final class CleanSubjects {
     /** View tag of a subject's row: "home-subject-" and its page id. */
@@ -115,7 +115,7 @@ final class CleanSubjects {
                 if (!TextUtils.equals(summary.toString(), value.getText())) value.setText(summary);
                 value.setVisibility(View.VISIBLE);
             }
-            boolean due = subject.equals(HubPages.SERVICE) && serviceDue(service);
+            boolean due = subject.equals(HubPages.SERVICE) && HubSubjects.serviceDue(service);
             dots.get(i).setVisibility(due ? View.VISIBLE : View.GONE);
             // TalkBack reads the name and the summary; while a check is due, the name says so, as the tab's dot does.
             names.get(i).setContentDescription(due ? HubText.dueDescription(HubText.title(subject)).render() : null);
@@ -124,62 +124,17 @@ final class CleanSubjects {
 
     void close() { closed = true; }
 
-    private static boolean serviceDue(ScooterService service) {
-        MaintenanceView.Summary summary = MaintenanceScreen.summary(service);
-        return summary != null && summary.dot();
-    }
-
     /** A subject's line now, or null when its state isn't known. */
     private CharSequence summary(ScooterService service, String subject) {
         if (subject.equals(HubPages.DATA)) return HubText.dataSummary().render();
         if (service == null) return null;
-        BleController ble = service.ble;
-        switch (subject) {
-            case HubPages.RIDE: {
-                long now = android.os.SystemClock.elapsedRealtime();
-                if (!ridesKnown || now - rideAt >= RIDE_EVERY_MS) { scanRides(service); rideAt = now; }
-                return ride();
-            }
-            case HubPages.BATTERY: {
-                Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
-                TelemetryHistory.Reading level = readings.get("battery_percent"), state = readings.get("charging_state");
-                // "Charging" or "not charging" only from a live report: with no live state the line would guess.
-                if (state == null || !state.live || state.number == null) return null;
-                boolean charging = state.number == 1;
-                Integer limit = ble != null && ble.controlOffered("charge_limit") ? feature(service, "charge_limit") : null;
-                if (limit != null && limit > 0 && limit <= 100)
-                    return HubText.batteryLimit(Fmt.percent(Fmt.integerNumber(limit)), charging).render();
-                if (level == null || !level.live || level.number == null || !Double.isFinite(level.number)) return null;
-                long percent = Math.round(Math.max(0, Math.min(100, level.number)));
-                return HubText.batteryLevel(Fmt.percent(Fmt.integerNumber(percent)), charging).render();
-            }
-            case HubPages.CONTROLS: {
-                Integer cruise = feature(service, "cruise_control");
-                Double code = ble != null && ble.ready() ? ble.telemetry.number("driving_mode") : null;
-                if (cruise == null || code == null) return null;
-                ScooterProfiles.Profile profile = service.profiles == null ? null : service.profiles.active();
-                String mode = Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), code);
-                return HubText.controls(mode, cruise == 1).render();
-            }
-            case HubPages.LIGHTS: {
-                Integer automatic = feature(service, "auto_sensor"), headlight = feature(service, "headlight");
-                if (automatic != null && automatic == 1) return HubText.headlightAuto().render();
-                return headlight == null ? null : HubText.headlight(headlight == 1).render();
-            }
-            case HubPages.SECURITY: {
-                if (ble == null || !ble.ready()) return null;
-                ScooterCommands.PinState pin = ble.pinState();
-                Integer proximity = ble.featureValue("proximity_key");
-                if (pin == null || pin.status != 0 || proximity == null) return null;
-                return HubText.security(pin.configured && Boolean.TRUE.equals(pin.enabled), proximity == 1).render();
-            }
-            case HubPages.SERVICE: {
-                MaintenanceView.Summary summary = MaintenanceScreen.summary(service);
-                if (summary == null || !summary.on) return null;
-                return summary.due > 0 || summary.soon > 0 ? MaintenanceScreen.rowValue(summary) : HubText.serviceClear().render();
-            }
-            default: return null;
+        if (subject.equals(HubPages.RIDE)) {
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (!ridesKnown || now - rideAt >= RIDE_EVERY_MS) { scanRides(service); rideAt = now; }
+            return ride();
         }
+        // The scooter subjects: the same lines and the same rules as the Scooter tab's index (HubSubjects, HubSummaries).
+        return HubSubjects.summary(service, subject);
     }
 
     /**
@@ -222,12 +177,5 @@ final class CleanSubjects {
 
     private static boolean sameDay(Calendar a, Calendar b) {
         return a.get(Calendar.YEAR) == b.get(Calendar.YEAR) && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
-    }
-
-    /** The scooter's value: live while connected, else the last one seen. */
-    private static Integer feature(ScooterService service, String key) {
-        BleController ble = service.ble;
-        Integer live = ble == null ? null : ble.featureValue(key);
-        return live != null ? live : service.displayFeatures().get(key);
     }
 }

@@ -1,7 +1,8 @@
 package com.jjricks.volt;
 
 /**
- * The state behind each scooter subject's one-line summary on the Scooter tab's index (hub layout plan, PR 3).
+ * The state behind each scooter subject's one-line summary on the Scooter tab's index (hub layout plan, PR 3) and on
+ * Clean Home (PR 8).
  * Pure and text-free: it decides which summary applies from the scooter's values; HubSubjects turns that into
  * HubText's words. Every method returns null when the state isn't known, and the row then shows no summary.
  */
@@ -27,10 +28,13 @@ final class HubSummaries {
     }
 
     /**
-     * limitOffered: the model has a charge limit (charge_limit); limit is its value in percent, level the battery's.
-     * Null when the number the summary needs is unknown or out of range.
+     * limitOffered: the model has a charge limit (charge_limit); limit is its value in percent, level the battery's;
+     * charging is the scooter's live charging state. Null when the number the summary needs is unknown or out of range,
+     * or when the charging state is unknown: the line says "charging" or "not charging", so without a live report it
+     * would guess. Missing telemetry stays unavailable (Clean Home and the Scooter tab's index share this rule).
      */
-    static Battery battery(boolean limitOffered, Integer limit, Integer level, boolean charging) {
+    static Battery battery(boolean limitOffered, Integer limit, Integer level, Boolean charging) {
+        if (charging == null) return null;
         Integer percent = limitOffered ? limit : level;
         if (percent == null || percent < 0 || percent > 100) return null;
         return new Battery(percent, limitOffered, charging);

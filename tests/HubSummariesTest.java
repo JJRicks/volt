@@ -32,6 +32,7 @@ public final class HubSummariesTest {
         require(HubSummaries.battery(false, 80, null, false) == null, "An unread level shows nothing");
         require(HubSummaries.battery(false, null, 101, false) == null && HubSummaries.battery(false, null, -1, false) == null, "Out of range");
         require(HubSummaries.battery(false, null, 0, false) != null && HubSummaries.battery(false, null, 100, false) != null, "The ends");
+        require(HubSummaries.battery(true, 80, 55, null) == null && HubSummaries.battery(false, null, 64, null) == null, "An unknown charging state shows nothing");
     }
 
     private static void controls() {
