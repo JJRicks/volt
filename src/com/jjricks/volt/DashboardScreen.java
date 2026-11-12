@@ -143,10 +143,12 @@ public final class DashboardScreen implements AppScreen {
         toolbar.setPadding(0, ui.dp(8), 0, ui.dp(10));
         LinearLayout words = column();
         status = statusLine();
-        // The status line shares its row with search and Settings (48 dp targets), so the row is 48 dp tall and
-        // the status line keeps its own full-height touch target beside them; the RIDE pill's row is untouched.
+        // The status line has its own full-width row above the name, RIDE and pencil row, as on Clean Home's header,
+        // shared only with search and Settings (48 dp targets); so on a portrait phone it keeps the header's width
+        // less 96 dp, and the status line keeps its own full-height touch target beside them.
         statusRow = row();
         statusRow.setGravity(Gravity.CENTER_VERTICAL);
+        statusRow.setPadding(0, ui.dp(4), 0, 0);
         statusRow.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
         View search = roundAction("search", HubText.searchDescription().render(), 36, 18, actions::openSearch);
         search.setTag(CleanHomeScreen.TAG_SEARCH);
@@ -156,7 +158,6 @@ public final class DashboardScreen implements AppScreen {
         settings.setTag(CleanHomeScreen.TAG_SETTINGS);
         settings.setTooltipText(settings.getContentDescription());
         statusRow.addView(settings, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        words.addView(statusRow, new LinearLayout.LayoutParams(-1, -2));
         profileName = nameLine();
         renameControl = roundAction("pencil", T.dashboardRenameScooter(), 24, 12, actions::rename);
         LinearLayout nameRow =
@@ -203,6 +204,7 @@ public final class DashboardScreen implements AppScreen {
         editSize.setMarginStart(ui.dp(8));
         headerActions.addView(edit, editSize);
         toolbar.addView(headerActions, new LinearLayout.LayoutParams(-2, -2));
+        view.addView(statusRow, new LinearLayout.LayoutParams(-1, -2));
         view.addView(toolbar);
         tools = row();
         add = toolButton(T.dashboardAddWidget(), "plus", this::palette);
@@ -408,7 +410,7 @@ public final class DashboardScreen implements AppScreen {
      */
     public View takeHeader() {
         LinearLayout pane = column();
-        for (View part : new View[] {toolbar, tools, chargingHero}) {
+        for (View part : new View[] {statusRow, toolbar, tools, chargingHero}) {
             ViewGroup.LayoutParams params = part.getLayoutParams();
             view.removeView(part);
             pane.addView(part, params);
@@ -957,7 +959,11 @@ public final class DashboardScreen implements AppScreen {
         headerSeenMs = !ready && !connecting ? lastConnected : 0;
         // Done, undo/redo, the jiggle and the edit tools already show edit mode.
         status.setVisibility(editing ? View.GONE : View.VISIBLE);
-        if (statusRow != null) statusRow.setVisibility(editing ? View.GONE : View.VISIBLE);
+        if (statusRow != null) {
+            statusRow.setVisibility(editing ? View.GONE : View.VISIBLE);
+            // The status row above carries the header's top space; while editing it is hidden and the toolbar does.
+            toolbar.setPadding(0, editing ? ui.dp(8) : 0, 0, ui.dp(10));
+        }
         if (editing) {
             status.setClickable(false);
             return;
