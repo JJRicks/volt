@@ -63,13 +63,49 @@ public final class RideMapsTextTest {
                         : T.fmtQuantity(Fmt.decimal(Locale.US, mph, 0), T.unitsMph());
     }
 
-    /** RouteMapView.drawTooltip()'s two lines; grade, accel and elevation numbers are unchanged base code. */
+    /** RouteMapView.grade(). */
+    static String grade(Double percent) {
+        return percent == null ? null : gradeLine(Fmt.signedDecimal(Locale.US, percent, 1));
+    }
+
+    /** RouteMapView.gradeLine(). */
+    static String gradeLine(String signedPercent) {
+        return "≈" + signedPercent + "% grade";
+    }
+
+    /** RouteMapView.accel(). */
+    static String accel(Double mps2) {
+        return mps2 == null ? null : accelLine(Fmt.signedDecimal(Locale.US, mps2, 2));
+    }
+
+    /** RouteMapView.accelLine(). */
+    static String accelLine(String signedMps2) {
+        return signedMps2 + " m/s² GPS accel";
+    }
+
+    /** RouteMapView.elevation(). */
+    static String elevation(double relativeAltitudeM, boolean imperial) {
+        String signed = Fmt.signedDecimal(Locale.US, relativeAltitudeM * (imperial ? 3.280839895 : 1), 0);
+        return imperial ? elevationFeetLine(signed) : elevationMetersLine(signed);
+    }
+
+    /** RouteMapView.elevationFeetLine(). */
+    static String elevationFeetLine(String signedFeet) {
+        return "Elevation " + signedFeet + " ft";
+    }
+
+    /** RouteMapView.elevationMetersLine(). */
+    static String elevationMetersLine(String signedMeters) {
+        return "Elevation " + signedMeters + " m";
+    }
+
+    /** RouteMapView.drawTooltip()'s two lines; imperial is RouteMapView.imperial(). */
     static String tooltip(String metric, String units, boolean hasSource, boolean scooter, String chosenLabel,
             Double watts, Double gradePercent, Double speedMps, Double accelMps2, Double relativeAltitudeM,
             String scooterLabel) {
         boolean imperial = !"km".equals(units);
-        String primary, power = power(watts), grade = RideMapsEnglishTest.grade(gradePercent),
-                speed = speed(speedMps, units), accel = RideMapsEnglishTest.accel(accelMps2);
+        String primary, power = power(watts), grade = grade(gradePercent),
+                speed = speed(speedMps, units), accel = accel(accelMps2);
         List<String> rest = new ArrayList<String>();
         if ("speed".equals(metric)) {
             String name = scooter ? T.unitsRouteSourceScooter() : T.unitsRouteSourceGps();
@@ -83,7 +119,7 @@ public final class RideMapsTextTest {
             primary = grade == null ? T.mapsRouteGradeNotMeasured() : grade;
             if (power != null) rest.add(power);
         } else if ("elevation".equals(metric)) {
-            primary = relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : String.format(Locale.US, imperial ? "Elevation %+.0f ft" : "Elevation %+.0f m", relativeAltitudeM * (imperial ? 3.280839895 : 1));
+            primary = relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : elevation(relativeAltitudeM, imperial);
             if (power != null) rest.add(power);
         } else if ("accel".equals(metric)) {
             primary = accel == null ? T.mapsRouteAccelNotMeasured() : accel;
@@ -233,6 +269,17 @@ public final class RideMapsTextTest {
                 eq(RideMapsEnglishTest.speed(mps, units), speed(mps, units), "speed " + mps + " " + units);
                 if (mps != null) eq(RouteSpeedScale.label(mps * 3.6, units), speed(mps, units), "speed as the primary line " + mps + " " + units);
             }
+        // The signed lines against the base's String.format, at signs, roundings and edges.
+        Double[] signedValues = {null, 0.0, -0.0, .04, -.04, .05, -.05, .25, -.25, .005, -.005, 2.5, -2.5, 12.34, -15.44,
+                99.95, 1234.5, -1500.0, 1e7, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        for (Double v : signedValues) {
+            eq(RideMapsEnglishTest.grade(v), grade(v), "grade " + v);
+            eq(RideMapsEnglishTest.accel(v), accel(v), "accel " + v);
+            if (v == null) continue;
+            for (boolean imperial : new boolean[] {false, true})
+                eq(String.format(Locale.US, imperial ? "Elevation %+.0f ft" : "Elevation %+.0f m", v * (imperial ? 3.280839895 : 1)),
+                        elevation(v, imperial), "elevation " + v + (imperial ? " ft" : " m"));
+        }
         String[] metrics = {"speed", "grade", "elevation", "accel", "power"};
         String[] unitsList = {"km", "mi", "dual"};
         Double[] optional = {null, 2.5};

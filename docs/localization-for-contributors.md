@@ -79,6 +79,8 @@ Placeholders are positional and numbered from 1 with no gaps:
 
 `%n$s` takes no width, precision or flag.
 
+A number shown with its sign (`%+.1f`, "+2.5") has no catalog form. Format it first with `Fmt.signedDecimal(Locale.US, value, 1)`, which prints exactly what `%+.1f` printed while the app is in English, and pass it as `%1$s`. Split the `String.format` into a line built around that value in an ordinary pull request first: the batch check accepts only the specifiers listed in [l10n/README.md](../l10n/README.md) (`%.Nf`, `%,.Nf`, `%,d`, `%d` and a plain `%s`), so a `%+.1f` left in the format string fails `G1`. `RouteMapView.gradeLine` is an example.
+
 ### Plurals
 
 ```xml
