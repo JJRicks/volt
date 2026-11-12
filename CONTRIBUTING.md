@@ -41,7 +41,7 @@ Once it's on for you, and a pull request is ready for review (not a draft, check
 - **After fixes, or any other push,** post a new comment with the new SHA. A line that names an older commit doesn't count.
 - It must be an ordinary pull request comment written by the pull request's author. The description, a review body or an inline comment won't be seen. Use the lowercase SHA from `git rev-parse HEAD`, with nothing else on the line. GitHub hides the line when it shows the comment; that's expected.
 - **Without that line,** a ready pull request may still be picked up, but later and with no set timing. Don't rely on it: ask.
-- **Between asking and the review arriving,** don't push to the pull request. A push throws away any review in progress, and the new commit is reviewed only after you ask again with a new comment naming it. If something has to go in, push it and ask again.
+- **Between asking and the review arriving,** don't push to the pull request. A push throws away any review in progress. If something has to go in, push it and ask again with a new comment naming the new commit; without one, the new commit is treated like any ready pull request without the line, as above.
 - Drafts aren't reviewed, with or without the line.
 - The maintainers merge only content that was reviewed, so a push after an approval means another round.
 
