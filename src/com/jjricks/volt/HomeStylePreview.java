@@ -18,11 +18,14 @@ import java.util.Locale;
 /**
  * A detailed live picture of one Home style (owner's answers 9, 10 and 12 on #383: real screenshots, or a much more
  * detailed preview than the first skeleton). It is drawn, not captured: the app's own colours for the current theme,
- * the scooter's real photo (ScooterPhotos; the UT5 MAX's photo as a stand-in before one is known), the scooter's name,
+ * the scooter's real photo (ScooterPhotos; none for a model with no bundled photo, as on Home, and the UT5 MAX's photo
+ * as a stand-in before a model is known), the scooter's name,
  * and sample readings formatted in the owner's units. Clean shows its header with the search and Settings buttons,
- * the battery card (charge, range, photo, bar, odometer), the Lock bar, the four quick actions this scooter would get
- * (the red RIDE pill first, with their real names and icons) and the subject rows with their names. Widgets shows its
- * header with the RIDE pill, the battery widget, the Lock bar, the Quick access row, reading widgets and the tab bar.
+ * the battery card (charge, range, photo, bar, odometer), the Lock bar, the owner's four quick actions (this scooter's
+ * defaults until they change them; the red RIDE pill first, with their real names and icons), the subject rows with
+ * their names and the tab bar. Widgets follows the default phone Home: its header with the RIDE pill, the overview
+ * card, the Lock bar, reading tiles (power, temperature, battery health), this model's Setting tiles, the Ride
+ * recorder and the tab bar.
  * Words with no sample value (status, labels) are drawn as soft bars, as at a thumbnail's size.
  *
  * <p>Everything is drawn on a phone-shaped canvas of {@link #VIRTUAL_WIDTH} by {@link #VIRTUAL_HEIGHT} dp, scaled to
@@ -35,6 +38,8 @@ final class HomeStylePreview extends View {
     static final float VIRTUAL_WIDTH = 320, VIRTUAL_HEIGHT = 568;
     /** Never taller than this, whatever width it is given. */
     private static final int MAX_HEIGHT_DP = 300;
+    /** Nor taller than this share of the window's height. */
+    private static final float WINDOW_SHARE = .4f;
     /** The stand-in photo before a scooter is known, decoded once. */
     private static Bitmap fallbackPhoto;
 
@@ -48,10 +53,10 @@ final class HomeStylePreview extends View {
     /** The scooter's name, or "" (a bar is drawn). */
     private final String name;
     /** Sample values in the owner's units. */
-    private final String charge, range, odometer, speed, trip, power, voltage;
-    /** Clean's four quick actions for this scooter (icon, name), and the Widgets Quick access row's icons. */
+    private final String charge, range, odometer, power, temperature, health;
+    /** Clean's four quick actions for this scooter (icon, name, id), and the icons of the Widgets Home's Setting tiles. */
     private final List<String[]> quick = new ArrayList<>();
-    private final List<String> widgetQuick = new ArrayList<>();
+    private final List<String> settingTiles = new ArrayList<>();
     /** The subjects' names, in Clean's order. */
     private final List<String> subjects = new ArrayList<>();
     private final List<String> subjectIcons = new ArrayList<>();
@@ -64,25 +69,26 @@ final class HomeStylePreview extends View {
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
         DeviceDescriptor model = profile == null ? null : profile.savedDescriptor();
-        Bitmap own = model == null ? null : ScooterPhotos.get(context.getResources(), model, 4);
-        photo = own != null ? own : fallback(context);
+        // The stand-in only before a model is known: a known model with no bundled photo shows none, as on Home.
+        photo = model == null ? fallback(context) : ScooterPhotos.get(context.getResources(), model, 4);
         name = profile == null ? "" : profile.displayName();
         SharedPreferences settings = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         boolean metric = "km".equals(settings.getString("units", "mi"));
         charge = Fmt.percent(Fmt.integerNumber(82)).toString();
         range = distance(metric ? 50 : 31, metric, 0);
         odometer = metric ? grouped(2008, UnitCode.KM) : grouped(1248, UnitCode.MI);
-        speed = Fmt.quantity(Fmt.decimalNumber(Locale.US, metric ? 20.0 : 12.4, 1), Fmt.unit(metric ? UnitCode.KMH : UnitCode.MPH)).toString();
-        trip = distance(metric ? 12.6 : 7.8, metric, 1);
         power = Fmt.quantity(Fmt.integerNumber(412), Fmt.unit(UnitCode.WATT)).toString();
-        voltage = Fmt.quantity(Fmt.decimalNumber(Locale.US, 54.2, 1), Fmt.unit(UnitCode.VOLT)).toString();
-        for (String id : HomeQuickDefaults.forScooter(service)) {
+        temperature = DisplayTemperature.format(31.0, settings.getString("temperature_unit", "c"), 0);
+        health = Fmt.percent(Fmt.integerNumber(96)).toString();
+        // The owner's own four, as Clean shows them (CleanHomeScreen.loadQuick), or this scooter's defaults.
+        String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
+        for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
             if (entry != null) quick.add(new String[] {entry.icon, entry.label().render(), id});
         }
-        for (String id : QuickAccessActions.defaultIds()) {
+        for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-            if (entry != null) widgetQuick.add(entry.icon);
+            if (entry != null) settingTiles.add(entry.icon);
         }
         for (String subject : HubPages.SUBJECTS) {
             subjects.add(HubText.title(subject).render());
@@ -115,8 +121,10 @@ final class HomeStylePreview extends View {
 
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = MeasureSpec.getSize(widthSpec);
-        int height = Math.min(ui.dp(MAX_HEIGHT_DP), Math.round(width * VIRTUAL_HEIGHT / VIRTUAL_WIDTH));
-        setMeasuredDimension(width, MeasureSpec.getMode(heightSpec) == MeasureSpec.EXACTLY ? MeasureSpec.getSize(heightSpec) : height);
+        // Never more than 40% of the window, so the buttons under the choice stay in view on a landscape phone.
+        int cap = Math.min(ui.dp(MAX_HEIGHT_DP), Math.round(getResources().getDisplayMetrics().heightPixels * WINDOW_SHARE));
+        int height = Math.min(cap, Math.round(width * VIRTUAL_HEIGHT / VIRTUAL_WIDTH));
+        setMeasuredDimension(width, resolveSize(height, heightSpec));
     }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -193,6 +201,8 @@ final class HomeStylePreview extends View {
             ui.drawIcon(c, "chevron", ui.muted, 286, y + 26, 13);
             y += 52;
         }
+        // Clean still has the tab bar until the dock replaces it.
+        tabBar(c);
     }
 
     // ===== Widgets =====
@@ -215,25 +225,41 @@ final class HomeStylePreview extends View {
         meter(c, 30, 176, 290, .82f);
         // The Lock bar.
         lockBar(c, 16, 202, 304, 250);
-        // Quick access: four square buttons.
-        float cell = (288 - 24) / 4f;
-        for (int i = 0; i < Math.min(4, widgetQuick.size()); i++) {
-            float x = 16 + i * (cell + 8);
-            card(c, x, 260, x + cell, 312, 16, ui.raised);
-            ui.drawIcon(c, widgetQuick.get(i), ui.accent, x + cell / 2, 280, 18);
-            bar(c, x + cell / 2 - 18, 298, 36, 5);
-        }
-        // Reading widgets, two by two.
-        String[] values = {speed, trip, power, voltage};
-        String[] icons = {"speed", "route", "power", "bolt"};
+        // Reading tiles: power, temperature and battery health, as on the default Home.
+        String[] values = {power, temperature, health};
+        String[] icons = {"bolt", "temperature", "heart"};
+        float third = (288 - 16) / 3f;
         for (int i = 0; i < values.length; i++) {
-            float x = i % 2 == 0 ? 16 : 165, y = 322 + (i / 2) * 82;
-            card(c, x, y, x + 139, y + 72, 18, ui.surface);
-            ui.drawIcon(c, icons[i], ui.muted, x + 22, y + 20, 14);
-            bar(c, x + 34, y + 17, 52, 6);
-            text(c, values[i], x + 14, y + 56, 116, 20, ui.text, true);
+            float x = 16 + i * (third + 8);
+            card(c, x, 260, x + third, 330, 18, ui.surface);
+            ui.drawIcon(c, icons[i], ui.muted, x + 18, 278, 14);
+            bar(c, x + 30, 275, third - 44, 6);
+            text(c, values[i], x + 12, 316, third - 20, 17, ui.text, true);
         }
-        // The tab bar, floating over the bottom of the page: Home selected, the Scooter tab raised in the middle.
+        // Setting tiles: this model's (maximum speed and charge timing by default).
+        int count = Math.max(1, settingTiles.size());
+        float tile = (288 - 8 * (count - 1)) / (float) count;
+        for (int i = 0; i < settingTiles.size(); i++) {
+            float x = 16 + i * (tile + 8);
+            card(c, x, 340, x + tile, 388, 16, ui.surface);
+            paint.setColor(ui.raised);
+            c.drawCircle(x + 26, 364, 14, paint);
+            ui.drawIcon(c, settingTiles.get(i), ui.accent, x + 26, 364, 16);
+            bar(c, x + 48, 356, Math.min(80, tile - 64), 6, ui.text);
+            bar(c, x + 48, 367, Math.min(52, tile - 64), 5);
+        }
+        // The Ride recorder: the record button and its words.
+        card(c, 16, 398, 304, 452, 18, ui.surface);
+        paint.setColor(ui.accent);
+        c.drawCircle(43, 425, 15, paint);
+        ui.drawIcon(c, "record", ui.onAccent, 43, 425, 16);
+        bar(c, 68, 416, 96, 7, ui.text);
+        bar(c, 68, 429, 128, 5);
+        tabBar(c);
+    }
+
+    /** The tab bar, floating over the bottom of the page: Home selected, the Scooter tab raised in the middle. */
+    private void tabBar(Canvas c) {
         float dockTop = VIRTUAL_HEIGHT - 66, dockBottom = VIRTUAL_HEIGHT - 12;
         paint.setColor(Ui.withAlpha(ui.bg, 200));
         c.drawRect(0, dockTop - 12, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, paint);
