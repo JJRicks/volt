@@ -67,9 +67,9 @@ final class HubSubjects {
                 return HubText.controls(mode, cruise);
             }
             case HubPages.LIGHTS: {
-                HubSummaries.Lights lights = HubSummaries.lights(feature(service, "headlight"), feature(service, "auto_sensor"));
+                HubSummaries.Lights lights = HubSummaries.lights(feature(service, "headlight"), feature(service, "auto_sensor")); // "headlight" is the tail light
                 if (lights == null) return null;
-                return lights == HubSummaries.Lights.AUTO ? HubText.headlightAuto() : HubText.headlight(lights == HubSummaries.Lights.ON);
+                return lights == HubSummaries.Lights.AUTO ? HubText.automaticLights() : HubText.tailLight(lights == HubSummaries.Lights.ON);
             }
             case HubPages.SECURITY: {
                 ScooterCommands.PinState pin = ble == null || !ble.ready() ? null : ble.pinState();
