@@ -70,19 +70,27 @@ public final class HubTestPages {
         return wanted;
     }
 
-    /** Taps a tab of the navigation bar (floating bar or rail), found by its spoken name, and waits for its page. */
+    /** Taps a tab of the navigation bar (floating bar or rail), found by its spoken name (Scooter: MainActivity.scooterTab), and waits for its page. */
     public static void tapTab(Instrumentation instrumentation, MainActivity activity, String tab) {
         int index = HubPages.TABS.indexOf(tab);
         if (index < 0) throw new IllegalArgumentException(tab + " is not a tab");
         View[] found = {null};
         String[] label = {null};
+        List<String> seen = new ArrayList<>();
         onMain(instrumentation, () -> {
             label[0] = ((String[]) call(activity, "navNames"))[index];
             View page = (View) field(activity, "scroll");
-            for (View view : descendants((View) field(activity, "root")))
-                if (label[0].contentEquals(String.valueOf(view.getContentDescription())) && view.isClickable() && !inside(view, page)) { found[0] = view; break; }
+            // The Scooter tab is the activity's own scooterTab (the raised button, or the rail's item): its spoken name
+            // gains "maintenance due" while a check is due (MaintenanceScreen.markTab), so it is not found by name.
+            View scooter = (View) field(activity, "scooterTab");
+            if (tab.equals(HubPages.SCOOTER) && scooter != null && scooter.isClickable()) { found[0] = scooter; return; }
+            for (View view : descendants(activity.getWindow().getDecorView())) {
+                if (!view.isClickable() || view.getContentDescription() == null || inside(view, page)) continue;
+                if (label[0].contentEquals(view.getContentDescription())) { found[0] = view; break; }
+                if (seen.size() < 12) seen.add(String.valueOf(view.getContentDescription()));
+            }
         });
-        if (found[0] == null) throw new IllegalStateException("No " + label[0] + " tab in the navigation bar (page " + currentOn(instrumentation, activity) + ")");
+        if (found[0] == null) throw new IllegalStateException("No " + label[0] + " tab in the navigation bar (page " + currentOn(instrumentation, activity) + "; other actions outside the page: " + seen + ")");
         tap(instrumentation, activity, found[0], "the " + label[0] + " tab");
         awaitPage(instrumentation, activity, tab, "the " + label[0] + " tab");
     }
