@@ -74,7 +74,10 @@ final class HubSearch {
         boolean row(String id);
         /** A control shows only as its "Experimental" entry (the Lab tries it on this model). */
         boolean lab(String key);
-        /** A page that shows only on some models (Line lights, Star lights) has something to show. */
+        /**
+         * A sub-page has something to show on this model, as its link on the subject page would (Line lights and Star
+         * lights, Assists, Limits, ...: ControlsPages.linkShown, an Experimental entry counting). Subjects always show.
+         */
         boolean page(String page);
         /**
          * A control's or hand-built row's search words in the current language, besides its name (MainActivity: the
@@ -142,17 +145,32 @@ final class HubSearch {
 
     // ===== The index's sources (each read when a search runs) =====
 
-    /** Every page under Home, by its title and PAGE words; Line and Star lights only when the model has them. */
+    /**
+     * Every page under Home, by its title and PAGE words; a sub-page only while the model has something on it (its
+     * subject page would show its link). A page whose rows another screen builds is found by their words too
+     * (pageSearchWords).
+     */
     static List<Entry> pages(Gates gates) {
         List<Entry> entries = new ArrayList<>();
         for (String page : HubPages.ALL) {
             if (page.equals(HubPages.HOME) || page.equals(HubPages.SEARCH)) continue;
-            if ((page.equals(HubPages.LIGHTS_LINE) || page.equals(HubPages.LIGHTS_STAR)) && !gates.page(page)) continue;
+            if (!page.equals(HubPages.subjectOf(page)) && !gates.page(page)) continue;
             Msg title = HubText.title(page);
             if (title == null) continue;
-            entries.add(new Entry(Kind.PAGE, page, title.english() + " " + HubSearchTables.pageWords(page), title, null, Target.PAGE, null));
+            Msg more = pageSearchWords(page);
+            String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null ? "" : " " + more.english());
+            entries.add(new Entry(Kind.PAGE, page, english, title, more == null ? null : new CharSequence[] {more}, null, Target.PAGE, null, null));
         }
         return entries;
+    }
+
+    /**
+     * Search words in every shipped language for a page whose rows search has no entries of their own: Charge history
+     * & recordings (MoreScreen's Charging section: record, export, email and clear charge recordings) is found by
+     * them (#387 review). Null for every other page.
+     */
+    static Msg pageSearchWords(String page) {
+        return HubPages.BATTERY_HISTORY.equals(page) ? HubText.batteryHistorySearchWords() : null;
     }
 
     /**

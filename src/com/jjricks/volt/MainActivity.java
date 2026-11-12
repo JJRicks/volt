@@ -649,7 +649,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         return new HubSearch.Gates(){
             @Override public boolean row(String id){return searchRowOffered(id);}
             @Override public boolean lab(String key){return labOffered(key);}
-            @Override public boolean page(String page){return page.equals(HubPages.LIGHTS_LINE)?lightFamilyOffered("line_"):!page.equals(HubPages.LIGHTS_STAR)||lightFamilyOffered("star_");}
+            @Override public boolean page(String page){return pageShown(page);}
             // As the scooter pages' search: a hand-built row's main_search_* words, a control's short label.
             @Override public CharSequence[] words(String id){
                 String row=rowSearchWords(id);if(row!=null)return new CharSequence[]{row};
@@ -670,10 +670,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(ControlsPages.NEVER.contains(id))return id.equals("lock")||offered(id);
         return rowOffered(id);
     }
-    /** A light family (line_, star_) this model offers: its sub-page has rows. */
-    private boolean lightFamilyOffered(String prefix){
-        for(ScooterCommands.Feature f:ScooterCommands.catalog())if(f.key.startsWith(prefix)&&offered(f.key))return true;
-        return false;
+    /**
+     * A scooter sub-page has a row or an Experimental entry to show on this model: its link on the subject page shows
+     * (ControlsPages.linkShown, as ControlsScreen.rowShown decides it). Pages the scooter rows don't build always show.
+     */
+    private boolean pageShown(String page){
+        java.util.List<String> lab=modelLab();
+        return ControlsPages.linkShown(page,id->!isFeature(id)||rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab));
+    }
+    private static boolean isFeature(String key){
+        for(ScooterCommands.Feature f:ScooterCommands.catalog())if(f.key.equals(key))return true;
+        return ScooterCommands.oemOnly(key);
     }
     /**
      * A search result's tap: a reading opens Data's Readings filtered to it, a ride opens it in All rides, a control the
@@ -1258,7 +1265,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String from=selectedPage;
         captureScroll();leaving(from,target);
         // Search opened afresh (Home's button) starts empty; Back to it from a result keeps the query.
-        if(HubPages.SEARCH.equals(target))searchQuery="";
+        if(HubPages.SEARCH.equals(target)){searchQuery="";scrollPositions.put(HubPages.SEARCH,0);}
         nav.open(target);pageArgs=args;
         arrived(from);
     }
@@ -1998,7 +2005,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Line lights and Star lights replaced the zones row: the index's search finds their links by its words.
             if(spec.search)for(String target:ControlsPages.SEARCHED_LINKS){
                 String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
-                addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
+                // Each family's own words, its title among them (#404 review): "star" doesn't list Line lights.
+                addRow(section,card);extras.put(card,new String[]{section,HubSearchTables.pageWords(target)});
                 shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
             }
             pageBody=spec.search?null:design.groupCard();

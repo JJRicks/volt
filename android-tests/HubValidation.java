@@ -49,9 +49,10 @@ import com.jjricks.volt.ScooterService;
  *   Home. The gear opens Settings; Settings' own rows open its sub-pages the same way.</li>
  *   <li><b>The page stack</b>: opening a page already in the stack closes the pages above it, Home resets it, and an
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
- *   <li><b>Search</b>: the header's search opens the search page with its field focused and the subjects listed; a
- *   search for "maintenance" shows the Reminders row, which opens Service › Maintenance reminders on top of the
- *   search, and Back returns through the search to Home.</li>
+ *   <li><b>Search</b>: the header's search opens the search page (HubSearchScreen, part 12) with its field focused and
+ *   the subjects listed; a search for "maintenance" shows the Reminders result, which opens Service › Maintenance
+ *   reminders on top of the search; Back returns to the search with its query and results intact, Back again clears
+ *   the query (the subjects show again), and Back once more returns to Home.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown.</li>
  *   <li><b>Widgets Home</b>: the dock shows on Widgets Home only (never on a subject page, never on Clean), each
@@ -203,14 +204,24 @@ public final class HubValidation extends Instrumentation {
         main(() -> field[0].setText("maintenance")); settle();
         main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while showing results"));
         screenshot("search-maintenance");
-        tapTag("maintenance_reminders");
+        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
+        String reminders = "hub-search-setting-" + HubPages.SERVICE_MAINTENANCE;
+        tapTag(reminders);
         arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            require(now != null && "maintenance".contentEquals(now.getText()), "Back from a result lost the search's query");
+            require(shown(root().findViewWithTag(reminders)), "Back from a result lost the search's results");
+        });
         hideKeyboard();
         systemBack();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back did not clear the search first"));
+        systemBack();
         requireHome("CleanHomeScreen");
-        checks.add("Search: opens focused with the subjects listed; \"maintenance\" finds Reminders, which opens over the search; Back returns to Home");
+        checks.add("Search: opens focused with the subjects listed; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home");
     }
 
     /** The Lock bar keeps its place and size while the top area changes moment. */

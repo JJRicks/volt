@@ -132,9 +132,16 @@ public final class ControlsPagesTest {
         require(source.contains("gluedBelow.put(control.card,done.row.card);"), "Each Done by row is glued below its parent row");
         require(source.contains("place(card);Viewdone=gluedBelow.get(card);if(done!=null)place(done);"),
                 "A page places a Done by row directly after its parent");
-        // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages.
-        require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("\"linestarlightszonesambientpatterncolorboost\""),
+        // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages;
+        // each link its own family's words with its title among them (#404 review), the words Hub search uses too.
+        require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("extras.put(card,newString[]{section,HubSearchTables.pageWords(target)});"),
                 "The index's search finds Line lights and Star lights by the zones row's words");
+        for (String target : ControlsPages.SEARCHED_LINKS) {
+            String words = HubSearchTables.pageWords(target), family = target.equals(HubPages.LIGHTS_LINE) ? "line" : "star";
+            require(words.contains("zones") && words.contains("ambient") && words.contains(family + " lights")
+                    && !words.contains(target.equals(HubPages.LIGHTS_LINE) ? "star" : "line"),
+                    "The " + family + " lights link has its own family's words, its title among them: " + words);
+        }
         // A page's card hides when none of its rows shows (#387 review: Security's lone lock-duration row on a model
         // without one left an empty strip).
         require(source.contains("pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);")

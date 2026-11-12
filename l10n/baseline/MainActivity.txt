@@ -41,7 +41,6 @@ multiword	"charge alert battery alerts level reached full charged notify notific
 multiword	"charge done by finish charging deadline time"
 multiword	"charger for estimates automatic auto stock high speed charging time remaining"
 multiword	"headlight front lamp power button"
-multiword	"line star lights zones ambient pattern color boost"
 multiword	"low battery alert battery alerts notify notification alarm sound"
 multiword	"pin password proximity unlock pairing bluetooth bond security"
 multiword	"scooter name rename profile"

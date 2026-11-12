@@ -58,6 +58,7 @@ public final class HubSearchTest {
             grouping();
             sources();
             gates();
+            reviewNotes();
             T.install(FOREIGN);
             shown();
         } finally {
@@ -236,6 +237,52 @@ public final class HubSearchTest {
         }
         for (HubSearch.Entry e : HubSearch.controls(ALL, () -> "Experimental"))
             check(e.value == null, "an ordinary row has no badge: " + e.id());
+    }
+
+    /** The search notes the reviews of parts 3, 4 and the #404 follow-up left to this part. */
+    private static void reviewNotes() {
+        List<HubSearch.Entry> pages = HubSearch.pages(ALL);
+        // Each light family's own words, its title among them (#404 review, notes 2 and 3).
+        Set<String> star = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "star")) star.add(e.page);
+        check(star.contains(HubPages.LIGHTS_STAR) && !star.contains(HubPages.LIGHTS_LINE), "\"star\" lists Star lights, not Line lights");
+        check(firstPage(pages, "line lights").equals(HubPages.LIGHTS_LINE), "\"line lights\" finds Line lights");
+        check(firstPage(pages, "star lights").equals(HubPages.LIGHTS_STAR), "\"star lights\" finds Star lights");
+        Set<String> zones = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.search(pages, "zones")) zones.add(e.page);
+        check(zones.contains(HubPages.LIGHTS_LINE) && zones.contains(HubPages.LIGHTS_STAR), "\"zones\" finds both light pages");
+        // Charge history & recordings' rows are found through its page by part 10's words (#387 review, note 8).
+        for (String word : new String[] {"export", "recordings", "email"}) {
+            Set<String> found = new HashSet<>();
+            for (HubSearch.Entry e : HubSearch.search(pages, word)) found.add(e.page);
+            check(found.contains(HubPages.BATTERY_HISTORY), "\"" + word + "\" finds Charge history & recordings");
+        }
+        HubSearch.Entry history = null;
+        for (HubSearch.Entry e : pages) if (e.page.equals(HubPages.BATTERY_HISTORY)) history = e;
+        check(history != null && history.words.length == 1 && history.words[0] != null, "its words in the current language match too");
+        // A sub-page with nothing on this model (its link hides) is not a result; subjects always are.
+        HubSearch.Gates noAssists = new HubSearch.Gates() {
+            @Override public boolean row(String id) { return true; }
+            @Override public boolean lab(String key) { return false; }
+            @Override public boolean page(String page) { return !page.equals(HubPages.CONTROLS_ASSISTS) && !page.equals(HubPages.CONTROLS); }
+        };
+        Set<String> listed = new HashSet<>();
+        for (HubSearch.Entry e : HubSearch.pages(noAssists)) listed.add(e.page);
+        check(!listed.contains(HubPages.CONTROLS_ASSISTS), "a sub-page with nothing to show is left out");
+        check(listed.contains(HubPages.CONTROLS), "a subject is never left out");
+        // Controls shown as Experimental entries are found, on the page that shows the entry (#385 review, note 5):
+        // a GT3 Max's Power Assist (Controls › Assists), a UT5 MAX's Acceleration profile (Controls).
+        List<HubSearch.Entry> lab = HubSearch.controls(LAB, () -> "Experimental");
+        HubSearch.Entry power = first(HubSearch.search(lab, "power assist"), "parking_assist");
+        check(power != null && power.page.equals(HubPages.CONTROLS_ASSISTS) && power.target == HubSearch.Target.PAGE && power.value != null,
+                "Power Assist's Experimental entry opens Controls › Assists");
+        HubSearch.Entry acceleration = first(HubSearch.search(lab, "acceleration"), "acceleration");
+        check(acceleration != null && acceleration.page.equals(HubPages.CONTROLS) && acceleration.target == HubSearch.Target.PAGE,
+                "Acceleration's Experimental entry opens Controls");
+    }
+    private static HubSearch.Entry first(List<HubSearch.Entry> found, String anchor) {
+        for (HubSearch.Entry e : found) if (anchor.equals(e.anchor)) return e;
+        return null;
     }
 
     /** In another language the shown name matches too, and its words rank it. */
