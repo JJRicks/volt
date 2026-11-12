@@ -716,7 +716,13 @@ No tabs: Home is the hub for seven subjects, each with a summary (Ride,
 Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
 on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
 the tab bar was: the most-used subjects with short names, and All, or swipe
-up, for every subject with its summary). Each is a short page in a fixed, most-used-first
+up, for every subject with its summary). On a wide window (650 dp after
+text size) Clean Home takes two panes: the scooter (header, top area, Lock
+bar, quick actions and a Next checks card with the next maintenance checks)
+stays put while subjects and their pages open beside it, with All to go back;
+Widgets keeps its wide layouts with the same dock centred, all seven subjects
+with their short names. Large text that keeps the phone layout, tabletop
+posture, or a subject name that would not fit keeps one column. Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
 link. The gear opens Settings; Home's search button finds pages, settings and
