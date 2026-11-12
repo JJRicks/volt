@@ -1667,6 +1667,8 @@ public final class DashboardScreen implements AppScreen {
         float downX, downY, dragFromX;
         /** dragging: a sideways drag owns the gesture; passing: it moved up or down first, so it is no tap. */
         boolean dragging, passing;
+        /** The switch under way began as a drag: its faces keep following the finger's scale to the end. */
+        boolean fromDrag;
 
         ChargeTimeTile(String title) {
             super("clock", title, title, title);
@@ -1763,6 +1765,7 @@ public final class DashboardScreen implements AppScreen {
         private void tapSwitch() {
             if (!switchable() || dragging) return;
             int before = state.target;
+            if (state.atRest()) fromDrag = false;
             state.tap(getLayoutDirection() == LAYOUT_DIRECTION_RTL);
             decided(before);
         }
@@ -1824,7 +1827,10 @@ public final class DashboardScreen implements AppScreen {
             if (velocity != null) { velocity.recycle(); velocity = null; }
         }
 
+        /** How far a drag goes to switch fully; the faces follow the finger one to one. */
         private float travel() { return Math.max(ui.dp(24), Math.min(ui.dp(96), stack.getWidth() * .5f)); }
+        /** A tap's slide is short, a shared-axis step: the faces hint at the direction, the fade does the rest. */
+        private float tapTravel() { return Math.max(ui.dp(16), Math.min(ui.dp(30), stack.getWidth() * .25f)); }
 
         /** Lays the faces out for the switch's state: at rest only the chosen one is drawn. */
         private void render() {
@@ -1834,7 +1840,7 @@ public final class DashboardScreen implements AppScreen {
                 place(faces[LIMIT], GONE, 1, 0);
             } else {
                 int resting = state.resting, other = ChargeTimeReadings.other(resting);
-                float p = state.progress, distance = travel();
+                float p = state.progress, distance = fromDrag ? travel() : tapTravel();
                 boolean moving = !state.atRest() && p > 0;
                 place(faces[resting], VISIBLE, ChargeTimeReadings.outgoingAlpha(p), ChargeTimeReadings.outgoingShift(p, state.direction) * distance);
                 place(faces[other], moving ? VISIBLE : INVISIBLE, moving ? ChargeTimeReadings.incomingAlpha(p) : 1,
@@ -1918,6 +1924,7 @@ public final class DashboardScreen implements AppScreen {
                     if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                     stopMotion();
                     state.startDrag();
+                    fromDrag = true;
                     dragFromX = downX + Math.signum(dx) * slop;
                 }
                 if (dragging) { state.drag((event.getX() - dragFromX) / travel()); render(); return true; }

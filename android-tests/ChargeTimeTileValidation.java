@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -153,7 +154,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         swipe(.8f, false);
         awaitRest();
         main(() -> require(shownReading() == FULL, "A swipe to the right did not switch"));
-        swipe(-.25f, true);
+        swipe(-.14f, true);  // about a third of the travel, held still, then let go
         awaitRest();
         main(() -> require(shownReading() == FULL && "full".equals(pref(a)), "An abandoned swipe switched"));
         verticalPass();
@@ -465,6 +466,8 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     private void launch() throws Exception {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> activity.service() != null && root().getWidth() > 0, "App did not launch"); service = activity.service();
+        // The first screens settle (service bound, scooter state read) before the fixture takes over.
+        SystemClock.sleep(2500); settle();
         freeze();
     }
     private void relaunch() throws Exception {
@@ -480,12 +483,19 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             invoke(activity, "select", new Class<?>[]{String.class}, "home");
             ((android.os.Handler) field(activity, "handler")).removeCallbacks((Runnable) field(activity, "pulse"));
             service.unlisten((Runnable) field(activity, "serviceChanged"));
+            invoke(activity, "cancelDeferredBodyRefresh");
+            // Saving the choice is a settings change, which redraws Home from the app's own (empty) readings: in the
+            // app that is one more refresh with the same readings (the mid-switch estimate case below covers it).
+            ((SharedPreferences) field(activity, "preferences")).unregisterOnSharedPreferenceChangeListener(
+                    (SharedPreferences.OnSharedPreferenceChangeListener) field(activity, "settingsChanged"));
         });
         settle();
     }
     private void choose(String id) throws Exception {
         main(() -> { service.profiles.select(id); service.ble.profileSelected(); });
-        settle(); freeze();
+        settle();
+        main(() -> invoke(activity, "redraw"));  // the frozen app does not refresh by itself: Home sees the new scooter and rebuilds
+        SystemClock.sleep(600); settle(); freeze();
         main(() -> require(id.equals(field(screen(), "profileId")), "The dashboard did not follow the scooter"));
     }
     /** Fresh synthetic charging readings; amps 0 means not charging (the hero hides). */
@@ -497,6 +507,19 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         if (limit != null) values.put("charge_limit_percent", new TelemetryHistory.Reading("charge_limit_percent", "charge_limit_percent", "Synthetic fixture", limit + " %", "%", limit, wall, true));
         main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
         settle(); SystemClock.sleep(amps > 0 ? 420 : 320); settle();
+        boolean[] stray = new boolean[1];
+        main(() -> stray[0] = amps > 0 && !Boolean.TRUE.equals(field(hero(), "shown")));
+        if (stray[0]) {  // a refresh of the app's own (empty) readings landed after the fixture's: once more, and say so
+            Log.w("ChargeTimeTileValidation", "a stray refresh hid the fixture; refreshing again");
+            main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
+            settle(); SystemClock.sleep(420); settle();
+        }
+        if (amps > 0) main(() -> {
+            View h = hero(); StringBuilder chain = new StringBuilder();
+            for (View v = h; v != null; v = v.getParent() instanceof View ? (View) v.getParent() : null) chain.append(v.getClass().getSimpleName()).append(':').append(v.getVisibility()).append(' ');
+            require(h.isShown() && tile().isShown(), "The charging view did not show for the fixture readings: shown=" + field(h, "shown")
+                    + " attached=" + h.isAttachedToWindow() + " charging=" + service.chargingEstimate(values).charging + " chain=" + chain);
+        });
     }
 
     // ---- Touch ------------------------------------------------------------------------------------------------
