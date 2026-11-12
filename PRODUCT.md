@@ -46,7 +46,7 @@ The web surfaces serve the app:
 The owner confirmed three differences from the official NAVEE app:
 
 - **Local and account-free.** Bluetooth control and recording work offline, with no Volt account or server. Data stays on the phone unless the owner exports it or makes a backup. Online map tiles are off until the owner turns them on, after Volt explains what the map provider sees.
-- **Yours to arrange.** The dashboard has movable, resizable widgets and saved layouts for folded and unfolded screens. The owner can also arrange the Scooter tab and edit riding mode's layouts.
+- **Yours to arrange.** The dashboard has movable, resizable widgets and saved layouts for folded and unfolded screens. The owner can also edit riding mode's layouts.
 - **Deeper data.** Rides can record a GPS route, phone sensors and energy readings. Volt learns range from the owner's own rides, estimates charging time, shows a live charging card on the lock screen, and keeps searchable readings with charts.
 
 ## Operating Context
