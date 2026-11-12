@@ -54,7 +54,7 @@
     <!-- Past charging sessions, and recordings of a charge's curve. -->
     <string name="hub_page_battery_history" volt:screen="Battery &amp; charging page" volt:purpose="row and page title">Charge history &amp; recordings</string>
 
-    <!-- The scooter's three assists: Walk Assist, Power Assist and hill descent control. -->
+    <!-- The scooter's assists: Walk Assist, Power Assist, hill descent control and kick-start speed. -->
     <string name="hub_page_controls_assists" volt:screen="Controls page" volt:purpose="row and page title">Assists</string>
     <!-- Limits set once: a custom speed limit, a speed limit per drive mode, and overspeed control. -->
     <string name="hub_page_controls_limits" volt:screen="Controls page" volt:purpose="row and page title">Speed limits</string>
