@@ -24,8 +24,9 @@ import java.util.Locale;
  * the battery card (charge, range, photo, bar, odometer), the Lock bar, the owner's four quick actions (this scooter's
  * defaults until they change them; the red RIDE pill first, with their real names and icons), the subject rows with
  * their names (Clean has no dock: its subjects are on the page). Widgets follows the default phone Home: its header with
- * the RIDE pill, the overview card, the Lock bar, reading tiles (power, temperature, battery health), this model's
- * Setting tiles, the Ride recorder and the dock (HubDock, PR 11) with the subjects it shows on this phone and "All".
+ * the status row's search and Settings buttons (PR 11) and the RIDE pill, the overview card, the Lock bar, reading
+ * tiles (power, temperature, battery health), this model's Setting tiles, the Ride recorder and the dock (HubDock,
+ * PR 11) with the subjects it shows on this phone and "All".
  * Words with no sample value (status, labels) are drawn as soft bars, as at a thumbnail's size.
  *
  * <p>Everything is drawn on a phone-shaped canvas of {@link #VIRTUAL_WIDTH} by {@link #VIRTUAL_HEIGHT} dp, scaled to
@@ -217,53 +218,59 @@ final class HomeStylePreview extends View {
     // ===== Widgets =====
 
     private void drawWidgets(Canvas c) {
-        // Header: the scooter's name, the RIDE pill and the pencil.
-        title(c, 16, 42, 166, 22);
-        card(c, 192, 20, 268, 48, 14, ui.accent);
-        ui.drawIcon(c, "speed", ui.onAccent, 208, 34, 14);
+        // Header: the status row (the connection line, search and Settings, as on Clean, PR 11), then the scooter's
+        // name, the RIDE pill and the pencil.
+        paint.setColor(ui.ok);
+        c.drawCircle(20, 24, 4, paint);
+        bar(c, 30, 21, 128, 6);
+        roundButton(c, 252, 24, "search");
+        roundButton(c, 288, 24, "gear");
+        title(c, 16, 70, 166, 22);
+        card(c, 192, 48, 268, 76, 14, ui.accent);
+        ui.drawIcon(c, "speed", ui.onAccent, 208, 62, 14);
         String ride = quickName(HomeQuickActions.RIDING);
         words.setLetterSpacing(.06f);
-        text(c, ride, 220, 38, 44, 11, ui.onAccent, true);
+        text(c, ride, 220, 66, 44, 11, ui.onAccent, true);
         words.setLetterSpacing(0);
-        roundButton(c, 288, 34, "pencil");
+        roundButton(c, 288, 62, "pencil");
         // The battery widget, two columns wide.
-        card(c, 16, 62, 304, 192, 20, ui.surface);
-        text(c, charge, 30, 108, 140, 36, ui.text, true);
-        text(c, range, 31, 130, 130, 13, ui.muted, false);
-        photo(c, 156, 70, 296, 166);
-        meter(c, 30, 176, 290, .82f);
+        card(c, 16, 90, 304, 206, 20, ui.surface);
+        text(c, charge, 30, 134, 140, 36, ui.text, true);
+        text(c, range, 31, 155, 130, 13, ui.muted, false);
+        photo(c, 156, 98, 296, 182);
+        meter(c, 30, 192, 290, .82f);
         // The Lock bar.
-        lockBar(c, 16, 202, 304, 250);
+        lockBar(c, 16, 216, 304, 262);
         // Reading tiles: power, temperature and battery health, as on the default Home.
         String[] values = {power, temperature, health};
         String[] icons = {"bolt", "temperature", "heart"};
         float third = (288 - 16) / 3f;
         for (int i = 0; i < values.length; i++) {
             float x = 16 + i * (third + 8);
-            card(c, x, 260, x + third, 330, 18, ui.surface);
-            ui.drawIcon(c, icons[i], ui.muted, x + 18, 278, 14);
-            bar(c, x + 30, 275, third - 44, 6);
-            text(c, values[i], x + 12, 316, third - 20, 17, ui.text, true);
+            card(c, x, 272, x + third, 340, 18, ui.surface);
+            ui.drawIcon(c, icons[i], ui.muted, x + 18, 290, 14);
+            bar(c, x + 30, 287, third - 44, 6);
+            text(c, values[i], x + 12, 327, third - 20, 17, ui.text, true);
         }
         // Setting tiles: this model's (maximum speed and charge timing by default).
         int count = Math.max(1, settingTiles.size());
         float tile = (288 - 8 * (count - 1)) / (float) count;
         for (int i = 0; i < settingTiles.size(); i++) {
             float x = 16 + i * (tile + 8);
-            card(c, x, 340, x + tile, 388, 16, ui.surface);
+            card(c, x, 350, x + tile, 398, 16, ui.surface);
             paint.setColor(ui.raised);
-            c.drawCircle(x + 26, 364, 14, paint);
-            ui.drawIcon(c, settingTiles.get(i), ui.accent, x + 26, 364, 16);
-            bar(c, x + 48, 356, Math.min(80, tile - 64), 6, ui.text);
-            bar(c, x + 48, 367, Math.min(52, tile - 64), 5);
+            c.drawCircle(x + 26, 374, 14, paint);
+            ui.drawIcon(c, settingTiles.get(i), ui.accent, x + 26, 374, 16);
+            bar(c, x + 48, 366, Math.min(80, tile - 64), 6, ui.text);
+            bar(c, x + 48, 377, Math.min(52, tile - 64), 5);
         }
         // The Ride recorder: the record button and its words.
-        card(c, 16, 398, 304, 452, 18, ui.surface);
+        card(c, 16, 408, 304, 460, 18, ui.surface);
         paint.setColor(ui.accent);
-        c.drawCircle(43, 425, 15, paint);
-        ui.drawIcon(c, "record", ui.onAccent, 43, 425, 16);
-        bar(c, 68, 416, 96, 7, ui.text);
-        bar(c, 68, 429, 128, 5);
+        c.drawCircle(43, 434, 15, paint);
+        ui.drawIcon(c, "record", ui.onAccent, 43, 434, 16);
+        bar(c, 68, 425, 96, 7, ui.text);
+        bar(c, 68, 438, 128, 5);
         dock(c);
     }
 
