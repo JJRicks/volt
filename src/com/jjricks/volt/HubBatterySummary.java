@@ -43,9 +43,12 @@ final class HubBatterySummary implements AppScreen {
         CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
         level.setText(range == null ? percent : HubText.batteryLevelRange(percent, range));
         level.setTextColor(soc.live ? ui.text : ui.muted);
+        // Charging or not only from a live reading (as the Scooter tab's Battery summary): a last-seen or missing state hides the line.
         TelemetryHistory.Reading charge = readings.get("charging_state");
-        boolean charging = charge != null && charge.live && charge.number != null && charge.number == 1;
-        Integer limit = limit(service);
+        if (charge == null || !charge.live || charge.number == null) { state.setVisibility(View.GONE); return; }
+        state.setVisibility(View.VISIBLE);
+        boolean charging = charge.number == 1;
+        Integer limit = HubSubjects.chargeLimit(service);
         state.setText(!charging ? HubText.batteryNotCharging()
                 : limit != null ? HubText.batteryChargingTo(Fmt.percent(Fmt.integerNumber(limit)))
                 : HubText.batteryLevel(percent, true));
@@ -58,14 +61,5 @@ final class HubBatterySummary implements AppScreen {
         Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, range.number / KM_PER_MILE, 0), Fmt.unit(UnitCode.MI));
         if ("km".equals(units)) return km;
         return "dual".equals(units) ? Fmt.dual(miles, km) : miles;
-    }
-
-    /** The charge limit in percent where the model has one and its value is known; null otherwise. */
-    private static Integer limit(ScooterService service) {
-        BleController ble = service.ble;
-        if (ble == null || !ble.controlOffered("charge_limit")) return null;
-        Integer live = ble.featureValue("charge_limit");
-        Integer value = live != null ? live : service.displayFeatures().get("charge_limit");
-        return value == null || value < 0 || value > 100 ? null : value;
     }
 }

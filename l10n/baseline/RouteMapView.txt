@@ -1,6 +1,6 @@
 # Hard-coded English in src/com/jjricks/volt/RouteMapView.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
-multiword	"%+.2f m/s² GPS accel"
-multiword	"Elevation %+.0f ft"
-multiword	"Elevation %+.0f m"
-multiword	"≈%+.1f%% grade"
+multiword	"%s m/s² GPS accel"
+multiword	"Elevation %s ft"
+multiword	"Elevation %s m"
+multiword	"≈%s%% grade"

@@ -65,6 +65,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/Controls
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
 sources+=("$TEST_DIR/HubRideDataTest.java")
+# Email to Volt: which refusal of the charge export is worth a toast (council review of #396).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeSend.java" "$TEST_DIR/ChargeSendTest.java")
 # A drag in ReorderList counts from where the finger is when the row lifts, past the touch slop.
 sources+=("$APP_DIR/src/com/jjricks/volt/ReorderDrag.java" "$TEST_DIR/ReorderDragTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
@@ -162,6 +164,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
