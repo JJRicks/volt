@@ -34,13 +34,26 @@ final class QuickAccessGrid extends ViewGroup {
 
     /** {@code tiles} selects the Setting tiles presentation; callers normalize its one-to-four ids. */
     QuickAccessGrid(ScreenHost host, List<String> ids, boolean editing, Consumer<String> action, boolean tiles) {
+        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find);
+    }
+
+    /**
+     * Clean Home's four (HomeQuickActions): ids already normalized by the caller, resolved by entries that may lie
+     * outside the catalog (its own Ride and Record), as round buttons.
+     */
+    QuickAccessGrid(ScreenHost host, List<String> ids, Consumer<String> action, java.util.function.Function<String, QuickAccessActions.Entry> entries) {
+        this(host, ids, false, action, false, entries);
+    }
+
+    private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
+                            java.util.function.Function<String, QuickAccessActions.Entry> entries) {
         super(host.activity());
         this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles;
         setTag(tiles ? "setting-tiles" : "quick-access-grid");
-        List<String> shown = tiles ? ids : QuickAccessActions.normalize(ids);
         for (String id : shown) {
-            if (QuickAccessActions.find(id) == null) continue;
-            Cell cell = new Cell(QuickAccessActions.find(id));
+            QuickAccessActions.Entry entry = entries.apply(id);
+            if (entry == null) continue;
+            Cell cell = new Cell(entry);
             cell.setOnClickListener(v -> { if (!editing) action.accept(id); });
             cells.add(cell); addView(cell);
         }
@@ -117,6 +130,8 @@ final class QuickAccessGrid extends ViewGroup {
                 } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : T.commonOff();
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
+            // Clean Home's Record action says so while a ride is being recorded.
+            if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.

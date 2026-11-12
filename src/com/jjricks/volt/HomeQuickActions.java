@@ -36,6 +36,25 @@ final class HomeQuickActions {
     /** The stored key for a scooter profile. */
     static String key(String profileId) { return KEY_PREFIX + profileId; }
 
+    /**
+     * The Quick access entry Clean shows for an id: the catalog's, or for Clean's own two an entry outside the catalog
+     * (QuickAccessActions.local) named by HubText and grouped under Ride. Null for an id Clean can't show.
+     */
+    static QuickAccessActions.Entry entry(String id) {
+        QuickAccessActions.Entry entry = QuickAccessActions.find(id);
+        if (entry != null || !cleanOnly(id)) return entry;
+        return QuickAccessActions.local(id, HubText.quickActionLabel(id), HubText.quickActionShortLabel(id),
+                RIDING.equals(id) ? ICON_RIDING : ICON_RECORD, HubText.title(HubPages.RIDE));
+    }
+
+    /** Clean's own two, as entries for the shortcut picker (listed before the catalog). */
+    static List<QuickAccessActions.Entry> ownEntries() {
+        ArrayList<QuickAccessActions.Entry> entries = new ArrayList<>();
+        entries.add(entry(RIDING));
+        entries.add(entry(RECORD));
+        return Collections.unmodifiableList(entries);
+    }
+
     /** Whether Clean can show this id: one of its own two, or any Quick access catalog id. */
     static boolean known(String id) {
         return id != null && (id.equals(RIDING) || id.equals(RECORD) || QuickAccessActions.find(id) != null);

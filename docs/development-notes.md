@@ -26,7 +26,7 @@ All screens are native views built in code; there are no layout XML files. `Main
 
 | Tab | Page id | Class | Notes |
 |---|---|---|---|
-| Home | `home` | `DashboardScreen` | The widget dashboard and its editor. Widgets are `DashboardConfig.TYPES`; Quick access is `QuickAccessGrid` and `QuickAccessActions` |
+| Home | `home` | `DashboardScreen` or `CleanHomeScreen` | `home_style` (`HomeStylePrefs.of`) picks one; absent means the widget dashboard. `DashboardScreen` is the widget dashboard and its editor: widgets are `DashboardConfig.TYPES`; Quick access is `QuickAccessGrid` and `QuickAccessActions`. `CleanHomeScreen` is the fixed Clean Home beside it: it borrows the header's status line and name, the battery card and the charging view from `DashboardScreen.CleanParts` (an instance with no `DashboardConfig`), shows its four from `home_quick_v1_<pid>` (`HomeQuickActions`) and its subjects with `CleanSubjects`. Settings › Home style is page `settings.home` (`HomeStyleScreen`, reached from More's index and the Layout sheet) |
 | Live Stats | `data` | `StatsScreen` | Readings and charts, with its own search |
 | Scooter | `scooter` | `MainActivity.ControlsScreen` (inner class) | Scooter settings, the Lights page (`scooter_section` = `Lights`) and Maintenance (`MaintenanceScreen`). Order and hidden rows come from `ScooterMenuLayout` |
 | Rides | `ride` | `RidesScreen` | Recorded rides and charges |

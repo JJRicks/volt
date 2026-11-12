@@ -40,6 +40,15 @@ public final class DashboardScreen implements AppScreen {
 
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
+
+        /** Clean Home's search button. */
+        default void openSearch() { }
+
+        /** Clean Home's Settings button. */
+        default void openSettings() { }
+
+        /** Clean Home's scooter name: switch scooter. */
+        default void switchScooter() { }
     }
 
     private final ScreenHost host;
@@ -128,24 +137,12 @@ public final class DashboardScreen implements AppScreen {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(0, ui.dp(8), 0, ui.dp(10));
         LinearLayout words = column();
-        status = ui.text("", 12.5f, false);
-        status.setTextColor(ui.muted);
-        ui.fitStatusLine(status);
-        // Extra padding gives the one-line status a full touch target without moving the name.
-        status.setPadding(0, ui.dp(15), 0, ui.dp(15));
-        status.setTooltipText(T.dashboardConnectionDetails());
-        status.setOnClickListener(
-                v -> {
-                    if (!editing) actions.connectionDetails();
-                });
+        status = statusLine();
         LinearLayout.LayoutParams statusSize = new LinearLayout.LayoutParams(-1, -2);
         statusSize.topMargin = -ui.dp(15);
         statusSize.bottomMargin = -ui.dp(15);
         words.addView(status, statusSize);
-        profileName = ui.text(T.dashboardYourScooter(), 23, true);
-        profileName.setMaxLines(2);
-        profileName.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        if (android.os.Build.VERSION.SDK_INT >= 28) profileName.setAccessibilityHeading(true);
+        profileName = nameLine();
         renameControl = roundAction("pencil", T.dashboardRenameScooter(), 24, 12, actions::rename);
         LinearLayout nameRow =
                 new LinearLayout(host.activity()) {
@@ -202,7 +199,7 @@ public final class DashboardScreen implements AppScreen {
         // The grip and corner marks show how to move and resize; no caption repeats it.
         tools.setPadding(0, ui.dp(2), 0, ui.dp(12));
         view.addView(tools);
-        chargingHero = new ChargingHero();
+        chargingHero = new ChargingHero(false);
         view.addView(chargingHero, new LinearLayout.LayoutParams(-1, -2));
         grid = new Grid();
         view.addView(grid, new LinearLayout.LayoutParams(-1, -2));
@@ -210,9 +207,135 @@ public final class DashboardScreen implements AppScreen {
         resumeRestoreUndo();
     }
 
+    /**
+     * Home's parts for Clean Home (hub layout plan, PR 8), which is its own screen (CleanHomeScreen) beside this
+     * widget dashboard. This instance only lends the header's status line and name, the battery overview card and
+     * the charging view; it has no DashboardConfig, no grid and no editor, and never reads or writes the widget
+     * dashboard's storage (dashboard_v1_*, saved slots, dashboard_columns, dashboard_editing). Nothing calls render()
+     * or refresh() on it; CleanParts drives the parts.
+     */
+    private DashboardScreen(ScreenHost host, Actions actions, ScooterProfiles.Profile profile) {
+        this.host = host;
+        this.actions = actions;
+        ui = host.ui();
+        dialogContext = new ContextThemeWrapper(host.activity(), ui.dark ? R.style.VoltDialog : R.style.VoltDialogLight);
+        service = host.service();
+        preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        profileId = profile == null ? "unconfigured" : profile.id;
+        modelIdentity = identity(profile);
+        config = null;
+        restoreUndoKey = null;
+        view = column();
+        toolbar = tools = headerActions = historyActions = null;
+        undo = redo = ride = add = layoutButton = null;
+        edit = renameControl = null;
+        grid = null;
+        status = statusLine();
+        profileName = nameLine();
+        chargingHero = new ChargingHero(true);
+    }
+
+    /** Clean Home's parts, from a parts-only instance (see the constructor above). */
+    static CleanParts cleanParts(ScreenHost host, Actions actions) {
+        ScooterService service = host.service();
+        ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
+        return new DashboardScreen(host, actions, profile).new CleanParts();
+    }
+
+    /**
+     * What Clean Home borrows from Home: the status line and the scooter's name (refreshed like this header's), the
+     * battery overview card (a transient overview widget like DefaultDashboard's, never added to any dashboard) and the
+     * charging view in its Clean style. Clean places them; their text stays here.
+     */
+    final class CleanParts {
+        private final Tile overview;
+
+        CleanParts() {
+            DashboardConfig.Widget widget = new DashboardConfig.Widget("overview");
+            widget.keys.clear();
+            widget.keys.addAll(Arrays.asList("odometer_km", "driving_mode"));
+            overview = new Tile(widget);
+            overview.setTag("clean-home-overview");
+            chargingHero.setTag("clean-home-charging");
+        }
+
+        TextView status() { return status; }
+        TextView name() { return profileName; }
+        View overview() { return overview; }
+        View chargingView() { return chargingHero; }
+
+        /** The scooter this Home was built for; another one being active means Clean rebuilds. */
+        String profileId() { return profileId; }
+
+        /** Charging is freshly reported: the same predicate as the charging takeover; stale readings never count. */
+        boolean charging() { return !closed && chargingEstimate(readings()).charging; }
+
+        /** Whether the charging view is the one showing (Clean's top area says so); it breathes only then. */
+        void chargingShown(boolean shown) {
+            if (chargingHero.shown == shown) return;
+            chargingHero.shown = shown;
+            chargingHero.updatePulse();
+        }
+
+        /** Refreshes the status line, the name, the overview card and (while charging) the charging view. */
+        void refresh() {
+            if (closed) return;
+            ScooterProfiles.Profile current = service == null ? null : service.profiles.active();
+            Map<String, TelemetryHistory.Reading> readings = readings();
+            refreshHeader(current, readings);
+            boolean shown = chargingHero.shown;
+            chargingHero.refresh(readings);
+            chargingHero.shown = shown;
+            chargingHero.updatePulse();
+            overview.refresh(service == null ? readings : service.dashboardReadings());
+        }
+
+        /** The shortcut picker over Clean's own actions and the catalog; picked gets the chosen id. */
+        void chooseQuickAction(List<String> chosen, int index, java.util.function.Consumer<String> picked) {
+            if (closed) return;
+            DashboardScreen.this.chooseQuickAction(chosen, index, HomeQuickActions.ownEntries(), id -> {
+                dismiss();
+                picked.accept(id);
+            });
+        }
+
+        void close() {
+            finishPendingStart();
+            closed = true;
+            overview.active = false;
+            chargingHero.shown = false;
+            chargingHero.stopReveal();
+            dismiss();
+        }
+    }
+
     @Override
     public View view() {
         return view;
+    }
+
+    /** Home header's muted status line (Connected · Sport, Connecting…, last seen); a tap shows the connection. */
+    private TextView statusLine() {
+        TextView line = ui.text("", 12.5f, false);
+        line.setTextColor(ui.muted);
+        ui.fitStatusLine(line);
+        // Extra padding gives the one-line status a full touch target without moving the name.
+        line.setPadding(0, ui.dp(15), 0, ui.dp(15));
+        line.setTooltipText(T.dashboardConnectionDetails());
+        line.setOnClickListener(
+                v -> {
+                    if (!editing) actions.connectionDetails();
+                });
+        return line;
+    }
+
+    /** Home header's scooter name: a heading of up to two lines. */
+    private TextView nameLine() {
+        TextView name = ui.text(T.dashboardYourScooter(), 23, true);
+        name.setMaxLines(2);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        if (android.os.Build.VERSION.SDK_INT >= 28) name.setAccessibilityHeading(true);
+        return name;
     }
 
     /**
@@ -1597,9 +1720,17 @@ public final class DashboardScreen implements AppScreen {
         int revealGeneration;
         /** Glow breathing, 0 = dimmest and narrowest, 1 = the static glow. */
         float glow = 1;
+        /**
+         * Clean Home's charging view (hub layout plan 1.5): a plain muted line instead of the chip, the photo filling
+         * a fixed-height slot behind the percentage, a full track with a tick at the limit, and no alert time. Clean's
+         * top area decides when it shows; Widgets keeps the takeover above the grid unchanged.
+         */
+        final boolean clean;
+        final LinearLayout rows;
 
-        ChargingHero() {
+        ChargingHero(boolean clean) {
             super(host.activity());
+            this.clean = clean;
             setOrientation(VERTICAL);
             setGravity(Gravity.CENTER_HORIZONTAL);
             setPadding(0, ui.dp(2), 0, ui.dp(14));
@@ -1612,12 +1743,35 @@ public final class DashboardScreen implements AppScreen {
             chip.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 34 : 24), 100, 0));
             chip.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accent, 14), null, null, null);
             chip.setCompoundDrawablePadding(ui.dp(5));
+            if (clean) {
+                // A plain muted line: no chip, no bolt.
+                setGravity(Gravity.START);
+                setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
+                setBackground(ui.shape(ui.surface, 20, 0));
+                chip.setTypeface(ui.regular());
+                chip.setTextColor(ui.muted);
+                chip.setPadding(0, 0, 0, 0);
+                chip.setBackground(null);
+                chip.setCompoundDrawablesRelative(null, null, null, null);
+                chip.setMaxLines(2);
+            }
             addView(chip, new LinearLayout.LayoutParams(-2, -2));
             percent = ui.text("—", 72, true);
             percent.setGravity(Gravity.CENTER);
             percent.setLineSpacing(0, 1);
             LinearLayout.LayoutParams percentSize = new LinearLayout.LayoutParams(-2, -2);
             percentSize.topMargin = ui.dp(6);
+            if (clean) {
+                // A soft dark fade keeps the percentage readable over the photo that reaches up behind it.
+                GradientDrawable fade = new GradientDrawable();
+                fade.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+                fade.setGradientRadius(ui.dp(84));
+                fade.setColors(new int[] {Ui.withAlpha(Color.BLACK, ui.dark ? 120 : 56), Ui.withAlpha(Color.BLACK, 0)});
+                percent.setBackground(fade);
+                percent.setPadding(ui.dp(4), 0, ui.dp(12), 0);
+                percent.setTranslationZ(1);
+                percentSize.topMargin = 0;
+            }
             addView(percent, percentSize);
             stage = new Stage();
             photo = new ImageView(host.activity());
@@ -1626,9 +1780,18 @@ public final class DashboardScreen implements AppScreen {
             FrameLayout.LayoutParams photoSize =
                     new FrameLayout.LayoutParams(-1, ui.dp(196), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             photoSize.bottomMargin = ui.dp(20);
+            if (clean) {
+                // The photo takes the slot's spare height, anchored right, and reaches up behind the percentage.
+                photo.setScaleType(ImageView.ScaleType.FIT_END);
+                photoSize.height = -1;
+                photoSize.bottomMargin = ui.dp(18);
+            }
             stage.addView(photo, photoSize);
-            addView(stage, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams stageSize = clean ? new LinearLayout.LayoutParams(-1, 0, 1) : new LinearLayout.LayoutParams(-1, -2);
+            if (clean) stageSize.topMargin = -ui.dp(40);
+            addView(stage, stageSize);
             LinearLayout rows = column();
+            this.rows = rows;
             tiles = new InfoTiles();
             // With a charge alert to reach: power alone, then its time and the time to full side by side.
             tiles.loneFirst = true;
@@ -1650,6 +1813,8 @@ public final class DashboardScreen implements AppScreen {
         void stopReveal() {
             revealGeneration++;
             if (reveal != null) { reveal.cancel(); reveal = null; }
+            // Clean's top area owns the view's size and visibility.
+            if (clean) { updatePulse(); return; }
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
@@ -1685,6 +1850,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void showAnimated(boolean show) {
+            if (clean) { shown = show; updatePulse(); return; }
             if (show == shown) return;
             int current = getVisibility() == View.VISIBLE ? getHeight() : 0;
             shown = show; stopReveal();
@@ -1719,6 +1885,20 @@ public final class DashboardScreen implements AppScreen {
 
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
 
+        /**
+         * Clean's fixed slot: when the tiles leave the photo too little room (a short window, large text), the tiles
+         * go first, then the photo shrinks with the stage; the text never gets smaller.
+         */
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            if (!clean || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) { super.onMeasure(widthSpec, heightSpec); return; }
+            if (rows.getVisibility() != VISIBLE) rows.setVisibility(VISIBLE);
+            super.onMeasure(widthSpec, heightSpec);
+            if (stage.getMeasuredHeight() < ui.dp(72)) {
+                rows.setVisibility(GONE);
+                super.onMeasure(widthSpec, heightSpec);
+            }
+        }
+
         void refresh(Map<String, TelemetryHistory.Reading> values) {
             ChargingEstimate.Result estimate = chargingEstimate(values);
             boolean show = estimate.charging && !editing;
@@ -1728,7 +1908,7 @@ public final class DashboardScreen implements AppScreen {
                     : Math.max(0, Math.min(100, charge.number));
             boolean hasLimit = estimate.targetPercent != null && estimate.targetPercent < 100;
             limit = hasLimit ? estimate.targetPercent : 100;
-            chip.setText(hasLimit
+            chip.setText(clean ? cleanLine(hasLimit, limit) : hasLimit
                     ? T.dashboardChargingLimit(Fmt.decimal(Locale.US, estimate.targetPercent, 0))
                     : T.dashboardCharging());
             if (Double.isNaN(level)) {
@@ -1744,7 +1924,7 @@ public final class DashboardScreen implements AppScreen {
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
-            stage.setMinimumHeight(ui.dp(known ? 236 : 44));
+            stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
             String[] timeLabel = chargeTimeLabels(estimate, false);
             ((DashboardCaption) etaLabel).setLabels(timeLabel[0], timeLabel[1], timeLabel[2]);
@@ -1769,12 +1949,19 @@ public final class DashboardScreen implements AppScreen {
             showAnimated(true);
         }
 
+        /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
+        private CharSequence cleanLine(boolean hasLimit, double limit) {
+            return (hasLimit ? HubText.chargingToLimit(Fmt.percent(Fmt.integerNumber(Math.round(limit)))) : HubText.charging()).render();
+        }
+
         private String spokenTime(String name, CharSequence value, String status) {
             return status == null || status.isEmpty() ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
         }
 
         /** The tile counting down to a charge alert's level; it keeps its place with a dash while no time is known. */
         private void showAlertTime(ChargingEstimate.Result alert, ChargingEstimate.Result estimate) {
+            // Clean's view has room for two tiles only: power and the time to the limit.
+            if (clean) alert = null;
             tiles.show(alertCell, alert != null);
             if (alert == null) return;
             String[] labels = chargeTimeLabels(alert, false);
@@ -1853,7 +2040,8 @@ public final class DashboardScreen implements AppScreen {
                         glowRadius = rx; glowColor = color;
                     }
                     canvas.save();
-                    canvas.translate(w / 2, floor);
+                    // Clean anchors the photo right, so its glow follows the wheels there.
+                    canvas.translate(clean ? w * .6f : w / 2, floor);
                     canvas.scale(.94f + .06f * glow, ry / rx);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setShader(glowShader);
@@ -1863,6 +2051,7 @@ public final class DashboardScreen implements AppScreen {
                     paint.setAlpha(255);
                     canvas.restore();
                 }
+                if (clean) { drawTrack(canvas, w, getHeight()); return; }
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
                 paint.setStrokeWidth(ui.dp(3));
@@ -1873,6 +2062,25 @@ public final class DashboardScreen implements AppScreen {
                 if (!Double.isNaN(level) && level > 0) {
                     paint.setColor(ui.accent);
                     canvas.drawLine(left, floor, left + span * (float) (level / 100), floor, paint);
+                }
+            }
+
+            /** Clean: a full rounded track along the bottom, red to the charge, with a light tick at the limit. */
+            private void drawTrack(Canvas canvas, float w, float h) {
+                float thick = ui.dp(8), r = thick / 2, top = h - thick;
+                paint.setShader(null);
+                paint.setAlpha(255);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(ui.raised);
+                canvas.drawRoundRect(0, top, w, h, r, r, paint);
+                if (!Double.isNaN(level) && level > 0) {
+                    paint.setColor(ui.accent);
+                    canvas.drawRoundRect(0, top, Math.max(thick, w * (float) (level / 100)), h, r, r, paint);
+                }
+                if (limit < 100) {
+                    float x = w * (float) (limit / 100);
+                    paint.setColor(Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
+                    canvas.drawRect(x - ui.dp(1), top - ui.dp(3), x + ui.dp(1), h, paint);
                 }
             }
         }
@@ -5605,6 +5813,23 @@ public final class DashboardScreen implements AppScreen {
     }
 
     private void chooseQuickAction(DashboardConfig.Widget widget, int index) {
+        chooseQuickAction(widget.quickActions, index, Collections.<QuickAccessActions.Entry>emptyList(), id -> {
+            if (index < 0) {
+                if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
+                widget.quickActions.add(id);
+            } else widget.quickActions.set(index, id);
+            saveQuickActions(widget);
+        });
+    }
+
+    /**
+     * The shortcut picker: own entries first (Clean Home's own actions; none for a widget), then the catalog. chosen
+     * holds the ids already picked, index the slot being changed (-1 adds one); picked gets the id tapped.
+     */
+    private void chooseQuickAction(List<String> chosen, int index, List<QuickAccessActions.Entry> own,
+                                   java.util.function.Consumer<String> picked) {
+        ArrayList<QuickAccessActions.Entry> entries = new ArrayList<>(own);
+        entries.addAll(QuickAccessActions.catalog());
         LinearLayout content = column();
         EditText search = new EditText(dialogContext);
         search.setSingleLine(true); search.setHint(T.dashboardSearchSettings());
@@ -5614,9 +5839,9 @@ public final class DashboardScreen implements AppScreen {
         Runnable filter = () -> {
             choices.removeAllViews();
             String query = SearchFold.fold(search.getText().toString()).trim();
-            for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
-                boolean selected = widget.quickActions.contains(entry.id);
-                boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
+            for (QuickAccessActions.Entry entry : entries) {
+                boolean selected = chosen.contains(entry.id);
+                boolean current = index >= 0 && chosen.get(index).equals(entry.id);
                 // The English name and group still match, beside the shown ones.
                 if (!query.isEmpty() && !SearchFold.holds(entry.label, entry.group, query)
                         && !SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query)) continue;
@@ -5645,11 +5870,7 @@ public final class DashboardScreen implements AppScreen {
                 item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
                 item.setOnClickListener(v -> {
                     if (selected && !current) return;
-                    if (index < 0) {
-                        if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
-                        widget.quickActions.add(entry.id);
-                    } else widget.quickActions.set(index, entry.id);
-                    saveQuickActions(widget);
+                    picked.accept(entry.id);
                 });
                 choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
             }
@@ -6499,6 +6720,7 @@ public final class DashboardScreen implements AppScreen {
     private void layoutOptions() {
         grid.finishGesture(false);
         LinearLayout content = column();
+        content.addView(homeStyleRow());
         content.addView(sheetLabel(T.dashboardColumns()));
         int usable = grid.maximumColumns();
         int selected = preferences.getInt("dashboard_columns", 0);
@@ -6535,6 +6757,40 @@ public final class DashboardScreen implements AppScreen {
         restore.setOnClickListener(v -> restoreDefaults());
         content.addView(restore, new LinearLayout.LayoutParams(-1, -2));
         showSheet(T.dashboardLayoutTitle(), content, null, T.dashboardCloseLayout(), null);
+    }
+
+    /**
+     * The Layout sheet's first row: Home style (Widgets now). It ends editing and opens Settings › Home style, where
+     * the owner can switch to Clean; switching keeps this dashboard and its saved layouts.
+     */
+    private View homeStyleRow() {
+        LinearLayout line = row();
+        line.setTag("dashboard-home-style");
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.setMinimumHeight(ui.dp(64));
+        line.setPadding(ui.dp(12), ui.dp(10), ui.dp(8), ui.dp(10));
+        line.setBackground(ripple(Ui.withAlpha(ui.accent, 26), ui.shape(ui.dark ? ui.raised : ui.bg, 16, 0), null));
+        line.setClickable(true);
+        line.setFocusable(true);
+        line.addView(square("home", ui.accent, 38), new LinearLayout.LayoutParams(ui.dp(38), ui.dp(38)));
+        LinearLayout words = column();
+        TextView name = ui.text(HubText.title(HubPages.SETTINGS_HOME), 15, false);
+        name.setTypeface(ui.medium());
+        words.addView(name);
+        words.addView(ui.caption(HubText.homeStyleName(false).render()));
+        LinearLayout.LayoutParams wordsSpace = new LinearLayout.LayoutParams(0, -2, 1);
+        wordsSpace.setMarginStart(ui.dp(12));
+        line.addView(words, wordsSpace);
+        line.addView(new GlyphView("chevron", ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
+        line.setOnClickListener(v -> {
+            dismiss();
+            if (editing) toggleEditing();
+            host.open(HubPages.SETTINGS_HOME);
+        });
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
+        space.bottomMargin = ui.dp(6);
+        line.setLayoutParams(space);
+        return line;
     }
 
     /** Restores the defaults at once; Undo in the notice (or the header) brings the old layout back. */

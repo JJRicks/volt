@@ -183,6 +183,11 @@ public final class MoreScreen implements AppScreen {
         onboarding();
         sectionMenu = group();
         if (wide) sectionMenu.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
+        // Settings › Home style (hub layout plan, PR 8): its own page; the line under it names the current style.
+        Row homeStyle = row(sectionMenu, "home", HubText.title(HubPages.SETTINGS_HOME),
+                HubText.homeStyleName(HomeStyle.CLEAN.equals(HomeStylePrefs.of(settings()))), () -> host.open(HubPages.SETTINGS_HOME));
+        homeStyle.view.setTag("home-style-menu");
+        if (wide) homeStyle.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
         Row backup = row(sectionMenu, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
         backup.view.setTag("data-backup");
         // The wide menu pads every row alike, so this one lines up with the section rows below it.

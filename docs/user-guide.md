@@ -28,6 +28,19 @@ After Android **Clear storage**, use **Restore Volt backup** on the welcome scre
 
 Technical format and recovery details: [App backups](app-data-backup.md), [Unified backup design](unified-backup.md).
 
+## Home style: Clean or Widgets
+
+Home comes in two styles. **Widgets** is the dashboard you arrange yourself, described in the next section. **Clean** is a fixed Home: a header, a top area that always keeps the same height, the Lock bar, four quick actions and the scooter's subjects.
+
+- **Header.** The connection line (for example "Connected · Sport"; tap it for the connection details), a search button and a Settings button. Tap the scooter's name to switch scooter (My scooters). The pencil opens **Edit Home**.
+- **Top area.** While parked it shows the battery card: the charge, about how far it goes, the scooter's photo and its bar, with Odometer and Drive mode underneath. While charging is reported it switches by itself to the charging view: "Charging to your 90% limit" (or just "Charging"), the charge, the photo with its red glow, a bar with a light tick at the limit, the charging power and the time to the limit. The Lock bar and everything below it never move when the top area changes.
+- **Quick actions.** Four round actions. Until you change them they are Ride (opens riding mode), Record ride (starts or stops recording), Charge done by and Drive mode. A scooter that can't schedule charging gets Timed charging or Rides in the third place.
+- **Subjects.** Ride, Battery & charging, Controls, Lights & sound, Security, Service and Data, each with a one-line summary such as "Charging · limit 90%" or "PIN on · proximity off". Service shows an orange dot while a maintenance check is due. A row opens that subject's page; until the subject pages replace the tab bar, it opens the tab that holds them today.
+
+**Edit Home** (the pencil on Clean) lets you pick the style and change any of the four quick actions: tap one and choose from Ride, Record ride and the same list Quick access uses. Each scooter keeps its own four.
+
+Switch style in **More › Home style**, from Edit Home on Clean, or from the **Home style** row at the top of **Layout** while editing Widgets. Switching never deletes or changes a widget layout or a saved layout slot; switching back shows them as you left them. Home style also holds Clean's two moments, **Show charging while plugged in** and **Show the last ride after riding**; with the first one off, Clean keeps the battery card while charging. (The last ride on Clean arrives in a later update; its switch is already there.)
+
 ## Make Home your own
 
 Tap the **pencil** to edit Home. Drag the top-left dots to move a widget, or drag its visible lower-right corner to resize it; a long press on the dots also starts a move. A dashed outline previews the full destination while neighboring cards slide aside and fill empty rows. Releasing saves the preview; cancelling restores the starting arrangement. Tap **Done** to use scooter controls again.

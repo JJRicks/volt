@@ -505,10 +505,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         HubNav.Args args=pageArgs;pageArgs=null;
         screen=createScreen(selectedPage,args);
-        if(horizontalHinge()&&screen instanceof DashboardScreen){
-            // Tabletop posture: Home's header sits in the upper pane, the widgets below the hinge.
+        if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
+            // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
-            header.addView(((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
+            header.addView(screen instanceof CleanHomeScreen?((CleanHomeScreen)screen).takeHeader():((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
         }
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
@@ -535,8 +535,11 @@ public final class MainActivity extends Activity implements ScreenHost {
      * args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
+        // Settings › Home style; while the tab bar remains it opens on the Settings tab.
+        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this);
         switch(HubPages.tabOf(page)){
-            case HubPages.HOME:return new DashboardScreen(this,new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}});
+            // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
+            case HubPages.HOME:return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
             case HubPages.SCOOTER:return new ControlsScreen(false);
             default:break;
         }
@@ -546,6 +549,28 @@ public final class MainActivity extends Activity implements ScreenHost {
             case HubPages.RIDE:return new RidesScreen(this);
             default:return new MoreScreen(this);
         }
+    }
+    /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
+    private DashboardScreen.Actions homeActions(){
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+            // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
+            public void openSearch(){open(HubPages.SCOOTER);focusPageSearch();}
+            public void openSettings(){open(HubPages.SETTINGS);}
+            // Switch scooter: My scooters (its list has Use and Connect); a Hub page once Settings holds it.
+            public void switchScooter(){openMoreSection("Scooters");}};
+    }
+    /** Puts the cursor in the page's first search field and shows the keyboard (Home's search button). */
+    private void focusPageSearch(){
+        View page=screen==null?null:screen.view();
+        EditText field=page==null?null:firstEditText(page);
+        if(field==null)return;
+        field.requestFocus();
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+    }
+    private static EditText firstEditText(View view){
+        if(view instanceof EditText)return (EditText)view;
+        if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){EditText found=firstEditText(group.getChildAt(i));if(found!=null)return found;}}
+        return null;
     }
     private void styleSystemBars(){
         // Samsung's Window getter can dereference a missing decor during onCreate.
