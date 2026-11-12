@@ -13,15 +13,16 @@ import java.util.List;
 
 /**
  * The wide Clean Home's Service card (hub layout plan 1.11, PR 13), at the foot of the scooter pane, filling the room
- * the pane has left: the next maintenance checks. A due check comes first, in orange with a dot ("Tyre pressure · 40 mi
- * overdue"); then the nearest one coming up, muted ("Brakes · 18 days left"). The words for what is left are the
- * Maintenance page's own (MaintenanceScreen.nextChecks); the title and the empty line come from HubText. A tap opens
+ * the pane has left: the next maintenance checks. Checks that are due or coming up soon come first, in orange with a
+ * dot ("Tyre pressure · 40 mi left"); then the nearest other one, muted ("Brakes · 18 days left"). The words for what
+ * is left are the Maintenance page's own, rendered when a line is built (MaintenanceScreen.Check); the title and the
+ * empty line come from HubText. A tap opens
  * Service › Maintenance reminders. Rebuilt only when what it shows changed, never on a plain telemetry refresh.
  */
 final class HubServiceCard {
     /** View tags: the card, and each line by its reminder id ("home-service-check-<id>"). */
     static final String TAG = "home-service-card", TAG_CHECK = "home-service-check-";
-    /** At most this many due checks; the next one coming up follows them. */
+    /** At most this many highlighted checks; the next other one follows them. */
     private static final int MAX_DUE = 3;
 
     private final ScreenHost host;
@@ -64,7 +65,7 @@ final class HubServiceCard {
         if (closed) return;
         List<MaintenanceScreen.Check> checks = MaintenanceScreen.nextChecks(host.service(), MAX_DUE);
         StringBuilder key = new StringBuilder();
-        for (MaintenanceScreen.Check check : checks) key.append(check.id).append('\n').append(check.left).append('\n').append(check.due).append('\n');
+        for (MaintenanceScreen.Check check : checks) check.key(key);
         String next = key.toString();
         if (next.equals(shown)) return;
         shown = next;
@@ -80,10 +81,10 @@ final class HubServiceCard {
 
     void close() { closed = true; }
 
-    /** One check: the orange dot while it is due, its name, and what is left at the end. */
+    /** One check: the orange dot while it is highlighted, its name, and what is left at the end. */
     private View line(MaintenanceScreen.Check check) {
         LinearLayout line = row();
-        line.setTag(TAG_CHECK + check.id);
+        line.setTag(TAG_CHECK + check.id());
         line.setMinimumHeight(ui.dp(36));
         line.setPadding(0, ui.dp(4), 0, ui.dp(4));
         View dot = new View(host.activity());
@@ -91,20 +92,21 @@ final class HubServiceCard {
         disc.setShape(GradientDrawable.OVAL);
         disc.setColor(ui.orange);
         dot.setBackground(disc);
-        dot.setVisibility(check.due ? View.VISIBLE : View.INVISIBLE);
+        dot.setVisibility(check.highlighted ? View.VISIBLE : View.INVISIBLE);
         dot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         line.addView(dot, new LinearLayout.LayoutParams(ui.dp(8), ui.dp(8)));
-        TextView name = ui.text(check.name, 14, false);
+        String checkName = check.name();
+        TextView name = ui.text(checkName, 14, false);
         name.setMaxLines(2);
         name.setEllipsize(TextUtils.TruncateAt.END);
-        name.setTextColor(check.due ? ui.text : ui.muted);
-        // The dot is not read: a due check says so with its name.
-        if (check.due) name.setContentDescription(HubText.dueDescription(check.name).render());
+        name.setTextColor(check.highlighted ? ui.text : ui.muted);
+        // The dot is not read: a due check says so with its name; one coming up soon says what is left.
+        if (check.due()) name.setContentDescription(HubText.dueDescription(checkName).render());
         LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);
         nameSize.setMarginStart(ui.dp(10));
         line.addView(name, nameSize);
-        TextView left = ui.text(check.left, 12.5f, check.due);
-        left.setTextColor(check.due ? ui.orange : ui.muted);
+        TextView left = ui.text(check.left(), 12.5f, check.highlighted);
+        left.setTextColor(check.highlighted ? ui.orange : ui.muted);
         left.setMaxLines(2);
         left.setGravity(Gravity.END);
         LinearLayout.LayoutParams leftSize = new LinearLayout.LayoutParams(-2, -2);

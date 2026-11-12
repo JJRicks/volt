@@ -864,16 +864,40 @@ final class MaintenanceScreen {
         return scope.isEmpty() ? null : service.maintenance.summary(scope, System.currentTimeMillis(), zone());
     }
 
-    /** One line of the wide Home's Service card (HubServiceCard): a check's name, what is left, and whether it is due. */
+    /**
+     * One line of the wide Home's Service card (HubServiceCard): a check, its status and whether it is highlighted (due
+     * or coming up soon). It keeps what the words are made from, not the words: name() and left() render them when the
+     * line is built, in the current language, with the Maintenance page's own words.
+     */
     static final class Check {
-        final String id, name, left; final boolean due;
-        Check(String id, String name, String left, boolean due) { this.id = id; this.name = name; this.left = left; this.due = due; }
+        final MaintenancePolicy.Reminder reminder; final MaintenancePolicy.Status status; final String units; final long now;
+        final boolean highlighted;
+        Check(MaintenancePolicy.Reminder reminder, MaintenancePolicy.Status status, String units, long now, boolean highlighted) {
+            this.reminder = reminder; this.status = status; this.units = units; this.now = now; this.highlighted = highlighted;
+        }
+        String id() { return reminder.id; }
+        /** Whether the check is due now (not only coming up soon): its line is then read as "maintenance due". */
+        boolean due() { return status.state == MaintenancePolicy.State.DUE; }
+        String name() { return MaintenanceView.name(reminder); }
+        String left() { return MaintenanceView.left(reminder, status, units, now, MaintenanceScreen::date); }
+        /**
+         * What the line shows, from its inputs, for the card's has-it-changed key: which part left() names, and the
+         * distance to a tenth in km and in miles (the most the words show), so a telemetry refresh that moves the
+         * odometer by a few metres builds nothing.
+         */
+        void key(StringBuilder key) {
+            boolean distance = MaintenanceView.namesDistance(reminder, status, now);
+            key.append(reminder.id).append('\n').append(reminder.task).append('\n').append(reminder.name).append('\n')
+                    .append(status.state).append('\n').append(status.daysLeft).append('\n').append(distance).append('\n');
+            if (distance) key.append(Math.round(status.kmLeft * 10)).append('/').append(Math.round(status.kmLeft / MaintenanceView.KM_PER_MILE * 10)).append('\n');
+            key.append(reminder.snoozeUntil).append('\n').append(units).append('\n').append(highlighted).append('\n');
+        }
     }
 
     /**
-     * The next maintenance checks for the wide Home's Service card (hub layout plan 1.11, PR 13): every due check (the
-     * most overdue first, at most max), then the nearest one coming up, with the page's own words for what is left.
-     * Empty while reminders are off, none is set or there is no active scooter.
+     * The next maintenance checks for the wide Home's Service card (hub layout plan 1.11, PR 13): the highlighted ones
+     * first, at most max (every due check, the most overdue first, then those coming up soon, the nearest first), then
+     * the nearest other check, muted. Empty while reminders are off, none is set or there is no active scooter.
      */
     static List<Check> nextChecks(ScooterService service, int max) {
         List<Check> checks = new ArrayList<>();
@@ -886,12 +910,18 @@ final class MaintenanceScreen {
         long now = System.currentTimeMillis();
         for (MaintenancePolicy.Reminder r : MaintenanceView.dueNow(s, now, zone())) {
             if (checks.size() >= max) break;
-            checks.add(new Check(r.id, MaintenanceView.name(r), MaintenanceView.left(r, MaintenanceView.status(s, r, now, zone()), units, now, MaintenanceScreen::date), true));
+            checks.add(new Check(r, MaintenanceView.status(s, r, now, zone()), units, now, true));
         }
         List<MaintenancePolicy.Reminder> coming = MaintenanceView.comingUp(s, now, zone());
-        if (!coming.isEmpty()) {
-            MaintenancePolicy.Reminder r = coming.get(0);
-            checks.add(new Check(r.id, MaintenanceView.name(r), MaintenanceView.left(r, MaintenanceView.status(s, r, now, zone()), units, now, MaintenanceScreen::date), false));
+        List<MaintenancePolicy.Reminder> rest = new ArrayList<>();
+        for (MaintenancePolicy.Reminder r : coming) {
+            MaintenancePolicy.Status status = MaintenanceView.status(s, r, now, zone());
+            if (status.state == MaintenancePolicy.State.SOON && checks.size() < max) checks.add(new Check(r, status, units, now, true));
+            else rest.add(r);
+        }
+        if (!rest.isEmpty()) {
+            MaintenancePolicy.Reminder r = rest.get(0);
+            checks.add(new Check(r, MaintenanceView.status(s, r, now, zone()), units, now, false));
         }
         return checks;
     }

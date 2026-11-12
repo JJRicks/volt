@@ -603,9 +603,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
         rightPage=column();right.addView(rightPage,new FrameLayout.LayoutParams(-1,-1));
         // The last rung of the subjects' narrow-label ladder: one pane at this size, text size and language from now on.
+        // The key is this layout's, taken now; the posted callback is dropped once these panes are gone or the window
+        // changed (a fold, a resize, a text-size change), so it never marks a size that did not fail.
+        final String key=paneKey();
+        final HubPanes[] built=new HubPanes[1];
         HubPanes panes=new HubPanes(this,design,left,right,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,verticalHinge()?fold.hinge:null,
                 ()->screen instanceof HubHomePane&&((HubHomePane)screen).wordsBreak(),
-                ()->{if(destroyed||rebuilding)return;onePaneHomeAt=paneKey();rebuild();});
+                ()->{
+                    if(destroyed||rebuilding||built[0]==null||!built[0].isAttachedToWindow()||!key.equals(paneKey()))return;
+                    onePaneHomeAt=key;rebuild();
+                });
+        built[0]=panes;
         panes.setPadding(design.dp(24),0,design.dp(24),0);
         content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         pageFrame=right;
@@ -1933,7 +1941,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      * page doesn't show stay in their (detached) section bodies. The search page (spec.search; the Scooter tab's index
      * before PR 11) shows only the search field: typing finds any row on any page, grouped by section as before, and
      * the subject list hides.
-     * Every page is one column, wide screens included (the Hub's two panes come in PR 13).
+     * Every page is one column, wide screens included, and so in the wide Home's page pane (HubPanes).
      */
     private final class ControlsScreen implements AppScreen {
         private final ControlsPages.Spec spec;
