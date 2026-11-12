@@ -30,6 +30,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ChargeCaptureValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge capture validation" />
   <instrumentation android:name="com.jjricks.volt.ChargeScheduleWireValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated schedule command callback validation" />
   <instrumentation android:name="com.jjricks.volt.ChargeLiveUnplugValidation" android:targetPackage="com.jjricks.volt" android:label="Live charging card out of sight, in-process fake scooter" />
+  <instrumentation android:name="com.jjricks.volt.ChargeAutoRecordValidation" android:targetPackage="com.jjricks.volt" android:label="Record charges automatically, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeScheduleValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge scheduling UI validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeAlertValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery alert rows, sheet and delivery validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />

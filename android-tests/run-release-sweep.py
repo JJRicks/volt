@@ -162,6 +162,8 @@ STEPS += [
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
+    inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),

@@ -31,27 +31,27 @@ import java.util.Set;
  * (storage, or no room because every saved recording is manual) latches that scooter in memory by the same rule, so
  * it is not retried on every reading.
  */
-final class ChargeAutoRecordPolicy {
+public final class ChargeAutoRecordPolicy {
     /** The switch, off by default (absent means off). An app preference, backed up with App preferences. */
-    static final String KEY = "charge_auto_record";
+    public static final String KEY = "charge_auto_record";
     /** Scooters held after a hand stop, space-separated profile ids. Belongs to this phone; BackupRegistry leaves it out. */
-    static final String HOLD_KEY = "charge_auto_record_hold";
+    public static final String HOLD_KEY = "charge_auto_record_hold";
     /** About 3 mph. A live speed reading above this ends an automatic recording at once; jostling below it doesn't. */
-    static final double END_SPEED_KMH = 4.8;
+    public static final double END_SPEED_KMH = 4.8;
     /** An automatic recording ends this long after charging stops (a schedule hold excepted). */
-    static final long CHARGE_OFF_END_MS = 2 * 60_000L;
+    public static final long CHARGE_OFF_END_MS = 2 * 60_000L;
     /** Shorter automatic recordings are not kept. */
-    static final long MIN_KEEP_MS = 10 * 60_000L;
+    public static final long MIN_KEEP_MS = 10 * 60_000L;
     /** Automatic recordings that gained fewer battery percentage points are not kept. */
-    static final double MIN_KEEP_POINTS = 5;
+    public static final double MIN_KEEP_POINTS = 5;
 
     /** The store's keep and room rules for automatic recordings. Manual recordings never consult them. */
-    static final ChargeSessionStore.AutomaticRules RULES = new ChargeSessionStore.AutomaticRules() {
+    public static final ChargeSessionStore.AutomaticRules RULES = new ChargeSessionStore.AutomaticRules() {
         public boolean keep(long ranMs, double gainedPoints) { return ChargeAutoRecordPolicy.keep(ranMs, gainedPoints); }
         public int toRemove(int saved, int automatic, int max) { return automaticToRemove(saved, automatic, max); }
     };
 
-    static final class Label {
+    public static final class Label {
         final ChargeSessionStore.Charger charger; final ChargeSessionStore.LabelSource source;
         Label(ChargeSessionStore.Charger charger, ChargeSessionStore.LabelSource source) { this.charger = charger; this.source = source; }
     }
@@ -65,7 +65,7 @@ final class ChargeAutoRecordPolicy {
      * @param charging a fresh reading says the scooter is charging
      * @param blocked the manual start's refusal reason is not null (it covers simulation)
      */
-    static boolean shouldStart(boolean enabled, boolean connectedSelected, boolean charging, boolean simulating, boolean blocked,
+    public static boolean shouldStart(boolean enabled, boolean connectedSelected, boolean charging, boolean simulating, boolean blocked,
             boolean recording, boolean held, boolean movingFast) {
         return enabled && connectedSelected && charging && !simulating && !blocked && !recording && !held && !movingFast;
     }
@@ -76,7 +76,7 @@ final class ChargeAutoRecordPolicy {
      * for this scooter (the charger the owner actually uses), and on a tie or none, the stock charger every scooter
      * ships with.
      */
-    static Label label(ChargeSessionStore.Charger chosen, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
+    public static Label label(ChargeSessionStore.Charger chosen, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
         if (chosen != null) return new Label(chosen, ChargeSessionStore.LabelSource.CHOSEN);
         if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED);
         return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK, ChargeSessionStore.LabelSource.GUESS);
@@ -86,19 +86,19 @@ final class ChargeAutoRecordPolicy {
      * The new label for a running automatic recording, or null to keep its label. A chosen label never changes on
      * detection; a detected or guessed one follows detection when it settles on the other family.
      */
-    static ChargeSessionStore.Charger relabel(ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger current, ChargeSessionStore.Charger detected) {
+    public static ChargeSessionStore.Charger relabel(ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger current, ChargeSessionStore.Charger detected) {
         if (source == null || source == ChargeSessionStore.LabelSource.CHOSEN || detected == null || detected == current) return null;
         return detected;
     }
 
     /** True for a live speed reading (received within AutoStartPolicy.SPEED_FRESH_MS) above END_SPEED_KMH. speedRaw is in tenths of km/h. */
-    static boolean movedAway(boolean connected, int speedRaw, long sampleMs, long nowMs) {
+    public static boolean movedAway(boolean connected, int speedRaw, long sampleMs, long nowMs) {
         return connected && sampleMs > 0 && nowMs >= sampleMs && nowMs - sampleMs <= AutoStartPolicy.SPEED_FRESH_MS
                 && speedRaw / 10.0 > END_SPEED_KMH;
     }
 
     /** How long a recording waits after the charger stops below 99% with no schedule holding current off. */
-    static long chargerOffWaitMs(boolean automatic) {
+    public static long chargerOffWaitMs(boolean automatic) {
         return automatic ? CHARGE_OFF_END_MS : ChargeSessionStore.CHARGER_PAUSE_MAX_MS;
     }
 
@@ -106,12 +106,12 @@ final class ChargeAutoRecordPolicy {
      * Whether charging off for offMs ends the recording. Volt's own charging schedule holding the current off never
      * does: the recording waits for the planned start, as a manual one does.
      */
-    static boolean chargeOffEnds(boolean automatic, boolean scheduleHolds, long offMs) {
+    public static boolean chargeOffEnds(boolean automatic, boolean scheduleHolds, long offMs) {
         return !scheduleHolds && offMs >= chargerOffWaitMs(automatic);
     }
 
     /** Whether a finished automatic recording is kept. ranMs and gainedPoints are measured on its saved samples. */
-    static boolean keep(long ranMs, double gainedPoints) {
+    public static boolean keep(long ranMs, double gainedPoints) {
         return ranMs >= MIN_KEEP_MS && gainedPoints >= MIN_KEEP_POINTS;
     }
 
@@ -119,27 +119,27 @@ final class ChargeAutoRecordPolicy {
      * How many of the oldest automatic recordings an automatic start removes to stay within max saved recordings
      * (with the new one), or -1 when it cannot start because only manual recordings would have to go.
      */
-    static int automaticToRemove(int saved, int automatic, int max) {
+    public static int automaticToRemove(int saved, int automatic, int max) {
         int need = saved - (max - 1);
         if (need <= 0) return 0;
         return automatic >= need ? need : -1;
     }
 
     /** Whether a hand stop of this recording (Stop, or a ride started by hand) holds its scooter. */
-    static boolean holdsAfterHandStop(boolean automatic) { return automatic; }
+    public static boolean holdsAfterHandStop(boolean automatic) { return automatic; }
 
     /** Whether starting a ride by hand ends this charge recording instead of being refused. Manual ones still refuse. */
-    static boolean rideEndsRecording(boolean automatic) { return automatic; }
+    public static boolean rideEndsRecording(boolean automatic) { return automatic; }
 
     /** Whether a reading clears holds and latches: only a fresh "not charging" reading does. */
-    static boolean clearsHold(boolean fresh, double chargingState) { return fresh && chargingState == 0; }
+    public static boolean clearsHold(boolean fresh, double chargingState) { return fresh && chargingState == 0; }
 
     /** The held scooters stored in HOLD_KEY. */
-    static Set<String> holds(String stored) {
+    public static Set<String> holds(String stored) {
         Set<String> result = new LinkedHashSet<>();
         if (stored != null) for (String id : stored.trim().split(" +")) if (id.matches("[A-Za-z0-9_-]{1,128}")) result.add(id);
         return result;
     }
 
-    static String store(Set<String> holds) { return String.join(" ", holds); }
+    public static String store(Set<String> holds) { return String.join(" ", holds); }
 }
