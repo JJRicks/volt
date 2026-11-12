@@ -147,34 +147,39 @@ public final class ChargeSendTest {
         try {
             File dir = Files.createTempDirectory("charge-gzip").toFile();
             File source = new File(dir, "charges.json"), zipped = new File(dir, "charges.json.gz");
-            try (java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(source), java.nio.charset.StandardCharsets.UTF_8))) {
-                java.util.Random random = new java.util.Random(387);
-                w.write("{\"format\":\"volt-charge-sessions-v1\",\"sessions\":[{\"readings\":[");
-                for (int i = 0; source.length() <= ChargeSend.COMPRESS_OVER_BYTES + 1_000_000L || i % 1000 != 0; i++) {
-                    if (i > 0) w.write(',');
-                    w.write("{\"t\":" + (1_700_000_000_000L + i * 1000L) + ",\"soc\":" + (i / 600 % 100) + ",\"v\":" + (36 + random.nextInt(1300) / 100.0)
-                            + ",\"a\":" + (random.nextInt(400) / 100.0) + ",\"w\":" + random.nextInt(200) + ",\"c\":" + (20 + random.nextInt(10)) + "}");
-                    if (i % 1000 == 999) w.flush();
+            try {
+                try (java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(source), java.nio.charset.StandardCharsets.UTF_8))) {
+                    java.util.Random random = new java.util.Random(387);
+                    w.write("{\"format\":\"volt-charge-sessions-v1\",\"sessions\":[{\"readings\":[");
+                    for (int i = 0; source.length() <= ChargeSend.COMPRESS_OVER_BYTES + 1_000_000L || i % 1000 != 0; i++) {
+                        if (i > 0) w.write(',');
+                        w.write("{\"t\":" + (1_700_000_000_000L + i * 1000L) + ",\"soc\":" + (i / 600 % 100) + ",\"v\":" + (36 + random.nextInt(1300) / 100.0)
+                                + ",\"a\":" + (random.nextInt(400) / 100.0) + ",\"w\":" + random.nextInt(200) + ",\"c\":" + (20 + random.nextInt(10)) + "}");
+                        if (i % 1000 == 999) w.flush();
+                    }
+                    w.write("]}]}");
                 }
-                w.write("]}]}");
-            }
-            require(ChargeSend.attachment(source.length()).compressed, "The generated file is over the threshold");
-            try (java.io.InputStream in = new java.io.FileInputStream(source); java.io.OutputStream out = new java.io.FileOutputStream(zipped)) {
-                ChargeSend.gzip(in, out);
-                out.write(new byte[0]); // gzip leaves the caller's stream open
-            }
-            require(zipped.length() > 0 && zipped.length() * 3 < source.length(), "The text shrinks a lot: " + source.length() + " -> " + zipped.length());
-            try (java.io.InputStream a = new java.io.BufferedInputStream(new java.io.FileInputStream(source));
-                 java.io.InputStream b = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(zipped)))) {
-                long at = 0;
-                for (int x, y; ; at++) {
-                    x = a.read(); y = b.read();
-                    if (x != y) { require(false, "Decompressed bytes differ at " + at); break; }
-                    if (x == -1) break;
+                require(ChargeSend.attachment(source.length()).compressed, "The generated file is over the threshold");
+                try (java.io.InputStream in = new java.io.FileInputStream(source); java.io.OutputStream out = new java.io.FileOutputStream(zipped)) {
+                    ChargeSend.gzip(in, out);
+                    out.write(new byte[0]); // gzip leaves the caller's stream open
                 }
-                require(at == source.length(), "Decompressed to the same " + source.length() + " bytes");
+                require(zipped.length() > 0 && zipped.length() * 3 < source.length(), "The text shrinks a lot: " + source.length() + " -> " + zipped.length());
+                try (java.io.InputStream a = new java.io.BufferedInputStream(new java.io.FileInputStream(source));
+                     java.io.InputStream b = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(zipped)))) {
+                    long at = 0;
+                    for (int x, y; ; at++) {
+                        x = a.read(); y = b.read();
+                        if (x != y) { require(false, "Decompressed bytes differ at " + at); break; }
+                        if (x == -1) break;
+                    }
+                    require(at == source.length(), "Decompressed to the same " + source.length() + " bytes");
+                }
+                require(source.delete() && zipped.delete() && dir.delete(), "Cleaned up");
+            } finally {
+                // A failed check above still leaves no ~30 MB behind in the temporary folder.
+                source.delete(); zipped.delete(); dir.delete();
             }
-            require(source.delete() && zipped.delete() && dir.delete(), "Cleaned up");
         } catch (IOException e) { throw new AssertionError(e); }
     }
 
