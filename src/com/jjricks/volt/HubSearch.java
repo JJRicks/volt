@@ -99,9 +99,12 @@ final class HubSearch {
         String needle = normalize(query);
         if (needle.isEmpty()) return false;
         if (entry.english.contains(needle)) return true;
-        String[] shown = new String[entry.words.length + 1];
+        // A light page's shared zones words name both families: a query naming only the other family skips them.
+        CharSequence[] words = entry.kind == Kind.PAGE && sharedPageWords(entry.page) && otherFamilyOnly(entry.page, query)
+                ? new CharSequence[0] : entry.words;
+        String[] shown = new String[words.length + 1];
         shown[0] = entry.shown == null ? null : entry.shown.toString();
-        for (int i = 0; i < entry.words.length; i++) shown[i + 1] = entry.words[i] == null ? null : entry.words[i].toString();
+        for (int i = 0; i < words.length; i++) shown[i + 1] = words[i] == null ? null : words[i].toString();
         return StatsLabels.matchesShown(query, shown);
     }
 
@@ -158,8 +161,12 @@ final class HubSearch {
             Msg title = HubText.title(page);
             if (title == null) continue;
             Msg more = pageSearchWords(page);
-            String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null ? "" : " " + more.english());
-            entries.add(new Entry(Kind.PAGE, page, english, title, more == null ? null : new CharSequence[] {more}, null, Target.PAGE, null, null));
+            // Words shared by both light families match only as a translation: in English each family keeps its own
+            // words and title (pageWords), so "star" doesn't list Line lights (#404 review).
+            boolean shared = more != null && sharedPageWords(page);
+            String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null || shared ? "" : " " + more.english());
+            CharSequence[] words = more == null || (shared && more.toString().equals(more.english())) ? null : new CharSequence[] {more};
+            entries.add(new Entry(Kind.PAGE, page, english, title, words, null, Target.PAGE, null, null));
         }
         return entries;
     }
@@ -167,10 +174,37 @@ final class HubSearch {
     /**
      * Search words in every shipped language for a page whose rows search has no entries of their own: Charge history
      * & recordings (MoreScreen's Charging section: record, export, email and clear charge recordings) is found by
-     * them (#387 review). Null for every other page.
+     * them (#387 review); Line lights and Star lights by the zones row's translated words (main_search_zones), so
+     * "zonas" finds both light pages in Spanish as "zones" does in English (#404 review, P3 3). Null for every other
+     * page.
      */
     static Msg pageSearchWords(String page) {
-        return HubPages.BATTERY_HISTORY.equals(page) ? HubText.batteryHistorySearchWords() : null;
+        if (HubPages.BATTERY_HISTORY.equals(page)) return HubText.batteryHistorySearchWords();
+        if (sharedPageWords(page)) return HubText.lightZonesSearchWords();
+        return null;
+    }
+
+    /** The light families' pages, whose pageSearchWords name both families (matched only in a translation). */
+    static boolean sharedPageWords(String page) {
+        return HubPages.LIGHTS_LINE.equals(page) || HubPages.LIGHTS_STAR.equals(page);
+    }
+
+    /**
+     * Whether the query names the other light family (its title or group name in the current language) but not this
+     * page's own: then this page's shared zones words don't match it, so "estrella" in Spanish lists Star lights only
+     * while "zonas" (and "luces", in both names) still finds both pages (#404 review). False for any other page.
+     */
+    static boolean otherFamilyOnly(String page, String query) {
+        if (!sharedPageWords(page) || query == null) return false;
+        String other = HubPages.LIGHTS_LINE.equals(page) ? HubPages.LIGHTS_STAR : HubPages.LIGHTS_LINE;
+        return StatsLabels.matchesShown(query, rendered(HubText.lightFamilyNames(other)))
+                && !StatsLabels.matchesShown(query, rendered(HubText.lightFamilyNames(page)));
+    }
+
+    private static String[] rendered(Msg[] names) {
+        String[] out = new String[names.length];
+        for (int i = 0; i < names.length; i++) out[i] = names[i] == null ? null : names[i].toString();
+        return out;
     }
 
     /**

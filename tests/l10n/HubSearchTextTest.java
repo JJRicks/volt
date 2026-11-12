@@ -102,6 +102,10 @@ public final class HubSearchTextTest {
         check(!HubText.batteryHistorySearchWords().isPlural(), "search words are not a count");
         for (String word : new String[]{"record", "recordings", "export", "email"})
             check(HubText.batteryHistorySearchWords().render().contains(word), "Charge history & recordings is found by " + word);
+        // Line lights and Star lights (PR 12) are found by the controls' existing light-zone words (main_search_zones).
+        equal("line star lights zones ambient pattern color boost", HubText.lightZonesSearchWords(), "light zones search words");
+        equal("main_search_zones", T.key(HubText.lightZonesSearchWords().id()), "light zones words keep their existing key");
+        check(!HubText.lightZonesSearchWords().isPlural(), "search words are not a count");
     }
 
     private static void dockAndPane() {
@@ -173,7 +177,7 @@ public final class HubSearchTextTest {
                 HubText.searchNone(), HubText.searchCount(1), HubText.searchCount(5), HubText.searchGroupPages(),
                 HubText.searchGroupSettings(), HubText.searchGroupReadings(), HubText.searchGroupRides(),
                 HubText.searchIn("x"), HubText.dockAll(), HubText.all(), HubText.serviceCardTitle(),
-                HubText.serviceCardNone(), HubText.batteryHistorySearchWords()));
+                HubText.serviceCardNone(), HubText.batteryHistorySearchWords(), HubText.lightZonesSearchWords()));
         for (String row : HubSearchTables.ROWS) all.add(HubText.controlRowTitle(row));
         for (String tag : HubSearchTables.SETTINGS) all.add(HubText.settingTitle(tag));
         Set<String> reached = new HashSet<>();
