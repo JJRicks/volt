@@ -151,7 +151,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/c
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done

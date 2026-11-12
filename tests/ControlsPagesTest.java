@@ -1,5 +1,9 @@
 package com.jjricks.volt;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -16,12 +20,12 @@ public final class ControlsPagesTest {
             ScooterMenuLayout.LOW_ALERT, ScooterMenuLayout.SECURITY_LINK, ScooterMenuLayout.SCOOTER_NAME, ControlsPages.CHARGE_LIVE,
             "maintenance_reminders");
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         pages();
         features();
         handBuilt();
         links();
-        doneBy();
+        doneBy(args.length > 0 ? args[0] : "src/com/jjricks/volt/MainActivity.java");
         order();
         System.out.println("ControlsPages: " + checks + " checks passed");
     }
@@ -103,10 +107,15 @@ public final class ControlsPagesTest {
         require(ControlsPages.linkTarget("charge_limit") == null && !ControlsPages.isLink(null), "Only links have targets");
     }
 
-    private static void doneBy() {
+    private static void doneBy(String mainActivity) throws IOException {
         // The "Done by" row follows its parent: both charging rows sit on Battery & charging.
         require(HubPages.BATTERY.equals(ControlsPages.pageOf("timed_charging")) && HubPages.BATTERY.equals(ControlsPages.pageOf("charge_start")),
                 "Charge done by follows its parents onto Battery & charging");
+        // ...and ControlsScreen places it directly after its parent's card: glued below that card, then placed straight after it.
+        String source = new String(Files.readAllBytes(Paths.get(mainActivity)), StandardCharsets.UTF_8).replaceAll("\\s+", "");
+        require(source.contains("gluedBelow.put(control.card,done.row.card);"), "Each Done by row is glued below its parent row");
+        require(source.contains("place(card);Viewdone=gluedBelow.get(card);if(done!=null)place(done);"),
+                "A page places a Done by row directly after its parent");
     }
 
     private static void order() {
