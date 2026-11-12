@@ -146,7 +146,8 @@ public final class MoreScreen implements AppScreen {
     private LinearLayout chargeCurve;
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
     private ChargeHistoryDialog chargeHistoryDialog;
-    private SegmentedSelector chargeChargerSelector;
+    /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
+    private Row chargerLinkRow, sendChargeRow;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -977,6 +978,14 @@ public final class MoreScreen implements AppScreen {
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
         preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Off by default, absent is off (owner's answer 18 on #383): lets that switch also start a ride while Volt is in the
+        // background, where Android gives Volt no location, so the note under it says such a ride has no GPS route. It only
+        // counts while Record rides automatically is on, so it waits greyed until then. AutoStartPolicy.recordsNow decides.
+        Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
+                enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
+        inBackground.view.setTag("preference-auto-record-background");
+        valueRefreshers.add(() -> refreshSwitch(inBackground, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false),
+                settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false)));
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
@@ -2523,26 +2532,15 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * Battery & charging › Charge history & recordings (hub layout plan, PR 4): charge recordings, the learned charge
-     * curves, the recorded charges and their export, and the live charging card's Live Update status. Cut out of
-     * Developer options with their tags; the charger selector edits the same charge_charger_<pid> as the Battery page's
-     * Charger row, and both refuse while a charge is being recorded.
+     * curves, the recorded charges, their export and their email to Volt, and the live charging card's Live Update
+     * status. Cut out of Developer options with their tags. The charger has one home, Estimates & charger › Charger
+     * (owner, #383): the row here only shows it and opens that page, which refuses a change while a charge is recorded.
      */
     private void charging() {
         label(T.moreDevChargeRecording());
-        TextView attached = ui.text(T.moreDevCharger(), 12.5f, false); attached.setTextColor(ui.muted);
-        attached.setPadding(ui.dp(2), 0, ui.dp(2), ui.dp(6)); cardDestination.addView(attached);
-        ScooterService current=service();
-        ChargeSessionStore.Charger chosen=current==null?null:current.chargeCharger();
-        chargeChargerSelector=new SegmentedSelector(ui,T.moreDevCharger(),new String[]{T.moreDevAuto(),T.moreDevStock(),T.moreDevHighSpeed()},choice->{
-            ScooterService s=service();if(s==null||s.isChargeRecording())return;
-            s.setChargeCharger(choice==0?null:choice==1?ChargeSessionStore.Charger.STOCK:ChargeSessionStore.Charger.HIGH_SPEED);
-            refreshCharging();
-        });
-        chargeChargerSelector.setTag("charge-charger-selector");chargeChargerSelector.select(chosen==null?0:chosen==ChargeSessionStore.Charger.STOCK?1:2,false);
-        preferenceSelectors.add(chargeChargerSelector);
-        LinearLayout.LayoutParams chargerParams=new LinearLayout.LayoutParams(-1,-2);chargerParams.bottomMargin=ui.dp(12);
-        cardDestination.addView(chargeChargerSelector,chargerParams);
-        footnote(T.moreDevChargerNote());
+        // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
+        chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
+        chargerLinkRow.view.setTag("charge-charger-selector");
         // Count qualified evidence without claiming every range is ready at a fixed session count.
         chargeCurve=ui.card();chargeCurve.setTag("charge-learning-status");
         LinearLayout curveHead=row();
@@ -2571,7 +2569,7 @@ public final class MoreScreen implements AppScreen {
                 if(closed||host.activity().isDestroyed())return;
                 if(file==null){host.toast(s.chargeCaptureStatus());return;}
                 host.saveFile("charge-recordings.json","application/json",file);
-            }))host.toast(T.moreDevExportBusy());
+            }))exportBusy();
         });exportChargeRow.view.setTag("charge-export-action");
         clearChargeRow=row(chargeData,"trash",T.moreDevClearCharges(),null,()->{
             ScooterService s=service();if(s==null||s.isChargeRecording())return;
@@ -2579,10 +2577,31 @@ public final class MoreScreen implements AppScreen {
                     .setMessage(T.moreDevClearChargesBody())
                     .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.moreDevClearRecordings(),(d,which)->s.clearChargeRecordings(this::refreshCharging)).create();show(dialog);
         });clearChargeRow.view.setTag("charge-clear-action");
+        // Recordings tune the charging time estimates for this model (owner, #383): say so, and send them in one tap.
+        sendChargeRow=row(group(),"export",HubText.chargeSendRow(),null,this::sendChargeRecordings);
+        sendChargeRow.view.setTag("charge-send-action");
+        footnote(HubText.chargeSendNote().render()).setTag("charge-send-note");
         // Android 16 Live Updates: whether the live charging card is (or last was) promoted; opens the setting.
         liveUpdateRow = row(group(), "bolt", M.chargeLiveUpdateRow(), null, this::openLiveUpdateSettings);
         liveUpdateRow.view.setTag("developer_live_update");
     }
+
+    /**
+     * Email to Volt: this scooter's charge recordings, exported as Export charge recordings does, attached to an email
+     * to Volt's report address (the report emails' attachment flow). Refused while a charge is being recorded.
+     */
+    private void sendChargeRecordings() {
+        ScooterService s = service(); if (s == null) return;
+        if (s.isChargeRecording()) { host.toast(HubText.chargeSendBusy()); return; }
+        if (!s.exportChargeRecordings(file -> {
+            if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
+            if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
+            host.emailChargeRecordings(file);
+        })) exportBusy();
+    }
+
+    /** An export (the file or Email to Volt) is refused: a charge is being recorded, or another export is running. */
+    private void exportBusy() { host.toast(T.moreDevExportBusy()); }
 
     /** "Report an issue": More's menu ends with it, and it is Service › Issue reports. */
     private void reportLink(LinearLayout parent) {
@@ -2642,8 +2661,7 @@ public final class MoreScreen implements AppScreen {
             liveUpdateRow.sub(ChargeLiveUpdate.label(live));
         }
         if(chargeCaptureRow!=null){
-            ChargeSessionStore.Charger selected=s==null?null:s.chargeCharger();
-            chargeChargerSelector.select(selected==null?0:selected==ChargeSessionStore.Charger.STOCK?1:2,false);
+            refreshChargerLink(s);
             boolean capturing=s!=null&&s.isChargeRecording();
             String unavailable=s==null?T.moreDevConnectFirst():s.chargeCaptureUnavailable();
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
@@ -2653,9 +2671,19 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            chargeChargerSelector.setAlpha(capturing?.5f:1f);
-            setChildrenEnabled(chargeChargerSelector,!capturing);
+            sendChargeRow.enabled(s!=null&&!s.chargeExporting());
         }
+    }
+
+    /** The charger row: the family estimates use and why, as Estimates & charger › Charger shows it (HubText). */
+    private void refreshChargerLink(ScooterService s) {
+        ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
+        ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        chargerLinkRow.value((effective == null ? HubText.chargerAutomatic()
+                : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        chargerLinkRow.sub(detail == null ? null : detail.render());
     }
 
     /**

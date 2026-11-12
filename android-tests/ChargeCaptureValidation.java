@@ -40,29 +40,40 @@ public final class ChargeCaptureValidation extends Instrumentation {
             verifyDefaultChargeEstimate();
             verifyReferenceLifecycle();
             verifyOrdinaryChargerChoice();
-            main(()->{invoke(activity,"select",new Class<?>[]{String.class},"more");invoke(field(activity,"screen"),"selectSection",new Class<?>[]{String.class},"Developer");});settle();
+            // Charge recordings live on Battery & charging › Charge history & recordings (hub layout plan, PR 4).
+            main(()->invoke(activity,"open",new Class<?>[]{String.class},"battery.history"));settle();
             verifyCaptureConfirmation();
             main(()->{
-                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null,"Charger selector missing");
+                // The charger has one home, Estimates & charger › Charger (owner, #383): this row shows it and links there.
+                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null&&selector.isClickable(),"Charger row missing");
+                require(findText(selector,"Automatic")!=null,"Charger row does not show Automatic");
                 require(!root().findViewWithTag("charge-capture-action").isEnabled(),"Disconnected capture action is enabled");
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.STOCK)&&!service.isChargeRecording(),"Disconnected start bypassed guard");
                 require(!store().active()&&files().length==0,"Denied start created a journal");
-                @SuppressWarnings("unchecked") List<TextView> choices=(List<TextView>)field(field(selector,"track"),"choices");
-                require(choices.size()==3,"Developer selector is missing Automatic");
-                choices.get(2).performClick();require(service.chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED,"Charger selection did not persist");
+                require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED)&&service.chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED,"Charger selection did not persist");
+                invoke(field(activity,"screen"),"refresh",new Class<?>[]{});
+                require(findText(selector,"High-speed")!=null,"Charger row did not follow the chosen charger");
                 require(settings().getString("charge_charger_"+profile,"").equals("HIGH_SPEED"),"Charger choice leaked to a global preference");
                 require(service.setSimulation(true),"Could not enable existing sample preview");service.ble.setSimulationCharging(true);
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.HIGH_SPEED)&&files().length==0,"Simulation created charge data");
-                choices.get(0).performClick();
+                require(service.setChargeCharger(null),"Could not return to Automatic");
                 require(service.chargeCharger()==null&&!settings().contains("charge_charger_"+profile),"Automatic did not clear developer override");
                 require(service.effectiveChargeCharger()==null,"Simulation classified an automatic charger");
                 require(service.setSimulation(false),"Could not exit preview");
-                invoke(field(activity,"screen"),"refreshDeveloper",new Class<?>[]{});
-                require(service.chargeCharger()==null,"Developer refresh replaced Automatic with Stock");
+                invoke(field(activity,"screen"),"refresh",new Class<?>[]{});
+                require(service.chargeCharger()==null,"Charge history refresh replaced Automatic with Stock");
                 View curves=root().findViewWithTag("charge-learning-status");
                 require(curves!=null&&String.valueOf(curves.getContentDescription()).contains("not applied until the charger is known")
                         &&findText(curves,"Not applied until the charger is known")!=null,"Undecided Automatic claimed saved curves apply");
             });settle();screenshot("developer");
+            main(()->{
+                require(root().findViewWithTag("charge-send-action")!=null&&root().findViewWithTag("charge-send-note")!=null,"Email to Volt row or its note missing");
+                root().findViewWithTag("charge-charger-selector").performClick();
+            });settle();
+            main(()->{
+                require("battery.estimates".equals(field(activity,"selectedPage")),"Charger row did not open Estimates & charger");
+                invoke(activity,"open",new Class<?>[]{String.class},"battery.history");
+            });settle();
             // Create only a low-level journal, exactly as the existing phone-recorder fixture does.
             // This tests service policy/Stop plumbing while the physical-start guard above remains enforced.
             main(()->{
@@ -182,7 +193,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
             require(findText(dialog.getWindow().getDecorView(),"Record with High-speed charger?")!=null,"Confirmation did not reflect its local choice");
             findText(dialog.getWindow().getDecorView(),"Cancel").performClick();
             require(service.chargeCharger()==previous&&!service.isChargeRecording()&&files().length==0,"Cancelling charge confirmation changed capture state");
-            invoke(more,"refreshDeveloper",new Class<?>[]{});
+            invoke(more,"refreshCharging",new Class<?>[]{});
             require(service.chargeCharger()==previous,"Capture dismissal changed estimate preference");
             require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED),"Manual capture prefill fixture failed");
             invoke(more,"recordChargeDialog",new Class<?>[]{ScooterService.class},service);

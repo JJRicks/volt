@@ -68,10 +68,12 @@ final class HomeStylePreview extends View {
             paint.setColor(ui.surface);
             block(canvas, x0, y, x1, y + h * .07f, 6);
             y += h * .1f;
-            // Four round quick actions.
+            // Four quick actions: the red RIDE pill into riding mode, then three plain round ones.
             float step = (x1 - x0) / 4f, dot = Math.min(step * .32f, h * .035f);
             paint.setColor(ui.accent);
-            for (int i = 0; i < 4; i++) canvas.drawCircle(x0 + step * (i + .5f), y + dot, dot, paint);
+            block(canvas, x0 + step * .08f, y, x0 + step * .92f, y + dot * 2, 100);
+            paint.setColor(ui.muted);
+            for (int i = 1; i < 4; i++) canvas.drawCircle(x0 + step * (i + .5f), y + dot, dot, paint);
             y += dot * 2 + h * .04f;
             // The subjects.
             paint.setColor(ui.surface);

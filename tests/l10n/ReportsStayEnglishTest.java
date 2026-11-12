@@ -68,6 +68,7 @@ public final class ReportsStayEnglishTest {
         out.add(ConnectionReport.body(connection, model, "22131"));
         // Issue report.
         out.add(IssueReport.subject("1.11.1"));
+        out.add(IssueReport.chargeRecordingsSubject("1.11.1", "UT5 MAX"));
         out.add(IssueReport.body("1.11.1", "16", 36, "Synthetic Phone", "UT5 MAX", true));
         return out;
     }
