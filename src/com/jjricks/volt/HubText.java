@@ -316,6 +316,11 @@ public final class HubText {
     public static Msg searchGroupRides() { return M.hubSearchGroupRides(); }
     /** The line under a result naming the subject it lives in; subject is that subject's title. */
     public static Msg searchIn(CharSequence subject) { return M.hubSearchIn(subject); }
+    /**
+     * Words search matches for the Charge history and recordings page ({@link HubPages#BATTERY_HISTORY}), never shown:
+     * its rows record, export, clear and email charge recordings, which its title alone does not name.
+     */
+    public static Msg batteryHistorySearchWords() { return M.hubSearchBatteryHistory(); }
 
     /**
      * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
