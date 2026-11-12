@@ -74,11 +74,13 @@ public final class LinkFreshnessTest {
         check(ble.contains("public boolean linked(){if(simulating())return ready();return linkUp();}"), "linked() is linkUp(); simulation unchanged");
         check(ble.contains("public long readingFreshMs(long baseMs){return simulating()?StatusCadence.readingFreshMs(baseMs,true):StatusCadence.readingFreshMs(baseMs,cadence.fast(),cadence.fastSinceMs(),now());}"),
                 "reading freshness on the cadence the link has been on; simulation keeps the in-sight rule");
-        check(ble.contains("boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&silentLink()){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}"),
+        check(ble.contains("boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}"),
                 "visibility(): the cadence switches, silence is checked (READ_TIMEOUT), the resume refresh is queued, then the pending poll moves");
         check(ble.contains("private void poll(int session){if(simulating())return;cadence.start(()->pollTick(session));}"), "one chain per session, started at authentication");
         check(ble.contains("send(Protocol.frame(0x70,null));refresh(true);poll(generation);"), "the chain starts when the owner is authenticated");
-        check(ble.contains("gatt==null)return;if(silentLink()){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}"),
+        check(ble.contains("private boolean lostToSilence(){if(!silentLink())return false;failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return true;}"),
+                "a silent link ends as READ_TIMEOUT, as before");
+        check(ble.contains("gatt==null)return;if(lostToSilence())return;"),
                 "the poll's silence check judges frames and status on the cadence the link has been on, in awake time");
         check(ble.contains("public long readingFreshMs(long baseMs){return simulating()?StatusCadence.readingFreshMs(baseMs,true):StatusCadence.readingFreshMs(baseMs,cadence.fast(),cadence.fastSinceMs(),now());}")
                 && ble.contains("public long statusAge(){return statusMs==0?Long.MAX_VALUE:now()-statusMs;}"), "readings and statusAge() stay on the elapsed clock");
