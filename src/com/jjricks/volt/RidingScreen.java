@@ -385,6 +385,10 @@ final class RidingScreen implements AppScreen {
         if (side) range.card();
         range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84, false);
+        // The readings under the ring show their names one way: all names, or icons wherever one must be.
+        NameGroup under = new NameGroup();
+        under.add(range);
+        for (int i = 0; i < tiles.getChildCount(); i++) if (tiles.getChildAt(i) instanceof Cell) under.add((Cell) tiles.getChildAt(i));
         View strip = strip(RidingFrames.haloStrip(large && !side));
         View chipRow = layout.on(RidingLayout.CHIPS) ? chipRow(RidingFrames.HALO_CHIPS) : null;
         if (side) {
@@ -577,6 +581,8 @@ final class RidingScreen implements AppScreen {
         out.setGravity(Gravity.CENTER_VERTICAL);
         out.setBackground(ui.shape(cardColor(), 18, 0));
         out.setPadding(ui.dp(14), ui.dp(4), ui.dp(14), ui.dp(4));
+        // Small readings side by side show their names one way: both names, or both icons (RidingNameGroup).
+        NameGroup names = new NameGroup();
         for (int i = 0; i < spots.size(); i++) {
             if (i > 0) {
                 View line = new View(host.activity());
@@ -591,6 +597,7 @@ final class RidingScreen implements AppScreen {
             }
             Cell c = cell(layout.content(spots.get(i)), 30, false);
             c.inline();
+            names.add(c);
             out.addView(c, new LinearLayout.LayoutParams(0, -1, 1));
         }
         return out;
@@ -1478,14 +1485,44 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
+     * Readings whose names share one presentation (RidingNameGroup): Halo's strip of small readings, and the
+     * readings under its ring. When one of them must fall back to its icon, every one that has an icon shows it,
+     * so a word and an icon never sit side by side because one language's word is longer.
+     */
+    private static final class NameGroup {
+        private final List<Label> members = new ArrayList<>();
+        void add(Cell cell) {
+            members.add(cell.label);
+            cell.label.group = this;
+        }
+        /** Works out the group's choice from each member's own ladder and shows it on every member. */
+        void settle() {
+            int n = members.size();
+            int[] fits = new int[n];
+            boolean[] icons = new boolean[n];
+            for (int i = 0; i < n; i++) {
+                Label label = members.get(i);
+                fits[i] = label.getVisibility() == View.VISIBLE ? label.fit : RidingNameGroup.UNMEASURED;
+                icons[i] = label.icon != null;
+            }
+            boolean shared = RidingNameGroup.icons(fits, icons);
+            for (Label label : members) label.apply(shared);
+        }
+    }
+
+    /**
      * A reading's name on the narrow-label ladder: the first rung that fits at full size, then its icon
-     * alone when one is named, never a smaller or broken word.
+     * alone when one is named, never a smaller or broken word. In a NameGroup, icon or name is the group's choice.
      */
     private final class Label extends TextView {
         private String[] rungs = new String[0];
         private String icon;
         /** The rung on show, or -1 for its icon alone, no room or a hidden label. */
         int picked = -1;
+        /** This label's own ladder choice (RidingNameGroup's fit), before its group has its say. */
+        private int fit = RidingNameGroup.UNMEASURED;
+        /** The readings it shares a presentation with, or null for a label on its own. */
+        NameGroup group;
         /** Runs when a change of width moves the label to another rung, so what depends on the rung follows at once. */
         Runnable rungChanged;
         Label() {
@@ -1507,23 +1544,36 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onSizeChanged(int w, int h, int ow, int oh) {
             super.onSizeChanged(w, h, ow, oh);
-            if (w != ow) post(() -> {
-                int before = picked;
-                fit();
-                if (picked != before && rungChanged != null) rungChanged.run();
-            });
+            if (w != ow) post(this::fit);
         }
+        /** Measures this label's own ladder, then shows it as its group decides (or on its own). */
         private void fit() {
-            picked = -1;
-            if (rungs.length == 0) { setText(""); return; }
+            fit = RidingNameGroup.UNMEASURED;
             int room = getWidth() - getPaddingLeft() - getPaddingRight();
-            if (room <= 0) { show(rungs[0], false); return; }
-            float[] widths = new float[rungs.length];
-            for (int i = 0; i < rungs.length; i++) widths[i] = getPaint().measureText(rungs[i]);
-            int pick = TileRung.first(widths, room);
-            picked = pick;
-            if (pick < 0 && icon != null) show("", true);
-            else show(rungs[pick < 0 ? rungs.length - 1 : pick], false);
+            if (rungs.length > 0 && room > 0) {
+                float[] widths = new float[rungs.length];
+                for (int i = 0; i < rungs.length; i++) widths[i] = getPaint().measureText(rungs[i]);
+                fit = TileRung.first(widths, room);
+            }
+            if (group != null) group.settle();
+            else apply(RidingNameGroup.icons(new int[]{fit}, new boolean[]{icon != null}));
+        }
+        /** Shows the rung or icon this label takes when its group shows icons (or not); the rung's dependants follow. */
+        void apply(boolean icons) {
+            int before = picked;
+            picked = -1;
+            if (rungs.length == 0) setText("");
+            else {
+                int shown = RidingNameGroup.shown(fit, rungs.length, icon != null, icons);
+                if (shown == RidingNameGroup.ICON) show("", true);
+                else {
+                    show(rungs[shown], false);
+                    if (fit >= 0) picked = shown;
+                }
+            }
+            // A caller that set new names reads picked at once; the others (a width change, or a neighbour's
+            // change of mind) hear of it here, after this pass, so nothing re-enters a refresh.
+            if (picked != before && rungChanged != null) post(() -> { if (rungChanged != null) rungChanged.run(); });
         }
         private void show(String text, boolean iconOnly) {
             if (TileRung.needsSet(text, getText())) setText(text);
@@ -2144,7 +2194,8 @@ final class RidingScreen implements AppScreen {
      * Halo's ring around the big number: a 270° arc open at the bottom, as the dashboard's gauge.
      * For speed it fills to the current speed on a scale that starts at 20 mph (30 km/h) and grows
      * to the fastest speed seen, a white tick marks this ride's max and a dot its average, and the
-     * caption under the number says "max 22.1". It can show battery or power instead. Each new
+     * caption under the number says "max 22.1". It can show battery or power instead; for battery the caption
+     * says its percentage, the way the speed ring's says the max. Each new
      * reading glides in (GaugeSmoother) and never runs ahead of the latest real one.
      */
     private final class Ring extends ViewGroup {
@@ -2199,12 +2250,22 @@ final class RidingScreen implements AppScreen {
             boolean regenPower = false;
             RidingValues.Reading sample = null;
             int tint = ui.accent;
-            String text = null;
+            String text = null, spoken = null;
+            boolean dimCaption = false;
             maxShare = -1;
             averageShare = -1;
             if (RidingLayout.BATTERY.equals(content)) {
                 sample = v.reading(RidingValues.BATTERY_KEY, now);
-                if (sample != null) { value = sample.value; tint = bandColor(RidingValues.band(sample.value), sample.stale); }
+                if (sample != null) {
+                    value = sample.value;
+                    tint = bandColor(RidingValues.band(sample.value), sample.stale);
+                    // Its percentage under the speed's unit, where the speed ring shows this ride's max (a tester asked, owner agreed).
+                    // The same reading the battery tile shows, and its name for a screen reader.
+                    Shown battery = shown(RidingLayout.BATTERY, now, units);
+                    text = battery.spoken;
+                    if (text != null) spoken = spokenReading(battery.name(), text);
+                    dimCaption = sample.stale;
+                }
                 top = 100;
             } else if (RidingLayout.POWER.equals(content)) {
                 RidingValues.Power p = v.power(now);
@@ -2233,7 +2294,10 @@ final class RidingScreen implements AppScreen {
             if (text == null) caption.setVisibility(INVISIBLE);
             else {
                 if (!TextUtils.equals(caption.getText(), text)) caption.setText(text);
-                caption.setTextColor(RidingLayout.RING_SPEED.equals(content) && v.speed(now).kmh == null ? ui.dim : ui.muted);
+                // A bare percentage says what it is aloud: the battery's name, then its value.
+                if (!TextUtils.equals(caption.getContentDescription(), spoken)) caption.setContentDescription(spoken);
+                dimCaption |= RidingLayout.RING_SPEED.equals(content) && v.speed(now).kmh == null;
+                caption.setTextColor(dimCaption ? ui.dim : ui.muted);
                 caption.setVisibility(VISIBLE);
             }
             color = tint;
