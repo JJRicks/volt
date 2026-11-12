@@ -464,9 +464,10 @@ public final class ChargeAlertValidation extends Instrumentation {
         settle();
         if (!inSheet) { main(() -> sheet()); }
     }
+    /** The battery alert rows' page: Scooter › Battery & charging since the Hub layout (#385). */
     private void controls() {
         main(() -> { settings().edit().putString("scooter_section", "").commit(); invoke(activity, "select", new Class<?>[]{String.class}, "home"); }); settle();
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
+        main(() -> HubTestPages.open(activity, "battery")); settle();
         main(() -> { if (service.simulating()) service.ble.tickSimulation(); activity.redraw(); }); settle();
     }
     private void reveal(View view) {

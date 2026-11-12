@@ -315,7 +315,8 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private void verifyOrdinaryChargerChoice()throws Exception{
         main(()->{
             settings().edit().putBoolean("developer_options",false).commit();
-            invoke(activity,"select",new Class<?>[]{String.class},"controls");
+            // The charger row's one home: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385, #387).
+            HubTestPages.open(activity,"battery.estimates");
             View row=root().findViewWithTag("estimate-charger-setting");
             require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");
             require(((TextView)root().findViewWithTag("estimate-charger-value")).getText().toString().equals("Automatic"),"Default Automatic preference is not shown");

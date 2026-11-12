@@ -44,7 +44,8 @@ public final class ChargeEstimateValidation extends Instrumentation {
             await(()->activity.service()!=null,"Service missing");service=activity.service();
             await(()->!Boolean.TRUE.equals(field(service,"chargeModelLoading")),"Charge model load did not finish");
             verifyServiceSnapshot();verifyChargerCaption();seedRecordings();verifyAsyncHistory();verifyRecordingsStayLabels();verifyDetectionWiring();
-            main(()->{invoke(activity,"select",new Class<?>[]{String.class},"more");invoke(field(activity,"screen"),"selectSection",new Class<?>[]{String.class},"Developer");});settle();
+            // Charge history left Developer options for Scooter › Battery & charging › Charge history & recordings (#387).
+            main(()->HubTestPages.open(activity,"battery.history"));settle();
             main(()->{View row=root().findViewWithTag("charge-history-action");require(row!=null&&row.isEnabled(),"Charge history unavailable offline");row.performClick();});
             await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-session:"+completeId)!=null,"History did not load");
             main(()->require(dialogRoot().findViewWithTag("charge-history-session:"+legacyId)!=null,"Legacy recording missing"));
@@ -200,17 +201,21 @@ public final class ChargeEstimateValidation extends Instrumentation {
         ChargeSessionStore.Estimate missing=(ChargeSessionStore.Estimate)invoke(service,"chargeRecordingEstimate",new Class<?>[]{});
         require(missing.remainingMinutesToFull==null&&missing.version.equals(ChargingEstimate.ESTIMATOR_VERSION),"Unavailable estimate was fabricated or unversioned");
     });}
-    /** The large-font, two-column Scooter page must retain the full charger label and value. */
+    /**
+     * The large-font, two-column Scooter pages must retain the full charger label and value, and the Charge start label.
+     * Since the Hub layout (#385) the charger row is on Battery & charging › Estimates & charger and Charge start on
+     * Battery & charging, so each charger choice checks both pages.
+     */
     private void verifyChargerCaption()throws Exception{
-        main(()->invoke(activity,"select",new Class<?>[]{String.class},"controls"));settle();
         for(ChargeSessionStore.Charger charger:new ChargeSessionStore.Charger[]{null,ChargeSessionStore.Charger.HIGH_SPEED}){
+            main(()->HubTestPages.open(activity,"battery.estimates"));settle();
             main(()->{require(service.setChargeCharger(charger),"Charger preference unavailable");activity.redraw();});settle();
             main(()->{
                 View row=root().findViewWithTag("estimate-charger-setting");require(row!=null,"Charger estimate row missing");
                 row.requestRectangleOnScreen(new Rect(0,0,row.getWidth(),row.getHeight()),true);
             });settle();
             main(()->{
-                Object row=field(field(activity,"screen"),"chargerLine");
+                Object row=field(HubTestPages.part(activity,"ControlsScreen"),"chargerLine");
                 TextView name=(TextView)field(row,"name"),value=(TextView)field(row,"value");
                 require("Charger for estimates".contentEquals(name.getText()),"Charger label changed");
                 require((charger==null?"Automatic":"High-speed").contentEquals(value.getText()),"Charger row value missing");
@@ -231,8 +236,12 @@ public final class ChargeEstimateValidation extends Instrumentation {
                 if(a[1]+name.getHeight()<=b[1])require(b[0]>=a[0]+name.getCompoundPaddingLeft()
                         &&b[0]+value.getWidth()<=a[0]+name.getWidth(),"Stacked charger value exceeds the label's text column");
                 Rect visible=new Rect();require(name.getGlobalVisibleRect(visible)&&visible.height()==name.getHeight(),"Charger label clipped by its row");
+            });
+            screenshot(charger==null?"charger-label-automatic":"charger-label-high-speed");
+            main(()->HubTestPages.open(activity,"battery"));settle();
+            main(()->{
                 boolean checkedStart=false;
-                for(Object control:(Iterable<?>)field(field(activity,"screen"),"rows")){
+                for(Object control:(Iterable<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows")){
                     if(!"charge_start".equals(((ScooterCommands.Feature)field(control,"feature")).key))continue;
                     TextView start=(TextView)field(control,"name");Layout startLayout=start.getLayout();
                     require(startLayout!=null&&startLayout.getLineCount()>0,"Charge start label not laid out");
@@ -243,7 +252,6 @@ public final class ChargeEstimateValidation extends Instrumentation {
                 }
                 require(checkedStart,"Charge start row missing");
             });
-            screenshot(charger==null?"charger-label-automatic":"charger-label-high-speed");
         }
         main(()->require(service.setChargeCharger(null),"Automatic charger preference did not restore"));settle();
     }

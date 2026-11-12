@@ -312,7 +312,7 @@ public final class ChargeScheduleValidation extends Instrumentation {
     private void verifyScheduleTest() throws Exception {
         AtomicReference<String> response=new AtomicReference<>("pending");long preferred=Math.floorDiv(System.currentTimeMillis()+5*60*60_000L,60_000L)*60_000L;
         main(()->service.setManualChargeStart(preferred,response::set));await(()->!"pending".equals(response.get()),"Manual start did not finish");require(response.get()==null,"Manual start failed");
-        main(()->service.ble.setSimulationCharging(true));controls();
+        main(()->service.ble.setSimulationCharging(true));estimates();
         main(()->{View line=root().findViewWithTag("schedule-test-row");require(line!=null&&line.isShown(),"Test row missing on the UT5 MAX");
             reveal(line);require(line.getAlpha()==1f&&service.chargeSchedule().testBlockedReason==null,"Test row blocked while charging with no schedule: "+service.chargeSchedule().testBlockedReason+" alpha "+line.getAlpha());
             line.performClick();});settle();
@@ -361,10 +361,13 @@ public final class ChargeScheduleValidation extends Instrumentation {
         if(parent==null)return;Rect r=new Rect();view.getDrawingRect(r);((ViewGroup)parent).offsetDescendantRectToMyCoords(view,r);parent.scrollTo(0,Math.max(0,r.top-parent.getHeight()/3));}
     /** Waits for the frame to draw before capturing it. */
     private void shot(String label)throws Exception{settle();SystemClock.sleep(900);waitForIdleSync();screenshot(label);}
-    private void controls(){main(()->{settings().edit().putString("scooter_section","").commit();invoke(activity,"select",new Class<?>[]{String.class},"home");});settle();main(()->invoke(activity,"select",new Class<?>[]{String.class},"controls"));settle();main(()->{service.ble.tickSimulation();activity.redraw();});settle();}
+    /** The charging rows' page: Scooter › Battery & charging since the Hub layout (#385); the test row is on its Estimates & charger page. */
+    private void controls(){page("battery");}
+    private void estimates(){page("battery.estimates");}
+    private void page(String page){main(()->{settings().edit().putString("scooter_section","").commit();invoke(activity,"select",new Class<?>[]{String.class},"home");});settle();main(()->HubTestPages.open(activity,page));settle();main(()->{service.ble.tickSimulation();activity.redraw();});settle();}
     private void home(){main(()->invoke(activity,"select",new Class<?>[]{String.class},"home"));settle();}
-    private Object control(String key){for(Object row:(List<?>)field(field(activity,"screen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing "+key);}
-    private Object done(boolean time){for(Object row:(List<?>)field(field(activity,"screen"),"chargeRows"))if((Boolean)field(row,"time")==time)return row;throw new IllegalStateException("Missing done-by row");}
+    private Object control(String key){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing "+key);}
+    private Object done(boolean time){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"chargeRows"))if((Boolean)field(row,"time")==time)return row;throw new IllegalStateException("Missing done-by row");}
     private TimePickerDialog picker(){Object dialog=field(activity,"controlDialog");require(dialog instanceof TimePickerDialog&&((TimePickerDialog)dialog).isShowing(),"Native time picker missing");return (TimePickerDialog)dialog;}
     private <T> T find(View view,Class<T> type){if(type.isInstance(view))return type.cast(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){T found=find(((ViewGroup)view).getChildAt(i),type);if(found!=null)return found;}return null;}
     private void admit(){String hw=Build.HARDWARE.toLowerCase(Locale.ROOT);require(hw.contains("ranchu")||hw.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"Refusing physical phone");for(String name:new String[]{"app_settings","profiles","scooter","pending_documents","control_evidence"})require(prefs(name).getAll().isEmpty(),"Refusing existing preferences");File[] files=getTargetContext().getFilesDir().listFiles();require(files!=null&&files.length==0&&getTargetContext().databaseList().length==0,"Refusing existing app data");for(String permission:new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT})require(getTargetContext().checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED,"Grant emulator Nearby permission");BluetoothManager manager=getTargetContext().getSystemService(BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();require(adapter==null||!adapter.isEnabled(),"Disable emulator Bluetooth first");}
