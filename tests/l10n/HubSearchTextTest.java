@@ -27,7 +27,7 @@ public final class HubSearchTextTest {
     private static final Set<String> PR10_KEYS = new HashSet<>(Arrays.asList("hub_page_search", "hub_search_hint",
             "hub_search_none", "hub_search_count", "hub_search_group_pages", "hub_search_group_settings",
             "hub_search_group_readings", "hub_search_group_rides", "hub_search_in", "hub_dock_all", "hub_all",
-            "hub_service_card_title", "hub_service_card_none"));
+            "hub_service_card_title", "hub_service_card_none", "hub_search_battery_history"));
 
     private static final T.Source ECHO = new T.Source() {
         @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
@@ -97,6 +97,11 @@ public final class HubSearchTextTest {
         equal("Rides", HubText.searchGroupRides(), "rides group");
         equal("In Battery & charging", HubText.searchIn(HubText.title(HubPages.BATTERY)), "in a subject (a Msg argument)");
         equal("In Lights & sound", HubText.searchIn("Lights & sound"), "in a subject (a plain string)");
+        equal("charge history recordings record recording capture export download email send clear delete charger stock fast",
+                HubText.batteryHistorySearchWords(), "Charge history & recordings search words");
+        check(!HubText.batteryHistorySearchWords().isPlural(), "search words are not a count");
+        for (String word : new String[]{"record", "recordings", "export", "email"})
+            check(HubText.batteryHistorySearchWords().render().contains(word), "Charge history & recordings is found by " + word);
     }
 
     private static void dockAndPane() {
@@ -168,7 +173,7 @@ public final class HubSearchTextTest {
                 HubText.searchNone(), HubText.searchCount(1), HubText.searchCount(5), HubText.searchGroupPages(),
                 HubText.searchGroupSettings(), HubText.searchGroupReadings(), HubText.searchGroupRides(),
                 HubText.searchIn("x"), HubText.dockAll(), HubText.all(), HubText.serviceCardTitle(),
-                HubText.serviceCardNone()));
+                HubText.serviceCardNone(), HubText.batteryHistorySearchWords()));
         for (String row : HubSearchTables.ROWS) all.add(HubText.controlRowTitle(row));
         for (String tag : HubSearchTables.SETTINGS) all.add(HubText.settingTitle(tag));
         Set<String> reached = new HashSet<>();

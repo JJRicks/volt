@@ -49,12 +49,16 @@ for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign Ridin
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Riding mode's chip row: which chips fit, and at which compact rung.
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingChipFit.java" "$TEST_DIR/RidingChipFitTest.java")
+# Riding mode's reading names in a group: icons for all or names for all, by one rule (Halo's strip and readings).
+sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
-# Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6).
-for name in HomeStyle TopArea HomeMoment HomeQuickActions HubSplit; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6),
+# the What's new sheet's bundled release notes (part 9),
+# and the wide Clean Home's pane split (part 13).
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes HubSplit; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -65,6 +69,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/Controls
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
 sources+=("$TEST_DIR/HubRideDataTest.java")
+# Email to Volt: which refusal of the charge export is worth a toast (council review of #396).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeSend.java" "$TEST_DIR/ChargeSendTest.java")
 # A drag in ReorderList counts from where the finger is when the row lifts, past the touch slop.
 sources+=("$APP_DIR/src/com/jjricks/volt/ReorderDrag.java" "$TEST_DIR/ReorderDragTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
@@ -155,16 +161,18 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
-for name in HomeStyle TopArea HomeMoment HomeQuickActions HubSplit; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes HubSplit; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingNameGroupTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoEndsTest

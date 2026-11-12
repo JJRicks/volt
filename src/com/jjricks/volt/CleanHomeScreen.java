@@ -72,6 +72,11 @@ final class CleanHomeScreen implements AppScreen {
     private final List<String> quickIds;
     /** The scooter's model as known when this Home was built; the default quick actions follow it. */
     private final String modelIdentity;
+    /**
+     * The default four for the scooter as known when this Home was built (owner's answer 11 on #383: they follow
+     * what the scooter supports, HomeQuickDefaults); untouched defaults follow when that changes.
+     */
+    private final List<String> defaults;
     private int moment = -1;
     private boolean closed;
     private android.app.AlertDialog editSheet;
@@ -142,6 +147,7 @@ final class CleanHomeScreen implements AppScreen {
 
         ScooterService built = host.service();
         modelIdentity = parts.identity(built == null ? null : built.profiles.active());
+        defaults = HomeQuickDefaults.forScooter(built);
         quickIds = loadQuick();
         quick = new QuickAccessGrid(host, quickIds, this::quickAction, HomeQuickActions::entry);
         quick.setTag(TAG_QUICK);
@@ -187,10 +193,15 @@ final class CleanHomeScreen implements AppScreen {
         ScooterService service = host.service();
         ScooterProfiles.Profile current = service == null ? null : service.profiles.active();
         if (!parts.profileId().equals(current == null ? "unconfigured" : current.id)) { host.rebuild(); return; }
-        // This scooter's model became known (or changed): untouched default quick actions follow it, as the widget
-        // dashboard's default tiles do. Not while Edit is open; the four stored by the owner never change here.
-        if (current != null && !modelIdentity.equals(parts.identity(current)) && (editSheet == null || !editSheet.isShowing())
-                && preferences.getString(HomeQuickActions.key(current.id), null) == null) { host.rebuild(); return; }
+        // This scooter's model or what it offers became known (or changed): untouched default quick actions follow
+        // it, as the widget dashboard's default tiles do. Not while Edit is open; the four stored by the owner never
+        // change here.
+        if (current != null && (editSheet == null || !editSheet.isShowing())
+                && preferences.getString(HomeQuickActions.key(current.id), null) == null
+                && (!modelIdentity.equals(parts.identity(current)) || !defaults.equals(HomeQuickDefaults.forScooter(service)))) {
+            host.rebuild();
+            return;
+        }
         parts.refresh();
         boolean recording = service != null && service.isRecording();
         lookForRide(service, recording);
@@ -340,12 +351,6 @@ final class CleanHomeScreen implements AppScreen {
     private List<String> loadQuick() {
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-        BleController ble = service == null ? null : service.ble;
-        boolean timed = ble == null || ble.controlOffered("timed_charging");
-        // The same rule as the Scooter page's Charge done by row.
-        boolean doneBy = timed && (ble == null || ble.controlOffered("charge_start"));
-        List<String> tiles = profile == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(profile.savedDescriptor());
-        List<String> defaults = HomeQuickActions.defaults(doneBy, timed, tiles);
         String stored = profile == null ? null : preferences.getString(HomeQuickActions.key(profile.id), null);
         return new ArrayList<>(HomeQuickActions.load(stored, defaults));
     }

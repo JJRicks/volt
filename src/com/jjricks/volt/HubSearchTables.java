@@ -165,8 +165,10 @@ final class HubSearchTables {
             case HubPages.CONTROLS_ASSISTS: return "assists hill start parking walk";
             case HubPages.CONTROLS_LIMITS: return "speed limits overspeed";
             case HubPages.LIGHTS: return "lights sound headlight";
-            case HubPages.LIGHTS_LINE: return "line lights ambient";
-            case HubPages.LIGHTS_STAR: return "star lights ambient";
+            // Each light family's own words, its title among them (the zones row both replaced matched "zones" for
+            // both): "star" doesn't list Line lights, and "line lights" finds its page (#404 review).
+            case HubPages.LIGHTS_LINE: return "line lights zones ambient pattern color colour boost";
+            case HubPages.LIGHTS_STAR: return "star lights zones ambient pattern color colour boost";
             case HubPages.SECURITY: return "security lock pin proximity pairing";
             case HubPages.SERVICE: return "service maintenance diagnostics";
             case HubPages.SERVICE_MAINTENANCE: return "maintenance reminders service check";

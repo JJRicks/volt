@@ -1703,19 +1703,24 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 } else dialog.dismiss();
             }); settle();
         }
-        for(String id:new String[]{"more:App","section:Security"}) {
+        // The owner's answer 3 (#383): whole settings pages open as pages; opening Security never changes more_section.
+        {
             final String moreBefore=settings().getString("more_section", "");
-            main(() -> invoke(activity,"quickAction",new Class<?>[]{String.class},id));settle();
+            main(() -> invoke(activity,"quickAction",new Class<?>[]{String.class},"section:Security"));settle();
             main(() -> {
-                android.app.Dialog dialog=(android.app.Dialog)field(activity,"quickMenuDialog");
-                require(dialog!=null&&dialog.isShowing()&&field(activity,"quickMoreScreen")!=null,"Standalone More quick panel missing: "+id);
-                require("home".equals(field(activity,"selectedPage"))&&field(activity,"screen") instanceof DashboardScreen,"Standalone More panel navigated away from Home");
-                require(settings().getString("more_section", "").equals(moreBefore),"Standalone panel changed saved More submenu");
-                dialog.dismiss();
-            });
-            await(() -> field(activity,"quickMenuDialog")==null&&field(activity,"quickMoreScreen")==null,"Standalone More panel leaked references after dismissal");settle();
+                require("security".equals(field(activity,"selectedPage")),"Security shortcut did not open the Security page");
+                require(field(activity,"quickMenuDialog")==null,"Security shortcut opened a sheet");
+                require(settings().getString("more_section", "").equals(moreBefore),"Security page changed saved More submenu");
+                invoke(activity,"select",new Class<?>[]{String.class},"home");
+            });settle();
+            main(() -> invoke(activity,"quickAction",new Class<?>[]{String.class},"more:App"));settle();
+            main(() -> {
+                require("settings".equals(field(activity,"selectedPage"))&&"App".equals(settings().getString("more_section", "")),"App preferences shortcut did not open its page");
+                require(field(activity,"quickMenuDialog")==null,"App preferences shortcut opened a sheet");
+                invoke(activity,"select",new Class<?>[]{String.class},"home");
+            });settle();
         }
-        check("App preferences and Security overlays preserve Home and saved More navigation, then release their temporary screen references");
+        check("Security and App preferences shortcuts open their pages, with no sheet; Security keeps the saved More submenu");
         main(() -> { activity.service().setSimulation(false); }); settleMotion(); stopUiPulse();
         assertNoScooterWork();
         check("Sample traction toggles in place; kick-start, energy recovery and settings sections open over Home and dismiss without navigation or real scooter work");

@@ -258,6 +258,50 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /**
+     * Usable ride energy for Battery & charging › Estimates & charger (hub layout plan 1.5's PANEL, deferred there
+     * from part 4), from a parts-only instance like Clean Home's: one transient capacity widget, never added to a
+     * dashboard. The widget dashboard's own Usable ride energy widget stays as it is.
+     */
+    static EnergyPanel energyPanel(ScreenHost host, Actions actions) {
+        ScooterService service = host.service();
+        ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
+        return new DashboardScreen(host, actions, profile).new EnergyPanel();
+    }
+
+    /**
+     * The capacity widget alone (its title, value, comparison, rides and details), with the same 90-day window and
+     * model rating as the default dashboard's. Its "Set reference" pill stays hidden: a reference is stored on a
+     * dashboard widget, and this one belongs to no dashboard.
+     */
+    final class EnergyPanel {
+        private final Tile tile;
+
+        EnergyPanel() {
+            DashboardConfig.Widget widget = new DashboardConfig.Widget("capacity");
+            tile = new Tile(widget);
+            tile.panel = true;
+            tile.setTag("battery-usable-energy");
+        }
+
+        View view() { return tile; }
+
+        /** The scooter this panel was built for; another one being active means the page rebuilds. */
+        String profileId() { return profileId; }
+
+        void refresh() {
+            if (closed) return;
+            tile.refresh(service == null ? readings() : service.dashboardReadings());
+        }
+
+        void close() {
+            closed = true;
+            tile.active = false;
+            tile.capacityRequest++;
+            dismiss();
+        }
+    }
+
+    /**
      * What Clean Home borrows from Home: the status line and the scooter's name (refreshed like this header's), the
      * battery overview card (a transient overview widget like DefaultDashboard's, never added to any dashboard) and the
      * charging view in its Clean style. Clean places them; their text stays here.
@@ -311,7 +355,8 @@ public final class DashboardScreen implements AppScreen {
         /** The shortcut picker over Clean's own actions and the catalog; picked gets the chosen id. */
         void chooseQuickAction(List<String> chosen, int index, java.util.function.Consumer<String> picked) {
             if (closed) return;
-            DashboardScreen.this.chooseQuickAction(chosen, index, HomeQuickActions.ownEntries(), id -> {
+            DashboardScreen.this.chooseQuickAction(chosen, index,
+                    HomeQuickActions.ownEntries(service != null && service.chargeAlertsOffered()), id -> {
                 dismiss();
                 picked.accept(id);
             });
@@ -2156,6 +2201,8 @@ public final class DashboardScreen implements AppScreen {
                 chargingTemperature;
         LinearLayout batteryData, chargingData;
         boolean capacityPending, capacitySample, dragging, showsRange;
+        /** Usable ride energy outside any dashboard (EnergyPanel): no reference can be stored, so no Set reference pill. */
+        boolean panel;
         View resizeControl;
         QuickAccessGrid quickAccess, settingTiles;
         OverviewCard overview;
@@ -3299,13 +3346,14 @@ public final class DashboardScreen implements AppScreen {
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
                 bar.set(level, live, charging);
+                String said = BatteryOverviewSpeech.line(charging, distance);
                 spoken = level == null
-                        ? (line.isEmpty()
+                        ? (said.isEmpty()
                                 ? (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : M.dashboardOverviewNotReported())
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(line)))
-                        : (line.isEmpty()
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(said, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(said)))
+                        : (said.isEmpty()
                                 ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeenCount(Math.round(level), amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercentCount(Math.round(level), amount))
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, line, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, line)));
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, said, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, said)));
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }
@@ -4167,7 +4215,7 @@ public final class DashboardScreen implements AppScreen {
                     ? T.dashboardPercentOf(Fmt.decimal(Locale.US, percent, 0), Fmt.decimal(Locale.US, reference, 0), T.unitsWattHour()) : "");
             capacityCompare.setTextColor(proxy ? ui.orange : ui.muted);
             capacityCompare.setVisibility(compared ? View.VISIBLE : View.GONE);
-            capacityReference.setVisibility(reference == null && !sample ? View.VISIBLE : View.GONE);
+            capacityReference.setVisibility(reference == null && !sample && !panel ? View.VISIBLE : View.GONE);
             capacityBar.set(compared ? percent : null);
             capacityBar.setContentDescription(compared ? capacityCompare.getText() : null);
             capacityBar.setVisibility(compared ? View.VISIBLE : View.GONE);
