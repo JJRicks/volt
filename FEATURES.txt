@@ -719,7 +719,8 @@ the tab bar was: the most-used subjects with short names, and All, or swipe
 up, for every subject with its summary). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
-link. The gear opens Settings; Home's search button finds pages, settings and
+link. The gear in either Home's header (Clean or Widgets, beside the connection
+line) opens Settings; Home's search button finds pages, settings and
 controls (Experimental entries included), live readings (with their value) and
 rides, each with its subject, and opens the result's page with the row on
 screen; Back returns to the search as it was. The former arrange-and-hide editor is gone, and settings hidden with
