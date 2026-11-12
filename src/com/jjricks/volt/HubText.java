@@ -370,9 +370,13 @@ public final class HubText {
 
     // ===== Widgets Home's dock and the wide Home's right pane =====
 
-    /** The dock's handle, and the title of the sheet listing every subject. */
+    /** The dock's handle, what TalkBack reads for the dock's "All" item, and the title of the sheet listing every subject. */
     public static Msg dockAll() { return M.hubDockAll(); }
-    /** The right pane's link back to the list of all subjects. */
+    /**
+     * The right pane's link back to the list of all subjects, and the short label under the dock's "All" item on a
+     * phone (owner's answer 8 on #383: a portrait dock that is not cramped shows fewer icons, each labelled, and
+     * this item opens the rest); read by {@link #dockAll()}. As narrow as the subjects' short names (64 dp at 12 sp).
+     */
     public static Msg all() { return M.hubAll(); }
     /** The Service card: its title, and its line when no reminder is set. */
     public static Msg serviceCardTitle() { return M.hubServiceCardTitle(); }

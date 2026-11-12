@@ -170,12 +170,12 @@
     <string name="hub_search_in" volt:screen="Search page" volt:purpose="caption">In %1$s</string>
 
     <!-- ===== Widgets Home: the dock of subjects at the bottom ===== -->
-    <!-- The dock's handle (swipe up or tap it) and the title of the sheet that lists every subject with its summary. -->
-    <string name="hub_dock_all" volt:screen="Widgets Home dock" volt:purpose="handle and sheet title">All subjects</string>
+    <!-- The dock's handle (swipe up or tap it), what TalkBack reads for the dock's "All" item, and the title of the sheet that lists every subject with its summary. -->
+    <string name="hub_dock_all" volt:screen="Widgets Home dock" volt:purpose="handle, accessibility and sheet title">All subjects</string>
 
     <!-- ===== Wide Home (tablets and unfolded phones): the right pane ===== -->
-    <!-- Link at the top of the right pane that goes back to the list of all subjects. -->
-    <string name="hub_all" volt:screen="Wide Home, right pane" volt:purpose="back link" volt:max="96dp@14sp">All</string>
+    <!-- Link at the top of the right pane that goes back to the list of all subjects; also the label under the Widgets Home dock's last item, which opens that list on a phone. Keep it as short as the subjects' short names. -->
+    <string name="hub_all" volt:screen="Wide Home, right pane; Widgets Home dock" volt:purpose="back link and dock label" volt:max="64dp@12sp">All</string>
     <!-- Title of the card listing the next maintenance checks. -->
     <string name="hub_service_card_title" volt:screen="Wide Home, Service card" volt:purpose="title">Next checks</string>
     <!-- Shown in that card when no maintenance reminder is set. -->
