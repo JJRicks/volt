@@ -37,11 +37,11 @@ Once it's on for you, and a pull request is ready for review (not a draft, check
 <!-- council-review-request: head=<full 40-character SHA of the PR's head commit> -->
 ```
 
-- When the maintainers' review session is running, it picks the request up within a few minutes and reviews that commit; otherwise it does when the session next runs. A review usually arrives the same day. If nothing has arrived after a day, comment on the pull request.
+- The request is picked up when the maintainers' review is next available, and that commit is reviewed. There is no fixed time; a review usually arrives the same day. If nothing has arrived after a day, comment on the pull request.
 - **After fixes, or any other push,** post a new comment with the new SHA. A line that names an older commit doesn't count.
 - It must be an ordinary pull request comment written by the pull request's author. The description, a review body or an inline comment won't be seen. Use the lowercase SHA from `git rev-parse HEAD`, with nothing else on the line. GitHub hides the line when it shows the comment; that's expected.
-- **Without that line,** a ready pull request is still picked up, but no sooner than 30 minutes after its last push. Comments don't change that.
-- **Between asking and the review arriving,** don't push to the pull request. A push throws away the review in progress, and the new commit is reviewed only after a new comment naming it (or the 30-minute fallback), once the review session takes it up. If something has to go in, push it and post that new comment.
+- **Without that line,** a ready pull request may still be picked up, but later and with no set timing. Don't rely on it: ask.
+- **Between asking and the review arriving,** don't push to the pull request. A push throws away any review in progress, and the new commit is reviewed only after you ask again with a new comment naming it. If something has to go in, push it and ask again.
 - Drafts aren't reviewed, with or without the line.
 - The maintainers merge only content that was reviewed, so a push after an approval means another round.
 
