@@ -23,6 +23,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
+import com.jjricks.volt.tests.HubTestPages;
 
 /**
  * Disposable emulator only: auto-record and auto ride mode through the real service, activity and
@@ -241,8 +242,8 @@ public final class AutoStartValidation extends Instrumentation {
         prefs().edit().putBoolean("phone_gps", true).commit();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
         reconnect(); stopped(); settle();
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "App")); settle();
+        // Record rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
+        main(() -> HubTestPages.open(activity, "ride.recording")); settle();
 
         // A switch restored from a backup: nobody tapped it, so nothing prompts, even while the scooter moves.
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true); settle();
@@ -518,10 +519,16 @@ public final class AutoStartValidation extends Instrumentation {
         goHome(); returnToVolt(); SystemClock.sleep(2500); waitForIdleSync();
         require(!promptShown(), where + ": asked only once, across leaving and coming back");
     }
+    /**
+     * The phone sensors: Ride › Recording settings' card since the Hub layout (#389) replaced the Rides tab's Phone
+     * sensors sheet, which nothing opens any more. Opened over Ride, so Back (closeSheet) returns there.
+     */
     private void openSensors() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "rides")); settle();
-        main(() -> invoke(field(activity, "screen"), "phoneOptions", new Class<?>[0])); settle();
+        main(() -> activity.open("ride.recording")); settle();
+        main(() -> require("ride.recording".equals(HubTestPages.current(activity)), "Recording settings did not open"));
     }
+    /** Back from the phone sensors (their page now, a sheet before #389). */
     private void closeSheet() {
         getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
         await(() -> resumed() && focused(), "Sheet closed");
@@ -588,10 +595,14 @@ public final class AutoStartValidation extends Instrumentation {
         require(prefs().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), "Auto-record stays on");
     }
 
+    /**
+     * Both switches, each on its page since the Hub layout (#389) moved them out of More › App preferences: Record rides
+     * automatically on Ride › Recording settings, Open automatically on Ride › Riding mode settings.
+     */
     private void settingsRows() throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "App")); settle();
-        for (String label : new String[]{"Record rides automatically", "Open automatically"}) {
+        for (String[] row : new String[][]{{"Record rides automatically", "ride.recording"}, {"Open automatically", "ride.riding"}}) {
+            String label = row[0];
+            main(() -> HubTestPages.open(activity, row[1])); settle();
             final View[] found = {null};
             main(() -> found[0] = find(activity.getWindow().getDecorView(), label));
             require(found[0] != null, label + " row shown");
