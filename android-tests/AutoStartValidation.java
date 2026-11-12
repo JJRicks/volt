@@ -243,7 +243,7 @@ public final class AutoStartValidation extends Instrumentation {
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
         reconnect(); stopped(); settle();
         // Record rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
-        main(() -> HubTestPages.open(activity, "ride.recording")); settle();
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
 
         // A switch restored from a backup: nobody tapped it, so nothing prompts, even while the scooter moves.
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true); settle();
@@ -525,7 +525,7 @@ public final class AutoStartValidation extends Instrumentation {
      */
     private void openSensors() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "rides")); settle();
-        main(() -> activity.open("ride.recording")); settle();
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
         main(() -> require("ride.recording".equals(HubTestPages.current(activity)), "Recording settings did not open"));
     }
     /** Back from the phone sensors (their page now, a sheet before #389). */
@@ -602,7 +602,7 @@ public final class AutoStartValidation extends Instrumentation {
     private void settingsRows() throws Exception {
         for (String[] row : new String[][]{{"Record rides automatically", "ride.recording"}, {"Open automatically", "ride.riding"}}) {
             String label = row[0];
-            main(() -> HubTestPages.open(activity, row[1])); settle();
+            HubTestPages.reach(this, activity, row[1]); settle();
             final View[] found = {null};
             main(() -> found[0] = find(activity.getWindow().getDecorView(), label));
             require(found[0] != null, label + " row shown");

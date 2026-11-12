@@ -247,7 +247,7 @@ public final class LocaleValidation extends Instrumentation {
         main(() -> invoke(activity, "navigateBack", new Class<?>[0]));
         await(() -> HubPages.SERVICE.equals(HubTestPages.current(activity)), "The Maintenance page did not close"); settle();
     }
-    private void servicePage() { main(() -> HubTestPages.open(activity, HubPages.SERVICE)); settle(); }
+    private void servicePage() { HubTestPages.reach(this, activity, HubPages.SERVICE); settle(); }
 
     /** Scrolls Service so the Maintenance row sits in the upper third, clear of the bottom bar, for the screenshot. */
     private void showRow() {

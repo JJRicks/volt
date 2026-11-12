@@ -272,7 +272,7 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         require(!hasText(moreView, "Screen brightness") && !hasText(moreView, "Night vision"), "More no longer shows moved settings");
         shot(label + "-10-more");
         // Ride › Riding mode settings: Open automatically, the same preference as the tune menu's switch.
-        main(() -> HubTestPages.open(activity, "ride.riding")); settle();
+        HubTestPages.reach(this, activity, "ride.riding"); settle();
         View ridingView = activity.getWindow().getDecorView();
         View autoOpen = findTag(ridingView, "preference_riding_auto_open");
         require(autoOpen != null, "Ride › Riding mode settings has Open automatically");
@@ -280,7 +280,7 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         settle();
         shot(label + "-11-riding-page");
         // Ride › Recording settings: Record rides automatically.
-        main(() -> HubTestPages.open(activity, "ride.recording")); settle();
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
         require(hasText(activity.getWindow().getDecorView(), "Record rides automatically"), "Ride › Recording settings has Record rides automatically");
         shot(label + "-12-recording");
         note("App preferences shows no automatic switch and no moved setting; Open automatically is on Riding mode settings, Record rides automatically on Recording settings");

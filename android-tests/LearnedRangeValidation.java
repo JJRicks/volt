@@ -140,9 +140,11 @@ public final class LearnedRangeValidation extends Instrumentation {
             invoke(activity,"select",new Class<?>[]{String.class},"more");
             invoke(field(activity,"screen"),"selectSection",new Class<?>[]{String.class},"App");
             require(((View)field(activity,"root")).findViewWithTag("preference-range-estimate")==null,"Duplicate range setting remains in App preferences");
-            // The range setting's page: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385).
-            HubTestPages.open(activity,"battery.estimates");
         });
+        waitForIdleSync();
+        // The range setting's page: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385), reached
+        // by tapping the Scooter tab, Battery & charging and Estimates & charger.
+        HubTestPages.reach(this,activity,"battery.estimates");
         waitForIdleSync();
         java.util.concurrent.CountDownLatch release=holdWorker();
         try {

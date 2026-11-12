@@ -45,7 +45,7 @@ public final class ChargeEstimateValidation extends Instrumentation {
             await(()->!Boolean.TRUE.equals(field(service,"chargeModelLoading")),"Charge model load did not finish");
             verifyServiceSnapshot();verifyChargerCaption();seedRecordings();verifyAsyncHistory();verifyRecordingsStayLabels();verifyDetectionWiring();
             // Charge history left Developer options for Scooter › Battery & charging › Charge history & recordings (#387).
-            main(()->HubTestPages.open(activity,"battery.history"));settle();
+            HubTestPages.reach(this,activity,"battery.history");settle();
             main(()->{View row=root().findViewWithTag("charge-history-action");require(row!=null&&row.isEnabled(),"Charge history unavailable offline");row.performClick();});
             await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-session:"+completeId)!=null,"History did not load");
             main(()->require(dialogRoot().findViewWithTag("charge-history-session:"+legacyId)!=null,"Legacy recording missing"));
@@ -208,7 +208,7 @@ public final class ChargeEstimateValidation extends Instrumentation {
      */
     private void verifyChargerCaption()throws Exception{
         for(ChargeSessionStore.Charger charger:new ChargeSessionStore.Charger[]{null,ChargeSessionStore.Charger.HIGH_SPEED}){
-            main(()->HubTestPages.open(activity,"battery.estimates"));settle();
+            HubTestPages.reach(this,activity,"battery.estimates");settle();
             main(()->{require(service.setChargeCharger(charger),"Charger preference unavailable");activity.redraw();});settle();
             main(()->{
                 View row=root().findViewWithTag("estimate-charger-setting");require(row!=null,"Charger estimate row missing");
@@ -238,7 +238,7 @@ public final class ChargeEstimateValidation extends Instrumentation {
                 Rect visible=new Rect();require(name.getGlobalVisibleRect(visible)&&visible.height()==name.getHeight(),"Charger label clipped by its row");
             });
             screenshot(charger==null?"charger-label-automatic":"charger-label-high-speed");
-            main(()->HubTestPages.open(activity,"battery"));settle();
+            HubTestPages.reach(this,activity,"battery");settle();
             main(()->{
                 boolean checkedStart=false;
                 for(Object control:(Iterable<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows")){

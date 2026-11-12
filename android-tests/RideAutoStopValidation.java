@@ -169,7 +169,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         SharedPreferences settings = getTargetContext().getSharedPreferences("app_settings", 0);
         check(!settings.contains(ScooterServiceKeys.AUTO_STOP), "Preference absent on a fresh install");
         // End rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
-        main(() -> HubTestPages.open(activity, "ride.recording")); settle();
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
         View root = activity.getWindow().getDecorView();
         TextView title = text(root, "End rides automatically"); check(title != null, "End rides automatically row present");
         TextView sub = text(root, "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min"); check(sub != null, "Row explains the rule");
@@ -190,7 +190,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         File xml = new File(getTargetContext().getDataDir(), "shared_prefs/app_settings.xml");
         await(() -> { try { return new String(Files.readAllBytes(xml.toPath()), "UTF-8").contains("name=\"ride_auto_stop\" value=\"false\""); } catch (IOException e) { return false; } }, "Off choice written to disk");
         screenshot("preference-off");
-        main(() -> { invoke(activity, "select", new Class[]{String.class}, "home"); HubTestPages.open(activity, "ride.recording"); }); settle();
+        main(() -> invoke(activity, "select", new Class[]{String.class}, "home")); settle(); HubTestPages.reach(this, activity, "ride.recording"); settle();
         Switch again = find((View) text(activity.getWindow().getDecorView(), "End rides automatically").getParent().getParent(), Switch.class);
         check(again != null && !again.isChecked(), "Reopened section still shows off");
         main(() -> ((View) again.getParent()).performClick()); settle();

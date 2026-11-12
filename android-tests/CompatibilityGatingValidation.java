@@ -38,6 +38,7 @@ import org.json.JSONObject;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.CapabilityResolver;
 import com.jjricks.volt.FeatureVariant;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ModelRegistry;
@@ -69,6 +70,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
     private boolean admitted;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
+    /** "model: page" for each sub-page link tapped through (offered) and each found absent (nothing to show), over every model. */
+    private final Set<String> linksTapped = new java.util.TreeSet<>(), linksAbsent = new java.util.TreeSet<>();
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
@@ -91,6 +94,10 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 verifyCompatibility(model[0], model[1]);
             }
             checks.add("Scooter rows show only controls with a known encoding for the simulated model; the UT5 MAX keeps every row");
+            // Both sides of each model-dependent link at least once over the three models (#414 review).
+            require(!linksTapped.isEmpty() && !linksAbsent.isEmpty(), "Sub-page links were not seen both offered and absent: tapped " + linksTapped + ", absent " + linksAbsent);
+            checks.add("Rider routes by touch on every model: the five subject rows, and each sub-page link shown and tapped through exactly when its page has a row (tapped "
+                    + linksTapped + "; absent " + linksAbsent + ")");
             checks.add("Limited-model banner, clock row and lock switch follow the resolver; lock and unlock work on every standard model");
             checks.add("Compatibility check (simulator): reads only, holds every write except the lock, finishes with a preview-only report");
             checks.add("Unmapped Quick access tiles show a muted dash, say \"not on this model\" (\"not offered for this region\" for a Top speed hidden by region) and stay in the saved layout");
@@ -154,6 +161,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
     private void verifyScooterPage(String pid, String label) throws Exception {
         int[] untested = {0};
         Map<String, Integer> shownOn = new TreeMap<>(); Map<String, Boolean> offered = new TreeMap<>();
+        /** Whether each page, opened directly, shows a row or an Experimental entry: what its link on the parent must follow. */
+        Map<String, Boolean> pageShows = new TreeMap<>();
         boolean ut5 = pid.isEmpty();
         List<String> pages = HubTestPages.scooterRowPages();
         require(pages.contains("controls") && pages.contains("lights.line") && pages.contains("lights.star"), label + ": Scooter pages " + pages);
@@ -191,6 +200,13 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                         if (caption) untested[0]++;
                     }
                 }
+                boolean any = false;
+                Map<?, ?> rowViews = (Map<?, ?>)field(screen, "rowViews"), labEntries = (Map<?, ?>)field(screen, "labEntries");
+                for (Object id : HubTestPages.pageRows(page)) {
+                    View rowView = (View)rowViews.get(id), entry = (View)labEntries.get(id);
+                    if (rowView != null && rowView.getVisibility() == View.VISIBLE || entry != null && entry.getVisibility() == View.VISIBLE) any = true;
+                }
+                pageShows.put(page, any);
                 View banner = (View)field(screen, "readOnlyBanner");
                 require((banner.getVisibility() == View.VISIBLE) == !ut5, label + ": " + page + " limited-model banner");
                 if (!ut5) require(texts(banner).contains(BleController.LIMITED_MODEL), label + ": banner copy");
@@ -228,6 +244,35 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         });
         if (pid.equals("24431")) require(untested[0] > 0, label + ": no Untested here caption on the mapped model");
         checks.add(label + ": every Scooter page follows decisions, each offered row on exactly one page (" + untested[0] + " Untested here captions)");
+        verifyRiderRoutes(label, pageShows);
+    }
+
+    /**
+     * The rider's way to each Scooter page on this model, by touch (#414 review: opening pages directly passed even with
+     * no rows to tap). Every subject row on the Scooter index is offered on every model and must tap through. A sub-page's
+     * link on its parent (Controls' Assists and Limits, Battery's Battery modes and Estimates & charger, Line lights and
+     * Star lights) must be there and tap through exactly when that page has a row or an Experimental entry to show, and
+     * be absent (gone, not merely disabled) when it has none.
+     */
+    private void verifyRiderRoutes(String label, Map<String, Boolean> pageShows) throws Exception {
+        for (String subject : new String[]{"battery", "controls", "lights", "security", "service"}) {
+            HubTestPages.route(this, activity, subject); settle();
+        }
+        for (Map.Entry<String, Boolean> page : pageShows.entrySet()) {
+            String parent = HubPages.parent(page.getKey());
+            if (parent == null || !HubTestPages.pageLists(parent, "link:" + page.getKey())) continue;
+            HubTestPages.route(this, activity, parent); settle();
+            main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
+            if (page.getValue()) {
+                HubTestPages.tapRow(this, activity, page.getKey()); settle();
+                linksTapped.add(label + ": " + page.getKey()); assertions++;
+            } else {
+                String[] failure = {null};
+                main(() -> { try { HubTestPages.requireNoRow(activity, page.getKey(), label + ": the page has no row to show"); } catch (RuntimeException error) { failure[0] = error.getMessage(); } });
+                require(failure[0] == null, failure[0]);
+                linksAbsent.add(label + ": " + page.getKey());
+            }
+        }
     }
 
     private void verifyHome(String pid, String label) throws Exception {
@@ -278,7 +323,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
     private void verifyMore(String pid, String label) throws Exception {
         // More's Security and Experimental controls left More's menu for Scooter › Security and Scooter › Service ›
         // Experimental controls in the Hub layout (#387); each page shows More's section as its body.
-        main(() -> HubTestPages.open(activity, "security")); settle();
+        HubTestPages.reach(this, activity, "security"); settle();
         main(() -> {
             BleController ble = activity.service().ble;
             MoreScreen more = (MoreScreen)HubTestPages.part(activity, "MoreScreen");
@@ -294,7 +339,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             if (!owner) require(!((View)field(field(more, "proximityRow"), "toggle")).isEnabled(), label + ": proximity toggle stays off on an unmapped model");
         });
         screenshot(label + "-more-security");
-        main(() -> HubTestPages.open(activity, "service.experimental")); settle();
+        HubTestPages.reach(this, activity, "service.experimental"); settle();
         List<String> listed = new ArrayList<>(), verifying = new ArrayList<>();
         main(() -> {
             BleController ble = activity.service().ble;
@@ -687,7 +732,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             require(!Boolean.TRUE.equals(field(service.ble, "scanning")) && !Boolean.TRUE.equals(field(service.ble, "identifying")), "Identify started a scan while recording");
             activity.redraw();
         }); settle();
-        main(() -> HubTestPages.open(activity, "controls")); settle();
+        HubTestPages.reach(this, activity, "controls"); settle();
         main(() -> require(((View)field(HubTestPages.part(activity, "ControlsScreen"), "readOnlyBanner")).getVisibility() != View.VISIBLE, "Limited banner shown without a connection")); 
         screenshot("recording-scooter");
         main(() -> activity.service().stopRide()); settle();

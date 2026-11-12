@@ -137,7 +137,7 @@ public final class CompatControlsValidation extends Instrumentation {
         // Since registry version 19 its kick-start (3-5 km/h in Scooter settings, no serial region here) is also tried lower,
         // Standing start to 3 km/h, first by TRY_PRIORITY. Nothing that can raise speed is ever an experiment.
         // Experimental controls left More's menu for Scooter › Service › Experimental controls (#387).
-        main(() -> HubTestPages.open(activity, "service.experimental")); settle();
+        HubTestPages.reach(this, activity, "service.experimental"); settle();
         main(() -> {
             for (String key : new String[]{"prompt_tone", "dual_drive"})
                 require(!activity.service().ble.experimentalDecision(key).experimental(), "Offered " + key + " is not experimental");
@@ -224,7 +224,7 @@ public final class CompatControlsValidation extends Instrumentation {
         screenshotRow("k-firmware-rows", "maximum_speed");
         screenshotRow("k-firmware-lock", "lock_expiry");
         // More's Security section is the Scooter › Security page since #387.
-        main(() -> HubTestPages.open(activity, "security")); settle();
+        HubTestPages.reach(this, activity, "security"); settle();
         main(() -> {
             CapabilityResolver.Decision pin = activity.service().ble.decision("pin");
             require(pin.reason == CapabilityResolver.Reason.FIRMWARE_UNKNOWN && !(Boolean)invoke(more(), "ownerReady"), "K PIN without firmware: " + pin);
@@ -377,7 +377,7 @@ public final class CompatControlsValidation extends Instrumentation {
     /** A Hub page from Home, refreshed with a simulator tick. */
     private void openPage(String page) {
         main(() -> { activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().putString("scooter_section", "").commit(); invoke(activity, "select", new Class<?>[]{String.class}, "home"); }); settle();
-        main(() -> HubTestPages.open(activity, page)); settle();
+        HubTestPages.reach(this, activity, page); settle();
         main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
     }
     /** The Scooter page that holds a control's row (ControlsPages.pageOf), unless it is already shown. */

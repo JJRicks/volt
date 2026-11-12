@@ -40,8 +40,9 @@ public final class ChargeCaptureValidation extends Instrumentation {
             verifyDefaultChargeEstimate();
             verifyReferenceLifecycle();
             verifyOrdinaryChargerChoice();
-            // Charge recordings live on Battery & charging › Charge history & recordings (hub layout plan, PR 4).
-            main(()->invoke(activity,"open",new Class<?>[]{String.class},"battery.history"));settle();
+            // Charge recordings live on Battery & charging › Charge history & recordings (hub layout plan, PR 4), reached by
+            // tapping the Scooter tab, Battery & charging and its Charge history & recordings link.
+            HubTestPages.reach(this,activity,"battery.history");settle();
             verifyCaptureConfirmation();
             main(()->{
                 // The charger has one home, Estimates & charger › Charger (owner, #383): this row shows it and links there.
@@ -313,10 +314,11 @@ public final class ChargeCaptureValidation extends Instrumentation {
     }
     /** Ordinary preferences work offline without enabling capture or Developer options. */
     private void verifyOrdinaryChargerChoice()throws Exception{
+        main(()->settings().edit().putBoolean("developer_options",false).commit());
+        // The charger row's one home: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385, #387),
+        // reached by tapping the Scooter tab, Battery & charging and Estimates & charger the first time.
+        HubTestPages.reach(this,activity,"battery.estimates");settle();
         main(()->{
-            settings().edit().putBoolean("developer_options",false).commit();
-            // The charger row's one home: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385, #387).
-            HubTestPages.open(activity,"battery.estimates");
             View row=root().findViewWithTag("estimate-charger-setting");
             require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");
             require(((TextView)root().findViewWithTag("estimate-charger-value")).getText().toString().equals("Automatic"),"Default Automatic preference is not shown");

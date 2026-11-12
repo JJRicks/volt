@@ -270,7 +270,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         }); settle();
         main(() -> require(selector("theme").isShown() && !selector("units").isShown(), "Back did not restore App preferences"));
         screenshot("preferences");
-        main(() -> HubTestPages.open(activity, "data.storage")); settle();
+        HubTestPages.reach(this, activity, "data.storage"); settle();
         verifySelectorChoices("stats_density", new String[]{"comfortable", "dense"});
         screenshot("stats-density");
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "settings")); settle();
@@ -509,7 +509,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     @SuppressWarnings("unchecked") private void verifyScooterSelectors() throws Exception {
         // Line and star patterns are on Lights & sound › Line lights and Star lights since the Hub layout (#385).
         for(String key:new String[]{"line_pattern","star_pattern"}){
-            main(() -> HubTestPages.open(activity, key.startsWith("line_")?"lights.line":"lights.star")); settle();
+            HubTestPages.reach(this, activity, key.startsWith("line_")?"lights.line":"lights.star"); settle();
             main(() -> {
                 BleController ble=activity.service().ble;
                 Map<String,Integer> values=(Map<String,Integer>)field(field(ble,"simulation"),"features");

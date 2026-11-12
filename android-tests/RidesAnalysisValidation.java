@@ -36,7 +36,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
             if (args.getString("start_only", "false").equals("true")) { result.putString("result", "PASS"); return; }
             // The Rides tab's Phone sensors sheet became Ride › Recording settings' phone sensors card in the Hub layout (#389),
             // which nothing opens the sheet from any more: the same no-placement-choice check runs on the card.
-            main(() -> HubTestPages.open(activity, "ride.recording")); settle();
+            HubTestPages.reach(this, activity, "ride.recording"); settle();
             main(() -> { View options = ((RidesScreen) HubTestPages.part(activity, "RidesScreen")).view(); check(caseText(options, "Phone sensors") != null, "Phone options test targets its own card"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors card has no placement choice"); });
             main(() -> { invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen) field(activity, "screen"); }); settle();
             check(screen.view().isAttachedToWindow(), "Rides shown again before reading the ride");

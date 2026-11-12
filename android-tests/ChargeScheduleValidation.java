@@ -364,7 +364,7 @@ public final class ChargeScheduleValidation extends Instrumentation {
     /** The charging rows' page: Scooter › Battery & charging since the Hub layout (#385); the test row is on its Estimates & charger page. */
     private void controls(){page("battery");}
     private void estimates(){page("battery.estimates");}
-    private void page(String page){main(()->{settings().edit().putString("scooter_section","").commit();invoke(activity,"select",new Class<?>[]{String.class},"home");});settle();main(()->HubTestPages.open(activity,page));settle();main(()->{service.ble.tickSimulation();activity.redraw();});settle();}
+    private void page(String page){main(()->{settings().edit().putString("scooter_section","").commit();invoke(activity,"select",new Class<?>[]{String.class},"home");});settle();HubTestPages.reach(this,activity,page);settle();main(()->{service.ble.tickSimulation();activity.redraw();});settle();}
     private void home(){main(()->invoke(activity,"select",new Class<?>[]{String.class},"home"));settle();}
     private Object control(String key){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing "+key);}
     private Object done(boolean time){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"chargeRows"))if((Boolean)field(row,"time")==time)return row;throw new IllegalStateException("Missing done-by row");}

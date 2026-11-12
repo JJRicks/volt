@@ -254,10 +254,11 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
     }
     /** Scooter › Service, then its Maintenance row (the Scooter tab's Reminders row until the Hub layout, #385). */
     private void openPage() {
-        main(() -> HubTestPages.open(activity, HubPages.SERVICE)); settle();
+        HubTestPages.reach(this, activity, HubPages.SERVICE); settle();
         View row = activity.getWindow().getDecorView().findViewWithTag("hub-row-" + HubPages.SERVICE_MAINTENANCE);
         require(row != null && row.isShown() && row.isClickable(), "Scooter › Service's Maintenance row is there disconnected");
-        main(row::performClick);
+        // A rider's tap: the row scrolled on screen, enabled, touched at its centre, and the Maintenance page on top.
+        HubTestPages.tapRow(this, activity, HubPages.SERVICE_MAINTENANCE);
         await(() -> HubPages.SERVICE_MAINTENANCE.equals(HubTestPages.current(activity)) && maintenanceOf(field(activity, "screen")) != null, "The Maintenance page did not open");
         SystemClock.sleep(500); settle();
     }
