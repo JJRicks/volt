@@ -27,7 +27,7 @@ On the web, the same owners arrive at three different moments:
 Volt is an independent, open-source Android companion for NAVEE electric scooters. It connects over Bluetooth LE to:
 
 - lock and unlock the scooter, and change supported riding, lighting and charging settings;
-- show live readings on Home, in one of two styles the owner picks: **Clean** (a fixed Home with the battery, the Lock bar, four quick actions and the scooter's subjects) or **Widgets** (a dashboard the owner arranges);
+- show live readings on Home, in one of two styles the owner picks during setup and can change in Settings › Home style: **Clean** (a fixed Home with the battery, the Lock bar, four quick actions led by the RIDE pill into riding mode, and the scooter's subjects) or **Widgets** (a dashboard the owner arranges, with a dock of the subjects at the bottom). Owners updating from an earlier Volt keep Widgets and are offered Clean once, in a What's new sheet with the release notes;
 - record rides;
 - estimate range and charging time.
 
@@ -46,7 +46,7 @@ The web surfaces serve the app:
 The owner confirmed three differences from the official NAVEE app:
 
 - **Local and account-free.** Bluetooth control and recording work offline, with no Volt account or server. Data stays on the phone unless the owner exports it or makes a backup. Online map tiles are off until the owner turns them on, after Volt explains what the map provider sees.
-- **Yours to arrange.** The dashboard has movable, resizable widgets and saved layouts for folded and unfolded screens. The owner can also edit riding mode's layouts. Navigation is fixed: Home is the hub for seven subjects (no tabs), so every setting has one predictable place.
+- **Yours to arrange.** The dashboard has movable, resizable widgets and saved layouts for folded and unfolded screens. The owner can also edit riding mode's layouts. Navigation is fixed: Home is the hub for seven subjects (no tabs: Ride, Battery & charging, Controls, Lights & sound, Security, Service and Data), with Settings behind the gear and one search over pages, settings, readings and rides, so every setting has one predictable place.
 - **Deeper data.** Rides can record a GPS route, phone sensors and energy readings. Volt learns range from the owner's own rides, estimates charging time, shows a live charging card on the lock screen, and keeps searchable readings with charts.
 
 ## Operating Context

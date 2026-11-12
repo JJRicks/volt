@@ -583,6 +583,8 @@ public final class Ui {
     /**
      * Floating tab bar: a rounded pill with a raised red button for the centre destination.
      * The selected side tab shows white with a small red dot; the selected centre button gains a ring.
+     * Unused since Hub layout part 11 (HubDock took its place); kept, with floatingNavHeight, until the owner has used
+     * the Hub and says the old tab bar can go (owner's answer 8 on #383).
      */
     public View floatingNav(String[] labels, String[] icons, int selected, int center, java.util.function.IntConsumer onSelect) {
         return floatingNav(labels, icons, selected, -1, center, onSelect);

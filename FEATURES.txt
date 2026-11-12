@@ -822,7 +822,7 @@ background only with Ride > Recording settings > Start recording in the
 background (also off by default) and Stay connected in background on, and a
 ride started that way has no GPS route. Riding mode > Open automatically
 (also in riding mode's tune menu) opens riding mode the same way, only while
-Volt is on screen and no dialog or sheet is open; of the Scooter pages, only
+Volt is on screen and no dialog or sheet is open; of the scooter pages, only
 over the subject list, Controls, Battery & charging and Lights & sound (not
 their sub-pages, Security or Service). A manual stop or backing out holds that
 switch until the scooter reconnects; a ride that ends by itself does not.
@@ -902,7 +902,7 @@ Distance/speed, temperature and time format are grouped under Settings >
 Units. Narrow controls may scroll sideways; light-pattern controls fit or wrap
 to show every choice. Their highlight follows confirmed scooter state, with
 pending writes disabled and rejected/unknown values represented honestly.
-Developer options sit in the More menu. Its simulation toggle closes real Bluetooth,
+Developer options sit in Settings. Its simulation toggle closes real Bluetooth,
 shows all catalog parameters using sample readings, and offers local-only scalar
 control responses and generated chart previews. A persistent banner marks the
 samples and exits simulation. Samples are never saved into the real telemetry
@@ -1000,7 +1000,7 @@ are trimmed earlier under storage pressure. Charts use numeric data actually
 reported; text-only/unsupported selections do not create numeric points.
 Reported health remains a controller value, not a capacity measurement.
 
-Live Stats > Data & history shows usage and can disable new timeline samples or clear
+Data > Data & history shows usage and can disable new timeline samples or clear
 one/all scooters' connected history. Disabling keeps the last-known cache.
 Clearing removes the selected timelines and cache, preserving explicit rides
 and owner setup. Fresh data can accumulate again while connected. Connected
