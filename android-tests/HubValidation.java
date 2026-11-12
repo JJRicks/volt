@@ -58,7 +58,12 @@ import com.jjricks.volt.ScooterService;
  *   <li><b>Widgets Home</b>: the dock shows on Widgets Home only (never on a subject page, never on Clean), each
  *   shown subject's icon opens it, and its All item opens the sheet listing all seven subjects, whose rows open
  *   their subject and close the sheet. With -e wide true or false, the dock must hold all seven (wide) or the
- *   phone's most-used ones (HubPages.dockSubjects).</li>
+ *   phone's most-used ones (HubPages.dockSubjects), and a wide dock must sit centred under the page.</li>
+ *   <li><b>Wide Clean Home</b> (part 13): on a window with room for two panes (MainActivity.twoPaneHome), Clean Home is
+ *   the scooter pane (tag hub-scooter-pane) beside the page pane (tag hub-page-pane), whose Home is HubHomePane. The
+ *   walk above runs in the page pane, and every page it opens must leave the scooter pane the same view (never rebuilt
+ *   by browsing). Battery & charging › Estimates & charger must hold the usable-energy panel and Settings › Home style
+ *   both style previews inside the page pane, no wider than it. With -e wide true, Clean Home must take two panes.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
@@ -137,15 +142,22 @@ public final class HubValidation extends Instrumentation {
     private void cleanSubjects() throws Exception {
         requireHome("CleanHomeScreen");
         main(() -> require(field(activity, "dock") == null, "Clean Home shows the dock"));
+        if (Boolean.parseBoolean(arguments.getString("wide", "false")))
+            main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
+                    "Clean Home on a wide window did not take two panes"));
+        Object[] pane = scooterPane();
         screenshot("clean-home");
         for (String subject : HubPages.SUBJECTS) {
             tapTag("home-subject-" + subject);
             arrived(subject, HubPages.HOME, subject);
             main(() -> require(field(activity, "dock") == null, subject + " shows the dock"));
+            requireSamePane(pane, subject);
             screenshot("subject-" + subject);
             for (String child : children(subject)) {
                 reach(child, Arrays.asList("hub-link-" + child, "hub-row-" + child));
                 arrived(child, HubPages.HOME, subject, child);
+                requireSamePane(pane, child);
+                if (child.equals(HubPages.BATTERY_ESTIMATES)) requireInPage("battery-usable-energy", "The usable-energy panel");
                 tapTag("hub-back");
                 arrived(subject, HubPages.HOME, subject);
             }
@@ -153,7 +165,9 @@ public final class HubValidation extends Instrumentation {
             requireHome("CleanHomeScreen");
             requireStack(HubPages.HOME);
         }
+        requireSamePane(pane, HubPages.HOME);
         checks.add("Clean Home: each subject row opens its subject over Home; each sub-page opens from it; back links and Back return");
+        if (pane[0] != null) checks.add("Wide Clean Home: two panes; every page opens in the page pane and leaves the scooter pane as it was; Estimates & charger holds the usable-energy panel there");
         // Settings behind the gear, and its own rows.
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
@@ -162,6 +176,11 @@ public final class HubValidation extends Instrumentation {
             String tag = SETTINGS_ROWS.get(child);
             reach(child, tag == null ? Collections.<String>emptyList() : Collections.singletonList(tag));
             arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireSamePane(pane, child);
+            if (child.equals(HubPages.SETTINGS_HOME)) {
+                requireInPage("home-style-clean", "Home style's Clean preview");
+                requireInPage("home-style-widgets", "Home style's Widgets preview");
+            }
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
@@ -227,7 +246,8 @@ public final class HubValidation extends Instrumentation {
     /** The Lock bar keeps its place and size while the top area changes moment. */
     private void moments() throws Exception {
         requireHome("CleanHomeScreen");
-        Object clean = field(activity, "screen");
+        // On two panes the moments are the scooter pane's Clean Home's (part 13).
+        Object clean = onMain(() -> twoPanes() ? field(activity, "homeScreen") : field(activity, "screen"));
         await(() -> onMain(() -> ((Integer) field(clean, "moment")) == 0), "Clean Home does not show the battery card while parked");
         int[] parked = lockPlace();
         BleController ble = activity.service().ble;
@@ -260,6 +280,12 @@ public final class HubValidation extends Instrumentation {
             require(shown.equals(expected), "The " + (wide ? "wide" : "phone") + " dock shows " + shown + ", expected " + expected);
         }
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
+        if (Boolean.parseBoolean(arguments.getString("wide", "false"))) main(() -> {
+            // Wide (part 13): the phone's dock, centred under the full-width page.
+            View bar = root().findViewWithTag("hub-dock"), frame = (View) bar.getParent();
+            int left = bar.getLeft(), right = frame.getWidth() - bar.getRight();
+            require(Math.abs(left - right) <= 2, "The wide dock is not centred: " + left + " px left, " + right + " px right");
+        });
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
         screenshot("widgets-home");
         for (String subject : shown) {
@@ -413,8 +439,10 @@ public final class HubValidation extends Instrumentation {
         });
     }
     private void requireHome(String screenClass) {
+        // The wide Clean Home (part 13): Home's page pane is HubHomePane, beside the Clean Home of the scooter pane.
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
-                && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), "Home is not " + screenClass);
+                && field(activity, "screen").getClass().getSimpleName().equals("CleanHomeScreen".equals(screenClass) && twoPanes() ? "HubHomePane" : screenClass)),
+                "Home is not " + screenClass);
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
     }
@@ -422,6 +450,31 @@ public final class HubValidation extends Instrumentation {
         Object dock = field(activity, "dock");
         require(dock != null, "Widgets Home has no dock");
         return dock;
+    }
+    /** The wide Clean Home's two panes are up (MainActivity.homeScreen is the scooter pane's Clean Home). Call on the main thread. */
+    private boolean twoPanes() { return field(activity, "homeScreen") != null; }
+    /** The scooter pane's view and its Clean Home, or nulls on one pane. */
+    private Object[] scooterPane() {
+        return onMain(() -> twoPanes() ? new Object[]{root().findViewWithTag("hub-scooter-pane"), field(activity, "homeScreen")} : new Object[]{null, null});
+    }
+    /** On two panes: the scooter pane is still the one captured (browsing never rebuilds it). */
+    private void requireSamePane(Object[] pane, String page) {
+        if (pane[0] == null) return;
+        main(() -> require(root().findViewWithTag("hub-scooter-pane") == pane[0] && field(activity, "homeScreen") == pane[1],
+                "The scooter pane was rebuilt opening " + page));
+    }
+    /** The view tagged tag exists and, on two panes, sits inside the page pane and is no wider than it. */
+    private void requireInPage(String tag, String what) {
+        main(() -> {
+            View view = root().findViewWithTag(tag);
+            require(view != null, what + " is missing (tag " + tag + ")");
+            if (!twoPanes()) return;
+            View pane = root().findViewWithTag("hub-page-pane");
+            boolean inside = false;
+            for (View at = view; at != null && !inside; at = at.getParent() instanceof View ? (View) at.getParent() : null) inside = at == pane;
+            require(inside, what + " is not in the page pane");
+            require(view.getWidth() <= pane.getWidth(), what + " is wider than the page pane");
+        });
     }
     /** The room a phone dock has (HubPages.dockRoom of the window's width, as HubDock measures it). */
     private int dockRoomDp() { return HubPages.dockRoom(activity.getResources().getConfiguration().screenWidthDp); }

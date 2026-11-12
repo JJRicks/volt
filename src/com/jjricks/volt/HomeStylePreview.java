@@ -97,7 +97,10 @@ final class HomeStylePreview extends View {
             subjectIcons.add(HubPages.icon(subject));
         }
         // A phone's dock at this window's width (a wide window's preview is still a phone, so no wider than a large one).
-        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(host.contentWidthDp(), 412)), 1f)) {
+        // The window's, not the page's: in the wide Clean Home's page pane (PR 13) the page is narrower than the window,
+        // and the preview must show the same phone there as on a full-width page.
+        int windowDp = context.getResources().getConfiguration().screenWidthDp;
+        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(windowDp, 412)), 1f)) {
             Msg shortName = HubText.shortTitle(subject);
             dockIcons.add(HubPages.icon(subject));
             dockLabels.add((shortName == null ? HubText.title(subject) : shortName).render());

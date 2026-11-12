@@ -22,7 +22,8 @@ import java.util.function.BooleanSupplier;
  * every subject with its name and live summary (CleanSubjects), so each stays one tap away, and so does an upward swipe
  * on the dock. Tapping an icon opens its subject on Home's page stack. Service's icon carries the orange dot while a
  * maintenance check is due, or "All" does while Service isn't shown. Each item is read by its subject's full name (All
- * by HubText.dockAll()), and a long press shows it. On a wide window the dock is centred and holds all seven. Hidden
+ * by HubText.dockAll()), and a long press shows it. On a wide window (PR 13) the dock is centred and holds all seven,
+ * with the same short names, at most 96 dp an item; the page above it takes the window's full width. Hidden
  * while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog references.
  */
 final class HubDock {
@@ -137,14 +138,16 @@ final class HubDock {
     }
 
     /**
-     * A subject's item: its icon over its short name on a phone, or its name when wide (Ui.nav's ladder: that label, the
-     * short name, or the icon alone). TalkBack and the long-press tooltip always give the full name.
+     * A subject's item: its icon over its short name, the same on a phone and on a wide window (hub layout plan 1.11,
+     * PR 13: the wide dock is the phone's, centred, so it reads as the same dock after a fold). Ui.nav's ladder falls
+     * back to the icon alone where even the short name doesn't fit. TalkBack and the long-press tooltip always give
+     * the full name.
      */
     private View item(String subject) {
         Msg shortName = HubText.shortTitle(subject);
         String name = HubText.title(subject).render();
         String shortLabel = shortName == null ? name : shortName.render();
-        View item = ui.nav(wide ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
+        View item = ui.nav(shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
         item.setContentDescription(name);
         item.setTooltipText(name);
         return item;
