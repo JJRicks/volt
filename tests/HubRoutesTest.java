@@ -38,7 +38,7 @@ public final class HubRoutesTest {
      */
     private static void sheets() {
         String[][] expected = {
-                {"controls", HubPages.CONTROLS}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
+                {"controls", HubPages.SCOOTER}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
                 {"section:Security", HubPages.SECURITY},
                 {"more:App", HubPages.SETTINGS}, {"more:Scooters", HubPages.SETTINGS_SCOOTERS}, {"more:Lab", HubPages.SERVICE_EXPERIMENTAL},
                 {"more:Data", HubPages.DATA_STORAGE}, {"more:About", HubPages.SETTINGS_ABOUT}};

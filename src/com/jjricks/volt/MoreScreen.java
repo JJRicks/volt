@@ -2585,7 +2585,7 @@ public final class MoreScreen implements AppScreen {
         if (!s.exportChargeRecordings(file -> {
             if (closed || host.activity().isDestroyed()) { if (file != null) file.delete(); return; }
             if (file == null) { host.toast(s.chargeCaptureStatus()); return; }
-            if (!host.emailChargeRecordings(file)) host.toast(HubText.chargeSendNoEmail());
+            host.emailChargeRecordings(file);
         })) exportBusy();
     }
 

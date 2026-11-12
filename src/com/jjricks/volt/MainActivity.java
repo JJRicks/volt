@@ -3238,19 +3238,26 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /**
      * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
-     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The subject names the
-     * page and the scooter's model; the body carries only Volt's version and that model, as Report an issue does.
+     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
+     * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
+     * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
+     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
+     * profile's. Toasts when no email app can take it.
      */
-    @Override public boolean emailChargeRecordings(File recordings){
-        String json;
-        try{json=new String(java.nio.file.Files.readAllBytes(recordings.toPath()),StandardCharsets.UTF_8);}
-        catch(java.io.IOException|RuntimeException failed){return false;}
-        finally{recordings.delete();}
+    @Override public void emailChargeRecordings(File recordings){
         DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
+        if(d!=null&&d.simulated)d=null;
         String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
-        String subject=HubText.title(HubPages.BATTERY_HISTORY).render()+(model.isEmpty()?"":" · "+model);
+        String subject=IssueReport.chargeRecordingsSubject(version,model);
         String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
-        return emailWithFile(subject,body,json);
+        new Thread(()->{
+            Uri uri;try{uri=DiagnosticsProvider.adopt(this,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
+            final Uri attached=uri;
+            handler.post(()->{
+                if(destroyed)return;
+                if(attached==null||!sendWithUri(subject,body,attached))toast(HubText.chargeSendNoEmail());
+            });
+        },"Volt-email-export").start();
     }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
@@ -3332,6 +3339,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private boolean emailWithFile(String subject,String body,String bundle){
         Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
+        return sendWithUri(subject,body,uri);
+    }
+    /** emailWithFile's send, for a snapshot DiagnosticsProvider already holds; false when no app can take it. */
+    private boolean sendWithUri(String subject,String body,Uri uri){
         Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
         send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
         send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));

@@ -42,9 +42,10 @@ public interface ScreenHost {
     default boolean emailVolt(String subject, String body) { return false; }
     /**
      * Emails this exported file of charge recordings to Volt's report address, attached as the report emails attach
-     * theirs; the file is read now and then deleted. False when no app can open the email.
+     * theirs. The file is moved off the main thread (never read into memory) and is gone afterwards; the host toasts
+     * when it can't be attached or no app can open the email.
      */
-    default boolean emailChargeRecordings(File recordings) { return false; }
+    default void emailChargeRecordings(File recordings) { recordings.delete(); }
     /** Opens the owner's email app with a plain draft to Volt's report address, with no sheet and nothing attached; false when no app can. */
     default boolean emailDraft(String subject, String body) { return false; }
     /** Asks which scooter this is (and optionally its drive modes), then drafts the finished check's report to Volt's report address. */

@@ -1206,8 +1206,8 @@ Choose two to eight ordered shortcuts in the widget options. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders open
 over Home, and so do the quick-control groups (Lights, Ride settings, Battery
 settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
-Shortcuts to whole settings pages open the page: Settings opens Scooter >
-Controls, PIN/proximity opens Scooter > Security, experimental controls open
+Shortcuts to whole settings pages open the page: Settings opens the Scooter
+tab, PIN/proximity opens Scooter > Security, experimental controls open
 their test in Scooter > Service > Experimental controls, and app-preference
 shortcuts open More on that menu. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates

@@ -19,7 +19,8 @@ final class HubRoutes {
     /** Quick access ids that open a page, and the page. */
     private static final Map<String, String> PAGES = new LinkedHashMap<>();
     static {
-        PAGES.put("controls", HubPages.CONTROLS);
+        // "Settings" (the legacy default) opened every scooter setting, Security and App preferences: the Scooter tab holds them.
+        PAGES.put("controls", HubPages.SCOOTER);
         PAGES.put("stats", HubPages.DATA);
         PAGES.put("rides", HubPages.RIDE);
         PAGES.put("section:Security", HubPages.SECURITY);
