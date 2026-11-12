@@ -141,6 +141,13 @@ public final class ScooterService extends Service {
                     return;
                 }
                 if (key == null) return;
+                if (key.equals(ChargeAutoRecordPolicy.KEY)) {
+                    // Record charges automatically: battery reads out of sight follow the switch (observeAutoCharge).
+                    Runnable look = () -> { if (!destroyed) changed(); };
+                    if (Looper.myLooper() == Looper.getMainLooper()) look.run();
+                    else handler.post(look);
+                    return;
+                }
                 if (!key.equals(BACKGROUND_CONNECTION) && !key.equals("auto_connect")) return;
                 Runnable apply =
                         () -> {
@@ -178,7 +185,7 @@ public final class ScooterService extends Service {
             autoEnds.reconcile(rides.automaticStopsAtLoad());
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
-        try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
+        try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"),ChargeAutoRecordPolicy.RULES);refreshChargeCurves(); }
         catch(IOException unavailable){chargeStatus=M.serviceChargeStorageUnavailable();}
 
         try{
@@ -460,13 +467,20 @@ public final class ScooterService extends Service {
             return M.serviceChargeAllowNotifications();
         return null;
     }
-    public boolean startChargeRecording(ChargeSessionStore.Charger charger){
+    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null);}
+    /**
+     * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start. An
+     * automatic start that finds no room (every saved recording is manual) does not start and changes no status.
+     */
+    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source){
         if(isChargeRecording())return false;
         CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
-            chargeStore.start(activeProfileId(),charger,wall,mono);chargeEndingMono=0;
+            if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
+            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,wall,mono))return false;
+            chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
             ble.recordDiagnostic(ConnectionEventLog.Reason.CHARGE_STARTED,-1);
             chargeReferenceGate.reset();
@@ -474,7 +488,68 @@ public final class ScooterService extends Service {
             cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return isChargeRecording();
         }catch(IOException|IllegalStateException failure){chargeStatus=M.serviceChargeStartFailed();finishChargeCapture(ChargeSessionStore.Stop.ERROR);changed();return false;}
     }
-    public void stopChargeRecording(){finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
+    /** The owner's Stop, on the page or in the notification. Stopping an automatic recording holds its scooter. */
+    public void stopChargeRecording(){holdAutoChargeIfAutomatic();finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
+    /** Record charges automatically: the switch, off by default. */
+    private boolean autoChargeEnabled(){return settings!=null&&settings.getBoolean(ChargeAutoRecordPolicy.KEY,false);}
+    /** Scooters whose automatic start failed (storage, or no room beside manual recordings), until they stop charging. */
+    private final Set<String> autoChargeLatched=new HashSet<>();
+    private boolean autoChargeBusy;
+    /** A hand stop of an automatic recording holds its scooter until it stops charging; stored, so a reconnect or restart keeps it. */
+    private void holdAutoChargeIfAutomatic(){
+        if(!isChargeRecording()||!ChargeAutoRecordPolicy.holdsAfterHandStop(chargeStore.automatic()))return;
+        String profile=chargeStore.profile();
+        Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
+        // commit(): the hold must outlive a process death right after the stop.
+        if(profile!=null&&holds.add(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).commit();
+    }
+    private void clearAutoChargeHold(String profile){
+        autoChargeLatched.remove(profile);
+        Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
+        if(holds.remove(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).apply();
+    }
+    /**
+     * Record charges automatically (ChargeAutoRecordPolicy), on every Bluetooth change and service tick, on screen or
+     * not: it acts whenever a connection exists and never keeps or opens one. Starts silently when the connected,
+     * selected scooter reports charging and a manual start would be allowed; ends an automatic recording at once
+     * when the scooter moves off, before auto-record rides looks in the same change; follows charger detection for a
+     * detected or guessed label. A fresh "not charging" reading ends the scooter's hold and latch.
+     */
+    private void observeAutoCharge(long mono){
+        if(destroyed||chargeStore==null||dataMaintenance)return;
+        boolean enabled=autoChargeEnabled();
+        // Out of sight the status poll reads no battery, so a charge that starts there would go unseen.
+        ble.readBatteryOutOfSight(enabled);
+        if(autoChargeBusy)return;autoChargeBusy=true;
+        try{
+            ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
+            boolean connected=ble.connected()&&!simulating();
+            boolean selected=connected&&active!=null&&bound!=null&&active.id.equals(bound.id);
+            ChargeSessionStore.Value state=selected?chargeFrame(mono,System.currentTimeMillis()).state:null;
+            boolean fresh=ChargeSessionStore.fresh(state,mono);
+            if(selected&&ChargeAutoRecordPolicy.clearsHold(fresh,fresh?state.value:-1))clearAutoChargeHold(active.id);
+            boolean movedAway=ChargeAutoRecordPolicy.movedAway(connected,ble.speedRaw(),ble.motionSampleMs(),mono);
+            if(isChargeRecording()){
+                if(!chargeStore.automatic())return;
+                // Ended by itself: no hold, and auto-record rides may start a ride in this same change.
+                if(movedAway){finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
+                ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detectedCharger());
+                if(relabel!=null)try{
+                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){chargeReferenceGate.reset();updateNotification();}
+                }catch(IOException keepFirstLabel){/* the recording keeps its first label */}
+                return;
+            }
+            boolean held=active!=null&&(autoChargeLatched.contains(active.id)
+                    ||ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,"")).contains(active.id));
+            boolean charging=fresh&&state.value==1;
+            // The manual start's own checks last: they cost the most.
+            if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),false,isChargeRecording(),held,movedAway))return;
+            if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
+            ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
+                    qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
+            if(!startChargeRecording(label.charger,label.source)&&!isChargeRecording())autoChargeLatched.add(active.id);
+        }finally{autoChargeBusy=false;}
+    }
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
@@ -600,7 +675,8 @@ public final class ScooterService extends Service {
                         // The charger stopped short of full with no schedule holding it: an overheating charger
                         // often cuts out and comes back. Wait, marked as a charger pause, before ending.
                         chargeEndingMono=0;
-                        ChargeSessionStore.ChargerOff off=chargeStore.chargerStopped(wall,mono);
+                        // An automatic recording waits two minutes, a manual one 30 (ChargeAutoRecordPolicy); a schedule hold is handled above.
+                        ChargeSessionStore.ChargerOff off=chargeStore.chargerStopped(wall,mono,ChargeAutoRecordPolicy.chargerOffWaitMs(chargeStore.automatic()));
                         if(!isChargeRecording()){chargeStatus=M.serviceChargeLimitReached();refreshChargeCurves();applyWorkPolicy(false);return;}
                         if(off==ChargeSessionStore.ChargerOff.PAUSED)updateNotification();
                         else if(off==ChargeSessionStore.ChargerOff.ENDED)stop=ChargeSessionStore.Stop.CHARGING_ENDED;
@@ -1827,7 +1903,10 @@ public final class ScooterService extends Service {
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
         notices.cancel(71);stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
-    public void startRide(String label){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
+    public void startRide(String label){if(destroyed)return;
+        // A ride started by hand ends an automatic charge recording (and holds it, as a Stop would); a manual one still refuses.
+        if(isChargeRecording()&&ChargeAutoRecordPolicy.rideEndsRecording(chargeStore.automatic()))stopChargeRecording();
+        if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
             android.widget.Toast.makeText(this, T.serviceRideExitSimulation(), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }if(phoneSaving()){
@@ -2177,7 +2256,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
