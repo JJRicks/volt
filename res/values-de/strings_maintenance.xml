@@ -274,8 +274,6 @@
     <string name="maintenance_notify_detail">Eine einmalige Benachrichtigung, wenn die Prüfung fällig ist</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Wartungserinnerungen</string>
-    <!-- src:aeef3c56adaeb985a0f9646ea7f0abf4daaaa3e0 -->
-    <string name="maintenance_channel_detail">Prüfungen, die du unter „Scooter › Wartung“ einstellst, jeweils einmal bei Fälligkeit</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%2$s: %1$d Prüfung fällig</item>
