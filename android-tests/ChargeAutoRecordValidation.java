@@ -77,11 +77,16 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                 main(() -> { link = new FakeLink(); link.attach(); });
                 await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link never ready");
                 log("link ready, not charging");
-                offByDefault();
-                onScreenChosenLabelAndShortChargeNotKept();
-                motionEndsAndRideStarts();
-                handStopHolds();
-                outOfSightStartAndNotificationStop();
+                // only=limit runs the 20-recording step alone, for a quick re-check.
+                if ("limit".equals(args.getString("only", ""))) main(() -> settings().edit().putBoolean(KEY, true).commit());
+                else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
+                else {
+                    offByDefault();
+                    onScreenChosenLabelAndShortChargeNotKept();
+                    motionEndsAndRideStarts();
+                    handStopHolds();
+                    outOfSightStartAndNotificationStop();
+                }
                 manualNeverDeleted();
             }
             result.putString("result", "PASS");
@@ -239,7 +244,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         ensureFront();
         plugIn();
         // The failed start latches the scooter: proof the start was tried, not merely not yet seen.
-        await(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
+        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
         require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
         log("20 manual saved: start tried and refused, all kept");
         main(() -> { link.charging(OFF); link.home(); });
@@ -318,7 +323,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "charge-auto-record-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory missing");
         File file = new File(dir, label + ".png"); Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath()); TextCensus.writeWithNotifications(this, file);
+        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
 
     // ===== Helpers =====
@@ -418,8 +423,18 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
     private void main(Runnable task) { final Throwable[] failure = {null}; runOnMainSync(() -> { try { task.run(); } catch (Throwable error) { failure[0] = error; } }); if (failure[0] != null) throw new IllegalStateException(failure[0]); }
     private boolean onMain(BooleanSupplier query) { final boolean[] result = {false}; main(() -> result[0] = query.getAsBoolean()); return result[0]; }
     private String onMainText(java.util.function.Supplier<String> query) { final String[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
+    private String onMainString(java.util.function.Supplier<String> query) { final String[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
     private View onMainView(java.util.function.Supplier<View> query) { final View[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
     private void await(BooleanSupplier query, long ms, String message) { long end = SystemClock.uptimeMillis() + ms; while (SystemClock.uptimeMillis() < end) { if (query.getAsBoolean()) return; SystemClock.sleep(50); } throw new AssertionError(message); }
+    /** await, with the service's view of an automatic start in the failure. */
+    private void awaitOr(BooleanSupplier query, long ms, String message) {
+        try { await(query, ms, message); }
+        catch (AssertionError failed) { throw new AssertionError(message + " (" + onMainString(() -> "blocked: " + service.chargeCaptureUnavailable()
+                + "; recording " + service.isChargeRecording() + "; ride " + service.isRecording() + "; held " + holds() + "; latched " + latched()
+                + "; switch " + settings().getBoolean(KEY, false) + "; visible " + service.isVisible()
+                + "; charging_state " + ble.telemetry.number("charging_state") + "; link " + ble.state() + " " + ble.message()
+                + "; status age " + ble.statusAge() + " ms; gatt " + field(ble, "gatt")) + ")"); }
+    }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }
     private static Object field(Object object, String name) { try { return reflected(object, name).get(object); } catch (Exception error) { throw new IllegalStateException(error); } }
