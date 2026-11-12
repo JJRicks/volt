@@ -235,12 +235,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);}
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
+        // A notice tap still waiting for the Scooter tab survives a cold start (into unfinished setup, say), as on main.
+        maintenancePending|=MaintenanceScreen.pending(preferences);
         selectedPage=nav.current();
         if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"),saved.getDoubleArray("riding_speed"),saved.getLong("riding_auto_ends",-1),saved.getBoolean("riding_link_seen",false),saved.getLongArray("riding_leave"));
         expireMoreSection(saved!=null);
         // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
         MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
-        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE)showMaintenanceFromNotice();
+        // Also kept as pending until a Scooter page is built: setup shown first replaces the stack when it finishes.
+        if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE){showMaintenanceFromNotice();pendMaintenance(true);}
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
         preferences.registerOnSharedPreferenceChangeListener(settingsChanged);
@@ -261,7 +264,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(tap==null)return;
         if(tap.route!=MaintenanceNotify.Route.OPEN_PAGE){maintenanceTapOther(tap);return;}
         // Focus mode stays up; the page opens when the Scooter tab is next shown.
-        if(riding!=null||onboarding!=null){maintenancePending=true;return;}
+        if(riding!=null||onboarding!=null||ridingRestore){pendMaintenance(true);return;}
         captureScroll();showMaintenanceFromNotice();preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
     /** More's menu, then the manual update check's dialog once More is on screen (showUpdateCheck). */
@@ -275,8 +278,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
-    /** A maintenance notice was tapped while riding mode or setup was up (onNewIntent); kept across recreation. */
+    /**
+     * A maintenance notice was tapped while riding mode or setup was up (onNewIntent), or at a cold start: its page opens
+     * on the next Scooter tab page built. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
+     */
     private boolean maintenancePending;
+    private void pendMaintenance(boolean on){maintenancePending=on;MaintenanceScreen.pending(preferences,on);}
     /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
     private void showMaintenanceFromNotice(){pageArgs=null;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
@@ -506,7 +513,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         // A deferred maintenance tap also opens when riding mode or setup closes onto a Scooter tab page, as the old Scooter page did.
-        if(maintenancePending&&HubPages.tabOf(selectedPage).equals(HubPages.SCOOTER)){maintenancePending=false;showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
+        // Not while riding mode still waits to be restored (the service isn't bound yet): it would open under riding mode and be lost.
+        if(maintenancePending&&!ridingRestore&&HubPages.tabOf(selectedPage).equals(HubPages.SCOOTER)){pendMaintenance(false);showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         HubNav.Args args=pageArgs;pageArgs=null;
         screen=createScreen(selectedPage,args);
         if(horizontalHinge()&&screen instanceof DashboardScreen){
@@ -1039,7 +1047,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void select(String page){
         String target=HubPages.canonical(page);
         // A maintenance notice tapped during riding mode or setup opens its page on the next visit to the Scooter tab.
-        if(target.equals(HubPages.SCOOTER)&&maintenancePending){maintenancePending=false;captureScroll();leaving(selectedPage,MaintenanceScreen.PAGE);String from=selectedPage;showMaintenanceFromNotice();arrived(from);return;}
+        if(target.equals(HubPages.SCOOTER)&&maintenancePending){pendMaintenance(false);captureScroll();leaving(selectedPage,MaintenanceScreen.PAGE);String from=selectedPage;showMaintenanceFromNotice();arrived(from);return;}
         if(target.equals(selectedPage)){if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
         String from=selectedPage;
         captureScroll();leaving(from,target);
