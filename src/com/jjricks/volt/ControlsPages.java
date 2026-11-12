@@ -45,6 +45,12 @@ final class ControlsPages {
      * the zones row ({@link ScooterMenuLayout#LIGHT_ZONES}), and their links carry its search words ("zones", "ambient").
      */
     static final List<String> SEARCHED_LINKS = Collections.unmodifiableList(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR));
+    /**
+     * Pages whose lock bar above the rows already has Connect while disconnected (Security): their last-seen banner leaves
+     * out its own Connect pill, and More's Security section on the page its full-width Connect, so the page shows one
+     * Connect as every other page does (#387 review).
+     */
+    static final List<String> CONNECT_ABOVE = Collections.unmodifiableList(Arrays.asList(HubPages.SECURITY));
     /** Controls never placed as rows (as before the Hub): the lock bar, the handlebar PIN and proximity unlock live elsewhere. */
     static final List<String> NEVER = Collections.unmodifiableList(Arrays.asList("lock", "pin", "proximity_key"));
 

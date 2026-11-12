@@ -1892,6 +1892,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 case HubPages.CONTROLS_ASSISTS:return design.featureIcon("hill_start_assist");
                 case HubPages.CONTROLS_LIMITS:return "speed";
                 case HubPages.BATTERY_MODES:case HubPages.BATTERY_ESTIMATES:return "battery";
+                // The chart its Charge recordings row draws, not the light pages' star (#387 review).
+                case HubPages.BATTERY_HISTORY:return "chart";
                 default:return "star";
             }
         }
@@ -1968,14 +1970,16 @@ public final class MainActivity extends Activity implements ScreenHost {
                 e.getValue().setVisibility(visible.contains(e.getKey())?View.VISIBLE:View.GONE);
                 hideDividers(bodies.get(e.getKey()));
             }
-            if(pageBody!=null)hideDividers(pageBody);
+            // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
+            if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
-        /** A divider shows only between two shown rows (each divider's tag is the row after it). */
-        private void hideDividers(LinearLayout body){
+        /** A divider shows only between two shown rows (each divider's tag is the row after it). True when a row shows. */
+        private boolean hideDividers(LinearLayout body){
             boolean hasVisible=false;
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
+            return hasVisible;
         }
         /**
          * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
@@ -2008,7 +2012,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             banner.setVisibility(ready?View.GONE:View.VISIBLE);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
-            bannerAction.setVisibility(connecting?View.GONE:View.VISIBLE);
+            bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
             readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();

@@ -135,6 +135,24 @@ public final class ControlsPagesTest {
         // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages.
         require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("\"linestarlightszonesambientpatterncolorboost\""),
                 "The index's search finds Line lights and Star lights by the zones row's words");
+        // A page's card hides when none of its rows shows (#387 review: Security's lone lock-duration row on a model
+        // without one left an empty strip).
+        require(source.contains("pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);")
+                && source.contains("privatebooleanhideDividers(LinearLayoutbody)") && source.contains("returnhasVisible;"),
+                "A page's card shows only while one of its rows does");
+        // Disconnected, Security shows one Connect, the lock bar's (#387 review): the banner's pill and More's button hide there.
+        require(ControlsPages.CONNECT_ABOVE.equals(Arrays.asList(HubPages.SECURITY)), "Security's lock bar has the page's Connect");
+        require(source.contains("bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);"),
+                "The last-seen banner leaves out its Connect under a lock bar");
+        String more = new String(Files.readAllBytes(Paths.get(mainActivity).resolveSibling("MoreScreen.java")), StandardCharsets.UTF_8).replaceAll("\\s+", "");
+        require(more.contains("securityConnect.setVisibility(!embedded&&link==BleController.State.DISCONNECTED?View.VISIBLE:View.GONE);"),
+                "More's Security section on the Security page leaves out its Connect");
+        // The Charger row on Charge history & recordings names the charger under its title, full width, never in the
+        // 140 dp value beside it (German at large text broke inside words there; #387 review).
+        require(more.contains("chargerLinkRow.sub((effective==null?HubText.chargerAutomatic()") && !more.contains("chargerLinkRow.value("),
+                "The Charger row's charger is its sub-line");
+        // Charge history & recordings' link draws the chart its recordings row uses, never the default star.
+        require(source.contains("caseHubPages.BATTERY_HISTORY:return\"chart\";"), "Charge history & recordings has the chart icon");
     }
 
     private static void order() {

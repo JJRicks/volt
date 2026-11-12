@@ -2984,7 +2984,8 @@ public final class MoreScreen implements AppScreen {
         pinRow.icon.step(pinOn ? 2 : 1);
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
-        securityConnect.setVisibility(link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
+        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
