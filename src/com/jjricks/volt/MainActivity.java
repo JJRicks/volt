@@ -2057,7 +2057,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
         // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) { showChargeAlerts(); return; }
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
+            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
+            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
+            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
+            showChargeAlerts(); return;
+        }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
