@@ -54,6 +54,10 @@ public final class ScooterService extends Service {
         CapacityCache(long mono, BatteryCapacityEstimate.Result result) { this.mono = mono; this.result = result; }
     }
     private ChargeScheduleController chargeScheduleController;
+    /** Report diagnostics' charge evidence (no_backup/charge-evidence), per saved scooter; null until onCreate. */
+    private ChargeEvidence evidence;
+    /** The saved scooter whose authenticated link fed the last evidence sample, or null. */
+    private String evidenceScope;
     private ChargeScheduleController.TestResult pendingScheduleTest;
     /** The start this measured arm's scooter confirmed in time, 0 until then. */
     private long measuredStartSent;
@@ -168,6 +172,7 @@ public final class ScooterService extends Service {
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
+        startEvidence();
         maintenanceNotices = new MaintenanceNotices(this, profiles);
         maintenance.listen(this::maintenanceChanged);
         MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
@@ -328,7 +333,7 @@ public final class ScooterService extends Service {
         DataMaintenance.enter();
         dataMaintenance = true;
         stopChargeAlarm();
-        if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        if(chargeScheduleController!=null)chargeScheduleController.cancel(ChargeScheduleController.Interruption.DATA_MAINTENANCE);
         resetChargeEstimateContext();
         destroyed = true;
         workActive = false;
@@ -393,7 +398,7 @@ public final class ScooterService extends Service {
         power.clear(); voltage.clear(); speed.clear();
         invalidateCapacityEstimate();
         resetChargeEstimateContext();
-        if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        if(chargeScheduleController!=null)chargeScheduleController.cancel(ChargeScheduleController.Interruption.SIMULATION);
         ble.setSimulation(enabled);
         cancelBackgroundDeadline();
         applyWorkPolicy(false);
@@ -713,7 +718,7 @@ public final class ScooterService extends Service {
     }
 
     private ChargeScheduleController schedules(){
-        if(chargeScheduleController==null)chargeScheduleController=new ChargeScheduleController(new ChargeScheduleController.Store(){
+        if(chargeScheduleController==null)attachEvidence(chargeScheduleController=new ChargeScheduleController(new ChargeScheduleController.Store(){
             public String read(String scope){return scope.startsWith("simulation:")?null:settings.getString("charge_schedule_owned_"+scope,null);}
             public void write(String scope,String value){if(!scope.startsWith("simulation:"))settings.edit().putString("charge_schedule_owned_"+scope,value).apply();}
         },new ChargeScheduleController.Driver(){
@@ -721,7 +726,7 @@ public final class ScooterService extends Service {
             public void clock(Consumer<Boolean> completion){ble.syncClock(completion);}
             public void time(long wallMs,int offsetSeconds,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion);}
             public void enabled(boolean enabled,Consumer<Boolean> completion){ble.setChargeSchedule(enabled,completion);}
-        });
+        }));
         return chargeScheduleController;
     }
     /** Remembered intentions are displayed separately from raw firmware readings. */
@@ -799,10 +804,11 @@ public final class ScooterService extends Service {
     private boolean beginChargeMeasure(int minute,long cautiousStartWall){
         if(destroyed||chargeMeasure.active()||activeProfileId().isEmpty()||!ChargeMeasureWindow.useful(System.currentTimeMillis(),cautiousStartWall))return false;
         chargeMeasure.start(activeProfileId(),minute,SystemClock.elapsedRealtime(),System.currentTimeMillis(),cautiousStartWall);
+        measureOp(ChargeScheduleController.Op.MEASURE_START);
         cancelChargeDoneNotice();cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return true;
     }
     /** The owner's Stop measuring: an explicit choice, so nothing is armed and no notice is posted. */
-    public void cancelChargeMeasure(){if(!chargeMeasure.active()||chargeMeasure.arming())return;chargeMeasure.finish();endChargeMeasureWork();}
+    public void cancelChargeMeasure(){if(!chargeMeasure.active()||chargeMeasure.arming())return;measureOp(ChargeScheduleController.Op.MEASURE_CANCEL);chargeMeasure.finish();endChargeMeasureWork();}
     /** The owner's Schedule now: arm with what is known, the cautious fresh-charge plan if age is not. */
     public void scheduleChargeNow(){
         if(!chargeMeasure.active()||chargeMeasure.arming())return;
@@ -831,7 +837,7 @@ public final class ScooterService extends Service {
     }
     /** Keeps the bounded connection until the one-shot arming has finished its scooter writes. */
     private void armMeasured(boolean measured){
-        chargeMeasure.arm();updateNotification();changed();measuredStartSent=0;
+        chargeMeasure.arm();measureOp(ChargeScheduleController.Op.MEASURE_ARM);updateNotification();changed();measuredStartSent=0;
         schedules().setDoneEnabled(true,result->{
             if(!chargeMeasure.active())return;
             ChargeScheduleController.View plan=chargeSchedule();boolean armed=result==null&&plan.doneByEnabled;
@@ -865,7 +871,7 @@ public final class ScooterService extends Service {
     /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
     private void endChargeMeasure(CharSequence reason){
         if(!chargeMeasure.active())return;
-        chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureNotSet(reason));
+        measureOp(ChargeScheduleController.Op.MEASURE_NOT_SET);chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureNotSet(reason));
         if(!destroyed)endChargeMeasureWork();
     }
     /** Charge done by's measuring window or a Scheduled charging test keeps the connection, each for a bounded few minutes. */
@@ -1668,6 +1674,78 @@ public final class ScooterService extends Service {
                 &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=ble.readingFreshMs(10_000)?metric.numericValue:null;
     }
 
+    // ---- Report diagnostics: charge evidence (ChargeEvidence). Typed values only; it never sends or changes anything. ----
+
+    private void startEvidence(){
+        try{
+            evidence=new ChargeEvidence(new File(getNoBackupFilesDir(),"charge-evidence"),ble::commandEvents,System::currentTimeMillis,SystemClock::elapsedRealtime);
+            List<String> saved=new ArrayList<>();for(ScooterProfiles.Profile p:profiles.all())saved.add(p.id);
+            // Files of scooters forgotten while the service was not running go now; the selected scooter's loads ahead of a report.
+            evidence.prune(saved);evidence.prefetch(activeProfileId());
+        }catch(RuntimeException unavailable){evidence=null;}
+    }
+    /** The controller's journal, for saved scooters only: a simulated scope never reaches the evidence files. */
+    private void attachEvidence(ChargeScheduleController controller){
+        final ChargeEvidence e=evidence;if(e==null)return;
+        controller.journal(new ChargeScheduleController.Journal(){
+            public void saved(String scope,ChargeScheduleController.Diagnostics record){if(ChargeEvidence.scope(scope))e.saved(scope,record);}
+            public void operation(String scope,ChargeScheduleController.Op op,ChargeScheduleController.Result result,ChargeScheduleController.Interruption why,
+                    long durationMs,long testWallMs,ChargeScheduleTest.Outcome testOutcome){if(ChargeEvidence.scope(scope))e.operation(scope,op,result,why,durationMs,testWallMs,testOutcome);}
+        });
+    }
+    private void measureOp(ChargeScheduleController.Op op){
+        String scope=chargeMeasure.active()?chargeMeasure.profile():activeProfileId();
+        if(evidence!=null&&!simulating()&&ChargeEvidence.scope(scope))evidence.operation(scope,op,ChargeScheduleController.Result.OK,null,0,0,null);
+    }
+    /**
+     * One typed sample per Bluetooth change, from the real authenticated link to the selected scooter only. Each value is a
+     * fresh reading of this connection (newer than its start and within the freshness the schedule uses), else unknown.
+     */
+    private void observeEvidence(){
+        if(evidence==null||profiles==null||ble==null)return;
+        ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
+        boolean live=!destroyed&&!dataMaintenance&&!simulating()&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+                &&active.serial.equals(ble.currentTransportSerial());
+        String scope=live?active.id:null;
+        if(evidenceScope!=null&&!evidenceScope.equals(scope))evidence.unlinked(evidenceScope);
+        evidenceScope=scope;
+        if(scope==null)return;
+        long mono=SystemClock.elapsedRealtime(),since=ble.connectionStartMs(),fresh=ble.readingFreshMs(10_000);
+        long[] s=new long[ChargeEvidence.S_COLUMNS];Arrays.fill(s,ChargeEvidence.NONE);
+        s[ChargeEvidence.S_WALL]=System.currentTimeMillis();s[ChargeEvidence.S_ELAPSED]=mono;s[ChargeEvidence.S_GENERATION]=ble.connectionGeneration();
+        for(Telemetry.Metric m:ble.telemetry.metrics()){
+            if(m.numericValue==null||!Double.isFinite(m.numericValue)||m.updatedMs<=0||m.updatedMs<since||mono<m.updatedMs||mono-m.updatedMs>fresh)continue;
+            double v=m.numericValue;
+            switch(m.key){
+                case "charging_state":if(v==0||v==1)s[ChargeEvidence.S_CHARGING]=(long)v;break;
+                case "battery_percent":s[ChargeEvidence.S_SOC]=Math.round(v);break;
+                case "voltage_v":s[ChargeEvidence.S_MV]=Math.round(v*1000);break;
+                case "current_a":s[ChargeEvidence.S_MA]=Math.round(v*1000);break;
+                case "power_w":s[ChargeEvidence.S_W]=Math.round(v);break;
+                case "temperature_c":s[ChargeEvidence.S_TEMP]=Math.round(v);break;
+                case "charge_limit_percent":s[ChargeEvidence.S_LIMIT]=Math.round(v);break;
+                case "scheduled_charge_time_raw":if(v>=0&&v<=0xffffffffL&&v==Math.rint(v))s[ChargeEvidence.S_WIRE]=(long)v;break;
+                default:break;
+            }
+        }
+        // The schedule switch and the lock come from the status frame: only while it is fresh on this connection.
+        if(ble.statusAge()<=fresh){
+            Integer on=ble.featureValue("timed_charging"),lock=ble.featureValue("lock");
+            if(on!=null&&(on==0||on==1))s[ChargeEvidence.S_ENABLED]=on;
+            if(lock!=null)s[ChargeEvidence.S_LOCK]=lock!=0?1:0;
+        }
+        s[ChargeEvidence.S_VISIBLE]=visible?1:0;
+        evidence.offer(scope,s,ble.pending());
+    }
+    /** Forgetting a scooter removes its evidence (MoreScreen's forget flow). */
+    void forgetEvidence(String profileId){if(profileId!=null&&profileId.equals(evidenceScope))evidenceScope=null;if(evidence!=null)evidence.forget(profileId);}
+    /** At service end: the last reading closes the connection, and pending writes go to disk on the worker, without waiting here. */
+    private void closeEvidence(){
+        if(evidence==null)return;
+        if(evidenceScope!=null){evidence.unlinked(evidenceScope);evidenceScope=null;}
+        evidence.close();
+    }
+
     private void resetChargeEstimateContext(){
         chargeReferenceGate.reset();
         chargerDetection.reset();
@@ -2177,7 +2255,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}observeEvidence();updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -2905,9 +2983,12 @@ public final class ScooterService extends Service {
                 .connections(ble.diagnosticEvents(),ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
                 .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
                 .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).chargeSchedule(schedules().diagnostics());
+        // The selected scooter's evidence only; none in a simulation (its file is the real scooter's).
+        String selected=activeProfileId();
+        if(evidence!=null&&!simulating()&&ChargeEvidence.scope(selected))bundle.evidence(evidence.snapshot(selected));
         List<String> secrets=new ArrayList<>();
         for(ScooterProfiles.Profile p:profiles.all()){
-            secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
+            secrets.add(p.id);secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
             if(!p.nameDefault)secrets.add(p.name);
         }
         return bundle.json(secrets);
@@ -2967,7 +3048,8 @@ public final class ScooterService extends Service {
         }}
     @Override public void onDestroy(){
         // No screen can show a test's result once the service ends: cancel() posts its notification instead.
-        if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel();}
+        if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel(ChargeScheduleController.Interruption.SERVICE_ENDED);}
+        closeEvidence();
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
         if(rideAutoExport!=null)rideAutoExport.shutdown();

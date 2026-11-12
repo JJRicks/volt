@@ -292,6 +292,15 @@ public final class ChargeEvidenceTest {
         check(!new File(f.dir, A).exists() && new File(f.dir, B).exists() && !f.evidence.snapshot(A).loaded, "forgetting a scooter removes its evidence");
         f.evidence.prune(Collections.<String>emptyList()); f.evidence.flush().get(10, TimeUnit.SECONDS);
         check(!new File(f.dir, B).exists(), "files of scooters no longer saved are pruned");
+        // Service end: the connection's last reading and everything pending reach disk without waiting; later calls are ignored.
+        Rig end = new Rig(); File ef = new File(end.dir, A);
+        end.offer(A, end.sample(1, 0L)); end.advance(2_000); end.offer(A, end.sample(1, 1L)); end.evidence.unlinked(A); end.evidence.close();
+        end.offer(A, end.sample(1, 0L)); end.evidence.close(); end.evidence.operation(A, ChargeScheduleController.Op.MANUAL_ON, ChargeScheduleController.Result.OK, null, 1, 0, null);
+        until = System.nanoTime() + 3_000_000_000L; while (!ef.isFile() && System.nanoTime() < until) Thread.sleep(20);
+        Thread.sleep(200);
+        end.open(); end.evidence.prefetch(A); ChargeEvidence.Book closed = end.book(A);
+        check(closed.timeline.size() == 3 && closed.timeline.get(2)[ChargeEvidence.T_KIND] == ChargeEvidence.Kind.LAST.ordinal() && closed.operations.isEmpty(),
+                "close writes what came before it, and nothing after");
         // An update starts empty: no file, an empty book.
         Rig fresh = new Rig(); fresh.evidence.prefetch(A);
         ChargeEvidence.Snapshot none = fresh.evidence.snapshot(A); fresh.evidence.flush().get(10, TimeUnit.SECONDS);

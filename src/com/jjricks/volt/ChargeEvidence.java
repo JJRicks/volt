@@ -204,6 +204,11 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
     }
     /** Writes everything pending now. Tests and process end only; never wait for this on the main thread. */
     Future<?> flush() { return worker.submit(() -> { for (String scope : new ArrayList<>(due.keySet())) write(scope); }); }
+    /** Service end: everything handed over before this is written, then the worker stops; nothing waits for it. Later calls do nothing. */
+    void close() {
+        try { worker.execute(() -> { try { for (String scope : new ArrayList<>(due.keySet())) write(scope); } finally { worker.shutdownNow(); } }); }
+        catch (RejectedExecutionException closed) { /* already closed */ }
+    }
 
     private void run(Runnable task) {
         try { worker.execute(() -> { try { task.run(); } catch (RuntimeException ignored) { /* diagnostics never change behaviour */ } }); }

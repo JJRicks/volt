@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Fuller report diagnostics for overnight charging.** A report with **Include diagnostics** now also shows, for the selected scooter, the last 10 Scheduled charging and Charge done by plans (start, deadline, battery when set, how each ended, and whether the scooter was locked when it was set, at its start and at its end), the last 5 schedule tests and why one was cut short, when charging started and stopped with the battery readings at those moments, a few minutes of readings around a start Volt set, how each schedule change ended, and changes to the schedule switch, start time, lock or charge limit that Volt didn't send. The control log now keeps the start time and clock Volt sent. It is all numbers and times kept on your phone, never backed up, and removed when you forget the scooter; **Preview** still shows the exact file. Downgrading to an earlier version clears the control log.
+
 ## 1.13.1 — 2026-11-11
 
 - **Download straight from the update check.** When **More › Updates** finds a newer version, its **Download** button now opens that release's `volt-<version>.apk` in your browser, which downloads it; open the file to install it over this version, and your data stays. If GitHub doesn't list the file yet (a release still uploading, say), the button is **Open release page**, as before. Volt itself still downloads and installs nothing, and the automatic check's notification opens the same dialog. The button is new in this version, so Volt 1.13.0 still offers this update through the release page.
