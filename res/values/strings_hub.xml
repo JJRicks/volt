@@ -54,7 +54,7 @@
     <!-- Past charging sessions, and recordings of a charge's curve. -->
     <string name="hub_page_battery_history" volt:screen="Battery &amp; charging page" volt:purpose="row and page title">Charge history &amp; recordings</string>
 
-    <!-- The scooter's riding assists, such as starting and braking aids. -->
+    <!-- The scooter's assists: Walk Assist, Power Assist, hill descent control and kick-start speed. -->
     <string name="hub_page_controls_assists" volt:screen="Controls page" volt:purpose="row and page title">Assists</string>
     <!-- Limits set once: a custom speed limit, a speed limit per drive mode, and overspeed control. -->
     <string name="hub_page_controls_limits" volt:screen="Controls page" volt:purpose="row and page title">Speed limits</string>
@@ -124,6 +124,20 @@
     <string name="hub_summary_service_due" volt:screen="Home subject summaries" volt:purpose="summary">%1$s: %2$s</string>
     <string name="hub_summary_service_clear" volt:screen="Home subject summaries" volt:purpose="summary">No checks due</string>
     <string name="hub_summary_data" volt:screen="Home subject summaries" volt:purpose="summary">Live readings, charts</string>
+
+    <!-- ===== Battery & charging › Charge history & recordings ===== -->
+    <!-- Under the row that emails this scooter's charge recordings to Volt (the row reads "Email to Volt"). Volt uses the recordings to make its charging time estimates more accurate for this scooter's model. -->
+    <string name="hub_charge_send_note" volt:screen="Charge history &amp; recordings" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Sending your charge recordings to Volt helps improve charging time estimates for your scooter\'s model.</string>
+    <!-- Toast when no email app on the phone can open the email with the charge recordings attached. -->
+    <string name="hub_charge_send_no_email" volt:screen="Charge history &amp; recordings" volt:purpose="toast">No email app could open the charge recordings.</string>
+    <!-- Toast when the owner taps "Email to Volt" while a charge is being recorded: the recordings can be sent only once the recording stops. -->
+    <string name="hub_charge_send_busy" volt:screen="Charge history &amp; recordings" volt:purpose="toast" volt:safety="charge">Stop charge recording before sending the recordings</string>
+
+    <!-- ===== Ride › Recording settings ===== -->
+    <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
+    <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>
+    <!-- Under that switch. Android does not let Volt turn on location from the background, so such a ride has no map. -->
+    <string name="hub_recording_auto_background_note" volt:screen="Recording settings" volt:purpose="caption" volt:safety="ride" volt:dnt="Volt|GPS">A ride that starts while Volt is in the background has no GPS route.</string>
 
     <!-- ===== Battery & charging page: the summary card at the top ===== -->
     <!-- %1$s is the battery level as a percent ("72%"), %2$s the estimated range left with its unit ("14 mi"). -->

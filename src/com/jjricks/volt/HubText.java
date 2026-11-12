@@ -136,6 +136,43 @@ public final class HubText {
     /** Data's summary. */
     public static Msg dataSummary() { return M.hubSummaryData(); }
 
+    // ===== Battery & charging › Charge history & recordings =====
+
+    /** The row that emails this scooter's charge recordings to Volt (the Compatibility panel's words). */
+    public static Msg chargeSendRow() { return M.compatEmail(); }
+    /** Under that row: why sending them helps (charging time estimates for the scooter's model). */
+    public static Msg chargeSendNote() { return M.hubChargeSendNote(); }
+    /** When no email app can open that email. */
+    public static Msg chargeSendNoEmail() { return M.hubChargeSendNoEmail(); }
+    /** Toast when that row is tapped while a charge is being recorded (recordings are sent only once capture stops). */
+    public static Msg chargeSendBusy() { return M.hubChargeSendBusy(); }
+    /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
+    public static Msg chargerRow() { return M.mainRowCharger(); }
+    /** That row's value while Automatic has not recognized the charger. */
+    public static Msg chargerAutomatic() { return M.mainRowAutomatic(); }
+    /** That row's value for a known charger; detected when Automatic recognized it rather than the owner choosing it. */
+    public static Msg chargerValue(boolean highSpeed, boolean detected) {
+        Msg family = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
+        return detected ? M.mainRowAutoFamily(family) : family;
+    }
+    /**
+     * That row's detail line, chosen as the Charger row chooses it: while this scooter's charge is being recorded
+     * (the label comes from the recording); else when Automatic recognized the charger from charging power; else
+     * while another scooter's charge is being recorded (the charger can't change then). Null when there is none.
+     */
+    public static Msg chargerDetail(boolean recordingThisScooter, boolean detected, boolean recordingOther) {
+        if (recordingThisScooter) return M.mainRowRecordingLabel();
+        if (detected) return M.mainRowDetected();
+        return recordingOther ? M.mainRowStopRecording() : null;
+    }
+
+    // ===== Ride › Recording settings =====
+
+    /** The switch that lets Record rides automatically also start while Volt is in the background. */
+    public static Msg recordInBackground() { return M.hubRecordingAutoBackground(); }
+    /** Under it: such a ride has no GPS route. */
+    public static Msg recordInBackgroundNote() { return M.hubRecordingAutoBackgroundNote(); }
+
     // ===== Battery & charging page, summary card =====
 
     /** Level (a formatted percent) and the estimated range left (with its unit). */
