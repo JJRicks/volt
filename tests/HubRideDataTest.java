@@ -65,6 +65,12 @@ public final class HubRideDataTest {
         // The card on Recording settings and the Phone sensors sheet (kept for validations) share those switches.
         check(body(rides, "private LinearLayout phoneSensorsCard()").contains("phoneSensors(content, false)"), "the Recording settings card shows the phone sensors");
         check(body(rides, "private void phoneOptions(Runnable dismissed)").contains("phoneSensors(content, true)"), "the Phone sensors sheet shows the same switches");
+        // The Next ride tag beside the Phone sensors heading drops to its own line when the two don't fit side by side, never
+        // cut mid-word (council review of #389, finding 3: "Próxi" in pt-PT at 1.4x text).
+        check(sensors.contains("new HeadingTag(ui.sectionLabel(title), chip)"), "the card's heading and tag share a HeadingTag");
+        String headingTag = body(rides, "private final class HeadingTag extends ViewGroup");
+        check(headingTag.contains("below = heading.getMeasuredWidth() + gap() + tag.getMeasuredWidth() > available")
+                && headingTag.contains("top + heading.getMeasuredHeight()"), "HeadingTag puts the tag under the heading when they don't fit");
 
         System.out.println("HubRideData: " + checks + " checks passed");
     }
