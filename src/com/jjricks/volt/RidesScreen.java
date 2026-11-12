@@ -80,23 +80,36 @@ public final class RidesScreen implements AppScreen {
     private final Ui ui;
     private final ScooterService service;
     private final SharedPreferences preferences;
-    private final ScrollView scroll;
-    /** Wide screens: the list on the left, the selected ride's details on the right; null when compact. */
+    /**
+     * What the screen shows (hub layout plan, PR 5). SUMMARY is the Ride page: recording, riding mode, the last few rides
+     * and links to the rest. ALL is All rides & compare, the whole history (and the wide two panes). SENSORS is only the
+     * phone sensors card, a part of Ride › Recording settings.
+     */
+    static final int SUMMARY = 0, ALL = 1, SENSORS = 2;
+    /** The rides SUMMARY lists before its All rides & compare link. */
+    private static final int RECENT_RIDES = 3;
+    private final int mode;
+    /** Null in SENSORS mode, as are the recording and history views below. */
+    private ScrollView scroll;
+    /** Wide screens: the list on the left, the selected ride's details on the right; null when compact. Only in ALL. */
     private final boolean wide;
-    private final ScrollView root, detailScroll;
-    private final LinearLayout detailPane;
+    private ScrollView root, detailScroll;
+    private LinearLayout detailPane;
     private final Map<String, View> historyRows = new HashMap<String, View>();
     private String selectedRide, detailKey = "";
-    private final LinearLayout page, recordCard, activeCard, history;
-    private final TextView recordButton, connectButton, endButton, activeTitle, activeElapsed, activeDistance,
+    private LinearLayout page, recordCard, activeCard, history;
+    private TextView recordButton, connectButton, endButton, activeTitle, activeElapsed, activeDistance,
             activeDistanceUnit, activePower, activeEnergy, activeBattery, activeBatteryUnit, activeQuality, historyCount;
     /** Live sensor state as tinted icons, chips that appear only when they apply, and the coverage figure. */
-    private final GlyphView gpsIcon, barometerIcon, motionIcon;
-    private final LinearLayout sensorIcons;
-    private final TextView gapChip, recoveredChip, coverageText, disconnectedPill, reconnectButton;
+    private GlyphView gpsIcon, barometerIcon, motionIcon;
+    private LinearLayout sensorIcons;
+    private TextView gapChip, recoveredChip, coverageText, disconnectedPill, reconnectButton;
     private Drawable recordFill; private ColorStateList recordInk;
-    private final Row sensorsRow, compareRow;
-    private final Ui.ChartView liveChart;
+    /** ALL only: Compare two rides (SUMMARY links to ALL instead). */
+    private Row compareRow;
+    /** SENSORS only: the Next ride tag shown while a ride records, since a change applies to the next recording. */
+    private View nextRideTag;
+    private Ui.ChartView liveChart;
     private final ExecutorService phoneLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "phone-ride-preview"); t.setDaemon(true); return t; });
     private final ExecutorService chartLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "full-ride-chart"); t.setDaemon(true); return t; });
     private final ExecutorService thumbLoader = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "ride-thumbnails"); t.setDaemon(true); t.setPriority(Thread.MIN_PRIORITY); return t; });
@@ -121,13 +134,23 @@ public final class RidesScreen implements AppScreen {
     private int visibleHistory = 20, savedCount;
     private Boolean activeStyled;
 
-    public RidesScreen(ScreenHost host) {
-        this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings;
+    /** All rides & compare, as the Rides tab was. */
+    public RidesScreen(ScreenHost host) { this(host, ALL); }
+
+    /** mode: SUMMARY, ALL or SENSORS. */
+    RidesScreen(ScreenHost host, int mode) {
+        this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings; this.mode = mode;
         selected = new LinkedHashSet<String>(preferences.getStringSet("ride_comparison", new LinkedHashSet<String>()));
         chartKey = preferences.getString("ride_chart_key", "power_w");
         selectedRide = preferences.getString("ride_selected", "");
         // Same rule as the activity's side rail (Ui.wideLayout), so two panes appear exactly when the rail does.
-        wide = ui.wideLayout();
+        wide = mode == ALL && ui.wideLayout();
+        if (mode == SENSORS) {
+            // A part of a Hub page, which scrolls the whole page: no scroller of its own.
+            page = vertical(); page.addView(phoneSensorsCard()); root = null;
+            refresh();
+            return;
+        }
         scroll = new MapTouchScroll(); scroll.setFillViewport(true); scroll.setClipToPadding(false);
         page = vertical(); page.setPadding(wide ? 0 : ui.dp(18), ui.dp(6), wide ? 0 : ui.dp(18), ui.dp(24)); scroll.addView(page);
 
@@ -188,7 +211,7 @@ public final class RidesScreen implements AppScreen {
         activeCard.addView(pair(notes, endButton));
         page.addView(activeCard, activeParams);
 
-        // Record controls: the red record button, then direction and phone sensor rows.
+        // Record controls: the red record button, then (on the Ride page) the way into riding mode.
         recordCard = ui.card(); recordCard.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), 0);
         recordButton = ui.button(T.ridesStartRecording(), this::toggleRecording); iconize(recordButton, "record");
         recordFill = recordButton.getBackground(); recordInk = recordButton.getTextColors();
@@ -197,21 +220,41 @@ public final class RidesScreen implements AppScreen {
         connectButton = ui.secondaryButton(T.ridesConnectToRecord(), host::connect);
         LinearLayout.LayoutParams connectParams = new LinearLayout.LayoutParams(-1, -2); connectParams.topMargin = ui.dp(4); connectParams.bottomMargin = ui.dp(4);
         recordCard.addView(connectButton, connectParams);
-        sensorsRow = navRow("sensors", M.ridesPhoneSensors(), "", "", this::phoneOptions); recordCard.addView(sensorsRow.view);
+        if (mode == SUMMARY) {
+            Row riding = navRow("scooter", HubText.openRiding(), "", "", host::openRiding);
+            riding.view.setTag("ride-open-riding"); recordCard.addView(riding.view);
+        }
         page.addView(recordCard);
 
         LinearLayout comparison = ui.card(); comparison.setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4));
-        compareRow = navRow("compare", M.ridesCompareTwo(), "", "", this::chooseComparison);
-        comparison.addView(compareRow.view);
-        ui.divider(comparison);
+        if (mode == SUMMARY) {
+            // The Ride page links to all rides and to its two settings pages, above the backups.
+            String[] links = {HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING};
+            String[] glyphs = {"compare", "record", "settings"};
+            for (int i = 0; i < links.length; i++) {
+                final String link = links[i];
+                Row row = navRow(glyphs[i], HubText.title(link), "", "", () -> host.open(link));
+                row.view.setTag(HubListScreen.tag(link)); comparison.addView(row.view);
+                ui.divider(comparison);
+            }
+        } else {
+            compareRow = navRow("compare", M.ridesCompareTwo(), "", "", this::chooseComparison);
+            comparison.addView(compareRow.view);
+            ui.divider(comparison);
+        }
         Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
-        backups.view.setTag("ride-backups-menu");comparison.addView(backups.view);page.addView(comparison);
+        backups.view.setTag("ride-backups-menu");comparison.addView(backups.view);
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.sectionLabel(T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
         historyCount = ui.caption(""); historyCount.setGravity(Gravity.END); historyCount.setPadding(ui.dp(4), ui.dp(14), ui.dp(4), ui.dp(6));
-        head.addView(historyCount); page.addView(head);
-        history = vertical(); page.addView(history);
+        head.addView(historyCount);
+        history = vertical();
+        if (mode == SUMMARY) {
+            // The last few rides come before the links, and never grow into the whole history.
+            visibleHistory = RECENT_RIDES;
+            page.addView(head); page.addView(history); page.addView(comparison);
+        } else { page.addView(comparison); page.addView(head); page.addView(history); }
         if (wide) {
             detailScroll = new ScrollView(host.activity()); detailScroll.setFillViewport(true); detailScroll.setClipToPadding(false);
             detailPane = vertical(); detailPane.setPadding(0, ui.dp(6), 0, ui.dp(24)); detailScroll.addView(detailPane);
@@ -221,12 +264,18 @@ public final class RidesScreen implements AppScreen {
         refresh();
         if (wide) Motion.scrollBeforeDraw(scroll, wideListScroll);
     }
+    /** Shows one ride: selected in the wide panes, else its details page (a page argument, HubNav.Args.ride). */
+    void openRide(String id) {
+        if (closed || id == null || mode == SENSORS) return;
+        if (wide) selectRide(id); else showDetails(id);
+    }
     /** A shortcut into Back up & restore with only Rides selected. */
     private void rideBackups() { host.dataBackup(null, BackupRegistry.RIDES); }
     private LinearLayout vertical() { LinearLayout result = new LinearLayout(host.activity()); result.setOrientation(LinearLayout.VERTICAL); return result; }
     private LinearLayout horizontal() { LinearLayout result = new LinearLayout(host.activity()); result.setOrientation(LinearLayout.HORIZONTAL); return result; }
-    @Override public View view() { return root; }
+    @Override public View view() { return mode == SENSORS ? page : root; }
     @Override public void refresh() {
+        if (mode == SENSORS) { if (nextRideTag != null) nextRideTag.setVisibility(service.isRecording() ? View.VISIBLE : View.GONE); return; }
         boolean recording = service.isRecording(), ready = service.ble.ready(), saving = service.phoneSaving();
         String error = service.recordingError();
         boolean simulating = service.simulating();
@@ -238,11 +287,13 @@ public final class RidesScreen implements AppScreen {
         if (simulating) recordButton.setContentDescription(T.ridesSimulatingExitDescription());
         recordButton.setVisibility(recording ? View.GONE : View.VISIBLE);
         connectButton.setVisibility(!ready && !recording ? View.VISIBLE : View.GONE);
-        recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), 0);
+        // On the Ride page the riding mode row closes the card; elsewhere the card is the button alone, gone while recording.
+        boolean rows = mode == SUMMARY;
+        recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), rows ? 0 : ui.dp(6));
+        recordCard.setVisibility(recording && !rows ? View.GONE : View.VISIBLE);
         label(endButton, error == null ? T.ridesEnd() : T.ridesRetrySave());
         endButton.setContentDescription(error == null ? T.ridesEndDescription() : T.ridesRetrySave());
         endButton.setEnabled(service.rides != null && !saving);
-        updateSensorsRow();
         if ((activeCard.getVisibility() == View.VISIBLE) != recording && activeCard.getParent() instanceof ViewGroup)
             Motion.animateChanges((ViewGroup) activeCard.getParent());
         activeCard.setVisibility(recording ? View.VISIBLE : View.GONE); if (recording) refreshActive();
@@ -323,18 +374,6 @@ public final class RidesScreen implements AppScreen {
             catch (IOException e) { host.toast(T.ridesToastNotesFailed()); }
         });
         show(dialog, DIALOG, null);
-    }
-    private void updateSensorsRow() {
-        boolean gps = preferences.getBoolean("phone_gps", true), motion = preferences.getBoolean("phone_motion", true);
-        int on = (gps ? 2 : 0) + (motion ? 1 : 0);
-        sensorsRow.update(sensorSummary(), on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on, on));
-    }
-    /** "GPS · elevation · motion": elevation is attached to GPS fixes (barometer when present, else GPS altitude), so it needs GPS. */
-    private String sensorSummary() {
-        boolean gps = preferences.getBoolean("phone_gps", true), motion = preferences.getBoolean("phone_motion", true);
-        List<String> on = new ArrayList<String>(); if (gps) { on.add(T.ridesSensorsGps()); on.add(T.ridesSensorsElevation()); } if (motion) on.add(gps ? T.ridesSensorsMotion() : T.ridesSensorsMotionStart());
-        String sub = on.isEmpty() ? T.ridesSensorsScooterOnly() : TextUtils.join(" · ", on);
-        return sub;
     }
     private void refreshActive() {
         if (service.rides == null) return;
@@ -474,7 +513,7 @@ public final class RidesScreen implements AppScreen {
                     group.addView(historyRow(stopped.get(i), stopped.get(i).id.equals(chosen))); shown.add(stopped.get(i).id);
                 }
                 history.addView(group);
-                if (stopped.size() > visibleHistory) history.addView(ui.secondaryButton(T.ridesShowMore(), () -> { visibleHistory += 20; refreshHistory(); }));
+                if (mode == ALL && stopped.size() > visibleHistory) history.addView(ui.secondaryButton(T.ridesShowMore(), () -> { visibleHistory += 20; refreshHistory(); }));
             } else {
                 LinearLayout empty = ui.card(); empty.addView(ui.icon("route", 30, ui.muted), new LinearLayout.LayoutParams(ui.dp(30), ui.dp(30)));
                 TextView copy = ui.text(T.ridesNoRidesYet(), 18, true); copy.setPadding(0, ui.dp(10), 0, ui.dp(2)); empty.addView(copy);
@@ -650,7 +689,7 @@ public final class RidesScreen implements AppScreen {
         }
     }
     /** Reads only accepted GPS fixes from the phone journal, never more than 16 MB, and keeps a 64-point outline. */
-    private static float[] readThumb(File file) {
+    static float[] readThumb(File file) {
         if (!file.isFile() || file.length() > 16L * 1024 * 1024) return NO_ROUTE;
         ArrayList<double[]> fixes = new ArrayList<double[]>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))) {
@@ -691,6 +730,7 @@ public final class RidesScreen implements AppScreen {
         return total;
     }
     private void updateComparisonActions() {
+        if (compareRow == null) return;
         if (!historyLoaded) { comparisonUnknown(); return; }
         boolean possible = savedCount >= 2;
         // Looks disabled until two rides exist, yet stays tappable so it can say why.
@@ -1280,11 +1320,43 @@ public final class RidesScreen implements AppScreen {
         TextView caption = ui.caption(text); caption.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); parent.addView(caption);
     }
 
+    /**
+     * The phone sensors (Ride › Recording settings): GPS route, the barometer and motion, under their heading. While a
+     * ride records, a Next ride tag says the changes apply to the next recording.
+     */
+    private LinearLayout phoneSensorsCard() {
+        LinearLayout content = vertical();
+        phoneSensors(content, false);
+        return content;
+    }
+    /** The Phone sensors sheet, as the Rides tab had it: the same switches as the Recording settings card, in a bottom sheet. */
     private void phoneOptions() { phoneOptions(null); }
     private void phoneOptions(Runnable dismissed) {
         LinearLayout content = vertical(); content.setPadding(ui.dp(16), 0, ui.dp(16), ui.dp(20));
-        // While recording, a Next ride tag says the changes apply to the next recording.
-        View close = sheetHeader(content, T.ridesPhoneSensors(), service.isRecording() ? T.ridesNextRide() : null);
+        View close = phoneSensors(content, true);
+        ScrollView scroller = new ScrollView(host.activity()); scroller.addView(content); insetBottom(scroller);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).create();
+        close.setOnClickListener(v -> dialog.dismiss());
+        show(dialog, SHEET, () -> { if (!closed) { refresh(); if (dismissed != null) dismissed.run(); } });
+    }
+    /**
+     * Adds the phone sensors to content: a sheet header (the sheet; its close button is returned) or a section heading
+     * (the card; returns null), then GPS route, the barometer and motion. The Next ride tag shows while a ride records.
+     */
+    private View phoneSensors(LinearLayout content, boolean sheet) {
+        String title = T.ridesPhoneSensors();
+        TextView chip = pill(T.ridesNextRide(), ui.blue);
+        chip.setContentDescription(T.ridesChangesNextRide());
+        View close = null;
+        if (sheet) close = sheetHeader(content, title, service.isRecording() ? chip : null);
+        else {
+            LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
+            head.addView(ui.sectionLabel(title));
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
+            chipParams.topMargin = ui.dp(8);
+            head.addView(chip, chipParams); nextRideTag = chip;
+            content.addView(head);
+        }
         LinearLayout sensors = ui.groupCard();
         switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
         ui.divider(sensors);
@@ -1295,10 +1367,7 @@ public final class RidesScreen implements AppScreen {
         switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
-        ScrollView scroller = new ScrollView(host.activity()); scroller.addView(content); insetBottom(scroller);
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).create();
-        close.setOnClickListener(v -> dialog.dismiss());
-        show(dialog, SHEET, () -> { if (!closed) { refresh(); if (dismissed != null) dismissed.run(); } });
+        return close;
     }
     /** The orange LAB badge More uses, placed after a row or section title. */
     private TextView labBadge() {
@@ -1324,8 +1393,8 @@ public final class RidesScreen implements AppScreen {
     private static String shortSourceName(MapSource source) {
         int split = source.name.indexOf(" · "); return split > 0 ? source.name.substring(0, split) : source.name;
     }
-    /** Sheet grab handle, title and a round close button; the caller wires the close action. */
-    private View sheetHeader(LinearLayout content, String title, String tag) {
+    /** Sheet grab handle, title (and a tag after it, or null) and a round close button; the caller wires the close action. */
+    private View sheetHeader(LinearLayout content, String title, View tag) {
         View grab = new View(host.activity()); grab.setBackground(ui.shape(ui.outline, 2, 0));
         LinearLayout.LayoutParams grabParams = new LinearLayout.LayoutParams(ui.dp(36), ui.dp(4)); grabParams.gravity = Gravity.CENTER_HORIZONTAL;
         grabParams.topMargin = ui.dp(10); grabParams.bottomMargin = ui.dp(6); content.addView(grab, grabParams);
@@ -1334,9 +1403,8 @@ public final class RidesScreen implements AppScreen {
         if (tag == null) row.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
         else {
             row.addView(heading);
-            TextView chip = pill(tag, ui.blue); LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
-            chip.setContentDescription(T.ridesChangesNextRide());
-            row.addView(chip, chipParams); row.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, 1, 1));
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
+            row.addView(tag, chipParams); row.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, 1, 1));
         }
         FrameLayout close = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL); disc.setColor(ui.raised);

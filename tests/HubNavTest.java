@@ -90,7 +90,7 @@ public final class HubNavTest {
         // Anything odd in a saved stack falls back to the saved page with its parents.
         String[][] broken = {
             {}, {HubPages.DATA}, {HubPages.HOME, "gone"}, {HubPages.HOME, "stats"}, {HubPages.HOME, HubPages.DATA, HubPages.DATA},
-            {HubPages.HOME, null}, {HubPages.HOME, HubPages.CONTROLS},
+            {HubPages.HOME, null}, {HubPages.HOME, "rides"},
             {"home", "ride", "ride.rides", "battery", "battery.modes", "lights", "security", "service", "data"},
         };
         for (String[] stack : broken) {
