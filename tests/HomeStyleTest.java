@@ -49,6 +49,17 @@ public final class HomeStyleTest {
         require(!HomeStyle.showWhatsNew(restored[1], false, false, false, false, true, true), "and that restore shows no What's new");
         String[] kept = HomeStyle.reseed(HomeStyle.ORIGIN_UPDATE, false, false, false, false, t, t);
         require(kept != null && kept[0].equals(HomeStyle.WIDGETS) && kept[1].equals(HomeStyle.ORIGIN_UPDATE), "A stored update origin is never re-decided");
+        // A first setup under way made its own profile: no sign of an earlier owner, so nothing is written, even
+        // across a restart, and setup's end decides (its last step preselects Clean; a skip records Clean and install).
+        require(HomeStyle.reseed(null, false, true, false, false, t, t, true) == null, "A profile made by a first setup under way writes nothing");
+        require(HomeStyle.setupChoice(null, false, null).equals(HomeStyle.CLEAN), "so setup's last step still preselects Clean after a restart");
+        String[] skippedMidway = HomeStyle.afterSkippedSetup(null, false);
+        require(HomeStyle.CLEAN.equals(skippedMidway[0]) && HomeStyle.ORIGIN_INSTALL.equals(skippedMidway[1]),
+                "and skipping it then gives Clean and origin install");
+        String[] setupKept = HomeStyle.reseed(HomeStyle.ORIGIN_UPDATE, false, true, false, false, t, t, true);
+        require(setupKept != null && setupKept[0].equals(HomeStyle.WIDGETS), "A stored origin still gives its style during setup");
+        String[] notSetup = HomeStyle.reseed(null, false, true, false, false, t, t, false);
+        require(notSetup != null && notSetup[1].equals(HomeStyle.ORIGIN_UPDATE), "Outside a first setup a profile still marks an earlier owner");
         String[] odd = HomeStyle.reseed("bogus", false, false, false, false, t, t);
         require(odd == null, "An unknown stored origin counts as none");
         require(HomeStyle.pickedOrigin(null).equals(HomeStyle.ORIGIN_INSTALL), "A pick on an installation the seed left alone records install");

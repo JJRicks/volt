@@ -161,6 +161,16 @@ public final class OnboardingScreen implements AppScreen {
         return !hasConfiguredProfile(context, service);
     }
 
+    /**
+     * A first setup is under way (HomeStylePrefs.seed): never finished or skipped, not "Run setup again", and past
+     * Welcome or holding the profile it created. Its profile is setup's own, not a sign of an earlier owner.
+     */
+    static boolean firstSetupInProgress(SharedPreferences p) {
+        if (p.getBoolean(KEY_DONE, false) || p.getBoolean(KEY_RERUN, false)) return false;
+        String created = p.getString(KEY_CREATED, "");
+        return p.getInt(KEY_STEP, WELCOME) > WELCOME || (created != null && !created.isEmpty());
+    }
+
     /** Re-opens the flow at "Choose a path" (for a "Run setup again" entry). Call rebuild() after. */
     public static void restart(Context context) {
         prefs(context).edit().clear().putInt(KEY_STEP, PATH).putBoolean(KEY_RERUN, true).commit();

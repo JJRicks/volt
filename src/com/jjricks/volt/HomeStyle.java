@@ -64,8 +64,21 @@ final class HomeStyle {
      */
     static String[] reseed(String storedOrigin, boolean onboardingDone, boolean hasProfile, boolean hasLastPage,
                            boolean hasDashboard, long firstInstallTime, long lastUpdateTime) {
+        return reseed(storedOrigin, onboardingDone, hasProfile, hasLastPage, hasDashboard, firstInstallTime, lastUpdateTime, false);
+    }
+
+    /**
+     * {@link #reseed}, told whether a first setup is under way (setup never finished or skipped, not a rerun, and past
+     * its first page or holding the profile it created). While it is, nothing is written even when a profile exists:
+     * setup made that profile itself, so it is no sign of an earlier owner. Setup's end decides instead
+     * (HomeStylePrefs.markChosen on its last step, HomeStylePrefs.setupSkipped on a skip), and its last step keeps
+     * Clean preselected after the app restarts mid-setup.
+     */
+    static String[] reseed(String storedOrigin, boolean onboardingDone, boolean hasProfile, boolean hasLastPage,
+                           boolean hasDashboard, long firstInstallTime, long lastUpdateTime, boolean firstSetupInProgress) {
         if (ORIGIN_INSTALL.equals(storedOrigin)) return new String[]{CLEAN, ORIGIN_INSTALL};
         if (ORIGIN_UPDATE.equals(storedOrigin)) return new String[]{WIDGETS, ORIGIN_UPDATE};
+        if (firstSetupInProgress) return null;
         if (existingOwner(onboardingDone, hasProfile, hasLastPage, hasDashboard, firstInstallTime, lastUpdateTime))
             return new String[]{WIDGETS, ORIGIN_UPDATE};
         return null;

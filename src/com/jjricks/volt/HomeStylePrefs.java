@@ -52,7 +52,8 @@ final class HomeStylePrefs {
     /**
      * At each app start, when no style is stored (HomeStyle.reseed): a stored origin is kept and only gives the
      * style back; otherwise an earlier owner records Widgets and its origin together in one commit, and a clean
-     * new installation writes nothing, so fresh app data stays empty. A failure to read the package times counts
+     * new installation writes nothing, so fresh app data stays empty, and so does one whose first setup is under way
+     * (setup's own profile is no sign of an earlier owner; setup's end records the style). A failure to read the package times counts
      * as an update (Widgets), the choice that keeps saved layouts on screen.
      */
     static void seed(Context context, SharedPreferences app) {
@@ -63,7 +64,9 @@ final class HomeStylePrefs {
         boolean hasDashboard = false;
         for (String key : all.keySet()) if (HomeStyle.dashboardKey(key)) { hasDashboard = true; break; }
         boolean hasLastPage = all.containsKey(MaintenanceScreen.LAST_PAGE);
-        boolean onboardingDone = context.getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE).getBoolean(OnboardingScreen.KEY_DONE, false);
+        SharedPreferences onboarding = context.getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE);
+        boolean onboardingDone = onboarding.getBoolean(OnboardingScreen.KEY_DONE, false);
+        boolean firstSetupInProgress = OnboardingScreen.firstSetupInProgress(onboarding);
         String items = context.getSharedPreferences("profiles", Context.MODE_PRIVATE).getString("items", "");
         boolean hasProfile = (items != null && items.contains("\"id\""))
                 || !context.getSharedPreferences("scooter", Context.MODE_PRIVATE).getAll().isEmpty();
@@ -74,7 +77,7 @@ final class HomeStylePrefs {
         } catch (Exception ignored) {
             // Unknown history: first != last, so the seed treats it as an update.
         }
-        String[] seed = HomeStyle.reseed(origin, onboardingDone, hasProfile, hasLastPage, hasDashboard, first, last);
+        String[] seed = HomeStyle.reseed(origin, onboardingDone, hasProfile, hasLastPage, hasDashboard, first, last, firstSetupInProgress);
         if (seed == null) return;
         SharedPreferences.Editor edit = app.edit().putString(HomeStyle.KEY, seed[0]);
         if (!seed[1].equals(origin)) edit.putString(HomeStyle.ORIGIN_KEY, seed[1]);
