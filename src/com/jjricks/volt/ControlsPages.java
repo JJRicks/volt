@@ -14,7 +14,7 @@ import java.util.Map;
  * ids, {@link #CHARGE_LIVE}, or a link to another page ({@link #link}). Each page lists its rows in a fixed order,
  * the most used first; controls owners set once go on sub-pages (owner's decision 3: a best guess, adjusted after use,
  * so every order lives in this one table). There is no saved arrangement: the Scooter tab's arrange-and-hide editor
- * is gone (owner's decision 5 in #383, pending his yes on question 1 there), and {@code scooter_menu_v1_<pid>} is no longer read.
+ * is gone (owner's decision 5 in #383, approved in his answers 1 and 5 there), and {@code scooter_menu_v1_<pid>} is no longer read.
  *
  * <p>A "Done by" row follows its parent ({@code timed_charging}, {@code charge_start}) wherever that row goes. An
  * experimental control (ScooterCommands.Feature.experimental) shows as an ordinary row where its model maps it
