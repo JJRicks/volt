@@ -142,6 +142,8 @@ public final class MoreScreen implements AppScreen {
     private ChargeHistoryDialog chargeHistoryDialog;
     /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
     private Row chargerLinkRow, sendChargeRow;
+    /** The Charger row's detail line, under the charger's name (its sub-line). */
+    private TextView chargerDetail;
     private TextView securityNotice;
     private LinearLayout indexProfileCard;
     private ImageView indexPhoto;
@@ -2582,6 +2584,11 @@ public final class MoreScreen implements AppScreen {
         // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
         chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
         chargerLinkRow.view.setTag("charge-charger-selector");
+        // The charger's name goes under the title, full width, as other rows' sub-lines do, never in the 140 dp value
+        // beside it, where a long name (German at large text) broke inside a word and squeezed the title (#387 review).
+        // Its detail line, when there is one, sits under it.
+        chargerDetail=ui.text("",11.5f,false);chargerDetail.setTextColor(ui.muted);chargerDetail.setPadding(0,ui.dp(2),0,0);
+        chargerDetail.setVisibility(View.GONE);((LinearLayout)chargerLinkRow.sub.getParent()).addView(chargerDetail);
         // Count qualified evidence without claiming every range is ready at a fixed session count.
         chargeCurve=ui.card();chargeCurve.setTag("charge-learning-status");
         LinearLayout curveHead=row();
@@ -2724,10 +2731,11 @@ public final class MoreScreen implements AppScreen {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
         boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
-        chargerLinkRow.value((effective == null ? HubText.chargerAutomatic()
+        chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
         Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
-        chargerLinkRow.sub(detail == null ? null : detail.render());
+        chargerDetail.setText(detail == null ? "" : detail.render());
+        chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
 
     /**
