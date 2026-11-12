@@ -81,6 +81,11 @@ public final class HomeStyleTest {
         require(!HomeStyle.showWhatsNew(u, false, false, false, true, true, true), "Not in riding mode");
         require(!HomeStyle.showWhatsNew(u, false, false, false, false, false, true), "Only on Home");
         require(!HomeStyle.showWhatsNew(u, false, false, false, false, true, false), "Only while resumed");
+        // Owner's answer on #403: the background-recording notice, only for updating owners who record automatically.
+        require(HomeStyle.whatsNewBackgroundNotice(u, true), "An updating owner with Record rides automatically on sees the notice");
+        require(!HomeStyle.whatsNewBackgroundNotice(u, false), "One who never used it does not");
+        require(!HomeStyle.whatsNewBackgroundNotice(i, true), "A fresh install never does");
+        require(!HomeStyle.whatsNewBackgroundNotice(null, true), "nor one the seed never saw");
     }
 
     /** Setup's last step (PR 9): what it preselects, and what a skipped setup leaves stored. */

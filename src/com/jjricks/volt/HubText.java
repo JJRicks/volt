@@ -300,6 +300,15 @@ public final class HubText {
     public static Msg whatsNewReleasePage() { return M.moreUpdateOpen(); }
     /** The message when no browser can open the release page (the update check's). */
     public static Msg whatsNewNoBrowser() { return M.moreUpdateNoBrowser(); }
+    /**
+     * The one-time notice for owners who already had Record rides automatically on (owner's answer on #403): an
+     * automatic start in the background is now off until they turn it on.
+     */
+    public static Msg whatsNewBackgroundNotice() { return M.homeWhatsNewBackground(); }
+    /** The switch right under that notice: Recording settings' own "Start recording in the background". */
+    public static Msg whatsNewBackgroundSwitch() { return M.hubRecordingAutoBackground(); }
+    /** The link under that notice to Ride › Recording settings, the page that holds the switch (its own title). */
+    public static Msg whatsNewRecordingSettings() { return M.hubPageRideRecording(); }
 
     // ===== Search (hub layout plan 1.12) =====
 
