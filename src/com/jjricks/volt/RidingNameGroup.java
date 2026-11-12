@@ -9,8 +9,11 @@ package com.jjricks.volt;
  * temperature showed its thermometer and Battery its name in English, the other way round in
  * Portuguese). So the group decides together: when any reading has no name that fits and has an
  * icon to show instead, every reading in the group that has an icon shows its icon; otherwise every
- * reading shows a name. A reading with no icon (Speed, Voltage, Odometer and the like) always shows
- * its name, because it has nothing else to show. Pure, so the host tests run it.
+ * reading shows a name. Icons only help while they tell the readings apart, so when two readings in
+ * the group would show the same icon (Range at this pace and Trip both show the route, Average and
+ * Max speed the speedometer), the group keeps names, as the chips never give two readings one icon
+ * (RidingChipFit.nameStep). A reading with no icon (Speed, Voltage, Odometer and the like) always
+ * shows its name, because it has nothing else to show. Pure, so the host tests run it.
  */
 final class RidingNameGroup {
     private RidingNameGroup() {}
@@ -25,11 +28,23 @@ final class RidingNameGroup {
      *
      * @param fits each member's own ladder choice: the first rung that fits (TileRung.first), -1 when
      *             none does, or {@link #UNMEASURED}
-     * @param icons whether each member has an icon
+     * @param icons each member's icon key, or null when it has none (or takes no part in the icon choice)
+     * @param contents each member's content id, so two members showing the same reading may share an icon
      */
-    static boolean icons(int[] fits, boolean[] icons) {
-        for (int i = 0; i < fits.length; i++) if (fits[i] == -1 && icons[i]) return true;
-        return false;
+    static boolean icons(int[] fits, String[] icons, String[] contents) {
+        boolean wanted = false;
+        for (int i = 0; i < fits.length; i++) if (fits[i] == -1 && icons[i] != null) wanted = true;
+        if (!wanted) return false;
+        // Two different readings showing one icon couldn't be told apart: the group keeps names instead.
+        for (int i = 0; i < fits.length; i++) {
+            if (fits[i] == UNMEASURED || icons[i] == null) continue;
+            for (int j = i + 1; j < fits.length; j++) {
+                if (fits[j] == UNMEASURED || !icons[i].equals(icons[j])) continue;
+                if (contents[i] != null && contents[i].equals(contents[j])) continue;
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

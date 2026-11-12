@@ -1462,7 +1462,7 @@ final class RidingScreen implements AppScreen {
         }
         void show(long now, String units) {
             Shown s = shown(content, now, units);
-            label.set(s.icon, s.rungs);
+            label.set(s.icon, s.inferredWatts != null, s.rungs);
             if (s.inferredWatts != null) {
                 int rung = RidingPowerCue.rungOfLabel(label.picked);
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts, RidingValues.Direction.REGEN_INFERRED, rung))), Fmt.unit(UnitCode.WATT)));
@@ -1491,21 +1491,23 @@ final class RidingScreen implements AppScreen {
      */
     private static final class NameGroup {
         private final List<Label> members = new ArrayList<>();
+        private final List<String> contents = new ArrayList<>();
         void add(Cell cell) {
             members.add(cell.label);
+            contents.add(cell.content);
             cell.label.group = this;
         }
         /** Works out the group's choice from each member's own ladder and shows it on every member. */
         void settle() {
             int n = members.size();
             int[] fits = new int[n];
-            boolean[] icons = new boolean[n];
+            String[] icons = new String[n];
             for (int i = 0; i < n; i++) {
                 Label label = members.get(i);
                 fits[i] = label.getVisibility() == View.VISIBLE ? label.fit : RidingNameGroup.UNMEASURED;
-                icons[i] = label.icon != null;
+                icons[i] = label.groupIcon();
             }
-            boolean shared = RidingNameGroup.icons(fits, icons);
+            boolean shared = RidingNameGroup.icons(fits, icons, contents.toArray(new String[0]));
             for (Label label : members) label.apply(shared);
         }
     }
@@ -1523,6 +1525,12 @@ final class RidingScreen implements AppScreen {
         private int fit = RidingNameGroup.UNMEASURED;
         /** The readings it shares a presentation with, or null for a label on its own. */
         NameGroup group;
+        /**
+         * Its rungs carry a cue beyond the name (inferred power's "direction unknown"), which the number's sign
+         * depends on: while a rung fits it keeps that rung, whatever its group shows; with no rung that fits it
+         * falls back to its icon, as on its own.
+         */
+        private boolean cue;
         /** Runs when a change of width moves the label to another rung, so what depends on the rung follows at once. */
         Runnable rungChanged;
         Label() {
@@ -1536,12 +1544,15 @@ final class RidingScreen implements AppScreen {
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
             chrome.add(this);
         }
-        void set(String icon, String... rungs) {
-            if (java.util.Arrays.equals(this.rungs, rungs) && TextUtils.equals(this.icon, icon)) return;
+        void set(String icon, boolean cue, String... rungs) {
+            if (java.util.Arrays.equals(this.rungs, rungs) && TextUtils.equals(this.icon, icon) && this.cue == cue) return;
             this.rungs = rungs;
             this.icon = icon;
+            this.cue = cue;
             fit();
         }
+        /** The icon it offers its group's choice: none while a cue rung of its own fits. */
+        String groupIcon() { return cue && fit >= 0 ? null : icon; }
         @Override protected void onSizeChanged(int w, int h, int ow, int oh) {
             super.onSizeChanged(w, h, ow, oh);
             if (w != ow) post(this::fit);
@@ -1556,7 +1567,7 @@ final class RidingScreen implements AppScreen {
                 fit = TileRung.first(widths, room);
             }
             if (group != null) group.settle();
-            else apply(RidingNameGroup.icons(new int[]{fit}, new boolean[]{icon != null}));
+            else apply(RidingNameGroup.icons(new int[]{fit}, new String[]{groupIcon()}, new String[1]));
         }
         /** Shows the rung or icon this label takes when its group shows icons (or not); the rung's dependants follow. */
         void apply(boolean icons) {
@@ -1564,7 +1575,7 @@ final class RidingScreen implements AppScreen {
             picked = -1;
             if (rungs.length == 0) setText("");
             else {
-                int shown = RidingNameGroup.shown(fit, rungs.length, icon != null, icons);
+                int shown = RidingNameGroup.shown(fit, rungs.length, groupIcon() != null, icons);
                 if (shown == RidingNameGroup.ICON) show("", true);
                 else {
                     show(rungs[shown], false);
