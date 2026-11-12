@@ -3303,15 +3303,14 @@ public final class MainActivity extends Activity implements ScreenHost {
      * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
      * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
-     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
-     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
+     * and that model, as Report an issue does. The model line comes with the file, taken when the row was tapped
+     * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
+     * prepared, or no email app can take it.
      */
     /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
-    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
-    @Override public void emailChargeRecordings(File recordings){
-        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
-        if(d!=null&&d.simulated)d=null;
-        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+    private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{if(destroyed)export.file.delete();else emailChargeRecordings(export.file,export.model);};
+    @Override public void emailChargeRecordings(File recordings,String model){
+        String version=AppVersion.name(this);
         String subject=IssueReport.chargeRecordingsSubject(version,model);
         String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
         new Thread(()->{

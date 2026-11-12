@@ -2645,12 +2645,17 @@ public final class MoreScreen implements AppScreen {
      * to Volt's report address (the report emails' attachment flow). Refused with no scooter chosen ("Choose a scooter
      * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
      * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
-     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email.
+     * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email,
+     * with the model of the scooter chosen at the tap.
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
+        // The model line is taken now, with the scooter whose recordings the export takes (ChargeSend.Export). A simulated
+        // scooter's model is left out: the recordings are the real profile's.
+        DeviceDescriptor d = s.ble.descriptor();
+        String model = ModelRegistry.modelLine(d != null && d.simulated ? null : d);
         if (s.exportChargeRecordings(file -> {
-            if (file != null) { ChargeSend.MAILBOX.deliver(file, System.currentTimeMillis()); return; }
+            if (file != null) { ChargeSend.MAILBOX.deliver(new ChargeSend.Export(file, model), System.currentTimeMillis()); return; }
             if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
         })) return;
         // Refused: tell the reasons apart from the service's state.

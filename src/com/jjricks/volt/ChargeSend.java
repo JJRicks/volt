@@ -11,6 +11,7 @@ import java.util.function.Consumer;
  * told to stop a recording that isn't running. The council's review of #387 (P3) added the rest: no scooter chosen
  * (finding 9), an attachment that couldn't be prepared (7), the mailbox that keeps a finished export across a page
  * rebuild or an activity recreation (10), and the age under which DiagnosticsProvider leaves a temporary file alone (3).
+ * Its round-2 review (finding 3) made the mailbox carry the model line taken at the tap with the file ({@link Export}).
  */
 final class ChargeSend {
     private ChargeSend() { }
@@ -56,6 +57,18 @@ final class ChargeSend {
     }
 
     /**
+     * A finished export and the model line of the scooter whose recordings it holds, taken when Email to Volt was tapped
+     * (empty for none or a simulated one). The email names this model, so a scooter selected while the export is written
+     * can't label one scooter's recordings with another's model (#387 round-2 review, finding 3).
+     */
+    static final class Export {
+        final File file;
+        final String model;
+
+        Export(File file, String model) { this.file = file; this.model = model == null ? "" : model; }
+    }
+
+    /**
      * Where a finished export goes: the activity showing Volt now (it emails it), whichever page or activity asked. A
      * rotation or fold rebuilds the page that asked (its screen closes), and a theme or text-size change recreates the
      * activity; either way the email still opens. With no activity the file waits, until one registers or for
@@ -64,33 +77,33 @@ final class ChargeSend {
      */
     static final class Mailbox {
         static final long HOLD_MS = 2 * 60_000L;
-        private Consumer<File> receiver;
+        private Consumer<Export> receiver;
         private boolean accepting = true;
-        private File held;
+        private Export held;
         private long heldAt;
 
         /** The activity's own: it emails what arrives now, and what waited for it if that is recent. */
-        synchronized void register(Consumer<File> receiver, long nowMs) {
+        synchronized void register(Consumer<Export> receiver, long nowMs) {
             this.receiver = receiver; accepting = true;
-            File waiting = held; held = null;
+            Export waiting = held; held = null;
             if (waiting == null) return;
-            if (nowMs - heldAt >= 0 && nowMs - heldAt < HOLD_MS) receiver.accept(waiting); else waiting.delete();
+            if (nowMs - heldAt >= 0 && nowMs - heldAt < HOLD_MS) receiver.accept(waiting); else waiting.file.delete();
         }
 
         /** The activity is going: recreating keeps a file arriving meanwhile for the next one; closing drops it. */
-        synchronized void unregister(Consumer<File> receiver, boolean recreating) {
+        synchronized void unregister(Consumer<Export> receiver, boolean recreating) {
             if (this.receiver != receiver) return;
             this.receiver = null; accepting = recreating;
-            if (!recreating && held != null) { held.delete(); held = null; }
+            if (!recreating && held != null) { held.file.delete(); held = null; }
         }
 
         /** A finished export: to the activity, else held (one at a time; an older one is deleted), else deleted. */
-        synchronized void deliver(File file, long nowMs) {
-            if (file == null) return;
-            if (receiver != null) { receiver.accept(file); return; }
-            if (!accepting) { file.delete(); return; }
-            if (held != null && !held.equals(file)) held.delete();
-            held = file; heldAt = nowMs;
+        synchronized void deliver(Export export, long nowMs) {
+            if (export == null || export.file == null) return;
+            if (receiver != null) { receiver.accept(export); return; }
+            if (!accepting) { export.file.delete(); return; }
+            if (held != null && !held.file.equals(export.file)) held.file.delete();
+            held = export; heldAt = nowMs;
         }
     }
 

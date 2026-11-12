@@ -61,8 +61,9 @@ final class ReleaseNotes {
          */
         final int item;
         /**
-         * For a block in a quote that is indented under a list item outside the quote: that item's depth plus one, so
-         * the quote (its bar and all its blocks) sits under the item's text; else 0.
+         * For a block in a quote that is indented under a list item outside that quote: the item's depth plus one, so
+         * the quote (its bar and all its blocks) sits under the item's text; else 0. Of quotes inside quotes, the
+         * innermost one indented under an item counts; quoteItem(depth) gives each quote's own.
          */
         final int quoteItem;
         /** The block's text without its markup; "\n" for each line break inside it. */
@@ -71,24 +72,36 @@ final class ReleaseNotes {
         final List<Span> spans;
         /** The quotes the block is in, outermost first, each numbered within the quote around it. */
         private final int[] path;
+        /** For each quote in path, the list item it is indented under, as quoteItem counts it. */
+        private final int[] items;
         Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item) {
-            this(kind, level, marker, written, text, spans, item, new int[0], 0);
+            this(kind, level, marker, written, text, spans, item, new int[0], new int[0]);
         }
-        private Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item, int[] path, int quoteItem) {
+        private Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item, int[] path, int[] items) {
             this.kind = kind; this.level = level; this.marker = marker; this.written = written; this.text = text;
-            this.spans = Collections.unmodifiableList(spans); this.item = item; this.path = path; this.quoteItem = quoteItem;
+            this.spans = Collections.unmodifiableList(spans); this.item = item; this.path = path; this.items = items;
             this.quoted = path.length > 0; this.quote = quoted ? path[0] : 0; this.quotes = path.length;
+            int under = 0;
+            for (int i : items) if (i > 0) under = i;
+            this.quoteItem = under;
         }
         /**
          * This block as it reads inside the given quote, numbered within the quote around that one; item is
-         * the depth plus one of the list item outside the quote that the quote is indented under, or 0.
+         * the depth plus one of the list item outside the quote that the quote is indented under, or 0. A quote
+         * inside it keeps the item it is indented under.
          */
         Block inQuote(int quote, int item) {
-            int[] outer = new int[path.length + 1];
-            outer[0] = quote;
+            int[] outer = new int[path.length + 1], outerItems = new int[path.length + 1];
+            outer[0] = quote; outerItems[0] = item;
             System.arraycopy(path, 0, outer, 1, path.length);
-            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, this.item, outer, item);
+            System.arraycopy(items, 0, outerItems, 1, items.length);
+            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, this.item, outer, outerItems);
         }
+        /**
+         * For the quote at the given depth around this block (0 for the outermost): the list item it is indented
+         * under, which sits inside the quotes around that one, as quoteItem counts it; 0 for none or no such quote.
+         */
+        int quoteItem(int depth) { return depth >= 0 && depth < items.length ? items[depth] : 0; }
         /**
          * Whether this block and other are inside the same quote at the given depth (0 for the outermost), and so in
          * the same quotes around it: two blocks of one quote at that depth, which its bar joins.
@@ -186,9 +199,13 @@ final class ReleaseNotes {
             if (fenced) { fenceLine(line); return; }
             Matcher m;
             if (quote != null) {
-                if ((m = QUOTE.matcher(line)).matches()) { quote.line(m.group(1)); return; }
-                // A line without ">" carries on the quote's paragraph, unless it starts a block of its own.
-                if (!line.trim().isEmpty() && !startsBlock(line) && !leavesQuote(line) && quote.lazy(line)) return;
+                if ((m = QUOTE.matcher(line)).matches()) {
+                    // A ">" left of the text of the list item the quote is in starts a quote of its own outside the item.
+                    if (!leavesItem(line)) { quote.line(m.group(1)); return; }
+                } else if (!line.trim().isEmpty() && !startsBlock(line) && !leavesQuote(line) && quote.lazy(line)) {
+                    // A line without ">" carries on the quote's paragraph, unless it starts a block of its own.
+                    return;
+                }
                 endQuote();
             }
             if (depth >= MAX_QUOTES) while ((m = QUOTE.matcher(line)).matches()) line = m.group(1);
@@ -263,22 +280,39 @@ final class ReleaseNotes {
         }
 
         /**
-         * Whether a numbered line without ">" is left of the open quote's ">": it then starts an item outside the
-         * quote (the next item of the list the quote is in) instead of carrying on the quote's last paragraph.
+         * Whether a numbered line without ">" is left of the open quote's ">" while that quote is indented under a
+         * list item: it then starts an item outside the quote (the next item of the list the quote is in) instead of
+         * carrying on the quote's last paragraph. A quote outside lists keeps such a line, so a year wrapped onto
+         * the start of a line stays as written.
          */
         private boolean leavesQuote(String line) {
             Matcher m = NUMBERED_ITEM.matcher(line);
-            return m.matches() && columns(m.group(1)) < quoteIndent;
+            return quoteItem > 0 && m.matches() && columns(m.group(1)) < quoteIndent;
+        }
+
+        /** Whether a ">" line is left of the text of the list item the open quote is indented under. */
+        private boolean leavesItem(String line) {
+            return quoteItem > 0 && !levels.isEmpty() && leadingSpaces(line) < levels.get(levels.size() - 1).content;
+        }
+
+        /**
+         * Where a list item at this indent goes, as on GitHub: levels.size() when it is indented as far as the
+         * innermost open item's text and so starts a list inside that item, else the index of the open list it is the
+         * next item of: the innermost one inside whose items' parent it still is.
+         */
+        private int place(int indent) {
+            int i = levels.size() - 1;
+            if (i < 0 || indent >= levels.get(i).content) return levels.size();
+            while (i > 0 && indent < levels.get(i - 1).content) i--;
+            return i;
         }
 
         /** Whether an item at this indent would be the next of an open numbered list with this delimiter (as item() places it). */
         private boolean continuesNumbered(int indent, char delimiter) {
-            for (int i = levels.size() - 1; i >= 0; i--) {
-                Level level = levels.get(i);
-                if (indent >= level.indent + 2) return false;
-                if (indent >= level.indent) return level.kind == Kind.NUMBERED && level.delimiter == delimiter;
-            }
-            return false;
+            int at = place(indent);
+            if (at == levels.size()) return false;
+            Level level = levels.get(at);
+            return level.kind == Kind.NUMBERED && level.delimiter == delimiter;
         }
 
         /**
@@ -336,10 +370,11 @@ final class ReleaseNotes {
             // Text five or more columns past the marker would be indented code on GitHub; the item's text starts one
             // column after its marker then.
             if (content - markerEnd > 4) content = markerEnd + 1;
-            while (!levels.isEmpty() && indent < levels.get(levels.size() - 1).indent) levels.remove(levels.size() - 1);
-            // An item two or more columns further in than the one above nests under it; less is the same level.
-            boolean fresh = levels.isEmpty() || indent >= levels.get(levels.size() - 1).indent + 2;
-            if (fresh) levels.add(new Level(indent));
+            // An item indented as far as the text of the item above nests under it; less is the next item of a list.
+            int at = place(indent);
+            while (levels.size() > at + 1) levels.remove(levels.size() - 1);
+            boolean fresh = at == levels.size();
+            if (fresh) levels.add(new Level());
             Level level = levels.get(levels.size() - 1);
             level.content = content;
             String marker = BULLET;
@@ -401,10 +436,9 @@ final class ReleaseNotes {
         }
     }
 
-    /** One level of open lists: its items' indent and text column, and for a numbered list its "." or ")" and next number. */
+    /** One level of open lists: its last item's text column, and for a numbered list its "." or ")" and next number. */
     private static final class Level {
-        final int indent; int content; Kind kind; char delimiter; long next;
-        Level(int indent) { this.indent = indent; }
+        int content; Kind kind; char delimiter; long next;
     }
 
     /** A fence line opens a fence unless it is a backtick fence with a backtick after it (an inline code span). */
