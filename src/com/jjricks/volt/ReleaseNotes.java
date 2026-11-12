@@ -60,6 +60,11 @@ final class ReleaseNotes {
          * indented under it): that item's depth plus one, so it can sit under the item's text; else 0.
          */
         final int item;
+        /**
+         * For a block in a quote that is indented under a list item outside the quote: that item's depth plus one, so
+         * the quote (its bar and all its blocks) sits under the item's text; else 0.
+         */
+        final int quoteItem;
         /** The block's text without its markup; "\n" for each line break inside it. */
         final String text;
         /** Style ranges over text, outermost after the ranges inside them. */
@@ -67,19 +72,22 @@ final class ReleaseNotes {
         /** The quotes the block is in, outermost first, each numbered within the quote around it. */
         private final int[] path;
         Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item) {
-            this(kind, level, marker, written, text, spans, item, new int[0]);
+            this(kind, level, marker, written, text, spans, item, new int[0], 0);
         }
-        private Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item, int[] path) {
+        private Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, int item, int[] path, int quoteItem) {
             this.kind = kind; this.level = level; this.marker = marker; this.written = written; this.text = text;
-            this.spans = Collections.unmodifiableList(spans); this.item = item; this.path = path;
+            this.spans = Collections.unmodifiableList(spans); this.item = item; this.path = path; this.quoteItem = quoteItem;
             this.quoted = path.length > 0; this.quote = quoted ? path[0] : 0; this.quotes = path.length;
         }
-        /** This block as it reads inside the given quote, numbered within the quote around that one. */
-        Block inQuote(int quote) {
+        /**
+         * This block as it reads inside the given quote, numbered within the quote around that one; item is
+         * the depth plus one of the list item outside the quote that the quote is indented under, or 0.
+         */
+        Block inQuote(int quote, int item) {
             int[] outer = new int[path.length + 1];
             outer[0] = quote;
             System.arraycopy(path, 0, outer, 1, path.length);
-            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, item, outer);
+            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, this.item, outer, item);
         }
         /**
          * Whether this block and other are inside the same quote at the given depth (0 for the outermost), and so in
@@ -169,6 +177,8 @@ final class ReleaseNotes {
         boolean codeStarted;
         /** The open quote's own parser, or null; how many quotes this parser has closed; how far its ">" was indented. */
         Parser quote; int quotes, quoteIndent;
+        /** The open quote's Block.quoteItem: the list item it is indented under, as Block.item counts it. */
+        int quoteItem;
 
         Parser(int depth) { this.depth = depth; }
 
@@ -207,7 +217,7 @@ final class ReleaseNotes {
                 return;
             }
             if ((m = QUOTE.matcher(line)).matches()) {
-                close(); quoteIndent = leadingSpaces(line); keepLevels(quoteIndent);
+                close(); quoteIndent = leadingSpaces(line); keepLevels(quoteIndent); quoteItem = itemDepth();
                 quote = new Parser(depth + 1);
                 quote.line(m.group(1));
                 return;
@@ -297,7 +307,7 @@ final class ReleaseNotes {
         private void endQuote() {
             quote.finish();
             int id = ++quotes;
-            for (Block block : quote.out) out.add(block.inQuote(id));
+            for (Block block : quote.out) out.add(block.inQuote(id, quoteItem));
             quote = null;
         }
 

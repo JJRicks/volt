@@ -50,8 +50,9 @@ final class ReleaseNotesView {
         boolean ruled = false;
         ReleaseNotes.Kind previous = null;
         ReleaseNotes.Block previousBlock = null;
-        // Where the text of the last list item at each depth starts, for the item's further paragraphs and code.
-        int[] itemText = new int[ReleaseNotes.MAX_DEPTH + 1];
+        // Where the text of the last list item at each depth starts, for the item's further paragraphs and code; kept
+        // apart for each quote depth, so a list inside a quote doesn't move the blocks under an item outside it.
+        int[][] itemText = new int[ReleaseNotes.MAX_BARS + 1][ReleaseNotes.MAX_DEPTH + 1];
         for (ReleaseNotes.Block block : blocks) {
             if (block.kind == ReleaseNotes.Kind.RULE) { ruled = true; continue; }
             // An empty heading or fence holds only markup; Android refuses an empty exclusive span anyway.
@@ -66,7 +67,12 @@ final class ReleaseNotesView {
             // A quote's blocks (its paragraphs, lists, headings and code) all sit behind its bar, in the muted colour;
             // a quote inside a quote adds a bar beside the outer one, up to MAX_BARS. Between two blocks of one quote
             // its bar runs through the gap too; two quotes get a bar each.
+            int q = Math.min(block.quotes, ReleaseNotes.MAX_BARS);
             if (quoted) {
+                // A quote indented under a list item sits under the item's text, bar and all: that margin goes first,
+                // through the gap the outer bar runs through too.
+                int outside = block.quoteItem <= 0 ? 0 : itemText[0][Math.min(block.quoteItem, ReleaseNotes.MAX_DEPTH + 1) - 1];
+                if (outside > 0) hang(out, !ruled && block.sameQuote(previousBlock, 0) ? gapLine : start, end, outside, outside);
                 int bars = Math.max(1, Math.min(block.quotes, ReleaseNotes.MAX_BARS));
                 for (int depth = 0; depth < bars; depth++) {
                     int bar = !ruled && block.sameQuote(previousBlock, depth) ? gapLine : start;
@@ -78,7 +84,7 @@ final class ReleaseNotesView {
             ruled = false; previous = block.kind; previousBlock = block;
             // A block that belongs to a list item (its second paragraph, a fence or heading under it) starts where the
             // item's text does.
-            int under = block.item <= 0 ? 0 : itemText[Math.min(block.item, itemText.length) - 1];
+            int under = block.item <= 0 ? 0 : itemText[q][Math.min(block.item, ReleaseNotes.MAX_DEPTH + 1) - 1];
             if (under > 0 && block.kind != ReleaseNotes.Kind.CODE) hang(out, start, end, under, under);
             switch (block.kind) {
                 case HEADING:
@@ -89,7 +95,7 @@ final class ReleaseNotesView {
                     int first = ui.dp(4) + block.level * ui.dp(16);
                     int rest = first + Math.round(paint.measureText(prefix));
                     hang(out, start, end, first, rest);
-                    itemText[Math.min(block.level, itemText.length - 1)] = rest;
+                    itemText[q][Math.min(block.level, ReleaseNotes.MAX_DEPTH)] = rest;
                     out.setSpan(new ForegroundColorSpan(ui.muted), start, body, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     break;
                 }

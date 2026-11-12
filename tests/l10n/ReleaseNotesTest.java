@@ -289,6 +289,14 @@ public final class ReleaseNotesTest {
         block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "b");
         // Prose wrapped onto a number as far in as the ">" still carries the quote on.
         block(ReleaseNotes.parse("1. a\n   > We grew by\n   80. percent").get(1), ReleaseNotes.Kind.QUOTE, 0, "", "We grew by\n80. percent");
+        // A quote indented under an item sits under the item's text, with every block in it; one at the left edge doesn't.
+        b = ReleaseNotes.parse("1. a\n   > q\n   > - x\n   >\n   > > deeper\n2. b");
+        check(b.get(1).quoteItem == 1 && b.get(2).quoteItem == 1 && b.get(3).quoteItem == 1, "the quote is under its item");
+        check(b.get(1).item == 0 && b.get(2).marker.equals(ReleaseNotes.BULLET) && b.get(3).quotes == 2, "quote blocks keep their own item");
+        check(b.get(0).quoteItem == 0 && b.get(4).quoteItem == 0, "items are in no quote");
+        b = ReleaseNotes.parse("- a\n  - sub\n  > r");
+        check(b.size() == 3 && b.get(2).quoteItem == 1, "under the outer item, past the inner one: " + b.size());
+        check(ReleaseNotes.parse("1. a\n> q").get(1).quoteItem == 0 && one("> q").quoteItem == 0 && one("q").quoteItem == 0, "a quote outside items");
     }
 
     /** A quote inside a quote keeps its depth, and blocks know which quote at each depth they are in. */
