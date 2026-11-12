@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home's two styles (hub layout plan, PR 7). Clean is a fixed Home: a header with search and settings,
+  a top area of fixed height (the battery card; the charging view while charging; the last ride for
+  about an hour after riding), the lock bar, four quick actions the owner can swap, and the scooter's
+  subjects. Widgets is the dashboard the owner arranges, as it is today. The owner picks in setup, in
+  Settings › Home style, or from Clean's Edit sheet; an owner who updates stays on Widgets and sees a
+  one-time What's new sheet. Switching never deletes a widget layout.
+
+  "Clean" and "Widgets" are the two styles' names: translate them as names of a look, the same word
+  wherever they appear. Values arrive formatted with their unit ("6.2 mi", "90%"). Counts use plurals.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Home style: Settings › Home style and Clean's Edit sheet ===== -->
+    <!-- Title of the setting that picks Home's style, and of its Settings page. -->
+    <string name="home_style_title" volt:screen="Settings and Home edit" volt:purpose="title">Home style</string>
+    <!-- Name of the fixed Home. -->
+    <string name="home_style_clean" volt:screen="Settings and Home edit" volt:purpose="option">Clean</string>
+    <!-- Under the option Clean. "Subjects" are Home's list of pages: Ride, Battery & charging, Controls and so on. -->
+    <string name="home_style_clean_sub" volt:screen="Settings and Home edit" volt:purpose="description">A fixed Home: battery, lock, four quick actions and your scooter\'s subjects.</string>
+    <!-- Name of the Home the owner arranges from widgets (today's dashboard). -->
+    <string name="home_style_widgets" volt:screen="Settings and Home edit" volt:purpose="option">Widgets</string>
+    <!-- Under the option Widgets. -->
+    <string name="home_style_widgets_sub" volt:screen="Settings and Home edit" volt:purpose="description">The dashboard you arrange yourself, with saved layouts.</string>
+    <!-- Note under the two options. -->
+    <string name="home_style_keeps_layout" volt:screen="Settings and Home edit" volt:purpose="note">Switching keeps your widget layout.</string>
+    <!-- Screen-reader text of the small drawing of each style shown beside its option. -->
+    <string name="home_style_clean_preview" volt:screen="Settings and Home edit" volt:purpose="accessibility">Preview of the Clean Home</string>
+    <string name="home_style_widgets_preview" volt:screen="Settings and Home edit" volt:purpose="accessibility">Preview of the Widgets Home</string>
+
+    <!-- ===== Settings › Home style: what Clean's top area shows by itself ===== -->
+    <!-- Switch: Clean Home's top area changes to the charging view while the scooter charges. -->
+    <string name="home_moment_charging" volt:screen="Home style settings" volt:purpose="switch" volt:safety="charge">Show charging while plugged in</string>
+    <string name="home_moment_charging_sub" volt:screen="Home style settings" volt:purpose="description" volt:safety="charge">Home shows the charge by itself when charging starts.</string>
+    <!-- Switch: after a ride ends, Clean Home's top area shows that ride. -->
+    <string name="home_moment_ride" volt:screen="Home style settings" volt:purpose="switch">Show the last ride after riding</string>
+    <string name="home_moment_ride_sub" volt:screen="Home style settings" volt:purpose="description">For about an hour after a ride, until you close it.</string>
+
+    <!-- ===== Clean Home: the charging view ===== -->
+    <!-- Muted line above the big percent while charging. %1$s is the charge limit as a percent ("90%"). Without a limit Home shows "Charging" instead. -->
+    <string name="home_charging_to_limit" volt:screen="Clean Home charging view" volt:purpose="status" volt:safety="charge">Charging to your %1$s limit</string>
+
+    <!-- ===== Clean Home: the last ride, for about an hour after riding ===== -->
+    <!-- Muted line above the ride's distance, in its first minute. -->
+    <string name="home_just_back_saved_now" volt:screen="Clean Home after a ride" volt:purpose="status">Ride saved just now</string>
+    <!-- Muted line above the ride's distance. %1$d is the minutes since the ride was saved (1 to 59). -->
+    <plurals name="home_just_back_saved_minutes" volt:screen="Clean Home after a ride" volt:purpose="status">
+        <item quantity="one">Ride saved %1$d minute ago</item>
+        <item quantity="other">Ride saved %1$d minutes ago</item>
+    </plurals>
+    <!-- Screen-reader text of the round X that closes the last ride until the next one. -->
+    <string name="home_just_back_close" volt:screen="Clean Home after a ride" volt:purpose="accessibility">Close the last ride</string>
+    <!-- Screen-reader text of the last ride's card. %1$s is the ride's distance with its unit ("6.2 mi"). Tapping opens the ride. -->
+    <string name="home_just_back_description" volt:screen="Clean Home after a ride" volt:purpose="accessibility">Last ride, %1$s. Opens the ride.</string>
+    <!-- Tile label: how much of the battery the ride used ("-18%"). -->
+    <string name="home_just_back_battery_used" volt:screen="Clean Home after a ride" volt:purpose="label">Battery used</string>
+
+    <!-- ===== Clean Home: the Edit sheet ===== -->
+    <string name="home_edit_title" volt:screen="Clean Home edit sheet" volt:purpose="title">Edit Home</string>
+    <!-- Label above the four quick action slots. -->
+    <string name="home_edit_quick_actions" volt:screen="Clean Home edit sheet" volt:purpose="section label">Quick actions</string>
+    <!-- Screen-reader text of a slot. %1$d is its place (1 to 4), %2$s the action now in it ("Charge done by"). Tapping lets the owner change it. -->
+    <string name="home_edit_quick_slot" volt:screen="Clean Home edit sheet" volt:purpose="accessibility">Quick action %1$d: %2$s. Change</string>
+
+    <!-- ===== Clean Home: its own quick actions =====
+      Round buttons with the name under them, 64 dp per line at 12 sp on up to two lines (as Quick
+      access names, strings_dashboard_model.xml). Where the full name does not fit, the button shows the
+      _short rung, then the icon alone. -->
+    <!-- Opens riding mode, the full-screen display used while riding. -->
+    <string name="home_qa_riding" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">Ride</string>
+    <string name="home_qa_riding_short" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp*2">Ride</string>
+    <!-- Starts recording a ride, or stops the ride being recorded. -->
+    <string name="home_qa_record" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short">Record</string>
+    <string name="home_qa_record_short" volt:screen="Quick actions" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp*2">Record</string>
+    <!-- The Record button's value while a ride is being recorded. -->
+    <string name="home_qa_recording" volt:screen="Quick actions" volt:purpose="value" volt:safety="ride">Recording</string>
+
+    <!-- ===== Home's header ===== -->
+    <!-- Screen-reader text of the search button. -->
+    <string name="home_search_description" volt:screen="Home header" volt:purpose="accessibility">Search settings, readings and rides</string>
+    <!-- Screen-reader text of the gear button that opens the app's settings. -->
+    <string name="home_settings_description" volt:screen="Home header" volt:purpose="accessibility">Settings</string>
+    <!-- Screen-reader text of the scooter's name; tapping it switches to another scooter. %1$s is the scooter's name. -->
+    <string name="home_switch_scooter_description" volt:screen="Home header" volt:purpose="accessibility">%1$s. Switch scooter</string>
+
+    <!-- ===== Setup, last step ===== -->
+    <!-- Title of setup's step that picks Home's style. -->
+    <string name="home_setup_style_title" volt:screen="Setup, last step" volt:purpose="title">Choose your Home</string>
+    <!-- "Settings › Home style" is the menu path: Settings, then Home style. -->
+    <string name="home_setup_style_body" volt:screen="Setup, last step" volt:purpose="note">You can change this any time in Settings › Home style.</string>
+
+    <!-- ===== One-time What's new sheet, after an update, for owners who never picked a style ===== -->
+    <string name="home_whats_new_title" volt:screen="One-time What's new sheet after an update" volt:purpose="title">Home has a new look</string>
+    <string name="home_whats_new_body" volt:screen="One-time What's new sheet after an update" volt:purpose="message">Try Clean: battery, lock and your most-used actions on one fixed screen. Your Widgets dashboard stays as it is.</string>
+    <!-- Main button: Home becomes Clean. -->
+    <string name="home_whats_new_switch" volt:screen="One-time What's new sheet after an update" volt:purpose="button">Switch to Clean</string>
+    <!-- Second button: Home stays as it is. -->
+    <string name="home_whats_new_keep" volt:screen="One-time What's new sheet after an update" volt:purpose="button">Keep Widgets</string>
+    <!-- Note under the buttons. "Settings › Home style" is the menu path. -->
+    <string name="home_whats_new_later" volt:screen="One-time What's new sheet after an update" volt:purpose="note">You can change this any time in Settings › Home style.</string>
+</resources>

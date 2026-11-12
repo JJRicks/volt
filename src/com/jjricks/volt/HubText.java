@@ -1,22 +1,21 @@
 package com.jjricks.volt;
 
 /**
- * The Hub's text (hub layout plan): page titles, link rows, the page header's back link and Home's
- * subject summaries. Every catalog read for the Hub's pages lives here, so the screens that build them
+ * The Hub's text (hub layout plan): page titles, link rows, the page header's back link, Home's
+ * subject summaries and Home's two styles (Clean and Widgets, res/values/strings_home.xml). Every catalog read for the Hub's pages lives here, so the screens that build them
  * hold no catalog references of their own. Everything returns a {@link Msg}, which renders when shown:
  * keep the Msg, never the rendered text (rule R2).
  *
  * Pages are named by their {@link HubPages} id. Each summary is a whole line chosen by its state, with
  * only values filled in; values arrive formatted ({@code Fmt}, {@code DisplayUnits}, {@code DisplayTime}).
- * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java).
+ * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java, tests/l10n/HomeTextTest.java).
  */
 public final class HubText {
     private HubText() { }
 
     /**
      * A page's title, also its link row's name and the back link's target name. Null for a page whose
-     * title arrives later in the plan ({@link HubPages#SETTINGS_HOME} in PR 7, {@link HubPages#SEARCH}
-     * in PR 10) and for an unknown id.
+     * title arrives later in the plan ({@link HubPages#SEARCH} in PR 10) and for an unknown id.
      */
     public static Msg title(String page) {
         if (page == null) return null;
@@ -46,6 +45,7 @@ public final class HubText {
             case HubPages.DATA: return M.hubSubjectData();
             case HubPages.DATA_STORAGE: return M.hubPageDataStorage();
             case HubPages.SETTINGS: return M.hubPageSettings();
+            case HubPages.SETTINGS_HOME: return M.homeStyleTitle();
             case HubPages.SETTINGS_UNITS: return M.moreUnitsTitle();
             case HubPages.SETTINGS_SCOOTERS: return M.moreSectionScooters();
             case HubPages.SETTINGS_ABOUT: return M.moreSectionAbout();
@@ -144,4 +144,95 @@ public final class HubText {
     public static Msg batteryChargingTo(CharSequence limit) { return M.hubBatteryChargingTo(limit); }
     /** While not charging. */
     public static Msg batteryNotCharging() { return M.hubBatteryNotCharging(); }
+
+    // ===== Home style (Settings › Home style, Clean's Edit sheet, the Widgets Layout sheet) =====
+
+    /** A style's name: Clean (the fixed Home) or Widgets (the dashboard the owner arranges). */
+    public static Msg homeStyleName(boolean clean) { return clean ? M.homeStyleClean() : M.homeStyleWidgets(); }
+    /** The line under a style's name. */
+    public static Msg homeStyleDescription(boolean clean) { return clean ? M.homeStyleCleanSub() : M.homeStyleWidgetsSub(); }
+    /** Screen-reader text of a style's preview drawing. */
+    public static Msg homeStylePreview(boolean clean) { return clean ? M.homeStyleCleanPreview() : M.homeStyleWidgetsPreview(); }
+    /** The note that switching style keeps the widget layout. */
+    public static Msg homeStyleKeepsLayout() { return M.homeStyleKeepsLayout(); }
+
+    /** The switch for Clean's charging view, and the line under it. */
+    public static Msg momentCharging() { return M.homeMomentCharging(); }
+    public static Msg momentChargingDescription() { return M.homeMomentChargingSub(); }
+    /** The switch for Clean's last-ride view, and the line under it. */
+    public static Msg momentRide() { return M.homeMomentRide(); }
+    public static Msg momentRideDescription() { return M.homeMomentRideSub(); }
+
+    // ===== Clean Home's top area =====
+
+    /** The charging view's muted line on a model with a charge limit; limit is a formatted percent. */
+    public static Msg chargingToLimit(CharSequence limit) { return M.homeChargingToLimit(limit); }
+    /** The charging view's muted line on a model with no charge limit. */
+    public static Msg charging() { return M.dashboardCharging(); }
+    /** The charging view's power tile. */
+    public static Msg chargingPower() { return M.dashboardChargingPower(); }
+
+    /** The last ride's muted line; minutes since it was saved (less than one reads "just now"). */
+    public static Msg justBackSaved(long minutes) {
+        return minutes < 1 ? M.homeJustBackSavedNow() : M.homeJustBackSavedMinutes(minutes, minutes);
+    }
+    /** Screen-reader text of the round X that closes the last ride. */
+    public static Msg justBackClose() { return M.homeJustBackClose(); }
+    /** Screen-reader text of the last ride's card; distance with its unit. */
+    public static Msg justBackDescription(CharSequence distance) { return M.homeJustBackDescription(distance); }
+    /** The last ride's three tiles: ride time, average speed and battery used. */
+    public static Msg justBackRideTime() { return M.ridingLabelRideTime(); }
+    public static Msg justBackAvgSpeed() { return M.ridesTileAvgSpeed(); }
+    public static Msg justBackBatteryUsed() { return M.homeJustBackBatteryUsed(); }
+
+    // ===== Clean Home's Edit sheet and quick actions =====
+
+    public static Msg editTitle() { return M.homeEditTitle(); }
+    /** The label above the four quick action slots. */
+    public static Msg editQuickActions() { return M.homeEditQuickActions(); }
+    /** Screen-reader text of a slot; position counts from 1, action is the name of the action in it. */
+    public static Msg editQuickSlot(long position, CharSequence action) { return M.homeEditQuickSlot(position, action); }
+
+    /** The name of one of Clean's own quick actions (HomeQuickActions); null for any other id. */
+    public static Msg quickActionLabel(String id) {
+        if (id == null) return null;
+        switch (id) {
+            case HomeQuickActions.RIDING: return M.homeQaRiding();
+            case HomeQuickActions.RECORD: return M.homeQaRecord();
+            default: return null;
+        }
+    }
+
+    /** The short rung of one of Clean's own quick actions, for a button too narrow for the name; null for any other id. */
+    public static Msg quickActionShortLabel(String id) {
+        if (id == null) return null;
+        switch (id) {
+            case HomeQuickActions.RIDING: return M.homeQaRidingShort();
+            case HomeQuickActions.RECORD: return M.homeQaRecordShort();
+            default: return null;
+        }
+    }
+
+    /** The Record action's value while a ride is being recorded. */
+    public static Msg qaRecording() { return M.homeQaRecording(); }
+
+    // ===== Home's header =====
+
+    public static Msg searchDescription() { return M.homeSearchDescription(); }
+    public static Msg settingsDescription() { return M.homeSettingsDescription(); }
+    /** Screen-reader text of the scooter's name, which switches scooter; name is the scooter's. */
+    public static Msg switchScooterDescription(CharSequence name) { return M.homeSwitchScooterDescription(name); }
+
+    // ===== Setup's last step and the one-time What's new sheet =====
+
+    public static Msg setupStyleTitle() { return M.homeSetupStyleTitle(); }
+    public static Msg setupStyleBody() { return M.homeSetupStyleBody(); }
+
+    public static Msg whatsNewTitle() { return M.homeWhatsNewTitle(); }
+    public static Msg whatsNewBody() { return M.homeWhatsNewBody(); }
+    /** The sheet's main button: switch to Clean. */
+    public static Msg whatsNewSwitch() { return M.homeWhatsNewSwitch(); }
+    /** The sheet's second button: keep Widgets. */
+    public static Msg whatsNewKeep() { return M.homeWhatsNewKeep(); }
+    public static Msg whatsNewLater() { return M.homeWhatsNewLater(); }
 }
