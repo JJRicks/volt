@@ -22,7 +22,7 @@
     <!-- Drive modes, cruise control, assists and speed limits. -->
     <string name="hub_subject_controls" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Controls</string>
     <string name="hub_subject_controls_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Controls</string>
-    <!-- Headlight, ambient lights and the scooter's sounds. -->
+    <!-- The scooter's lights and sounds. -->
     <string name="hub_subject_lights" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="full">Lights &amp; sound</string>
     <string name="hub_subject_lights_short" volt:screen="Home subjects, dock, page titles" volt:purpose="title" volt:ladder="short" volt:max="64dp@12sp">Lights</string>
     <!-- Lock, PIN and proximity unlock. -->
@@ -110,10 +110,11 @@
     <string name="hub_summary_controls_cruise_on" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise on</string>
     <!-- %1$s is the drive mode as Home shows it, with its top speed. -->
     <string name="hub_summary_controls_cruise_off" volt:screen="Home subject summaries" volt:purpose="summary">%1$s · cruise off</string>
-    <!-- The headlight turns itself on in the dark. -->
-    <string name="hub_summary_lights_auto" volt:screen="Home subject summaries" volt:purpose="summary">Headlight auto</string>
-    <string name="hub_summary_lights_on" volt:screen="Home subject summaries" volt:purpose="summary">Headlight on</string>
-    <string name="hub_summary_lights_off" volt:screen="Home subject summaries" volt:purpose="summary">Headlight off</string>
+    <!-- The Automatic lights setting is on. Use the same words as the Automatic lights row. -->
+    <string name="hub_summary_lights_automatic" volt:screen="Home subject summaries" volt:purpose="summary">Automatic lights</string>
+    <!-- The Tail light setting. Use the same words for "Tail light" as the Tail light row. -->
+    <string name="hub_summary_lights_tail_on" volt:screen="Home subject summaries" volt:purpose="summary">Tail light on</string>
+    <string name="hub_summary_lights_tail_off" volt:screen="Home subject summaries" volt:purpose="summary">Tail light off</string>
     <!-- The handlebar PIN, and unlocking when the owner's phone comes near. -->
     <string name="hub_summary_security_pin_on_proximity_on" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity on</string>
     <string name="hub_summary_security_pin_on_proximity_off" volt:screen="Home subject summaries" volt:purpose="summary" volt:safety="pin,owner-key">PIN on · proximity off</string>

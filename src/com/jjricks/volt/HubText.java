@@ -118,10 +118,10 @@ public final class HubText {
         return cruiseOn ? M.hubSummaryControlsCruiseOn(mode) : M.hubSummaryControlsCruiseOff(mode);
     }
 
-    /** Lights & sound while the headlight is on automatic. */
-    public static Msg headlightAuto() { return M.hubSummaryLightsAuto(); }
-    /** Lights & sound while the headlight is set on or off. */
-    public static Msg headlight(boolean on) { return on ? M.hubSummaryLightsOn() : M.hubSummaryLightsOff(); }
+    /** Lights & sound while the Automatic lights setting is on. */
+    public static Msg automaticLights() { return M.hubSummaryLightsAutomatic(); }
+    /** Lights & sound from the Tail light setting, on or off (feature key {@code headlight} drives the tail light). */
+    public static Msg tailLight(boolean on) { return on ? M.hubSummaryLightsTailOn() : M.hubSummaryLightsTailOff(); }
 
     /** Security, once both states are known (an unknown state shows no summary). */
     public static Msg security(boolean pin, boolean proximity) {
