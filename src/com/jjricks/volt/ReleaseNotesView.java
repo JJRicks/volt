@@ -23,7 +23,7 @@ import java.util.List;
  * A release's notes drawn from their Markdown (ReleaseNotes) in one selectable TextView with native spans: headings
  * in semibold and a little larger, list items hanging under their bullet or number, quotes with a bar, code in
  * monospace, and a link's address after its text in the muted colour. Nothing here opens a link or loads anything.
- * Should reading ever fail, the plain notes are shown instead.
+ * Should reading ever fail, or the notes hold only markup that draws nothing, the plain notes are shown instead.
  */
 final class ReleaseNotesView {
     private ReleaseNotesView() {}
@@ -34,7 +34,9 @@ final class ReleaseNotesView {
     static TextView of(Ui ui, String markdown, String plain) {
         TextView view = ui.text("", SIZE, false);
         try {
-            view.setText(spanned(ui, view.getPaint(), ReleaseNotes.parse(markdown)));
+            CharSequence shown = spanned(ui, view.getPaint(), ReleaseNotes.parse(markdown));
+            // Notes of only markup (a lone rule or an empty fence) draw nothing: show them as written instead.
+            view.setText(shown.length() == 0 ? plain : shown);
         } catch (RuntimeException unreadable) {
             view.setText(plain);
         }
