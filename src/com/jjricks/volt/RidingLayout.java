@@ -102,6 +102,40 @@ final class RidingLayout {
     }
 
     /**
+     * The icon a reading's name falls back to on a narrow label (and its chip's icon), or null for a reading that has none.
+     * Readings that can sit side by side each have their own, so a group of them can always show icons together
+     * (RidingNameGroup) without two readings looking alike: Average and Max speed mark the speedometer the way Halo's ring
+     * marks the ride (a dot for the average, a marker past the dial for the max), Trip ends at a flag where Range at this pace keeps the
+     * route ahead, and Ride time's stopwatch and Recording's record dot stand apart from the clock. Speed has the plain
+     * speedometer, Efficiency a leaf, Voltage and Current the circuit symbols of a voltmeter and an ammeter, Drive mode a
+     * gear-shift pattern and the Odometer a distance arrow. The three range readings share the route and are told apart by their
+     * names. Every reading a tile or the strip can show has one.
+     */
+    static String icon(String contentId) {
+        if (contentId == null) return null;
+        switch (contentId) {
+            case RANGE_AT_PACE: case RANGE_SCOOTER: case RANGE_VOLT: return "route";
+            case TRIP: return "trip";
+            case BATTERY: return "battery";
+            case RIDE_TIME: return "stopwatch";
+            case RECORDING_TIME: return "recording";
+            case AVERAGE_SPEED: return "speed_average";
+            case MAX_SPEED: return "speed_max";
+            case RIDE_ENERGY: return "energy";
+            case BATTERY_TEMPERATURE: return "temperature";
+            case CLOCK: return "clock";
+            case POWER: return "power";
+            case SPEED: return "speed";
+            case EFFICIENCY: return "efficiency";
+            case VOLTAGE: return "voltage";
+            case CURRENT: return "current";
+            case DRIVE_MODE: return "mode";
+            case ODOMETER: return "distance";
+            default: return null;
+        }
+    }
+
+    /**
      * True for the chips whose value names itself ("SPORT", "31 °C", "12:48"): drive mode, battery
      * temperature and the clock. Every other chip carries the reading's name or icon beside its value.
      */
