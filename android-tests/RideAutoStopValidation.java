@@ -168,12 +168,16 @@ public final class RideAutoStopValidation extends Instrumentation {
     private void preference() throws Exception {
         SharedPreferences settings = getTargetContext().getSharedPreferences("app_settings", 0);
         check(!settings.contains(ScooterServiceKeys.AUTO_STOP), "Preference absent on a fresh install");
-        main(() -> { invoke(activity, "select", new Class[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
+        // End rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
+        main(() -> HubTestPages.open(activity, "ride.recording")); settle();
         View root = activity.getWindow().getDecorView();
         TextView title = text(root, "End rides automatically"); check(title != null, "End rides automatically row present");
         TextView sub = text(root, "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min"); check(sub != null, "Row explains the rule");
         View row = (View) title.getParent().getParent(); Switch toggle = find(row, Switch.class); check(toggle != null, "Row has a switch");
-        TextView heading = text(root, "Connection & recording"); check(heading != null, "Connection & recording heading present");
+        // It was under App preferences' Connection & recording heading; that heading stays with My scooters, and the row
+        // is in Recording settings' card of recording options now.
+        View card = row; while (card != null && !"preference-recording-options".equals(card.getTag())) card = card.getParent() instanceof View ? (View) card.getParent() : null;
+        check(card != null, "Row is in Recording settings' recording options card");
         centre(row);
         fullyShown(title, "Preference title"); fullyShown(sub, "Preference detail"); fullyShown(toggle, "Preference switch");
         Rect t = new Rect(), s = new Rect(), w = new Rect(); title.getGlobalVisibleRect(t); sub.getGlobalVisibleRect(s); toggle.getGlobalVisibleRect(w);
@@ -186,7 +190,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         File xml = new File(getTargetContext().getDataDir(), "shared_prefs/app_settings.xml");
         await(() -> { try { return new String(Files.readAllBytes(xml.toPath()), "UTF-8").contains("name=\"ride_auto_stop\" value=\"false\""); } catch (IOException e) { return false; } }, "Off choice written to disk");
         screenshot("preference-off");
-        main(() -> { invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "Data"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
+        main(() -> { invoke(activity, "select", new Class[]{String.class}, "home"); HubTestPages.open(activity, "ride.recording"); }); settle();
         Switch again = find((View) text(activity.getWindow().getDecorView(), "End rides automatically").getParent().getParent(), Switch.class);
         check(again != null && !again.isChecked(), "Reopened section still shows off");
         main(() -> ((View) again.getParent()).performClick()); settle();
