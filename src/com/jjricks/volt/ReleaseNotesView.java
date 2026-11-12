@@ -49,17 +49,17 @@ final class ReleaseNotesView {
         SpannableStringBuilder out = new SpannableStringBuilder();
         boolean ruled = false;
         ReleaseNotes.Kind previous = null;
-        boolean previousQuoted = false;
+        int previousQuote = 0;
         for (ReleaseNotes.Block block : blocks) {
             if (block.kind == ReleaseNotes.Kind.RULE) { ruled = true; continue; }
             // An empty heading or fence holds only markup; Android refuses an empty exclusive span anyway.
             if (block.text.isEmpty()) continue;
             boolean quoted = block.quoted || block.kind == ReleaseNotes.Kind.QUOTE;
-            // Between two blocks of one quote, the bar runs through the gap too.
+            // Between two blocks of one quote, the bar runs through the gap too; two quotes get a bar each.
             int bar = out.length() + 1;
             if (out.length() > 0) gap(out, gapBefore(previous, block.kind, ruled));
-            if (!(quoted && previousQuoted && !ruled)) bar = out.length();
-            ruled = false; previous = block.kind; previousQuoted = quoted;
+            if (!(block.quote != 0 && block.quote == previousQuote && !ruled)) bar = out.length();
+            ruled = false; previous = block.kind; previousQuote = block.quote;
             int start = out.length();
             String prefix = block.marker.isEmpty() ? "" : block.marker + " ";
             out.append(prefix).append(block.text);

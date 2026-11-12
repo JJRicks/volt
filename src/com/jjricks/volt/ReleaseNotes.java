@@ -46,17 +46,22 @@ final class ReleaseNotes {
         final String written;
         /** Inside a quote: drawn with the quote's bar. A paragraph inside one is a QUOTE block. */
         final boolean quoted;
+        /**
+         * Which outermost quote the block is in, counted from 1 through the notes; 0 outside quotes. Blocks of one
+         * quote share it, so "> a" and "> b" with a blank line between them are two quotes, as on GitHub.
+         */
+        final int quote;
         /** The block's text without its markup; "\n" for each line break inside it. */
         final String text;
         /** Style ranges over text, outermost after the ranges inside them. */
         final List<Span> spans;
-        Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, boolean quoted) {
+        Block(Kind kind, int level, String marker, String written, String text, List<Span> spans, boolean quoted, int quote) {
             this.kind = kind; this.level = level; this.marker = marker; this.written = written; this.text = text;
-            this.spans = Collections.unmodifiableList(spans); this.quoted = quoted;
+            this.spans = Collections.unmodifiableList(spans); this.quoted = quoted; this.quote = quote;
         }
-        /** This block as it reads inside a quote. */
-        Block inQuote() {
-            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, true);
+        /** This block as it reads inside the given quote (the outer quote's number replaces an inner one's). */
+        Block inQuote(int quote) {
+            return new Block(kind == Kind.PARAGRAPH ? Kind.QUOTE : kind, level, marker, written, text, spans, true, quote);
         }
     }
 
@@ -135,8 +140,8 @@ final class ReleaseNotes {
         char fenceChar; int fenceLength, fenceIndent; boolean fenced;
         /** The fence has had a line, so the next one starts after a break. */
         boolean codeStarted;
-        /** The open quote's own parser, or null. */
-        Parser quote;
+        /** The open quote's own parser, or null; how many quotes this parser has closed. */
+        Parser quote; int quotes;
 
         Parser(int depth) { this.depth = depth; }
 
@@ -168,13 +173,9 @@ final class ReleaseNotes {
                 add(Kind.HEADING, m.group(1).charAt(0) == '=' ? 1 : 2, "", "", title);
                 return;
             }
-            if (RULE.matcher(line).matches()) { close(); levels.clear(); out.add(new Block(Kind.RULE, 0, "", "", "", new ArrayList<Span>(), false)); return; }
+            if (RULE.matcher(line).matches()) { close(); levels.clear(); out.add(new Block(Kind.RULE, 0, "", "", "", new ArrayList<Span>(), false, 0)); return; }
             if ((m = BULLET_ITEM.matcher(line)).matches()) { item(Kind.BULLET, m); return; }
-            // As on GitHub, a numbered item breaks into a paragraph only when it starts at 1, so prose wrapped onto
-            // a line such as "80. percent" stays in its paragraph. A paragraph that belongs to a list item ends,
-            // though, at a line less indented than the item's text: that line is the list's next item.
-            if ((m = NUMBERED_ITEM.matcher(line)).matches() && (open != Kind.PARAGRAPH || startsAtOne(m.group(2))
-                    || paragraphContent >= 0 && columns(m.group(1)) < paragraphContent)) {
+            if ((m = NUMBERED_ITEM.matcher(line)).matches() && opensItem(m)) {
                 item(Kind.NUMBERED, m);
                 return;
             }
@@ -196,24 +197,56 @@ final class ReleaseNotes {
             append(line);
         }
 
-        /** Whether a line not marked with ">" starts a block, which ends a quote above it. */
+        /**
+         * Whether a numbered line (a NUMBERED_ITEM match) starts an item here rather than carrying on the open
+         * paragraph. As on GitHub, a numbered item breaks into a paragraph only when it starts a new list at 1, so
+         * prose wrapped onto a line such as "80. percent" stays in its paragraph. A paragraph that belongs to a
+         * numbered item ends, though, at the next item of that list ("2." after the item's indented paragraph).
+         */
+        private boolean opensItem(Matcher m) {
+            if (open != Kind.PARAGRAPH || startsAtOne(m.group(2))) return true;
+            int indent = columns(m.group(1));
+            String written = m.group(2);
+            return paragraphContent >= 0 && indent < paragraphContent && continuesNumbered(indent, written.charAt(written.length() - 1));
+        }
+
+        /** Whether an item at this indent would be the next of an open numbered list with this delimiter (as item() places it). */
+        private boolean continuesNumbered(int indent, char delimiter) {
+            for (int i = levels.size() - 1; i >= 0; i--) {
+                Level level = levels.get(i);
+                if (indent >= level.indent + 2) return false;
+                if (indent >= level.indent) return level.kind == Kind.NUMBERED && level.delimiter == delimiter;
+            }
+            return false;
+        }
+
+        /**
+         * Whether a line not marked with ">" starts a block, which ends a quote above it. A numbered line is left to
+         * lazy(), which asks the quote's innermost block as it would a line marked with ">".
+         */
         private static boolean startsBlock(String line) {
             Matcher m;
             return (m = FENCE.matcher(line)).matches() && fenceOpens(m) || HEADING.matcher(line).matches() || RULE.matcher(line).matches()
-                    || BULLET_ITEM.matcher(line).matches() || NUMBERED_ITEM.matcher(line).matches();
+                    || BULLET_ITEM.matcher(line).matches();
         }
 
-        /** A line that carries on the open paragraph or list item, inside quotes as deep as they go; false if none is open. */
+        /**
+         * A line that carries on the open paragraph or list item, inside quotes as deep as they go; false if none is
+         * open, or if the line is a numbered item that would start an item there.
+         */
         boolean lazy(String line) {
             if (quote != null) return quote.lazy(line);
             if (fenced || open == null || open == Kind.CODE) return false;
+            Matcher m = NUMBERED_ITEM.matcher(line);
+            if (m.matches() && opensItem(m)) return false;
             append(line);
             return true;
         }
 
         private void endQuote() {
             quote.finish();
-            for (Block block : quote.out) out.add(block.inQuote());
+            int id = ++quotes;
+            for (Block block : quote.out) out.add(block.inQuote(id));
             quote = null;
         }
 
@@ -289,7 +322,7 @@ final class ReleaseNotes {
         }
 
         private void closeCode() {
-            out.add(new Block(Kind.CODE, 0, "", "", raw.toString(), new ArrayList<Span>(), false));
+            out.add(new Block(Kind.CODE, 0, "", "", raw.toString(), new ArrayList<Span>(), false, 0));
             open = null; raw.setLength(0); codeStarted = false;
         }
 
@@ -302,7 +335,7 @@ final class ReleaseNotes {
         private void add(Kind kind, int level, String marker, String written, String source) {
             StringBuilder text = new StringBuilder(); List<Span> spans = new ArrayList<>();
             new Inline(source, text, spans).run(0, source.length());
-            out.add(new Block(kind, level, marker, written, text.toString(), spans, false));
+            out.add(new Block(kind, level, marker, written, text.toString(), spans, false, 0));
         }
     }
 

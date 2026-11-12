@@ -15,6 +15,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
@@ -36,6 +37,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -2439,8 +2441,19 @@ public final class MoreScreen implements AppScreen {
                 if (footerMisplaced(frame, foot, box, content)) frame.post(() -> {
                     if (!footerMisplaced(frame, foot, box, content)) return;
                     boolean scrolls = foot.getParent() == frame;
+                    // Moving the buttons drops their focus (keyboard, D-pad or TalkBack): give it back, in view.
+                    View focused = foot.findFocus();
+                    View held = accessibilityFocused(foot);
                     ((ViewGroup) foot.getParent()).removeView(foot);
                     (scrolls ? content : frame).addView(foot, new LinearLayout.LayoutParams(-1, -2));
+                    if (focused != null) focused.requestFocus();
+                    if (held != null) held.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
+                    if (scrolls && (focused != null || held != null)) foot.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                        @Override public void onLayoutChange(View f, int l, int t, int r2, int b, int ol, int ot, int or, int ob) {
+                            foot.removeOnLayoutChangeListener(this);
+                            inner.requestChildRectangleOnScreen(foot, new Rect(0, 0, foot.getWidth(), foot.getHeight()), true);
+                        }
+                    });
                 });
             });
         }
@@ -2451,6 +2464,18 @@ public final class MoreScreen implements AppScreen {
                     : T.moreUpdateOpen(), () -> { dialog.dismiss(); openRelease(r); });
         else dialog.setButton(AlertDialog.BUTTON_POSITIVE, T.commonOk(), (d, which) -> d.dismiss());
         show(dialog);
+    }
+    /** The view in this group that holds TalkBack's focus, or null. */
+    private static View accessibilityFocused(View view) {
+        if (view.createAccessibilityNodeInfo().isAccessibilityFocused()) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = accessibilityFocused(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
     /** Whether the update dialog's buttons sit on the wrong side of its scroller for the window's height now. */
     private boolean footerMisplaced(LinearLayout frame, LinearLayout foot, View body, LinearLayout content) {

@@ -166,6 +166,23 @@ public final class ReleaseNotesTest {
         block(b.get(0), ReleaseNotes.Kind.QUOTE, 0, "", "quoted\nlazy");
         block(b.get(1), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "outside");
         check(b.get(0).quoted && !b.get(1).quoted, "the item is outside the quote");
+        // A numbered line without ">" that could not break into the quote's paragraph carries it on, as on GitHub;
+        // one that would start an item there (a "1.", or the next item of a quoted list) ends the quote.
+        b = ReleaseNotes.parse("> We grew by\n80. percent");
+        check(b.size() == 1, "one quote: " + b.size());
+        block(b.get(0), ReleaseNotes.Kind.QUOTE, 0, "", "We grew by\n80. percent");
+        b = ReleaseNotes.parse("> quoted\n1. outside");
+        check(b.size() == 2 && b.get(0).quoted && !b.get(1).quoted, "a 1. ends the quote");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "1.", "outside");
+        b = ReleaseNotes.parse("> 1. one\n2. two");
+        check(b.size() == 2 && b.get(0).quoted && !b.get(1).quoted, "an item after a quoted item ends the quote");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+        // Each quote has its own number, shared by its blocks, so two quotes with a blank line between them stay two.
+        b = ReleaseNotes.parse("> a\n\n> b");
+        check(b.size() == 2 && b.get(0).quote != 0 && b.get(1).quote != 0 && b.get(0).quote != b.get(1).quote, "two quotes");
+        b = ReleaseNotes.parse("> a\n>\n> b\n> > c\n>\n> > d\n\nafter");
+        check(b.size() == 5 && b.get(0).quote != 0 && b.get(1).quote == b.get(0).quote && b.get(2).quote == b.get(0).quote
+                && b.get(3).quote == b.get(0).quote && b.get(4).quote == 0, "one quote, nested quotes in it");
         StringBuilder deep = new StringBuilder();
         for (int i = 0; i < 5000; i++) deep.append('>');
         b = ReleaseNotes.parse(deep + " # deep\n" + deep + " text");
@@ -188,7 +205,16 @@ public final class ReleaseNotesTest {
         block(ReleaseNotes.parse("1. one\n\ncontinued\n2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued\n2. two");
         // As indented as the item's text, the line is still the paragraph's.
         block(ReleaseNotes.parse("1. one\n\n   continued\n   2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued\n2. two");
-        block(ReleaseNotes.parse("- one\n\n  continued\n2. two").get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+        // Only the next item of an open numbered list ends the item's paragraph; any other number would start a new
+        // list, which only "1." can do inside a paragraph, so the line stays prose.
+        block(ReleaseNotes.parse("- one\n\n  continued\n2. two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "continued\n2. two");
+        b = ReleaseNotes.parse("- a\n\n  We grew by\n80. percent this year");
+        check(b.size() == 2, "bullet, paragraph: " + b.size());
+        block(b.get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "We grew by\n80. percent this year");
+        block(ReleaseNotes.parse("1. one\n\n   extra\n2) two").get(1), ReleaseNotes.Kind.PARAGRAPH, 0, "", "extra\n2) two");
+        block(ReleaseNotes.parse("1. one\n   - sub\n\n     extra\n2. two").get(3), ReleaseNotes.Kind.NUMBERED, 0, "2.", "two");
+        block(ReleaseNotes.parse("- one\n   1. sub\n\n      extra\n   2. two").get(3), ReleaseNotes.Kind.NUMBERED, 1, "2.", "two");
+        block(ReleaseNotes.parse("- one\n\n  continued\n1. new").get(2), ReleaseNotes.Kind.NUMBERED, 0, "1.", "new");
     }
 
     /** The update dialog keeps its buttons pinned unless that would leave the title and notes too little room. */
