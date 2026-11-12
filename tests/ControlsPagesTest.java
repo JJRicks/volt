@@ -199,6 +199,8 @@ public final class ControlsPagesTest {
         require(ControlsPages.linkShown(HubPages.BATTERY_MODES, "long_range_mode"::equals), "One row is enough");
         require(!ControlsPages.linkShown(HubPages.BATTERY_MODES, "charge_limit"::equals), "A row of another page doesn't count");
         require(ControlsPages.linkShown(HubPages.HOME, id -> false), "A page these rows don't build keeps its link");
+        for (String page : ControlsPages.HOSTED_ELSEWHERE)
+            require(ControlsPages.linkShown(page, id -> false), "A page built elsewhere keeps its link: " + page);
         // The GT3 Max's Assists page shows its three Experimental entries and kick-start speed's row or entry, so its link shows.
         DeviceDescriptor gt3 = OemControlsTest.model("24182", "ES");
         require(ControlsPages.linkShown(HubPages.CONTROLS_ASSISTS, id -> shownOn(gt3, id)), "GT3 Max Assists link");

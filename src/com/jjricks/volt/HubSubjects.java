@@ -72,7 +72,7 @@ final class HubSubjects {
                 Boolean charging = state == null || !state.live || state.number == null ? null : state.number == 1;
                 Integer percent = level == null || level.number == null || !Double.isFinite(level.number) ? null : (int) Math.round(level.number);
                 boolean limitOffered = ordinary(ble, "charge_limit");
-                Integer limit = limitOffered ? HubSummaries.known(ble.decision("charge_limit").variant, feature(service, "charge_limit")) : null;
+                Integer limit = chargeLimit(service);
                 HubSummaries.Battery battery = HubSummaries.battery(limitOffered, limit, percent, charging);
                 if (battery == null) return null;
                 Formatted shown = Fmt.percent(Fmt.integerNumber(battery.percent));
@@ -120,6 +120,17 @@ final class HubSubjects {
         if (ble == null || !ble.controlOffered(key)) return false;
         FeatureVariant variant = ble.decision(key).variant;
         return variant == null || !variant.lab;
+    }
+
+    /**
+     * The charge limit as its row reads it (an ordinary row, a value the row shows), or null: the Battery summary and
+     * Battery & charging's summary card (HubBatterySummary) state it only then.
+     */
+    static Integer chargeLimit(ScooterService service) {
+        BleController ble = service == null ? null : service.ble;
+        if (!ordinary(ble, "charge_limit")) return null;
+        Integer value = HubSummaries.known(ble.decision("charge_limit").variant, feature(service, "charge_limit"));
+        return value == null || value < 0 || value > 100 ? null : value;
     }
 
     /** The scooter's value: live while connected, else the last one seen. Callers check ordinary() first. */
