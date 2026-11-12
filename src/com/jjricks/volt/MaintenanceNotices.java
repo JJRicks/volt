@@ -131,7 +131,8 @@ final class MaintenanceNotices implements MaintenanceNotify.Poster {
 
     /**
      * A tap on a maintenance notice, or null for any other start. It consumes the extras and never selects
-     * a scooter: for the active scooter the Maintenance page opens next time the Scooter tab is built.
+     * a scooter: for the active scooter MainActivity opens Service › Maintenance reminders (preferences is unused
+     * since the page stack replaced the Scooter tab's remembered sub-page).
      */
     static Tap tapped(Intent intent, SharedPreferences preferences, ScooterProfiles profiles) {
         if (intent == null || !intent.getBooleanExtra(MaintenanceNotify.OPEN, false)) return null;
@@ -146,7 +147,6 @@ final class MaintenanceNotices implements MaintenanceNotify.Poster {
             if (scope != null && p.id.equals(MaintenanceKeeper.profileOf(scope))) name = p.shownName();
         }
         MaintenanceNotify.Route route = MaintenanceNotify.route(scope, active == null ? null : active.id, saved);
-        if (route == MaintenanceNotify.Route.OPEN_PAGE) MaintenanceScreen.remember(preferences, true);
         return new Tap(route, name);
     }
 }

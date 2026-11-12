@@ -501,7 +501,8 @@ server located in Russia; Volt can't see that location, so it doesn't. The
 scooter's firmware can still reject a setting. A control that is Lab
 on the UT5 MAX is an ordinary row on a model the official app maps it for.
 Controls the official app hides for an identified model can be tried from
-More > Experimental controls (see EXPERIMENTAL CONTROLS below); the rows above
+Scooter > Service > Experimental controls (see EXPERIMENTAL CONTROLS below),
+and appear on their subject page labelled Experimental; the rows above
 are unchanged.
 Firmware conditions need the version read in the current connection, and a
 value the scooter reports outside the mapped choices reads as unknown, except
@@ -569,7 +570,8 @@ retain honest raw labels; firmware faults are not silently cleared.
 
 EXPERIMENTAL CONTROLS (FORMERLY FIRMWARE LAB)
 
-More > Experimental controls lists, for the connected (or last identified)
+Scooter > Service > Experimental controls (formerly More > Experimental
+controls) lists, for the connected (or last identified)
 scooter, controls the official NAVEE app does not offer for that model, so an
 owner can try them while parked. Everything the official app offers for the
 model keeps its place in Scooter settings, verified or not.
@@ -669,8 +671,9 @@ APP TOOLS AND REMAINING VALIDATION
 
 The app includes local profiles, appearance/text/unit choices, fold-aware
 layouts, charts, ride recording, notes, comparison and exports. More uses saved
-App, Scooters, Security, Lab, Data and About sections, showing one at a time without
-rebuilding their controls. Submenus reset after one minute away from More or the
+App, Scooters, Data, About and Developer sections, showing one at a time without
+rebuilding their controls. Security and Experimental controls are subject pages
+(Scooter > Security, Scooter > Service > Experimental controls). Submenus reset after one minute away from More or the
 app, while active use and quick returns preserve the section. First-time owner setup stays visible when needed.
 
 Keep idle connection in background defaults off. When off with no recording,
@@ -702,17 +705,16 @@ Find My/Find Hub networks remain outside this offline app.
 
 DASHBOARD AND LOCAL HISTORY
 
-Five main tabs: Home, Scooter, Stats, Rides and More. Scooter contains grouped
-settings and the Lights destination for tail/automatic, line and star lighting.
-Rename the local scooter profile in Scooter or with its widget pencil while
-editing Home.
-The Scooter tab's pencil arranges its sections and settings for each scooter:
-drag or Move up/down within a section, hide with Undo, Add back and Reset. The
-tab then ends with "N settings hidden · Edit", and search still finds hidden
-settings, marked Hidden. Hiding never changes or sends a setting. Wide screens
-balance the two columns by row count. Lights and Quick access keep their own
-order. Maintenance (Scooter > Maintenance > Reminders, off by default) keeps
-local reminders by distance, time or either, counted from odometer readings the
+Five main tabs: Home, Scooter, Stats, Rides and More. Scooter lists its
+subjects with a summary each (Battery & charging, Controls, Lights & sound,
+Security, Service); each is a short page in a fixed, most-used-first order with
+sub-pages for settings set once (Assists, Speed limits, Battery modes,
+Estimates & charger, Line lights, Star lights). Search at the top of the tab
+finds a setting on any page. The former arrange-and-hide editor is gone, and
+settings hidden with it show again. Rename the local scooter profile in More >
+My scooters or with its widget pencil while editing Home. Maintenance
+(Scooter > Service > Maintenance, off by default) keeps local reminders by
+distance, time or either, counted from odometer readings the
 scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
 Scooter tab dot and an optional quiet notification once per due cycle (a daily
 JobScheduler check for time reminders; no push service). Where a NAVEE manual
@@ -764,8 +766,8 @@ open or Follow phone), Hide status bar (off by default), Show seconds on clock
 (off by default; every Clock reading in riding mode then ticks each second
 while it's on screen, dropping AM/PM before seconds where a spot is narrow,
 and TalkBack isn't told each tick) and night vision, plus
-Record rides automatically and Open automatically, which are also in More >
-App preferences. Every change saves at once. The menu closes with its close
+Record rides automatically and Open automatically, which are also in Rides >
+Recording settings and Rides > Riding mode. Every change saves at once. The menu closes with its close
 button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
 a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is
@@ -785,7 +787,7 @@ to about 10 km, after asking) or the time zone, or custom times; a moon tap
 lasts until the next switch. Nothing is sent. Tested with simulated samples
 on emulators only.
 
-Auto-start (More > App preferences, both off by default): Record rides
+Auto-start (Rides > Recording settings and Rides > Riding mode, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
 above zero, also in the background with Stay connected in background on (a
 ride started that way has no GPS route). Riding mode > Open automatically
@@ -965,7 +967,7 @@ are trimmed earlier under storage pressure. Charts use numeric data actually
 reported; text-only/unsupported selections do not create numeric points.
 Reported health remains a controller value, not a capacity measurement.
 
-More > Data & history shows usage and can disable new timeline samples or clear
+Live Stats > Data & history shows usage and can disable new timeline samples or clear
 one/all scooters' connected history. Disabling keeps the last-known cache.
 Clearing removes the selected timelines and cache, preserving explicit rides
 and owner setup. Fresh data can accumulate again while connected. Connected
@@ -974,8 +976,9 @@ history does not extend the fixed ten-second idle background deadline.
 
 RANGE LEARNED FROM YOUR RIDES
 
-Scooter > Range estimate offers Scooter's estimate (default, following drive
-mode) or Volt's estimate (learned), saved separately for each scooter. Volt's
+Scooter > Battery & charging > Estimates & charger > Range estimate offers
+Scooter's estimate (default, following drive mode) or Volt's estimate
+(learned), saved separately for each scooter. Volt's
 estimate uses only that profile's completed ride recordings on this phone;
 no other rider's range baseline ships with Volt.
 With recorded power it forecasts battery energy left at the displayed level
@@ -1076,13 +1079,15 @@ Brief boundary fluctuations have bounded tolerance to avoid abrupt ETA switching
 stale readings and sustained or larger power mismatches still discard the reference.
 Usable ride energy never changes charging estimates.
 
-Scooter → Battery → Charger for estimates offers Stock / High-speed without
-Developer options, including while disconnected. This per-scooter manual choice
+Scooter → Battery & charging → Estimates & charger → Charger for estimates
+offers Stock / High-speed without Developer options, including while
+disconnected. This per-scooter manual choice
 changes estimates only: High-speed opts out of the bundled stock reference.
 It neither sets charger output nor starts recording, and cannot change during
 an active capture. The recording screen uses the same saved selection.
 
-Explicit Charge recording lives in Developer options, with a manual Stock or
+Explicit Charge recording lives in Scooter > Battery & charging > Charge history
+& recordings (formerly Developer options), with a manual Stock or
 High-speed charger selection. There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
@@ -1106,14 +1111,15 @@ names, MAC addresses, PINs and location are excluded.
 
 New charge samples also retain the original full/limit time estimates, limit,
 estimator version and source (live rate, stock reference or personal curve).
-More → Developer options → Charge recordings shows Time remaining and Predicted
+Scooter → Battery & charging → Charge history & recordings → Charge recordings
+shows Time remaining and Predicted
 finish graphs with full-resolution touch inspection and fullscreen views. An
 observed 100% finish provides a reference and prediction error; incomplete
 recordings and lower cutoffs are never compared to a guessed completion time.
 Older journals have no historical predictions; estimates are not backfilled.
 
-Live charging (Scooter > Battery > Live charging, on by default) starts only
-when you leave Volt while the scooter is connected and charging, or a Charge
+Live charging (Scooter > Battery & charging > Live charging, on by default)
+starts only when you leave Volt while the scooter is connected and charging, or a Charge
 done by or Scheduled charging start is set. Volt's connection notice becomes a
 card with the level, target, finish time and power; the lock screen shows
 Details, Level or Hidden. It ends at the limit (or 99%), about 15 s after the
@@ -1122,8 +1128,8 @@ charger is unplugged, after 3 minutes with stale readings, after 12 hours, about
 Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
-a Live Update (status-bar chip and segmented bar); More > Developer options >
-Live Update status reports the outcome. It keeps only the battery reads Volt
+a Live Update (status-bar chip and segmented bar); Scooter > Battery & charging >
+Charge history & recordings > Live Update status reports the outcome. It keeps only the battery reads Volt
 already makes and sends no new scooter command. Out of sight, the card, the
 connection notice and Charge done by / Scheduled charging read the scooter on
 the 15 s background cadence without treating the gap as a lost link; schedule
@@ -1147,7 +1153,7 @@ whole route. Center, zoom, overlay and inspected point survive opening/closing
 the expanded view. Pinch, pan, zoom buttons and inspection work in either view.
 Phone raw, linear and earth-frame
 acceleration are retained in CSV when the relevant sensors are available.
-Auto-save rides (More > Data & history > Ride auto-save, off by default): Auto-save
+Auto-save rides (Rides > Recording settings > Ride auto-save, off by default): Auto-save
 Route CSV and Auto-save ride JSON copy each ride you end into one folder chosen once through
 Android's folder picker, byte for byte the Route CSV and All (JSON) exports (Export
 JSON for a ride with no phone recording). Names come from the ride id; a hidden
@@ -1174,7 +1180,7 @@ GPS. Pocket IMU quality and outdoor GPS/pressure need physical ride validation.
 
 Basemap starts off if no preference is saved; existing explicit choices remain.
 A remembered Basemap switch directly below both inline and full-screen maps
-shares its state with App preferences > Map settings. The first new enable
+shares its state with Rides > Recording settings > Map settings and About & permissions. The first new enable
 explains that the provider receives your IP address and viewed area, then asks
 for Enable basemap or Cancel. Approval is remembered; cancellation keeps tiles off.
 Backups with App preferences include the choice and acknowledgement; the restore
@@ -1190,9 +1196,12 @@ legacy unverified cache entries require refresh. No bulk prefetch is performed.
 QUICK ACCESS
 
 Choose two to eight ordered shortcuts in the widget options. Direct toggles use
-the same live-value and parked checks as Scooter settings. Choices/sliders and
-settings submenus open over Home; PIN/proximity and experimental controls retain
-their existing guarded flows. Stats and Rides are still page shortcuts. Legacy
+the same live-value and parked checks as Scooter settings. Choices/sliders open
+over Home. Scooter groups open their page under Scooter (Lights & sound,
+Controls, Battery & charging, Security), PIN/proximity opens Scooter > Security,
+experimental controls open their test in Scooter > Service > Experimental
+controls, and app-preference shortcuts open More on that menu. Stats and Rides
+are still page shortcuts. Every saved shortcut keeps working. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.
