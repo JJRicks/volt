@@ -716,7 +716,7 @@ public final class ScooterService extends Service {
         ble.recordDiagnostic(reason==ChargeSessionStore.Stop.RECOVERY_TIMEOUT?ConnectionEventLog.Reason.CHARGE_RECOVERY_TIMEOUT
                 :reason==ChargeSessionStore.Stop.IDENTITY_CHANGED||reason==ChargeSessionStore.Stop.PROFILE_CHANGED?ConnectionEventLog.Reason.CHARGE_WRONG_SCOOTER
                 :recovering?ConnectionEventLog.Reason.CHARGE_RECOVERY_CANCELLED:ConnectionEventLog.Reason.CHARGE_STOPPED,-1);
-        try{chargeStore.stop(reason);chargeStatus=reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
+        try{chargeStatus=!chargeStore.stop(reason)?M.serviceChargeNotKept():reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
                 :reason==ChargeSessionStore.Stop.STOPPED?M.serviceChargeSaved():reason==ChargeSessionStore.Stop.ERROR?M.serviceChargeStorageError()
                 :M.serviceChargeStoppedReason(stopLabel(reason,reason.name().toLowerCase(Locale.ROOT).replace('_',' ')));}
         catch(IOException failure){chargeStatus=M.serviceChargeNotFinalized();}

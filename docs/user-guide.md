@@ -165,6 +165,16 @@ Volt's **Time to full** gets better with real charges from real scooters, and yo
 2. Tap **Record this charge** and pick the charger you're using. Volt asks you to choose **Stock** or **High-speed** so the recording is labelled correctly.
 3. Keep charging as usual. You can leave Volt; a notification shows the recording is running. The recording ends by itself at 100%, or within a few seconds if you unplug at 99% or above. If charging stops below 99%, because you unplugged or the charger cut out, Volt waits up to 30 minutes in case charging comes back, then ends the recording. To end it sooner, tap **Stop charge recording** on the same page. That still counts as a finished recording.
 
+**Recording charges automatically.** Turn on **Record charges automatically**, beside **Record this charge**, and Volt starts a recording by itself, without asking, whenever it is connected to your scooter and the scooter starts charging, even with Volt in the background. It's off unless you turn it on.
+
+- **When it can't catch a charge.** Volt must already be connected when charging starts (out of sight, that means **Stay connected in background** is on and the scooter is in range), and Volt's notifications must be allowed. If Volt connects while the scooter is already charging, the recording starts then and covers the rest of that charge.
+- **The charger label.** The charger you chose under **Charger for estimates**; otherwise the charger Volt detected; otherwise its best guess: the charger you have recorded more charges with, or the stock charger. A detected or guessed label switches if detection later settles on the other charger.
+- **When it ends.** As soon as the scooter moves faster than about 3 mph (5 km/h), so **Record rides automatically** can start the ride straight away; two minutes after charging stops (unless Volt's own charging schedule is holding the charge); or any way a recording you started ends. Starting a ride ends it too. A recording you started yourself still waits up to 30 minutes and still blocks a ride.
+- **What's kept.** A recording shorter than 10 minutes or that gained less than 5 percentage points is deleted. Volt keeps up to 20 charge recordings; an automatic recording only ever makes room by replacing the oldest automatic one, never one you started. If all 20 are yours, it doesn't record.
+- **Stopping one.** Tap **Stop charge recording** (or Stop in the notification) and Volt won't start another until the scooter stops charging and starts again, even if Volt reconnects in between.
+
+Exports and **Email to Volt** say which recordings started by themselves and how their charger was chosen.
+
 **Which charges help.**
 
 - **Your everyday partial charges,** such as 50→80%, teach the early part of a charge, so keep recording those if they're what you normally do.

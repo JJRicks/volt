@@ -1108,6 +1108,23 @@ local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
 
+Record charges automatically (beside Record this charge, off by default, an App
+preferences setting) starts a charge recording without a prompt whenever Volt is
+connected to the selected scooter, on screen or in the background, and it reports
+charging, if a manual start would be allowed then; never in simulation. It never
+connects or turns on another setting, so a charge that starts while Volt isn't
+connected, or with notifications off, is missed; connecting mid-charge records the
+rest. The label is the chosen charger, else Volt's detection, else a best guess (the
+charger with more qualified recordings, stock on a tie); a detected or guessed label
+follows detection to the other charger. It ends at once above about 3 mph (4.8 km/h,
+so Record rides automatically can start the ride in the same moment), two minutes
+after charging stops unless Volt's schedule holds the current off, or when a ride is
+started by hand. One under 10 minutes or 5 percentage points is not kept. At the
+20-recording limit it replaces only the oldest automatic recording, never a manual
+one. A hand stop holds that scooter until it stops charging and starts again,
+across reconnects. Exports mark each charge's started_automatically and
+label_source. Manual recordings are unchanged.
+
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate
 within its fully observed range. Other learned ranges need two usable recordings.

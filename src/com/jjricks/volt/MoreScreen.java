@@ -2603,6 +2603,9 @@ public final class MoreScreen implements AppScreen {
             String unavailable=s.chargeCaptureUnavailable();if(unavailable!=null){host.toast(unavailable);return;}
             recordChargeDialog(s);
         });chargeCaptureRow.view.setTag("charge-capture-action");
+        // Record charges automatically (off by default): beside the recording controls, its only place.
+        preferenceToggle(capture,"recording",T.moreChargeAutoRecord(),T.moreChargeAutoRecordSub(),ChargeAutoRecordPolicy.KEY,false)
+                .view.setTag(ChargeAutoRecordPolicy.KEY);
         chargeCaptureStatus=footnote("");chargeCaptureStatus.setTag("charge-capture-status");
         LinearLayout chargeData=group();
         chargeHistoryRow=row(chargeData,"chart",T.moreDevRecordings(), T.moreDevRecordingsSub(),()->{
