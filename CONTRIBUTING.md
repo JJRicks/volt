@@ -8,7 +8,7 @@ This is the whole path from idea to merge. Each step is explained further down.
 
 1. **Agree on the plan first.** For a feature, new scooter support or a change to how screens are organized, open an issue describing the intended behavior and wait for a reply. Removing a setting, changing a default or changing safety wording needs the project owner's yes in that issue before any code. See [Propose a change](#propose-a-change).
 2. **Branch from the current `main`, and open the pull request against `main` from the start.** A branch in your fork or in this repository both work. Changing the base branch later does not re-run CI, and the localization gates compare your work with the base branch as it was when CI ran, so a retargeted pull request can keep a stale result.
-3. **Keep it a draft until it's finished.** Drafts are never reviewed, and each push to a ready pull request means another round of review. Push finished work, not work in progress.
+3. **Keep it a draft until it's finished.** Drafts aren't reviewed, and each push to a ready pull request means another round of review. Push finished work, not work in progress.
 4. **Before you mark it ready:**
    - run the checks CI runs, and build the app ([Build and test](#build-and-test));
    - install your build on your own phone or emulator and try the change by hand;
@@ -21,26 +21,28 @@ This is the whole path from idea to merge. Each step is explained further down.
    - new or changed English text, by string key;
    - what's untested;
    - screenshots.
-6. **Ask for a review.** Once the pull request is ready and its checks are green, post a comment that ends with the review-request line for its head commit ([Ask for a review](#ask-for-a-review)).
-7. **Review.** An independent automated review is posted as a comment from the maintainer's account, headed as an independent review, usually 10 to 30 minutes after you ask. The maintainer may comment too. Findings marked **[P1]** or **[P2]** need a fix or a reasoned reply. When you've pushed fixes, ask again with a new comment naming the new commit. If no review has arrived after a day, comment on the pull request to say so. CI must be green on the final commit.
+6. **Ask for a review.** Once the pull request is ready and its checks are green, ask in a comment: with the review-request line for its head commit if the automated review is on for you, otherwise by saying it's ready ([Ask for a review](#ask-for-a-review)).
+7. **Review.** The review is posted as a comment from the maintainer's account: the independent automated review, headed as an independent review, or the maintainer's own. It usually arrives the same day; if nothing has arrived after a day, comment on the pull request to say so. The maintainer may comment too. Findings marked **[P1]** or **[P2]** need a fix or a reasoned reply. When you've pushed fixes, ask again the same way; with the automated review, that's a new comment naming the new commit. CI must be green on the final commit.
 8. **The maintainers' part.** They run the emulator validations and the standard screenshot set, update any validation that fails only because something moved or was renamed, translate new text, merge, and cut releases. You never need the release signing key, [RELEASING.md](RELEASING.md), translations, validation code or a release installed on a phone to finish a pull request.
 
 If this is your first pull request from a fork, GitHub holds its CI run until a maintainer approves it. That's normal.
 
 ## Ask for a review
 
-When a pull request is ready for review (not a draft, checks green), post an ordinary comment on it that ends with this line, on a line of its own:
+The maintainer switches the automated review on for each contributor, and tells you when it's on for you. Until then, mark the pull request ready and say so in a comment; the maintainer reviews it by hand or switches the automated review on for you.
+
+Once it's on for you, and a pull request is ready for review (not a draft, checks green), post an ordinary comment on it that ends with this line, on a line of its own:
 
 ```
 <!-- council-review-request: head=<full 40-character SHA of the PR's head commit> -->
 ```
 
-- The review starts within a couple of minutes of that comment, on that commit.
+- When the maintainers' review session is running, it picks the request up within a few minutes and reviews that commit; otherwise it does when the session next runs. A review usually arrives the same day. If nothing has arrived after a day, comment on the pull request.
 - **After fixes, or any other push,** post a new comment with the new SHA. A line that names an older commit doesn't count.
 - It must be an ordinary pull request comment written by the pull request's author. The description, a review body or an inline comment won't be seen. Use the lowercase SHA from `git rev-parse HEAD`, with nothing else on the line. GitHub hides the line when it shows the comment; that's expected.
-- **Without that line,** a ready pull request is still reviewed, but only after it has sat untouched for 30 minutes.
-- **Between asking and the review arriving** (usually 10 to 30 minutes), don't push to the pull request. If something has to go in, push it and post a new comment with the new SHA: the review in progress is dropped and starts again on the new commit.
-- Drafts are never reviewed, with or without the line.
+- **Without that line,** a ready pull request is still picked up, but no sooner than 30 minutes after its last push. Comments don't change that.
+- **Between asking and the review arriving,** don't push to the pull request. A push throws away the review in progress, and the new commit is reviewed only after a new comment naming it (or the 30-minute fallback), once the review session takes it up. If something has to go in, push it and post that new comment.
+- Drafts aren't reviewed, with or without the line.
 - The maintainers merge only content that was reviewed, so a push after an approval means another round.
 
 ## Report a bug or compatibility result
