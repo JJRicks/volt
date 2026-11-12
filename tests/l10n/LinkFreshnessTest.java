@@ -19,6 +19,11 @@ import java.util.function.Consumer;
  * interrupted. The Rig below runs BleController's poll chain, connect timeout and silence check (source() pins those
  * lines) on a fake clock, with a scooter that answers each status read, and the real ChargeScheduleController on top.
  * Rig.old runs the code as it was, to show each scenario catches the fault. Listed in tests/l10n/link-freshness.sources.
+ *
+ * Two clocks: ages are on the elapsed clock, which counts deep sleep, and the Handler's timers wait on the awake clock,
+ * which does not. Clock models both (sleep() moves only the elapsed one), and the sleep scenarios below show that the
+ * link is judged on awake time while controls and live readings stay strict; Rig.HEAD runs the judgements as they were on
+ * 5a4b1d02 (elapsed ages), where a phone asleep with a poll pending lost a healthy link on waking.
  */
 public final class LinkFreshnessTest {
     private static int checks;
@@ -37,6 +42,14 @@ public final class LinkFreshnessTest {
         scheduleInFlightAtResume();
         silenceStillEndsTheLink();
         rapidFlips();
+        wakeAfterSleep();
+        goneDuringSleep();
+        repeatedSleeps();
+        sleepDuringCadenceChange();
+        sleepDuringConnect();
+        scheduleAcrossSleep();
+        wakeWindowEdges();
+        noRenewal();
         System.out.println("LinkFreshnessTest: " + checks + " checks passed");
     }
 
@@ -47,17 +60,28 @@ public final class LinkFreshnessTest {
         check(ble.contains("now()-statusMs<=7000&&!serial.isEmpty();}"), "ready() keeps its plain 7 s: controls are admitted as before");
         check(ble.contains("if(session==generation&&gatt!=null&&!linkUp())failed(M.bleFailedTimedOut(),true,ConnectionEventLog.Reason.CONNECT_TIMEOUT,-1);},18000);"),
                 "the connect timeout judges the link on its cadence and is still CONNECT_TIMEOUT");
-        check(ble.contains("private boolean linkUp(){return StatusCadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,now(),cadence.fast(),cadence.fastSinceMs());}"),
-                "linkUp() is StatusCadence.linked on the chain's cadence");
+        check(ble.contains("private boolean linkUp(){return cadence.linked(workAllowed()&&state==State.READY&&authenticated&&gatt!=null&&!serial.isEmpty(),statusMs,statusSleptMs);}"),
+                "linkUp() is the chain's linked(): the cadence the link has been on, in awake time");
+        check(ble.contains("@Override public long awake(){return SystemClock.uptimeMillis();}"), "the chain's awake clock is the one Handler timers wait on");
+        check(ble.contains("private long statusSleptMs=cadence.slept(),frameSleptMs=statusSleptMs,pendingStatusSleptMs=statusSleptMs;"), "the sleep marks start at the current total, never 0");
+        check(ble.contains("lastFrameMs=now();frameSleptMs=cadence.slept();"), "every frame is stamped with the sleep total");
+        check(ble.contains("statusFrame=f;statusMs=now();statusSleptMs=cadence.slept();}else{pendingStatusFrame=f;pendingStatusMs=now();pendingStatusSleptMs=cadence.slept();}"),
+                "every status read is stamped with the sleep total, a pending one too");
+        check(ble.contains("statusMs=pendingStatusMs;statusSleptMs=pendingStatusSleptMs;"), "a pending status keeps its own mark when it is promoted");
+        check(ble.contains("statusMs=motionMs=warningMs=lastFrameMs=0;statusSleptMs=frameSleptMs=pendingStatusSleptMs=cadence.slept();"), "close() resets the marks to the current total");
+        check(ble.contains("private boolean silentLink(){return cadence.silent(lastFrameMs,frameSleptMs)||cadence.silent(statusMs,statusSleptMs);}"),
+                "silence is the chain's silent(): frames and status, in awake time");
         check(ble.contains("public boolean linked(){if(simulating())return ready();return linkUp();}"), "linked() is linkUp(); simulation unchanged");
         check(ble.contains("public long readingFreshMs(long baseMs){return simulating()?StatusCadence.readingFreshMs(baseMs,true):StatusCadence.readingFreshMs(baseMs,cadence.fast(),cadence.fastSinceMs(),now());}"),
                 "reading freshness on the cadence the link has been on; simulation keeps the in-sight rule");
-        check(ble.contains("boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}"),
-                "visibility(): the cadence switches, the resume refresh is queued, then the pending poll moves");
+        check(ble.contains("boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&silentLink()){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}"),
+                "visibility(): the cadence switches, silence is checked (READ_TIMEOUT), the resume refresh is queued, then the pending poll moves");
         check(ble.contains("private void poll(int session){if(simulating())return;cadence.start(()->pollTick(session));}"), "one chain per session, started at authentication");
         check(ble.contains("send(Protocol.frame(0x70,null));refresh(true);poll(generation);"), "the chain starts when the owner is authenticated");
-        check(ble.contains("if(StatusCadence.silent(lastFrameMs,at,fast,since)||StatusCadence.silent(statusMs,at,fast,since)){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}"),
-                "the silence check judges frames and status on the cadence the link has been on");
+        check(ble.contains("gatt==null)return;if(silentLink()){failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return;}"),
+                "the poll's silence check judges frames and status on the cadence the link has been on, in awake time");
+        check(ble.contains("public long readingFreshMs(long baseMs){return simulating()?StatusCadence.readingFreshMs(baseMs,true):StatusCadence.readingFreshMs(baseMs,cadence.fast(),cadence.fastSinceMs(),now());}")
+                && ble.contains("public long statusAge(){return statusMs==0?Long.MAX_VALUE:now()-statusMs;}"), "readings and statusAge() stay on the elapsed clock");
         check(ble.contains("lastBatteryPollMs=now();}changed();cadence.next();}"), "each tick re-arms the one chain");
         check(ble.contains("++generation;generationStartMs=now();++writeOperation;cadence.stop();"), "close() ends the chain (disconnect, suspend, simulation, service end)");
         check(ble.contains("if(frame.length==7&&(frame[3]&255)==0x70)cadence.requested();"), "every queued status read counts as the last request");
@@ -121,24 +145,33 @@ public final class LinkFreshnessTest {
 
     // ---- A fake main-thread Handler ----------------------------------------------------------------------------
 
+    /**
+     * now: the elapsed clock (SystemClock.elapsedRealtime, ages); up: the awake clock (uptimeMillis), which the Handler's
+     * delays wait on. Both move together while awake; sleep() moves only now, and nothing runs during it. Up starts well
+     * below now (a phone that has slept before), so a mixed-up clock shows.
+     */
     static final class Clock {
-        long now;
+        long now, up;
         private long seq;
         private final List<long[]> keys = new ArrayList<>();
         private final List<Runnable> tasks = new ArrayList<>();
-        Clock(long now) { this.now = now; }
-        void post(Runnable r, long delay) { keys.add(new long[]{now + Math.max(0, delay), seq++}); tasks.add(r); }
+        Clock(long now) { this.now = now;this.up = now - 600 * S; }
+        void post(Runnable r, long delay) { keys.add(new long[]{up + Math.max(0, delay), seq++}); tasks.add(r); }
         void cancel(Runnable r) { for (int i = tasks.size() - 1; i >= 0; i--) if (tasks.get(i) == r) { tasks.remove(i); keys.remove(i); } }
+        /** Awake until the elapsed clock reads t. */
         void runUntil(long t) {
+            long target = up + (t - now);
             while (true) {
                 int best = -1;
                 for (int i = 0; i < keys.size(); i++)
-                    if (keys.get(i)[0] <= t && (best < 0 || keys.get(i)[0] < keys.get(best)[0] || keys.get(i)[0] == keys.get(best)[0] && keys.get(i)[1] < keys.get(best)[1])) best = i;
+                    if (keys.get(i)[0] <= target && (best < 0 || keys.get(i)[0] < keys.get(best)[0] || keys.get(i)[0] == keys.get(best)[0] && keys.get(i)[1] < keys.get(best)[1])) best = i;
                 if (best < 0) break;
-                now = keys.get(best)[0];keys.remove(best);tasks.remove(best).run();
+                long at = keys.get(best)[0];now += at - up;up = at;keys.remove(best);tasks.remove(best).run();
             }
-            now = t;
+            now = t;up = target;
         }
+        /** Deep sleep: the elapsed clock moves, the awake clock and every timer stand still. */
+        void sleep(long ms) { now += ms; }
     }
 
     /** The chain's tasks, to count pending polls. */
@@ -147,6 +180,7 @@ public final class LinkFreshnessTest {
         final Map<Runnable, Runnable> live = new IdentityHashMap<>();
         ChainTimer(Clock clock) { this.clock = clock; }
         public long now() { return clock.now; }
+        public long awake() { return clock.up; }
         public void post(Runnable task, long delayMs) {
             Runnable wrapped = () -> { live.remove(task); task.run(); };
             live.put(task, wrapped);clock.post(wrapped, delayMs);
@@ -193,34 +227,56 @@ public final class LinkFreshnessTest {
 
     // ---- BleController's link, on a fake clock ------------------------------------------------------------------
 
+    static final int NEW = 0, MAIN = 1, HEAD = 2;
+
     /**
      * BleController's connect(), authentication, poll chain, silence check and visibility(), with a scooter that answers
-     * each status read after REPLY ms while answering is set. old: the code as it was (ready() for the connect timeout,
-     * flags read when each poll was scheduled, no retime, the in-sight rule at once).
+     * each status read after reply ms (on the awake clock) while answering is set. Modes: NEW, this code; MAIN (old): the
+     * code before this pull request (ready() for the connect timeout, flags read when each poll was scheduled, no retime,
+     * the in-sight rule at once); HEAD: 5a4b1d02, this chain with the link judged on elapsed ages and no check at a switch.
      */
     static final class Rig {
-        final boolean old;
+        final boolean old, head;
         final Clock clock = new Clock(T0);
         final ChainTimer timer = new ChainTimer(clock);
         final StatusCadence.Chain chain = new StatusCadence.Chain(timer);
         boolean visible, recording, up, answering = true, authenticates = true, oldWouldTimeOut;
         int generation, maxPending;
-        long statusMs, lastFrameMs, failedAt = -1;
+        long statusMs, lastFrameMs, statusSlept, frameSlept, failedAt = -1, failedUp = -1, statusUp, reply = REPLY;
         final List<String> log = new ArrayList<>();
         final List<Long> requests = new ArrayList<>();
-        Rig(boolean old) { this.old = old; }
+        /** Runs on every status reply (a step's readback). */
+        final List<Runnable> onStatus = new ArrayList<>();
+        Rig(boolean old) { this(old ? MAIN : NEW); }
+        Rig(int mode) { old = mode == MAIN;head = mode == HEAD; }
         long now() { return clock.now; }
         boolean fast() { return visible || recording; }
         boolean ready() { return readyBefore(up, statusMs, now()); }
         boolean linkUp() {
             if (old) return fast() ? ready() : StatusCadence.linked(up, statusMs, now(), false);
-            return StatusCadence.linked(up, statusMs, now(), chain.fast(), chain.fastSinceMs());
+            if (head) return StatusCadence.linked(up, statusMs, now(), chain.fast(), chain.fastSinceMs());
+            return chain.linked(up, statusMs, statusSlept);
         }
+        /** A reading taken at readMs is live under BleController.readingFreshMs (elapsed clock). */
+        boolean readingLive(long readMs, long baseMs) { return readMs > 0 && now() - readMs <= StatusCadence.readingFreshMs(baseMs, chain.fast(), chain.fastSinceMs(), now()); }
+        boolean silentNow() {
+            if (head) {
+                long since = chain.fastSinceMs();boolean f = chain.fast();
+                return StatusCadence.silent(lastFrameMs, now(), f, since) || StatusCadence.silent(statusMs, now(), f, since);
+            }
+            return chain.silent(lastFrameMs, frameSlept) || chain.silent(statusMs, statusSlept);
+        }
+        void status() {
+            statusMs = lastFrameMs = now();statusSlept = frameSlept = chain.slept();statusUp = clock.up;
+            for (Runnable r : new ArrayList<>(onStatus)) r.run();
+        }
+        /** A pushed frame (motion, say): not a status read. */
+        void frame() { if (up) { lastFrameMs = now();frameSlept = chain.slept(); } }
         void connect() {
-            int gen = ++generation;chain.stop();up = false;statusMs = lastFrameMs = 0;log.add("CONNECT_ATTEMPT");
+            int gen = ++generation;chain.stop();up = false;statusMs = lastFrameMs = 0;statusSlept = frameSlept = chain.slept();log.add("CONNECT_ATTEMPT");
             if (authenticates) clock.post(() -> {
                 if (gen != generation) return;
-                up = true;lastFrameMs = now();requestStatus();
+                up = true;frame();requestStatus();
                 if (old) oldPoll(gen); else chain.start(() -> tick(gen));
             }, 2500);
             clock.post(() -> {
@@ -231,12 +287,11 @@ public final class LinkFreshnessTest {
         }
         void requestStatus() {
             chain.requested();requests.add(now());int gen = generation;
-            if (answering) clock.post(() -> { if (gen == generation && up && answering) statusMs = lastFrameMs = now(); }, REPLY);
+            if (answering) clock.post(() -> { if (gen == generation && up && answering) status(); }, reply);
         }
         void tick(int gen) {
             if (gen != generation || !up) return;
-            long since = chain.fastSinceMs();boolean f = chain.fast();
-            if (StatusCadence.silent(lastFrameMs, now(), f, since) || StatusCadence.silent(statusMs, now(), f, since)) { fail("READ_TIMEOUT"); return; }
+            if (silentNow()) { fail("READ_TIMEOUT"); return; }
             requestStatus();chain.next();
         }
         /** The old poll(): the flags read when each poll is scheduled, the silence limit when it runs. */
@@ -248,13 +303,15 @@ public final class LinkFreshnessTest {
                 requestStatus();oldPoll(gen);
             }, StatusCadence.pollMs(fast()));
         }
-        void fail(String reason) { log.add(reason);if (failedAt < 0) failedAt = now();++generation;chain.stop();up = false;statusMs = lastFrameMs = 0; }
+        void fail(String reason) { log.add(reason);if (failedAt < 0) { failedAt = now();failedUp = clock.up; }++generation;chain.stop();up = false;statusMs = lastFrameMs = 0; }
         void visibility(boolean v, boolean r) {
             boolean resumed = v && !visible;visible = v;recording = r;
             boolean switched = chain.cadence(v || r);
+            if (switched && !old && !head && up && silentNow()) { fail("READ_TIMEOUT"); return; }
             if (resumed && up) requestStatus();
             if (switched && !old) chain.retime();
         }
+        void sleep(long ms) { clock.sleep(ms); }
         void run(long until) { for (long t = now(); t < until; ) { t = Math.min(until, t + STEP);clock.runUntil(t);maxPending = Math.max(maxPending, timer.live.size()); } }
         boolean failed() { return log.contains("CONNECT_TIMEOUT") || log.contains("READ_TIMEOUT"); }
     }
@@ -354,7 +411,13 @@ public final class LinkFreshnessTest {
         long clockAck = 400, timeAck = 400, enableAck = 400;
         /** The switch as the scooter reads it back: on once an ON is acknowledged. */
         int switchRead = 0;
-        Schedule(Rig rig) { this.rig = rig; }
+        /** Each step is confirmed by the next status read after it (its readback), not by a timer. */
+        boolean ackOnStatus;
+        private final List<Runnable> readbacks = new ArrayList<>();
+        Schedule(Rig rig) {
+            this.rig = rig;
+            rig.onStatus.add(() -> { List<Runnable> due = new ArrayList<>(readbacks);readbacks.clear();for (Runnable r : due) r.run(); });
+        }
         public ChargeScheduleController.Context context() {
             ChargeScheduleController.Context c = new ChargeScheduleController.Context();
             long t = rig.now();c.now = WALL0 + (t - T0);c.mono = t;c.zone = zone;c.scope = "owner-A";c.generation = rig.generation;
@@ -368,6 +431,7 @@ public final class LinkFreshnessTest {
         private void send(String what, long ack, Consumer<Boolean> done) {
             if (!rig.ready()) { refused.add(what);done.accept(false);return; }
             sent.add(what);int gen = rig.generation;
+            if (ackOnStatus) { readbacks.add(() -> done.accept(gen == rig.generation));return; }
             rig.clock.post(() -> done.accept(gen == rig.generation), ack);
         }
         public void clock(Consumer<Boolean> done) { send("clock", clockAck, done); }
@@ -470,5 +534,251 @@ public final class LinkFreshnessTest {
         for (int i = 0; i < 5; i++) { r.visibility(false, false);r.visibility(true, false); }
         r.run(r.now() + 10 * S);
         check(r.maxPending <= 1 && !r.failed() && r.ready() && r.now() - r.statusMs <= StatusCadence.POLL_FAST_MS + REPLY, "rotations: one chain, fresh status");
+    }
+
+    // ---- Sleep: the link judged on awake time -----------------------------------------------------------------------
+
+    private static final long[] GAPS = {60 * S, 10 * 60 * S, 3 * 3600 * S};
+    private static final long[] WAKE_REPLIES = {100, 1000, 3000, 6000};
+    /** When the phone sleeps: just after the background reply at 47.8 s, mid-cycle, and just before the poll at 62.5 s. */
+    private static final long[] SLEEP_AT = {48 * S, 55 * S, 62_400};
+    private static final long NEXT_POLL = 62_500;
+
+    /**
+     * A healthy scooter, background connection on, Volt out of sight: the phone sleeps with the slow poll pending, for 1
+     * minute, 10 minutes or 3 hours, and wakes. Either the poll finally fires out of sight, or Volt comes back into sight
+     * first. The scooter answers the first request after the wake in 0.1, 1, 3 or 6 s: the link survives and stays linked,
+     * a control is refused until that answer (ready() stays strict) and admitted from it, and a reading from before the
+     * sleep is not live. On 5a4b1d02 the late poll ended every one of these links, and the return ended those whose answer
+     * took longer than the first 2 s poll.
+     */
+    private static void wakeAfterSleep() {
+        int headLost = 0, headCases = 0;
+        for (long gap : GAPS) for (long sleepAt : SLEEP_AT) for (boolean back : new boolean[]{false, true}) for (long reply : WAKE_REPLIES)
+            for (int mode : new int[]{NEW, HEAD}) {
+                String what = "asleep at " + sleepAt + " for " + gap + (back ? ", back in sight" : ", out of sight") + ", answer in " + reply;
+                Rig r = new Rig(mode);r.connect();r.run(T0 + sleepAt);
+                long before = r.statusMs;int sent = r.requests.size();
+                check(before == T0 + 47_800 && r.linkUp() && r.timer.live.size() == 1, "a healthy background link, a poll pending: " + what);
+                r.sleep(gap);r.reply = reply;
+                long wake = r.now();
+                if (back) r.visibility(true, false);
+                if (mode == HEAD) {
+                    r.run(wake + 60 * S);headCases++;
+                    check(r.failed() == (!back || reply > StatusCadence.POLL_FAST_MS), "5a4b1d02: " + what + " " + r.log);
+                    if (r.failed()) headLost++;
+                    continue;
+                }
+                check(r.linkUp() && !r.ready(), "at the wake: linked, but a control is refused on the old status: " + what);
+                check(!r.readingLive(before, 10 * S) && !r.readingLive(before, 15 * S), "a reading from before the sleep is not live: " + what);
+                long first = back ? wake : wake + NEXT_POLL - sleepAt, answer = first + reply;
+                boolean admitted = false;
+                for (long t = wake + STEP; t <= wake + 60 * S; t += STEP) {
+                    r.run(t);
+                    check(r.linkUp(), "linked at +" + (t - wake) + ": " + what + " " + r.log);
+                    if (t < answer) check(!r.ready() && !r.readingLive(before, 10 * S), "no control and no live reading before the answer, at +" + (t - wake) + ": " + what);
+                    if (t == answer) admitted = r.ready() && r.statusMs == answer;
+                    if (back && t >= answer) check(r.ready(), "in sight, ready from the answer on, at +" + (t - wake) + ": " + what);
+                }
+                check(admitted, "ready when the answer arrives: " + what);
+                check(!r.failed() && r.maxPending <= 1, "no failure, one chain: " + what + " " + r.log);
+                List<Long> after = r.requests.subList(sent, r.requests.size());
+                check(after.get(0) == first, "the first request after the wake: " + what + " " + after);
+                if (!back) check(after.equals(Arrays.asList(first, first + 15 * S, first + 30 * S, first + 45 * S)), "out of sight: the pending poll, then every 15 s, nothing extra: " + what + " " + after);
+                else check(after.subList(1, after.size()).stream().allMatch(t -> (t - wake) % StatusCadence.POLL_FAST_MS == 0) && after.size() == 31,
+                        "in sight: the resume refresh, then a poll every 2 s: " + what + " " + after);
+            }
+        check(headLost == 54 && headCases == 72, "on 5a4b1d02 the wake lost " + headLost + " of " + headCases + " healthy links");
+    }
+
+    /**
+     * The scooter is gone when the phone wakes (it stopped answering during the sleep, the radio link still up), with or
+     * without pushed frames still arriving, one even waking the phone mid-sleep: the link is still called lost, as
+     * READ_TIMEOUT, within the bound in awake time. In sight: 12 s after the return, by the next 2 s poll. Out of sight: the
+     * first poll after 35 s of awake silence since its last answer, at most one 15 s poll later. A frame never stands in
+     * for the status.
+     */
+    private static void goneDuringSleep() {
+        for (long gap : GAPS) for (long sleepAt : SLEEP_AT) for (boolean back : new boolean[]{false, true}) for (boolean pushes : new boolean[]{false, true}) {
+            String what = "asleep at " + sleepAt + " for " + gap + (back ? ", back in sight" : ", out of sight") + (pushes ? ", frames pushed" : "");
+            Rig r = new Rig(NEW);r.connect();r.run(T0 + sleepAt);
+            long answeredUp = r.statusUp;
+            r.sleep(gap / 2);
+            if (pushes) r.frame();// a pushed frame wakes the phone for a moment
+            r.sleep(gap - gap / 2);
+            r.answering = false;
+            long wakeUp = r.clock.up;
+            if (pushes) {
+                Runnable[] p = new Runnable[1];
+                p[0] = () -> { r.frame();if (r.up) r.clock.post(p[0], S); };
+                r.clock.post(p[0], S);
+            }
+            if (back) r.visibility(true, false);
+            r.run(r.now() + 120 * S);
+            check(r.log.equals(Arrays.asList("CONNECT_ATTEMPT", "READ_TIMEOUT")), "lost, as READ_TIMEOUT: " + what + " " + r.log);
+            if (back) check(r.failedUp - wakeUp > StatusCadence.SILENCE_FAST_MS && r.failedUp - wakeUp <= StatusCadence.SILENCE_FAST_MS + StatusCadence.POLL_FAST_MS,
+                    "in sight: 12 s after the return, by the next poll (" + (r.failedUp - wakeUp) + "): " + what);
+            else check(r.failedUp - answeredUp > StatusCadence.SILENCE_SLOW_MS && r.failedUp - answeredUp <= StatusCadence.SILENCE_SLOW_MS + StatusCadence.POLL_SLOW_MS,
+                    "out of sight: 35 s of awake silence, by the next poll (" + (r.failedUp - answeredUp) + "): " + what);
+        }
+    }
+
+    /**
+     * The first request after a wake gets exactly the window any request gets when the phone stays awake: in sight, an
+     * answer before the poll 14 s after the return (silence over 12 s) keeps the link and one after it does not; out of
+     * sight, an answer before the poll at which the awake silence passes 35 s (here 30 s after the request).
+     */
+    private static void wakeWindowEdges() {
+        for (long gap : GAPS) for (boolean back : new boolean[]{false, true}) for (boolean inside : new boolean[]{true, false}) {
+            Rig r = new Rig(NEW);r.connect();r.run(T0 + 48 * S);r.sleep(gap);
+            long wake = r.now();
+            r.reply = back ? (inside ? 13_950 : 14_050) : (inside ? 29_950 : 30_050);
+            if (back) r.visibility(true, false);
+            r.run(wake + 90 * S);
+            String what = (back ? "in sight" : "out of sight") + ", asleep " + gap + ", answer in " + r.reply;
+            check(r.failed() != inside, "the window's edge: " + what + " " + r.log);
+            if (!inside) check(r.failedAt - wake == (back ? 14 * S : 14_500 + 30 * S), "lost at the poll that passes the limit: " + what + " " + (r.failedAt - wake));
+        }
+    }
+
+    /**
+     * Several sleeps in a row, 1 or 5 minutes each, with 0.5, 3 or 20 s awake between them, on the background cadence or
+     * the fast one (a hold or charge recording out of sight): only the awake time counts, and it adds up. A healthy link
+     * survives them all; a gone scooter is called lost after 12 s (fast) or 35 s (slow) of awake silence, by the next poll.
+     */
+    private static void repeatedSleeps() {
+        int headLost = 0, headCases = 0;
+        for (long awakeFor : new long[]{500, 3 * S, 20 * S}) for (long gap : new long[]{60 * S, 5 * 60 * S}) for (boolean fast : new boolean[]{false, true})
+            for (boolean healthy : new boolean[]{true, false}) for (int mode : new int[]{NEW, HEAD}) {
+                if (mode == HEAD && !healthy) continue;
+                String what = (fast ? "fast" : "slow") + ", asleep " + gap + " with " + awakeFor + " awake between" + (healthy ? "" : ", scooter gone");
+                Rig r = new Rig(mode);r.connect();r.run(T0 + 50 * S);
+                if (fast) { r.visibility(false, true);r.run(T0 + 51 * S); }
+                if (!healthy) r.answering = false;
+                long answeredUp = r.statusUp, awake = 0;
+                int sleeps = 0;
+                while (awake < 150 * S && !r.failed()) { r.sleep(gap);r.run(r.now() + awakeFor);awake += awakeFor;sleeps++; }
+                if (mode == HEAD) { headCases++;if (r.failed()) headLost++;continue; }
+                if (healthy) check(!r.failed() && r.maxPending <= 1 && sleeps >= 7, "a healthy link survives " + sleeps + " sleeps: " + what + " " + r.log);
+                else {
+                    long limit = fast ? StatusCadence.SILENCE_FAST_MS : StatusCadence.SILENCE_SLOW_MS, poll = fast ? StatusCadence.POLL_FAST_MS : StatusCadence.POLL_SLOW_MS;
+                    check(r.log.equals(Arrays.asList("CONNECT_ATTEMPT", "READ_TIMEOUT")) && r.failedUp - answeredUp > limit && r.failedUp - answeredUp <= limit + poll,
+                            "lost after " + (r.failedUp - answeredUp) + " ms of awake silence: " + what + " " + r.log);
+                }
+            }
+        check(headLost == headCases && headCases == 12, "on 5a4b1d02 every one of these healthy links was lost: " + headLost + "/" + headCases);
+    }
+
+    /**
+     * The phone sleeps while a cadence change is in flight: a hold or charge recording starting out of sight (the retimed
+     * 2 s poll pending), Volt shown and hidden again (the retimed 15 s poll pending), and a ride start's own refresh (the
+     * settling poll pending). On waking the link survives and the chain goes on at the right rate, one poll at a time.
+     */
+    private static void sleepDuringCadenceChange() {
+        int headLost = 0, headCases = 0;
+        for (long gap : GAPS) for (int how = 0; how < 3; how++) for (int mode : new int[]{NEW, HEAD}) {
+            String what = new String[]{"hold out of sight", "shown and hidden", "ride start's refresh"}[how] + ", asleep " + gap;
+            Rig r = new Rig(mode);r.connect();r.run(T0 + 60 * S);
+            if (how == 0) r.visibility(false, true);
+            else if (how == 1) { r.visibility(true, false);r.run(T0 + 60_400);r.visibility(false, false); }
+            else { r.visibility(false, true);r.requestStatus(); }
+            r.run(r.now() + 400);
+            check(r.timer.live.size() == 1 && r.ready(), "the retimed poll is pending, the replies are in: " + what);
+            r.sleep(gap);r.reply = S;
+            long wake = r.now();int sent = r.requests.size();
+            r.run(wake + 60 * S);
+            if (mode == HEAD) { headCases++;if (r.failed()) headLost++;continue; }
+            check(!r.failed() && r.linkUp() && (how == 1 || r.ready()) && r.maxPending <= 1, "the link survives (ready on the fast cadence): " + what + " " + r.log);
+            List<Long> after = r.requests.subList(sent, r.requests.size());
+            long period = how == 1 ? StatusCadence.POLL_SLOW_MS : StatusCadence.POLL_FAST_MS;
+            check(after.size() >= 60 * S / period - 1, "polls go on: " + what + " " + after);
+            for (int i = 1; i < after.size(); i++) check(after.get(i) - after.get(i - 1) == period, "at the cadence's rate: " + what + " " + after);
+            check(after.get(0) - wake < period, "the pending poll first: " + what + " " + after);
+        }
+        check(headLost == headCases && headCases == 9, "on 5a4b1d02 every one of these was lost: " + headLost + "/" + headCases);
+    }
+
+    /**
+     * The phone sleeps during the connect sequence: before authentication, or after it with the first status in, Volt out
+     * of sight from the start or leaving at 0 or 3 s. A healthy link is not timed out at 18 s of awake time and stays up.
+     * One that never becomes ready (authentication stalls, or no status ever) still ends with CONNECT_TIMEOUT exactly 18 s
+     * of awake time after the attempt, whatever the sleep.
+     */
+    private static void sleepDuringConnect() {
+        int headLost = 0, headCases = 0;
+        for (long gap : GAPS) for (long sleepAt : new long[]{S, 2_900, 4 * S, 10 * S, 17_400}) for (long leave : new long[]{-1, 0, 3 * S}) for (int mode : new int[]{NEW, HEAD}) {
+            if (leave >= sleepAt) continue;
+            String what = "asleep at " + sleepAt + " for " + gap + ", left at " + leave;
+            Rig r = new Rig(mode);r.visible = leave >= 0;r.chain.cadence(r.visible);r.connect();
+            if (leave >= 0) { r.run(T0 + leave);r.visibility(false, false); }
+            r.run(T0 + sleepAt);r.sleep(gap);
+            long wake = r.now();
+            r.run(wake + 120 * S);
+            if (mode == HEAD) {
+                headCases++;if (r.failed()) headLost++;
+                check(r.failed() == (sleepAt > 2_800), "5a4b1d02 lost the link asleep after its first status: " + what + " " + r.log);
+                continue;
+            }
+            check(!r.failed() && r.linkUp() && r.maxPending <= 1, "no timeout, the link stays up: " + what + " " + r.log);
+        }
+        check(headLost > 0 && headLost < headCases, "5a4b1d02: " + headLost + "/" + headCases);
+        long attemptUp = new Clock(T0).up;
+        for (int how = 0; how < 2; how++) for (long gap : GAPS) for (long sleepAt : new long[]{S, 10 * S, 17_900}) for (long leave : new long[]{-1, 0}) {
+            String what = (how == 0 ? "authentication stalls" : "no status ever") + ", asleep at " + sleepAt + " for " + gap + ", left at " + leave;
+            Rig r = new Rig(NEW);r.visible = leave >= 0;r.chain.cadence(r.visible);
+            if (how == 0) r.authenticates = false; else r.answering = false;
+            r.connect();
+            if (leave >= 0) { r.run(T0 + leave);r.visibility(false, false); }
+            r.run(T0 + sleepAt);r.sleep(gap);r.run(r.now() + 30 * S);
+            check(r.log.equals(Arrays.asList("CONNECT_ATTEMPT", "CONNECT_TIMEOUT")) && r.failedUp - attemptUp == 18 * S, "CONNECT_TIMEOUT at 18 s awake: " + what + " " + r.log + " " + (r.failedUp - attemptUp));
+        }
+    }
+
+    /**
+     * A Scheduled charging change is in flight when the phone sleeps, each step confirmed by the next status read: out of
+     * sight it completes with the readbacks after the wake; back in sight, with the resume refresh's answer 3 s later.
+     * Never interrupted, nothing refused: every step went out on a fresh status. On 5a4b1d02 the wake ended the link and
+     * interrupted the change.
+     */
+    private static void scheduleAcrossSleep() {
+        // Up to an hour: a longer sleep passes the change's own start time (3 h from now), which is the controller's business.
+        for (long gap : new long[]{60 * S, 10 * 60 * S, 3600 * S}) for (boolean back : new boolean[]{false, true}) for (int mode : new int[]{NEW, HEAD}) {
+            String what = (back ? "back in sight" : "out of sight") + " after " + gap;
+            Rig r = new Rig(mode);Schedule s = new Schedule(r);s.ackOnStatus = true;r.connect();
+            s.run(T0 + 48 * S);
+            s.controller.setManualEnabled(true, s.results::add);
+            s.run(T0 + 50 * S);
+            check(s.controller.busy() && s.sent.equals(Arrays.asList("clock")), "in flight: the clock step waits for its readback " + s.sent);
+            r.sleep(gap);r.reply = 3 * S;
+            if (back) { r.visibility(true, false);s.controller.observe(); }
+            s.run(r.now() + 90 * S);
+            if (mode == HEAD) {
+                check(r.failed() && s.results.size() == 1 && s.results.get(0) != null && s.sent.equals(Arrays.asList("clock")), "5a4b1d02 interrupted it: " + what + " " + s.results + " " + r.log);
+                continue;
+            }
+            check(!r.failed() && s.results.size() == 1 && s.results.get(0) == null, "completed: " + what + " " + s.results + " " + r.log);
+            check(s.sent.equals(Arrays.asList("clock", "time", "on")) && s.refused.isEmpty() && s.controller.view().manualEnabled, "every step went out on a fresh status: " + what + " " + s.sent + " " + s.refused);
+        }
+    }
+
+    /**
+     * No path renews the window without an answer. A gone scooter while Volt flips in and out of sight every 1 or 1.5 s
+     * (each return queues a refresh, each switch moves the pending poll, so the poll never fires): the switch checks the
+     * silence itself, so the link is called lost at the first switch after 35 s of awake silence, with or without a sleep
+     * first. On 5a4b1d02 the flips kept moving the only silence check away, and the link was never called lost.
+     */
+    private static void noRenewal() {
+        for (long gap : new long[]{0, 10 * 60 * S}) for (long every : new long[]{S, 1_500}) for (int mode : new int[]{NEW, HEAD}) {
+            String what = "flips every " + every + (gap > 0 ? " after a sleep" : "");
+            Rig r = new Rig(mode);r.connect();r.run(T0 + 60 * S);
+            long answeredUp = r.statusUp;
+            r.sleep(gap);r.answering = false;
+            boolean in = false;long end = r.now() + 300 * S;int ticks = 0;
+            while (r.now() < end && !r.failed()) { in = !in;r.visibility(in, false);int before = r.requests.size();r.run(r.now() + every);ticks += r.requests.size() - before; }
+            if (mode == HEAD) { check(!r.failed(), "5a4b1d02 never called it lost: " + what + " " + r.log);continue; }
+            check(r.log.equals(Arrays.asList("CONNECT_ATTEMPT", "READ_TIMEOUT")) && r.failedUp - answeredUp > StatusCadence.SILENCE_SLOW_MS
+                    && r.failedUp - answeredUp <= StatusCadence.SILENCE_SLOW_MS + every, "lost at the first switch past 35 s of awake silence: " + what + " " + (r.failedUp - answeredUp) + " " + r.log);
+            check(ticks == 0, "no poll ever fired in between: " + what);
+        }
     }
 }

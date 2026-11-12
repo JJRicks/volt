@@ -15,6 +15,17 @@ package com.jjricks.volt;
  * 15 s poll answer to the in-sight rule at once: decisions that judge the link (the connect timeout, the silence limit,
  * linked(), reading freshness) use the cadence the link has actually been on (within(), fastSinceMs), and the poll chain
  * (Chain) moves to the new cadence at once. ready()'s plain 7 s, which admits controls, is never loosened.
+ *
+ * Two clocks. Ages are on the elapsed clock (SystemClock.elapsedRealtime), which keeps counting while the phone is in
+ * deep sleep; the poll chain runs on the main-thread Handler, whose timers wait on the awake clock (uptimeMillis), which
+ * stops. With nothing holding a wake lock (Volt out of sight, no recording), the phone can sleep for hours with a poll
+ * pending, so on waking the last answer is old on the elapsed clock although Volt never had the time to ask again.
+ * The rule: silence that judges the link (the silence limit, the connect timeout, linked()) counts only awake time, so
+ * after any sleep the link gets exactly what it would have had if the phone had stayed awake (awakeStamp(), Chain.linked(),
+ * Chain.silent()). Only an answer moves those stamps; a request never does. A switch to fast opens a fresh fast window,
+ * never past the background limit, and BleController checks silence at every switch as well as at every poll, so no
+ * sequence of requests, switches or sleeps keeps a silent link past the limits in awake time. Everything that admits a control or shows a value as live (ready(), statusAge(), readingFreshMs()) stays
+ * on the elapsed clock: a status from before a sleep is still not ready and a reading from before it is still not live.
  */
 public final class StatusCadence {
     private StatusCadence() {}
@@ -48,6 +59,16 @@ public final class StatusCadence {
      */
     public static boolean linked(boolean up, long statusMs, long nowMono, boolean fast) {
         return up && statusMs > 0 && nowMono - statusMs <= linkedAgeMs(fast);
+    }
+
+    /**
+     * A time stamped on the elapsed clock (stampMs; 0 for none), moved later by the deep sleep since it: sleptAtStampMs and
+     * sleptNowMs are the elapsed clock minus the awake clock then and now. Its age on the elapsed clock is then its age
+     * in awake time, which is the time the poll chain could have asked and the scooter's answer could have been handled.
+     * Never earlier than the stamp; 0 stays 0.
+     */
+    public static long awakeStamp(long stampMs, long sleptAtStampMs, long sleptNowMs) {
+        return stampMs <= 0 ? 0 : stampMs + Math.max(0, sleptNowMs - sleptAtStampMs);
     }
 
     // ---- The cadence the link has actually been on --------------------------------------------------------------
@@ -96,7 +117,10 @@ public final class StatusCadence {
 
     /** BleController's main-thread Handler; tests use a fake clock. */
     public interface Timer {
+        /** The elapsed clock (SystemClock.elapsedRealtime): ages, counting deep sleep. */
         long now();
+        /** The awake clock (SystemClock.uptimeMillis): what post() delays wait on; it stops during deep sleep. */
+        long awake();
         void post(Runnable task, long delayMs);
         void cancel(Runnable task);
     }
@@ -107,18 +131,38 @@ public final class StatusCadence {
      * poll to the new cadence at once, anchored to the last status request so a refresh just sent is not doubled.
      * A retimed poll that finds a newer request when it fires (a ride start's refresh) waits once for one period after
      * that request; every later poll runs one period after the last. stop() ends the chain (close, suspend, simulation).
+     * The chain's own times (the last request, when a poll was armed) are on the awake clock, the one its timers wait on.
+     *
+     * linked() and silent() judge the link on awake time (StatusCadence.awakeStamp): each stamp comes with the deep sleep
+     * total when it was taken (slept()), so sleep never counts as silence. They are for decisions about the link only.
      */
     public static final class Chain {
         private final Timer timer;
         private boolean fast;
-        private long fastSinceMs, lastRequestMs;
+        private long fastSinceMs, fastSinceSleptMs, lastRequestMs;
         private Runnable tick, pending;
         public Chain(Timer timer) { this.timer = timer; }
 
         public boolean fast() { return fast; }
         /** When the cadence last became fast (monotonic), 0 for never. */
         public long fastSinceMs() { return fastSinceMs; }
+        /** When the last status request was queued, on the awake clock; 0 for none. */
         public long lastRequestMs() { return lastRequestMs; }
+        /** Deep sleep so far: the elapsed clock minus the awake clock. It grows only while the phone sleeps. */
+        public long slept() { return timer.now() - timer.awake(); }
+        /**
+         * The link is up on the cadence it has been on (StatusCadence.linked with fastSinceMs), with the time the phone
+         * slept since the status (statusSleptMs: slept() when statusMs was taken) and since the switch cut out.
+         */
+        public boolean linked(boolean up, long statusMs, long statusSleptMs) {
+            long slept = slept();
+            return StatusCadence.linked(up, awakeStamp(statusMs, statusSleptMs, slept), timer.now(), fast, awakeStamp(fastSinceMs, fastSinceSleptMs, slept));
+        }
+        /** Silence since sinceMs (the last frame or status; slept() then) that ends the link, in awake time. 0: nothing yet. */
+        public boolean silent(long sinceMs, long sinceSleptMs) {
+            long slept = slept();
+            return StatusCadence.silent(awakeStamp(sinceMs, sinceSleptMs, slept), timer.now(), fast, awakeStamp(fastSinceMs, fastSinceSleptMs, slept));
+        }
         /** A poll is pending (the chain is running). */
         public boolean running() { return pending != null; }
 
@@ -126,28 +170,28 @@ public final class StatusCadence {
         public boolean cadence(boolean nowFast) {
             if (nowFast == fast) return false;
             fast = nowFast;
-            if (nowFast) fastSinceMs = timer.now();
+            if (nowFast) { fastSinceMs = timer.now();fastSinceSleptMs = slept(); }
             return true;
         }
         /** A status request (0x70) was queued now. */
-        public void requested() { lastRequestMs = timer.now(); }
+        public void requested() { lastRequestMs = timer.awake(); }
         /** Starts this session's chain (replacing any other): tick runs one period of the current cadence from now. */
         public void start(Runnable tick) { this.tick = tick; arm(pollMs(fast), false); }
         /** The tick polled and the chain goes on: one period of the current cadence from now. */
         public void next() { if (tick != null) arm(pollMs(fast), false); }
         /** After cadence() changed: the pending poll moves to the new cadence (nothing to move if the chain is not running). */
-        public void retime() { if (pending != null) arm(nextPollMs(lastRequestMs, timer.now(), fast), true); }
+        public void retime() { if (pending != null) arm(nextPollMs(lastRequestMs, timer.awake(), fast), true); }
         public void stop() { if (pending != null) timer.cancel(pending); pending = null; tick = null; }
 
         private void arm(long delayMs, boolean settle) {
             if (pending != null) timer.cancel(pending);
-            final long armedAt = timer.now();
+            final long armedAt = timer.awake();
             Runnable task = new Runnable() {
                 @Override public void run() {
                     if (pending != this) return;
                     pending = null;
                     if (settle && lastRequestMs >= armedAt) {
-                        long wait = nextPollMs(lastRequestMs, timer.now(), fast);
+                        long wait = nextPollMs(lastRequestMs, timer.awake(), fast);
                         if (wait > 0) { arm(wait, false); return; }
                     }
                     Runnable t = tick;

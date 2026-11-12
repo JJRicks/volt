@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Steadier connection when Volt is in the background or you come back to it.** Volt no longer drops and remakes a healthy connection 18 seconds after connecting while it's out of sight, and controls (and a Scheduled charging change on its way) no longer refuse or stop for a few seconds after you return to Volt: it asks the scooter for its status at the in-sight pace as soon as you're back.
+- **Steadier connection when Volt is in the background or you come back to it.** Volt no longer drops and remakes a healthy connection 18 seconds after connecting while it's out of sight, and controls (and a Scheduled charging change on its way) no longer refuse or stop for a few seconds after you return to Volt: it asks the scooter for its status at the in-sight pace as soon as you're back. A phone that slept with Volt in the background no longer drops a healthy connection when it wakes: the time asleep doesn't count as the scooter going quiet, though controls still wait for a fresh reading.
 
 ## 1.13.1 — 2026-11-11
 
