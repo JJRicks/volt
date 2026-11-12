@@ -31,28 +31,66 @@ public final class DiagnosticsProvider extends ContentProvider {
     static final long KEEP_MS = 24L * 60 * 60 * 1000;
     static final int KEEP = 10;
     private static final java.util.regex.Pattern ID = java.util.regex.Pattern.compile("[0-9a-f]{32}");
+    private static final String EXISTS = "Diagnostics snapshot already exists";
     private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
 
     static Uri uri(Context context, String id) { return new Uri.Builder().scheme("content").authority(authority(context)).appendPath(id).appendPath(NAME).build(); }
 
     /** Writes this bundle as a new snapshot that never changes, prunes old ones, and returns its own content URI. */
     static Uri write(Context context, String json) throws IOException {
-        File directory = new File(context.getCacheDir(), DIRECTORY);
-        if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("No diagnostics folder");
-        prune(directory, System.currentTimeMillis());
-        byte[] random = new byte[16]; RANDOM.nextBytes(random);
-        StringBuilder id = new StringBuilder();
-        for (byte b : random) id.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
+        File directory = directory(context);
+        String id = newId();
         File file = new File(directory, id + ".json"), temporary = new File(directory, id + ".tmp");
-        if (file.exists()) throw new IOException("Diagnostics snapshot already exists");
+        if (file.exists()) throw new IOException(EXISTS);
         try {
             try (FileOutputStream out = new FileOutputStream(temporary)) {
                 out.write(json.getBytes(StandardCharsets.UTF_8)); out.flush(); out.getFD().sync();
             }
-            try { Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE); }
-            catch (AtomicMoveNotSupportedException unsupported) { Files.move(temporary.toPath(), file.toPath()); }
+            publish(temporary, file);
         } finally { Files.deleteIfExists(temporary.toPath()); }
-        return uri(context, id.toString());
+        return uri(context, id);
+    }
+
+    /**
+     * As write(), for a file too large to hold in memory (Email to Volt's charge recordings): the source file itself
+     * becomes the snapshot, moved (never read into memory) and then gone from where it was. Off the main thread.
+     */
+    static Uri adopt(Context context, File source) throws IOException {
+        try {
+            File directory = directory(context);
+            String id = newId();
+            File file = new File(directory, id + ".json"), temporary = new File(directory, id + ".tmp");
+            if (file.exists()) throw new IOException(EXISTS);
+            try {
+                // Same cache volume, so normally a rename; across volumes Files.move copies by streaming.
+                Files.move(source.toPath(), temporary.toPath());
+                try (java.io.RandomAccessFile synced = new java.io.RandomAccessFile(temporary, "rw")) { synced.getFD().sync(); }
+                publish(temporary, file);
+            } finally { Files.deleteIfExists(temporary.toPath()); }
+            return uri(context, id);
+        } finally { Files.deleteIfExists(source.toPath()); }
+    }
+
+    /** cache/diagnostics, made if needed and pruned. */
+    private static File directory(Context context) throws IOException {
+        File directory = new File(context.getCacheDir(), DIRECTORY);
+        if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("No diagnostics folder");
+        prune(directory, System.currentTimeMillis());
+        return directory;
+    }
+
+    /** A random 128-bit snapshot id, as 32 hex digits. */
+    private static String newId() {
+        byte[] random = new byte[16]; RANDOM.nextBytes(random);
+        StringBuilder id = new StringBuilder();
+        for (byte b : random) id.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
+        return id.toString();
+    }
+
+    /** Moves a finished temporary file to its snapshot name, atomically where the file system can. */
+    private static void publish(File temporary, File file) throws IOException {
+        try { Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE); }
+        catch (AtomicMoveNotSupportedException unsupported) { Files.move(temporary.toPath(), file.toPath()); }
     }
 
     /** Drops snapshots older than a day and all but the newest KEEP, so a recently prepared email keeps its file. */

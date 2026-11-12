@@ -107,6 +107,15 @@ public final class HubPagesTest {
                 HubPages.SERVICE_COMPATIBILITY, HubPages.RIDE_RIDING, HubPages.RIDE_RECORDING, HubPages.DATA_STORAGE, HubPages.SEARCH})
             require(!HubPages.clearForRiding(page), "Riding mode waits on " + page);
         require(!HubPages.clearForRiding(null) && !HubPages.clearForRiding("more"), "Unknown ids are busy");
+        // The owner's answer 21 (#383): of the Scooter pages, only the index, Controls, Battery & charging and Lights & sound
+        // let it open; every other subject and every sub-page blocks it. Checked over every page so a new page can't slip in.
+        Set<String> clear = new HashSet<>(java.util.Arrays.asList(HubPages.HOME, HubPages.SCOOTER, HubPages.RIDE, HubPages.RIDE_RIDES,
+                HubPages.DATA, HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS));
+        for (String page : HubPages.ALL)
+            require(HubPages.clearForRiding(page) == clear.contains(page), "Only the agreed pages let riding mode open: " + page);
+        for (String page : HubPages.ALL)
+            if (HubPages.depth(page) > HubPages.depth(HubPages.subjectOf(page)))
+                require(!HubPages.clearForRiding(page) || page.equals(HubPages.RIDE_RIDES), "A sub-page blocks it: " + page);
         // Today's rule with the tab roots: only More blocks by page.
         for (String tab : HubPages.TABS) require(HubPages.clearForRiding(tab) == !tab.equals(HubPages.SETTINGS), "Tab rule: " + tab);
     }

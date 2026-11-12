@@ -5,10 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Where each saved Quick access id leads now that the quick-access sheets are gone (hub layout plan, PR 4).
- * Pure, so the JVM suite tests it (tests/HubRoutesTest.java). Ids saved in owners' dashboards, slots and transfers
- * never change and never stop resolving: an id that used to open a sheet opens the page that holds the same rows,
- * and every other id keeps its direct action in MainActivity.quickAction. Routes only ever name HubPages ids.
+ * Where each saved Quick access id leads in the Hub layout (hub layout plan, PR 4). Pure, so the JVM suite tests it
+ * (tests/HubRoutesTest.java). Ids saved in owners' dashboards, slots and transfers never change and never stop
+ * resolving. The owner's answer 3 (#383): a shortcut to a whole settings page (Settings, Security, Experimental
+ * controls, My scooters, App preferences and the like) opens that page; a group of quick controls changed in a moment
+ * (Lights, Ride settings with maximum speed and energy recovery, Battery settings, Line lights, Star lights, Dashboard
+ * & sound) keeps its pop-up sheet over Home; every other id keeps its direct action in MainActivity.quickAction (a
+ * single control's id keeps its own pop-up editor). Routes only ever name HubPages ids.
  */
 final class HubRoutes {
     private HubRoutes() { }
@@ -16,15 +19,10 @@ final class HubRoutes {
     /** Quick access ids that open a page, and the page. */
     private static final Map<String, String> PAGES = new LinkedHashMap<>();
     static {
-        PAGES.put("lights", HubPages.LIGHTS);
-        PAGES.put("controls", HubPages.CONTROLS);
+        // "Settings" (the legacy default) opened every scooter setting, Security and App preferences: the Scooter tab holds them.
+        PAGES.put("controls", HubPages.SCOOTER);
         PAGES.put("stats", HubPages.DATA);
         PAGES.put("rides", HubPages.RIDE);
-        PAGES.put("section:Ride", HubPages.CONTROLS);
-        PAGES.put("section:Battery", HubPages.BATTERY);
-        PAGES.put("section:Line lights", HubPages.LIGHTS_LINE);
-        PAGES.put("section:Star lights", HubPages.LIGHTS_STAR);
-        PAGES.put("section:Dashboard & sound", HubPages.LIGHTS);
         PAGES.put("section:Security", HubPages.SECURITY);
         PAGES.put("more:App", HubPages.SETTINGS);
         PAGES.put("more:Scooters", HubPages.SETTINGS_SCOOTERS);
@@ -33,11 +31,21 @@ final class HubRoutes {
         PAGES.put("more:About", HubPages.SETTINGS_ABOUT);
     }
 
+    /** Quick access ids that keep their quick-control sheet over Home: Lights, and a scooter settings group. */
+    static final java.util.List<String> SHEETS = Collections.unmodifiableList(java.util.Arrays.asList(
+            "lights", "section:Ride", "section:Battery", "section:Line lights", "section:Star lights", "section:Dashboard & sound"));
+
+    /** The quick-control sheet a Quick access id opens (MainActivity.showQuickSettings' section), or null. */
+    static String sheetFor(String id) {
+        if (id == null || !SHEETS.contains(id)) return null;
+        return id.startsWith("section:") ? id.substring("section:".length()) : "Lights";
+    }
+
     /** Ids that keep an action of their own (rename, the charge schedule's shortcuts); every "feature:" id is one too. */
     static final java.util.List<String> ACTIONS = Collections.unmodifiableList(java.util.Arrays.asList(
             "section:Profile", "charge_done_by", "charge_done_time"));
 
-    /** The page a Quick access id opens, or null when the id runs an action (ACTIONS, a control's "feature:" id, an unknown id). */
+    /** The page a Quick access id opens, or null when the id opens a sheet (SHEETS) or runs an action (ACTIONS, a control's "feature:" id, an unknown id). */
     static String pageFor(String id) { return id == null ? null : PAGES.get(id); }
 
     /** Every id that opens a page, in the catalog's order. */
