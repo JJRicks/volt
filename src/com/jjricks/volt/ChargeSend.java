@@ -144,6 +144,43 @@ final class ChargeSend {
     }
 
     /**
+     * Whether a file is ready to attach as it is: a file prepare() compressed (named *.gz), or one of 25 MB or less.
+     * DiagnosticsProvider.adopt() then only moves it into place, a rename (#412 review, P3 1).
+     */
+    static boolean ready(File file) {
+        return file.getName().endsWith(".gz") || !attachment(file.length()).compressed;
+    }
+
+    /** The attachment a file ready to attach is sent as (see {@link #ready}): compressed exactly when it is named *.gz. */
+    static Attachment of(File ready) {
+        return ready.getName().endsWith(".gz") ? COMPRESSED : PLAIN;
+    }
+
+    /**
+     * Makes a finished recordings export ready to attach (#412 review, P3 1 and 2): a file of 25 MB or less, or one
+     * already prepared, is returned as it is; a larger one is streamed through gzip into "<its name>.gz" beside it (via a
+     * "<its name>.gz.tmp" synced first, so a half-written file never carries the final name), and the original is then
+     * deleted. ScooterService runs this as the last step of Email to Volt's export, under its exporting flag, so the row
+     * stays busy and the mailbox gets the file only once it is final. On failure nothing it made is left (no partial
+     * .gz), and the original stays for the caller to delete.
+     */
+    static File prepare(File source) throws IOException {
+        if (ready(source)) return source;
+        File zipped = new File(source.getParentFile(), source.getName() + ".gz"), temporary = new File(source.getParentFile(), zipped.getName() + ".tmp");
+        try {
+            try (InputStream in = new java.io.FileInputStream(source); java.io.FileOutputStream out = new java.io.FileOutputStream(temporary)) {
+                gzip(in, out); out.flush(); out.getFD().sync();
+            }
+            java.nio.file.Files.move(temporary.toPath(), zipped.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException | RuntimeException failed) {
+            java.nio.file.Files.deleteIfExists(temporary.toPath()); java.nio.file.Files.deleteIfExists(zipped.toPath());
+            throw failed;
+        }
+        java.nio.file.Files.deleteIfExists(source.toPath());
+        return zipped;
+    }
+
+    /**
      * Streams in to out as gzip, a buffer at a time, so a large export is never held in memory; closes neither stream
      * (the gzip trailer is written). Decompressed, out is exactly the bytes of in.
      */

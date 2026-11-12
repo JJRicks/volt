@@ -68,33 +68,30 @@ public final class DiagnosticsProvider extends ContentProvider {
 
     /**
      * As write(), for Email to Volt's charge recordings, a file too large to hold in memory: it becomes a snapshot under
-     * the recordings' own name (ChargeSend.attachment), and is then gone from where it was. Up to 25 MB the file itself
-     * is moved into place, never read into memory; over that it is streamed through gzip into the snapshot, a buffer at
-     * a time, as volt-charge-recordings.json.gz. Off the main thread.
+     * the recordings' own name, and is then gone from where it was. The service's export has already made it ready
+     * (ChargeSend.prepare: over 25 MB it is volt-charge-recordings.json.gz's content, compressed under the exporting
+     * flag; #412 review), so here it is only moved into place, never read into memory. A file not yet prepared is
+     * prepared first. Off the main thread.
      */
     static Uri adopt(Context context, File source) throws IOException {
         try {
-            File directory = directory(context);
-            String id = newId();
-            ChargeSend.Attachment attachment = ChargeSend.attachment(source.length());
-            File file = new File(directory, id + suffix(attachment.name)), temporary = new File(directory, id + ".tmp");
-            if (file.exists()) throw new IOException(EXISTS);
+            File ready = ChargeSend.prepare(source);
             try {
-                if (attachment.compressed) {
-                    // Each write dates the temporary file, so prune() leaves it alone while it is being made.
-                    try (java.io.InputStream in = new java.io.FileInputStream(source); FileOutputStream out = new FileOutputStream(temporary)) {
-                        ChargeSend.gzip(in, out); out.flush(); out.getFD().sync();
-                    }
-                } else {
+                File directory = directory(context);
+                String id = newId();
+                ChargeSend.Attachment attachment = ChargeSend.of(ready);
+                File file = new File(directory, id + suffix(attachment.name)), temporary = new File(directory, id + ".tmp");
+                if (file.exists()) throw new IOException(EXISTS);
+                try {
                     // Same cache volume, so normally a rename; across volumes Files.move copies by streaming.
-                    Files.move(source.toPath(), temporary.toPath());
+                    Files.move(ready.toPath(), temporary.toPath());
                     // A move keeps the export's own time: date the temporary file now, so prune() knows it is being made.
                     temporary.setLastModified(System.currentTimeMillis());
                     try (java.io.RandomAccessFile synced = new java.io.RandomAccessFile(temporary, "rw")) { synced.getFD().sync(); }
-                }
-                publish(temporary, file);
-            } finally { Files.deleteIfExists(temporary.toPath()); }
-            return uri(context, id, attachment.name);
+                    publish(temporary, file);
+                } finally { Files.deleteIfExists(temporary.toPath()); }
+                return uri(context, id, attachment.name);
+            } finally { Files.deleteIfExists(ready.toPath()); }
         } finally { Files.deleteIfExists(source.toPath()); }
     }
 

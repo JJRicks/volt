@@ -39,6 +39,7 @@ public final class ChargeSendTest {
         mailbox();
         attachment();
         compression();
+        prepareSmall();
         System.out.println("ChargeSend: " + checks + " checks passed");
     }
 
@@ -146,7 +147,7 @@ public final class ChargeSendTest {
     private static void compression() {
         try {
             File dir = Files.createTempDirectory("charge-gzip").toFile();
-            File source = new File(dir, "charges.json"), zipped = new File(dir, "charges.json.gz");
+            File source = new File(dir, "charges.json"), zipped = new File(dir, "manual.json.gz"), prepared = new File(dir, "charges.json.gz");
             try {
                 try (java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(source), java.nio.charset.StandardCharsets.UTF_8))) {
                     java.util.Random random = new java.util.Random(387);
@@ -175,11 +176,71 @@ public final class ChargeSendTest {
                     }
                     require(at == source.length(), "Decompressed to the same " + source.length() + " bytes");
                 }
-                require(source.delete() && zipped.delete() && dir.delete(), "Cleaned up");
+                prepareLarge(dir, source, zipped, prepared);
+                require(zipped.delete() && prepared.delete() && dir.delete(), "Cleaned up");
             } finally {
                 // A failed check above still leaves no ~30 MB behind in the temporary folder.
-                source.delete(); zipped.delete(); dir.delete();
+                source.delete(); zipped.delete(); prepared.delete();
+                new File(dir, "charges.json.gz.tmp").delete(); dir.delete();
             }
+        } catch (IOException e) { throw new AssertionError(e); }
+    }
+
+    /**
+     * #412 review, P3 1 and 2: the compression is the export's last step (ChargeSend.prepare, run by the service under its
+     * exporting flag), so what the mailbox hands over is already final and the activity only moves it into place. A
+     * failure leaves no partial .gz behind and the export for the service to delete.
+     */
+    private static void prepareLarge(File dir, File source, File zipped, File prepared) throws IOException {
+        require(!ChargeSend.ready(source), "A raw export over 25 MB is not ready to attach");
+        // A compression that fails (here: its temporary file can't be made) leaves nothing it made, and the export as it was.
+        File blocked = new File(dir, "charges.json.gz.tmp");
+        require(blocked.mkdir(), "Blocked the temporary file");
+        long size = source.length();
+        boolean threw = false;
+        try { ChargeSend.prepare(source); } catch (IOException expected) { threw = true; }
+        require(threw && !prepared.exists() && source.isFile() && source.length() == size, "A failed compression leaves no .gz, and the export");
+        blocked.delete(); require(!blocked.exists(), "Unblocked");
+        // While it runs the service is still exporting: the row is disabled and a second tap stays quiet.
+        boolean exporting = true;
+        File ready = ChargeSend.prepare(source);
+        require(ChargeSend.refusal(false, false, exporting) == ChargeSend.Refusal.QUIET && !ChargeSend.rowEnabled(true, true, exporting),
+                "During the compression the row is busy and a second tap is quiet");
+        require(ready.equals(prepared) && prepared.isFile() && !source.exists() && !new File(dir, "charges.json.gz.tmp").exists(),
+                "Compressed beside the export as <name>.gz; the export and the temporary file are gone");
+        require(ChargeSend.ready(ready) && ChargeSend.of(ready).compressed && ChargeSend.COMPRESSED_NAME.equals(ChargeSend.of(ready).name)
+                && ChargeSend.prepare(ready) == ready, "Prepared, it is ready: attached as volt-charge-recordings.json.gz, as it is");
+        try (java.io.InputStream a = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(zipped)));
+             java.io.InputStream b = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(ready)))) {
+            long at = 0;
+            for (int x, y; ; at++) {
+                x = a.read(); y = b.read();
+                if (x != y) { require(false, "The prepared attachment decompresses differently at " + at); break; }
+                if (x == -1) break;
+            }
+            require(at == size, "The prepared attachment decompresses to the export's " + size + " bytes");
+        }
+        // Then the flag clears and the hand-over opens: the final file reaches the activity, across a recreation too.
+        exporting = false;
+        ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+        List<ChargeSend.Export> got = new ArrayList<>();
+        Consumer<ChargeSend.Export> old = got::add, recreated = got::add;
+        box.register(old, 0); box.unregister(old, true);
+        box.deliver(new ChargeSend.Export(ready, "M"), 1);
+        box.register(recreated, 2);
+        require(!exporting && got.size() == 1 && got.get(0).file.equals(ready) && ChargeSend.ready(got.get(0).file) && ready.isFile(),
+                "The recreated activity gets the final, compressed file");
+    }
+
+    /** Up to 25 MB, or an empty export, the file is ready as it is: prepare() returns it untouched, attached plain. */
+    private static void prepareSmall() {
+        try {
+            File dir = Files.createTempDirectory("charge-prepare").toFile();
+            File small = file(dir, "charges-small.json");
+            require(ChargeSend.ready(small) && ChargeSend.prepare(small) == small && small.isFile() && small.length() == 1
+                    && !new File(dir, "charges-small.json.gz").exists(), "A small export is attached as it is");
+            require(!ChargeSend.of(small).compressed && ChargeSend.NAME.equals(ChargeSend.of(small).name), "Named volt-charge-recordings.json");
+            require(small.delete() && dir.delete(), "Cleaned up");
         } catch (IOException e) { throw new AssertionError(e); }
     }
 

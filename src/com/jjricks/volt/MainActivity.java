@@ -3302,8 +3302,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
      * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read), under their own name,
      * volt-charge-recordings.json (ChargeSend.attachment). The export can be tens of MB, so it is moved into place off
-     * the main thread, never read into memory; over 25 MB it is streamed through gzip instead, as
-     * volt-charge-recordings.json.gz (the owner's decisions on #383). The subject is fixed English for the
+     * the main thread, never read into memory; over 25 MB it arrives already gzip-compressed, as
+     * volt-charge-recordings.json.gz (the owner's decisions on #383): the service compresses it as the last step of
+     * the export, under its exporting flag and before the mailbox hand-over (ChargeSend.prepare; #412 review), so this
+     * step stays a rename and a recreation during the compression can't lose the email. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
      * and that model, as Report an issue does. The model line comes with the file, taken when the row was tapped
      * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
