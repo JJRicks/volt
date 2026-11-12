@@ -145,67 +145,89 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, "App did not launch"); settle();
     }
 
+    /**
+     * Every Scooter page with rows (Hub layout, #385: Controls, Battery & charging, Lights & sound and Security, with
+     * their sub-pages; ControlsPages lists each page's rows): a row shows on its own page exactly when its decision
+     * offers it, and nowhere else, so each offered control is on exactly one page. Line and star lights, a sheet beside
+     * the old single page, are on Line lights and Star lights now.
+     */
     private void verifyScooterPage(String pid, String label) throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
-        main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
         int[] untested = {0};
-        main(() -> {
-            BleController ble = activity.service().ble;
-            Object screen = field(activity, "screen");
-            require(screen.getClass().getSimpleName().equals("ControlsScreen"), "Scooter page is not active");
-            boolean ut5 = pid.isEmpty();
-            for (Object row : (List<?>)field(screen, "rows")) {
-                ScooterCommands.Feature feature = (ScooterCommands.Feature)field(row, "feature");
-                View card = (View)field(row, "card");
-                String group = (String)invoke(screen, "groupOf", new Class<?>[]{ScooterCommands.Feature.class}, feature);
-                boolean onPage = !group.equals("Line lights") && !group.equals("Star lights");
-                CapabilityResolver.Decision decision = ble.decision(feature.key);
-                // A Lab control on the UT5 MAX has a row only where another model maps it normally (not Lab).
-                boolean ordinary = decision.support == CapabilityResolver.Support.KNOWN_ENCODING && decision.variant != null && !decision.variant.lab
-                        && decision.variant.decode != FeatureVariant.Decode.UT5_FEATURE;
-                // Maximum speed: the UT5 MAX keeps its top speed card; another model's table is an ordinary row.
-                boolean topSpeedRow = feature.key.equals("maximum_speed");
-                boolean oemTable = ble.controlOffered(feature.key) && decision.variant != null && decision.variant.decode != FeatureVariant.Decode.UT5_FEATURE;
-                boolean known = feature.key.equals("range_algorithm") || (feature.experimental ? ordinary : topSpeedRow ? oemTable : ble.controlOffered(feature.key));
-                if (!feature.experimental && !topSpeedRow) require(known == (feature.key.equals("range_algorithm") || decision.support == CapabilityResolver.Support.KNOWN_ENCODING), label + ": simulated models always have identity evidence");
-                require((card.getVisibility() == View.VISIBLE) == (known && onPage), label + ": row " + feature.key + " visibility does not follow its decision");
-                if (ut5) require(known != (feature.experimental || topSpeedRow || ScooterCommands.oemOnly(feature.key)), "UT5 MAX row set changed: " + feature.key);
-                // "Untested here": every OEM-mapped control on another model, never on the UT5 MAX.
-                String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
-                if (ut5 || feature.key.equals("range_algorithm")) require(!sub.contains("Untested here"), label + ": unexpected Untested caption on " + feature.key);
-                else if (card.getVisibility() == View.VISIBLE) {
-                    boolean caption = sub.contains("Untested here"), refused = !decision.available() && !decision.blockedByRide();
-                    require(decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED, label + ": shown row " + feature.key + " is not OEM-mapped");
-                    require(caption != refused && (!refused || sub.contains(decision.reasonText())), label + ": row " + feature.key + " caption \"" + sub + "\" for " + decision);
-                    if (caption) untested[0]++;
+        Map<String, Integer> shownOn = new TreeMap<>(); Map<String, Boolean> offered = new TreeMap<>();
+        boolean ut5 = pid.isEmpty();
+        List<String> pages = HubTestPages.scooterRowPages();
+        require(pages.contains("controls") && pages.contains("lights.line") && pages.contains("lights.star"), label + ": Scooter pages " + pages);
+        for (String page : pages) {
+            main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
+            main(() -> HubTestPages.open(activity, page)); settle();
+            main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
+            main(() -> {
+                BleController ble = activity.service().ble;
+                Object screen = HubTestPages.part(activity, "ControlsScreen");
+                for (Object row : (List<?>)field(screen, "rows")) {
+                    ScooterCommands.Feature feature = (ScooterCommands.Feature)field(row, "feature");
+                    View card = (View)field(row, "card");
+                    boolean onPage = HubTestPages.pageLists(page, feature.key);
+                    CapabilityResolver.Decision decision = ble.decision(feature.key);
+                    // A Lab control on the UT5 MAX has a row only where another model maps it normally (not Lab).
+                    boolean ordinary = decision.support == CapabilityResolver.Support.KNOWN_ENCODING && decision.variant != null && !decision.variant.lab
+                            && decision.variant.decode != FeatureVariant.Decode.UT5_FEATURE;
+                    // Maximum speed: the UT5 MAX keeps its top speed card; another model's table is an ordinary row.
+                    boolean topSpeedRow = feature.key.equals("maximum_speed");
+                    boolean oemTable = ble.controlOffered(feature.key) && decision.variant != null && decision.variant.decode != FeatureVariant.Decode.UT5_FEATURE;
+                    boolean known = feature.key.equals("range_algorithm") || (feature.experimental ? ordinary : topSpeedRow ? oemTable : ble.controlOffered(feature.key));
+                    if (!feature.experimental && !topSpeedRow) require(known == (feature.key.equals("range_algorithm") || decision.support == CapabilityResolver.Support.KNOWN_ENCODING), label + ": simulated models always have identity evidence");
+                    require((card.getVisibility() == View.VISIBLE) == (known && onPage), label + ": " + page + " row " + feature.key + " visibility does not follow its decision");
+                    if (ut5) require(known != (feature.experimental || topSpeedRow || ScooterCommands.oemOnly(feature.key)), "UT5 MAX row set changed: " + feature.key);
+                    offered.put(feature.key, known);
+                    if (card.getVisibility() == View.VISIBLE) shownOn.merge(feature.key, 1, Integer::sum);
+                    // "Untested here": every OEM-mapped control on another model, never on the UT5 MAX.
+                    String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
+                    if (ut5 || feature.key.equals("range_algorithm")) require(!sub.contains("Untested here"), label + ": unexpected Untested caption on " + feature.key);
+                    else if (card.getVisibility() == View.VISIBLE) {
+                        boolean caption = sub.contains("Untested here"), refused = !decision.available() && !decision.blockedByRide();
+                        require(decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED, label + ": shown row " + feature.key + " is not OEM-mapped");
+                        require(caption != refused && (!refused || sub.contains(decision.reasonText())), label + ": row " + feature.key + " caption \"" + sub + "\" for " + decision);
+                        if (caption) untested[0]++;
+                    }
                 }
+                View banner = (View)field(screen, "readOnlyBanner");
+                require((banner.getVisibility() == View.VISIBLE) == !ut5, label + ": " + page + " limited-model banner");
+                if (!ut5) require(texts(banner).contains(BleController.LIMITED_MODEL), label + ": banner copy");
+                require(((View)field(screen, "identifyAction")).getVisibility() != View.VISIBLE, label + ": no Identify for a simulated advertised model");
+                // The clock row is on Lights & sound since the Hub layout; every other page leaves it out.
+                View clockCard = (View)field(field(screen, "clockLine"), "card");
+                boolean clockKnown = ble.controlOffered("clock_sync"), clockPage = HubTestPages.pageLists(page, "clock_sync");
+                require((clockCard.getVisibility() == View.VISIBLE) == (clockKnown && clockPage), label + ": " + page + " clock row visibility");
+                require(clockKnown == !pid.equals("39991"), label + ": clock row is offered for the UT5 MAX and the mapped group only");
+                CapabilityResolver.Decision clock = ble.decision("clock_sync");
+                require(((View)field(screen, "clockButton")).isEnabled() == (clock.available() || clock.blockedByRide()), label + ": clock row enabled state");
+                // The top speed card leads Controls.
+                View topSpeed = (View)field(field(screen, "topSpeed"), "card");
+                CapabilityResolver.Decision speed = ble.decision("maximum_speed");
+                boolean card = ble.controlOffered("maximum_speed") && (speed.variant == null || speed.variant.decode == FeatureVariant.Decode.UT5_FEATURE);
+                require((topSpeed.getVisibility() == View.VISIBLE) == (card && HubTestPages.pageHasTopSpeed(page)), label + ": " + page + " top speed card");
+                if (ut5) require(card, "UT5 MAX lost its top speed card");
+            });
+            screenshot(label + "-" + page);
+            if (page.equals("controls") || page.equals("lights")) {
+                main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll instanceof ViewGroup) scroll.scrollTo(0, ((ViewGroup)scroll).getChildAt(0).getHeight()); }); settle();
+                screenshot(label + "-" + page + "-end");
+                main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll != null) scroll.scrollTo(0, 0); }); settle();
             }
-            View banner = (View)field(screen, "readOnlyBanner");
-            require((banner.getVisibility() == View.VISIBLE) == !ut5, label + ": limited-model banner");
-            if (!ut5) require(texts(banner).contains(BleController.LIMITED_MODEL), label + ": banner copy");
-            require(((View)field(screen, "identifyAction")).getVisibility() != View.VISIBLE, label + ": no Identify for a simulated advertised model");
-            View clockCard = (View)field(field(screen, "clockLine"), "card");
-            boolean clockKnown = ble.controlOffered("clock_sync");
-            require((clockCard.getVisibility() == View.VISIBLE) == clockKnown, label + ": clock row visibility");
-            require(clockKnown == !pid.equals("39991"), label + ": clock row is offered for the UT5 MAX and the mapped group only");
-            CapabilityResolver.Decision clock = ble.decision("clock_sync");
-            require(((View)field(screen, "clockButton")).isEnabled() == (clock.available() || clock.blockedByRide()), label + ": clock row enabled state");
-            View topSpeed = (View)field(field(screen, "topSpeed"), "card");
-            CapabilityResolver.Decision speed = ble.decision("maximum_speed");
-            boolean card = ble.controlOffered("maximum_speed") && (speed.variant == null || speed.variant.decode == FeatureVariant.Decode.UT5_FEATURE);
-            require((topSpeed.getVisibility() == View.VISIBLE) == card, label + ": top speed card");
-            if (ut5) require(card, "UT5 MAX lost its top speed card");
+        }
+        for (Map.Entry<String, Boolean> row : offered.entrySet()) {
+            int shown = shownOn.containsKey(row.getKey()) ? shownOn.get(row.getKey()) : 0;
+            require(shown == (row.getValue() ? 1 : 0), label + ": row " + row.getKey() + " shows on " + shown + " Scooter pages");
+        }
+        main(() -> {
             // Identify sends nothing in simulation and says so.
+            BleController ble = activity.service().ble;
             ble.identifyModel();
             require(ble.message().contains("unavailable in simulation") && ble.state() == BleController.State.READY, label + ": Identify in simulation: " + ble.message());
         });
         if (pid.equals("24431")) require(untested[0] > 0, label + ": no Untested here caption on the mapped model");
-        screenshot(label + "-scooter");
-        main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll instanceof ViewGroup) scroll.scrollTo(0, ((ViewGroup)scroll).getChildAt(0).getHeight()); }); settle();
-        screenshot(label + "-scooter-end");
-        main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll != null) scroll.scrollTo(0, 0); }); settle();
-        checks.add(label + ": Scooter page follows decisions (" + untested[0] + " Untested here captions)");
+        checks.add(label + ": every Scooter page follows decisions, each offered row on exactly one page (" + untested[0] + " Untested here captions)");
     }
 
     private void verifyHome(String pid, String label) throws Exception {
@@ -254,11 +276,12 @@ public final class CompatibilityGatingValidation extends Instrumentation {
     }
 
     private void verifyMore(String pid, String label) throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Security")); settle();
+        // More's Security and Experimental controls left More's menu for Scooter › Security and Scooter › Service ›
+        // Experimental controls in the Hub layout (#387); each page shows More's section as its body.
+        main(() -> HubTestPages.open(activity, "security")); settle();
         main(() -> {
             BleController ble = activity.service().ble;
-            MoreScreen more = more();
+            MoreScreen more = (MoreScreen)HubTestPages.part(activity, "MoreScreen");
             CapabilityResolver.Decision pin = ble.decision("pin");
             boolean owner = (Boolean)invoke(more, "ownerReady");
             // The UT5 MAX and the mapped S-group model (Bluetooth lock screen) have the PIN; the unknown model does not.
@@ -271,7 +294,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             if (!owner) require(!((View)field(field(more, "proximityRow"), "toggle")).isEnabled(), label + ": proximity toggle stays off on an unmapped model");
         });
         screenshot(label + "-more-security");
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Lab")); settle();
+        main(() -> HubTestPages.open(activity, "service.experimental")); settle();
         List<String> listed = new ArrayList<>(), verifying = new ArrayList<>();
         main(() -> {
             BleController ble = activity.service().ble;
@@ -318,6 +341,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         screenshot(label + "-more-lab");
         if (!verifying.isEmpty()) { reveal("lab-verify"); screenshot(label + "-more-lab-verify"); }
         for (String key : listed) if (ScooterCommands.find(key).type != ScooterCommands.Type.SLIDER) { labTry(label, key); break; }
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Scooters")); settle();
         main(() -> {
             // The model line describes the saved profile; the simulated model never reaches it.
@@ -663,8 +687,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             require(!Boolean.TRUE.equals(field(service.ble, "scanning")) && !Boolean.TRUE.equals(field(service.ble, "identifying")), "Identify started a scan while recording");
             activity.redraw();
         }); settle();
-        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "controls"); }); settle();
-        main(() -> require(((View)field(field(activity, "screen"), "readOnlyBanner")).getVisibility() != View.VISIBLE, "Limited banner shown without a connection")); 
+        main(() -> HubTestPages.open(activity, "controls")); settle();
+        main(() -> require(((View)field(HubTestPages.part(activity, "ControlsScreen"), "readOnlyBanner")).getVisibility() != View.VISIBLE, "Limited banner shown without a connection")); 
         screenshot("recording-scooter");
         main(() -> activity.service().stopRide()); settle();
         main(() -> require(!activity.service().isRecording(), "Fixture recording did not stop"));
