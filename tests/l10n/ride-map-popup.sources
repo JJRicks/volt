@@ -5,3 +5,6 @@
 # before the batch.
 src/com/jjricks/volt/Fmt.java
 tests/l10n/characterization/RideMapPopupEnglishTest.java
+# The batch's own suite: the catalog templates that replaced the four format strings render the
+# pinned base English, and come from the catalog.
+tests/l10n/RideMapPopupTextTest.java

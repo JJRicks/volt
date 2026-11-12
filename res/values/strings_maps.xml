@@ -155,6 +155,22 @@
     <string name="maps_route_accel_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">GPS accel not measured</string>
     <!-- No power was recorded at this point. -->
     <string name="maps_route_power_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Power not measured</string>
+    <!-- The road grade (slope) at the tapped point, such as "≈+2.5% grade": %1$s is the signed
+         percentage without its percent sign (+2.5, -0.8), already formatted for your language; %%
+         prints the percent sign. ≈ marks the grade as a smoothed estimate. It is the tooltip's first
+         line when the route is coloured by grade, otherwise part of its smaller second line. The
+         tooltip shortens a line that does not fit with an ellipsis. -->
+    <string name="maps_route_grade" volt:screen="Rides, map tooltip" volt:purpose="tooltip" volt:max="208dp@14sp">≈%1$s%% grade</string>
+    <!-- The acceleration measured from phone GPS at the tapped point, such as "+0.25 m/s² GPS accel":
+         %1$s is the signed acceleration (+0.25, -1.10), already formatted for your language; m/s² is
+         metres per second squared. "accel" is short for acceleration, as in maps_route_accel_not_measured. -->
+    <string name="maps_route_accel" volt:screen="Rides, map tooltip" volt:purpose="tooltip" volt:max="208dp@14sp">%1$s m/s² GPS accel</string>
+    <!-- The height of the tapped point relative to the ride's start, in feet, such as
+         "Elevation +12 ft": %1$s is the signed whole number of feet (+12, -3). -->
+    <string name="maps_route_elevation_ft" volt:screen="Rides, map tooltip" volt:purpose="tooltip" volt:max="208dp@14sp">Elevation %1$s ft</string>
+    <!-- The height of the tapped point relative to the ride's start, in metres, such as
+         "Elevation +4 m": %1$s is the signed whole number of metres (+4, -1). -->
+    <string name="maps_route_elevation_m" volt:screen="Rides, map tooltip" volt:purpose="tooltip" volt:max="208dp@14sp">Elevation %1$s m</string>
 
     <!-- ===== Ride chart (Rides, and the charge recording chart that reuses it) ===== -->
 
