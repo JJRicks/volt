@@ -61,10 +61,35 @@ final class HubNav {
         return current();
     }
 
-    /** Shows a page with only its parents below it (a tab tap, a notification or a return to Home). */
+    /** Shows a page with only its parents below it (a notification, leaving riding mode or setup, a return to Home). */
     void reset(String id) {
         stack.clear();
         stack.addAll(HubPages.path(HubPages.canonical(id)));
+    }
+
+    /**
+     * After a long time away (RETENTION_MS or a reboot, see {@link #awayExpired}): sub-pages close back to their subject,
+     * which stays open; Home and a subject's own page are kept. True when the stack changed.
+     */
+    boolean closeSubPages() {
+        List<String> kept = HubPages.path(HubPages.subjectOf(current()));
+        if (kept.equals(stack)) return false;
+        stack.clear();
+        stack.addAll(kept);
+        return true;
+    }
+
+    /** How long Volt may stay in the background before its open sub-pages close (generalizes More's old minute). */
+    static final long RETENTION_MS = 60_000;
+
+    /**
+     * Whether a stay away from the app has expired its sub-pages: awayAt is the elapsed-realtime clock when Volt left
+     * (negative when it never did), awayBoot and boot the device's boot count then and now. A clock that went backwards
+     * or another boot always expires; a short return (a permission dialog, a rotation, a quick app switch) keeps them.
+     */
+    static boolean awayExpired(long awayAt, int awayBoot, long now, int boot) {
+        if (awayAt < 0) return false;
+        return now < awayAt || now - awayAt >= RETENTION_MS || awayBoot != boot;
     }
 
     /** The transition's direction from one page to another: +1 deeper, -1 shallower, 0 at the same depth. */

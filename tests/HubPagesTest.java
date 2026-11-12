@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** HubPages: the page tree, legacy ids, More's sections and the tab and riding rules (hub layout plan, PR 1). */
+/** HubPages: the page tree, legacy ids, More's sections and the riding rule (hub layout plan, PRs 1 and 11). */
 public final class HubPagesTest {
     private static int checks;
 
@@ -18,7 +18,7 @@ public final class HubPagesTest {
         tree();
         legacy();
         subjects();
-        tabs();
+        hub();
         riding();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
@@ -66,8 +66,10 @@ public final class HubPagesTest {
         require(HubPages.canonical("controls").equals(HubPages.CONTROLS), "controls is the Controls page");
         require(HubPages.canonical(null).equals(HubPages.HOME) && HubPages.canonical("bogus").equals(HubPages.HOME)
                 && HubPages.canonical("").equals(HubPages.HOME), "Anything else opens Home");
-        for (String legacy : new String[] {"home", "stats", "controls", "rides", "more"})
-            require(HubPages.TABS.contains(HubPages.tabOf(HubPages.canonical(legacy))), "Each of today's tabs opens a page on its tab: " + legacy);
+        // The Scooter tab's index (parts 3-10) is gone (PR 11): its id opens Home, whose subjects it listed.
+        require(HubPages.canonical("scooter").equals(HubPages.HOME) && !HubPages.known(HubPages.SCOOTER), "scooter opens Home");
+        for (String legacy : new String[] {"home", "stats", "controls", "rides", "more", "scooter"})
+            require(HubPages.depth(HubPages.canonical(legacy)) <= 1, "Each old tab opens Home or a page directly under it: " + legacy);
     }
 
     private static void subjects() {
@@ -84,31 +86,26 @@ public final class HubPagesTest {
         require(HubPages.icon(HubPages.SERVICE_MAINTENANCE).equals(HubPages.icon(HubPages.SERVICE)), "A sub-page has its subject's icon");
     }
 
-    private static void tabs() {
-        require(HubPages.TABS.size() == 5 && HubPages.TABS.get(0).equals(HubPages.HOME) && HubPages.TABS.get(2).equals(HubPages.SCOOTER),
-                "Five tab roots, Home first and Scooter in the centre");
-        for (String tab : HubPages.TABS) require(HubPages.tabOf(tab).equals(tab), "A tab root is its own tab: " + tab);
-        for (String page : HubPages.ALL) require(HubPages.TABS.contains(HubPages.tabOf(page)), "Every page is on a tab: " + page);
-        require(HubPages.tabOf(HubPages.DATA_STORAGE).equals(HubPages.DATA), "Data pages are on Live Stats");
-        require(HubPages.tabOf(HubPages.RIDE_RIDING).equals(HubPages.RIDE), "Ride pages are on Rides");
-        require(HubPages.tabOf(HubPages.SETTINGS_UNITS).equals(HubPages.SETTINGS), "Settings pages are on More");
-        for (String page : new String[] {HubPages.CONTROLS_LIMITS, HubPages.BATTERY, HubPages.LIGHTS_STAR, HubPages.SECURITY,
-                HubPages.SERVICE_COMPATIBILITY, HubPages.SCOOTER})
-            require(HubPages.tabOf(page).equals(HubPages.SCOOTER), "Scooter pages are on Scooter: " + page);
-        require(HubPages.tabOf("stats").equals(HubPages.DATA) && HubPages.tabOf("more").equals(HubPages.SETTINGS)
-                && HubPages.tabOf("bogus").equals(HubPages.HOME), "Legacy and unknown ids find their tab");
+    private static void hub() {
+        // The Hub has no tabs (PR 11): Home is the root of every stack, and every other page is under a page under Home.
+        for (String page : HubPages.ALL)
+            require(page.equals(HubPages.HOME) || HubPages.parent(HubPages.subjectOf(page)).equals(HubPages.HOME), "Under Home: " + page);
+        for (String page : new String[] {HubPages.SETTINGS, HubPages.SEARCH})
+            require(HubPages.parent(page).equals(HubPages.HOME) && !HubPages.SUBJECTS.contains(page), "Header page, not a subject: " + page);
     }
 
     private static void riding() {
-        for (String page : new String[] {HubPages.HOME, HubPages.SCOOTER, HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.DATA,
+        for (String page : new String[] {HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.DATA,
                 HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS})
             require(HubPages.clearForRiding(page), "Riding mode may open over " + page);
         for (String page : new String[] {HubPages.SETTINGS, HubPages.SETTINGS_SCOOTERS, HubPages.SECURITY, HubPages.SERVICE_EXPERIMENTAL,
                 HubPages.SERVICE_COMPATIBILITY, HubPages.RIDE_RIDING, HubPages.RIDE_RECORDING, HubPages.DATA_STORAGE, HubPages.SEARCH})
             require(!HubPages.clearForRiding(page), "Riding mode waits on " + page);
         require(!HubPages.clearForRiding(null) && !HubPages.clearForRiding("more"), "Unknown ids are busy");
-        // Today's rule with the tab roots: only More blocks by page.
-        for (String tab : HubPages.TABS) require(HubPages.clearForRiding(tab) == !tab.equals(HubPages.SETTINGS), "Tab rule: " + tab);
+        // The old tab roots keep their rule: only More (Settings) blocks by page; the Scooter tab's id is not a page now.
+        for (String tab : new String[] {"home", "stats", "rides", "more"})
+            require(HubPages.clearForRiding(HubPages.canonical(tab)) == !tab.equals("more"), "Tab rule: " + tab);
+        require(!HubPages.clearForRiding(HubPages.SCOOTER), "scooter is not a page");
     }
 
     private static void moreSections(String moreScreen) throws Exception {

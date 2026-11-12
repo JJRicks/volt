@@ -872,26 +872,34 @@ final class MaintenanceScreen {
     private static final WeakHashMap<View, Drawable> DOTS = new WeakHashMap<>();
     private static final WeakHashMap<View, CharSequence> SPOKEN = new WeakHashMap<>();
     private static final WeakHashMap<View, View.OnLayoutChangeListener> PLACERS = new WeakHashMap<>();
+    private static final WeakHashMap<View, Integer> COLORS = new WeakHashMap<>();
 
     /**
      * Shows or hides a small red dot on the Scooter tab (owner answer Q39 B). On the phone's raised Scooter
      * button (corner true) it sits at the button's top end corner, outside the red disc; on the rail it sits
      * at the top end of the tab's icon, its first child. The tab's spoken name says a check is due while it shows.
      */
-    static void markTab(Ui ui, View tab, boolean corner, boolean due) {
+    static void markTab(Ui ui, View tab, boolean corner, boolean due) { markTab(ui, tab, corner, due, ui.accent); }
+
+    /**
+     * The same dot in a colour of the caller's: the Hub's dock shows it orange on the Service icon (hub layout plan,
+     * PR 11), as Clean Home's Service row does. A dot already shown in another colour is drawn again in this one.
+     */
+    static void markTab(Ui ui, View tab, boolean corner, boolean due, int color) {
         if (tab == null) return;
+        if (due && DOTS.containsKey(tab) && COLORS.containsKey(tab) && COLORS.get(tab) != color) markTab(ui, tab, corner, false, color);
         Drawable dot = DOTS.get(tab);
         if (!SPOKEN.containsKey(tab)) SPOKEN.put(tab, tab.getContentDescription());
         CharSequence label = SPOKEN.get(tab);
         if (!due) {
-            if (dot != null) { tab.getOverlay().remove(dot); DOTS.remove(tab); tab.removeOnLayoutChangeListener(PLACERS.remove(tab)); }
+            if (dot != null) { tab.getOverlay().remove(dot); DOTS.remove(tab); COLORS.remove(tab); tab.removeOnLayoutChangeListener(PLACERS.remove(tab)); }
             tab.setContentDescription(label);
             return;
         }
         if (label != null) tab.setContentDescription(T.maintenanceTabDue(label.toString()));
         if (dot != null) return;
-        GradientDrawable made = new GradientDrawable(); made.setShape(GradientDrawable.OVAL); made.setColor(ui.accent); made.setStroke(ui.dp(2), ui.bg);
-        DOTS.put(tab, made);
+        GradientDrawable made = new GradientDrawable(); made.setShape(GradientDrawable.OVAL); made.setColor(color); made.setStroke(ui.dp(2), ui.bg);
+        DOTS.put(tab, made); COLORS.put(tab, color);
         Runnable place = () -> {
             View icon = !corner && tab instanceof ViewGroup && ((ViewGroup) tab).getChildCount() > 0 ? ((ViewGroup) tab).getChildAt(0) : tab;
             int size = ui.dp(12);

@@ -60,8 +60,8 @@ final class HubRoutes {
 
     /**
      * The More section a Settings or Data page shows as its body (hub layout plan, PR 5), or null for a page MainActivity
-     * builds otherwise. Settings itself is still More's tab while the tabs remain: a shortcut to it (more:App) opens More
-     * on App preferences, as it always has.
+     * builds otherwise. Settings itself is MoreScreen's index (no section), so its "App" here is only the section id a
+     * Settings shortcut (more:App) names; MainActivity builds the index for it.
      */
     static String moreSectionOf(String page) {
         if (page == null) return null;

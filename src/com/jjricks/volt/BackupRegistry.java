@@ -151,6 +151,8 @@ final class BackupRegistry {
         for (String key : "last_page more_section scooter_section stats_section more_wide_section_scroll stats_query stats_chart_query".split(" ")) exclude(app, key, String.class, DEVICE);
         for (String key : "more_wide_menu_scroll more_away_boot stats_away_boot".split(" ")) exclude(app, key, Integer.class, DEVICE);
         exclude(app, "more_away_elapsed", Long.class, DEVICE);exclude(app, "stats_away_elapsed", Long.class, DEVICE);
+        // When Volt left the screen and the boot it was in (hub layout plan, PR 11): sub-pages close after a minute away.
+        exclude(app, "hub_away_elapsed", Long.class, DEVICE);exclude(app, "hub_away_boot", Integer.class, DEVICE);
         exclude(app, "dashboard_editing", Boolean.class, DEVICE);
         // scooter_section above and the editor's flag here are retired too (hub layout PR 3): no longer written, still classified.
         exclude(app, ScooterMenuLayout.EDITING, Boolean.class, DEVICE);

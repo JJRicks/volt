@@ -34,7 +34,7 @@ desktop ADB/Python method below remains available.
 
 PHONE-ONLY CAPTURE WITH SHIZUKU (ANDROID 11+)
 
-In first-run setup (or More → My scooters → Run setup again), choose
+In first-run setup (or Settings → My scooters → Run setup again), choose
 "Use Shizuku on this phone". Follow the official linked guide to install Shizuku,
 pair Wireless debugging and start it. This route supports Shizuku 13+ started
 through debugging; root-backed Shizuku is not accepted. This first version supports
@@ -115,7 +115,7 @@ it to your phone manually. Existing computer files are never overwritten.
 
 IMPORT AND CONNECT
 
-1. Open Volt and go to More → Scooters → Import owner setup file.
+1. Open Volt and go to Settings → My scooters → Import owner setup file.
 2. Choose navee-owner-setup.json in Downloads.
 3. Allow Nearby devices, power on your scooter, and tap Connect.
 4. Select your scooter if it is the first connection. The app checks its serial
@@ -126,7 +126,7 @@ You can delete the Downloads copy after import if you keep a safe backup.
 Turn off USB debugging when you no longer need it.
 
 You can also paste an existing 12-character identity or private setup backup
-under More → Scooters → Add with owner identity. Backup imports preserve owner/shared role.
+under Settings → My scooters → Add with owner identity. Backup imports preserve owner/shared role.
 Never paste an account password or an HTTP token into this field.
 
 IF CAPTURE DOES NOT WORK

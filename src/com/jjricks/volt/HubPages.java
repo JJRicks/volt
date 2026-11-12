@@ -18,7 +18,10 @@ public final class HubPages {
     private HubPages() { }
 
     public static final String HOME = "home";
-    /** The Scooter tab's page while the tabs remain. */
+    /**
+     * The Scooter tab's index page while the tabs remained (parts 3-10). Not a page since the Hub replaced the tabs
+     * (PR 11): a saved "scooter" (an older Bundle, last_page) opens Home, whose subjects it listed.
+     */
     public static final String SCOOTER = "scooter";
     public static final String RIDE = "ride", RIDE_RIDES = "ride.rides", RIDE_RECORDING = "ride.recording", RIDE_RIDING = "ride.riding";
     public static final String BATTERY = "battery", BATTERY_MODES = "battery.modes", BATTERY_ESTIMATES = "battery.estimates",
@@ -40,7 +43,6 @@ public final class HubPages {
     private static final Map<String, String> PARENTS = new LinkedHashMap<>();
     static {
         PARENTS.put(HOME, null);
-        PARENTS.put(SCOOTER, HOME);
         PARENTS.put(RIDE, HOME); PARENTS.put(RIDE_RIDES, RIDE); PARENTS.put(RIDE_RECORDING, RIDE); PARENTS.put(RIDE_RIDING, RIDE);
         PARENTS.put(BATTERY, HOME); PARENTS.put(BATTERY_MODES, BATTERY); PARENTS.put(BATTERY_ESTIMATES, BATTERY);
         PARENTS.put(BATTERY_HISTORY, BATTERY);
@@ -59,12 +61,9 @@ public final class HubPages {
     public static final List<String> ALL = Collections.unmodifiableList(new ArrayList<>(PARENTS.keySet()));
     /** The seven subjects, in Home's order. */
     public static final List<String> SUBJECTS = Collections.unmodifiableList(Arrays.asList(RIDE, BATTERY, CONTROLS, LIGHTS, SECURITY, SERVICE, DATA));
-    /** While the tab bar remains: each tab's root page, in the bar's order (Scooter is the raised centre button). */
-    public static final List<String> TABS = Collections.unmodifiableList(Arrays.asList(HOME, DATA, SCOOTER, RIDE, SETTINGS));
-
     /** Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts). */
     private static final Set<String> CLEAR_FOR_RIDING = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            HOME, SCOOTER, RIDE, RIDE_RIDES, DATA, CONTROLS, BATTERY, LIGHTS)));
+            HOME, RIDE, RIDE_RIDES, DATA, CONTROLS, BATTERY, LIGHTS)));
 
     /** Page ids saved before the Hub (tab ids in Bundles, last_page and Home's navigate calls), and what they open now. */
     private static final Map<String, String> LEGACY = new LinkedHashMap<>();
@@ -72,6 +71,8 @@ public final class HubPages {
         LEGACY.put("stats", DATA);
         LEGACY.put("rides", RIDE);
         LEGACY.put("more", SETTINGS);
+        // The Scooter tab's index (PR 11): its subjects are Home's now.
+        LEGACY.put(SCOOTER, HOME);
     }
 
     /** More's section ids and the page that holds each one. */
@@ -117,7 +118,7 @@ public final class HubPages {
     /** Steps below Home: 0 for Home (and unknown ids), 1 for a subject, 2 for a sub-page. */
     public static int depth(String id) { return path(id).size() - 1; }
 
-    /** The page directly under Home that id belongs to (a subject, Settings, Search or Scooter); Home for Home. */
+    /** The page directly under Home that id belongs to (a subject, Settings or Search); Home for Home. */
     public static String subjectOf(String id) {
         List<String> path = path(id);
         return path.size() > 1 ? path.get(1) : HOME;
@@ -135,25 +136,12 @@ public final class HubPages {
             case DATA: return "chart";
             case SETTINGS: return "gear";
             case SEARCH: return "search";
-            case SCOOTER: return "scooter";
             default: return "home";
         }
     }
 
     /** Whether riding mode may open over this page by itself (AutoStartPolicy); unknown ids count as busy. */
     public static boolean clearForRiding(String id) { return id != null && CLEAR_FOR_RIDING.contains(id); }
-
-    /** While the tab bar remains: the tab that holds a page, by its root id in {@link #TABS}. */
-    public static String tabOf(String id) {
-        String page = canonical(id);
-        switch (subjectOf(page)) {
-            case HOME: return HOME;
-            case DATA: return DATA;
-            case RIDE: return RIDE;
-            case SETTINGS: return SETTINGS;
-            default: return SCOOTER;
-        }
-    }
 
     /**
      * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,

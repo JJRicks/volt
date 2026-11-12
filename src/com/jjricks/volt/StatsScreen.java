@@ -45,9 +45,8 @@ public final class StatsScreen implements AppScreen {
     private final ScooterService service;
     private final SharedPreferences preferences;
     private final ScrollView scroll, sectionScroll, readingsScroll;
-    /** True when the page shows two panes (sections left, Readings right) beside MainActivity's side rail. */
+    /** True when the page shows two panes (sections left, Readings right). */
     private final boolean wide;
-    private static final int RAIL_DP = 92;
     /** Pane scroll positions kept across a rebuild, as MainActivity keeps the phone page's scroll. */
     private static int savedSectionScroll, savedReadingsScroll;
     private final LinearLayout page, overviewSection, readingsSection, chartsSection, diagnosticsSection;
@@ -120,8 +119,9 @@ public final class StatsScreen implements AppScreen {
         favourites = new LinkedHashSet<String>(preferences.getStringSet("stats_favourites", new LinkedHashSet<String>()));
         chartFavourites = new LinkedHashSet<String>(preferences.getStringSet("stats_chart_favourites", new LinkedHashSet<String>()));
         query = preferences.getString("stats_query", "");
-        int widthDp = host.activity().getResources().getConfiguration().screenWidthDp;
-        // Same rule as MainActivity's side rail (Ui.wideLayout: width over text scale), so panes appear exactly with it.
+        // The page's own width (the whole window since the Hub has no side rail, PR 11).
+        int widthDp = host.contentWidthDp();
+        // The wide breakpoint (Ui.wideLayout: width over text scale), as every other wide page uses.
         wide = !paneHosted && ui.wideLayout();
         selectedSection = validSection(preferences.getString("stats_section", "Overview"));
         // Readings has its own pane when wide; a saved Readings tab opens Overview beside it (the saved choice is kept).
@@ -171,7 +171,7 @@ public final class StatsScreen implements AppScreen {
 
         // Overview: the battery ring beside range and electrical detail, then the rider's favourite readings.
         // When wide, judge the ring layout by the pane's width as if it were a phone page with its 18dp sides.
-        int layoutDp = wide ? (widthDp - RAIL_DP - 48 - 20) / 2 + 36 : widthDp;
+        int layoutDp = wide ? (widthDp - 48 - 20) / 2 + 36 : widthDp;
         boolean compactBattery = layoutDp < 340 || (layoutDp < 430 && ui.textScale * host.activity().getResources().getConfiguration().fontScale > 1.2f);
         LinearLayout battery = ui.card(); battery.setOrientation(compactBattery ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         battery.setGravity(compactBattery ? Gravity.CENTER_HORIZONTAL : Gravity.CENTER_VERTICAL);

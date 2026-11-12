@@ -61,7 +61,11 @@ public final class MoreScreen implements AppScreen {
     private final Ui ui;
     private final ScrollView scroll;
     private final LinearLayout content;
-    /** Unfolded/tablet width: the menu stays on the left and the chosen submenu opens on the right. */
+    /**
+     * Unfolded/tablet width: the menu stays on the left and the chosen submenu opens on the right. Off since the Hub
+     * (hub layout plan 1.10, PR 11): Settings' sub-pages are Hub pages, so Settings is one column; Panes stays for the
+     * wide two-pane Home (PR 13).
+     */
     private final boolean wide;
     private final boolean standalone;
     /**
@@ -183,7 +187,7 @@ public final class MoreScreen implements AppScreen {
         this.host = host; ui = host.ui();
         standalone = initialSection != null;
         this.embedded = embedded && standalone;
-        wide = !standalone && ui.wideLayout() && !layoutKey().equals(onePaneAt);
+        wide = false;
         scroll = new PageScroll();
         scroll.setFillViewport(true); scroll.setClipToPadding(false);
         content = column();
@@ -192,7 +196,8 @@ public final class MoreScreen implements AppScreen {
         else content.setPadding(ui.dp(18), ui.dp(6), ui.dp(18), ui.dp(24));
         // A Hub page scrolls the whole page itself, so an embedded section is never put in a scroller of its own.
         if (!this.embedded) scroll.addView(content, new ScrollView.LayoutParams(-1, wide ? -1 : -2));
-        String savedSection = standalone ? initialSection : settings().getString("more_section", "");
+        // Settings (no initialSection) is its index: its sections are Hub pages, so the saved more_section is no longer read.
+        String savedSection = standalone ? initialSection : "";
         compatibilityRecovery = COMPATIBILITY_RECOVERY.equals(savedSection);
         selectedSection = compatibilityRecovery ? "Compatibility" : savedSection;
         // A More tab saved on Security or Experimental controls opens on More's menu: both are subject pages now.
@@ -208,6 +213,9 @@ public final class MoreScreen implements AppScreen {
         cardDestination = indexView;
         indexProfile();
         onboarding();
+        // Settings in the Hub's order (hub layout plan 1.10, PR 11), three groups with no headings: Home style, Appearance
+        // and the display card (App preferences' rows, shown here rather than behind a row of their own); then My scooters
+        // and Back up & restore; then Updates, About & permissions and Developer options. Each row's tag is unchanged.
         sectionMenu = group();
         if (wide) sectionMenu.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
         // Settings › Home style (hub layout plan, PR 8): its own page; the line under it names the current style.
@@ -215,14 +223,19 @@ public final class MoreScreen implements AppScreen {
                 HubText.homeStyleName(HomeStyle.CLEAN.equals(HomeStylePrefs.of(settings()))), () -> host.open(HubPages.SETTINGS_HOME));
         homeStyle.view.setTag("home-style-menu");
         if (wide) homeStyle.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
-        Row backup = row(sectionMenu, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
-        backup.view.setTag("data-backup");
-        // The wide menu pads every row alike, so this one lines up with the section rows below it.
-        if (wide) backup.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
+        LinearLayout appPreferences = column();
+        indexView.addView(appPreferences, new LinearLayout.LayoutParams(-1, -2));
+        cardDestination = appPreferences;
+        preferences();
+        cardDestination = indexView;
+        LinearLayout scooterGroup = group(), laterGroup = ui.groupCard();
+        if (wide) for (LinearLayout box : new LinearLayout[]{scooterGroup, laterGroup}) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
-            if (!knownSection(section) || subjectSection(section)) continue;
-            Row row = row(sectionMenu, SECTION_ICONS[i], T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
+            // App preferences' rows are on the index itself.
+            if (!knownSection(section) || subjectSection(section) || "App".equals(section)) continue;
+            // My scooters, the first row this loop builds (SECTIONS' order), leads the second group; About and Developer follow Updates.
+            Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, SECTION_ICONS[i], T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
@@ -233,7 +246,12 @@ public final class MoreScreen implements AppScreen {
                 row.view.setTag("developer-options-menu");
             }
         }
+        Row backup = row(scooterGroup, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
+        backup.view.setTag("data-backup");
+        // The wide menu pads every row alike, so this one lines up with the section rows above it.
+        if (wide) backup.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
         updates();
+        indexView.addView(laterGroup);
         TextView footer = ui.text(T.moreFooter(AppVersion.name(host.activity())), 11.5f, false);
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
@@ -251,11 +269,11 @@ public final class MoreScreen implements AppScreen {
         sectionHeader.addView(sectionTitle);
 
         for (String section : SECTIONS) {
-            if (!knownSection(section)) continue;
+            // App preferences are built on the index (above), never as a section of their own.
+            if (!knownSection(section) || section.equals("App")) continue;
             cardDestination = column(); sections.put(section, cardDestination);
             sectionParent.addView(cardDestination, new LinearLayout.LayoutParams(-1, -2));
-            if (section.equals("App")) preferences();
-            else if (section.equals("Scooters")) profiles();
+            if (section.equals("Scooters")) profiles();
             else if (section.equals("Security")) security();
             else if (section.equals("Lab")) lab();
             else if (section.equals("Data")) dataHistory();
@@ -338,8 +356,8 @@ public final class MoreScreen implements AppScreen {
 
     /** Units returns to its parent; otherwise wide Back leaves the tab, keeping its selected pane. */
     @Override public boolean back() {
-        // A Hub page's Back is the page stack's.
-        if (embedded) return false;
+        // A Hub page's Back is the page stack's; so is Settings' (its sections are Hub pages since PR 11).
+        if (embedded || !standalone) return false;
         if ("Units".equals(selectedSection)) { selectSection("App"); return true; }
         if ("Compatibility".equals(selectedSection) && !standalone) {
             selectSection(compatibilityRecovery ? "" : "Developer"); return true;
@@ -390,8 +408,9 @@ public final class MoreScreen implements AppScreen {
     }
     private void selectSection(String section) {
         if (closed || section.equals(selectedSection)) return;
-        if (embedded) {
-            // Another section is another Hub page; the compatibility check keeps its recovery-only view as a page argument.
+        if (embedded || !standalone) {
+            // Another section is another Hub page (Settings' rows open theirs too, PR 11); the compatibility check keeps its
+            // recovery-only view as a page argument.
             String page = HubPages.fromMoreSection(section);
             if (page.equals(HubPages.SERVICE_COMPATIBILITY)) host.open(page, compatibilityRecovery ? HubNav.Args.recovery() : null);
             else host.open(page);

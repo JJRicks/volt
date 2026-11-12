@@ -11,6 +11,11 @@ public interface ScreenHost {
     void open(String page);
     /** The same, with one-shot arguments for the page built (HubNav.Args); args may be null. */
     void open(String page, HubNav.Args args);
+    /**
+     * The width a page has, in dp: the whole window since the Hub has no side rail (hub layout plan, PR 11). A pane that
+     * hosts a page (PR 13) can say less.
+     */
+    default int contentWidthDp() { return activity().getResources().getConfiguration().screenWidthDp; }
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();

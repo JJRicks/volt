@@ -2468,8 +2468,8 @@ final class RidingScreen implements AppScreen {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 // The word stays while the labelled pill takes at most a third of the header row.
                 float labelled = ui.dp(20 + 8 + 32) + word.getPaint().measureText(word.getText().toString());
+                // The header spans the window: the Hub has no side rail (PR 11).
                 float header = getResources().getDisplayMetrics().widthPixels;
-                if (ui.wideLayout()) header -= ui.dp(92);
                 boolean fits = RidingFocus.rideLabelFits(labelled, header - ui.dp(36));
                 word.setVisibility(fits ? VISIBLE : GONE);
                 pill.setPadding(fits ? ui.dp(14) : 0, 0, fits ? ui.dp(18) : 0, 0);

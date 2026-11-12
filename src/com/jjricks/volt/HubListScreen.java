@@ -17,8 +17,9 @@ import java.util.function.Supplier;
 
 /**
  * A Hub page made of link rows (hub layout plan): each row has an icon, a title, a live one-line value and a chevron,
- * and opens another page. A row can carry the maintenance dot. It holds no catalog references: titles and values
- * arrive as text from HubText, so the page renders in the current language on every refresh.
+ * and opens another page. A row can carry the maintenance dot (orange, as Home's Service row and the dock's icon).
+ * It holds no catalog references: titles and values arrive as text from HubText, so the page renders in the current
+ * language on every refresh.
  */
 final class HubListScreen implements AppScreen {
     /** One row. Value, dot and visible are read on every refresh; any of them may be null. */
@@ -70,7 +71,7 @@ final class HubListScreen implements AppScreen {
         words.addView(value, new LinearLayout.LayoutParams(-1, -2));
         line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
         View dot = new View(host.activity());
-        GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL); disc.setColor(ui.accent); dot.setBackground(disc);
+        GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL); disc.setColor(ui.orange); dot.setBackground(disc);
         LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(ui.dp(10), ui.dp(10)); dp.setMarginStart(ui.dp(8));
         dot.setVisibility(View.GONE); line.addView(dot, dp);
         View chevron = ui.icon("chevron", 15, ui.muted);
