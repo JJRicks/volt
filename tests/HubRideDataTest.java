@@ -82,6 +82,18 @@ public final class HubRideDataTest {
         check(body(stats, "@Override public void refresh()").contains("refreshStoredSize();"), "Live Stats' refresh keeps it current");
         check(more.contains("static String mib(long bytes) { return bytes <= 0 ? \"\" :"), "nothing stored: no value, as More's row had");
 
+        // One home per setting in the Hub (the owner's "one home" answer): Record rides automatically on Ride › Recording
+        // settings, not again on Ride › Riding mode (riding mode's own tune menu keeps it); Ride backups on the Ride page,
+        // not again on All rides & compare. Council review of #389, the duplicates question.
+        String hubRiding = read(Paths.get(args[0]).resolveSibling("HubRidingSettings.java").toString());
+        check(hubRiding.contains("() -> true).withoutAutoRecord();"), "Ride › Riding mode leaves Record rides automatically out");
+        String riding = read(Paths.get(args[0]).resolveSibling("RidingScreen.java").toString());
+        check(riding.contains("new MoreScreen.RidingSettingsMenu(") && !riding.contains("withoutAutoRecord"), "riding mode's tune menu keeps it");
+        check(body(more, "void fill(LinearLayout body)").contains("if (autoRecord) content.addView(toggle(autoRecordTitle()"),
+                "the shared menu shows it unless told not to");
+        check(count(rides, "M.ridesBackups()") == 1 && rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(\"download\", M.ridesBackups()"),
+                "Ride backups only on the Ride page");
+
         System.out.println("HubRideData: " + checks + " checks passed");
     }
 

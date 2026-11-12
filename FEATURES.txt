@@ -777,8 +777,8 @@ open or Follow phone), Hide status bar (off by default), Show seconds on clock
 (off by default; every Clock reading in riding mode then ticks each second
 while it's on screen, dropping AM/PM before seconds where a spot is narrow,
 and TalkBack isn't told each tick) and night vision, plus
-Record rides automatically and Open automatically, which are also in Rides >
-Recording settings and Rides > Riding mode. Every change saves at once. The menu closes with its close
+Record rides automatically (also in Rides > Recording settings) and Open
+automatically (also in Rides > Riding mode). Every change saves at once. The menu closes with its close
 button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
 a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is

@@ -240,10 +240,13 @@ public final class RidesScreen implements AppScreen {
         } else {
             compareRow = navRow("compare", M.ridesCompareTwo(), "", "", this::chooseComparison);
             comparison.addView(compareRow.view);
-            ui.divider(comparison);
         }
-        Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
-        backups.view.setTag("ride-backups-menu");comparison.addView(backups.view);
+        // Ride backups has one home, the Ride page (as the owner's "one home" answer for the charger); All rides & compare
+        // keeps Compare two rides only.
+        if (mode == SUMMARY) {
+            Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
+            backups.view.setTag("ride-backups-menu"); comparison.addView(backups.view);
+        }
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));

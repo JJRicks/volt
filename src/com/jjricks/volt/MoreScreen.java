@@ -3042,6 +3042,8 @@ public final class MoreScreen implements AppScreen {
         private boolean closed;
         private LinearLayout content;
         private Runnable refreshNight = () -> { };
+        /** Whether fill() shows Record rides automatically; withoutAutoRecord() turns it off for Ride › Riding mode. */
+        private boolean autoRecord = true;
 
         /** @param mayChange asked before each change saves: false at riding speed, or once the menu has gone. */
         RidingSettingsMenu(ScreenHost host, Ui ui, SharedPreferences preferences, Runnable changed, BooleanSupplier mayChange) {
@@ -3052,6 +3054,12 @@ public final class MoreScreen implements AppScreen {
             this.mayChange = mayChange;
             context = host.activity();
         }
+
+        /**
+         * Leaves Record rides automatically out of fill(): Ride › Riding mode, whose Hub home for that switch is Ride ›
+         * Recording settings (one home per setting). Riding mode's tune menu keeps it.
+         */
+        RidingSettingsMenu withoutAutoRecord() { autoRecord = false; return this; }
 
         /** Builds the settings into the menu's body. */
         void fill(LinearLayout body) {
@@ -3068,7 +3076,9 @@ public final class MoreScreen implements AppScreen {
             nightPreferences();
             gap();
             content.addView(toggle(autoOpenTitle(), autoOpenSub(), AutoStartPolicy.AUTO_RIDE_MODE_KEY, "preference_riding_auto_open", false, null));
-            content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
+            // Riding mode's own menu keeps Record rides automatically; Ride › Riding mode leaves it to Ride › Recording settings,
+            // its one home in the Hub (withoutAutoRecord).
+            if (autoRecord) content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
             // Off by default: the status bar keeps the phone's clock and battery (#254).
             content.addView(toggle(T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(), RidingBars.HIDE_STATUS_BAR_KEY, "preference_riding_hide_status_bar", true, null));
             // Off by default: the clock reading shows seconds, ticking only while one is on screen (a tester's request).
