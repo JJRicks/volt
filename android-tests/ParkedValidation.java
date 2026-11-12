@@ -123,7 +123,7 @@ public final class ParkedValidation extends Instrumentation {
     private View screenView(Activity activity){return ((AppScreen)currentScreen(activity)).view();}
     private void navigate(Activity activity,String page)throws Exception{
         runMain(()->{assertNoUserRecording();selectOnMain(activity,page);});waitForIdleSync();
-        runMain(()->{ScrollView view=(ScrollView)field(activity,"scroll");view.scrollTo(0,0);require(page.equals(field(activity,"selectedPage")),"Navigation did not select "+page);});
+        runMain(()->{ScrollView view=(ScrollView)field(activity,"scroll");view.scrollTo(0,0);require(HubPages.canonical(page).equals(field(activity,"selectedPage")),"Navigation did not select "+page);});
         waitForIdleSync();
     }
     private View findText(View view,String text){
@@ -303,7 +303,7 @@ public final class ParkedValidation extends Instrumentation {
         timing.put("tap_to_first_frame_ms",firstFrame==null?JSONObject.NULL:firstFrame);
         timing.put("tap_to_history_rows_ms",rowsFrame==null?JSONObject.NULL:rowsFrame);if(!rows)timing.put("history_rows","not drawn within "+RIDES_WAIT_MS/1000+" s");
         timing.put("longest_main_message_ms",longest);timing.put("longest_main_message",longestLabel.replaceAll("\\{[0-9a-f]+\\}|@[0-9a-f]+",""));
-        runMain(()->require("rides".equals(field(activity,"selectedPage")),"Navigation did not select rides"));waitForIdleSync();
+        runMain(()->require(HubPages.RIDE.equals(field(activity,"selectedPage")),"Navigation did not select rides"));waitForIdleSync();
         return timing;
     }
     @SuppressWarnings("unchecked") private void offlineSliderCancel(Activity activity)throws Exception{

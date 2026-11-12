@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterService;
@@ -73,7 +74,7 @@ public final class LaunchValidation extends Instrumentation {
                 MainActivity current = activity;
                 main(() -> select(current, page));
                 assertAppearance(current, "tab " + page);
-                main(() -> require(page.equals(field(current, "selectedPage")), "Wrong selected tab"));
+                main(() -> require(HubPages.canonical(page).equals(field(current, "selectedPage")), "Wrong selected tab"));
             }
             check("All five tabs opened without control actions");
             finishActivity(activity);
