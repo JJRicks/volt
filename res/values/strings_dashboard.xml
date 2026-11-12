@@ -265,7 +265,9 @@
     <!-- The battery overview's range line: %1$s is the range ("about 31 mi"). -->
     <string name="dashboard_range_left" volt:screen="Home battery overview widget" volt:purpose="value" volt:safety="ride">%1$s left</string>
     <!-- Spoken for the battery overview widget in place of dashboard_range_left, never drawn: the
-         description's range part, after "Battery 70 percent, ". %1$s is the range ("about 31 mi").
+         description's range part, after "Battery 70 percent, " or "Battery not reported, " and sometimes
+         followed by ", last seen <time>" (see the dashboard_overview_*_line forms below). %1$s is the
+         range ("about 31 mi").
          Say that the distance is the range still left, even where the drawn line shows the value alone. -->
     <string name="dashboard_range_left_spoken" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="ride">%1$s of range left</string>
     <!-- Spoken for the battery overview widget. %1$s is the level, a whole number of percent; the
