@@ -151,7 +151,7 @@
     <string name="hub_search_group_readings" volt:screen="Search page" volt:purpose="section label">Live readings</string>
     <!-- Label above results that are saved rides. -->
     <string name="hub_search_group_rides" volt:screen="Search page" volt:purpose="section label">Rides</string>
-    <!-- Small line under a result naming the page it is on. %1$s is that page's name ("Battery & charging"). -->
+    <!-- Small line under a result naming the subject it lives in. %1$s is that subject's name ("Battery & charging"). -->
     <string name="hub_search_in" volt:screen="Search page" volt:purpose="caption">In %1$s</string>
 
     <!-- ===== Widgets Home: the dock of subjects at the bottom ===== -->

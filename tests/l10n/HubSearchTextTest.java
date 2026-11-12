@@ -96,7 +96,7 @@ public final class HubSearchTextTest {
         equal("Live readings", HubText.searchGroupReadings(), "readings group");
         equal("Rides", HubText.searchGroupRides(), "rides group");
         equal("In Battery & charging", HubText.searchIn(HubText.title(HubPages.BATTERY)), "in a subject (a Msg argument)");
-        equal("In Speed limits", HubText.searchIn("Speed limits"), "in a sub-page");
+        equal("In Lights & sound", HubText.searchIn("Lights & sound"), "in a subject (a plain string)");
     }
 
     private static void dockAndPane() {
@@ -109,7 +109,6 @@ public final class HubSearchTextTest {
     /** Each hand-built row keeps the name it shows today in the scooter's controls. */
     private static void rowNames() {
         equal("Headlight", HubText.controlRowTitle(HubSearchTables.ROW_HEADLIGHT_INFO), "headlight");
-        equal("Line & star lights", HubText.controlRowTitle(HubSearchTables.ROW_LIGHT_ZONES), "light zones");
         equal("Scooter clock", HubText.controlRowTitle(HubSearchTables.ROW_CLOCK_SYNC), "clock");
         equal("Test scheduled charging", HubText.controlRowTitle(HubSearchTables.ROW_SCHEDULE_TEST), "schedule test");
         equal("Charge done by", HubText.controlRowTitle(HubSearchTables.ROW_CHARGE_DONE_BY), "done by");

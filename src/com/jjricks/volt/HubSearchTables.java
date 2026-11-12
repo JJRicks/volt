@@ -12,7 +12,6 @@ final class HubSearchTables {
 
     // Scooter menu rows built by hand (MainActivity's controls menu). Feature rows are found by their feature key.
     static final String ROW_HEADLIGHT_INFO = ScooterMenuLayout.HEADLIGHT_INFO;
-    static final String ROW_LIGHT_ZONES = ScooterMenuLayout.LIGHT_ZONES;
     static final String ROW_CLOCK_SYNC = ScooterMenuLayout.CLOCK_SYNC;
     static final String ROW_SCHEDULE_TEST = ScooterMenuLayout.SCHEDULE_TEST;
     static final String ROW_CHARGER = ScooterMenuLayout.CHARGER;
@@ -34,7 +33,7 @@ final class HubSearchTables {
 
     /** Every hand-built row search lists, in the menu's order. */
     static final String[] ROWS = {
-            ROW_HEADLIGHT_INFO, ROW_LIGHT_ZONES, ROW_CLOCK_SYNC, ROW_SCHEDULE_TEST, ROW_CHARGE_DONE_BY, ROW_CHARGER,
+            ROW_HEADLIGHT_INFO, ROW_CLOCK_SYNC, ROW_SCHEDULE_TEST, ROW_CHARGE_DONE_BY, ROW_CHARGER,
             ROW_CHARGE_ALERT, ROW_LOW_ALERT, ROW_CHARGE_LIVE, ROW_SECURITY_LINK, ROW_SCOOTER_NAME, ROW_MAINTENANCE, ROW_TOP_SPEED,
     };
 

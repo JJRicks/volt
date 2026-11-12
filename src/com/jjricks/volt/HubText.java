@@ -251,8 +251,8 @@ public final class HubText {
     public static Msg searchGroupSettings() { return M.hubSearchGroupSettings(); }
     public static Msg searchGroupReadings() { return M.hubSearchGroupReadings(); }
     public static Msg searchGroupRides() { return M.hubSearchGroupRides(); }
-    /** The line under a result naming its page; page is that page's title. */
-    public static Msg searchIn(CharSequence page) { return M.hubSearchIn(page); }
+    /** The line under a result naming the subject it lives in; subject is that subject's title. */
+    public static Msg searchIn(CharSequence subject) { return M.hubSearchIn(subject); }
 
     /**
      * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
@@ -263,7 +263,6 @@ public final class HubText {
         if (row == null) return null;
         switch (row) {
             case HubSearchTables.ROW_HEADLIGHT_INFO: return M.mainRowHeadlight();
-            case HubSearchTables.ROW_LIGHT_ZONES: return M.mainRowZones();
             case HubSearchTables.ROW_CLOCK_SYNC: return M.mainRowClock();
             case HubSearchTables.ROW_SCHEDULE_TEST: return M.mainScheduleTestRow();
             case HubSearchTables.ROW_CHARGE_DONE_BY: return M.mainScheduleDoneBy();

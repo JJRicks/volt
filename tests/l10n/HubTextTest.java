@@ -28,8 +28,6 @@ public final class HubTextTest {
         check(actual != null && expected.equals(actual.toString()), message + ": expected <" + expected + "> but was <" + actual + ">");
     }
 
-    /** Pages whose titles arrive in a later text PR (settings.home in PR 7, search in PR 10). */
-    private static final Set<String> LATER = new HashSet<>(Arrays.asList(HubPages.SETTINGS_HOME, HubPages.SEARCH));
 
     public static void main(String[] args) {
         Locale saved = Locale.getDefault();
@@ -55,7 +53,6 @@ public final class HubTextTest {
 
     private static void titles() {
         for (String page : HubPages.ALL) {
-            if (LATER.contains(page)) continue;
             Msg title = HubText.title(page);
             check(title != null && !title.render().trim().isEmpty(), "a title for " + page);
             check(!title.isPlural(), "a title is not a count: " + page);
