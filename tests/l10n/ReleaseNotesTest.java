@@ -12,7 +12,7 @@ public final class ReleaseNotesTest {
 
     public static void main(String[] args) {
         blocks(); inline(); fallbacks(); asGitHubReadsIt(); numbering(); quotes(); itemParagraphs(); wrappedNumbers();
-        blocksInItems(); quoteInItem(); nestedQuotes(); release(); clip();
+        blocksInItems(); quoteInItem(); nestedQuotes(); review405(); reviewedSamples(); release(); clip();
         footer(); nothingLost();
         System.out.println("ReleaseNotesTest: " + checks + " checks passed");
     }
@@ -319,6 +319,132 @@ public final class ReleaseNotesTest {
         for (int i = 0; i < 5000; i++) deep.append('>');
         check(ReleaseNotes.parse(deep + " deep").get(0).quotes == ReleaseNotes.MAX_QUOTES, "depth stops at MAX_QUOTES");
         check(ReleaseNotes.MAX_BARS >= 2 && ReleaseNotes.MAX_BARS <= ReleaseNotes.MAX_QUOTES, "a few bars at most");
+    }
+
+    /** The five samples from the review of #405, each read as GitHub reads it, or as Volt's notes read before it. */
+    private static void review405() {
+        // 3. A quote outside lists, indented a space or two, keeps its wrapped years as written.
+        List<ReleaseNotes.Block> b = ReleaseNotes.parse("## History\n\n  > The beta began in\n2021. The stable release followed in\n2025. Both can update.");
+        check(b.size() == 2, "heading, quote: " + b.size());
+        block(b.get(1), ReleaseNotes.Kind.QUOTE, 0, "", "The beta began in\n2021. The stable release followed in\n2025. Both can update.");
+        check(b.get(1).quoteItem == 0 && !ReleaseNotes.plainText(b).contains("2022"), "the years as written, in the quote");
+        // The same lines in a quote indented under an item still leave it for the next item of the list.
+        b = ReleaseNotes.parse("1. a\n   > The beta began in\n2. b");
+        check(b.size() == 3 && !b.get(2).quoted, "the next item leaves the item's quote");
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "b");
+
+        // 1. A ">" further left than a quote opened inside an item starts a quote of its own, outside the list.
+        b = ReleaseNotes.parse("1. First\n   > Inside note\n> Outside note\n\n1. New sequence");
+        check(b.size() == 4, "item, quote, quote, item: " + b.size());
+        block(b.get(1), ReleaseNotes.Kind.QUOTE, 0, "", "Inside note");
+        block(b.get(2), ReleaseNotes.Kind.QUOTE, 0, "", "Outside note");
+        check(b.get(1).quoteItem == 1 && b.get(2).quoteItem == 0 && b.get(1).quote != b.get(2).quote, "two quotes, only the first in the item");
+        block(b.get(3), ReleaseNotes.Kind.NUMBERED, 0, "1.", "New sequence");
+        // Indented as far as the item's text, the ">" still carries the item's quote on.
+        b = ReleaseNotes.parse("- First\n   > Inside note\n  > still inside\n- Second");
+        check(b.size() == 3 && b.get(1).text.equals("Inside note\nstill inside") && b.get(1).quoteItem == 1, "one quote in the item");
+        block(b.get(2), ReleaseNotes.Kind.BULLET, 0, ReleaseNotes.BULLET, "Second");
+
+        // 2. A marker is the next item of its list unless it is indented as far as the item above's text.
+        b = ReleaseNotes.parse("1. First\n   # Details\n  2. Second\n3. Third");
+        check(ReleaseNotes.plainText(b).equals("1. First\nDetails\n2. Second\n3. Third"), "siblings past a heading: " + ReleaseNotes.plainText(b));
+        block(b.get(2), ReleaseNotes.Kind.NUMBERED, 0, "2.", "Second");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("1. First\n  2. Second\n3. Third")).equals("1. First\n2. Second\n3. Third"), "siblings two columns in");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("- a\n - b\n  - c\n   - d")).equals("• a\n• b\n• c\n• d"), "each left of the text above");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("- a\n  - b\n - c")).equals("• a\n  • b\n• c"), "nested at the item's text");
+        check(ReleaseNotes.plainText(ReleaseNotes.parse("   1. y\n1. x")).equals("1. y\n2. x"), "a sibling left of the first marker");
+
+        // 4. A quote inside a quote keeps the item it is indented under, as it does outside the quote.
+        b = ReleaseNotes.parse("> 1. Step\n>    > note");
+        check(b.size() == 2 && b.get(1).quotes == 2 && b.get(1).quoteItem == 1, "under the item inside the quote: " + b.get(1).quoteItem);
+        check(b.get(1).quoteItem(0) == 0 && b.get(1).quoteItem(1) == 1 && b.get(1).quoteItem(2) == 0 && b.get(1).quoteItem(-1) == 0, "the inner quote's own item");
+        check(ReleaseNotes.parse("1. Step\n   > note").get(1).quoteItem == 1, "as outside a quote");
+        b = ReleaseNotes.parse("1. a\n   > 1. Step\n   >    > note");
+        check(b.get(2).quoteItem(0) == 1 && b.get(2).quoteItem(1) == 1 && b.get(2).quoteItem == 1, "an item's quote in an item's quote");
+
+        // 5. A list four quotes deep, inside an item three quotes deep: each keeps its own place.
+        b = ReleaseNotes.parse("> > > - Install\n> > >   > 100. Inner\n> > >\n> > >   More about Install");
+        check(b.size() == 3, "item, inner item, paragraph: " + b.size());
+        check(b.get(0).quotes == 3 && b.get(1).quotes == 4 && b.get(2).quotes == 3, "depths three, four, three");
+        block(b.get(1), ReleaseNotes.Kind.NUMBERED, 0, "100.", "Inner");
+        check(b.get(1).quoteItem(3) == 1 && b.get(2).item == 1 && b.get(2).kind == ReleaseNotes.Kind.QUOTE, "the paragraph belongs to Install");
+        check(ReleaseNotes.MAX_QUOTES > ReleaseNotes.MAX_BARS, "quote depths past the last bar");
+    }
+
+    /**
+     * Every sample from the reviews of #397, #402 and #405, pinned as this parser reads it. Each was run through the
+     * parser before #405, at #405 and with this change, and through GitHub's own Markdown reader (cmark-gfm); where the
+     * code before or GitHub was right, the result here matches it. Two differ from GitHub on purpose: a number wrapped
+     * onto the start of a line in a quote outside lists ("2021.", "80.") stays in the quote as written, as before #405.
+     */
+    private static void reviewedSamples() {
+        String[][] samples = {
+            // #397 3: GitHub numbers a list from its first item.
+            {"1. Alpha\n1. Beta\n1. Gamma", "NUMBERED 0 1.: Alpha | NUMBERED 0 2.: Beta | NUMBERED 0 3.: Gamma"},
+            // #397 4: block marks inside a quote.
+            {"> - quoted item", "BULLET 0 •>1: quoted item"},
+            {"> # quoted heading", "HEADING1 >1: quoted heading"},
+            // #397 5 and #402's loose list: the next item after an item's second paragraph.
+            {"1. one\n\n   continued\n2. two", "NUMBERED 0 1.: one | PARAGRAPH item1: continued | NUMBERED 0 2.: two"},
+            {"1. one\n\n   second paragraph\n\n2. two", "NUMBERED 0 1.: one | PARAGRAPH item1: second paragraph | NUMBERED 0 2.: two"},
+            // #402 1, and the three and four levels seen on the emulator.
+            {"> Alice wrote:\n> > The update is ready", "QUOTE >1: Alice wrote: | QUOTE >2: The update is ready"},
+            {"> one\n> > two\n> > > three", "QUOTE >1: one | QUOTE >2: two | QUOTE >3: three"},
+            {"> a\n> > b\n> > > c\n> > > > d", "QUOTE >1: a | QUOTE >2: b | QUOTE >3: c | QUOTE >4: d"},
+            // #402 2 and #405's emulator notes: numbering past blocks inside items; a fence at the left edge ends the list.
+            {"1. Download\n1. Install it:\n   ```\n   adb install volt.apk\n   ```\n1. Open Volt",
+                    "NUMBERED 0 1.: Download | NUMBERED 0 2.: Install it: | CODE item1: adb install volt.apk | NUMBERED 0 3.: Open Volt"},
+            {"1. a\n\n   ```\n   x\n   ```\n\n1. b\n   ## Then\n1. c\n   > note\n\n1. d\n   ***\n1. e",
+                    "NUMBERED 0 1.: a | CODE item1: x | NUMBERED 0 2.: b | HEADING2 item1: Then | NUMBERED 0 3.: c | QUOTE >1 under1@0: note | NUMBERED 0 4.: d | RULE:  | NUMBERED 0 5.: e"},
+            {"1. a\n```\nx\n```\n1. b", "NUMBERED 0 1.: a | CODE: x | NUMBERED 0 1.: b"},
+            // #402 3: the years wrapped inside a bullet; at the left edge they are a list, on GitHub too.
+            {"- The beta began in\n  2021. The stable release followed in\n  2025. Both can update.",
+                    "BULLET 0 •: The beta began in/2021. The stable release followed in/2025. Both can update."},
+            {"- The beta began in\n2021. The stable release followed in\n2025. Both can update.",
+                    "BULLET 0 •: The beta began in | NUMBERED 0 2021.: The stable release followed in | NUMBERED 0 2022.: Both can update."},
+            // #402's emulator note and #405's: the item after an item's quote.
+            {"1. First item\n   > A note about it\n2. Next item", "NUMBERED 0 1.: First item | QUOTE >1 under1@0: A note about it | NUMBERED 0 2.: Next item"},
+            {"1. First\n   > note\n1. Second\n   > another\n7. Third",
+                    "NUMBERED 0 1.: First | QUOTE >1 under1@0: note | NUMBERED 0 2.: Second | QUOTE >1 under1@0: another | NUMBERED 0 3.: Third"},
+            // #405's emulator note: "80." after a quote in a bullet leaves it (as on GitHub); after a quote at the left
+            // edge it stays in the quote, as before (GitHub starts a list at 80 there).
+            {"- a\n  > We grew by\n80. percent", "BULLET 0 •: a | QUOTE >1 under1@0: We grew by | NUMBERED 0 80.: percent"},
+            {"> We grew by\n80. percent", "QUOTE >1: We grew by/80. percent"},
+            // #405 1 to 5.
+            {"1. First\n   > Inside note\n> Outside note\n\n1. New sequence",
+                    "NUMBERED 0 1.: First | QUOTE >1 under1@0: Inside note | QUOTE >1: Outside note | NUMBERED 0 1.: New sequence"},
+            {"1. First\n   # Details\n  2. Second\n3. Third", "NUMBERED 0 1.: First | HEADING1 item1: Details | NUMBERED 0 2.: Second | NUMBERED 0 3.: Third"},
+            {"1. First\n  2. Second\n3. Third", "NUMBERED 0 1.: First | NUMBERED 0 2.: Second | NUMBERED 0 3.: Third"},
+            {"## History\n\n  > The beta began in\n2021. The stable release followed in\n2025. Both can update.",
+                    "HEADING2: History | QUOTE >1: The beta began in/2021. The stable release followed in/2025. Both can update."},
+            {"> 1. Step\n>    > note", "NUMBERED 0 1.>1: Step | QUOTE >2 under1@1: note"},
+            {"1. Step\n   > note", "NUMBERED 0 1.: Step | QUOTE >1 under1@0: note"},
+            {"> > > - Install\n> > >   > 100. Inner\n> > >\n> > >   More about Install",
+                    "BULLET 0 •>3: Install | NUMBERED 0 100.>4 under1@3: Inner | QUOTE >3 item1: More about Install"},
+        };
+        for (String[] sample : samples) {
+            String shown = shape(ReleaseNotes.parse(sample[0]));
+            check(shown.equals(sample[1]), "reviewed sample: " + sample[0] + "\n  expected " + sample[1] + "\n  was      " + shown);
+        }
+        // #397 2: a line break far before the limit gives way to a word break near it (the cut #402 made).
+        String first = words(1600), second = words(1500), notes = first + "\n" + second;
+        check(ReleaseNotes.clip(notes, 3000).equals(notes.substring(0, notes.lastIndexOf(' ', 3000)) + "…"), "the cut near the limit");
+    }
+
+    /** Each block as "KIND level marker >quotes item under<item>@<quote depth>: text", "/" for a line break. */
+    private static String shape(List<ReleaseNotes.Block> blocks) {
+        StringBuilder out = new StringBuilder();
+        for (ReleaseNotes.Block b : blocks) {
+            if (out.length() > 0) out.append(" | ");
+            out.append(b.kind);
+            if (b.kind == ReleaseNotes.Kind.HEADING) out.append(b.level);
+            if (!b.marker.isEmpty()) out.append(' ').append(b.level).append(' ').append(b.marker);
+            if (b.quotes > 0) out.append(b.marker.isEmpty() ? " >" : ">").append(b.quotes);
+            if (b.item > 0) out.append(" item").append(b.item);
+            for (int depth = 0; depth < b.quotes; depth++) if (b.quoteItem(depth) > 0) out.append(" under").append(b.quoteItem(depth)).append('@').append(depth);
+            out.append(": ").append(b.text.replace("\n", "/"));
+        }
+        return out.toString();
     }
 
     /** The update dialog keeps its buttons pinned unless that would leave the title and notes too little room. */
