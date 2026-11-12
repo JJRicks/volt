@@ -23,9 +23,9 @@ import java.util.Locale;
  * and sample readings formatted in the owner's units. Clean shows its header with the search and Settings buttons,
  * the battery card (charge, range, photo, bar, odometer), the Lock bar, the owner's four quick actions (this scooter's
  * defaults until they change them; the red RIDE pill first, with their real names and icons), the subject rows with
- * their names and the tab bar. Widgets follows the default phone Home: its header with the RIDE pill, the overview
- * card, the Lock bar, reading tiles (power, temperature, battery health), this model's Setting tiles, the Ride
- * recorder and the tab bar.
+ * their names (Clean has no dock: its subjects are on the page). Widgets follows the default phone Home: its header with
+ * the RIDE pill, the overview card, the Lock bar, reading tiles (power, temperature, battery health), this model's
+ * Setting tiles, the Ride recorder and the dock (HubDock, PR 11) with the subjects it shows on this phone and "All".
  * Words with no sample value (status, labels) are drawn as soft bars, as at a thumbnail's size.
  *
  * <p>Everything is drawn on a phone-shaped canvas of {@link #VIRTUAL_WIDTH} by {@link #VIRTUAL_HEIGHT} dp, scaled to
@@ -60,6 +60,8 @@ final class HomeStylePreview extends View {
     /** The subjects' names, in Clean's order. */
     private final List<String> subjects = new ArrayList<>();
     private final List<String> subjectIcons = new ArrayList<>();
+    /** The Widgets dock's items as this phone shows them (HubDock): each shown subject's icon and short name, then All. */
+    private final List<String> dockIcons = new ArrayList<>(), dockLabels = new ArrayList<>();
 
     HomeStylePreview(ScreenHost host, boolean clean) {
         super(host.activity());
@@ -94,6 +96,14 @@ final class HomeStylePreview extends View {
             subjects.add(HubText.title(subject).render());
             subjectIcons.add(HubPages.icon(subject));
         }
+        // A phone's dock at this window's width (a wide window's preview is still a phone, so no wider than a large one).
+        for (String subject : HubPages.dockSubjects(HubDock.phoneRoom(Math.min(host.contentWidthDp(), 412)), 1f)) {
+            Msg shortName = HubText.shortTitle(subject);
+            dockIcons.add(HubPages.icon(subject));
+            dockLabels.add((shortName == null ? HubText.title(subject) : shortName).render());
+        }
+        dockIcons.add(HubPages.DOCK_ALL_ICON);
+        dockLabels.add(HubText.all().render());
         setContentDescription(HubText.homeStylePreview(clean).render());
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
     }
@@ -201,8 +211,7 @@ final class HomeStylePreview extends View {
             ui.drawIcon(c, "chevron", ui.muted, 286, y + 26, 13);
             y += 52;
         }
-        // Clean still has the tab bar until the dock replaces it.
-        tabBar(c);
+        // Clean has no dock (PR 11): the subject list runs to the bottom of the page.
     }
 
     // ===== Widgets =====
@@ -255,36 +264,29 @@ final class HomeStylePreview extends View {
         ui.drawIcon(c, "record", ui.onAccent, 43, 425, 16);
         bar(c, 68, 416, 96, 7, ui.text);
         bar(c, 68, 429, 128, 5);
-        tabBar(c);
+        dock(c);
     }
 
-    /** The tab bar, floating over the bottom of the page: Home selected, the Scooter tab raised in the middle. */
-    private void tabBar(Canvas c) {
-        float dockTop = VIRTUAL_HEIGHT - 66, dockBottom = VIRTUAL_HEIGHT - 12;
+    /**
+     * The dock, floating over the bottom of the page where the tab bar was, with its look (HubDock): the rounded bar with
+     * the shown subjects' icons, each over its short name, then All.
+     */
+    private void dock(Canvas c) {
+        float dockTop = VIRTUAL_HEIGHT - 82, dockBottom = VIRTUAL_HEIGHT - 10, l = 14, r = VIRTUAL_WIDTH - 14;
         paint.setColor(Ui.withAlpha(ui.bg, 200));
         c.drawRect(0, dockTop - 12, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, paint);
-        card(c, 16, dockTop, 304, dockBottom, 27, ui.surface);
+        card(c, l, dockTop, r, dockBottom, 26, ui.surface);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1);
         paint.setColor(ui.raised);
-        box.set(16, dockTop, 304, dockBottom);
-        c.drawRoundRect(box, 27, 27, paint);
+        box.set(l, dockTop, r, dockBottom);
+        c.drawRoundRect(box, 26, 26, paint);
         paint.setStyle(Paint.Style.FILL);
-        String[] tabs = {"home", "stats", "scooter", "rides", "more"};
-        float step = 288 / 5f, middle = (dockTop + dockBottom) / 2;
-        for (int i = 0; i < tabs.length; i++) {
-            float x = 16 + step * (i + .5f);
-            if (i == 2) {
-                paint.setColor(ui.accent);
-                c.drawCircle(x, middle - 6, 25, paint);
-                ui.drawIcon(c, tabs[i], ui.onAccent, x, middle - 6, 22);
-                continue;
-            }
-            ui.drawIcon(c, tabs[i], i == 0 ? ui.text : ui.muted, x, middle - 4, 18);
-            if (i == 0) {
-                paint.setColor(ui.accent);
-                c.drawCircle(x, middle + 13, 2.5f, paint);
-            }
+        float step = (r - l - 8) / dockIcons.size(), middle = (dockTop + dockBottom) / 2;
+        for (int i = 0; i < dockIcons.size(); i++) {
+            float x = l + 4 + step * (i + .5f);
+            ui.drawIcon(c, dockIcons.get(i), ui.muted, x, middle - 8, 22);
+            centred(c, dockLabels.get(i), x, middle + 18, step - 6, 10, ui.muted, false);
         }
     }
 

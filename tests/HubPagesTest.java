@@ -19,6 +19,7 @@ public final class HubPagesTest {
         legacy();
         subjects();
         hub();
+        dock();
         riding();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
@@ -94,6 +95,32 @@ public final class HubPagesTest {
             require(HubPages.parent(page).equals(HubPages.HOME) && !HubPages.SUBJECTS.contains(page), "Header page, not a subject: " + page);
     }
 
+    /** The Widgets dock (owner's answer 8 on #383): never cramped, every subject one tap away through "All". */
+    private static void dock() {
+        require(new HashSet<>(HubPages.DOCK_ORDER).equals(new HashSet<>(HubPages.SUBJECTS)) && HubPages.DOCK_ORDER.size() == 7,
+                "The dock's order lists each subject once");
+        // A 344 dp phone less the dock's 14 dp margins: four subjects and All, each at least 60 dp (well over 48).
+        List<String> phone = HubPages.dockSubjects(344 - 28, 1f);
+        require(phone.equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY, HubPages.CONTROLS, HubPages.DATA)), "344 dp: " + phone);
+        require((344 - 28) / (phone.size() + 1) >= 48, "Each item gets 48 dp at 344 dp");
+        for (float scale : new float[] {1f, 1.15f, 1.3f, 1.6f, 2f})
+            for (int width = 280; width <= 900; width += 4) {
+                List<String> shown = HubPages.dockSubjects(width, scale);
+                require(!shown.isEmpty(), "At least one subject: " + width + "/" + scale);
+                require(width / (shown.size() + 1f) >= HubPages.DOCK_ITEM_DP * scale || shown.size() == 1,
+                        "Comfortable items: " + width + "/" + scale);
+                int last = -1;
+                for (String subject : shown) {
+                    int at = HubPages.SUBJECTS.indexOf(subject);
+                    require(at > last, "Home's order: " + shown);
+                    last = at;
+                }
+                require(HubPages.dockSubjects(width + 4, scale).containsAll(shown), "More room never hides a subject: " + width + "/" + scale);
+            }
+        require(HubPages.dockSubjects(344 - 28, 1.3f).size() == 3, "Large text: fewer, still comfortable");
+        require(HubPages.dockSubjects(600 - 28, 1f).size() == 7, "A wide phone shows all seven");
+    }
+
     private static void riding() {
         for (String page : new String[] {HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.DATA,
                 HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS})
@@ -154,6 +181,7 @@ public final class HubPagesTest {
             String icon = HubPages.icon(page);
             require(source.contains("key.equals(\"" + icon + "\")"), "Ui draws the icon " + icon + " for " + page);
         }
+        require(source.contains("key.equals(\"" + HubPages.DOCK_ALL_ICON + "\")"), "Ui draws the dock's All icon");
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }

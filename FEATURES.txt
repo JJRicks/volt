@@ -714,8 +714,9 @@ DASHBOARD AND LOCAL HISTORY
 
 No tabs: Home is the hub for seven subjects, each with a summary (Ride,
 Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
-on Clean Home and in the dock at the bottom of Widgets Home (icons; swipe up
-for names and summaries). Each is a short page in a fixed, most-used-first
+on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
+the tab bar was: the most-used subjects with short names, and All, or swipe
+up, for every subject with its summary). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
 link. The gear opens Settings; Home's search button finds a scooter setting on
