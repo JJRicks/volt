@@ -49,6 +49,8 @@ for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign Ridin
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Riding mode's chip row: which chips fit, and at which compact rung.
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingChipFit.java" "$TEST_DIR/RidingChipFitTest.java")
+# Riding mode's reading names in a group: icons for all or names for all, by one rule (Halo's strip and readings).
+sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
@@ -162,6 +164,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingNameGroupTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoEndsTest

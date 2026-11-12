@@ -111,6 +111,16 @@ public final class ControlsPagesTest {
         for (String page : ControlsPages.HOSTED_ELSEWHERE)
             require(ControlsPages.spec(page) == null && ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)),
                     "Linked from its parent, built elsewhere: " + page);
+        // The index's search finds the Line lights and Star lights links (they replaced the zones row and carry its words).
+        require(ControlsPages.SEARCHED_LINKS.equals(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR)), "Searched links");
+        for (String page : ControlsPages.SEARCHED_LINKS) {
+            ControlsPages.Spec spec = ControlsPages.spec(page);
+            require(spec != null && !spec.rows.isEmpty() && ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)),
+                    "A searched link opens a page with rows, linked from its parent: " + page);
+            // Its search section is its controls' family: the page's first row is a light family control, never a link.
+            require(!ControlsPages.isLink(spec.rows.get(0)) && spec.rows.get(0).startsWith(page.equals(HubPages.LIGHTS_LINE) ? "line_" : "star_"),
+                    "A searched link's first row names its family: " + page);
+        }
     }
 
     private static void doneBy(String mainActivity) throws IOException {
@@ -122,6 +132,9 @@ public final class ControlsPagesTest {
         require(source.contains("gluedBelow.put(control.card,done.row.card);"), "Each Done by row is glued below its parent row");
         require(source.contains("place(card);Viewdone=gluedBelow.get(card);if(done!=null)place(done);"),
                 "A page places a Done by row directly after its parent");
+        // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages.
+        require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("\"linestarlightszonesambientpatterncolorboost\""),
+                "The index's search finds Line lights and Star lights by the zones row's words");
     }
 
     private static void order() {

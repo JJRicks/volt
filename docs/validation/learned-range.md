@@ -1,6 +1,6 @@
 # Range learned from your own rides
 
-**Scooter → Range estimate** has two choices: **Scooter's estimate** (the default, following drive mode) and **Volt's estimate (learned)**. Volt's forecast applies to all current-range dashboard widgets and the Live Stats overview range headline. Each scooter has its own choice and learns only from that profile's completed recordings on this phone. No owner's learned-range coefficients or ride recordings ship with Volt.
+**Scooter → Battery & charging → Estimates & charger → Range estimate** has two choices: **Scooter's estimate** (the default, following drive mode) and **Volt's estimate (learned)**. Volt's forecast applies to all current-range dashboard widgets and the Live Stats overview range headline. Each scooter has its own choice and learns only from that profile's completed recordings on this phone. No owner's learned-range coefficients or ride recordings ship with Volt.
 
 Explicit **Scooter range** readings/favourites, recorded charts and exported telemetry retain the scooter's original range. Dashboard trend captions and Stats chart titles identify that source; the learned estimate is never spliced into a recorded scooter series. Choosing Volt's estimate changes only the local display. Explicitly selecting Scooter's estimate enables the existing drive-mode follower, whose firmware writes still require fresh, parked scooter state.
 

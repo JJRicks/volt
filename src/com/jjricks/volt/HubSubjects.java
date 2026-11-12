@@ -70,7 +70,9 @@ final class HubSubjects {
                 TelemetryHistory.Reading level = readings.get("battery_percent"), state = readings.get("charging_state");
                 // Charging only from a live reading: a last-seen or missing state is not "not charging".
                 Boolean charging = state == null || !state.live || state.number == null ? null : state.number == 1;
-                Integer percent = level == null || level.number == null || !Double.isFinite(level.number) ? null : (int) Math.round(level.number);
+                // The level beside it only from a live reading too, the freshness rule the rest of the app uses for it.
+                Double live = level == null ? null : HubSummaries.live(level.number, level.live);
+                Integer percent = live == null ? null : (int) Math.round(live);
                 boolean limitOffered = ordinary(ble, "charge_limit");
                 Integer limit = chargeLimit(service);
                 HubSummaries.Battery battery = HubSummaries.battery(limitOffered, limit, percent, charging);
@@ -79,8 +81,11 @@ final class HubSubjects {
                 return battery.limit ? HubText.batteryLimit(shown, battery.charging) : HubText.batteryLevel(shown, battery.charging);
             }
             case HubPages.CONTROLS: {
-                Boolean cruise = HubSummaries.cruise(ordinary(ble, "cruise_control") ? feature(service, "cruise_control") : null);
-                Double code = ble != null && ble.ready() ? ble.telemetry.number("driving_mode") : null;
+                Boolean cruise = HubSummaries.cruise(ordinaryValue(service, "cruise_control"));
+                // A stale drive-mode reading is unknown: only a live one (displayReadings' freshness rule, as Home's
+                // status line uses; the riding screen's own tracker exists only in riding mode) names the mode.
+                TelemetryHistory.Reading drive = ble != null && ble.ready() ? service.displayReadings().get("driving_mode") : null;
+                Double code = drive == null ? null : HubSummaries.live(drive.number, drive.live);
                 if (cruise == null || code == null) return null;
                 ScooterProfiles.Profile profile = service.profiles == null ? null : service.profiles.active();
                 String mode = HubSummaries.driveMode(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), code));
@@ -89,7 +94,7 @@ final class HubSubjects {
             case HubPages.LIGHTS: {
                 boolean autoOffered = ordinary(ble, "auto_sensor");
                 HubSummaries.Lights lights = HubSummaries.lights(autoOffered, // "headlight" is the tail light
-                        ordinary(ble, "headlight") ? feature(service, "headlight") : null, autoOffered ? feature(service, "auto_sensor") : null);
+                        ordinaryValue(service, "headlight"), ordinaryValue(service, "auto_sensor"));
                 if (lights == null) return null;
                 return lights == HubSummaries.Lights.AUTO ? HubText.automaticLights() : HubText.tailLight(lights == HubSummaries.Lights.ON);
             }
@@ -123,14 +128,21 @@ final class HubSubjects {
     }
 
     /**
-     * The charge limit as its row reads it (an ordinary row, a value the row shows), or null: the Battery summary and
-     * Battery & charging's summary card (HubBatterySummary) state it only then.
+     * The charge limit as its row reads it ({@link #ordinaryValue}: an ordinary row, a value the model defines), in
+     * 0-100, or null: the Battery summary and Battery & charging's summary card (HubBatterySummary) state it only then.
      */
     static Integer chargeLimit(ScooterService service) {
-        BleController ble = service == null ? null : service.ble;
-        if (!ordinary(ble, "charge_limit")) return null;
-        Integer value = HubSummaries.known(ble.decision("charge_limit").variant, feature(service, "charge_limit"));
+        Integer value = service == null ? null : ordinaryValue(service, "charge_limit");
         return value == null || value < 0 || value > 100 ? null : value;
+    }
+
+    /**
+     * An ordinary control's value as its row reads it, or null: not offered as an ordinary row, unread, or a value the
+     * model's variant doesn't define (HubSummaries.known, which drops the OEM charge limit's 0 and a toggle's 2).
+     */
+    private static Integer ordinaryValue(ScooterService service, String key) {
+        BleController ble = service.ble;
+        return ordinary(ble, key) ? HubSummaries.known(ble.decision(key).variant, feature(service, key)) : null;
     }
 
     /** The scooter's value: live while connected, else the last one seen. Callers check ordinary() first. */

@@ -40,6 +40,11 @@ final class ControlsPages {
             ScooterMenuLayout.LIGHT_ZONES,    // replaced by the Line lights and Star lights links
             "maintenance_reminders",          // MaintenanceScreen.ROW: Service › Maintenance reminders is a page now
             ScooterMenuLayout.SECURITY_LINK)); // Security is a subject page now (PIN, proximity unlock and pairing are on it)
+    /**
+     * Pages whose links the Scooter tab's index search finds as results of their own: Line lights and Star lights replaced
+     * the zones row ({@link ScooterMenuLayout#LIGHT_ZONES}), and their links carry its search words ("zones", "ambient").
+     */
+    static final List<String> SEARCHED_LINKS = Collections.unmodifiableList(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR));
     /** Controls never placed as rows (as before the Hub): the lock bar, the handlebar PIN and proximity unlock live elsewhere. */
     static final List<String> NEVER = Collections.unmodifiableList(Arrays.asList("lock", "pin", "proximity_key"));
 
