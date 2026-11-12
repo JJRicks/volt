@@ -34,12 +34,13 @@ final class HubSearchTables {
             ROW_CHARGE_ALERT, ROW_LOW_ALERT, ROW_CHARGE_LIVE, ROW_SECURITY_LINK, ROW_SCOOTER_NAME, ROW_MAINTENANCE, ROW_TOP_SPEED,
     };
 
-    // More's settings rows, by the view tag each already carries.
+    // Settings rows, by the view tag each already carries: rows of MoreScreen's sections (on Settings and its pages, and
+    // Service › Reports for the issue report), and Ride › Riding mode for the riding-mode switches (part 5 moved them
+    // there and removed More's riding group, so that group's tag is not listed).
     static final String SETTING_HOME_STYLE = "home-style-menu";
     static final String SETTING_UNITS = "preference-units-menu";
     static final String SETTING_DISPLAY = "preference-display-options";
     static final String SETTING_LANGUAGE = "preference_language";
-    static final String SETTING_RIDING_DISPLAY = "preference_riding_display";
     static final String SETTING_RIDING_AUTO_OPEN = "preference_riding_auto_open";
     static final String SETTING_RIDING_AUTO_RECORD = "preference_riding_auto_record";
     static final String SETTING_RIDING_HIDE_STATUS_BAR = "preference_riding_hide_status_bar";
@@ -52,9 +53,9 @@ final class HubSearchTables {
     static final String SETTING_REPORT_ISSUE = "more-report-issue";
     static final String SETTING_DEVELOPER = "developer-options-menu";
 
-    /** Every More row search lists. */
+    /** Every settings row search lists. */
     static final String[] SETTINGS = {
-            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_LANGUAGE, SETTING_RIDING_DISPLAY,
+            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
             SETTING_REPORT_ISSUE, SETTING_DEVELOPER,
