@@ -165,7 +165,7 @@
     <!-- src:591ae6acf4038658c6088285dfd6803e19f36e9b -->
     <string name="riding_layout_choose">Escolher um esquema</string>
     <!-- src:b12784bd1a78199af50601c39355d949c5494ee0 -->
-    <string name="riding_ring_max">vel. máxima %1$s</string>
+    <string name="riding_ring_max">máx. %1$s</string>
     <!-- src:be82caaed8b18ef144864fbb89e965d5305f01f5 -->
     <string name="riding_trace_regen">Recarga</string>
     <!-- src:3d0735234e6143966db2a62686d1e50de0336c7b -->

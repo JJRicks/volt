@@ -380,7 +380,7 @@ public final class RouteMapView extends View {
             primary = grade == null ? T.mapsRouteGradeNotMeasured() : grade;
             if (power != null) rest.add(power);
         } else if ("elevation".equals(metric)) {
-            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1));
+            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : elevation(p.relativeAltitudeM, imperial());
             if (power != null) rest.add(power);
         } else if ("accel".equals(metric)) {
             primary = accel == null ? T.mapsRouteAccelNotMeasured() : accel;
@@ -454,12 +454,42 @@ public final class RouteMapView extends View {
                 : T.fmtQuantity(Fmt.decimal(Locale.US, watts, 0), T.unitsWatt());
     }
 
+    // The popup's signed lines: each number is formatted with its sign first (Fmt.signedDecimal), and
+    // one small method per line puts it into the line's whole format string through a plain %s, so
+    // each line can take a catalog string holding %1$s.
+
     private static String grade(Double percent) {
-        return percent == null ? null : String.format(Locale.US, "≈%+.1f%% grade", percent);
+        return percent == null ? null : gradeLine(Fmt.signedDecimal(Locale.US, percent, 1));
+    }
+
+    /** "≈+2.5% grade": signedPercent is the signed percentage, without its percent sign. */
+    private static String gradeLine(String signedPercent) {
+        return String.format(Locale.US, "≈%s%% grade", signedPercent);
     }
 
     private static String accel(Double mps2) {
-        return mps2 == null ? null : String.format(Locale.US, "%+.2f m/s² GPS accel", mps2);
+        return mps2 == null ? null : accelLine(Fmt.signedDecimal(Locale.US, mps2, 2));
+    }
+
+    /** "+0.25 m/s² GPS accel": signedMps2 is the signed acceleration in m/s². */
+    private static String accelLine(String signedMps2) {
+        return String.format(Locale.US, "%s m/s² GPS accel", signedMps2);
+    }
+
+    /** The elevation line for a height relative to the ride's start, in feet when imperial. */
+    private static String elevation(double relativeAltitudeM, boolean imperial) {
+        String signed = Fmt.signedDecimal(Locale.US, relativeAltitudeM * (imperial ? 3.280839895 : 1), 0);
+        return imperial ? elevationFeetLine(signed) : elevationMetersLine(signed);
+    }
+
+    /** "Elevation +12 ft": signedFeet is the signed whole number of feet. */
+    private static String elevationFeetLine(String signedFeet) {
+        return String.format(Locale.US, "Elevation %s ft", signedFeet);
+    }
+
+    /** "Elevation +4 m": signedMeters is the signed whole number of metres. */
+    private static String elevationMetersLine(String signedMeters) {
+        return String.format(Locale.US, "Elevation %s m", signedMeters);
     }
 
     private String speed(Double mps) {
