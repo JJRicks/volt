@@ -593,6 +593,7 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Motion after the cutoff can't start a recording");
         require(!prefs().getBoolean("background_connection", true), "The rider's preference is left alone");
         require(prefs().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), "Auto-record stays on");
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     private void settingsRows() throws Exception {
