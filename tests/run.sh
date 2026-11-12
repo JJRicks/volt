@@ -85,6 +85,8 @@ sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimi
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
 for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransaction; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java"); done
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
+# Report diagnostics' charging evidence (fuller diagnostics, part 1); uses the compat suites' CommandLog.
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeEvidenceTest.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
 COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
@@ -198,6 +200,7 @@ for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; 
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done
 
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.DualChargerEstimateTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeEvidenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxFastChargeReferenceTest "$TEST_DIR/fixtures/ut5-max-fast-charge-calibration.csv"
 
 for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done

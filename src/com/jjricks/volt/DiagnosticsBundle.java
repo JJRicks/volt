@@ -99,6 +99,9 @@ final class DiagnosticsBundle {
                 if (c.reason != null) e.put("reason", lower(c.reason));
                 if (c.read != null) e.put("read", (long) c.read);
                 if (c.elapsedMs >= 0) e.put("elapsed_ms", c.elapsedMs);
+                // charge_start: the wire start sent; clock_sync: the wall seconds sent; each with the UTC offset sent.
+                if (c.time != null) e.put("time_sent", c.time);
+                if (c.offset != null) e.put("offset_sent_s", (long) c.offset);
             }
             events.add(e);
         }
@@ -155,6 +158,83 @@ final class DiagnosticsBundle {
     }
 
     /**
+     * The selected scooter's charging evidence (ChargeEvidence): ended intentions and tests, the charging timeline, dense
+     * windows, schedule operations and changes Volt did not make. Numbers and enum names only; every wall time is
+     * milliseconds after base_wall_ms, so the file has no long run of digits a private value could hide in.
+     */
+    DiagnosticsBundle evidence(ChargeEvidence.Snapshot snapshot) {
+        if (snapshot == null) { tree.put("charge_evidence", null); return this; }
+        ChargeEvidence.Book b = snapshot.book;
+        long base = Long.MAX_VALUE;
+        List<long[]> intentions = new ArrayList<>(b.intentions); if (b.open != null) intentions.add(b.open);
+        for (long[] r : intentions) base = min(base, r[ChargeEvidence.I_ARMED], r[ChargeEvidence.I_START]);
+        for (long[] r : b.tests) base = min(base, r[ChargeEvidence.X_WALL]);
+        for (long[] r : b.timeline) base = min(base, r[ChargeEvidence.T_WALL]);
+        for (long[] r : b.operations) base = min(base, r[ChargeEvidence.O_WALL]);
+        for (long[] r : b.changes) base = min(base, r[ChargeEvidence.C_OLD_WALL], r[ChargeEvidence.C_WALL]);
+        for (List<long[]> w : b.windowSamples) for (long[] r : w) base = min(base, r[ChargeEvidence.D_WALL]);
+        for (long[] r : b.windows) base = min(base, r[ChargeEvidence.W_ANCHOR_WALL]);
+        if (base == Long.MAX_VALUE) base = 0;
+        final long at = base;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("loaded", snapshot.loaded); m.put("storage_healthy", b.healthy); m.put("base_wall_ms", at);
+        List<Object> rows = new ArrayList<>();
+        for (long[] r : intentions) rows.add(Arrays.asList(mode(r[ChargeEvidence.I_MODE]), rel(r[ChargeEvidence.I_ARMED], at), rel(r[ChargeEvidence.I_START], at),
+                rel(r[ChargeEvidence.I_DEADLINE], at), num(r[ChargeEvidence.I_WIRE]), num(r[ChargeEvidence.I_OFFSET]), num(r[ChargeEvidence.I_ARMED_SOC]),
+                num(r[ChargeEvidence.I_TARGET]), num(r[ChargeEvidence.I_STARTED]), end(r[ChargeEvidence.I_END]), rel(r[ChargeEvidence.I_END_WALL], at),
+                mode(r[ChargeEvidence.I_END_MODE]),
+                num(r[ChargeEvidence.I_END_SOC]), num(r[ChargeEvidence.I_END_ENABLED]), num(r[ChargeEvidence.I_END_WIRE]),
+                num(r[ChargeEvidence.I_LOCK_ARMED]), r[ChargeEvidence.I_START_SEEN] == 1 ? num(r[ChargeEvidence.I_LOCK_START]) : null, num(r[ChargeEvidence.I_LOCK_END])));
+        m.put("intentions", table(rows, "mode", "armed_ms", "start_ms", "deadline_ms", "wire_start", "clock_offset_s", "soc_at_arming", "target", "started",
+                "end", "end_ms", "end_mode", "end_soc", "end_schedule_on", "end_wire_start", "locked_at_arming", "locked_at_start", "locked_at_end"));
+        rows = new ArrayList<>();
+        for (long[] r : b.tests) rows.add(Arrays.asList(rel(r[ChargeEvidence.X_WALL], at), rel(r[ChargeEvidence.X_START], at), name(ChargeScheduleTest.Outcome.values(), r[ChargeEvidence.X_OUTCOME]),
+                num(r[ChargeEvidence.X_OFFSET]), num(r[ChargeEvidence.X_PAUSED]), num(r[ChargeEvidence.X_OFF]), name(ChargeScheduleController.Interruption.values(), r[ChargeEvidence.X_WHY])));
+        m.put("schedule_tests", table(rows, "wall_ms", "start_ms", "outcome", "offset_s", "paused", "schedule_off", "interrupted_by"));
+        rows = new ArrayList<>();
+        for (long[] r : b.timeline) rows.add(Arrays.asList(name(ChargeEvidence.Kind.values(), r[ChargeEvidence.T_KIND]), rel(r[ChargeEvidence.T_WALL], at), num(r[ChargeEvidence.T_ELAPSED]),
+                num(r[ChargeEvidence.T_CHARGING]), num(r[ChargeEvidence.T_SOC]), num(r[ChargeEvidence.T_MV]), num(r[ChargeEvidence.T_MA]), num(r[ChargeEvidence.T_W]),
+                num(r[ChargeEvidence.T_TEMP]), num(r[ChargeEvidence.T_ENABLED]), num(r[ChargeEvidence.T_WIRE]), num(r[ChargeEvidence.T_LOCK]), num(r[ChargeEvidence.T_VISIBLE]),
+                num(r[ChargeEvidence.T_SKIPPED])));
+        m.put("charging_timeline", table(rows, "kind", "wall_ms", "elapsed_ms", "charging", "soc", "voltage_mv", "current_ma", "power_w", "temperature_c",
+                "schedule_on", "wire_start", "locked", "in_sight", "skipped_changes"));
+        List<Object> windows = new ArrayList<>();
+        for (int i = 0; i < b.windows.size() && i < b.windowSamples.size(); i++) {
+            long[] w = b.windows.get(i);
+            rows = new ArrayList<>();
+            for (long[] r : b.windowSamples.get(i)) rows.add(Arrays.asList(rel(r[ChargeEvidence.D_WALL], at), num(r[ChargeEvidence.D_ELAPSED]), num(r[ChargeEvidence.D_CHARGING]),
+                    num(r[ChargeEvidence.D_SOC]), num(r[ChargeEvidence.D_MV]), num(r[ChargeEvidence.D_MA]), num(r[ChargeEvidence.D_W]), num(r[ChargeEvidence.D_ENABLED]), num(r[ChargeEvidence.D_LOCK])));
+            Map<String, Object> t = table(rows, "wall_ms", "elapsed_ms", "charging", "soc", "voltage_mv", "current_ma", "power_w", "schedule_on", "locked");
+            Map<String, Object> window = new LinkedHashMap<>();
+            window.put("kind", name(ChargeEvidence.Window.values(), w[ChargeEvidence.W_KIND])); window.put("anchor_ms", rel(w[ChargeEvidence.W_ANCHOR_WALL], at));
+            window.putAll(t); windows.add(window);
+        }
+        m.put("dense_windows", windows);
+        rows = new ArrayList<>();
+        for (long[] r : b.operations) rows.add(Arrays.asList(rel(r[ChargeEvidence.O_WALL], at), num(r[ChargeEvidence.O_ELAPSED]), name(ChargeScheduleController.Op.values(), r[ChargeEvidence.O_OP]),
+                name(ChargeScheduleController.Result.values(), r[ChargeEvidence.O_RESULT]), name(ChargeScheduleController.Interruption.values(), r[ChargeEvidence.O_WHY]),
+                num(r[ChargeEvidence.O_DURATION]), rel(r[ChargeEvidence.O_TEST_WALL], at), name(ChargeScheduleTest.Outcome.values(), r[ChargeEvidence.O_TEST_OUTCOME])));
+        m.put("schedule_operations", table(rows, "wall_ms", "elapsed_ms", "op", "result", "interrupted_by", "duration_ms", "test_ms", "test_outcome"));
+        rows = new ArrayList<>();
+        for (long[] r : b.changes) rows.add(Arrays.asList(rel(r[ChargeEvidence.C_WALL], at), num(r[ChargeEvidence.C_ELAPSED]), name(ChargeEvidence.Watched.values(), r[ChargeEvidence.C_KEY]),
+                num(r[ChargeEvidence.C_OLD]), num(r[ChargeEvidence.C_NEW]), rel(r[ChargeEvidence.C_OLD_WALL], at), num(r[ChargeEvidence.C_ACROSS])));
+        m.put("changes_not_by_volt", table(rows, "wall_ms", "elapsed_ms", "reading", "from", "to", "from_ms", "across_disconnect"));
+        tree.put("charge_evidence", m);
+        return this;
+    }
+    private static long min(long base, long... walls) { for (long w : walls) if (w != ChargeEvidence.NONE && w > 0 && w < base) base = w; return base; }
+    private static Long rel(long wall, long base) { return wall == ChargeEvidence.NONE || wall <= 0 ? null : wall - base; }
+    private static Long num(long v) { return v == ChargeEvidence.NONE ? null : v; }
+    private static String name(Enum<?>[] values, long ordinal) { return ordinal == ChargeEvidence.NONE ? null : ordinal >= 0 && ordinal < values.length ? lower(values[(int) ordinal]) : "unknown"; }
+    private static String end(long end) {
+        return end == ChargeEvidence.END_OPEN ? "open" : end == ChargeEvidence.END_REPLACED ? "replaced" : name(ChargeScheduleController.Outcome.values(), end);
+    }
+    private static String mode(long mode) { return mode >= 0 && mode <= 2 ? SCHEDULE_MODES[(int) mode] : null; }
+    private static Map<String, Object> table(List<Object> rows, String... columns) {
+        Map<String, Object> t = new LinkedHashMap<>(); t.put("columns", new ArrayList<Object>(Arrays.asList(columns))); t.put("rows", rows); return t;
+    }
+
+    /**
      * The current readings, as Live Stats › Diagnostics exports them, less what identifies a scooter or is raw
      * bytes (WITHHELD), and less any value that is not short printable text without a long hex run.
      */
@@ -188,7 +268,7 @@ final class DiagnosticsBundle {
      * separators, owner keys, chosen names). A null means the email goes without it.
      */
     String json(Collection<String> secrets) {
-        String json = CompatibilityReport.json(tree);
+        String json = capped();
         if (secrets != null) {
             String upper = json.toUpperCase(Locale.ROOT);
             for (String secret : secrets) {
@@ -196,6 +276,35 @@ final class DiagnosticsBundle {
                 String s = secret.trim().toUpperCase(Locale.ROOT);
                 if (s.length() >= MIN_SECRET && upper.contains(s)) return null;
             }
+        }
+        return json;
+    }
+
+    /** The file's size target in the worst case the logs' own caps allow, and the hard cap enforced here. */
+    static final int TARGET_BYTES = 512 * 1024, MAX_BYTES = 640 * 1024;
+    /**
+     * The file within MAX_BYTES: over it, the oldest dense samples go first (oldest window first), then the oldest timeline
+     * rows, and the file says how many were left out. Only the charging evidence is ever trimmed.
+     */
+    @SuppressWarnings("unchecked")
+    private String capped() {
+        String json = CompatibilityReport.json(tree);
+        Object e = tree.get("charge_evidence");
+        if (json.length() <= MAX_BYTES || !(e instanceof Map)) return json;
+        Map<String, Object> m = (Map<String, Object>) e;
+        long dropped = 0;
+        while (json.length() > MAX_BYTES) {
+            int over = json.length() - MAX_BYTES, removed = 0;
+            for (Object w : (List<Object>) m.get("dense_windows")) {
+                List<Object> rows = (List<Object>) ((Map<String, Object>) w).get("rows");
+                while (!rows.isEmpty() && removed * 60 < over) { rows.remove(0); removed++; }
+            }
+            List<Object> timeline = (List<Object>) ((Map<String, Object>) m.get("charging_timeline")).get("rows");
+            while (removed * 60 < over && !timeline.isEmpty()) { timeline.remove(0); removed++; }
+            if (removed == 0) break;
+            dropped += removed;
+            m.put("rows_left_out_for_size", dropped);
+            json = CompatibilityReport.json(tree);
         }
         return json;
     }

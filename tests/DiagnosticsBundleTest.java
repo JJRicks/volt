@@ -22,6 +22,9 @@ public final class DiagnosticsBundleTest {
         secretGuard();
         withheldReadings();
         batteryTemperatureSurvivesExport();
+        evidenceSection();
+        evidenceSecrets();
+        worstCaseSize();
         System.out.println("DiagnosticsBundle tests passed: " + checks + " assertions");
     }
 
@@ -62,7 +65,117 @@ public final class DiagnosticsBundleTest {
         require(report != null, "fixture report builds");
 
         return new DiagnosticsBundle("1.7.0", WALL + 10000, false).phone("16", 36, "Google Pixel 9").report(report)
-                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).chargeSchedule(schedule());
+                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).chargeSchedule(schedule()).evidence(new ChargeEvidence.Snapshot(true, evidence(1)));
+    }
+
+    private static long[] filled(int columns, long value) { long[] r = new long[columns]; Arrays.fill(r, value); return r; }
+    /** A synthesized evidence book with every section at its cap (scale 1) or scale times over it. */
+    static ChargeEvidence.Book evidence(int scale) {
+        ChargeEvidence.Book b = new ChargeEvidence.Book();
+        long start = WALL + 3_600_000L, wire = start / 1000 - 6 * 3600;
+        for (int i = 0; i < ChargeEvidence.INTENTIONS; i++)
+            b.intentions.add(new long[]{WALL + i, 2, start + i, start + 7_200_000L, wire, -21600, 41, 90, 1, ChargeScheduleController.Outcome.MISSED.ordinal(), start + 130_000L,
+                    2, 41, 1, wire, 1, 1, 0, 1});
+        b.open = new long[]{WALL + 50, 1, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, ChargeEvidence.NONE, ChargeEvidence.NONE,
+                ChargeEvidence.NONE, ChargeEvidence.NONE, ChargeEvidence.NONE, 1, ChargeEvidence.NONE, ChargeEvidence.NONE, 0};
+        for (int i = 0; i < ChargeEvidence.TESTS; i++)
+            b.tests.add(new long[]{WALL + i * 600_000L, WALL + i * 600_000L + 120_000L, ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(), ChargeEvidence.NONE, 1, ChargeEvidence.NONE,
+                    ChargeScheduleController.Interruption.READINGS_STALE.ordinal()});
+        for (int i = 0; i < ChargeEvidence.TIMELINE * scale; i++)
+            b.timeline.add(new long[]{i % 4, WALL + i * 61_000L, 9_999_999_999L + i, i % 2, 100, 249_999, -999_999, -99_999, -79, 1, 4_294_967_295L, 1, 1, 99_999});
+        for (int w = 0; w < ChargeEvidence.WINDOWS; w++) {
+            b.windows.add(new long[]{w % 2, start + w * 1000L, ChargeEvidence.NONE});
+            List<long[]> rows = new ArrayList<>();
+            for (int i = 0; i < ChargeEvidence.WINDOW_SAMPLES * scale; i++) rows.add(new long[]{start + i * 2000L, 9_999_999_999L + i, 1, 100, 249_999, -999_999, -99_999, 1, 1});
+            b.windowSamples.add(rows);
+        }
+        for (int i = 0; i < ChargeEvidence.OPERATIONS; i++)
+            b.operations.add(new long[]{WALL + i, 9_999_999_999L, ChargeScheduleController.Op.MEASURE_NOT_SET.ordinal(), ChargeScheduleController.Result.BATTERY_SAVED_NO_ESTIMATE.ordinal(),
+                    ChargeScheduleController.Interruption.GENERATION_CHANGED.ordinal(), 604_799_999L, WALL, ChargeScheduleTest.Outcome.RESUMED_EARLY.ordinal()});
+        for (int i = 0; i < ChargeEvidence.CHANGES; i++)
+            b.changes.add(new long[]{WALL + i, 9_999_999_999L, ChargeEvidence.Watched.TIMED_CHARGING.ordinal(), 4_294_967_295L, 4_294_967_294L, WALL, 1});
+        return b;
+    }
+
+    /** The evidence sections: columns, enum names and times after base_wall_ms. */
+    private static void evidenceSection() {
+        String json = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(true, evidence(1))).json(Collections.<String>emptyList());
+        for (String expected : new String[]{"\"charge_evidence\": {", "\"base_wall_ms\": " + WALL, "\"intentions\": {", "\"columns\": [\"mode\", \"armed_ms\", \"start_ms\"",
+                "[\"done_by\", 0, 3600000, 10800000, ", "\"missed\"", "\"open\"", "\"schedule_tests\": {", "\"readings_stale\"", "\"charging_timeline\": {",
+                "[\"change\", 0, 9999999999, 0, 100, 249999, -999999, -99999, -79, 1, 4294967295, 1, 1, 99999]", "\"dense_windows\": [", "\"kind\": \"test_end\"",
+                "\"schedule_operations\": {", "\"measure_not_set\"", "\"battery_saved_no_estimate\"", "\"generation_changed\"", "\"changes_not_by_volt\": {", "\"timed_charging\"",
+                "\"loaded\": true", "\"storage_healthy\": true"})
+            require(json.contains(expected), "evidence holds " + expected);
+        require(!json.contains("\"rows_left_out_for_size\""), "a file within the cap is complete");
+        String empty = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(false, new ChargeEvidence.Book())).json(Collections.<String>emptyList());
+        require(empty.contains("\"loaded\": false") && empty.contains("\"rows\": []") && empty.contains("\"base_wall_ms\": 0"), "an unloaded book is an empty section");
+        require(new DiagnosticsBundle("1.13.1", WALL, false).evidence(null).json(null).contains("\"charge_evidence\": null"), "no selected scooter, no evidence");
+        // An unknown stored ordinal never throws; it reads as "unknown".
+        ChargeEvidence.Book odd = new ChargeEvidence.Book(); long[] row = filled(ChargeEvidence.O_COLUMNS, ChargeEvidence.NONE); row[ChargeEvidence.O_WALL] = WALL; row[ChargeEvidence.O_OP] = 999;
+        row[ChargeEvidence.O_RESULT] = 0; odd.operations.add(row);
+        require(new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(true, odd)).json(null).contains("\"unknown\""), "an unknown id reads as unknown");
+        // The command log's charge start and clock sync values.
+        List<CommandLog.Record> commands = Arrays.<CommandLog.Record>asList(new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null,
+                CommandLog.Outcome.READBACK_SAME, -1, null, null, 300, 1_792_000_000L, -21600));
+        String log = new DiagnosticsBundle("1.13.1", WALL, false).commands(commands, true, true).json(null);
+        require(log.contains("\"time_sent\": 1792000000") && log.contains("\"offset_sent_s\": -21600"), "charge_start carries the start and offset sent");
+    }
+
+    /**
+     * json()'s final check covers the new sections: a private value that is all digits (as a serial or a MAC without
+     * separators could be), planted in any numeric field of the evidence, withholds the file.
+     */
+    private static void evidenceSecrets() {
+        String secret = "248813";
+        int[][] plants = {{0, ChargeEvidence.I_WIRE}, {0, ChargeEvidence.I_ARMED_SOC}, {1, ChargeEvidence.X_OFFSET}, {2, ChargeEvidence.T_MV}, {2, ChargeEvidence.T_ELAPSED},
+                {2, ChargeEvidence.T_SKIPPED}, {3, ChargeEvidence.D_MV}, {3, ChargeEvidence.D_ELAPSED}, {4, ChargeEvidence.O_DURATION}, {4, ChargeEvidence.O_ELAPSED},
+                {5, ChargeEvidence.C_OLD}, {5, ChargeEvidence.C_NEW}, {5, ChargeEvidence.C_ELAPSED}};
+        for (int[] plant : plants) {
+            ChargeEvidence.Book b = new ChargeEvidence.Book();
+            long[] row;
+            switch (plant[0]) {
+                case 0: row = filled(ChargeEvidence.I_COLUMNS, ChargeEvidence.NONE); row[ChargeEvidence.I_END] = ChargeEvidence.END_OPEN; b.open = row; break;
+                case 1: row = filled(ChargeEvidence.X_COLUMNS, ChargeEvidence.NONE); b.tests.add(row); break;
+                case 2: row = filled(ChargeEvidence.T_COLUMNS, ChargeEvidence.NONE); row[0] = 0; b.timeline.add(row); break;
+                case 3: row = filled(ChargeEvidence.D_COLUMNS, ChargeEvidence.NONE); b.windows.add(new long[]{0, WALL, ChargeEvidence.NONE}); b.windowSamples.add(new ArrayList<>(Collections.singletonList(row))); break;
+                case 4: row = filled(ChargeEvidence.O_COLUMNS, ChargeEvidence.NONE); row[ChargeEvidence.O_OP] = 0; row[ChargeEvidence.O_RESULT] = 0; b.operations.add(row); break;
+                default: row = filled(ChargeEvidence.C_COLUMNS, ChargeEvidence.NONE); row[ChargeEvidence.C_KEY] = 0; b.changes.add(row); break;
+            }
+            int column = plant[1];
+            row[column] = Long.parseLong(secret);
+            DiagnosticsBundle bundle = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(true, b));
+            require(bundle.json(Collections.<String>emptyList()).contains(secret) && bundle.json(Collections.singletonList(secret)) == null,
+                    "a saved value planted in evidence section " + plant[0] + " column " + column + " withholds the file");
+        }
+        // The fixture's string secrets have nowhere to go in the evidence: the full bundle with every section still passes.
+        require(bundle().json(Arrays.asList(SERIAL, MAC, MAC.replace(":", ""), OWNER_KEY, NAME, PROFILE_NAME)) != null, "a clean full file passes");
+    }
+
+    /**
+     * The worst case every log's own cap allows: 1000 command events, 200 connection events and full evidence, with the
+     * longest values. It must stay under the size target; an evidence book beyond its caps is trimmed to the hard cap,
+     * oldest dense samples first, and says so.
+     */
+    private static void worstCaseSize() {
+        List<CommandLog.Record> commands = new ArrayList<>();
+        for (int i = 0; i < CommandLog.MAX_RECORDS; i++)
+            commands.add(new CommandLog.Command(WALL + i, CommandLog.Kind.RESTORE, MutationGate.Origin.AUTOMATIC_RANGE_FOLLOW, "charge_start", null, CommandLog.Outcome.REFUSED, -1,
+                    CapabilityResolver.Reason.values()[0], null, 86_399_999L, 4_294_967_295L, -64_800));
+        List<ConnectionEventLog.Record> connections = new ArrayList<>();
+        for (int i = 0; i < ConnectionEventLog.MAX_RECORDS; i++)
+            connections.add(new ConnectionEventLog.Record(WALL + i, 9_999_999_999L, ConnectionEventLog.Reason.CHARGE_RECOVERY_CANCELLED, 255, true, true, ConnectionEventLog.Phase.AUTHENTICATING,
+                    9_999_999_999L, 9_999_999_999L));
+        DiagnosticsBundle worst = bundle().connections(connections, true, true).commands(commands, true, true).evidence(new ChargeEvidence.Snapshot(true, evidence(1)));
+        String json = worst.json(Collections.<String>emptyList());
+        int evidenceOnly = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(true, evidence(1))).json(null).length();
+        int commandsOnly = new DiagnosticsBundle("1.13.1", WALL, false).commands(commands, true, true).json(null).length();
+        int connectionsOnly = new DiagnosticsBundle("1.13.1", WALL, false).connections(connections, true, true).json(null).length();
+        System.out.println("DiagnosticsBundle worst case parts: evidence " + evidenceOnly + ", command log " + commandsOnly + ", connection log " + connectionsOnly);
+        System.out.println("DiagnosticsBundle worst case: " + json.length() + " bytes (target " + DiagnosticsBundle.TARGET_BYTES + ", hard cap " + DiagnosticsBundle.MAX_BYTES + ")");
+        require(json.length() <= DiagnosticsBundle.TARGET_BYTES && !json.contains("rows_left_out_for_size"), "the worst case the caps allow is within the size target");
+        String over = bundle().connections(connections, true, true).commands(commands, true, true).evidence(new ChargeEvidence.Snapshot(true, evidence(8))).json(Collections.<String>emptyList());
+        require(over.length() <= DiagnosticsBundle.MAX_BYTES && over.contains("\"rows_left_out_for_size\": ") && over.contains("\"intentions\": {")
+                && over.contains("\"command_log\": {"), "an oversized book is trimmed to the hard cap, the rest kept");
     }
 
     /** A missed manual start, stored under a scope that is the fixture's serial: the scope must not reach the file. */
@@ -101,7 +214,7 @@ public final class DiagnosticsBundleTest {
                 "\"test\": {", "\"wall_ms\": " + WALL, "\"outcome\": \"passed\"", "\"offset_s\": 6", "\"paused\": true", "\"schedule_off\": 1"})
             require(json.contains(expected), "bundle holds " + expected);
         require(!json.contains("\"key\": \"pin\",\n          \"value\""), "the PIN event carries no value");
-        String schedule = json.substring(json.indexOf("\"charge_schedule\": {")); // the last section
+        String schedule = json.substring(json.indexOf("\"charge_schedule\": {"), json.indexOf("\"charge_evidence\": {")); // up to the evidence section
         require(schedule.replaceAll("\"[a-z_]+\": (-?[0-9]+|\"[a-z_]+\"|\\{|true|false)", "").replaceAll("[\\s,{}]", "").isEmpty(),
                 "the schedule section holds only numbers and lower-case enums");
         require(new DiagnosticsBundle("1.9.0", WALL, false).chargeSchedule(null).json(Collections.<String>emptyList()).contains("\"charge_schedule\": null"),

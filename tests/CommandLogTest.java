@@ -32,6 +32,7 @@ public final class CommandLogTest {
         typedPrivacyBoundary();
         mutationOutcomes();
         guidedTryOutcomes();
+        versionTwo();
         System.out.println("CommandLog tests passed: " + checks + " assertions");
     }
 
@@ -111,7 +112,7 @@ public final class CommandLogTest {
                 if (Modifier.isStatic(field.getModifiers())) continue;
                 Class<?> t = field.getType();
                 require(Modifier.isFinal(field.getModifiers()), "immutable after enqueue: " + field.getName());
-                require(t.isPrimitive() || t.isEnum() || t == Integer.class || t == String.class, "no bytes, lists or objects: " + field);
+                require(t.isPrimitive() || t.isEnum() || t == Integer.class || t == Long.class || t == String.class, "no bytes, lists or objects: " + field);
                 if (t == String.class) require(Arrays.asList("appVersion", "modelId", "meter", "controller", "key").contains(field.getName()),
                         "only checked strings: " + field.getName());
             }
@@ -213,6 +214,37 @@ public final class CommandLogTest {
         return b.toString();
     }
 
+    /** Version 2 carries a charge start's wire start and a clock sync's wall seconds with their offsets; version 1 files still read. */
+    private static void versionTwo() throws Exception {
+        File dir = Files.createTempDirectory("command-log-v2").toFile(), file = new File(dir, "command-events");
+        CommandLog log = CommandLog.openForTest(file, 50, 64 * 1024);
+        log.record(new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null, CommandLog.Outcome.ACK, -1, null, null, 120, 1792000000L, -21600));
+        log.record(new CommandLog.Command(WALL + 1, CommandLog.Kind.SET, MutationGate.Origin.USER, "clock_sync", null, CommandLog.Outcome.ACK, -1, null, null, 90, 1792026000L, 3600));
+        log.flush().get(10, TimeUnit.SECONDS);
+        CommandLog reread = CommandLog.openForTest(file, 50, 64 * 1024); reread.flush().get(10, TimeUnit.SECONDS);
+        List<CommandLog.Record> back = reread.snapshot();
+        CommandLog.Command start = (CommandLog.Command) back.get(0), clock = (CommandLog.Command) back.get(1);
+        require(reread.storageHealthy() && back.size() == 2 && start.time == 1792000000L && start.offset == -21600 && clock.time == 1792026000L && clock.offset == 3600,
+                "version 2 keeps the start and clock sent, with their offsets");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "headlight", 1, CommandLog.Outcome.ACK, -1, null, null, 1, 5L, 0), "a time on another control");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null, CommandLog.Outcome.ACK, -1, null, null, 1, -5L, 0), "a negative time");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "clock_sync", null, CommandLog.Outcome.ACK, -1, null, null, 1, 5L, 19 * 3600), "an offset beyond 18 hours");
+        // A version 1 file, as Volt 1.13.1 writes it: a session and a command with no time or offset.
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(buffer)) {
+            out.writeInt(0x56434d44); out.writeInt(1); out.writeInt(2);
+            out.writeLong(WALL); out.writeByte('S'); out.writeUTF("1.13.1"); out.writeUTF("24011"); out.writeUTF(ModelRegistry.Layer.values()[0].name()); out.writeUTF(""); out.writeUTF(""); out.writeBoolean(false);
+            out.writeLong(WALL + 5); out.writeByte('C'); out.writeUTF("SET"); out.writeUTF("USER"); out.writeUTF("charge_start"); out.writeInt(-1); out.writeUTF("ACK"); out.writeInt(-1); out.writeUTF(""); out.writeInt(-1); out.writeLong(300);
+        }
+        byte[] body = buffer.toByteArray(); java.util.zip.CRC32 crc = new java.util.zip.CRC32(); crc.update(body);
+        File old = new File(dir, "v1-events");
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(old))) { out.write(body); out.writeLong(crc.getValue()); }
+        CommandLog v1 = CommandLog.openForTest(old, 50, 64 * 1024); v1.flush().get(10, TimeUnit.SECONDS);
+        List<CommandLog.Record> legacy = v1.snapshot();
+        require(v1.loaded() && v1.storageHealthy() && legacy.size() == 2 && legacy.get(0) instanceof CommandLog.Session
+                && ((CommandLog.Command) legacy.get(1)).time == null && ((CommandLog.Command) legacy.get(1)).offset == null && ((CommandLog.Command) legacy.get(1)).elapsedMs == 300,
+                "a version 1 log still reads, with no time or offset");
+    }
     private static void rejects(Runnable build, String what) {
         boolean rejected = false;
         try { build.run(); } catch (IllegalArgumentException expected) { rejected = true; }
