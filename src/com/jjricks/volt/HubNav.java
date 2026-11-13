@@ -92,26 +92,20 @@ final class HubNav {
         return now < awayAt || now - awayAt >= RETENTION_MS || awayBoot != boot;
     }
 
-    /**
-     * How long before leaving a dialog must have been on top to hold the pages (#392 early review): a dialog shown at
-     * least this long before Volt left was the owner's, not the system's leaving animation taking focus.
-     */
-    static final long DIALOG_HOLD_MS = 750;
     /** How soon after Volt itself opened another app (an email, a file picker) leaving still counts as that app's. */
     static final long LAUNCH_GRACE_MS = 2_000;
 
     /**
      * Whether leaving starts the away clock that closes sub-pages after RETENTION_MS (#392 early review). Not while one of
-     * Volt's own dialogs or sheets was on top (an editor such as a ride's notes may hold unsaved text, and the rebuild on
-     * return would dismiss it): focusLostAt is when Volt's window last lost focus (negative while it has it). Not when a
-     * page itself sent the owner to another app just before (an email to send, a file to save or pick): launchedAt is
-     * when Volt last started an activity (negative for none), and the page they were using is kept for their return.
-     * A clock that went backwards counts neither.
+     * Volt's own dialogs or sheets is showing (an editor such as a ride's notes may hold unsaved text, and the rebuild on
+     * return would dismiss it): ownDialogShowing comes from OwnDialogs, so a window that is not Volt's (the notification
+     * shade, the other app in split screen) never counts. Not when a page itself sent the owner to another app just
+     * before (an email to send, a file to save or pick): launchedAt is when Volt last started an activity (negative for
+     * none), and the page they were using is kept for their return. A clock that went backwards does not count.
      */
-    static boolean awayClockStarts(long focusLostAt, long launchedAt, long now) {
-        boolean dialog = focusLostAt >= 0 && now >= focusLostAt && now - focusLostAt >= DIALOG_HOLD_MS;
+    static boolean awayClockStarts(boolean ownDialogShowing, long launchedAt, long now) {
         boolean launched = launchedAt >= 0 && now >= launchedAt && now - launchedAt <= LAUNCH_GRACE_MS;
-        return !dialog && !launched;
+        return !ownDialogShowing && !launched;
     }
 
     /**

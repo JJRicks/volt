@@ -312,8 +312,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
         // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
         long now=SystemClock.elapsedRealtime();
-        if(HubNav.awayClockStarts(focusLostAt,launchedAt,now))markAway();
-        launchedAt=-1;
+        if(HubNav.awayClockStarts(OwnDialogs.showing(),launchedAt,now))markAway();
+        launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
@@ -356,15 +356,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         finish();
     }
     @Override public void onConfigurationChanged(Configuration next){super.onConfigurationChanged(next);rebuild();fitTallSheet();}
-    /** When Volt's window last lost focus to a dialog or another window (elapsed realtime; -1 while focused), and when Volt last started an activity (-1 for none): HubNav.awayClockStarts. */
-    private long focusLostAt=-1,launchedAt=-1;
+    /** When Volt last started an activity (elapsed realtime; -1 for none): HubNav.awayClockStarts. */
+    private long launchedAt=-1;
     @Override public void startActivityForResult(Intent intent,int requestCode,Bundle options){
         launchedAt=SystemClock.elapsedRealtime();
         super.startActivityForResult(intent,requestCode,options);
     }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
-        focusLostAt=focused?-1:SystemClock.elapsedRealtime();
+        if(focused&&searchKeyboard!=null){EditText field=searchKeyboard;searchKeyboard=null;showSearchKeyboard(field);}
         // Returning to the app (or dismissing a dialog) is not a new scooter connection.
         observeConnectionFeedback(true);
     }
@@ -695,7 +695,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
+    }
+    /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
+    private EditText searchKeyboard;
+    private void showSearchKeyboard(EditText field){
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow()&&field.hasFocus())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
     }
     private static EditText firstEditText(View view){
         if(view instanceof EditText)return (EditText)view;
@@ -3528,6 +3534,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        OwnDialogs.track(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);
