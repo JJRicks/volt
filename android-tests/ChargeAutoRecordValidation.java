@@ -73,7 +73,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
             admit();
             if (!page) bluetoothOn();
             main(() -> {
-                SharedPreferences.Editor edit = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", true);
+                SharedPreferences.Editor edit = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", true).putBoolean("developer_options", true);
                 if (page) edit.putString("theme", args.getString("theme", "dark")).putFloat("text_scale", Float.parseFloat(args.getString("text_scale", "1")));
                 edit.commit();
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext()); profile = profiles.create("Synthetic auto charge fixture", "000000000000", 0);
@@ -471,8 +471,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
 
     /** The switch beside the recording controls; screenshots of the row and its note, and no cut or mid-word-broken text. */
     private void pageShots() throws Exception {
-        // 1.13.1's layout: the recording controls are in More › Developer options (ChargeCaptureValidation's way there).
-        main(() -> { settings().edit().putBoolean("developer_options", true).commit(); invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "Developer"); });
+        developerOptions();
         settle();
         View row = onMainView(() -> activity.findViewById(android.R.id.content).getRootView().findViewWithTag(KEY));
         String size = getTargetContext().getResources().getConfiguration().screenWidthDp + "dp-" + args.getString("theme", "dark") + "-" + args.getString("text_scale", "1");
@@ -490,6 +489,10 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> require(row.getParent() == capture.getParent(), "The switch is not beside the recording controls"));
         log("page " + size + ": switch shown, on and off, text whole");
     }
+    /** 1.13.1's layout: the recording controls are in More › Developer options (ChargeCaptureValidation's way there). */
+    private void developerOptions() { main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "Developer"); }); }
+    /** Back to Home, as main's checks do with HubTestPages (the switch's page checks use it). */
+    private void home() { main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); }
     /** Whether the app under test has the switch at all: its title string ships with it. */
     private boolean switchBuilt() {
         Context app = getTargetContext();
