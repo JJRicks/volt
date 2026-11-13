@@ -2573,8 +2573,8 @@ public final class MoreScreen implements AppScreen {
         simulationRow.toggle.setTag("developer-simulation-toggle");
         simulationModelRow = row(controls, "scooter", M.moreDevSimulatedModel(), null, this::chooseSimulationModel);
         simulationModelRow.view.setTag("developer-simulation-model");
-        simulationSceneRow = simulatorRow(controls, T.moreDevSimulationScene(), SIMULATION_SCENE_TAG, this::chooseSimulationScene);
-        simulationDriveModeRow = simulatorRow(controls, T.moreDevSimulationDriveMode(), SIMULATION_DRIVE_MODE_TAG, this::chooseSimulationDriveMode);
+        simulationSceneRow = simulatorRow(controls, M.moreDevSimulationScene(), SIMULATION_SCENE_TAG, this::chooseSimulationScene);
+        simulationDriveModeRow = simulatorRow(controls, M.moreDevSimulationDriveMode(), SIMULATION_DRIVE_MODE_TAG, this::chooseSimulationDriveMode);
         simulationStatus = footnote(T.moreDevSimulationActive());
         simulationStatus.setTag("developer-simulation-status");
         simulationStatus.setTextColor(ui.orange);
@@ -2789,8 +2789,8 @@ public final class MoreScreen implements AppScreen {
     /** Developer options' Scene and Drive mode rows' view tags (the rows and their text arrive with the catalog PR). */
     static final String SIMULATION_SCENE_TAG = "developer-simulation-scene", SIMULATION_DRIVE_MODE_TAG = "developer-simulation-drive-mode";
 
-    /** One more simulator row under Simulated model: the scooter icon, a title, no value yet, and its view tag. */
-    private Row simulatorRow(LinearLayout group, String title, String tag, Runnable open) {
+    /** One more simulator row under Simulated model: the scooter icon, a catalog title (R2: the field keeps the Row, not the text), no value yet, and its view tag. */
+    private Row simulatorRow(LinearLayout group, Msg title, String tag, Runnable open) {
         Row row = row(group, "scooter", title, null, open);
         row.view.setTag(tag);
         return row;
