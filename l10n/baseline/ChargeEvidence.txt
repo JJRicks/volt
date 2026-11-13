@@ -1,0 +1,14 @@
+# Hard-coded English in src/com/jjricks/volt/ChargeEvidence.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Charge evidence too large"
+multiword	"Charge evidence value out of range"
+multiword	"Corrupt charge evidence"
+multiword	"Invalid charge evidence section"
+multiword	"Invalid charge evidence size"
+multiword	"Invalid charge evidence size"
+multiword	"Invalid readbacks"
+multiword	"Storage unavailable"
+multiword	"Too many intentions"
+multiword	"Two open intentions"
+multiword	"Unexpected charge evidence data"
+multiword	"Unknown charge evidence"
