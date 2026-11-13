@@ -73,6 +73,13 @@ public final class ChargingEstimate {
         public final Double planningMinutesToLimit, planningMinutesToFull;
         /** The standard-charger pack-voltage model supplied the bulk-stage estimate. */
         public final boolean stockPackModel;
+        /**
+         * Minutes a percent past charges took over the last LIMIT_RATE_SPAN percent to a limit below 100%, set only
+         * where the time to the limit shown is those charges' own time, never capped, and the time to 100% is not
+         * theirs (the current rate or a reference); null everywhere else. minutesToFullBesideLimit carries the time to
+         * the limit on to 100% at this rate.
+         */
+        public final Double limitRate;
         private final Ut5MaxStockVoltageReference.Match stockVoltageMatch;
 
         private Result(
@@ -120,6 +127,16 @@ public final class ChargingEstimate {
                 Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
                 boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
                 Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel) {
+            this(charging,inputWatts,inputAmps,remainingMinutesToLimit,remainingMinutesToFull,targetPercent,label,status,
+                    learnedToLimit,learnedToFull,learnedSessions,referenceToLimit,referenceToFull,referenceCharger,stockVoltageMatch,
+                    planningMinutesToLimit,planningMinutesToFull,stockPackModel,null);
+        }
+
+        private Result(boolean charging,Double inputWatts,Double inputAmps,Double remainingMinutesToLimit,Double remainingMinutesToFull,
+                Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
+                boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
+                Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel,Double limitRate) {
+            this.limitRate=limitRate;
             this.planningMinutesToLimit=planningMinutesToLimit;this.planningMinutesToFull=planningMinutesToFull;
             this.stockPackModel=stockPackModel;
             this.stockVoltageMatch=stockVoltageMatch;
@@ -298,14 +315,19 @@ public final class ChargingEstimate {
     /**
      * Minutes to 100% for the charging tile's reading beside a scooter's own limit. One definition, continuous in the
      * battery level (review of #445): the larger of the estimate's own time to 100% (current rate or reference) and the
-     * time to the limit carried on to 100%. Carried on means: where the time to the limit is learned from past charges
-     * and soc (the battery level the estimate used) is below the limit, the time to the limit plus the percent left
-     * above it at the rate those charges took from soc to the limit (owner, Nov 12 2026), so 225 minutes from 50% to
-     * 95% gives 250 to 100%. That rate is the learned time itself over the percent it covers: a limit's past charges
-     * stop at the limit, so no learned time covers the rest. Otherwise (not learned, soc unknown or not below the limit)
-     * it is the time to the limit itself. Both sides move smoothly with the level, so their larger one does too: no
-     * step where they cross, and the reading is never shorter than the time to the limit shown beside it. The
-     * estimate's own reading (the one the single tile, the live notification and Charge done by use) never changes.
+     * time to the limit carried on to 100%. Carried on means: where the estimate has a limitRate (the time to the limit
+     * is past charges' own time, uncapped, and the time to 100% is not theirs) and soc (the battery level the estimate
+     * used) is below the limit, the time to the limit plus the percent above it at the rate those charges took over
+     * the last LIMIT_RATE_SPAN percent to it (owner, Nov 12 2026), so 225 minutes from 50% to a 95% limit at five
+     * minutes a percent gives 250 to 100%. A limit's past charges stop at the limit, so no learned time covers the
+     * rest. That rate is fixed by the past charges, not by the level, so along a charge the carried time falls with
+     * the time to the limit (review of #445 at 6805913a: a rate taken from the level to the limit rises near a slow
+     * last percent). Otherwise (no limitRate, soc unknown or not below the limit) it is the time to the limit itself;
+     * so a time to the limit capped at the time to 100% (a UT5 MAX charge's own taper, or the stock reference) is
+     * never carried on, and the charge's own time to 100% stands. Both sides move smoothly with the level, so their
+     * larger one does too: no step where they cross, and the reading is never shorter than the time to the limit
+     * shown beside it. The estimate's own reading (the one the single tile, the live notification and Charge done by
+     * use) never changes.
      * Beside an alert the estimate's own reading is the time to 100%, so the alert time gives way instead
      * (minutesToAlert). Without a limit below 100%, or with either time unknown, this is the estimate's own time to
      * 100%.
@@ -317,15 +339,17 @@ public final class ChargingEstimate {
     }
 
     /**
-     * The status spoken with minutesToFullBesideLimit's reading: the estimate's own, less what it says of a time to
-     * 100% this reading did not use (the current rate, or a reference covering 100%) when the reading is the rate
-     * learned to the limit carried on to 100%. Otherwise the estimate's own status, unchanged.
+     * The status spoken with minutesToFullBesideLimit's reading: when the reading is the time to the limit carried on
+     * to 100%, the estimate's own status with what it says of the time to 100% it did not use (the current rate, or a
+     * reference covering 100%) replaced by CARRIED_TO_FULL, which names the source used. Otherwise the reading is the
+     * estimate's own time to 100% and its own status names that source, unchanged. Only withHistory's own status
+     * carries a limitRate, so no other source sentence (such as a UT5 MAX charge's own taper) is ever beside it.
      */
     public static String statusBesideLimit(Result shown,Double soc) {
         if(shown==null||shown.status==null)return shown==null?null:shown.status;
         Double full=shown.remainingMinutesToFull,carried=carriedToFull(shown,soc);
         if(carried==null||!(carried>full)||learnedRateToFull(shown,soc)==null)return shown.status;
-        return shown.status.replace(FULL_AT_CURRENT_RATE,"").replace(REFERENCE_FOR_OTHER,"");
+        return shown.status.replace(FULL_AT_CURRENT_RATE,"").replace(REFERENCE_FOR_OTHER,"").replace("Time to displayed 100%",CARRIED_TO_FULL+"Time to displayed 100%");
     }
 
     /** The time to the limit carried on to 100% (see minutesToFullBesideLimit); null without a limit below 100% or either time. */
@@ -336,15 +360,26 @@ public final class ChargingEstimate {
         return learned==null?limit:learned;
     }
 
-    /** The time to the limit learned from past charges, extended to 100% at its own rate; null without one. */
+    /** The time to the limit learned from past charges, extended to 100% at their limitRate; null without one. */
     private static Double learnedRateToFull(Result shown,Double soc) {
-        Double limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
-        if(!shown.learnedToLimit||limit==null||target==null||soc==null||!Double.isFinite(soc)||soc<0||!(soc<target))return null;
-        double minutes=limit*(100-soc)/(target-soc);
+        Double limit=shown.remainingMinutesToLimit,target=shown.targetPercent,rate=shown.limitRate;
+        if(rate==null||limit==null||target==null||soc==null||!Double.isFinite(soc)||soc<0||!(soc<target))return null;
+        double minutes=limit+(100-target)*rate;
         return Double.isFinite(minutes)&&minutes>=limit?Double.valueOf(minutes):null;
     }
 
+    /** The percent below a limit over which past charges' rate to it is taken (limitRate). */
+    static final double LIMIT_RATE_SPAN=5;
+
+    /** Minutes a percent the curve's charges took over the last LIMIT_RATE_SPAN percent to target; null for 100%, uncovered or none. */
+    private static Double limitRate(ChargeSessionStore.Curve curve,Double target) {
+        if(curve==null||target==null||!(target>LIMIT_RATE_SPAN&&target<100))return null;
+        ChargeSessionStore.Duration span=curve.estimate(target-LIMIT_RATE_SPAN,target);
+        return span==null||!(span.minutes>0)||!Double.isFinite(span.minutes)?null:Double.valueOf(span.minutes/LIMIT_RATE_SPAN);
+    }
+
     private static final String FULL_AT_CURRENT_RATE="Time to 100% uses the current rate. ";
+    private static final String CARRIED_TO_FULL="Time to 100% carries the time to the limit on at the rate past charges took over its last 5%. ";
     private static final String REFERENCE_FOR_OTHER="Experimental UT5 MAX charger reference covers the other target. ";
 
     /** planned, or personal where both exist and personal is longer; an unavailable plan stays unavailable. */
@@ -411,16 +446,19 @@ public final class ChargingEstimate {
         if(prior.targetPercent!=null&&!learned.learnedToLimit&&!referenceLimit)status+="Time to the limit uses the current rate. ";
         status+="Time to displayed 100%; balancing may continue.";
         status+=cutoffNote(prior.targetPercent);
+        // The one place a learned time to the limit is shown as it is, uncapped, beside a time to 100% that is not
+        // learned: only here does limitRate let the tile carry it on to 100% (review of #445 at 6805913a).
+        Double rate=learned.learnedToLimit&&!learned.learnedToFull?limitRate(personal,prior.targetPercent):null;
+        Double limit=learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit;
         if(fast&&taper!=null&&learned.learnedToFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
         else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
-                learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit,prior.remainingMinutesToFull,
+                limit,prior.remainingMinutesToFull,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,false,learned.learnedSessions,
-                referenceLimit,referenceFull,prior.referenceCharger),soc,taper,nowMs);
-        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,
-                learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit,
-                learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull,
+                referenceLimit,referenceFull,prior.referenceCharger,null,limit,prior.remainingMinutesToFull,false,rate),soc,taper,nowMs);
+        Double full=learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull;
+        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,learned.learnedToFull,learned.learnedSessions,
-                referenceLimit,referenceFull,prior.referenceCharger);
+                referenceLimit,referenceFull,prior.referenceCharger,null,limit,full,false,rate);
     }
 
     private static Result withFastReference(Result baseline,Value soc,Value ratedAh,int productId,

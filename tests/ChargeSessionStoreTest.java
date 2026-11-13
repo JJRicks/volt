@@ -116,6 +116,16 @@ public final class ChargeSessionStoreTest {
         }
         store.stop(ChargeSessionStore.Stop.STOPPED);
     }
+    /** One stock charge from start to end that takes perPercent below slowFrom and slowPerPercent from there. */
+    static void taperedSession(ChargeSessionStore store,int start,int slowFrom,int end,long perPercent,long slowPerPercent)throws Exception{
+        store.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
+        long knee=MONO+(slowFrom-start)*perPercent,finish=knee+(end-slowFrom)*slowPerPercent;
+        for(long t=MONO;t<=finish;t+=10000){
+            double soc=t<=knee?start+(t-MONO)/perPercent:slowFrom+(t-knee)/slowPerPercent;
+            store.sample(frame(t,soc));
+        }
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+    }
     static ChargeSessionStore.Curve curve(ChargeSessionStore store,String profile,ChargeSessionStore.Charger charger)throws Exception{return store.snapshot().curves.get(ChargeSessionStore.key(profile,charger));}
     /** Backup staging reads and re-associates journals without opening a store or recovering them. */
     static void journals()throws Exception{
@@ -286,8 +296,8 @@ public final class ChargeSessionStoreTest {
      * The charging tile's pair beside a scooter's own limit (council review of #422 at baccf967, finding 1): two past
      * charges that stop at a 95% limit, five minutes a percent, make the time to the limit longer than the current-rate
      * time to 100%. The tile shows the time to the limit unchanged and a time to 100% no shorter than it: the owner's
-     * choice (Nov 12 2026) adds the percent above the limit at the rate those charges took to it, 225 minutes from 50%
-     * to 95% giving 250 to 100%, and its spoken status no longer says the current rate gave that time.
+     * choice (Nov 12 2026) adds the percent above the limit at the rate those charges took to it (over its last 5%),
+     * 225 minutes from 50% to 95% giving 250 to 100%, and its spoken status names that source, not the current rate.
      */
     static void tilePairOrder()throws Exception{
         ChargeSessionStore s=store();
@@ -304,8 +314,10 @@ public final class ChargeSessionStoreTest {
         near(250,full,"The limit's 225 minutes plus 5% at the 5 minutes a percent learned to it");
         check(r.status.contains("Time to 100% uses the current rate."),"The estimate's own status names the current rate: "+r.status);
         String spoken=ChargingEstimate.statusBesideLimit(r,50d);
-        check(!spoken.contains("current rate")&&spoken.contains("Personal estimate from 2 qualified charges."),
-                "The 100% reading's status does not claim the current rate gave it: "+spoken);
+        check(!spoken.contains("current rate")&&spoken.contains("Personal estimate from 2 qualified charges.")
+                &&spoken.contains("Time to 100% carries the time to the limit on at the rate past charges took over its last 5%."),
+                "The 100% reading's status names the past charges' rate, not the current rate: "+spoken);
+        near(5,r.limitRate,"Past charges' rate over 90% to 95%: five minutes a percent");
         // One definition across the level (review of #445): the larger of the current-rate time to 100% and the learned
         // rate carried on to 100%, so the reading never steps where the time to the limit passes the current-rate time
         // to 100% (it read 195 at 61%, 165 at 62%).
@@ -314,7 +326,7 @@ public final class ChargeSessionStoreTest {
             ChargingEstimate.Value at=new ChargingEstimate.Value((double)level,true,100);
             ChargingEstimate.Result e=ChargingEstimate.forScooter(ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),at,ah,new ChargingEstimate.Value(95d,true,100)),at,ah,-1,ChargeSessionStore.Charger.STOCK,c);
             check(e.learnedToLimit,"Learned to the limit at "+level+"%");
-            double carried=e.remainingMinutesToLimit*(100-level)/(95-level);
+            double carried=e.remainingMinutesToLimit+5*5;
             if(e.remainingMinutesToLimit>e.remainingMinutesToFull)limitLonger=true;else fullLonger=true;
             Double reading=ChargingEstimate.minutesToFullBesideLimit(e,(double)level);
             near(Math.max(carried,e.remainingMinutesToFull),reading,"The larger of the two at "+level+"%");
@@ -326,6 +338,25 @@ public final class ChargeSessionStoreTest {
             previous=reading;
         }
         check(limitLonger&&fullLonger,"The walk crosses where the time to the limit and the current-rate time to 100% meet");
+        // Review of #445 at 6805913a: along a charge the 100% reading never rises. Past charges that slow down over
+        // their last percents to the limit (5 minutes a percent to 90%, then 30): a rate taken from the level to the
+        // limit rose there (284 at 89%, then 300 at 90%); past charges' rate over the last 5% does not.
+        ChargeSessionStore slow=store();
+        for(int n=0;n<2;n++)taperedSession(slow,40,90,95,300000,1800000);
+        ChargeSessionStore.Curve tapered=curve(slow,"one",ChargeSessionStore.Charger.STOCK);
+        previous=null;boolean carriedShown=false;
+        for(int level=41;level<95;level++){
+            ChargingEstimate.Value at=new ChargingEstimate.Value((double)level,true,100);
+            ChargingEstimate.Result e=ChargingEstimate.forScooter(ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),at,ah,new ChargingEstimate.Value(95d,true,100)),at,ah,-1,ChargeSessionStore.Charger.STOCK,tapered);
+            check(e.learnedToLimit&&!e.learnedToFull,"Slowing past charges: learned to the limit at "+level+"%");
+            near(30,e.limitRate,"Slowing past charges' rate over their last 5%, at "+level+"%");
+            Double reading=ChargingEstimate.minutesToFullBesideLimit(e,(double)level);
+            near(Math.max(e.remainingMinutesToLimit+5*30,e.remainingMinutesToFull),reading,"Slowing past charges: the larger of the two at "+level+"%");
+            if(reading>e.remainingMinutesToFull)carriedShown=true;
+            check(previous==null||reading<=previous,"Slowing past charges: the 100% reading never rises, "+(level-1)+"% "+previous+" then "+level+"% "+reading);
+            previous=reading;
+        }
+        check(carriedShown,"Slowing past charges: the carried time is shown");
         // Without the battery level the learned rate is unknown: the bound is the time to the limit, status unchanged.
         near(225,ChargingEstimate.minutesToFullBesideLimit(r,null),"No battery level: bounded by the time to the limit");
         near(225,ChargingEstimate.minutesToFullBesideLimit(r,95d),"A level at the limit has no rate to it: bounded by the time to the limit");
