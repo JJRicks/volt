@@ -34,6 +34,7 @@ javac --release 8 -encoding UTF-8 \
     "$SCRIPT_DIR/ReportInviteValidation.java" "$SCRIPT_DIR/UpdateCheckValidation.java" "$SCRIPT_DIR/ReportShortcutsValidation.java" "$SCRIPT_DIR/ReportDiagnosticsValidation.java" "$SCRIPT_DIR/MoreMenuValidation.java" "$SCRIPT_DIR/OwnerModelValidation.java" "$SCRIPT_DIR/ModelHomeValidation.java" "$SCRIPT_DIR/CompatibilityGatingValidation.java" "$SCRIPT_DIR/Ut5SimulationScreens.java" \
     "$SCRIPT_DIR/GuidedTestValidation.java" \
     "$SCRIPT_DIR/CompatControlsValidation.java" "$SCRIPT_DIR/ScooterMenuEditValidation.java" "$SCRIPT_DIR/ChargeAlertValidation.java" "$SCRIPT_DIR/ChargeTimeTileValidation.java" "$SCRIPT_DIR/MaintenanceOfflineValidation.java" \
+    "$SCRIPT_DIR/ShortcutPickerValidation.java" \
     "$SCRIPT_DIR/TextCensus.java" "$SCRIPT_DIR/TextFit.java" "$SCRIPT_DIR/LocaleValidation.java"
 jar cf "$TEST_BUILD_DIR/runner.jar" -C "$TEST_BUILD_DIR/classes" .
 "$BUILD_TOOLS/d8" --lib "$ANDROID_JAR" --classpath "$APP_JAR" --min-api 26 \

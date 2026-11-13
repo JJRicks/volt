@@ -1,0 +1,5 @@
+# The link judged on the cadence it has been on, and the status poll moving to a new cadence at once (StatusCadence,
+# BleController). tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+# ChargeScheduleController is compiled by tests/run.sh's own list.
+src/com/jjricks/volt/StatusCadence.java
+tests/l10n/LinkFreshnessTest.java
