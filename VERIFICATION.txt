@@ -171,8 +171,9 @@ The tag is on a later docs-only merge.
   changes made on release/1.13 alone: 2 dp more label room on Quick
   access buttons (#476), the Battery alerts tile's three review
   follow-ups and the short-rung test exception they needed (#465, #462),
-  the language top-up's translations (#477) and the ports' placements
-  for 1.13.1's layout.
+  the release's own one-time note about background recording, whose
+  stored state main does not read (#463, #472), the language top-up's
+  translations (#477) and the ports' placements for 1.13.1's layout.
 
 VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
 November 11, 2026

@@ -31,9 +31,9 @@ NEW IN 1.13.2
   the charge limit, or the charge alert's level on models without one once
   Charge alert is on (Scooter > Battery & charging): it snaps in the
   control's steps with a light tick and sets the value when you let go. The
-  charging card has one row, Charging power beside one time tile that
-  switches between the time to the limit or alert and the time to 100% (tap
-  or swipe).
+  charging card has one row, Charging power beside one time tile; with a
+  charge limit below 100% or a charge alert ahead, the tile switches between
+  the time to that level and the time to 100% (tap or swipe).
 - Record rides automatically starts in the background only with the new
   Start recording in the background switch (off by default; Rides >
   Recording settings). Scooter > Battery & charging > Charge history &
