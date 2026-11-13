@@ -108,19 +108,45 @@ Release commit 517e8e46 on release/1.13, 2026-11-13.
   recording switch and note, Record charges automatically, the Stay
   connected caption, the longer report diagnostics line and file, the
   charging time tile's labels and the update dialog's new layout.
-- Not run for this release: the owner-present parked hardware sweep, and
-  any install or check on a real phone. Everything above is tested on
-  emulators and in JVM suites only. [Update after the owner's check of the
-  candidate.]
+- On the owner's phone and scooter, November 13, with the owner present
+  (a phone on Android 17; the UT5 MAX parked and charging). Everything
+  above this entry is tested on emulators and in JVM suites only.
+  - The candidate (the APK above) was installed with adb install -r over
+    the 1.13.0 (versionCode 57) the phone had. It updated in place: the
+    first-install date did not change, Volt started and reconnected, and
+    there were no crash entries.
+  - The one-time What's new note about background recording showed on
+    that real update (Record rides automatically was on before it), with
+    its switch off. The owner closed it.
+  - run-hardware-sweep.py --parked, default plan, with the same-key
+    runner: 7 passed, 0 failed, 0 skipped, in a little over 4 minutes.
+    snapshot, navigation, background (with the live charging hold), clock,
+    settings, charge-time and schedule-test (Test scheduled charging end
+    to end, 162 s). Settings: 23 changed, read back and restored (the
+    charge limit 100 to 80 and back among them); 5 excluded by the plan
+    and never written (speed limit, maximum speed, dual drive, drive
+    speed limit, timed charging). The opt-in lock and PIN-state steps
+    were not run. The runner was removed afterwards.
+  - Home while charging showed the charging bar under the scooter picture
+    with the limit mark at 100%, and Charging power beside one time tile.
+    A drag of the mark from 100% to 80%, injected over adb: the bar
+    thickened and showed its steps and the value; about a second after
+    letting go the scooter reported the 80% limit, the status read
+    "Charging · limit 80%" and the time tile showed Time to 80% with its
+    two dots. The UT5 MAX has no caution for the charge limit, so nothing
+    was asked. Dragged back to 100% and confirmed the same way.
+  - More › Developer options › Charge recording has Record charges
+    automatically under Record this charge, off.
+  - Report an issue › Preview built volt-diagnostics.json (303 KB) from
+    the phone's real data; the file was not withheld. Nothing was sent.
 - ModelRegistry.REPORTED was left as it was in 1.13.1. Adding any
   compatibility reports received since then is the owner's step.
 - Real-phone checks only the owner can do, not yet done:
-  - the feel of dragging the charge mark (the ticks, the thicker bar) on a
-    real phone, with a real charge limit write and a charge alert level;
-  - Start recording in the background on a real phone with the screen off,
-    and the one-time What's new note after updating from 1.13.1;
+  - the feel of dragging the charge mark (the ticks) under a finger, and
+    a charge alert level on a model without a charge limit;
+  - Start recording in the background on a real ride with the screen off;
   - Record charges automatically through a real overnight charge;
-  - the time tile's switch and the learned 100% time on a real charge;
+  - the learned 100% time on a real charge;
   - a Volt notification tap bringing the open Volt to the front.
 
 VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
