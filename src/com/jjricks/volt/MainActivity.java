@@ -2096,22 +2096,18 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; Ride and Record are never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
-            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
-            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
-            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
-            showChargeAlerts(); return;
-        }
+        // Battery alerts: one id and one tap for both Homes (Clean's quick action, in place of Charge done by on models
+        // without scheduled charging, owner's answer 11; and the Widgets shortcut, owner's decision of Nov 12 2026 on #383).
+        // The sheet where the model has alerts; elsewhere the resolver's reason, as other unavailable tiles say.
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
-        if (id.equals(QuickAccessActions.CHARGE_ALERTS_ID)) { chargeAlertsShortcut(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
