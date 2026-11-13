@@ -162,6 +162,7 @@ public final class DiagnosticsBundleTest {
                 "\"settings\": {", "\"units\": \"km\"", "\"text_scale\": \"1.15\"", "\"poll_interval_ms\": 1000", "\"app_language\": \"pt-BR\"",
                 "\"theme\": \"(set)\"", "\"time_format\": \"(set)\"", "\"temperature_unit\": \"(set)\"", "\"riding_rotation\": \"(set)\"", "\"stats_density\": \"(set)\"",
                 "\"dashboard_columns\": \"(set)\"", "\"charge_live_lock_detail\": null", "\"background_connection\": true",
+                "\"auto_record_background\": true", "\"charge_auto_record\": true",
                 "\"selected_scooter\": {", "\"charge_alerts\": \"charge=1;at=80;low=0;below=20;notify=1;alarm=0\"", "\"charge_charger\": \"HIGH_SPEED\"",
                 "\"range_source\": null", "\"range_follow_mode\": false",
                 "\"power_sign\": {", "\"current_direction_known\": true", "\"basis\": \"sign_state\"",
