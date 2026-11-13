@@ -3270,20 +3270,71 @@ public final class ScooterService extends Service {
      * scooter's serial, MAC, owner key or chosen name. Built on demand; it leaves the phone only when the owner sends it.
      */
     String diagnosticsBundle(CompatibilityReport report){
-        DiagnosticsBundle bundle=new DiagnosticsBundle(AppVersion.name(this),System.currentTimeMillis(),simulating())
-                .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL).report(report)
-                .connections(ble.diagnosticEvents(),ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
-                .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
-                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).chargeSchedule(schedules().diagnostics());
-        // The selected scooter's evidence only; none in a simulation (its file is the real scooter's).
+        long now=System.currentTimeMillis();
         String selected=activeProfileId();
+        List<ConnectionEventLog.Record> connectionEvents=ble.diagnosticEvents();
+        DiagnosticsBundle bundle=new DiagnosticsBundle(AppVersion.name(this),now,simulating())
+                .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL);
+        // Part 2: app and phone state, then the allow-listed settings. Each source is read here, once, as the report
+        // is built; one that fails leaves its own section empty.
+        long versionCode=0;String installer=null;
+        try{versionCode=versionCode(getPackageManager().getPackageInfo(getPackageName(),0));}catch(Exception unavailable){}
+        try{installer=Build.VERSION.SDK_INT>=30?getPackageManager().getInstallSourceInfo(getPackageName()).getInstallingPackageName():installerBefore30();}catch(Exception unavailable){}
+        bundle.app(versionCode,installer).phoneState(diagnosticsDevice());
+        Map<String,?> stored=null;try{stored=settings.getAll();}catch(RuntimeException unavailable){}
+        bundle.settings(stored,selected).report(report)
+                .connections(connectionEvents,ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
+                .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
+                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).tally(ble.telemetry.tally,simulating())
+                .chargeSchedule(schedules().diagnostics());
+        // The selected scooter's evidence only; none in a simulation (its file is the real scooter's).
         if(evidence!=null&&!simulating()&&ChargeEvidence.scope(selected))bundle.evidence(evidence.snapshot(selected));
-        List<String> secrets=new ArrayList<>();
+        DiagnosticsBundle.Recordings recordings=new DiagnosticsBundle.Recordings();
+        recordings.nowWallMs=now;
+        recordings.rideFolder=new File(getFilesDir(),"rides");recordings.phoneRideFolder=new File(getFilesDir(),"phone-rides");
+        recordings.chargeFolder=new File(getFilesDir(),"charge-recordings");
+        try{if(rides!=null){recordings.rides=rides.listCached();recordings.rideActive=rides.activeId()!=null;}}catch(RuntimeException unavailable){}
+        try{if(chargeStore!=null){recordings.chargeActive=chargeStore.active();recordings.chargeActiveSamples=chargeStore.sampleCount();}}catch(RuntimeException unavailable){}
+        Long free=null;try{free=new StatFs(getFilesDir().getPath()).getAvailableBytes();}catch(RuntimeException unavailable){}
+        bundle.recordings(recordings).storage(free,rides!=null,rides==null?null:recordingError!=null,chargeStore!=null)
+                .crash(CrashRecord.read(new File(getNoBackupFilesDir(),VoltApp.CRASH_FILE))).clockChanges(connectionEvents);
+        List<String> identities=new ArrayList<>(),names=new ArrayList<>();
         for(ScooterProfiles.Profile p:profiles.all()){
-            secrets.add(p.id);secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
-            if(!p.nameDefault)secrets.add(p.name);
+            identities.add(p.id);identities.add(p.serial);identities.add(p.identity);identities.add(p.mac);identities.add(p.mac==null?null:p.mac.replace(":",""));
+            if(!p.nameDefault)names.add(p.name);
         }
-        return bundle.json(secrets);
+        return bundle.json(identities,names);
+    }
+    /** getLongVersionCode is Android 9's; before it, the int versionCode. */
+    @SuppressWarnings("deprecation")
+    private static long versionCode(android.content.pm.PackageInfo info){return Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;}
+    @SuppressWarnings("deprecation")
+    private String installerBefore30(){return getPackageManager().getInstallerPackageName(getPackageName());}
+    /** The phone's state for the diagnostics file (DiagnosticsBundle.Device); each value is null when Android won't say. */
+    private DiagnosticsBundle.Device diagnosticsDevice(){
+        DiagnosticsBundle.Device d=new DiagnosticsBundle.Device();
+        try{android.content.res.Configuration c=getResources().getConfiguration();
+            d.fontScale=c.fontScale;d.uiNightBits=c.uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            d.smallestWidthDp=c.smallestScreenWidthDp;d.widthDp=c.screenWidthDp;d.heightDp=c.screenHeightDp;d.densityDpi=c.densityDpi;}catch(RuntimeException unavailable){}
+        // Volt's own language: before Android 13 the choice lives in AppLanguage's resources, not the service's own (as notifications use).
+        try{android.os.LocaleList app=AppLanguage.resources(this).getConfiguration().getLocales();d.appLocale=app.isEmpty()?null:app.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
+        try{android.os.LocaleList system=android.content.res.Resources.getSystem().getConfiguration().getLocales();d.phoneLocale=system.isEmpty()?null:system.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
+        try{PowerManager power=getSystemService(PowerManager.class);if(power!=null){d.batteryOptimisationExempt=power.isIgnoringBatteryOptimizations(getPackageName());d.powerSave=power.isPowerSaveMode();}}catch(RuntimeException unavailable){}
+        try{if(Build.VERSION.SDK_INT>=28){ActivityManager am=getSystemService(ActivityManager.class);if(am!=null)d.backgroundRestricted=am.isBackgroundRestricted();}}catch(RuntimeException unavailable){}
+        try{if(Build.VERSION.SDK_INT>=28){android.app.usage.UsageStatsManager usage=getSystemService(android.app.usage.UsageStatsManager.class);if(usage!=null)d.standbyBucket=usage.getAppStandbyBucket();}}catch(RuntimeException unavailable){}
+        try{NotificationManager manager=getSystemService(NotificationManager.class);
+            if(manager!=null){d.notificationsEnabled=manager.areNotificationsEnabled();
+                for(String id:DiagnosticsBundle.CHANNELS){NotificationChannel channel=manager.getNotificationChannel(id);d.channels.put(id,channel==null?-1:channel.getImportance());}}}catch(RuntimeException unavailable){}
+        String[][] permissions={{"bluetooth_scan","android.permission.BLUETOOTH_SCAN"},{"bluetooth_connect","android.permission.BLUETOOTH_CONNECT"},
+                {"fine_location","android.permission.ACCESS_FINE_LOCATION"},{"coarse_location","android.permission.ACCESS_COARSE_LOCATION"},{"post_notifications","android.permission.POST_NOTIFICATIONS"}};
+        for(String[] p:permissions){
+            // Before Android 12 there is no Nearby devices permission, and before 13 no notification permission: both read as granted.
+            boolean implicit=p[0].startsWith("bluetooth_")&&Build.VERSION.SDK_INT<31||p[0].equals("post_notifications")&&Build.VERSION.SDK_INT<33;
+            try{d.permissions.put(p[0],implicit||checkSelfPermission(p[1])==android.content.pm.PackageManager.PERMISSION_GRANTED);}catch(RuntimeException unavailable){}
+        }
+        try{if(Build.VERSION.SDK_INT>=28){android.location.LocationManager location=getSystemService(android.location.LocationManager.class);if(location!=null)d.locationEnabled=location.isLocationEnabled();}}catch(RuntimeException unavailable){}
+        try{android.bluetooth.BluetoothManager bt=getSystemService(android.bluetooth.BluetoothManager.class);android.bluetooth.BluetoothAdapter adapter=bt==null?null:bt.getAdapter();if(adapter!=null)d.bluetoothEnabled=adapter.isEnabled();}catch(RuntimeException unavailable){}
+        return d;
     }
     public String snapshot(){try{JSONObject o=new JSONObject();
             o.put("format", "navee-offline-diagnostics-v1");
