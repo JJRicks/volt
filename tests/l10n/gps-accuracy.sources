@@ -3,4 +3,6 @@
 # runs each tests/l10n/**Test.java from the repository root. GpsAccuracy and RideChartData are in its own list.
 src/com/jjricks/volt/GpsAccuracyText.java
 src/com/jjricks/volt/RidingLayout.java
+src/com/jjricks/volt/RidingChipFit.java
+src/com/jjricks/volt/RidingClockSeconds.java
 tests/l10n/GpsAccuracyTextTest.java
