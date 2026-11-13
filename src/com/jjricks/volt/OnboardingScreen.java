@@ -157,6 +157,25 @@ public final class OnboardingScreen implements AppScreen {
         return !hasConfiguredProfile(context, service);
     }
 
+    /**
+     * Setup was finished or skipped on this installation, or is being run again after that (More's "Run setup
+     * again" clears the finished flag but sets {@link #KEY_RERUN}). Read-only; safe at app start (HomeStylePrefs).
+     */
+    static boolean finishedOnce(Context context) {
+        SharedPreferences p = prefs(context);
+        return p.getBoolean(KEY_DONE, false) || p.getBoolean(KEY_RERUN, false);
+    }
+
+    /**
+     * First-run setup is still under way: never finished, skipped or re-run, and {@link #needed} would show it (past
+     * Welcome, or no configured scooter yet). Setup itself stores a scooter profile, the last page and a dashboard
+     * before it ends, so those are not signs of an earlier owner yet (HomeStyle). Read-only, without the service.
+     */
+    static boolean firstRunPending(Context context) {
+        if (finishedOnce(context)) return false;
+        return prefs(context).getInt(KEY_STEP, WELCOME) > WELCOME || !hasConfiguredProfile(context, null);
+    }
+
     /** Re-opens the flow at "Choose a path" (for a "Run setup again" entry). Call rebuild() after. */
     public static void restart(Context context) {
         prefs(context).edit().clear().putInt(KEY_STEP, PATH).putBoolean(KEY_RERUN, true).commit();
