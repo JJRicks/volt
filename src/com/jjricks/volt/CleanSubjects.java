@@ -9,6 +9,7 @@ import android.graphics.drawable.RippleDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -63,24 +64,34 @@ final class CleanSubjects {
     View view() { return view; }
 
     private View line(String subject) {
+        // The Layout Plan's row (about 54 dp): a 33 dp raised tile with the subject's glyph in the accent's text colour,
+        // spanning both lines, then the name over its summary, and the chevron. 48 dp at least, to touch.
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setBaselineAligned(false);
-        line.setMinimumHeight(ui.dp(60));
-        line.setPadding(0, ui.dp(8), 0, ui.dp(8));
+        line.setMinimumHeight(ui.dp(48));
+        line.setPadding(0, ui.dp(5), 0, ui.dp(5));
         line.setTag(tag(subject));
+        FrameLayout tile = new FrameLayout(host.activity());
+        tile.setBackground(ui.shape(ui.raised, 10, 0));
+        tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        tile.addView(ui.icon(HubPages.icon(subject), 18, ui.accentText), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
+        LinearLayout.LayoutParams tileSize = new LinearLayout.LayoutParams(ui.dp(33), ui.dp(33));
+        tileSize.setMarginEnd(ui.dp(12));
+        line.addView(tile, tileSize);
         LinearLayout words = new LinearLayout(host.activity());
         words.setOrientation(LinearLayout.VERTICAL);
-        TextView name = ui.text(HubText.title(subject), 15, false);
+        TextView name = ui.text(HubText.title(subject), 15.5f, false);
+        name.setTypeface(ui.medium());
         name.setMaxLines(2);
-        ui.decorate(name, HubPages.icon(subject));
+        name.setIncludeFontPadding(false);
         words.addView(name, new LinearLayout.LayoutParams(-1, -2));
         // The summary line, under the name: Service's due dot leads it ("● Tyre check in 40 mi"), as in the plan.
         LinearLayout summary = new LinearLayout(host.activity());
         summary.setOrientation(LinearLayout.HORIZONTAL);
         summary.setGravity(Gravity.CENTER_VERTICAL);
-        summary.setPaddingRelative(ui.dp(42), ui.dp(3), 0, 0);
+        summary.setPaddingRelative(0, 0, 0, 0);
         summary.setVisibility(View.GONE);
         View dot = new View(host.activity());
         GradientDrawable disc = new GradientDrawable();
@@ -92,6 +103,8 @@ final class CleanSubjects {
         dotSize.setMarginEnd(ui.dp(6));
         summary.addView(dot, dotSize);
         TextView value = ui.caption("");
+        value.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13 * ui.textScale);
+        value.setIncludeFontPadding(false);
         value.setMaxLines(1);
         value.setEllipsize(TextUtils.TruncateAt.END);
         value.setVisibility(View.GONE);

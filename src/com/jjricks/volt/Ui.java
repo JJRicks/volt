@@ -1197,6 +1197,12 @@ public final class Ui {
             } else if (key.equals("lights")) {
                 p.moveTo(13, 5); p.cubicTo(21, 4, 22, 20, 13, 19); p.close(); canvas.drawPath(p, paint);
                 canvas.drawLine(3, 6, 9, 8, paint); canvas.drawLine(2, 12, 9, 12, paint); canvas.drawLine(3, 18, 9, 16, paint);
+            } else if (key.equals("bulb")) {
+                // A light bulb (Lights & sound in the Layout Plan): a round glass on a neck, over a two-line base.
+                p.moveTo(9, 16.5f); p.cubicTo(9, 13.8f, 5.5f, 12.6f, 5.5f, 9); p.cubicTo(5.5f, 5.3f, 8.4f, 2.5f, 12, 2.5f);
+                p.cubicTo(15.6f, 2.5f, 18.5f, 5.3f, 18.5f, 9); p.cubicTo(18.5f, 12.6f, 15, 13.8f, 15, 16.5f); p.close();
+                canvas.drawPath(p, paint);
+                canvas.drawLine(9.5f, 19.5f, 14.5f, 19.5f, paint); canvas.drawLine(10.5f, 22, 13.5f, 22, paint);
             } else if (key.equals("stats") || key.equals("chart") || key.equals("analytics")) {
                 canvas.drawLine(4, 3, 4, 20, paint); canvas.drawLine(4, 20, 21, 20, paint);
                 p.moveTo(7, 15); p.lineTo(11, 10); p.lineTo(15, 13); p.lineTo(21, 5); canvas.drawPath(p, paint);
