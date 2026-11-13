@@ -90,7 +90,8 @@ final class ChargeHistoryDialog {
             row.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 45)),
                     ui.shape(ui.surface, 18, 0), null));
             row.addView(ui.text(dateTime(session.startedWall), 16, true));
-            TextView details = ui.caption(charger(session) + " · " + batterySpan(session));
+            TextView details = ui.caption(charger(session.charger) + " · " + batterySpan(session));
+            if (session.labelSource == ChargeSessionStore.LabelSource.GUESS) details.setText(T.serviceChargeChargerGuessed(details.getText()));
             details.setPadding(0, ui.dp(5), 0, 0); row.addView(details);
             TextView state = ui.caption((session.observedCompleteMono == null ? T.statsChargeFinishNotObserved() : T.statsChargeFullObserved()) + paused(session));
             state.setPadding(0, ui.dp(4), 0, 0); row.addView(state);
@@ -109,7 +110,8 @@ final class ChargeHistoryDialog {
         body.removeAllViews(); body.addView(header(T.statsChargeRecordingTitle(), true));
         LinearLayout contents = padded(); contents.setTag("charge-history-detail");
         contents.addView(ui.text(dateTime(session.startedWall), 20, true));
-        TextView sub = ui.caption(charger(session) + " · " + batterySpan(session));
+        TextView sub = ui.caption(charger(session.charger) + " · " + batterySpan(session));
+        if (session.labelSource == ChargeSessionStore.LabelSource.GUESS) sub.setText(T.serviceChargeChargerGuessed(sub.getText()));
         sub.setPadding(0, ui.dp(6), 0, ui.dp(12)); contents.addView(sub);
         Panel panel = new Panel(session, false);
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));
@@ -134,10 +136,8 @@ final class ChargeHistoryDialog {
         }
         return first == null ? T.statsChargeNoBatterySamples() : T.statsChargeBatterySpan(Fmt.decimal(Locale.getDefault(), first, 0), Fmt.decimal(Locale.getDefault(), last, 0));
     }
-    /** A guessed label reads as a guess: the charger was neither chosen nor detected. */
-    private String charger(ChargeSessionStore.HistorySession session) {
-        String charger = session.charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();
-        return session.labelSource == ChargeSessionStore.LabelSource.GUESS ? T.statsChargeChargerGuessed(charger) : charger;
+    private String charger(ChargeSessionStore.Charger charger) {
+        return charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();
     }
     private LinearLayout header(String title, boolean back) {
         LinearLayout head = new LinearLayout(host.activity()); head.setGravity(Gravity.CENTER_VERTICAL);

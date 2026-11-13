@@ -223,8 +223,6 @@
     <string name="stats_charge_no_battery_samples" volt:screen="More › Charge recordings" volt:purpose="detail">No battery samples</string>
     <string name="stats_charge_high_speed_charger" volt:screen="More › Charge recordings" volt:purpose="detail">High-speed charger</string>
     <string name="stats_charge_stock_charger" volt:screen="More › Charge recordings" volt:purpose="detail">Stock charger</string>
-    <!-- %1$s is "Stock charger" or "High-speed charger": a recording that started by itself, labelled with Volt's guess because the charger was neither chosen nor detected. -->
-    <string name="stats_charge_charger_guessed" volt:screen="More › Charge recordings" volt:purpose="detail">%1$s (guessed)</string>
     <!-- Where a saved estimate came from. -->
     <string name="stats_charge_source_personal" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Personal curve</string>
     <string name="stats_charge_source_stock" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Stock reference</string>

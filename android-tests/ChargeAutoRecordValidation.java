@@ -42,7 +42,7 @@ import com.jjricks.volt.tests.TextCensus;
  * #415: a hand stop's hold survives a not-charging reading while Volt's own schedule holds the current off; a guessed
  * label is not the charger in effect; an automatic start at the limit deletes nothing until it is kept; out of sight
  * with Stay connected off, riding away still starts the ride before the link is let go. Its second review: a guessed
- * charger is marked as guessed in the status line, the notification, the saved list and the recording's detail.
+ * charger is marked as guessed ("· charger guessed") in the status line, the notification, the saved list and the recording's detail.
  *
  * Mode "page" (needs the switch row): Battery & charging › Charge history & recordings with the switch, screenshots
  * and a text check for cut or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text.
@@ -308,7 +308,11 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         unplugAndSettle();
         File folder = folder();
         for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder, keepAll());
+        ChargeSessionStore.AutomaticRules keepAll = new ChargeSessionStore.AutomaticRules() {
+            public boolean keep(long ranMs, double gainedPoints) { return true; }
+            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
+        };
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder, keepAll);
         for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, i, false);
         Set<String> manual = names();
         require(manual.size() == ChargeSessionStore.MAX_SESSIONS, "Expected 20 manual fixtures");
@@ -336,18 +340,14 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         for (File file : saved()) file.delete();
     }
 
-    private static ChargeSessionStore.AutomaticRules keepAll() {
-        return new ChargeSessionStore.AutomaticRules() {
-            public boolean keep(long ranMs, double gainedPoints) { return true; }
-            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
-        };
-    }
-
     /** Terra's second review of #415: a guessed label reads as a guess in the saved list and its detail; a manual one does not. */
     private void savedListMarksGuess() throws Exception {
         unplugAndSettle();
         for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), keepAll());
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
+            public boolean keep(long ranMs, double gainedPoints) { return true; }
+            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
+        });
         String guessed = fixture(fixtures, 1, true).replace(".csv", ""), manual = fixture(fixtures, 2, false).replace(".csv", "");
         require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manual) == null, "Fixtures: " + guessed + " " + manual);
         ensureFront();
@@ -355,7 +355,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         settle();
         main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
         await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manual) != null), 10 * S, "The saved list did not show both recordings");
-        String marked = T.statsChargeChargerGuessed(T.statsChargeStockCharger());
+        String marked = T.serviceChargeChargerGuessed("");
         String guessRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + guessed).getContentDescription()));
         String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manual).getContentDescription()));
         require(guessRow.contains(marked), "The saved list showed a guessed charger as known: " + guessRow);
@@ -363,7 +363,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> historyView("charge-history-session:" + guessed).performClick()); settle();
         await(() -> onMain(() -> historyView("charge-history-detail") != null), 5 * S, "The guessed recording's detail did not open");
         String detail = onMainText(() -> String.valueOf(((TextView) ((ViewGroup) historyView("charge-history-detail")).getChildAt(1)).getText()));
-        require(detail.startsWith(marked), "The detail showed a guessed charger as known: " + detail);
+        require(detail.endsWith(marked), "The detail showed a guessed charger as known: " + detail);
         log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
         main(() -> invoke(viewer(), "close", new Class<?>[0]));
         for (File file : saved()) file.delete();
