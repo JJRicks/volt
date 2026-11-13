@@ -1236,7 +1236,7 @@ What each model offers: see OTHER NAVEE MODELS above. Setup's last step offers
 the choice (Clean selected on a new install), each style drawn in detail with
 the scooter's photo and sample readings. Owners updating from a Volt without
 Clean keep Widgets and see a one-time What's new sheet: Switch to Clean or Keep
-Widgets; for owners who had Record rides automatically on, a notice that
+Widgets (left out once they chose a style or Home is already Clean); for owners who had Record rides automatically on, a notice that
 background starts are now off, with the Start recording in the background
 switch and a link to Recording settings; then the installed version's
 changelog, bundled in the APK, with a link to its release page.

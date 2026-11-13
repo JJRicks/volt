@@ -121,6 +121,13 @@ public final class HomeStyleTest {
         require(!HomeStyle.whatsNewBackgroundNotice(u, false), "One who never used it does not");
         require(!HomeStyle.whatsNewBackgroundNotice(i, true), "A fresh install never does");
         require(!HomeStyle.whatsNewBackgroundNotice(null, true), "nor one the seed never saw");
+        // PR 9's sheet: an updating owner who chose a style first still gets it once, without the offer.
+        require(HomeStyle.showWhatsNew(u, false, false, false, true, true) && !HomeStyle.offerSwitch(true, HomeStyle.CLEAN),
+                "An updating owner who already chose Clean sees the sheet, without the offer");
+        require(HomeStyle.whatsNewHasContent(true, false, false), "The offer alone is worth a sheet");
+        require(HomeStyle.whatsNewHasContent(false, true, false), "So is the background notice alone (a chosen owner, no notes)");
+        require(HomeStyle.whatsNewHasContent(false, false, true), "So are this version's notes alone");
+        require(!HomeStyle.whatsNewHasContent(false, false, false), "Nothing to show: no empty sheet");
     }
 
     /** Setup's last step (PR 9): what it preselects, and what a skipped setup leaves stored. */

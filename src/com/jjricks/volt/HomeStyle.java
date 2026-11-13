@@ -152,6 +152,16 @@ final class HomeStyle {
     }
 
     /**
+     * Whether the What's new sheet has anything to show once {@link #showWhatsNew} says it may: the offer to switch
+     * ({@link #offerSwitch}), the background-recording notice ({@link #whatsNewBackgroundNotice}) or this version's
+     * bundled notes. An owner who already chose a style, on an APK built without notes and with no notice, gets no
+     * empty sheet; nothing is recorded, so it is decided again the next time Home shows.
+     */
+    static boolean whatsNewHasContent(boolean offer, boolean backgroundNotice, boolean hasNotes) {
+        return offer || backgroundNotice || hasNotes;
+    }
+
+    /**
      * Whether the What's new sheet also carries the notice that a recording now starts in the background only when
      * the owner turns that on (owner's answer on #403): only on an installation the seed found updated, and only for
      * an owner who has Record rides automatically on (AutoStartPolicy.AUTO_RECORD_KEY) when the sheet shows, which is

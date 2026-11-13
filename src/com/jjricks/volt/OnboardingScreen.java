@@ -419,12 +419,16 @@ public final class OnboardingScreen implements AppScreen {
 
     private void finish(boolean skipped) {
         String style = homeStyle();
+        boolean rerun = prefs.getBoolean(KEY_RERUN, false);
         prefs.edit().clear().putBoolean(KEY_DONE, true).commit();
         // Finishing is an explicit Home style choice (the one shown on the last step, Clean preselected on a new
-        // install); skipping chooses nothing and only records a new install's origin (no What's new for it).
+        // install), which also records a new install's origin. Skipping first-run setup chooses nothing and only
+        // records the new install (HomeStylePrefs.recordNewInstall, with Clean when no style is stored): the seed
+        // waits while first-run setup is under way, so setup's end must record it (no What's new for it). Skipping
+        // a rerun changes nothing: that installation's history is the seed's.
         SharedPreferences app = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
-        if (skipped) HomeStylePrefs.setupSkipped(app);
-        else HomeStylePrefs.markChosen(app, style);
+        if (!skipped) HomeStylePrefs.markChosen(app, style);
+        else if (!rerun) HomeStylePrefs.setupSkipped(app);
         closed = true;
         if (identityField != null) identityField.setText("");
         if (listener != null) { if (skipped) listener.onSkipped(); else listener.onFinished(); }

@@ -551,19 +551,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** The What's new sheet while it shows; closed with the activity. */
     private AlertDialog whatsNewSheet;
     /**
-     * Shows the one-time What's new sheet about Home styles (Joel 6) when HomeStyle.showWhatsNew says so: an updated
-     * installation whose owner never chose a style and never saw it, on the widget dashboard, resumed, with neither
-     * setup nor riding mode open. Recorded as shown (committed) before it appears, so a crash or rotation never shows it again.
+     * Shows the one-time What's new sheet (Joel 6, 10) when HomeStyle.showWhatsNew says so: an updated installation
+     * that never saw it, on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open,
+     * whether or not the owner already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch).
+     * The sheet records itself as shown (committed) before it appears, so a crash or rotation never shows it again.
      */
     private void maybeShowWhatsNew(){
         if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
         java.util.Map<String,?> all;
         try{all=preferences.getAll();}catch(RuntimeException e){return;}
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
-        // On the widget dashboard, and not while it is being edited.
-        boolean onHome=HubPages.HOME.equals(selectedPage)&&screen instanceof DashboardScreen&&!screen.busy();
-        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
-        preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY,true).commit();
+        // On Home, either style, and not while it is being edited.
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
