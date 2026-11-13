@@ -7,7 +7,7 @@ package com.jjricks.volt;
  */
 final class HomeMoment {
     static final int PARKED = 0, CHARGING = 1, JUST_BACK = 2;
-    /** Show charging while plugged in (app_settings, Boolean, App preferences). Absent means on. */
+    /** Show charging automatically, while the scooter reports charging (app_settings, Boolean, App preferences). Absent means on. */
     static final String CHARGING_KEY = "home_moment_charging";
     /** Show the last ride after riding (app_settings, Boolean, App preferences). Absent means on. */
     static final String RIDE_KEY = "home_moment_ride";
@@ -37,7 +37,7 @@ final class HomeMoment {
         return PARKED;
     }
 
-    /** Whole minutes since the ride ended, for "Ride saved N minutes ago" (0 for a future end). */
+    /** Whole minutes since the ride ended, for "Ride ended N minutes ago" (0 for a future end). */
     static long minutesAgo(long lastRideEndWall, long now) {
         return Math.max(0, now - lastRideEndWall) / 60_000L;
     }
