@@ -39,6 +39,14 @@ public final class HomeQuickActionsTest {
         require(!HomeQuickActions.endsRide(HomeQuickActions.RECORD, false), "Record with no ride recording starts one");
         require(!HomeQuickActions.endsRide(HomeQuickActions.RIDING, true) && !HomeQuickActions.endsRide("rides", true)
                 && !HomeQuickActions.endsRide(null, true), "No other action ends a ride");
+        require(HomeQuickActions.startsRide(HomeQuickActions.RECORD, false), "Record with no ride recording starts one, and says so");
+        require(!HomeQuickActions.startsRide(HomeQuickActions.RECORD, true), "Record while a ride records does not start one");
+        require(!HomeQuickActions.startsRide(HomeQuickActions.RIDING, false) && !HomeQuickActions.startsRide("rides", false)
+                && !HomeQuickActions.startsRide(null, false), "No other action starts a ride");
+        // Exactly one of the two holds for Record, whatever the state.
+        for (boolean recording : new boolean[]{false, true})
+            require(HomeQuickActions.startsRide(HomeQuickActions.RECORD, recording) != HomeQuickActions.endsRide(HomeQuickActions.RECORD, recording),
+                    "Record either starts or ends a ride");
     }
 
     private static void defaults() {

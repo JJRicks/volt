@@ -140,6 +140,8 @@ final class BackupRegistry {
         exclude(app, "charge_start_sent_scope", String.class, DEVICE);
         // Battery alert choices travel with the scooter; the current charge's progress stays on this phone.
         prefix(app, "charge_alerts_", String.class, SCOOTER_PREFERENCES, true);
+        // Which time the charging view's time tile was left on (limit or 100%) travels with the scooter.
+        prefix(app, ChargeTimeReadings.KEY, String.class, SCOOTER_PREFERENCES, true);
         // The Scooter tab's menu layout (ScooterMenuLayout) is a scooter preference, not a dashboard: Dashboards feeds the layout export and counts.
         // Retired with the menu editor (hub layout PR 3; owner's decision 5 in #383, approved in his answers 1 and 5 there): never read again, kept so older backups restore.
         prefix(app, "scooter_menu_v1_", String.class, SCOOTER_PREFERENCES, true);
