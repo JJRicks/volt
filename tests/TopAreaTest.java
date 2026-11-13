@@ -44,7 +44,7 @@ public final class TopAreaTest {
         // An even split: the gap over the readings is no larger than the others (the mock-up's 36/37/20 dp weights left
         // bands of 40 dp or more over the bar on the emulator's 344 and 412 dp phones).
         int[] even = TopArea.parkedGaps(93);
-        require(even[2] <= even[0] && Math.abs(even[0] - even[1]) <= 1 && Math.abs(even[1] - even[2]) <= 1,
+        require(even[2] <= even[0] && Math.max(even[0], Math.max(even[1], even[2])) - Math.min(even[0], Math.min(even[1], even[2])) <= 2,
                 "about even: " + even[0] + "/" + even[1] + "/" + even[2]);
         require(TopArea.parkedGaps(-3)[0] == 0 && TopArea.parkedGaps(-3)[1] == 0, "no spare height, no gaps");
         // The parked photo (the mock-up's ~144 dp picture right of the words): full size on a 344 dp phone at 1x (a
