@@ -155,7 +155,7 @@
     <!-- Switch: keep the Bluetooth connection when the app is in the background. -->
     <string name="more_prefs_background" volt:screen="App preferences" volt:purpose="row">Stay connected in background</string>
     <!-- Under the background switch: what keeps the connection out of sight whatever the switch says. A ride or charge recording always does; Live charging (the charging notification, a feature name) and a charge alert waiting for the current charge do while the scooter charges. -->
-    <string name="more_prefs_background_sub" volt:screen="App preferences" volt:purpose="caption">Recordings stay connected, and so do Live charging and charge alerts during a charge</string>
+    <string name="more_prefs_background_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="alarm">Recordings stay connected, and so do Live charging and charge alerts during a charge</string>
     <!-- Switch: keep the phone's screen on. -->
     <string name="more_prefs_awake" volt:screen="App preferences" volt:purpose="row">Keep screen awake</string>
     <!-- Under the screen switch: only while a ride is recorded. -->
