@@ -126,8 +126,6 @@
     <string name="more_prefs_auto_connect">Connexion automatique</string>
     <!-- src:25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a -->
     <string name="more_prefs_background">Maintenir la connexion en arrière-plan</string>
-    <!-- src:5ca7fc47f600cdbf58fdace126eae295fa294226 -->
-    <string name="more_prefs_background_sub">La connexion est maintenue en permanence pendant les enregistrements</string>
     <!-- src:83881e36841edbacf388110c732b3b73770b8f36 -->
     <string name="more_prefs_awake">Maintenir l’écran allumé</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->

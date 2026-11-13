@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
- * bottom: the header (status line, search and Settings; the scooter's name, which switches scooter, and Edit), a top
+ * bottom: the header (the status line; the scooter's name, which switches scooter, with Edit, search and Settings), a top
  * area of fixed height whose content follows the moment (the battery card, the charging view while charging, or the
  * last ride for about an hour after it ends: JustBackView), the Lock bar, four quick actions and the seven subjects.
  *
@@ -82,29 +82,49 @@ final class CleanHomeScreen implements AppScreen {
         page = column();
         view.addView(page, new LinearLayout.LayoutParams(-1, -2));
 
+        // The plan's header: the status line, then the scooter's name with Edit, search and Settings beside it, level
+        // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
+        // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
+        // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
+        // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the three
+        // buttons.
         header = column();
-        header.setPadding(0, ui.dp(4), 0, ui.dp(10));
-        LinearLayout first = row();
-        first.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(0, 0, 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
         TextView status = parts.status();
-        first.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-        first.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        first.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        header.addView(first, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout second = row();
-        second.setGravity(Gravity.CENTER_VERTICAL);
+        status.setGravity(Gravity.BOTTOM | Gravity.START);
+        status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
+        status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
+        header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
+        float nameFull = name.getTextSize();
+        android.graphics.Paint namePaint = new android.graphics.Paint(name.getPaint());
+        namePaint.setTextSize(nameFull);
+        int buttons = ui.dp(CleanHeaderFit.BUTTONS * CleanHeaderFit.TARGET_DP + CleanHeaderFit.BUTTON_GAP_DP);
+        LinearLayout second = new LinearLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                // Fit the name to the room the buttons leave, at its full size first (CleanHeaderFit.name).
+                float room = Math.max(0, MeasureSpec.getSize(widthSpec) - buttons);
+                CleanHeaderFit.Name fit = CleanHeaderFit.name(String.valueOf(name.getText()), room, namePaint::measureText);
+                float size = nameFull * fit.scale;
+                if (Math.abs(name.getTextSize() - size) > .5f) name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
+                super.onMeasure(widthSpec, heightSpec);
+            }
+        };
+        second.setOrientation(LinearLayout.HORIZONTAL);
+        second.setGravity(Gravity.BOTTOM);
         name.setTag(TAG_NAME);
         name.setClickable(true);
         name.setFocusable(true);
-        name.setMinHeight(ui.dp(48));
+        name.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
         name.setGravity(Gravity.CENTER_VERTICAL);
         name.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
         name.setOnClickListener(v -> actions.switchScooter());
         second.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
-        editSize.setMarginStart(ui.dp(8));
+        editSize.setMarginStart(ui.dp(CleanHeaderFit.BUTTON_GAP_DP));
         second.addView(round("pencil", HubText.editTitle(), TAG_EDIT, this::showEdit), editSize);
+        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
@@ -408,13 +428,13 @@ final class CleanHomeScreen implements AppScreen {
         try { return preferences.getAll().get(key); } catch (RuntimeException e) { return null; }
     }
 
-    /** A round icon button: a disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
+    /** A round icon button: a 40 dp disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
     private View round(String icon, Msg label, String tag, Runnable action) {
         FrameLayout target = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
         disc.setColor(ui.dark ? ui.surface : ui.raised);
-        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp(6)), null));
+        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp((48 - CleanHeaderFit.DISC_DP) / 2)), null));
         target.addView(ui.icon(icon, 18, ui.text), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
         String spoken = label.render();
         target.setContentDescription(spoken);

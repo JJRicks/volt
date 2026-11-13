@@ -92,7 +92,7 @@ final class HubSubjects {
                 Double code = drive == null ? null : HubSummaries.live(drive.number, drive.live);
                 if (cruise == null || code == null) return null;
                 ScooterProfiles.Profile profile = service.profiles == null ? null : service.profiles.active();
-                String mode = HubSummaries.driveMode(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), code));
+                String mode = HubSummaries.driveMode(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(service.modelDescriptor(profile)), code));
                 return mode == null ? null : HubText.controls(mode, cruise);
             }
             case HubPages.LIGHTS: {

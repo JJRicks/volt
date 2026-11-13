@@ -63,7 +63,9 @@ public final class RidingEditorTest {
         check(ringChoices.contains(RidingLayout.RING_SPEED) && ringChoices.contains(RidingLayout.BATTERY) && ringChoices.contains(RidingLayout.POWER)
                 && ringChoices.size() == 3, "the ring offers speed + max, battery and power");
         RidingLayout.Spot chip = RidingLayout.frameDef(RidingLayout.HALO).spot("chip_1");
-        check(RidingEditor.choices(chip).size() == 18 && !RidingEditor.choices(chip).contains(RidingLayout.SPEED), "chips offer every reading but speed");
+        // 18 readings, or 19 once the optional GPS accuracy reading (owner, Nov 12) joins them.
+        int chipCount = RidingEditor.choices(chip).size() - (RidingEditor.choices(chip).contains("gps_accuracy") ? 1 : 0);
+        check(chipCount == 18 && !RidingEditor.choices(chip).contains(RidingLayout.SPEED), "chips offer every reading but speed");
         for (String id : new String[]{RidingLayout.DRIVE_MODE, RidingLayout.BATTERY_TEMPERATURE, RidingLayout.CLOCK, RidingLayout.AVERAGE_SPEED, RidingLayout.MAX_SPEED,
                 RidingLayout.CURRENT, RidingLayout.ODOMETER, RidingLayout.BATTERY, RidingLayout.TRIP, RidingLayout.RIDE_TIME, RidingLayout.VOLTAGE, RidingLayout.POWER})
             check(RidingEditor.choices(chip).contains(id), "a chip can show " + id);

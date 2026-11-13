@@ -1,22 +1,24 @@
 package com.jjricks.volt;
 
 /**
- * ChargingFit: how Clean Home's charging view shares its slot (council review 5886927849, finding 1). The sizes are
- * the ones the maintainers check on the emulator, 344x882 dp and 725x604 dp at 1x and 1.4x text, plus 320x640 dp at
- * 1x. Heights are in dp (density 1), derived from the same constants the view uses:
+ * ChargingFit: how Clean Home's charging view shares its slot, as the Layout Plan's clean-charging mock-up draws it
+ * (the contributor's decisions on #383, 13 Nov 2026: the photo large behind the number, nothing dropped when space
+ * runs out). The sizes are the ones the maintainers check on the emulator, 344x882 dp and 725x604 dp at 1x and 1.4x
+ * text, plus 412x915 dp and a few narrower or shorter windows. Heights are in dp (density 1), derived from the same
+ * constants the view uses:
  * <ul>
- *   <li>the slot: TopArea.heightDp for the window (wide by WideLayout.wide), less the view's 12 dp top and bottom
- *       padding; once with the window's full height as screenHeightDp, once with 72 dp of system bars taken off;</li>
- *   <li>the width: the window less Home's 18 dp side padding (MainActivity's scroller), at most Clean's 560 dp
- *       column, less the view's 14 dp side padding; the readings pair up from 280 dp (InfoTiles), else they stack
- *       with an 8 dp gap;</li>
- *   <li>text height: 1.17 times the text size without font padding (the line at 12.5 sp, the percentage at 72 sp,
- *       a tile's label at 12 sp), 1.33 times with it (a tile's value, up to 26 sp), all times the text scale;</li>
- *   <li>a tile: 10 dp padding above and below, the label line, 2 dp, the value (at least 48 dp); in the worst case
- *       its state pill wraps under the value (11 sp text, 3 dp padding above and below, 4 dp under it).</li>
+ *   <li>the slot: TopArea.heightDp for the window (wide by WideLayout.wide); once with the window's full height as
+ *       screenHeightDp, once with 72 dp of system bars taken off. The view has no padding (it sits on the page);</li>
+ *   <li>the width: the window less Home's 18 dp side padding, at most Clean's 560 dp column; the readings pair up
+ *       from ChargingFit.PAIR_DP, else they stack with an 8 dp gap;</li>
+ *   <li>text height: 1.17 times the text size without font padding (the line at ChargingFit.LINE_SP, the percentage
+ *       at ChargingFit.PERCENT_SP, a tile's label at 12 sp), 1.33 times with it (a tile's value), times the text
+ *       scale; the line wraps to two lines where "Charging to your 90% limit" (about 12.7 dp per sp) is wider than
+ *       the slot;</li>
+ *   <li>a tile: 10 dp padding above and below, the label line, 2 dp, the value (at least ChargingFit.VALUE_MIN_DP
+ *       times the text scale); in the worst case its state pill wraps under the value.</li>
  * </ul>
- * The view measures the real heights; these estimates stand in for them here, and the robustness checks run the
- * same sizes with every height 30% taller.
+ * The robustness checks run the same sizes with every height 30% taller.
  */
 public final class ChargingFitTest {
     private static int checks;
@@ -24,116 +26,140 @@ public final class ChargingFitTest {
     /** One window: its plan and the heights it was made from. */
     private static final class Case {
         final String name;
-        final int inner, line, percent, readings;
+        final int inner, line, shortLine, percent, readings;
         final ChargingFit.Plan plan;
-        Case(String name, int inner, int line, int percent, int readings) {
-            this.name = name; this.inner = inner; this.line = line; this.percent = percent; this.readings = readings;
-            plan = ChargingFit.plan(inner, line, percent, readings, 1f);
+        Case(String name, int inner, int line, int shortLine, int percent, int readings) {
+            this.name = name; this.inner = inner; this.line = line; this.shortLine = shortLine; this.percent = percent;
+            this.readings = readings;
+            plan = ChargingFit.plan(inner, line, shortLine, percent, readings, 1f);
         }
     }
 
     private static Case window(int width, int height, float text, int bars, boolean pill, float taller) {
         boolean wide = WideLayout.wide(width, text);
-        int inner = TopArea.heightDp(height - bars, wide, text) - 24;
-        int across = Math.min(width - 36, 560) - 28;
-        int line = Math.round(12.5f * text * 1.17f * taller);
-        int percent = Math.round(72 * text * 1.17f * taller);
-        float tile = 20 + 12 * text * 1.17f + 2 + Math.max(48, 26 * text * 1.33f) + (pill ? 11 * text * 1.17f + 6 + 4 : 0);
-        int readings = Math.round((across >= 280 ? tile : 2 * tile + 8) * taller);
+        int inner = TopArea.heightDp(height - bars, wide, text);
+        int across = Math.min(width - 36, 560);
+        int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f * taller);
+        int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
+        int percent = Math.round(ChargingFit.PERCENT_SP * text * 1.17f * taller);
+        float tile = 20 + 12 * text * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP * text, ChargingFit.VALUE_SP * text * 1.33f)
+                + (pill ? 11 * text * 1.17f + 6 + 4 : 0);
+        int readings = Math.round((across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8) * taller);
         return new Case(width + "x" + height + " at " + text + "x" + (bars > 0 ? ", bars" : "") + (pill ? ", pill" : "")
-                + (taller > 1 ? ", taller" : ""), inner, line, percent, readings);
+                + (taller > 1 ? ", taller" : ""), inner, line, oneLine, percent, readings);
     }
 
-    /** What must hold for every plan: it fills the slot exactly and nothing sits on anything else. */
+    /** What must hold for every plan: it fills the slot exactly with the readings, and nothing overlaps. */
     private static void sound(Case c) {
         ChargingFit.Plan p = c.plan;
-        int stacked = p.stacked(c.line, c.percent, c.readings);
+        int stacked = p.stacked(c.line, c.shortLine, ChargingFit.LINE_GAP_DP, c.readings);
         require(p.readings ? stacked == c.inner : stacked <= c.inner, c.name + ": stacks within the slot, to its bottom with the readings: " + p);
-        require(p.stageTopMargin == 0 || p.photo, c.name + ": only the photo reaches behind the percentage");
-        if (p.photo) require(p.stageHeight + p.stageTopMargin >= ChargingFit.PHOTO_MIN_DP, c.name + ": the track stays under the percentage");
-        if (p.track) require(p.stageHeight + Math.min(0, p.stageTopMargin) >= ChargingFit.TRACK_DP + ChargingFit.TRACK_GAP_DP,
-                c.name + ": the track has its own room");
-        if (p.readings && p.track) require(p.readingsGap == ChargingFit.READINGS_GAP_DP, c.name + ": the track keeps 12 dp from the tiles");
-        require(!p.percent || p.percentScale >= ChargingFit.PERCENT_MIN_SCALE && p.percentScale <= 1, c.name + ": the percentage within its sizes");
+        int under = ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP;
+        if (p.photo()) {
+            require(p.photoHeight >= ChargingFit.PHOTO_MIN_DP, c.name + ": the photo has its least height");
+            require(p.photoHeight == p.stageHeight - under, c.name + ": the photo runs from the stage's top to 8 dp above the track: " + p);
+        }
+        if (p.percent && p.stageHeight > 0 && p.photo())
+            require(ChargingFit.scaled(c.percent, p.percentScale) + under <= p.stageHeight,
+                    c.name + ": the percentage stays clear of the track: " + p);
+        if (p.readings && p.line) require(p.readingsGap == ChargingFit.READINGS_GAP_DP || p.readingsGap == ChargingFit.READINGS_GAP_MIN_DP,
+                c.name + ": the readings keep the mock-up's 24 dp or at least 12 dp from the track");
+        require(!p.percent || p.percentScale > 0 && p.percentScale <= 1, c.name + ": the percentage within its sizes");
+        require(!p.shortLine || p.line, c.name + ": a short line is a line");
     }
 
-    /** The maintainers' sizes: both readings, the percentage (maybe smaller) and the track always show. */
+    /** The maintainers' sizes: nothing is dropped but the line (the percentage, photo, track and readings stay). */
     private static Case checked(int width, int height, float text, int bars, boolean pill) {
         Case c = window(width, height, text, bars, pill, 1);
         sound(c);
         require(c.plan.readings, c.name + ": Charging power and the time tile show");
-        require(c.plan.percent && c.plan.track, c.name + ": the percentage and the track show: " + c.plan);
+        require(c.plan.percent && c.plan.photo(), c.name + ": the percentage and the photo behind it show: " + c.plan);
+        require(c.plan.percentScale >= ChargingFit.HALF_SCALE || !c.plan.line, c.name + ": the line goes before the percentage is below half");
         System.out.println("  " + c.name + ": " + c.plan);
         return c;
     }
 
     public static void main(String[] args) {
-        // 344x882 dp: the photo at 1x; at 1.4x it goes first and everything else stays at full size.
+        // 344x882 dp at 1x: everything at full size, the photo large behind the number (the mock-up's ~150 dp).
         Case c = checked(344, 882, 1f, 0, false);
-        require(c.plan.photo && c.plan.line && c.plan.percentScale == 1, "344x882 at 1x: everything, with the photo");
+        require(c.plan.line && !c.plan.shortLine && c.plan.percentScale == 1 && c.plan.readingsGap == ChargingFit.READINGS_GAP_DP,
+                "344x882 at 1x: everything as the mock-up");
+        require(c.plan.photoHeight >= 140 && c.plan.photoHeight <= 190, "344x882 at 1x: the photo is large, " + c.plan.photoHeight);
+        require(c.plan.photoHeight > c.percent, "344x882 at 1x: the photo reaches up behind the number and below it");
+        // 344x882 dp at 1.4x: the percentage, the photo, the track and both tiles stay.
         c = checked(344, 882, 1.4f, 0, false);
-        require(!c.plan.photo && c.plan.line && c.plan.percentScale == 1, "344x882 at 1.4x: the photo gives way first");
+        require(c.plan.line && c.plan.photoHeight > c.percent, "344x882 at 1.4x: the line, and the photo behind the number");
         c = checked(344, 882, 1.4f, 72, true);
-        require(c.plan.line, "344x882 at 1.4x, bars and a wrapped pill: the line stays");
-        // 725x604 dp (wide at 1x): no room for the photo; the percentage shrinks only in the tightest case.
+        c = checked(412, 915, 1f, 0, false);
+        require(c.plan.line && c.plan.percentScale == 1 && c.plan.photoHeight >= 150, "412x915 at 1x: everything, a large photo");
+        // 725x604 dp (wide at 1x): everything at full size.
         c = checked(725, 604, 1f, 0, false);
-        require(!c.plan.photo && c.plan.line && c.plan.percentScale == 1, "725x604 at 1x: the photo gives way, the rest at full size");
-        c = checked(725, 604, 1f, 72, true);
-        require(c.plan.line && c.plan.percentScale < 1, "725x604 at 1x, bars and a wrapped pill: the percentage gets smaller");
+        require(c.plan.line && c.plan.percentScale == 1, "725x604 at 1x: the rest at full size");
+        // 725x604 dp at 1.4x keeps the phone layout in a short area: the photo shrinks with the stage, the percentage
+        // stays (smaller if it must), the readings show.
         c = checked(725, 604, 1.4f, 0, false);
-        require(!c.plan.photo && c.plan.line && c.plan.percentScale == 1, "725x604 at 1.4x: the photo gives way, the rest at full size");
-        c = checked(725, 604, 1.4f, 0, true);
-        require(c.plan.line && c.plan.percentScale < 1, "725x604 at 1.4x with a wrapped pill: the percentage gets smaller");
         for (int width : new int[]{344, 725})
             for (float text : new float[]{1f, 1.4f})
                 for (int bars : new int[]{0, 72})
                     for (boolean pill : new boolean[]{false, true}) {
                         checked(width, width == 344 ? 882 : 604, text, bars, pill);
-                        // Measured heights well above the estimates: the readings still stay.
+                        // Measured heights well above the estimates: the readings and the percentage still stay.
                         Case taller = window(width, width == 344 ? 882 : 604, text, bars, pill, 1.3f);
                         sound(taller);
-                        require(taller.plan.readings, taller.name + ": the readings still show: " + taller.plan);
+                        require(taller.plan.readings && taller.plan.percent, taller.name + ": the readings and the percentage still show: " + taller.plan);
                     }
 
-        // 320x640 dp at 1x (narrower than the maintainers test): the readings stack, so they and the track stay and
-        // the percentage gives way after the line.
-        c = window(320, 640, 1f, 0, false, 1);
+        // A wrapping line shortens to "Charging" before anything else changes.
+        c = new Case("wrapped line", 300, 40, 20, 70, 66);
+        require(c.plan.line && !c.plan.shortLine && c.plan.percentScale == 1, "room for the wrapped line: it stays: " + c.plan);
+        int fullNeeds = 40 + ChargingFit.LINE_GAP_DP + ChargingFit.READINGS_GAP_DP + 66 + 70 + 19;
+        c = new Case("wrapped line, short slot", fullNeeds - 1, 40, 20, 70, 66);
+        require(c.plan.shortLine && c.plan.readingsGap == ChargingFit.READINGS_GAP_DP && c.plan.percentScale == 1,
+                "a slot 1 dp short: the line shortens first, nothing else changes: " + c.plan);
+        // 280x640 dp at 1x (narrower than the maintainers test): the readings stack; the percentage and photo stay.
+        c = window(280, 640, 1f, 0, false, 1);
         sound(c);
         System.out.println("  " + c.name + ": " + c.plan);
-        require(c.plan.readings && c.plan.track && !c.plan.line && !c.plan.photo, "320x640 at 1x: the readings and the track stay");
-        c = window(320, 640, 1f, 72, false, 1);
+        require(c.plan.readings && c.plan.percent, "280x640 at 1x: the readings and the percentage stay");
+        // Readings taller than the whole slot: the percentage shows over the track rather than a cut-off row.
+        c = new Case("readings taller than the slot", 200, 18, 18, 84, 222);
         sound(c);
-        System.out.println("  " + c.name + ": " + c.plan);
-        require(c.plan.readings && !c.plan.percent, "320x640 at 1x with bars: the readings stay, alone");
-        // With a wrapped pill as well, the stacked readings (222 dp) are taller than the whole slot (200 dp): there
-        // they can't show without the slot growing, and the percentage shows with the track rather than a cut-off row.
-        c = window(320, 640, 1f, 72, true, 1);
-        sound(c);
-        System.out.println("  " + c.name + ": " + c.plan);
-        require(c.readings > c.inner && !c.plan.readings && c.plan.percent && c.plan.track,
-                "320x640 at 1x, bars and a wrapped pill: readings taller than the slot");
+        require(!c.plan.readings && c.plan.percent, "readings taller than the slot: the percentage: " + c.plan);
 
-        // The order things give way in, on one slot getting shorter: photo, percentage size, line, track, percentage, readings.
-        int line = 15, percent = 84, readings = 85;
-        int stage = 0;
-        boolean photoGone = false, shrunk = false, lineGone = false, trackGone = false, percentGone = false;
-        for (int inner = 400; inner >= 0; inner--) {
-            Case s = new Case("inner " + inner, inner, line, percent, readings);
+        // The order things give way in, on one slot getting shorter: the line shortens, the gap closes, the photo
+        // shrinks, the percentage shrinks to half, the line goes, the percentage shrinks further; the readings last.
+        int line = 36, shortLine = 18, percent = 84, readings = 85;
+        boolean shortened = false, closed = false, shrunk = false, lineGone = false, readingsGone = false;
+        for (int inner = 420; inner >= 0; inner--) {
+            Case s = new Case("inner " + inner, inner, line, shortLine, percent, readings);
             sound(s);
             ChargingFit.Plan p = s.plan;
-            if (!p.photo) photoGone = true; else require(!photoGone, "the photo never comes back on a shorter slot");
-            if (p.percentScale < 1) { require(photoGone, "the photo goes before the percentage shrinks at " + inner); shrunk = true; }
-            if (!p.line) { require(shrunk, "the percentage shrinks before the line goes at " + inner); lineGone = true; }
-            if (!p.track && p.percent) { require(lineGone, "the line goes before the track at " + inner); trackGone = true; }
-            if (!p.percent) { require(trackGone || lineGone, "the percentage goes after the line and the track at " + inner); percentGone = true; }
-            if (!p.readings) require(percentGone && inner < readings, "the readings go last, only when they alone don't fit, at " + inner);
-            else require(inner >= readings, "the readings show whenever they fit alone, at " + inner);
-            stage++;
+            // The photo shows while the stage leaves it its least height (it is never dropped for anything else).
+            if (p.readings && p.percent && p.stageHeight - ChargingFit.TRACK_DP - ChargingFit.TICK_DP - ChargingFit.PHOTO_GAP_DP >= ChargingFit.PHOTO_MIN_DP
+                    && p.percentScale >= ChargingFit.PERCENT_MIN_SCALE && inner - readings >= p.stageHeight)
+                require(p.photo() || !p.line && p.readingsGap == 0, "the photo stays while it has its least height, at " + inner);
+            if (p.shortLine || !p.line) shortened = true;
+            if (p.readingsGap == ChargingFit.READINGS_GAP_MIN_DP) { require(shortened, "the line shortens before the gap closes, at " + inner); closed = true; }
+            if (p.percentScale < 1 && p.readings) { require(closed || !p.line, "the gap closes before the percentage shrinks, at " + inner); shrunk = true; }
+            if (!p.line) {
+                require(shrunk || !p.readings, "the percentage shrinks before the line goes, at " + inner);
+                lineGone = true;
+            }
+            if (p.line && p.percent) require(p.percentScale >= ChargingFit.HALF_SCALE, "with the line, the percentage is at least half, at " + inner);
+            if (!p.readings) { require(inner < readings, "the readings go only when they alone don't fit, at " + inner); readingsGone = true; }
+            else require(p.percent || inner - readings < Math.ceil(percent * ChargingFit.PERCENT_MIN_SCALE),
+                    "while the readings show, the percentage shows as long as its smallest size fits, at " + inner);
         }
-        require(photoGone && shrunk && lineGone && trackGone && percentGone && stage == 401, "every step was reached");
-        require(ChargingFit.plan(readings, line, percent, readings, 1f).readings, "exactly the readings' height keeps them");
-        require(ChargingFit.plan(400, line, percent, readings, 2.625f).photo == false,
-                "constants scale with density: 400 px at 2.625 is too short for the photo");
+        require(shortened && closed && shrunk && lineGone && readingsGone, "every step was reached");
+        require(ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).readings, "exactly the readings' height keeps them");
+        require(ChargingFit.plan(260, line, shortLine, percent, readings, 1f).percentScale == 1
+                        && ChargingFit.plan(260, line, shortLine, percent, readings, 2.625f).percentScale < 1,
+                "constants scale with density: 260 px holds the full percentage at 1, not at 2.625");
+        // The fixed time tile: the time to the scooter's own limit below 100%, else the time to full.
+        require(ChargingFit.timeToLimit(90d, false), "a 90% limit: Time to 90%");
+        require(!ChargingFit.timeToLimit(100d, false) && !ChargingFit.timeToLimit(null, false) && !ChargingFit.timeToLimit(Double.NaN, false),
+                "no limit below 100%: Time to full");
+        require(!ChargingFit.timeToLimit(80d, true), "a model that offers charge alerts has no limit: Time to full");
         System.out.println("ChargingFit: " + checks + " checks passed");
     }
 

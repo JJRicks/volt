@@ -15,6 +15,9 @@ public final class ChargeScheduleTest {
     private long onMs, lastReadingMs, resumeMs, lastNow, baseWall, baseMono;
     private boolean paused, cancelRequested, ending;
     private Outcome outcome=Outcome.NONE;
+    /** What ended this test INTERRUPTED from its own readings, for report diagnostics; null otherwise. */
+    private ChargeScheduleController.Interruption why;
+    ChargeScheduleController.Interruption interruption(){return why;}
 
     /** The start is now + 2 min rounded up to a whole minute: enough lead for the arming writes and a pause. */
     public static long start(long now){return Math.floorDiv(now+LEAD_MS+59_999L,60_000L)*60_000L;}
@@ -42,8 +45,8 @@ public final class ChargeScheduleTest {
     Outcome observe(long now,long mono,Integer charging,Double soc,Double target){
         if(outcome!=Outcome.NONE||onMs==0)return outcome;
         // A phone clock changed mid-test would be blamed on the scooter's clock: end without a timing verdict.
-        if(now<beganWallMs||now<lastNow)return end(Outcome.INTERRUPTED);
-        if(mono>0){if(baseMono==0){baseMono=mono;baseWall=now;}else if(Math.abs(now-baseWall-(mono-baseMono))>CLOCK_SLIP_MS)return end(Outcome.INTERRUPTED);}
+        if(now<beganWallMs||now<lastNow)return cut(ChargeScheduleController.Interruption.PHONE_CLOCK_CHANGED);
+        if(mono>0){if(baseMono==0){baseMono=mono;baseWall=now;}else if(Math.abs(now-baseWall-(mono-baseMono))>CLOCK_SLIP_MS)return cut(ChargeScheduleController.Interruption.PHONE_CLOCK_CHANGED);}
         lastNow=now;
         if(charging!=null)lastReadingMs=now;
         // The charger stops by itself at the limit, which would look like a pause that never resumes.
@@ -56,11 +59,12 @@ public final class ChargeScheduleTest {
             resumeMs=now;
             return end(now<startWallMs-EARLY_MS?Outcome.RESUMED_EARLY:now<=startWallMs+LATE_MS?Outcome.PASSED:Outcome.RESUMED_LATE);
         }
-        if(now>=startWallMs+GIVE_UP_MS)return end(paused?Outcome.NO_RESUME:Outcome.INTERRUPTED);
-        if(now-lastReadingMs>STALE_MS)return end(Outcome.INTERRUPTED);
+        if(now>=startWallMs+GIVE_UP_MS)return paused?end(Outcome.NO_RESUME):cut(ChargeScheduleController.Interruption.READINGS_MISSING);
+        if(now-lastReadingMs>STALE_MS)return cut(ChargeScheduleController.Interruption.READINGS_STALE);
         return Outcome.NONE;
     }
     /** Ends without a verdict (cancel, interruption or an arming that failed); a verdict already in stays. */
     Outcome stop(Outcome reason){return outcome!=Outcome.NONE?outcome:end(reason);}
     private Outcome end(Outcome result){outcome=result;return result;}
+    private Outcome cut(ChargeScheduleController.Interruption reason){why=reason;return end(Outcome.INTERRUPTED);}
 }
