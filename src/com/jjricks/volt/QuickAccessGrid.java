@@ -405,7 +405,7 @@ final class QuickAccessGrid extends ViewGroup {
             label.setVisibility(iconsOnly ? GONE : VISIBLE);
             icon.setAlpha(editing && iconsOnly ? .22f : 1f);
             value.setVisibility(iconsOnly || "".equals(value.getTag()) ? GONE : VISIBLE);
-            setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));
+            setPadding(ui.dp(3), ui.dp(compact ? 3 : 7), ui.dp(3), ui.dp(compact ? 3 : 7));
             int side = ui.dp(compact ? 18 : 20);
             icon.getLayoutParams().width = icon.getLayoutParams().height = side;
             ((LinearLayout.LayoutParams)label.getLayoutParams()).topMargin = ui.dp(compact ? 2 : 4);
