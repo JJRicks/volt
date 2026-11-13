@@ -96,6 +96,7 @@ final class QuickAccessGrid extends ViewGroup {
                     : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
+            boolean wasLockState = cell.lockState;
             cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
@@ -151,9 +152,10 @@ final class QuickAccessGrid extends ViewGroup {
                     cell.fullValue = shownValue; cell.shortValue = shortValue;
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
-                    // The value's size, a lock word dropping and a short value are decided while measuring, and a text
-                    // of the same height requests no layout of its own: ask for one on every change.
-                    cell.requestLayout();
+                    // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
+                    if (wasLockState || cell.lockState) cell.requestLayout();
+                    // So are the value's size and a short value: any other change of the value is measured again too.
+                    else cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
