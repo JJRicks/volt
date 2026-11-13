@@ -127,6 +127,11 @@ public final class Telemetry {
      * so once 0x90 reports, the settings byte no longer replaces the mode.
      */
     private boolean homeMode;
+    /**
+     * This model's settings byte 1 is its acceleration setting (ModelRegistry.settingsByteIsAcceleration): it never
+     * stands in for the drive mode, not even before the first home report. Set by BleController before each settings read.
+     */
+    private boolean settingsByteIsAcceleration;
     private Long rawVoltage;
     private Long rawCurrent;
     private Long rawTemperature;
@@ -267,6 +272,9 @@ public final class Telemetry {
         return Collections.unmodifiableList(new ArrayList<Metric>(readings.values()));
     }
 
+    /** Whether the connected model's settings byte 1 is its acceleration setting (ModelRegistry.settingsByteIsAcceleration). */
+    public synchronized void settingsByteIsAcceleration(boolean acceleration) { settingsByteIsAcceleration = acceleration; }
+
     public synchronized Double number(String key) {
         Metric metric = readings.get(key);
         return metric == null ? null : metric.numericValue;
@@ -376,6 +384,7 @@ public final class Telemetry {
         responseStatuses.clear();
         odometerBits = 0;
         homeMode = false;
+        settingsByteIsAcceleration = false;
         rawVoltage = rawCurrent = rawTemperature = null;
         voltageCmd = currentCmd = temperatureCmd = -1;
         voltageMs = currentMs = temperatureMs = -1;
@@ -424,7 +433,7 @@ public final class Telemetry {
         for (int i = 0; i < SETTINGS.length; i++) {
             if (!has(data, i, 1)) continue;
             int value = data[i] & 255;
-            if (i == 1) { raw("settings_mode_raw", value, cmd, time); if (!homeMode) raw("driving_mode", value, cmd, time); }
+            if (i == 1) { raw("settings_mode_raw", value, cmd, time); if (!homeMode && !settingsByteIsAcceleration) raw("driving_mode", value, cmd, time); }
             else if (i == 2) lock(value, cmd, time);
             else if (i == 7) put("display_units", value == 0 ? IMPERIAL
                     : value == 1 ? METRIC : value + " (raw)", (double) value, cmd, time);
