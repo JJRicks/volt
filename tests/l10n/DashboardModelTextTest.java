@@ -71,12 +71,19 @@ public final class DashboardModelTextTest {
         check(expected.equals(actual.toString()), what + ": expected \"" + expected + "\" but was \"" + actual + "\"");
     }
 
+    /**
+     * Shortcuts whose short rung has English of its own, for a Setting tile too narrow for the full name (the owner's
+     * ladder: full name, a shorter whole-word name, then the icon). Every other shortcut's short rung is its label.
+     */
+    static final java.util.Map<String, String> SHORT_ENGLISH = java.util.Collections.singletonMap("charge_alerts", "Alerts");
+    static String shortEnglish(QuickAccessActions.Entry e) { return SHORT_ENGLISH.getOrDefault(e.id, e.label); }
+
     private static void english() {
         for (QuickAccessActions.Entry e : QuickAccessActions.catalog()) {
             same(e.label, e.label().render(), e.id + " label()");
             same(e.label, e.label().english(), e.id + " label().english()");
-            same(e.label, e.shortLabel().render(), e.id + " shortLabel()");
-            same(e.label, e.shortLabel().english(), e.id + " shortLabel().english()");
+            same(shortEnglish(e), e.shortLabel().render(), e.id + " shortLabel()");
+            same(shortEnglish(e), e.shortLabel().english(), e.id + " shortLabel().english()");
             same(e.group, e.groupLabel().render(), e.id + " groupLabel()");
             same(e.group, e.groupLabel().english(), e.id + " groupLabel().english()");
             check(e.id.equals(QuickAccessActions.find(e.id).id), e.id + " find");
@@ -91,7 +98,7 @@ public final class DashboardModelTextTest {
             if (feature == null) {
                 check(e.featureKey == null, e.id + ": a feature shortcut without its feature");
                 same("«" + e.label + "»", e.label().render(), e.id + " marked label()");
-                same("«" + e.label + "»", e.shortLabel().render(), e.id + " marked shortLabel()");
+                same("«" + shortEnglish(e) + "»", e.shortLabel().render(), e.id + " marked shortLabel()");
                 same("«" + e.group + "»", e.groupLabel().render(), e.id + " marked groupLabel()");
             } else {
                 same(feature.label().render(), e.label().render(), e.id + " marked label() is the feature's");
