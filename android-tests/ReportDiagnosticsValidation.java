@@ -42,7 +42,8 @@ import com.jjricks.volt.ScooterProfiles;
  * for that intent only. The file holds the simulator's command and connection events but none of the
  * fixture's serial, MAC, owner key or name; unticking sends the plain email and is remembered. Each
  * email's file is its own snapshot at its own URI: a later report never changes or reaches an earlier
- * one, and old snapshots are pruned. Every email is intercepted in-process and never sent.
+ * one, and old snapshots are pruned. Email to Volt's charge recordings are snapshots under their own
+ * name, gzip-compressed over 25 MB. Every email is intercepted in-process and never sent.
  */
 public final class ReportDiagnosticsValidation extends Instrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
@@ -92,6 +93,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             provider();
             reportIssue();
             checkerEmail();
+            chargeRecordings();
             pruning();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -308,6 +310,58 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         require(!served, "The provider served a snapshot URI with a query");
     }
 
+    /**
+     * Email to Volt's charge recordings (owner's decisions on #383): adopt() serves them under their own name,
+     * volt-charge-recordings.json, typed and named so, and over 25 MB gzip-compressed as volt-charge-recordings.json.gz,
+     * decompressing to the same bytes. The source file is gone afterwards, and each snapshot is served only under its own name.
+     */
+    private void chargeRecordings() throws Exception {
+        Class<?> provider = Class.forName("com.jjricks.volt.DiagnosticsProvider");
+        Method adopt = provider.getDeclaredMethod("adopt", Context.class, File.class); adopt.setAccessible(true);
+        android.content.ContentResolver resolver = getTargetContext().getContentResolver();
+        File small = new File(getTargetContext().getCacheDir(), "charge-recordings-fixture.json");
+        String json = "{\"format\":\"volt-charge-sessions-v1\",\"sessions\":[]}";
+        try (FileOutputStream out = new FileOutputStream(small)) { out.write(json.getBytes(StandardCharsets.UTF_8)); }
+        Uri plain = (Uri) adopt.invoke(null, getTargetContext(), small);
+        require(plain != null && plain.getPath() != null && plain.getPath().matches("/[0-9a-f]{32}/volt-charge-recordings\\.json"), "The recordings are not served under their own name: " + plain);
+        require("application/json".equals(resolver.getType(plain)), "The recordings are not typed application/json: " + resolver.getType(plain));
+        require("volt-charge-recordings.json".equals(displayName(plain)), "The provider does not name the recordings volt-charge-recordings.json");
+        require(json.equals(read(plain)), "The recordings snapshot differs from the file adopted");
+        require(!small.exists(), "The adopted recordings file is still where it was");
+        File large = new File(getTargetContext().getCacheDir(), "charge-recordings-large-fixture.json");
+        long size = 25_000_000L + 4096;
+        try (java.io.OutputStream out = new java.io.BufferedOutputStream(new FileOutputStream(large), 64 * 1024)) { for (long i = 0; i < size; i++) out.write(recordingByte(i)); }
+        require(large.length() > 25_000_000L, "The large fixture is not over 25 MB");
+        Uri zipped = (Uri) adopt.invoke(null, getTargetContext(), large);
+        require(zipped != null && zipped.getPath() != null && zipped.getPath().matches("/[0-9a-f]{32}/volt-charge-recordings\\.json\\.gz"), "Large recordings are not served as volt-charge-recordings.json.gz: " + zipped);
+        require("application/gzip".equals(resolver.getType(zipped)), "Compressed recordings are not typed application/gzip: " + resolver.getType(zipped));
+        require("volt-charge-recordings.json.gz".equals(displayName(zipped)), "The provider does not name the compressed recordings volt-charge-recordings.json.gz");
+        require(!large.exists(), "The large recordings file is still where it was");
+        long at = 0;
+        try (InputStream in = new java.io.BufferedInputStream(new java.util.zip.GZIPInputStream(resolver.openInputStream(zipped)), 64 * 1024)) {
+            for (int b; (b = in.read()) != -1; at++) if (at >= size || b != recordingByte(at)) { require(false, "Decompressed recordings differ at byte " + at); break; }
+        }
+        require(at == size, "Decompressed recordings are " + at + " bytes, not " + size);
+        String authority = getTargetContext().getPackageName() + ".diagnostics";
+        String plainId = plain.getPathSegments().get(0), zippedId = zipped.getPathSegments().get(0);
+        for (String path : new String[]{plainId + "/volt-diagnostics.json", plainId + "/volt-charge-recordings.json.gz",
+                zippedId + "/volt-diagnostics.json", zippedId + "/volt-charge-recordings.json"}) {
+            Uri other = Uri.parse("content://" + authority + "/" + path);
+            boolean refused = false;
+            try (InputStream in = resolver.openInputStream(other)) { refused = in == null; } catch (java.io.FileNotFoundException expected) { refused = true; }
+            require(refused, "A recordings snapshot was served under a name it was not made under: " + other);
+            try (Cursor c = resolver.query(other, null, null, null, null)) { require(c == null, "The provider answered a query for a name the snapshot was not made under: " + other); }
+        }
+    }
+    /** The large recordings fixture's bytes: repetitive JSON-like text, as an export is. */
+    private static final String RECORDING = "{\"t\":1700000000000,\"soc\":57,\"v\":41.3,\"a\":2.1},";
+    private static int recordingByte(long i) { return RECORDING.charAt((int) (i % RECORDING.length())); }
+    private String displayName(Uri uri) {
+        try (Cursor c = getTargetContext().getContentResolver().query(uri, null, null, null, null)) {
+            return c != null && c.moveToFirst() ? c.getString(c.getColumnIndex(OpenableColumns.DISPLAY_NAME)) : null;
+        }
+    }
+
     /** Snapshots older than a day, and all but the newest ten, are pruned on the next write; the new one stays. */
     private void pruning() throws Exception {
         File dir = new File(getTargetContext().getCacheDir(), "diagnostics");
@@ -324,6 +378,9 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             try (FileOutputStream out = new FileOutputStream(f)) { out.write('{'); }
             require(f.setLastModified(now - (20 - i) * 60_000L), "Could not date a snapshot");
         }
+        File staleRecordings = new File(dir, stale + ".volt-charge-recordings.json.gz");
+        try (FileOutputStream out = new FileOutputStream(staleRecordings)) { out.write(0x1f); }
+        require(staleRecordings.setLastModified(now - 25L * 60 * 60 * 1000), "Could not age a recordings snapshot");
         File leftover = new File(dir, "volt-diagnostics.json");
         try (FileOutputStream out = new FileOutputStream(leftover)) { out.write('{'); }
         Class<?> provider = Class.forName("com.jjricks.volt.DiagnosticsProvider");
@@ -333,6 +390,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         String[] names = dir.list(); int snapshots = 0;
         for (String name : names) if (name.matches("[0-9a-f]{32}\\.json")) snapshots++;
         require(!old.exists() && !leftover.exists(), "A day-old snapshot or the old fixed file survived pruning");
+        require(!staleRecordings.exists(), "A day-old charge recordings snapshot survived pruning");
         require(snapshots == 11, "Pruning kept " + snapshots + " snapshots, not the newest ten plus the fresh one");
         for (int i = 0; i < 12; i++)
             require(new File(dir, String.format(Locale.ROOT, "%032x", 0x100 + i) + ".json").exists() == (i >= 2), "Pruning dropped a newer snapshot or kept an older one (" + i + ")");

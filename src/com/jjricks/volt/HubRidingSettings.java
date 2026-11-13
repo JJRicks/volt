@@ -6,7 +6,8 @@ import android.widget.LinearLayout;
 /**
  * Ride › Riding mode (hub layout plan, PR 5): riding mode's display settings as a page, the same menu riding mode's
  * tune sheet shows (MoreScreen.RidingSettingsMenu), so both edit the same keys the same way. Outside riding mode every
- * change may save, and a change only redraws. No text of its own: the menu has it.
+ * change may save, and a change only redraws. No text of its own: the menu has it. Record rides automatically is left
+ * out (RidingSettingsMenu.withoutAutoRecord): its one home in the Hub is Ride › Recording settings; the tune menu keeps it.
  */
 final class HubRidingSettings implements AppScreen {
     private final LinearLayout view;
@@ -14,7 +15,7 @@ final class HubRidingSettings implements AppScreen {
 
     HubRidingSettings(ScreenHost host) {
         view = new LinearLayout(host.activity()); view.setOrientation(LinearLayout.VERTICAL);
-        menu = new MoreScreen.RidingSettingsMenu(host, host.ui(), host.service().settings, host::redraw, () -> true);
+        menu = new MoreScreen.RidingSettingsMenu(host, host.ui(), host.service().settings, host::redraw, () -> true).withoutAutoRecord();
         menu.fill(view);
     }
 
