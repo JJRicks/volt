@@ -38,7 +38,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `phone_placement` | String | global | Durable | Retired: no longer read or written. Older Volt wrote `pocket`/`mounted`; the key stays registered so older backups that hold it restore it. |
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
-| `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. |
+| `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. Absent: OpenStreetMap, or USGS Topo when the basemap is on or explained (approved under the old USGS default; MapDefault). Approving the explanation saves the provider it named. |
+| `map_usgs_switch_answered` | Boolean | global | Durable | The one-time offer to leave USGS was answered (either way). MapDefault. |
 | `stats_favourites`, `stats_chart_favourites` | String set | global | Durable | Favourite readings/charts. |
 | `stats_favourite_order` | String | global | Durable | Favourite order. StatsFavouriteOrder. |
 | `stats_chart_window` | Integer | global | Durable | Chart time window. |
