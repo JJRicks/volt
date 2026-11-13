@@ -116,6 +116,19 @@ final class BackupRegistry {
         add(app, NightSchedule.START_KEY, Integer.class, PREFERENCES);
         add(app, NightSchedule.END_KEY, Integer.class, PREFERENCES);
         exclude(app, NightSchedule.AREA_KEY, String.class, DEVICE);
+        // Home style (HomeStyle): the style and whether the owner chose it travel together; the installation's origin and the
+        // one-time What's new sheet describe this installation's history, so a restored phone keeps its own.
+        add(app, HomeStyle.KEY, String.class, PREFERENCES);
+        add(app, HomeStyle.CHOSEN_KEY, Boolean.class, PREFERENCES);
+        exclude(app, HomeStyle.ORIGIN_KEY, String.class, DEVICE);
+        exclude(app, HomeStyle.WHATS_NEW_SHOWN_KEY, Boolean.class, DEVICE);
+        // Clean Home's moments (HomeMoment): the two switches are app preferences; a closed Just back card names a
+        // ride on this phone.
+        add(app, HomeMoment.CHARGING_KEY, Boolean.class, PREFERENCES);
+        add(app, HomeMoment.RIDE_KEY, Boolean.class, PREFERENCES);
+        exclude(app, HomeMoment.DISMISSED_KEY, String.class, DEVICE);
+        // Clean Home's four quick actions (HomeQuickActions) travel with the scooter, like its Scooter tab menu.
+        prefix(app, HomeQuickActions.KEY_PREFIX, String.class, SCOOTER_PREFERENCES, true);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);
