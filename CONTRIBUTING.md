@@ -97,7 +97,9 @@ Then build the app (this needs the Android SDK; see the [build guide](docs/build
 bash build.sh
 ```
 
-CI does not build the APK and does not run the Android validations under `android-tests/`. You are not required to run those validations. The maintainers run the affected ones on every UI pull request, with the standard screenshot set: 344 dp and 725 dp wide, large text, both themes, and a foldable cover screen where it applies. That pass is the check that catches a moved or renamed row. If a validation fails only because something moved or was renamed, the maintainers update it in a follow-up pull request. If it fails because behavior changed or broke, that comes back to you as a review finding. To make that easy:
+CI also builds, on GitHub's runners with a signing key made for that run only: `bash build.sh`, `VOLT_PSEUDO_LOCALES=1 bash build.sh`, `bash android-tests/build.sh` and `python3 tools/l10n/ship_check.py --aapt required` (job `android-build`), and `bash tools/l10n/prove-english.sh <base> --pseudo` (job `english-proof`). A red build there is yours to fix like any other check.
+
+CI does not run the Android validations under `android-tests/` (they need an emulator). You are not required to run those validations. The maintainers run the affected ones on every UI pull request, with the standard screenshot set: 344 dp and 725 dp wide, large text, both themes, and a foldable cover screen where it applies. That pass is the check that catches a moved or renamed row. If a validation fails only because something moved or was renamed, the maintainers update it in a follow-up pull request. If it fails because behavior changed or broke, that comes back to you as a review finding. To make that easy:
 
 - list what moved, was renamed or was removed, as "old place → new place";
 - keep existing view tags, IDs and content descriptions where you can, because validations and TalkBack find rows by them, and say so when one had to change;

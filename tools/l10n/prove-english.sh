@@ -16,7 +16,7 @@
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
 # --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
 #
-# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 reads "not applied".
+# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 and G5 read "not applied".
 set -uo pipefail
 umask 077
 
@@ -137,8 +137,16 @@ active_sources() {
     done
     return 0
 }
-gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
-FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
+# As in CI (ci_gates.plan): G5 binds a batch, an English change and a kind ci_gates could not tell. An
+# ordinary change may edit characterization tests along with code, so G5 reads "not applied", never PASS,
+# and nothing runs at a first commit; G6 still runs every listed test at head.
+FIRST=""
+if [[ "$KIND" == ordinary ]]; then
+    record "G5 characterization first" "not applied" "an ordinary change may edit characterization tests along with code; G5 binds batches and English changes"
+else
+    gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
+    FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
+fi
 if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
     # An owner-approved English change rewrites its characterization tests to pin the new English, which the
     # base code does not print yet, so they cannot pass at the first commit. Their order is still G5's (above),
@@ -320,7 +328,7 @@ fi
     if [[ "$FAILED" != 0 ]]; then
         echo "Result: FAILED (see above)."
     elif [[ "$KIND" == ordinary ]]; then
-        echo "Result: every gate an ordinary change is held to passed. G1 was not applied, so this is not a proof that English is unchanged."
+        echo "Result: every gate an ordinary change is held to passed. G1 and G5 were not applied, so this is not a proof that English is unchanged."
     else
         echo "Result: every gate that runs locally passed."
     fi

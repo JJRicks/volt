@@ -2,7 +2,8 @@
 
 The existing Java/Python tests and web setup tests/build run on a small ARM Linux
 worker. Android SDK builds, emulator tests, release signing and deployment are
-not part of this worker's job.
+not part of this worker's job. The SDK builds and the English proof (`android-build`,
+`english-proof`) always run on GitHub-hosted runners, signed with a key made for that run.
 
 A lightweight controller runs separately on an existing always-on server. It
 polls the GitHub Actions queue, restores a clean tools snapshot, supplies a
