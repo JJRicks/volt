@@ -1,3 +1,49 @@
+VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGNOSTICS, BATTERY ALERTS SHORTCUT, FIXES (versionCode 59)
+[PHASE 2: date of the release commit]
+
+- Cut from the release/1.13 branch, not from main: release/1.13 starts at
+  v1.13.1 and carries the main pull requests below that don't depend on
+  main's redesigned Home and settings layout, cherry-picked, plus ports
+  of later main work rebuilt for 1.13.1's layout. That redesign, the
+  developer simulator's new scenes and emailing charge recordings are not
+  in this release. Picked from main: #379, #380, #395, #397, #398, #399,
+  #400, #401, #402, #405, #406, #407, #408, #409, #418, #421, #422, #423,
+  #425, #426, #427, #428, #429, #435, #442, #446 and #451. Ported as their
+  own pull requests into release/1.13: [PHASE 2: final list as merged,
+  from #458 to the language top-up and this release's own PR].
+- Every one merged on a head the independent review came back clean on,
+  with CI passing on that head. [PHASE 2: review rounds worth noting.]
+- Each PR's own checks cover its change. [PHASE 2: the main suites and
+  validations per feature: ChargeBarDragTest and ChargeBarValidation,
+  AutoStartPolicyTest and BackgroundRecordingValidation, ShortcutPickerTest,
+  the diagnostics tests and report-diagnostics-344, the charge recording
+  engine's tests, ChargeTimeReadingsTest, MapPinTest, TelemetryTest.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and
+  the per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 1.13.1's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests, the full
+  suite.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- Screen text census against 1.13.1: [PHASE 2: how it was taken and
+  census_diff.py's summary.]
+- Not run for this release: the owner-present parked hardware sweep, and
+  any install or check on a real phone. [PHASE 2: confirm; everything is
+  tested on emulators and in JVM suites only unless the owner checks the
+  candidate on his phone.]
+- ModelRegistry.REPORTED was left as it was in 1.13.1. Adding any
+  compatibility reports received since then is the owner's step.
+- Real-phone checks only the owner can do, not yet done:
+  - the feel of dragging the charge mark (the ticks, the thicker bar) on a
+    real phone, with a real charge limit write and a charge alert level;
+  - Start recording in the background on a real phone with the screen off,
+    and the one-time What's new note after updating from 1.13.1;
+  - Record charges automatically through a real overnight charge;
+  - the time tile's switch and the learned 100% time on a real charge;
+  - a Volt notification tap bringing the open Volt to the front.
+
 VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
 November 11, 2026
 
