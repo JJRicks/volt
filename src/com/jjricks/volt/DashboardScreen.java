@@ -5912,6 +5912,9 @@ public final class DashboardScreen implements AppScreen {
                     if (animator == run) animator = null;
                     if (cancelled) return;
                     settle();
+                    // Each frame's reveal ran before that frame's layout, so the scroll range lagged a frame; reveal once
+                    // more on the settled height (a slow device's last frame can be tens of pixels).
+                    if (next) Motion.beforeNextDraw(block, () -> reveal(body.getHeight()), null);
                 }
             });
             animator = run;
