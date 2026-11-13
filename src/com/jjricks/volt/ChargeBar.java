@@ -19,9 +19,9 @@ import java.util.function.Consumer;
  * level (ChargeBarDrag decides which, and every rule it follows). At rest it draws exactly the floor line Home's
  * Widgets charging view always drew (the charge in red, grey up to the limit) plus the mark. Grabbing the mark and
  * moving sideways thickens the bar under the finger (about 150 ms, eased; instant with animations off), shows the
- * allowed steps and the value being chosen beside the mark, and ticks once per step. The value is committed on the
- * lift: a limit through the Charge limit control's own gates, confirmation and write (Host.chargeLimit), an alert level
- * in the alert settings store. While a limit write is in flight the mark is dimmed and takes no drag; a refusal or a
+ * allowed steps and the value being chosen beside the mark, and ticks once per step (a changed release confirms; a
+ * spring back or cancel is silent). The value is committed on the lift: a limit through the Charge limit control's
+ * own gates, confirmation and write (Host.chargeLimit), an alert level in the alert settings store. While a limit write is in flight the mark is dimmed and takes no drag; a refusal or a
  * value the scooter doesn't keep puts it back. No layout pass runs during a drag: only this view's drawing changes.
  *
  * <p>Built to be placed by its parent as a full-width child at the bottom of the charging stage (Clean can adopt it
@@ -205,8 +205,8 @@ final class ChargeBar extends View {
         BleController ble = service.ble;
         int outcome = commit.resolve(KEY.equals(ble.pending()), ble.featureValue(KEY));
         if (outcome == ChargeBarDrag.Commit.FAILED) {
+            // The words say it; the mark springs back without a haptic (only a step and a commit are felt).
             if (words != null) host.toast(words.failure(ble.commandResults().get(KEY)));
-            Haptics.reject(this);
         }
     }
 
@@ -383,10 +383,10 @@ final class ChargeBar extends View {
                     hold(true);
                     stopSettle();
                     thicken(true);
-                    if (gesture.value != was) Haptics.tick(this);
+                    if (gesture.value != was) tick();
                     drawn = gesture.value; invalidate();
                 } else if (result == ChargeBarDrag.Gesture.STEPPED) {
-                    Haptics.tick(this);
+                    tick();
                     drawn = gesture.value; invalidate();
                 } else if (result == ChargeBarDrag.Gesture.REFUSED) {
                     // A deliberate drag on a mark that can't move: said once, in the control's own words; nothing moves.
@@ -461,13 +461,13 @@ final class ChargeBar extends View {
             ChargeAlertPolicy.Settings alerts = service == null ? null : service.chargeAlerts();
             // The alert sheet's own check (ChargeAlertSheet.current): still offered here and the alert still on.
             boolean saved = alerts != null && alerts.charge && service.chargeAlertsOffered() && service.setChargeAlerts(alerts.charge(true, value));
-            if (saved) commit.report(value);
-            else Haptics.reject(this);
+            if (saved) { commit.report(value); confirm(); }
             settleTo(commit.shown(), false);
             describe();
             return;
         }
         if (kind != ChargeBarDrag.LIMIT) return;
+        confirm();
         commit.ask(value);
         settleTo(commit.shown(), true);
         describe();
@@ -482,6 +482,15 @@ final class ChargeBar extends View {
             invalidate();
         });
     }
+
+    // ---- Haptics -------------------------------------------------------------------------------------------------
+
+    /** Haptics played so far (read by the emulator validation); each goes through Volt's setting and the system's. */
+    int ticks, confirms;
+    /** The mark snapped to a new step under the finger: a light tick (Haptics.tick). Between steps nothing plays. */
+    private void tick() { ticks++; Haptics.tick(this); }
+    /** A changed value was released: a slightly firmer confirm (Haptics.confirm). A spring back or cancel plays nothing. */
+    private void confirm() { confirms++; Haptics.confirm(this); }
 
     // ---- Lifecycle ------------------------------------------------------------------------------------------------
 
@@ -556,7 +565,6 @@ final class ChargeBar extends View {
         int next = set ? ChargeBarDrag.snap(arguments == null ? current : arguments.getFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, current), allowed)
                 : ChargeBarDrag.step(current, forward ? 1 : -1, allowed);
         if (next == current) return false;
-        Haptics.tick(this);
         commitValue(next);
         return true;
     }

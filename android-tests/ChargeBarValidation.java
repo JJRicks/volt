@@ -130,6 +130,8 @@ public final class ChargeBarValidation extends Instrumentation {
         int[] layouts = new int[1];
         ViewTreeObserver.OnGlobalLayoutListener counter = () -> layouts[0]++;
         float step = stepPx();
+        int[] felt = new int[2];
+        main(() -> { felt[0] = bar().ticks; felt[1] = bar().confirms; });
         Finger f = new Finger(mark());
         f.move(slop() + 2, 0, 4);
         f.move(step * 2, 0, 8);
@@ -143,6 +145,9 @@ public final class ChargeBarValidation extends Instrumentation {
             require(b.drawn == 95f, "The mark did not follow two steps: " + b.drawn);
             require(!b.labelBox.isEmpty(), "No value label while dragging");
             require(service.ble.featureValue("charge_limit") == 85 && writes.isEmpty(), "A value was written during the drag");
+            // Two steps snapped (85 to 90 to 95): two ticks; the last small move stayed on 95 and played nothing.
+            require(b.ticks - felt[0] == 2, "Ticks for two steps: " + (b.ticks - felt[0]));
+            require(b.confirms == felt[1], "A confirm played before the lift");
         });
         shot("dragging");
         main(() -> bar().getViewTreeObserver().removeOnGlobalLayoutListener(counter));
@@ -153,7 +158,8 @@ public final class ChargeBarValidation extends Instrumentation {
         await(() -> bar().lift == 0f && bar().drawn == 95f && bar().labelBox.isEmpty(), "The bar did not come to rest on 95");
         SystemClock.sleep(300); settle();
         main(() -> require(writes.equals(Collections.singletonList(95)), "The release wrote " + writes + ", not 95 once"));
-        checks.add("A real drag: thickens, follows in steps (85 to 95), shows the value, no layout pass, nothing written until the lift; the lift writes 95 once");
+        main(() -> require(bar().confirms - felt[1] == 1, "The release of a changed value did not confirm once: " + (bar().confirms - felt[1])));
+        checks.add("A real drag: thickens, follows in steps (85 to 95) with one tick per step, shows the value, no layout pass, nothing written until the lift; the lift writes 95 once with one confirm");
     }
 
     private void verifyNothingWithoutADrag() throws Exception {
@@ -190,6 +196,8 @@ public final class ChargeBarValidation extends Instrumentation {
     private void verifyCancels() throws Exception {
         limit(85);
         float step = stepPx();
+        int[] confirmed = new int[1];
+        main(() -> confirmed[0] = bar().confirms);
         Finger f = new Finger(mark());
         f.move(step * 2, 0, 8);
         f.send(MotionEvent.ACTION_CANCEL, f.x, f.y);
@@ -201,6 +209,7 @@ public final class ChargeBarValidation extends Instrumentation {
         f.move(step * 3, 0, 4);
         f.up(); settle(); SystemClock.sleep(300);
         main(() -> require(writes.isEmpty() && bar().drawn == 85f, "A second finger did not cancel the drag: " + bar().drawn + " " + writes));
+        main(() -> require(bar().confirms == confirmed[0], "A cancelled drag played a confirm"));
         f = new Finger(mark());
         f.move(step * 2, 0, 8);
         main(() -> { service.ble.setSimulationCharging(false); service.ble.tickSimulation(); activity.redraw(); });
