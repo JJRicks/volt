@@ -70,6 +70,7 @@ final class QuickAccessGrid extends ViewGroup {
         android.content.SharedPreferences preferences = host.activity().getSharedPreferences("app_settings", 0);
         String units = preferences.getString("units", "mi");
         ChargeScheduleController.View charge = service == null ? null : service.chargeSchedule();
+        String off = T.commonOff();
         for (int index = 0; index < cells.size(); index++) {
             Cell cell = cells.get(index);
             ScooterCommands.Feature feature = cell.entry.feature();
@@ -78,6 +79,10 @@ final class QuickAccessGrid extends ViewGroup {
             boolean manual = cell.entry.id.equals("feature:timed_charging");
             boolean startTime = cell.entry.id.equals("feature:charge_start");
             boolean chargeControl = doneBy || doneTime || manual || startTime;
+            // Charge alerts are Volt's own setting for the selected scooter: they never wait for a connection, and a
+            // model with a built-in charge limit has none (the tile stays, muted, as an unmapped control's does).
+            boolean alerts = QuickAccessActions.CHARGE_ALERTS_ID.equals(cell.entry.id);
+            boolean alertsMissing = alerts && (service == null || !service.chargeAlertsOffered());
             boolean featureLive = feature != null && live && (feature.type == ScooterCommands.Type.TIME
                     ? service.readingFresh("scheduled_charge_time_raw") : service.featureFresh(feature.key));
             Integer value = feature == null || feature.sensitive ? null : values.get(feature.key);
@@ -88,8 +93,7 @@ final class QuickAccessGrid extends ViewGroup {
             boolean pending = feature != null && ble != null && feature.key.equals(ble.pending());
             // The resolver's decision for this model; an unmapped tile stays in the saved layout, muted.
             CapabilityResolver.Decision decision = feature == null || ble == null ? null : ble.decision(feature.key);
-            boolean unmapped = decision != null && !feature.key.equals("range_algorithm")
-                    && decision.support != CapabilityResolver.Support.KNOWN_ENCODING && !ble.controlOffered(feature.key);
+            boolean unmapped = decision != null && ShortcutPicker.unmapped(feature.key, decision, ble.controlOffered(feature.key));
             if (unmapped) { value = null; featureLive = false; }
             // A choice value outside the model's choices (e.g. a Top speed reading 0) is unreadable, not a setting to show,
             // whatever else holds the control right now (moving, locked).
@@ -126,14 +130,19 @@ final class QuickAccessGrid extends ViewGroup {
                     String time = DisplayTime.clock(host.activity(), preferences, deadline.getTimeInMillis());
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
-                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : T.commonOff();
-                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : T.commonOff();
+                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
+                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
             // Clean Home's Record action says so while a ride is being recorded.
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
+            if (alerts) {
+                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, service == null ? null : service.chargeAlerts());
+                state = level == null ? NO_VALUE : level == 0 ? off : ChargeAlertPolicy.levelText(level);
+                featureLive = level != null;
+            }
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
@@ -149,8 +158,10 @@ final class QuickAccessGrid extends ViewGroup {
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
-                boolean highlight = index == 0 && (live || doneTime) && !editing && !unmapped && (!chargeControl || chargeBlocked == null);
+                boolean highlight = index == 0 && (live || doneTime || alerts) && !editing && !unmapped && !alertsMissing
+                        && (!chargeControl || chargeBlocked == null);
                 boolean muted = (feature != null || chargeControl) && !featureLive;
+                muted |= alerts && !featureLive;
                 cell.label.setTextColor(highlight ? Ui.withAlpha(ui.onAccent, 220) : ui.muted);
                 int tone = highlight ? ui.onAccent : muted ? ui.muted : ui.text;
                 cell.value.setTextColor(tone);
@@ -160,7 +171,7 @@ final class QuickAccessGrid extends ViewGroup {
                             ? charge != null && !charge.busy : ble.featureValue(feature.key) != null
                             && decision != null && decision.available());
                     ((TileAction) cell.icon).appearance(selected && available ? ui.accent : ui.muted, available, highlight);
-                } else ((TileAction) cell.icon).appearance(highlight ? ui.onAccent : ui.muted, !editing, false);
+                } else ((TileAction) cell.icon).appearance(highlight ? ui.onAccent : ui.muted, !editing && !alertsMissing, false);
                 if (cell.highlighted != highlight || cell.isSelected() != selected) {
                     cell.highlighted = highlight; cell.setSelected(selected); cell.updateBackground();
                 }
@@ -177,11 +188,12 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
                 if (cell.isSelected() != selected) { cell.setSelected(selected); cell.updateBackground(); }
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
+                if (alerts && !featureLive) cell.setAlpha(.65f);
             }
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
-                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                    + (unmapped || alertsMissing ? (unmapped && decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());

@@ -2146,13 +2146,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
-            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
-            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
-            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
-            showChargeAlerts(); return;
-        }
+        // Battery alerts (Clean's own, in place of Charge done by on models without scheduled charging, owner's answer
+        // 11; the same id as the Quick access Charge alerts shortcut): one action for both homes. A stored or restored
+        // four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
@@ -2483,6 +2480,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             lock.setAlpha(on?1f:0.5f);
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
+    }
+    /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
+    private void chargeAlertsShortcut(){
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
+        closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;
     private void showChargeAlerts(){
