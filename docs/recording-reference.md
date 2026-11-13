@@ -294,7 +294,10 @@ App preferences > End rides automatically turns this off. Exact rules:
 More > App preferences > Record rides automatically starts a ride when the
 connected scooter moves while Volt is in front (its activity resumed); it
 starts one while Volt is in the background only with Connection & recording >
-Start recording in the background, also off by default. Anything that pauses
+Start recording in the background on, also off by default, and the scooter
+still connected: without Stay connected in background the connection lasts
+about ten seconds after Volt leaves the screen, or longer while something else
+holds it, such as a charge recording or Live charging. Anything that pauses
 Volt counts as background: a window over it, a locked or dark screen, Home or
 another app. Known limit: on Android 8 and 9 a Volt in split screen without
 focus is paused, so it counts as background too. Android doesn't let Volt turn
