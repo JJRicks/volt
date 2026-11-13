@@ -9,7 +9,9 @@ package com.jjricks.volt;
  * map showed USGS, so someone who turned the basemap on (or approved the explanation) under the old
  * default, with no provider saved, keeps USGS rather than being moved to another provider silently.
  * Approving the explanation now saves the provider it was approved for, so this rule only ever matches
- * settings written by an older version, or restored from a backup an older version made.
+ * settings written by an older version, or restored from a backup an older version made. The first time
+ * the rule applies, Volt writes it down as the saved USGS provider, marked as the old default
+ * (USGS_BY_DEFAULT_KEY), so turning the basemap off and on again can never lose it.
  */
 final class MapDefault {
     private MapDefault() { }
@@ -21,18 +23,40 @@ final class MapDefault {
     /** Set once the person answered the offer to leave USGS, whatever the answer; it travels in backups. */
     static final String SWITCH_ANSWERED_KEY = "map_usgs_switch_answered";
 
+    /**
+     * Set with USGS when Volt writes the keepsUsgs() pin down as the saved provider (MapSource.keepPin): USGS
+     * by the old default, not the person's own choice. Every other save of a provider removes it
+     * (MapSource.put), and it travels in backups with the provider it describes.
+     */
+    static final String USGS_BY_DEFAULT_KEY = "map_usgs_by_default";
+
     /** True when no provider is saved and the basemap was on or explained: the old USGS default stays. */
     static boolean keepsUsgs(boolean providerSaved, boolean enabled, boolean explained) {
         return !providerSaved && (enabled || explained);
     }
 
     /**
+     * True when this person is on USGS by the old default rather than by their own choice: the pin is either
+     * still unwritten (keepsUsgs) or written as the saved USGS provider with USGS_BY_DEFAULT_KEY. A saved
+     * provider without that mark, USGS included, is the person's own choice.
+     */
+    static boolean usgsByDefault(boolean providerSaved, boolean savedUsgs, boolean markedByDefault, boolean enabled, boolean explained) {
+        return providerSaved ? savedUsgs && markedByDefault : keepsUsgs(false, enabled, explained);
+    }
+
+    /**
      * The one-time "USGS covers only the United States" offer: only to someone keepsUsgs() keeps on USGS,
      * with the basemap showing, who has not answered it, and whose map lies wholly outside USGS coverage.
-     * Someone who chose a provider, or gets OpenStreetMap as the default, is never asked.
+     * Someone who chose a provider, or gets OpenStreetMap as the default, is never asked. For settings
+     * where the pin may already be written, use asksToLeaveUsgs with usgsByDefault.
      */
     static boolean offersSwitch(boolean providerSaved, boolean enabled, boolean explained, boolean answered, boolean mapInUsgsArea) {
-        return keepsUsgs(providerSaved, enabled, explained) && enabled && !answered && !mapInUsgsArea;
+        return asksToLeaveUsgs(keepsUsgs(providerSaved, enabled, explained), enabled, answered, mapInUsgsArea);
+    }
+
+    /** offersSwitch for someone usgsByDefault() says is on USGS by the old default, written down or not. */
+    static boolean asksToLeaveUsgs(boolean usgsByDefault, boolean enabled, boolean answered, boolean mapInUsgsArea) {
+        return usgsByDefault && enabled && !answered && !mapInUsgsArea;
     }
 
     /**
