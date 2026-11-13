@@ -683,10 +683,10 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run CI's localization steps
   (`python3 -m unittest discover -s tools/l10n`, `python3 tools/l10n/gen_catalog.py --check`,
   `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"`), then, as for any
-  change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
-  pull request does not need it.
-  If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
-  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  change, `bash tests/run.sh` and `bash build.sh`. CI runs `prove-english.sh <base> --pseudo` on every
+  pull request (the `english-proof` job), so an ordinary pull request need not run it by hand.
+  It applies the same rules: G1 and G5 read `not applied`, never PASS, because such a
+  change may change a literal and edit characterization tests with the code, and a golden change reads REPORT, so its report is not a proof that
   English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
@@ -780,7 +780,7 @@ Known limits:
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
@@ -809,7 +809,8 @@ lacks fails.
 **G3.** The round-trip reads the default-configuration strings and plurals straight from the
 `resources.arsc` aapt wrote and compares them with `en.expected.tsv`. It also fails on compiled
 strings the catalog does not know, on styled strings, and on text in any English or non-locale
-configuration. CI cannot run aapt, so CI runs the unit tests against fixtures captured from the
+configuration. CI's `android-build` and `english-proof` jobs run it through `build.sh`; the
+`core-tests` job has no SDK, so it runs the unit tests against fixtures captured from the
 real aapt (`fixtures/aapt/`, `fixtures/aapt-qualified/`); refresh them with
 `tools/l10n/fixtures/aapt/capture.sh` after changing a fixture's `res/`.
 
@@ -843,7 +844,7 @@ path or id.
 **G5.** Characterization tests are the files under `tests/l10n/characterization/`. Every one the
 pull request adds or changes must be added by its first commit and left alone afterwards, and that
 commit changes nothing under `src/` or `res/`. A batch with a `template` or `plural` ledger row must
-have them. `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
+have them. G5 does not bind an ordinary change, in CI or in `prove-english.sh`. For the other kinds `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
 and fails when a characterization test is not an active entry of a `tests/l10n/*.sources` list,
 read as `tests/run.sh` reads it (from `#` on is a comment, the rest is trimmed, and the entry must be
 exactly the test's path). An English change is the exception: its characterization tests pin the
@@ -1454,8 +1455,9 @@ release failure until it is translated again); re-run the council for the change
 tree's `strings*.xml` files; `ship_check.py` also reads a language folder's other XML files.
 
 What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
-providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local
-build compiles the text), and LocaleValidation (it needs an emulator).
+providers need keys) and LocaleValidation (it needs an emulator). The `core-tests` job has no SDK, so its
+`ship_check.py` prints a note instead of running aapt; the `android-build` job runs
+`ship_check.py --aapt required` and the builds on a runner with the SDK.
 
 ### Drafting a whole language with Claude alone
 
