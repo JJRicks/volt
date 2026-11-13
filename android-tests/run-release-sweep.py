@@ -126,6 +126,9 @@ STEPS = [
     runner('compat-owner-profiles', 'run-compat-gating.py', [], '--mode', 'owner-profiles'),
     runner('charge-capture', 'run-charge-capture.py', ['ChargeCaptureValidation']),
     runner('charge-estimates', 'run-charge-capture.py', ['ChargeEstimateValidation'], '--suite', 'estimates'),
+    # ChargeEvidenceValidation's phases across a process end (a test cut off; a scooter selected offline) and an update
+    # (a start armed before it). Here the update is this build standing in for main's (run-charge-evidence.py --previous-app for the real one).
+    runner('charge-evidence-phases', 'run-charge-evidence.py', []),
     runner('battery-widgets', 'run-battery-widgets.py', ['BatteryWidgetValidation']),
     runner('learned-range', 'run-learned-range.py', ['LearnedRangeValidation']),
     runner('ride-auto-stop', 'run-ride-auto-stop.py', ['RideAutoStopValidation']),

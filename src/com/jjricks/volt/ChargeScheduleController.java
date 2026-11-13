@@ -36,7 +36,9 @@ public final class ChargeScheduleController {
         BATTERY_SAVED_NO_ESTIMATE, ENABLE_NOT_CONFIRMED, INTERRUPTED, OTHER }
     /** Why an operation or a test was cut off. Append only. */
     public enum Interruption { LINK_NOT_READY, SCOOTER_CHANGED, GENERATION_CHANGED, TIME_ZONE_CHANGED, UTC_OFFSET_CHANGED, DATA_MAINTENANCE,
-        SIMULATION, SERVICE_ENDED, PHONE_CLOCK_CHANGED, READINGS_STALE, READINGS_MISSING, UNKNOWN }
+        SIMULATION, SERVICE_ENDED, PHONE_CLOCK_CHANGED, READINGS_STALE, READINGS_MISSING, UNKNOWN,
+        /** The app's process ended while a test ran (the diagnostics file found it still running when it next loaded). */
+        PROCESS_ENDED }
     /**
      * Report diagnostics only: hears each saved record (a typed snapshot) and how each operation ended. It cannot send,
      * change the record or block: a journal that throws is ignored, and it is never asked anything back.
@@ -72,6 +74,8 @@ public final class ChargeScheduleController {
         /** Elapsed realtime when now was read; 0 when unknown. */
         public long mono;
         public Integer charging, enabled;
+        /** Report diagnostics only: the status frame enabled comes from is older than the readings' freshness rule. */
+        public boolean statusStale;
         public Long wireStart;
         public Double soc, target, estimateMinutes;
         public TimeZone zone = TimeZone.getDefault();
@@ -98,6 +102,8 @@ public final class ChargeScheduleController {
         public final boolean testPaused;
         /** Volt saw the current intention charging at or after its start. */
         public final boolean started;
+        /** The link generation this record was taken on while the scooter was connected and ready, else -1 (a decoded or offline record). */
+        public final int generation;
         private Diagnostics(State s,Context c){started=s.started;
             mode=s.mode;outcomeMode=s.outcomeMode;alert=s.alert;armedWallMs=s.armed;startWallMs=s.start;deadlineWallMs=s.mode==2?s.deadline:0;wireStart=s.wire;
             // The offset sent with the start is implied by the two; a pair from different writes is not reported.
@@ -106,7 +112,8 @@ public final class ChargeScheduleController {
             outcome=Outcome.values()[s.outcome];outcomeWallMs=s.outcomeMs;outcomeStartWallMs=s.outcomeStart;outcomeSoc=s.outcomeSoc<0?null:(int)Math.round(s.outcomeSoc);outcomeArmedSoc=s.outcomeArmedSoc<0?null:(int)Math.round(s.outcomeArmedSoc);
             outcomeEnabled=s.outcomeEnabled<0?null:s.outcomeEnabled;outcomeWireStart=s.outcomeWire<0?null:s.outcomeWire;
             testOutcome=ChargeScheduleTest.Outcome.values()[s.testOutcome];testWallMs=s.testWall;testStartWallMs=s.testStart;testOffsetSeconds=testOffset(s);testPaused=s.testPaused;testScheduleOff=s.testOff<0?null:s.testOff;
-            boolean live=c.ready&&!c.scope.isEmpty();readEnabled=live&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:null;readWireStart=live?c.wireStart:null;readWallMs=live?c.now:null;
+            boolean live=c.ready&&!c.scope.isEmpty();readEnabled=live&&!c.statusStale&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:null;readWireStart=live?c.wireStart:null;readWallMs=live?c.now:null;
+            generation=live?c.generation:-1;
         }
     }
     public static final class View {
@@ -203,7 +210,7 @@ public final class ChargeScheduleController {
     private Context context(){
         Context raw=driver.context(),c=new Context();
         c.scope=raw.scope;c.ready=raw.ready;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
-        c.charging=raw.charging;c.enabled=raw.enabled;c.wireStart=raw.wireStart;c.soc=raw.soc;c.target=raw.target;c.estimateMinutes=raw.estimateMinutes;
+        c.charging=raw.charging;c.enabled=raw.enabled;c.statusStale=raw.statusStale;c.wireStart=raw.wireStart;c.soc=raw.soc;c.target=raw.target;c.estimateMinutes=raw.estimateMinutes;
         c.timeReason=raw.timeReason;c.toggleReason=raw.toggleReason;c.estimateUnavailableReason=raw.estimateUnavailableReason;c.zone=(TimeZone)raw.zone.clone();return c;
     }
     private State state(Context c){return states.computeIfAbsent(c.scope,k->decode(store.read(k)));}
@@ -283,7 +290,7 @@ public final class ChargeScheduleController {
     /** Records how an armed intention ended, with the readback at that moment; a miss raises its one alert. */
     private static void settle(Context c,State s,int mode,Outcome outcome){
         s.outcome=outcome.ordinal();s.outcomeArmedSoc=s.armedSoc;s.outcomeMs=c.now;s.outcomeStart=s.start;s.outcomeMode=mode;s.outcomeSoc=finite(c.soc)&&c.soc>=0&&c.soc<=100?c.soc:-1;
-        s.outcomeEnabled=c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:-1;s.outcomeWire=c.wireStart!=null&&c.wireStart>=0&&c.wireStart<=0xffffffffL?c.wireStart:-1;
+        s.outcomeEnabled=!c.statusStale&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:-1;s.outcomeWire=c.wireStart!=null&&c.wireStart>=0&&c.wireStart<=0xffffffffL?c.wireStart:-1;
         if(outcome==Outcome.MISSED)s.alert=ALERT_PENDING;
     }
     /** Battery at arming from the freshest reading available; -1 when none is fresh. */
@@ -303,6 +310,8 @@ public final class ChargeScheduleController {
         disable(s.outcomeMode==2||testIntention(s),testIntention(s)?"Scheduled charging is off; ":"Charge done by is off; ",completion);}
     /** A saved record's diagnostics with no live readback: tests and replay tools. */
     static Diagnostics diagnostics(String encoded){return new Diagnostics(decode(encoded),new Context());}
+    /** Tests: a saved record's diagnostics as saved on live connection generation (scope stands in for the scooter). */
+    static Diagnostics diagnostics(String encoded,int generation){Context c=new Context();c.ready=true;c.scope="test";c.generation=generation;return new Diagnostics(decode(encoded),c);}
     /** The selected scooter's schedule record, or null without one. */
     public Diagnostics diagnostics(){Context c=context();return c.scope.isEmpty()?null:new Diagnostics(state(c),c);}
     private void save(Context c,State s){if(c.scope.isEmpty())return;store.write(c.scope,encode(s));

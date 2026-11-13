@@ -49,13 +49,15 @@ The control log is always on and works the same way: about the last 1,000 events
 fixed names, numbers and version strings, so it cannot hold an owner key, PIN or PIN
 digits, serial, Bluetooth address, profile or scooter name, location, route or raw
 packet bytes. A value is never kept for the PIN. For a charge start time and for setting
-the scooter's clock it keeps the time Volt sent and the phone's UTC offset in seconds
-(never a time-zone name), so a report can show what the scooter was told.
+the scooter's clock it keeps the time exactly as Volt sent it (the scooter's local time)
+and the phone's UTC offset in seconds (never a time-zone name), so a report can show what
+the scooter was told and the moment that stands for.
 
 Charge evidence works the same way, one file per saved scooter (at most 256 KB) in private
 storage that is never backed up: the last 10 Scheduled charging and Charge done by plans
-with how each ended and whether the scooter was locked when it was set, at its start and
-at its end; the last 5 schedule tests and why one was cut short; about 300 moments when
+with how each ended, and the battery level, lock and schedule readings at the moment it
+was set, at its start and at its end (each only from a reading taken within 30 seconds after
+that moment while the scooter was connected, else left unknown); the last 5 schedule tests and why one was cut short; about 300 moments when
 charging started or stopped, with the time, battery level, voltage, current, power,
 temperature, schedule switch, start time, lock and whether Volt was on screen; a few
 minutes of readings around a start Volt set and after a test; how each schedule change
@@ -102,7 +104,11 @@ provider receives your IP address and viewed map area; choose **Enable basemap**
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
 
 When enabled, the app requests visible map tiles from
-USGS Topo by default, OpenStreetMap if selected, or your chosen HTTPS provider.
+OpenStreetMap by default, or from USGS Topo (United States only) or your chosen
+HTTPS provider if selected. The first-enable explanation names the provider.
+If you turned Basemap on before OpenStreetMap became the default (Volt 1.13 and
+earlier used USGS Topo) and never chose a provider, Volt keeps using USGS Topo
+for you rather than sending your map area to a provider you did not approve.
 Requests reveal your network address, the requested map area and zoom, and an
 app/version User-Agent to that provider. A visible area can reveal where you
 rode even though Volt does not upload a route file. Tiles are cached locally;

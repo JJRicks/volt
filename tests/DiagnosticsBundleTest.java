@@ -76,9 +76,9 @@ public final class DiagnosticsBundleTest {
         long start = WALL + 3_600_000L, wire = start / 1000 - 6 * 3600;
         for (int i = 0; i < ChargeEvidence.INTENTIONS; i++)
             b.intentions.add(new long[]{WALL + i, 2, start + i, start + 7_200_000L, wire, -21600, 41, 90, 1, ChargeScheduleController.Outcome.MISSED.ordinal(), start + 130_000L,
-                    2, 41, 1, wire, 1, 1, 0, 1});
+                    2, 41, 1, wire, 1, 1, 0, 1, 30_000, 30_000, 30_000});
         b.open = new long[]{WALL + 50, 1, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, ChargeEvidence.NONE, ChargeEvidence.NONE,
-                ChargeEvidence.NONE, ChargeEvidence.NONE, ChargeEvidence.NONE, 1, ChargeEvidence.NONE, ChargeEvidence.NONE, 0};
+                ChargeEvidence.NONE, ChargeEvidence.NONE, ChargeEvidence.NONE, 1, ChargeEvidence.NONE, ChargeEvidence.NONE, 0, 1_500, ChargeEvidence.NONE, ChargeEvidence.NONE};
         for (int i = 0; i < ChargeEvidence.TESTS; i++)
             b.tests.add(new long[]{WALL + i * 600_000L, WALL + i * 600_000L + 120_000L, ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(), ChargeEvidence.NONE, 1, ChargeEvidence.NONE,
                     ChargeScheduleController.Interruption.READINGS_STALE.ordinal()});
@@ -105,8 +105,12 @@ public final class DiagnosticsBundleTest {
                 "[\"done_by\", 0, 3600000, 10800000, ", "\"missed\"", "\"open\"", "\"schedule_tests\": {", "\"readings_stale\"", "\"charging_timeline\": {",
                 "[\"change\", 0, 9999999999, 0, 100, 249999, -999999, -99999, -79, 1, 4294967295, 1, 1, 99999]", "\"dense_windows\": [", "\"kind\": \"test_end\"",
                 "\"schedule_operations\": {", "\"measure_not_set\"", "\"battery_saved_no_estimate\"", "\"generation_changed\"", "\"changes_not_by_volt\": {", "\"timed_charging\"",
-                "\"loaded\": true", "\"storage_healthy\": true"})
+                "\"loaded\": true", "\"storage_healthy\": true", "\"moment_window_ms\": 30000", "\"reading_max_age_ms\": 20000",
+                "\"end_mode\", \"arming_sample_after_ms\", \"soc_at_arming\", \"locked_at_arming\", \"start_sample_after_ms\", \"locked_at_start\", \"end_sample_after_ms\", \"end_soc\", \"end_schedule_on\", \"end_wire_start\", \"locked_at_end\"]",
+                "[\"manual\", 50, 90000000, 176400000, " + (WALL / 1000 + 3600 - 6 * 3600 + 86_400) + ", -21600, 100, 0, \"open\", null, null, 1500, 52, 1, null, null, null, null, null, null, null]",
+                "\"columns\": [\"wall_ms\", \"start_ms\", \"outcome\", \"resume_minus_start_s\", \"paused\", \"schedule_off\", \"interrupted_by\"]"})
             require(json.contains(expected), "evidence holds " + expected);
+        require(!json.contains("\"offset_s\"") && !json.contains("time_sent"), "no column named for a clock offset that is not one, nor a time of two meanings");
         require(!json.contains("\"rows_left_out_for_size\""), "a file within the cap is complete");
         String empty = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(false, new ChargeEvidence.Book())).json(Collections.<String>emptyList());
         require(empty.contains("\"loaded\": false") && empty.contains("\"rows\": []") && empty.contains("\"base_wall_ms\": 0"), "an unloaded book is an empty section");
@@ -119,7 +123,13 @@ public final class DiagnosticsBundleTest {
         List<CommandLog.Record> commands = Arrays.<CommandLog.Record>asList(new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null,
                 CommandLog.Outcome.READBACK_SAME, -1, null, null, 300, 1_792_000_000L, -21600));
         String log = new DiagnosticsBundle("1.13.1", WALL, false).commands(commands, true, true).json(null);
-        require(log.contains("\"time_sent\": 1792000000") && log.contains("\"offset_sent_s\": -21600"), "charge_start carries the start and offset sent");
+        require(log.contains("\"wire_time_s\": 1792000000,") && log.contains("\"utc_s\": 1792021600") && !log.contains("offset") && !log.contains("time_sent"),
+                "charge_start carries the wire start and the UTC instant it stands for (their difference is the offset sent)");
+        // Council review of 4e7c8802 (finding 2): a clock sync uses the same convention, the wire value, not UTC seconds.
+        List<CommandLog.Record> clock = Arrays.<CommandLog.Record>asList(new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "clock_sync", null,
+                CommandLog.Outcome.ACK, -1, null, null, 90, WALL / 1000 - 21600, -21600));
+        String synced = new DiagnosticsBundle("1.13.1", WALL, false).commands(clock, true, true).json(null);
+        require(synced.contains("\"wire_time_s\": " + (WALL / 1000 - 21600) + ",") && synced.contains("\"utc_s\": " + WALL / 1000), "a clock sync's wire time and UTC instant, by name");
     }
 
     /**
@@ -128,7 +138,8 @@ public final class DiagnosticsBundleTest {
      */
     private static void evidenceSecrets() {
         String secret = "248813";
-        int[][] plants = {{0, ChargeEvidence.I_WIRE}, {0, ChargeEvidence.I_ARMED_SOC}, {1, ChargeEvidence.X_OFFSET}, {2, ChargeEvidence.T_MV}, {2, ChargeEvidence.T_ELAPSED},
+        int[][] plants = {{0, ChargeEvidence.I_WIRE}, {0, ChargeEvidence.I_ARMED_SOC}, {0, ChargeEvidence.I_ARMED_READ}, {0, ChargeEvidence.I_START_READ}, {0, ChargeEvidence.I_END_READ},
+                {0, ChargeEvidence.I_LOCK_START}, {1, ChargeEvidence.X_OFFSET}, {2, ChargeEvidence.T_MV}, {2, ChargeEvidence.T_ELAPSED},
                 {2, ChargeEvidence.T_SKIPPED}, {3, ChargeEvidence.D_MV}, {3, ChargeEvidence.D_ELAPSED}, {4, ChargeEvidence.O_DURATION}, {4, ChargeEvidence.O_ELAPSED},
                 {5, ChargeEvidence.C_OLD}, {5, ChargeEvidence.C_NEW}, {5, ChargeEvidence.C_ELAPSED}};
         for (int[] plant : plants) {

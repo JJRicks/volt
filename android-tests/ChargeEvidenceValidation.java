@@ -32,32 +32,46 @@ import com.jjricks.volt.tests.TextCensus;
 
 /**
  * Disposable emulator only; every packet goes to an in-process GATT stand-in, never a radio, and the email is
- * intercepted, never sent. Report diagnostics' charge evidence, end to end on the real service: a Scheduled charging
- * start armed on a locked (fake) UT5 MAX, the start passing, charging flapping, the scooter's own schedule switch going
- * off with no command, then a Scheduled charging test whose charging readings stop while the link stays up. The file
- * comes from Report an issue; the result's "answers" say where it answers each of the seven questions. Then the stores
- * are filled to their caps and Preview opens on that worst-case file (run at 344 dp): time to open, to scroll to the
- * end, and the longest main-thread stall, with no "isn't responding".
+ * intercepted, never sent. Report diagnostics' charge evidence, end to end on the real service. Phase "scenario" (the
+ * default): a Scheduled charging start armed on a locked (fake) UT5 MAX that charging misses (settled at 2 min, the
+ * dialog dismissed), charging flapping after the miss, the scooter's own schedule switch going off with no command, all
+ * watched to 5 min after the start; a second start that passes while the link is down (its lock at the start must be
+ * unknown); then a Scheduled charging test whose charging readings stop while the link stays up. The file comes from
+ * Report an issue; the result's "answers" say where it answers each question. Then the stores are filled to their caps
+ * and Preview opens on that worst-case file (run at 344 dp): time to open, to scroll to the end, and the longest
+ * main-thread stall, with no "isn't responding".
+ * <p>
+ * run-charge-evidence.py drives the other phases across process ends and installs: "kill-test" starts a schedule test
+ * and leaves it running for the runner to kill the process; "after-kill" finds it interrupted (process_ended) and selects
+ * a second scooter while offline, whose file must show; "arm" arms a start (on main's build, or this one with the
+ * evidence files dropped) and "after-upgrade" finds that plan, its start window and its start's lock after the update.
  */
 public final class ChargeEvidenceValidation extends Instrumentation {
     private static final String NAME = "Synthetic evidence fixture", IDENTITY = "A1B2C3D4E5F6", SERIAL = "Q2538ZZ9US7777777", MAC = "C0:FF:EE:00:25:38";
+    private static final String NAME_B = "Second evidence fixture", IDENTITY_B = "B1C2D3E4F5A6", SERIAL_B = "Q2538ZZ9US8888888", MAC_B = "C0:FF:EE:00:25:39";
+    /** The second scooter's synthetic evidence: a first reading with this battery level marks it in the file. */
+    private static final int B_SOC = 77;
     private Bundle args;
     private MainActivity activity;
     private ScooterService service;
     private BleController ble;
     private FakeLink link;
-    private String profileId;
+    private String profileId, profileB, phase;
     private int checks;
-    private boolean admitted;
-    private long start, testWall;
+    private boolean admitted, keepRunning;
+    private long start, start2, testWall, armWire;
     private final ArrayList<String> answers = new ArrayList<>(), timings = new ArrayList<>(), screenshots = new ArrayList<>();
     private final AtomicReference<Intent> started = new AtomicReference<>();
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
+        phase = args.getString("phase", "scenario");
         try {
-            admit(); admitted = true; seed();
+            boolean first = phase.equals("scenario") || phase.equals("kill-test") || phase.equals("arm");
+            require(first || phase.equals("after-kill") || phase.equals("after-upgrade"), "Unknown phase " + phase);
+            admit(first); admitted = true;
+            if (first) seed(); else found();
             addMonitor(new ActivityMonitor() {
                 @Override public ActivityResult onStartActivity(Intent intent) {
                     String action = intent.getAction();
@@ -68,12 +82,21 @@ public final class ChargeEvidenceValidation extends Instrumentation {
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null, 10_000, "App did not launch"); settle();
             service = activity.service();
-            attach();
-            scheduledStart();
-            scheduleTest();
-            String file = report();
-            questions(file);
-            worstCase();
+            switch (phase) {
+                case "kill-test": killTest(); keepRunning = true; break;
+                case "after-kill": afterKill(); break;
+                case "arm": result.putLong("start_wall_ms", arm()); result.putLong("wire", armWire); break;
+                case "after-upgrade": afterUpgrade(); break;
+                default:
+                    attach(true);
+                    missedStart();
+                    disconnectedStart();
+                    scheduleTest();
+                    String file = report();
+                    questions(file);
+                    worstCase();
+            }
+            result.putString("phase", phase);
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", failure.toString()); failure.printStackTrace();
@@ -81,19 +104,22 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         } finally {
             result.putInt("assertions", checks); result.putStringArrayList("answers", answers); result.putStringArrayList("timings", timings);
             result.putStringArrayList("screenshots", screenshots); result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
-            if (admitted && activity != null) try { main(() -> { if (ble != null) require(field(ble, "scanner") == null, "Unexpected Bluetooth scan"); activity.finish(); ScooterService.setUiVisible(false);
+            // kill-test leaves the test running: the runner ends the process, as Android would.
+            if (admitted && activity != null && !keepRunning) try { main(() -> { if (ble != null) require(field(ble, "scanner") == null, "Unexpected Bluetooth scan"); activity.finish(); ScooterService.setUiVisible(false);
                 getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
 
-    private void admit() {
+    /** Emulator, Nearby granted, Bluetooth off; a first phase also needs a fresh install (no app data at all). */
+    private void admit(boolean fresh) {
         String hardware = Build.HARDWARE.toLowerCase(Locale.ROOT);
         require(hardware.contains("ranchu") || hardware.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Physical device refused");
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
             require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant emulator Nearby permission first");
         BluetoothAdapter adapter = getTargetContext().getSystemService(BluetoothManager.class).getAdapter();
         require(adapter != null && !adapter.isEnabled(), "Bluetooth must remain off");
+        if (!fresh) return;
         for (String name : new String[]{"app_settings", "profiles", "scooter", "pending_documents", "control_evidence"}) require(prefs(name).getAll().isEmpty(), "Existing preferences refused");
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Existing app data refused");
@@ -106,42 +132,196 @@ public final class ChargeEvidenceValidation extends Instrumentation {
             ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
             ScooterProfiles.Profile p = profiles.create(NAME, IDENTITY, 0);
             p.serial = SERIAL; p.mac = MAC; p.lastConnected = System.currentTimeMillis() - 60_000; profiles.update(p); profileId = p.id;
+            if (phase.equals("kill-test")) {
+                ScooterProfiles.Profile b = profiles.create(NAME_B, IDENTITY_B, 0);
+                b.serial = SERIAL_B; b.mac = MAC_B; b.lastConnected = System.currentTimeMillis() - 120_000; profiles.update(b); profileB = b.id;
+                profiles.select(profileId);
+            }
         });
+        if (profileB != null) {
+            // The second scooter's evidence from an earlier day: one first reading, its battery level the marker.
+            ChargeEvidence.Book b = new ChargeEvidence.Book();
+            b.timeline.add(new long[]{ChargeEvidence.Kind.FIRST.ordinal(), System.currentTimeMillis() - 3_600_000L, 5_000, 0, B_SOC, 50_400, 0, 0, 24, 0, 0, 1, 1, 0});
+            File dir = new File(getTargetContext().getNoBackupFilesDir(), "charge-evidence");
+            require(dir.isDirectory() || dir.mkdirs(), "No evidence folder");
+            try (FileOutputStream out = new FileOutputStream(new File(dir, profileB))) { out.write(ChargeEvidence.encode(b)); } catch (Exception e) { throw new IllegalStateException(e); }
+        }
         prefs("onboarding").edit().putBoolean("onboarding_done", true).commit();
     }
-    /** The fake link replaces the service's own connection: authenticated, polled by Volt's own loop. */
-    private void attach() {
+    /** A later phase: the fixture scooters an earlier phase saved. */
+    private void found() {
+        main(() -> {
+            for (ScooterProfiles.Profile p : new ScooterProfiles(getTargetContext()).all()) { if (NAME.equals(p.name)) profileId = p.id; if (NAME_B.equals(p.name)) profileB = p.id; }
+        });
+        require(profileId != null, "The earlier phase's scooter is missing");
+    }
+    /** The fake link replaces the service's own connection: authenticated, polled by Volt's own loop. Charging: ready to arm a start. */
+    private void attach(boolean charging) {
         main(() -> { ble = service.ble; link = new FakeLink(); link.attach(); invoke(ble, "poll", new Class<?>[]{int.class}, ble.connectionGeneration()); });
         await(() -> onMain(() -> ble.linked() && ble.ready()), 10_000, "The fake link never became ready");
+        if (!charging) { SystemClock.sleep(3_000); return; }
         main(() -> link.charging(1, 3_000)); SystemClock.sleep(5_000);
         await(() -> onMain(() -> service.chargeSchedule().manualBlockedReason == null && service.chargeSchedule().timeBlockedReason == null), 15_000,
                 "Scheduled charging stayed blocked: " + onMainText(() -> service.chargeSchedule().manualBlockedReason + " / " + service.chargeSchedule().timeBlockedReason));
     }
-
-    /** Questions 1-4, 6 and 7: a start armed while locked, passing, flapping, and the scooter's switch going off by itself. */
-    private void scheduledStart() {
-        long now = System.currentTimeMillis();
-        start = ((now + 75_000) / 60_000 + 1) * 60_000;
-        String set = schedule(done -> service.setManualChargeStart(start, done), "setting the start");
+    /** The same fake scooter on a new connection (the old one closed), as after a reconnect. */
+    private void reconnect() {
+        main(() -> { link.attach(); invoke(ble, "poll", new Class<?>[]{int.class}, ble.connectionGeneration()); });
+        await(() -> onMain(() -> ble.linked() && ble.ready()), 10_000, "The fake link never came back");
+    }
+    /** A manual start about lead ahead (to the next whole minute), set and switched on while charging, then charging pauses for it. */
+    private long armStart(long leadMs) {
+        long at = ((System.currentTimeMillis() + leadMs) / 60_000 + 1) * 60_000;
+        String set = schedule(done -> service.setManualChargeStart(at, done), "setting the start");
         require(set == null, "The start was not set: " + set);
         String on = schedule(done -> service.setManualChargeEnabled(true, done), "turning Scheduled charging on");
         require(on == null, "Scheduled charging did not turn on: " + on);
-        // The scooter pauses until its start.
         main(() -> link.charging(0, 0));
-        while (System.currentTimeMillis() < start + 4_000) SystemClock.sleep(250);
+        return at;
+    }
+    private void scheduleOff() {
+        if (!onMain(() -> service.chargeSchedule().manualEnabled)) return;
+        String off = schedule(done -> service.setManualChargeEnabled(false, done), "turning Scheduled charging off");
+        require(off == null, "Scheduled charging did not turn off: " + off);
+    }
+
+    /**
+     * Questions 1-4, 6 and 7: a start armed while locked that charging misses; the miss settles at 2 min (its dialog
+     * dismissed), then charging flaps and the scooter's own switch goes off with no command, all watched to 5 min after
+     * the start (the start window must keep sampling after the miss).
+     */
+    private void missedStart() {
+        start = armStart(75_000);
+        while (System.currentTimeMillis() < start + ChargeScheduleController.START_GRACE_MS + 15_000) SystemClock.sleep(500);
+        await(() -> onMain(() -> service.chargeSchedule().missed != null || ((Dialog) field(activity, "missedStartDialog")) != null), 20_000, "The start was never missed");
+        await(() -> onMain(() -> { Dialog d = (Dialog) field(activity, "missedStartDialog"); return d != null && d.isShowing(); }), 20_000, "No missed-start dialog");
+        main(() -> ((Dialog) field(activity, "missedStartDialog")).cancel()); settle();
         main(() -> link.charging(1, 3_000));
         for (int i = 0; i < 6; i++) { SystemClock.sleep(2_500); final int c = i % 2 == 0 ? 0 : 1; main(() -> link.charging(c, c * 3_000)); }
         SystemClock.sleep(3_000);
-        // The firmware clears its own schedule switch after the start: no command from Volt.
+        // The firmware clears its own schedule switch: no command from Volt.
         int writes = link.writes.size();
         main(() -> { link.state[33] = 0; });
-        SystemClock.sleep(6_000);
+        while (System.currentTimeMillis() < start + ChargeEvidence.AFTER_START_MS + 5_000) SystemClock.sleep(500);
         require(link.writes.size() == writes, "Volt wrote while it only watched");
-        if (onMain(() -> service.chargeSchedule().manualEnabled)) {
-            String off = schedule(done -> service.setManualChargeEnabled(false, done), "turning Scheduled charging off");
-            require(off == null, "Scheduled charging did not turn off: " + off);
-        }
+        scheduleOff();
+    }
+    /** Finding 1 on the device: a second start passes while the link is down; the next connection's lock is not the lock at the start. */
+    private void disconnectedStart() {
+        main(() -> link.state[33] = 0);
+        start2 = armStart(75_000);
+        SystemClock.sleep(3_000);
+        main(() -> ble.disconnect());
+        await(() -> onMain(() -> !ble.linked()), 10_000, "The link did not close");
+        while (System.currentTimeMillis() < start2 + 8_000) SystemClock.sleep(250);
+        reconnect();
         SystemClock.sleep(6_000);
+        scheduleOff();
+        // Charging again, ready for the schedule test.
+        main(() -> link.charging(1, 3_000));
+        SystemClock.sleep(6_000);
+    }
+
+    /** Finding 5, first half: a schedule test running, on disk as running, when the runner ends the process. */
+    private void killTest() throws Exception {
+        require(profileB != null, "kill-test needs both fixture scooters");
+        attach(true);
+        AtomicReference<String> blocked = new AtomicReference<>();
+        main(() -> blocked.set(service.startScheduleTest()));
+        require(blocked.get() == null, "The schedule test did not start: " + blocked.get());
+        await(() -> onMain(() -> service.chargeSchedule().testPhase != null && service.chargeSchedule().testPhase != ChargeScheduleTest.Phase.ARMING), 20_000, "The test never armed");
+        File file = new File(new File(getTargetContext().getNoBackupFilesDir(), "charge-evidence"), profileId);
+        await(() -> {
+            try {
+                if (!file.isFile()) return false;
+                for (long[] t : ChargeEvidence.decode(java.nio.file.Files.readAllBytes(file.toPath())).tests)
+                    if (t[ChargeEvidence.X_OUTCOME] == ChargeScheduleTest.Outcome.RUNNING.ordinal()) return true;
+                return false;
+            } catch (Exception unreadable) { return false; }
+        }, 30_000, "The running test never reached the file");
+        answers.add("kill-test: schedule test running on disk; the runner now ends the process");
+    }
+    /** Findings 5 and 4 after the process end: the test reads interrupted (process_ended); a scooter selected offline shows its file. */
+    private void afterKill() throws Exception {
+        require(profileB != null, "The second fixture scooter is missing");
+        // Both halves run, so one finding never hides the other.
+        List<String> failures = new ArrayList<>();
+        try {
+            JSONObject a = new JSONObject(report("after-kill-a")).getJSONObject("charge_evidence");
+            Table tests = new Table(a.getJSONObject("schedule_tests")); int found = -1;
+            for (int i = 0; i < tests.size(); i++) require(!"running".equals(tests.str(i, "outcome")), "A test cut off by the process end still reads running: " + tests.row(i));
+            for (int i = 0; i < tests.size(); i++) if ("interrupted".equals(tests.str(i, "outcome")) && "process_ended".equals(tests.str(i, "interrupted_by"))) found = i;
+            require(found >= 0, "The killed test is not interrupted by process_ended: " + a.getJSONObject("schedule_tests"));
+            answers.add("5b process ended mid-test: charge_evidence.schedule_tests outcome=interrupted interrupted_by=process_ended");
+        } catch (AssertionError failure) { failures.add(failure.getMessage()); }
+        main(() -> { Dialog d = (Dialog) field(activity, "reportDialog"); if (d != null) d.cancel(); }); settle();
+        try {
+            select(profileB);
+            JSONObject b = new JSONObject(report("after-kill-b")).getJSONObject("charge_evidence");
+            require(b.getBoolean("loaded"), "A scooter selected while offline was never loaded");
+            Table timeline = new Table(b.getJSONObject("charging_timeline")); boolean marked = false;
+            for (int i = 0; i < timeline.size(); i++) marked |= "first".equals(timeline.str(i, "kind")) && timeline.num(i, "soc") == B_SOC;
+            require(marked, "The second scooter's own evidence is missing: " + b.getJSONObject("charging_timeline"));
+            answers.add("4 selected offline: charge_evidence.loaded=true with the second scooter's own first reading (soc " + B_SOC + ")");
+        } catch (AssertionError failure) { failures.add(failure.getMessage()); }
+        require(failures.isEmpty(), String.join(" | ", failures));
+    }
+    /** As More does: end the transport, select, tell the controller. Offline, no Connect. */
+    private void select(String id) {
+        main(() -> { service.ble.disconnect(); service.profiles.select(id); service.ble.profileSelected(); });
+        settle(); SystemClock.sleep(2_000);
+    }
+    /**
+     * Finding 9, before the update: a start armed (about three minutes ahead) on whichever build is installed; returns its
+     * time. drop_evidence=true (this build standing in for main's) then deletes the evidence files, as main never wrote any.
+     */
+    private long arm() throws Exception {
+        attach(true);
+        start = armStart(150_000);
+        SystemClock.sleep(3_000);
+        long wireLe = 0; for (int i = 0; i < 4; i++) wireLe |= (link.state[27 + i] & 255L) << (8 * i);
+        require(link.state[33] == 1 && wireLe != 0, "The fake scooter did not take the start");
+        if (Boolean.parseBoolean(args.getString("drop_evidence", "false"))) {
+            main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
+            SystemClock.sleep(3_000);
+            File dir = new File(getTargetContext().getNoBackupFilesDir(), "charge-evidence");
+            File[] files = dir.listFiles(); if (files != null) for (File f : files) require(f.delete(), "Could not drop " + f.getName());
+        }
+        // The runner ends this process (or installs over it) next; the armed schedule stays saved.
+        keepRunning = true; armWire = wireLe;
+        answers.add("arm: start " + start + " wire " + wireLe);
+        return start;
+    }
+    /** Finding 9, after the update: the plan armed before it, its start window, and the start's lock from the live connection. */
+    private void afterUpgrade() throws Exception {
+        start = Long.parseLong(args.getString("start", "0"));
+        long wireLe = Long.parseLong(args.getString("wire", "0"));
+        require(start > System.currentTimeMillis() + ChargeEvidence.BEFORE_START_MS, "Too late: the start must still be ahead (" + (start - System.currentTimeMillis()) + " ms)");
+        ble = service.ble; link = new FakeLink();
+        link.state[33] = 1; for (int i = 0; i < 4; i++) link.state[27 + i] = (byte) (wireLe >>> (8 * i));
+        main(() -> { link.attach(); invoke(ble, "poll", new Class<?>[]{int.class}, ble.connectionGeneration()); });
+        await(() -> onMain(() -> ble.linked() && ble.ready()), 10_000, "The fake link never became ready");
+        while (System.currentTimeMillis() < start + 45_000) SystemClock.sleep(500);
+        JSONObject e = new JSONObject(report("after-upgrade")).getJSONObject("charge_evidence");
+        long base = e.getLong("base_wall_ms");
+        Table intentions = new Table(e.getJSONObject("intentions")); int plan = -1;
+        for (int i = 0; i < intentions.size(); i++) if (intentions.has(i, "start_ms") && base + intentions.num(i, "start_ms") == start) plan = i;
+        require(plan >= 0, "The start armed before the update is missing: " + e.getJSONObject("intentions"));
+        require(!intentions.has(plan, "soc_at_arming") && !intentions.has(plan, "locked_at_arming") && !intentions.has(plan, "arming_sample_after_ms"),
+                "Values at arming this build never saw: " + intentions.row(plan));
+        require(intentions.num(plan, "locked_at_start") == 1 && intentions.num(plan, "start_sample_after_ms") >= 0 && intentions.num(plan, "start_sample_after_ms") <= ChargeEvidence.MOMENT_MS,
+                "No lock at the start from the live connection: " + intentions.row(plan));
+        JSONArray windows = e.getJSONArray("dense_windows"); int before = 0, after = 0;
+        for (int w = 0; w < windows.length(); w++) {
+            JSONObject window = windows.getJSONObject(w); if (!"start".equals(window.getString("kind")) || base + window.getLong("anchor_ms") != start) continue;
+            Table rows = new Table(window);
+            for (int i = 0; i < rows.size(); i++) if (base + rows.num(i, "wall_ms") < start) before++; else after++;
+        }
+        require(before >= 1 && after >= 5, "The start window around a start armed before the update: " + before + " before, " + after + " after");
+        answers.add("9 armed before the update: intentions row start_ms present, arming values null (unknown), locked_at_start=1 ("
+                + intentions.num(plan, "start_sample_after_ms") + " ms after), start window " + before + " samples before and " + after + " after");
+        main(() -> { Dialog d = (Dialog) field(activity, "reportDialog"); if (d != null) d.cancel(); }); settle();
+        scheduleOff();
     }
 
     /** Question 5: a test whose charging readings stop while status frames keep coming, so no disconnect is logged. */
@@ -161,23 +341,24 @@ public final class ChargeEvidenceValidation extends Instrumentation {
     }
 
     /** Report an issue: the real sheet and its Preview, then Open email; the attachment is read back through the provider. */
-    private String report() throws Exception {
+    private String report() throws Exception { return report("scenario"); }
+    private String report(String label) throws Exception {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> { View link = root().findViewWithTag("more-report-issue"); link.requestRectangleOnScreen(new Rect(0, 0, link.getWidth(), link.getHeight()), true); });
         settle(); started.set(null);
         main(() -> root().findViewWithTag("more-report-issue").performClick()); settle();
         await(() -> sheet("email-open") != null, 10_000, "No email sheet");
-        String previewed = preview("scenario-preview", false);
+        String previewed = preview(label + "-preview", false);
         main(() -> sheet("email-open").performClick()); settle();
         Intent mail = mail();
         Uri uri = mail.getParcelableExtra(Intent.EXTRA_STREAM);
         require(uri != null && "content".equals(uri.getScheme()), "No attachment");
         String file = read(uri);
         require(file.equals(previewed), "Preview did not show the attached file");
-        for (String secret : new String[]{NAME, IDENTITY, SERIAL, MAC, MAC.replace(":", ""), profileId})
+        for (String secret : new String[]{NAME, IDENTITY, SERIAL, MAC, MAC.replace(":", ""), profileId, NAME_B, IDENTITY_B, SERIAL_B, MAC_B, MAC_B.replace(":", ""), profileB}) if (secret != null)
             require(!file.toUpperCase(Locale.ROOT).contains(secret.toUpperCase(Locale.ROOT)), "A fixture secret reached the file: " + secret);
         File dir = new File(getTargetContext().getExternalFilesDir(null), "charge-evidence-validation"); require(dir.isDirectory() || dir.mkdirs(), "No output folder");
-        try (FileOutputStream out = new FileOutputStream(new File(dir, "scenario-volt-diagnostics.json"))) { out.write(file.getBytes(StandardCharsets.UTF_8)); }
+        try (FileOutputStream out = new FileOutputStream(new File(dir, label + "-volt-diagnostics.json"))) { out.write(file.getBytes(StandardCharsets.UTF_8)); }
         return file;
     }
 
@@ -188,6 +369,9 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         long base = e.getLong("base_wall_ms");
         Table timeline = new Table(e.getJSONObject("charging_timeline")), intentions = new Table(e.getJSONObject("intentions")), tests = new Table(e.getJSONObject("schedule_tests")),
                 ops = new Table(e.getJSONObject("schedule_operations")), changes = new Table(e.getJSONObject("changes_not_by_volt"));
+        // Each question is checked on its own, so a build that misses several shows every one.
+        List<String> failures = new ArrayList<>();
+        try {
         // 1. Charging start and stop times.
         int stops = 0, starts = 0;
         for (int i = 0; i < timeline.size(); i++) if ("change".equals(timeline.str(i, "kind")) && base + timeline.num(i, "wall_ms") >= start) {
@@ -197,50 +381,83 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         require(starts >= 3 && stops >= 3 && timeline.size() < 300, "The timeline lacks the flapping after the start: " + starts + " starts, " + stops + " stops");
         require(timeline.indexOf("kind", "first") >= 0, "The timeline lacks the connection's first reading");
         answers.add("1 charging start/stop: charge_evidence.charging_timeline rows kind=change (charging 1/0, base_wall_ms + wall_ms), " + starts + " starts and " + stops + " stops after the start");
+        } catch (Throwable failure) { failures.add("1: " + failure); }
         // 2 and 3. The plan, how it ended, and the lock at arming and at the start.
         int plan = -1; for (int i = 0; i < intentions.size(); i++) if (intentions.has(i, "start_ms") && base + intentions.num(i, "start_ms") == start) plan = i;
-        require(plan >= 0, "No intention for the start");
-        require("manual".equals(intentions.str(plan, "mode")) && intentions.num(plan, "soc_at_arming") == 50 && !"open".equals(intentions.str(plan, "end")) && intentions.has(plan, "end_ms"),
+        require(plan >= 0, "No intention for the start: " + e.getJSONObject("intentions"));
+        try {
+        require("manual".equals(intentions.str(plan, "mode")) && intentions.num(plan, "soc_at_arming") == 50 && "missed".equals(intentions.str(plan, "end")) && intentions.has(plan, "end_ms"),
                 "The intention lacks its plan or end: " + intentions.row(plan));
         answers.add("2 plan: charge_evidence.intentions row mode=manual start_ms=" + intentions.num(plan, "start_ms") + " soc_at_arming=50 end=" + intentions.str(plan, "end"));
+        // Each moment's values come from one reading a stated time after it, on the connection that was up then.
+        long momentMs = e.getLong("moment_window_ms");
+        require(momentMs == ChargeEvidence.MOMENT_MS && e.getLong("reading_max_age_ms") == ChargeEvidence.READING_MAX_AGE_MS, "The file does not state its reading ages");
+        for (String read : new String[]{"arming_sample_after_ms", "start_sample_after_ms"})
+            require(intentions.has(plan, read) && intentions.num(plan, read) >= 0 && intentions.num(plan, read) <= momentMs, "No fresh reading for " + read + ": " + intentions.row(plan));
         require(intentions.num(plan, "locked_at_arming") == 1 && intentions.has(plan, "locked_at_start") && intentions.num(plan, "locked_at_start") == 1, "Lock at arming/start missing: " + intentions.row(plan));
-        answers.add("3 lock: charge_evidence.intentions locked_at_arming=1 locked_at_start=1 locked_at_end=" + intentions.opt(plan, "locked_at_end"));
+        answers.add("3 lock: charge_evidence.intentions locked_at_arming=1 (" + intentions.num(plan, "arming_sample_after_ms") + " ms after arming) locked_at_start=1 ("
+                + intentions.num(plan, "start_sample_after_ms") + " ms after the start) locked_at_end=" + intentions.opt(plan, "locked_at_end"));
+        } catch (Throwable failure) { failures.add("2-3: " + failure); }
+        try {
+        // A start that passed while the link was down: the next connection's lock is no reading of the lock at the start.
+        int late = -1; for (int i = 0; i < intentions.size(); i++) if (intentions.has(i, "start_ms") && base + intentions.num(i, "start_ms") == start2) late = i;
+        require(late >= 0 && intentions.num(late, "locked_at_arming") == 1, "No intention for the second start: " + e.getJSONObject("intentions"));
+        require(!intentions.has(late, "locked_at_start") && !intentions.has(late, "start_sample_after_ms"), "A start passed offline shows a lock at the start: " + intentions.row(late));
+        answers.add("3b start passed while disconnected: locked_at_start and start_sample_after_ms null (unknown); locked_at_arming=1");
+        } catch (Throwable failure) { failures.add("3b: " + failure); }
+        try {
         // 4. The switch going off by itself.
         int off = -1; for (int i = 0; i < changes.size(); i++) if ("timed_charging".equals(changes.str(i, "reading")) && changes.num(i, "from") == 1 && changes.num(i, "to") == 0) off = i;
         require(off >= 0 && base + changes.num(off, "wall_ms") > start, "The switch going off is not in changes_not_by_volt: " + e.getJSONObject("changes_not_by_volt"));
         for (int i = 0; i < changes.size(); i++) require(!"charge_start".equals(changes.str(i, "reading")) || base + changes.num(i, "wall_ms") > start, "Volt's own start write was blamed on the scooter");
         answers.add("4 switch off: charge_evidence.changes_not_by_volt reading=timed_charging from 1 to 0 at wall_ms=" + changes.num(off, "wall_ms"));
+        } catch (Throwable failure) { failures.add("4: " + failure); }
+        try {
         // 5. Why the test was cut off.
         int test = -1; for (int i = 0; i < tests.size(); i++) if ("interrupted".equals(tests.str(i, "outcome"))) test = i;
         require(test >= 0 && "readings_stale".equals(tests.str(test, "interrupted_by")), "The test's interruption reason is missing: " + e.getJSONObject("schedule_tests"));
         boolean traced = false; for (int i = 0; i < ops.size(); i++) traced |= "test_end".equals(ops.str(i, "op")) && "interrupted".equals(ops.str(i, "result")) && "readings_stale".equals(ops.str(i, "interrupted_by"));
         require(traced, "The operation trace lacks the test's end");
         answers.add("5 test cut off: charge_evidence.schedule_tests interrupted_by=readings_stale, schedule_operations op=test_end result=interrupted; no connection event during the test");
+        } catch (Throwable failure) { failures.add("5: " + failure); }
+        try {
         // 6. What Volt sent.
         JSONArray events = root.getJSONObject("command_log").getJSONArray("events");
         boolean startSent = false, clockSent = false; long wire = intentions.num(plan, "wire_start"), offset = intentions.num(plan, "clock_offset_s");
+        long logBase = root.getJSONObject("command_log").optLong("base_wall_ms", 0);
         for (int i = 0; i < events.length(); i++) {
             JSONObject c = events.getJSONObject(i);
-            if ("charge_start".equals(c.optString("key")) && c.has("time_sent")) startSent |= c.getLong("time_sent") == wire && c.getLong("offset_sent_s") == offset;
-            if ("clock_sync".equals(c.optString("key")) && c.has("time_sent")) clockSent |= Math.abs(c.getLong("time_sent") * 1000 - c.getLong("wall_ms")) < 5_000 && c.getLong("offset_sent_s") == offset;
+            require(!c.has("time_sent") && !c.has("offset_sent_s"), "The command log still uses the two-meaning time_sent");
+            // One convention for both: wire_time_s as it went on the wire (local seconds), utc_s the instant it names.
+            if ("charge_start".equals(c.optString("key")) && c.has("wire_time_s")) startSent |= c.getLong("wire_time_s") == wire && c.getLong("utc_s") == wire - offset;
+            if ("clock_sync".equals(c.optString("key")) && c.has("wire_time_s"))
+                clockSent |= Math.abs(c.getLong("utc_s") * 1000 - (logBase + c.getLong("wall_ms"))) < 5_000 && c.getLong("wire_time_s") - c.getLong("utc_s") == offset;
         }
-        require(startSent && clockSent, "The command log lacks what was sent");
-        answers.add("6 sent: command_log.events key=charge_start time_sent=" + wire + " offset_sent_s=" + offset + "; key=clock_sync time_sent (wall seconds) with offset_sent_s");
+        require(startSent && clockSent, "The command log lacks what was sent: " + events.toString().substring(0, Math.min(2_000, events.toString().length())));
+        answers.add("6 sent: command_log.events key=charge_start wire_time_s=" + wire + " utc_s=" + (wire - offset) + "; key=clock_sync wire_time_s (local seconds) and utc_s (its instant), differing by the offset " + offset);
+        } catch (Throwable failure) { failures.add("6: " + failure); }
+        try {
         // 7. Second by second after the start.
-        JSONArray windows = e.getJSONArray("dense_windows"); int after = 0, flips = 0;
+        JSONArray windows = e.getJSONArray("dense_windows"); int after = 0, flips = 0; long reach = 0;
         for (int w = 0; w < windows.length(); w++) {
+            // The second start (passed offline) has a window of its own.
             JSONObject window = windows.getJSONObject(w); if (!"start".equals(window.getString("kind"))) continue;
-            require(base + window.getLong("anchor_ms") == start, "The start window is anchored elsewhere");
+            long anchor = base + window.getLong("anchor_ms"); require(anchor == start || anchor == start2, "A start window is anchored elsewhere");
+            if (anchor != start) continue;
             Table rows = new Table(window); long last = -1, previous = Long.MIN_VALUE;
             for (int i = 0; i < rows.size(); i++) {
                 long wall = base + rows.num(i, "wall_ms"); require(wall >= previous, "Dense rows out of order"); previous = wall;
-                if (wall >= start) { after++; long c = rows.has(i, "charging") ? rows.num(i, "charging") : -1; if (last >= 0 && c >= 0 && c != last) flips++; if (c >= 0) last = c; }
+                if (wall >= start) { after++; reach = Math.max(reach, wall - start); long c = rows.has(i, "charging") ? rows.num(i, "charging") : -1; if (last >= 0 && c >= 0 && c != last) flips++; if (c >= 0) last = c; }
             }
         }
         require(after >= 10 && flips >= 3, "The start window lacks the seconds after the start: " + after + " samples, " + flips + " flips");
-        answers.add("7 after the start: charge_evidence.dense_windows kind=start, " + after + " samples after the start, " + flips + " charging flips");
+        // The window keeps its own five minutes even though the miss settled the intention at two.
+        require(reach >= ChargeEvidence.AFTER_START_MS - 30_000, "The start window stopped " + reach + " ms after a missed start");
+        answers.add("7 after the start: charge_evidence.dense_windows kind=start, " + after + " samples after the start reaching " + reach / 1000 + " s, " + flips + " charging flips");
         boolean testWindow = false; for (int w = 0; w < windows.length(); w++) testWindow |= "test_end".equals(windows.getJSONObject(w).getString("kind"));
         require(testWindow, "No window after the test ended");
+        } catch (Throwable failure) { failures.add("7: " + failure); }
+        require(failures.isEmpty(), String.join(" | ", failures));
     }
 
     /** Fills the command log, the connection log and this scooter's evidence to their caps, then Preview on that file at this size. */
@@ -280,8 +497,10 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         ChargeEvidence.Book b = new ChargeEvidence.Book();
         long start = wall + 3_600_000L, wire = start / 1000 - 6 * 3600, N = ChargeEvidence.NONE;
         for (int i = 0; i < ChargeEvidence.INTENTIONS; i++)
-            b.intentions.add(new long[]{wall + i, 2, start + i, start + 7_200_000L, wire, -21600, 41, 90, 1, ChargeScheduleController.Outcome.MISSED.ordinal(), start + 130_000L, 2, 41, 1, wire, 1, 1, 0, 1});
-        b.open = new long[]{wall + 50, 1, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, N, N, N, N, N, 1, N, N, 0};
+            b.intentions.add(new long[]{wall + i, 2, start + i, start + 7_200_000L, wire, -21600, 41, 90, 1, ChargeScheduleController.Outcome.MISSED.ordinal(), start + 130_000L, 2, 41, 1, wire, 1, 1, 0, 1,
+                    ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS});
+        b.open = new long[]{wall + 50, 1, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, N, N, N, N, N, 1, N, N, 0, ChargeEvidence.MOMENT_MS, N, N};
+        for (int i = 0; i < ChargeEvidence.OWN_WRITES; i++) b.own.add(new long[]{ChargeEvidence.Watched.CHARGE_START.ordinal(), 4_294_967_295L, wall + i});
         for (int i = 0; i < ChargeEvidence.TESTS; i++)
             b.tests.add(new long[]{wall + i * 600_000L, wall + i * 600_000L + 120_000L, ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(), N, 1, N, ChargeScheduleController.Interruption.READINGS_STALE.ordinal()});
         for (int i = 0; i < ChargeEvidence.TIMELINE; i++) b.timeline.add(new long[]{i % 4, wall + i * 61_000L, 9_999_999_999L + i, i % 2, 100, 249_999, -999_999, -99_999, -79, 1, 4_294_967_295L, 1, 1, 99_999});

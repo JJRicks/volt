@@ -99,9 +99,10 @@ final class DiagnosticsBundle {
                 if (c.reason != null) e.put("reason", lower(c.reason));
                 if (c.read != null) e.put("read", (long) c.read);
                 if (c.elapsedMs >= 0) e.put("elapsed_ms", c.elapsedMs);
-                // charge_start: the wire start sent; clock_sync: the wall seconds sent; each with the UTC offset sent.
-                if (c.time != null) e.put("time_sent", c.time);
-                if (c.offset != null) e.put("offset_sent_s", (long) c.offset);
+                // charge_start and clock_sync, one convention: the local seconds sent on the wire, and the UTC instant they
+                // stand for (seconds); the UTC offset sent is their difference (as charge_schedule's wire_start and clock_offset_s).
+                if (c.time != null) e.put("wire_time_s", c.time);
+                if (c.time != null && c.offset != null) e.put("utc_s", c.time - c.offset);
             }
             events.add(e);
         }
@@ -178,19 +179,25 @@ final class DiagnosticsBundle {
         final long at = base;
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("loaded", snapshot.loaded); m.put("storage_healthy", b.healthy); m.put("base_wall_ms", at);
+        // The rule for every value "at" a moment: from the first sample within moment_window_ms after it, on the connection
+        // that was up at it; *_sample_after_ms says how long after; each sample value was at most reading_max_age_ms old.
+        m.put("moment_window_ms", ChargeEvidence.MOMENT_MS); m.put("reading_max_age_ms", ChargeEvidence.READING_MAX_AGE_MS);
         List<Object> rows = new ArrayList<>();
         for (long[] r : intentions) rows.add(Arrays.asList(mode(r[ChargeEvidence.I_MODE]), rel(r[ChargeEvidence.I_ARMED], at), rel(r[ChargeEvidence.I_START], at),
-                rel(r[ChargeEvidence.I_DEADLINE], at), num(r[ChargeEvidence.I_WIRE]), num(r[ChargeEvidence.I_OFFSET]), num(r[ChargeEvidence.I_ARMED_SOC]),
+                rel(r[ChargeEvidence.I_DEADLINE], at), num(r[ChargeEvidence.I_WIRE]), num(r[ChargeEvidence.I_OFFSET]),
                 num(r[ChargeEvidence.I_TARGET]), num(r[ChargeEvidence.I_STARTED]), end(r[ChargeEvidence.I_END]), rel(r[ChargeEvidence.I_END_WALL], at),
                 mode(r[ChargeEvidence.I_END_MODE]),
-                num(r[ChargeEvidence.I_END_SOC]), num(r[ChargeEvidence.I_END_ENABLED]), num(r[ChargeEvidence.I_END_WIRE]),
-                num(r[ChargeEvidence.I_LOCK_ARMED]), r[ChargeEvidence.I_START_SEEN] == 1 ? num(r[ChargeEvidence.I_LOCK_START]) : null, num(r[ChargeEvidence.I_LOCK_END])));
-        m.put("intentions", table(rows, "mode", "armed_ms", "start_ms", "deadline_ms", "wire_start", "clock_offset_s", "soc_at_arming", "target", "started",
-                "end", "end_ms", "end_mode", "end_soc", "end_schedule_on", "end_wire_start", "locked_at_arming", "locked_at_start", "locked_at_end"));
+                num(r[ChargeEvidence.I_ARMED_READ]), num(r[ChargeEvidence.I_ARMED_SOC]), num(r[ChargeEvidence.I_LOCK_ARMED]),
+                num(r[ChargeEvidence.I_START_READ]), num(r[ChargeEvidence.I_LOCK_START]),
+                num(r[ChargeEvidence.I_END_READ]), num(r[ChargeEvidence.I_END_SOC]), num(r[ChargeEvidence.I_END_ENABLED]), num(r[ChargeEvidence.I_END_WIRE]), num(r[ChargeEvidence.I_LOCK_END])));
+        m.put("intentions", table(rows, "mode", "armed_ms", "start_ms", "deadline_ms", "wire_start", "clock_offset_s", "target", "started",
+                "end", "end_ms", "end_mode", "arming_sample_after_ms", "soc_at_arming", "locked_at_arming", "start_sample_after_ms", "locked_at_start",
+                "end_sample_after_ms", "end_soc", "end_schedule_on", "end_wire_start", "locked_at_end"));
         rows = new ArrayList<>();
         for (long[] r : b.tests) rows.add(Arrays.asList(rel(r[ChargeEvidence.X_WALL], at), rel(r[ChargeEvidence.X_START], at), name(ChargeScheduleTest.Outcome.values(), r[ChargeEvidence.X_OUTCOME]),
                 num(r[ChargeEvidence.X_OFFSET]), num(r[ChargeEvidence.X_PAUSED]), num(r[ChargeEvidence.X_OFF]), name(ChargeScheduleController.Interruption.values(), r[ChargeEvidence.X_WHY])));
-        m.put("schedule_tests", table(rows, "wall_ms", "start_ms", "outcome", "offset_s", "paused", "schedule_off", "interrupted_by"));
+        // resume_minus_start_s: when charging resumed, in seconds after the start (not a clock offset).
+        m.put("schedule_tests", table(rows, "wall_ms", "start_ms", "outcome", "resume_minus_start_s", "paused", "schedule_off", "interrupted_by"));
         rows = new ArrayList<>();
         for (long[] r : b.timeline) rows.add(Arrays.asList(name(ChargeEvidence.Kind.values(), r[ChargeEvidence.T_KIND]), rel(r[ChargeEvidence.T_WALL], at), num(r[ChargeEvidence.T_ELAPSED]),
                 num(r[ChargeEvidence.T_CHARGING]), num(r[ChargeEvidence.T_SOC]), num(r[ChargeEvidence.T_MV]), num(r[ChargeEvidence.T_MA]), num(r[ChargeEvidence.T_W]),
