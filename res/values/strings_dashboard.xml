@@ -523,6 +523,11 @@
     <string name="dashboard_no_matching_settings" volt:screen="Shortcut picker" volt:purpose="placeholder">No matching settings</string>
     <string name="dashboard_choose_shortcut" volt:screen="Shortcut picker" volt:purpose="title">Choose shortcut</string>
     <string name="dashboard_close_shortcut_picker" volt:screen="Shortcut picker" volt:purpose="accessibility description">Close shortcut picker</string>
+    <!-- A collapsible section header in the shortcut picker, spoken: %2$s is the section's name (Ride, Battery, ...), %1$d how many shortcuts it holds; a plural on that number. -->
+    <plurals name="dashboard_picker_section" volt:screen="Shortcut picker" volt:purpose="accessibility description">
+        <item quantity="one">%2$s, %1$d shortcut</item>
+        <item quantity="other">%2$s, %1$d shortcuts</item>
+    </plurals>
     <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
     <!-- A dialog's or slot's Save button. -->
     <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>

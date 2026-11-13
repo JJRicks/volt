@@ -5843,6 +5843,8 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(40), ui.dp(24));
             head.addView(chevron, chevronSize);
             if (android.os.Build.VERSION.SDK_INT >= 28) head.setAccessibilityHeading(true);
+            // Spoken as one heading, "Ride, 8 shortcuts", with its open or closed state (place() sets it).
+            head.setContentDescription(T.dashboardPickerSection(section.entries.size(), section.entries.size(), sectionName(section)));
             head.setAccessibilityDelegate(new View.AccessibilityDelegate() {
                 @Override public void onInitializeAccessibilityNodeInfo(View v, android.view.accessibility.AccessibilityNodeInfo info) {
                     super.onInitializeAccessibilityNodeInfo(v, info);
@@ -5877,6 +5879,7 @@ public final class DashboardScreen implements AppScreen {
             stop();
             expanded = next;
             float turned = next ? -90 : 90;
+            if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(next ? T.statsStateExpanded() : T.statsStateCollapsed());
             ViewGroup.LayoutParams size = body.getLayoutParams();
             int width = body.getWidth() > 0 ? body.getWidth() : block.getWidth();
             if (!animate || !Ui.motionEnabled() || !block.isLaidOut() || width <= 0) {

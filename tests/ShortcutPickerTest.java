@@ -143,6 +143,7 @@ public final class ShortcutPickerTest {
 
         // Charge alerts: only where the model has no built-in charge limit, whether connected or not.
         QuickAccessActions.Entry alerts = QuickAccessActions.find(QuickAccessActions.CHARGE_ALERTS_ID);
+        check(alerts != null && alerts.label.equals("Charge alerts") && alerts.group.equals("Battery"), "the catalog offers Charge alerts in Battery");
         if (alerts != null) {
             check(ShortcutPicker.BATTERY.equals(ShortcutPicker.groupSection(alerts)), "Charge alerts sit in Battery");
             check(!ShortcutPicker.unavailable(alerts, scooter(gt3, true)) && !ShortcutPicker.unavailable(alerts, scooter(gt3, false)),
