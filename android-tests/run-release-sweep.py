@@ -183,6 +183,11 @@ STEPS += [
     *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
       for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline', 'background-switch')],
 ]
+# Start recording in the background's row in More › App preferences and the one-time What's new dialog, at both widths
+# with normal and 1.4x text (the behaviour is auto-start-background-switch).
+STEPS += [inst(f'background-recording-{label}', T + 'BackgroundRecordingValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
+               '-e', 'variant', f'background-recording-{label}', size=size)
+          for label, (size, theme, text) in (('344', PHONE), ('344-large', ('344x882', 'light', '1.4')), ('725', WIDE), ('725-large', WIDE_LARGE))]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
               inst(f'report-shortcuts-{theme}', T + 'ReportShortcutsValidation', '-e', 'theme', theme),

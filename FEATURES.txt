@@ -801,9 +801,15 @@ on emulators only.
 
 Auto-start (More > App preferences, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
-above zero, also in the background with Stay connected in background on (a
-ride started that way has no GPS route). Riding mode > Open automatically
-(also in riding mode's tune menu) opens riding mode the same way, only while Volt is on screen and no dialog
+above zero while Volt is in front (resumed); it starts one while Volt is in
+the background only with More > App preferences > Connection & recording >
+Start recording in the background (also off by default, for updating owners
+too, who are told once in a What's new dialog) and Stay connected in
+background on, and a ride started that way has no GPS route. A locked or dark
+screen, Home, another app or a window over Volt count as background; on
+Android 8 and 9 a Volt in split screen without focus does too (a known limit).
+Riding mode > Open automatically (also in riding mode's tune menu) opens
+riding mode the same way, only while Volt is in front and no dialog
 or sheet is open. A manual stop or backing out holds that switch until the
 scooter reconnects; a ride that ends by itself does not. Emulator-tested.
 
