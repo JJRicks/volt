@@ -1,0 +1,4 @@
+{"back":"Show the charge automatically","key":"home_moment_charging","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fcb0c17fdd7a15ad62313e43a9c6f2332090c84c","target":"Şarjı otomatik göster"}
+{"back":"Battery alerts","key":"home_qa_charge_alerts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a3e5ebbd7d27387561d5b73e97446892da8aee4e","target":"Pil uyarıları"}
+{"back":"Alerts","key":"home_qa_charge_alerts_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7463b09504a12e15a09561e3e0add16f6cbf5c02","target":"Uyarılar"}
+{"back":"Being recorded","key":"home_qa_recording","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28","target":"Kaydediliyor"}

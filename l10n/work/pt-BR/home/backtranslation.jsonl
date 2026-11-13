@@ -1,0 +1,2 @@
+{"back":"Battery alerts","key":"home_qa_charge_alerts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a3e5ebbd7d27387561d5b73e97446892da8aee4e","target":"Alertas de bateria"}
+{"back":"Alerts","key":"home_qa_charge_alerts_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7463b09504a12e15a09561e3e0add16f6cbf5c02","target":"Alertas"}
