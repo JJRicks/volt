@@ -551,19 +551,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** The What's new sheet while it shows; closed with the activity. */
     private AlertDialog whatsNewSheet;
     /**
-     * Shows the one-time What's new sheet about Home styles (Joel 6) when HomeStyle.showWhatsNew says so: an updated
-     * installation whose owner never chose a style and never saw it, on the widget dashboard, resumed, with neither
-     * setup nor riding mode open. Recorded as shown (committed) before it appears, so a crash or rotation never shows it again.
+     * Shows the one-time What's new sheet (Joel 6, 10) when HomeStyle.showWhatsNew says so: an updated installation
+     * that never saw it, on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open,
+     * whether or not the owner already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch).
+     * The sheet records itself as shown (committed) before it appears, so a crash or rotation never shows it again.
      */
     private void maybeShowWhatsNew(){
         if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
         java.util.Map<String,?> all;
         try{all=preferences.getAll();}catch(RuntimeException e){return;}
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
-        // On the widget dashboard, and not while it is being edited.
-        boolean onHome=HubPages.HOME.equals(selectedPage)&&screen instanceof DashboardScreen&&!screen.busy();
-        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
-        preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY,true).commit();
+        // On Home, either style, and not while it is being edited.
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
@@ -3359,18 +3359,21 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /**
      * Battery & charging › Charge history & recordings › Email to Volt: the exported recordings ride the report emails'
-     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read). The export can be tens of
-     * MB, so it is moved into place off the main thread, never read into memory. The subject is fixed English for the
+     * attachment (DiagnosticsProvider: a read-only snapshot only the receiving app may read), under their own name,
+     * volt-charge-recordings.json (ChargeSend.attachment). The export can be tens of MB, so it is moved into place off
+     * the main thread, never read into memory; over 25 MB it arrives already gzip-compressed, as
+     * volt-charge-recordings.json.gz (the owner's decisions on #383): the service compresses it as the last step of
+     * the export, under its exporting flag and before the mailbox hand-over (ChargeSend.prepare; #412 review), so this
+     * step stays a rename and a recreation during the compression can't lose the email. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
-     * and that model, as Report an issue does. A simulated scooter's model is left out: the recordings are the real
-     * profile's. Toasts when the attachment can't be prepared, or no email app can take it.
+     * and that model, as Report an issue does. The model line comes with the file, taken when the row was tapped
+     * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
+     * prepared, or no email app can take it.
      */
     /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
-    private final java.util.function.Consumer<File> chargeMail=file->{if(destroyed)file.delete();else emailChargeRecordings(file);};
-    @Override public void emailChargeRecordings(File recordings){
-        DeviceDescriptor d=scooterService==null?null:scooterService.ble.descriptor();
-        if(d!=null&&d.simulated)d=null;
-        String model=ModelRegistry.modelLine(d),version=AppVersion.name(this);
+    private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{if(destroyed)export.file.delete();else emailChargeRecordings(export.file,export.model);};
+    @Override public void emailChargeRecordings(File recordings,String model){
+        String version=AppVersion.name(this);
         String subject=IssueReport.chargeRecordingsSubject(version,model);
         String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
         new Thread(()->{
@@ -3467,11 +3470,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
         return sendWithUri(subject,body,uri);
     }
-    /** emailWithFile's send, for a snapshot DiagnosticsProvider already holds; false when no app can take it. */
+    /**
+     * emailWithFile's send, for a snapshot DiagnosticsProvider already holds, typed and named as the provider serves it
+     * (volt-diagnostics.json, or the charge recordings' own name, gzip-compressed over 25 MB); false when no app can take it.
+     */
     private boolean sendWithUri(String subject,String body,Uri uri){
-        Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
+        String name=uri.getLastPathSegment(),type=DiagnosticsProvider.type(name);
+        Intent send=new Intent(Intent.ACTION_SEND);send.setType(type==null?DiagnosticsProvider.TYPE:type);
         send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
-        send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));
+        send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(name,uri));
         send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         // Email apps only, as the plain email opens them (a mailto selector); else the chooser of apps that take an email.
         send.setSelector(new Intent(Intent.ACTION_SENDTO,Uri.parse("mailto:")));

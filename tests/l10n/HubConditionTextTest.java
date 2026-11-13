@@ -67,8 +67,8 @@ public final class HubConditionTextTest {
         check(HubText.chargerDetail(false, false, false) == null, "no detail otherwise");
         equal("Stop charge recording before sending the recordings", HubText.chargeSendBusy(), "send while recording");
         equal("Start recording in the background", HubText.recordInBackground(), "background switch");
-        equal("A ride that starts while Volt is in the background has no GPS route.", HubText.recordInBackgroundNote(),
-                "background note");
+        equal("A ride that starts while Volt is in the background or with the screen locked has no GPS route.",
+                HubText.recordInBackgroundNote(), "background note");
     }
 
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
