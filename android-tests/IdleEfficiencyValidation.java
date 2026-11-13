@@ -46,6 +46,8 @@ public final class IdleEfficiencyValidation extends Instrumentation {
     private FakeLink link;
     private int checks;
     private String mode = "", part = "";
+    /** The night mode to put back ("no", "yes", "auto", ...), set while the test has flipped it. */
+    private String nightBack;
     private final StringBuilder timeline = new StringBuilder();
     private final Bundle numbers = new Bundle();
     private final AtomicInteger relayouts = new AtomicInteger();
@@ -71,7 +73,7 @@ public final class IdleEfficiencyValidation extends Instrumentation {
             result.putString("result", "PASS");
         } catch (Throwable error) { result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace(); }
         finally {
-            try { shell("cmd uimode night no"); } catch (RuntimeException ignored) { }
+            try { if (nightBack != null) shell("cmd uimode night " + nightBack); } catch (RuntimeException ignored) { }
             result.putAll(numbers);
             result.putInt("assertions", checks); result.putBoolean("physical_device_tested", false); result.putString("timeline", timeline.toString());
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -235,9 +237,15 @@ public final class IdleEfficiencyValidation extends Instrumentation {
         log("back in Volt: simulation on, startRequested=" + startRequested());
 
         // Android recreates a hidden activity only when it's shown again: the old one unbinds, then the new one binds.
+        // Flip whatever the activity now has (an earlier step, or "auto" at night, may have it dark), and put the mode back after.
+        String night = shell("cmd uimode night").trim();
+        String back = night.substring(night.lastIndexOf(' ') + 1);
+        boolean dark = (activity.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        String flip = dark ? "no" : "yes";
         leaveFor(12 * S);
         ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
-        shell("cmd uimode night yes");
+        nightBack = back;
+        shell("cmd uimode night " + flip);
         SystemClock.sleep(3 * S);
         require(onMain(() -> !Boolean.TRUE.equals(field(simulated, "destroyed"))), "The theme change alone ended the service");
         getTargetContext().startActivity(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP));
@@ -249,9 +257,10 @@ public final class IdleEfficiencyValidation extends Instrumentation {
         numbers.putBoolean("simulator_kept_after_deferred_recreation", kept);
         log("recreated on return after a hidden theme change: " + (kept ? "same service, simulation on" : "simulation lost"));
         require(kept, "A recreation on return lost the simulation");
-        ActivityMonitor back = addMonitor(MainActivity.class.getName(), null, false);
-        shell("cmd uimode night no");
-        MainActivity light = newActivity(back, activity, 15 * S);
+        ActivityMonitor restored = addMonitor(MainActivity.class.getName(), null, false);
+        shell("cmd uimode night " + back);
+        nightBack = null;
+        MainActivity light = newActivity(restored, activity, 15 * S);
         if (light != null) activity = light;
         await(() -> activity.service() != null && onMain(() -> service().isVisible()), 10000, "The activity never came back after the theme change");
 
