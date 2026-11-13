@@ -91,7 +91,7 @@ public final class DashboardModelTileTest {
         for (QuickAccessActions.Entry e : QuickAccessActions.catalog()) {
             if (e.featureKey != null) continue;
             same("full:" + e.label, e.label().render(), e.id + " full rung");
-            same("short:" + e.label, e.shortLabel().render(), e.id + " short rung");
+            same("short:" + DashboardModelTextTest.shortEnglish(e), e.shortLabel().render(), e.id + " short rung");
         }
         same("full:Max. speed", T.dashboardModelTileTopSpeed(), "Max. speed tile key");
         same("full:Charge schedule", T.dashboardModelTileChargeSchedule(), "Charge schedule tile key");
