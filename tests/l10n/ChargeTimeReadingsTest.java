@@ -13,6 +13,7 @@ public final class ChargeTimeReadingsTest {
         drags();
         interruptions();
         visuals();
+        touches();
         System.out.println("ChargeTimeReadingsTest: " + checks + " checks");
     }
 
@@ -143,6 +144,33 @@ public final class ChargeTimeReadingsTest {
         check(dotFill(s, LIMIT) == .5f && dotFill(s, FULL) == .5f, "the dots cross over with the switch");
         run(s);
         check(dotFill(s, FULL) == 1 && dotFill(s, LIMIT) == 0, "at rest on 100%, its dot is filled");
+    }
+
+    /** A touch cut off by a reset (or by the tile's switchability changing under it) does nothing until the next one. */
+    private static void touches() {
+        Touch t = new Touch();
+        check(!t.own() && !t.dead() && !t.cut(), "no finger down: a reset cuts nothing");
+        t.begin(true);
+        check(t.own() && !t.changed(true), "a touch that begins switchable is the tile's");
+        check(t.cut() && t.dead() && !t.own(), "a reset with the finger down (reveal end, hide, a reading going) cuts it");
+        check(!t.cut() && t.dead(), "a second reset leaves it cut, and drops the press only once");
+        check(!t.changed(true) && !t.changed(false), "a cut touch stays cut whatever the tile becomes");
+        t.end();
+        check(!t.dead() && !t.own(), "the lift ends it");
+        t.begin(true);
+        check(t.own(), "the next touch is the tile's again");
+        t.end();
+        t.begin(false);
+        check(!t.own() && !t.dead() && !t.changed(false), "a touch that begins with one reading is the plain tile's");
+        check(t.changed(true), "the second reading arriving mid-touch changes it");
+        check(t.cut() && t.dead(), "and cuts it");
+        t.end(); t.begin(true);
+        check(t.changed(false), "a touch that began switchable is changed by losing the second reading, editing or closing");
+        t.cut(); t.end(); t.begin(true);
+        check(t.own(), "after a cut touch, an ordinary touch works");
+        t.begin(false);
+        check(!t.own() && !t.dead(), "a new first contact starts fresh even without a lift (a missed cancel)");
+        t.end();
     }
 
     /** Runs the switch's animation to its goal in frames, as the tile's animator does. */

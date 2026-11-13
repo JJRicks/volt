@@ -135,4 +135,31 @@ final class ChargeTimeReadings {
             else if (target == resting && progress <= 0) rest(resting);
         }
     }
+
+    /**
+     * One touch on the tile, from its first contact to its lift or cancel. OWN began while the tile could switch and
+     * is the tile's (tap, drag, long press); PLAIN began with one reading or while editing and is the plain tile's;
+     * DEAD was cut off while the finger was down, by a reset of the tile (the reveal ending, shown or hidden, a
+     * reading arriving or going, edit mode, close, detach) or by the tile's switchability changing under it, and
+     * does nothing more (no drag, no switch, no tap) until the next touch begins.
+     */
+    static final class Touch {
+        static final int NONE = 0, OWN = 1, PLAIN = 2, DEAD = 3;
+        int phase = NONE;
+
+        /** The first contact: every touch starts fresh, whatever the last one left. */
+        void begin(boolean switchable) { phase = switchable ? OWN : PLAIN; }
+        /** The lift or cancel, or a first contact nothing in the tile took. */
+        void end() { phase = NONE; }
+        /** A reset with a finger down. True when it cut a touch: the caller drops its press and lets the parents go. */
+        boolean cut() {
+            if (phase == NONE || phase == DEAD) return false;
+            phase = DEAD;
+            return true;
+        }
+        /** Checked on each later event: a touch that began one way and can now switch the other way is cut. */
+        boolean changed(boolean switchable) { return phase == OWN ? !switchable : phase == PLAIN && switchable; }
+        boolean own() { return phase == OWN; }
+        boolean dead() { return phase == DEAD; }
+    }
 }
