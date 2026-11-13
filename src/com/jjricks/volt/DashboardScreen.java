@@ -1670,6 +1670,8 @@ public final class DashboardScreen implements AppScreen {
         /** Optional pill beside the value for a short state. */
         TextView tag;
         int heightBudget = Integer.MAX_VALUE;
+        /** Below this width (dp, times the text scale) the label icon hides; Clean's charging tiles keep it longer. */
+        int narrowDp = 170;
         InfoCell(String icon, String full, String normal, String compact) {
             super(host.activity());
             setOrientation(VERTICAL);
@@ -1739,7 +1741,7 @@ public final class DashboardScreen implements AppScreen {
                     : pixels - getChildAt(0).getMeasuredHeight() - ui.dp(10));
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            boolean narrow = MeasureSpec.getSize(widthSpec) < ui.dp(170 * ui.textScale
+            boolean narrow = MeasureSpec.getSize(widthSpec) < ui.dp(narrowDp * ui.textScale
                     * getResources().getConfiguration().fontScale);
             int inset = ui.dp(narrow ? 6 : 12);
             int vertical = ui.dp(heightBudget == Integer.MAX_VALUE ? 10 : 4);
@@ -1756,6 +1758,8 @@ public final class DashboardScreen implements AppScreen {
         int columns;
         /** An odd tile out sits alone on the first row rather than the last, keeping the later pair together. */
         boolean loneFirst;
+        /** Two columns from this row width (dp) at any text scale; 0 keeps the usual 280 dp times the text scale. */
+        int pairDp;
         InfoTiles() { super(host.activity()); setOrientation(VERTICAL); }
         /** Shows or hides one tile; the rest close up. */
         void show(InfoCell cell, boolean shown) {
@@ -1797,7 +1801,7 @@ public final class DashboardScreen implements AppScreen {
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             ArrayList<InfoCell> shown = new ArrayList<>();
             for (InfoCell cell : cells) if (cell.getVisibility() != GONE) shown.add(cell);
-            int next = MeasureSpec.getSize(widthSpec) >= ui.dp(280 * ui.textScale) ? 2 : 1;
+            int next = MeasureSpec.getSize(widthSpec) >= ui.dp(pairDp > 0 ? pairDp : 280 * ui.textScale) ? 2 : 1;
             next = Math.min(next, Math.max(1, shown.size()));
             if (next != columns) {
                 columns = next;
@@ -2292,9 +2296,10 @@ public final class DashboardScreen implements AppScreen {
         final LinearLayout rows;
         /** The model has a photo; there is room for it (always on Widgets; Clean's slot can be too small). */
         boolean photoKnown, photoRoom = true;
-        /** Clean: the percentage's full text size in pixels (ChargingFit shrinks it from there), and its fade. */
+        /** Clean: the percentage's full text size in pixels (ChargingFit shrinks it from there). */
         float percentFullPx;
-        android.graphics.drawable.Drawable percentFade;
+        /** Clean: where the photo and its scooter are in the stage (ChargingPhoto), or null while it does not show. */
+        ChargingPhoto.Place photoPlace;
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2312,10 +2317,14 @@ public final class DashboardScreen implements AppScreen {
             chip.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accent, 14), null, null, null);
             chip.setCompoundDrawablePadding(ui.dp(5));
             if (clean) {
-                // A plain muted line: no chip, no bolt.
+                // A plain muted line: no chip, no bolt. The card clips to its rounded edge, and only there: the glow under
+                // the photo fades out at the card's edge rather than at the stage's (owner, 6849341616).
                 setGravity(Gravity.START);
                 setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
                 setBackground(ui.shape(ui.surface, 20, 0));
+                setClipChildren(false);
+                setClipToPadding(false);
+                setClipToOutline(true);
                 chip.setTypeface(ui.regular());
                 chip.setTextColor(ui.muted);
                 chip.setPadding(0, 0, 0, 0);
@@ -2330,10 +2339,9 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams percentSize = new LinearLayout.LayoutParams(-2, -2);
             percentSize.topMargin = ui.dp(6);
             if (clean) {
-                // A soft fade in the card's own colour keeps the percentage readable over the photo that reaches up
-                // behind it; it fades out inside the percentage's bounds, so it never ends in a hard edge.
-                percentFade = new SoftFade(Ui.withAlpha(ui.surface, ui.dark ? 150 : 170));
-                percent.setPadding(ui.dp(4), 0, ui.dp(12), 0);
+                // The Layout Plan's 60 sp (the battery card's size); the photo stands beside it and never behind it.
+                percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, percent.getTextSize() * ChargingFit.PERCENT_SP / 72f);
+                percent.setPadding(0, 0, 0, 0);
                 percent.setTranslationZ(1);
                 percentSize.topMargin = 0;
                 percentFullPx = percent.getTextSize();
@@ -2347,10 +2355,11 @@ public final class DashboardScreen implements AppScreen {
                     new FrameLayout.LayoutParams(-1, ui.dp(196), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             photoSize.bottomMargin = ui.dp(20);
             if (clean) {
-                // The photo takes the slot's spare height, anchored right, and reaches up behind the percentage.
-                photo.setScaleType(ImageView.ScaleType.FIT_END);
-                photoSize.height = -1;
-                photoSize.bottomMargin = ui.dp(18);
+                // The square picture, sized and placed by ChargingPhoto while measuring (onMeasure).
+                photoSize.gravity = Gravity.TOP | Gravity.START;
+                photoSize.bottomMargin = 0;
+                stage.setClipChildren(false);
+                stage.setClipToPadding(false);
             }
             stage.addView(photo, photoSize);
             bar = clean ? null : new ChargeBar(host.activity(), ui, barHost(), .06f, 3, 18);
@@ -2369,6 +2378,17 @@ public final class DashboardScreen implements AppScreen {
             tiles.add(timeTile);
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
+            if (clean) {
+                // The Layout Plan's tiles (152 x 66 dp, 21 sp values, an icon beside each label): smaller values and
+                // minimum, icons kept in a 344 dp phone's tiles, and the pair kept side by side at large text, where a
+                // stacked pair would take the percentage's room (ChargingFit).
+                tiles.pairDp = ChargingFit.PAIR_DP;
+                for (InfoCell cell : new InfoCell[] {powerCell, timeTile}) cell.narrowDp = 120;
+                for (TextView value : new TextView[] {power, timeTile.values[0], timeTile.values[1]}) {
+                    ((FittedValue) value).capAt(Math.round(ChargingFit.VALUE_SP * ui.textScale));
+                    value.setMinHeight(ui.dp(ChargingFit.VALUE_MIN_DP * ui.textScale));
+                }
+            }
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
         }
@@ -2487,7 +2507,7 @@ public final class DashboardScreen implements AppScreen {
                 percent.measure(across, free);
                 drift = percent.getMeasuredHeight() - ChargingFit.scaled(fullPercent, plan.percentScale);
             }
-            if (percent.getBackground() != (plan.photo ? percentFade : null)) percent.setBackground(plan.photo ? percentFade : null);
+            ((LinearLayout.LayoutParams) percent.getLayoutParams()).topMargin = plan.percent ? plan.percentTopMargin : 0;
             LinearLayout.LayoutParams stageSize = (LinearLayout.LayoutParams) stage.getLayoutParams();
             stageSize.weight = 0;
             stageSize.height = plan.stageHeight == 0 ? 0 : Math.max(1, plan.stageHeight - drift);
@@ -2495,9 +2515,30 @@ public final class DashboardScreen implements AppScreen {
             shown(stage, plan.stageHeight > 0);
             shown(rows, plan.readings);
             ((LinearLayout.LayoutParams) rows.getLayoutParams()).topMargin = plan.readingsGap;
-            photoRoom = plan.photo;
+            placePhoto(plan, width, across, free);
             showPhoto();
             super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /**
+         * Clean: the owner's photo rule (6849341616, ChargingPhoto): the scooter runs from 8 dp under the line (the
+         * stage's top) to 8 dp above the track, by its kind of photo, clear of the percentage beside it.
+         */
+        private void placePhoto(ChargingFit.Plan plan, int width, int across, int free) {
+            photoPlace = null;
+            if (plan.photo && photoKnown) {
+                percent.measure(across, free);
+                int pad = ui.dp(ChargingFit.PHOTO_PAD_DP);
+                photoPlace = ChargingPhoto.place(ChargingPhoto.of(ModelRegistry.photo(activeModel())), width, pad,
+                        plan.stageHeight - ui.dp(ChargingFit.TRACK_DP) - pad, percent.getMeasuredWidth() + ui.dp(12),
+                        ui.dp(ChargingFit.PHOTO_MIN_DP));
+            }
+            photoRoom = photoPlace != null;
+            if (photoPlace == null) return;
+            FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) photo.getLayoutParams();
+            size.width = size.height = photoPlace.size;
+            size.leftMargin = photoPlace.left;
+            size.topMargin = photoPlace.top;
         }
 
         /** Clean: the percentage at a share of its full size. */
@@ -2616,6 +2657,11 @@ public final class DashboardScreen implements AppScreen {
             @Override
             protected void onDraw(Canvas canvas) {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
+                if (clean) {
+                    if (photo.getVisibility() == View.VISIBLE && photoPlace != null && w > 0) drawCleanGlow(canvas, w);
+                    drawTrack(canvas, w, getHeight());
+                    return;
+                }
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
                     // A soft red glow on the floor under the wheels.
                     // While charging it breathes slowly in brightness and width only; its centre,
@@ -2640,8 +2686,38 @@ public final class DashboardScreen implements AppScreen {
                     paint.setAlpha(255);
                     canvas.restore();
                 }
-                if (clean) { drawTrack(canvas, w, getHeight()); return; }
                 // Widgets: the floor line is the bar's (ChargeBar), drawn with its mark.
+            }
+
+            /**
+             * Clean: the red glow under the scooter's wheels follows the scooter and scales with it (owner, 6849341616),
+             * and fades out at the card's edge at the latest: its radius never reaches past the card (the stage's sides
+             * plus the card's padding), so it never ends in a hard line.
+             */
+            private void drawCleanGlow(Canvas canvas, float w) {
+                ChargingPhoto.Place place = photoPlace;
+                float cx = (place.scooterLeft + place.scooterRight) / 2, floor = place.scooterBottom - ui.dp(3);
+                float rx = Math.min(place.scooterWidth() * .85f,
+                        Math.min(cx + ChargingHero.this.getPaddingLeft(), w - cx + ChargingHero.this.getPaddingRight()));
+                if (rx <= 0) return;
+                float ry = Math.max(ui.dp(10), Math.min(rx * .3f, place.scooterHeight() * .22f));
+                int color = ui.accent;
+                if (glowShader == null || rx != glowRadius || color != glowColor) {
+                    glowShader = new RadialGradient(0, 0, rx,
+                            new int[] {Ui.withAlpha(color, ui.dark ? 140 : 90), Ui.withAlpha(color, 0)},
+                            null, Shader.TileMode.CLAMP);
+                    glowRadius = rx; glowColor = color;
+                }
+                canvas.save();
+                canvas.translate(cx, floor);
+                canvas.scale(.94f + .06f * glow, ry / rx);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setShader(glowShader);
+                paint.setAlpha(Math.round(255 * (.72f + .28f * glow)));
+                canvas.drawCircle(0, 0, rx, paint);
+                paint.setShader(null);
+                paint.setAlpha(255);
+                canvas.restore();
             }
 
             /**
@@ -2666,30 +2742,6 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
         }
-    }
-
-    /**
-     * A fade of one colour, strongest in the middle and gone at the edge of the ellipse inside its bounds: no hard
-     * edge wherever the bounds end (Clean's charging percentage, council review 5886927849).
-     */
-    private static final class SoftFade extends android.graphics.drawable.Drawable {
-        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        final int color;
-        SoftFade(int color) {
-            this.color = color;
-            paint.setShader(new RadialGradient(0, 0, 1, new int[] {color, color, Ui.withAlpha(color, 0)},
-                    new float[] {0, .45f, 1}, Shader.TileMode.CLAMP));
-        }
-        @Override protected void onBoundsChange(Rect bounds) {
-            Matrix place = new Matrix();
-            place.setScale(Math.max(1, bounds.width() / 2f), Math.max(1, bounds.height() / 2f));
-            place.postTranslate(bounds.exactCenterX(), bounds.exactCenterY());
-            paint.getShader().setLocalMatrix(place);
-        }
-        @Override public void draw(Canvas canvas) { canvas.drawRect(getBounds(), paint); }
-        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
-        @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
-        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** Types whose content carries its own heading, so the card shows no title line. */

@@ -4,13 +4,15 @@ package com.jjricks.volt;
  * How Clean Home's charging view (DashboardScreen.ChargingHero in Clean's top area) shares its fixed-height slot.
  * Pure Java, so the JVM suite tests it at the sizes the maintainers check (tests/ChargingFitTest.java).
  *
- * <p>The view stacks, top to bottom: the muted "Charging" line, the big percentage, a stage (the scooter's photo,
- * which reaches up behind the percentage, over the track along the stage's bottom) and the readings row (charging
- * power beside the switching time tile). The readings are the point of the view, so they are the last thing to
- * give way. When the slot is short (a short window, a narrow one whose readings stack, large text), things give
- * way in this order:
+ * <p>The view stacks, top to bottom: the muted "Charging" line, the big percentage, a stage (the scooter's photo
+ * beside the percentage, over the track along the stage's bottom) and the readings row (charging power beside the
+ * switching time tile). With room for everything, the percentage sits in the middle of the space between the line
+ * and the track, and the stage starts right under the line, so the photo can run from 8 dp under the line to 8 dp
+ * above the track beside the percentage (owner's photo rule, #383 6849341616; ChargingPhoto places it). The readings
+ * are the point of the view, so they are the last thing to give way. When the slot is short (a short window, a
+ * narrow one whose readings stack, large text), things give way in this order:
  * <ol>
- *   <li>the photo (it needs {@link #PHOTO_MIN_DP} under the percentage);</li>
+ *   <li>the photo (it needs {@link #PHOTO_MIN_DP} between its two 8 dp margins);</li>
  *   <li>the percentage gets smaller, down to {@link #HALF_SCALE} of its size;</li>
  *   <li>the "Charging" line;</li>
  *   <li>the percentage gets smaller still, down to {@link #PERCENT_MIN_SCALE} of its size, with the track kept under
@@ -20,17 +22,25 @@ package com.jjricks.volt;
  *   <li>only then the readings, when the slot is shorter than the readings alone.</li>
  * </ol>
  * Every height given is in pixels, every constant in dp scaled by {@code density}. The plan stacks what it shows
- * with no overlap except the photo's own reach behind the percentage ({@link #OVERLAP_DP}, only while the photo
- * shows), and the stage (or, with no stage, the space above the readings) takes any height left over, so the
- * readings end at the slot's bottom and nothing is left empty under them.
+ * with no overlap except the stage's reach up beside the percentage (only while the photo shows; the photo itself
+ * never overlaps the percentage), and the stage (or, with no stage, the space above the readings) takes any height
+ * left over, so the readings end at the slot's bottom and nothing is left empty under them.
  */
 final class ChargingFit {
     /** The track's thickness, and the space above it when it follows the percentage directly. */
     static final int TRACK_DP = 8, TRACK_GAP_DP = 8;
     /** The space between the track and the readings: the view's own 12 dp padding, so the track never touches the tiles. */
     static final int READINGS_GAP_DP = 12;
-    /** The stage under the percentage needs this much before the photo shows (it then reaches up behind the percentage). */
-    static final int PHOTO_MIN_DP = 72, OVERLAP_DP = 40;
+    /** The photo's least height between its margins, and its margin under the line and above the track. */
+    static final int PHOTO_MIN_DP = 72, PHOTO_PAD_DP = 8;
+    /**
+     * Clean's charging readings as the Layout Plan draws them (152 x 66 dp tiles): the value's text size (sp) and its
+     * least height (dp, both times the text scale), and the row width from which the two tiles pair up (dp, at any text
+     * scale: a pair at 1.4x text keeps the percentage in view on a 344 dp phone).
+     */
+    static final int VALUE_SP = 21, VALUE_MIN_DP = 28, PAIR_DP = 240;
+    /** The percentage's text size (sp, before the text scale): the Layout Plan's 60 sp, as on the battery card. */
+    static final int PERCENT_SP = 60;
     /**
      * The line stays only while the percentage can keep half its size (72 sp becomes 36 sp), and without the track the
      * percentage keeps at least half its size too; with the track under it and no line, it may get as small as
@@ -45,27 +55,32 @@ final class ChargingFit {
         final boolean line, percent, photo, track, readings;
         /** The percentage's text size as a share of its full size (1 when it is not shrunk or not shown). */
         final float percentScale;
-        /** The stage's height and top margin (negative: the photo's reach behind the percentage); 0 with no stage. */
+        /** The stage's height and top margin (negative: its reach up beside the percentage); 0 with no stage. */
         final int stageHeight, stageTopMargin;
-        /** The space above the readings. */
-        final int readingsGap;
+        /** The space above the readings, and above the percentage (it sits in the middle of its room). */
+        final int readingsGap, percentTopMargin;
 
         Plan(boolean line, boolean percent, float percentScale, boolean photo, boolean track, int stageHeight,
              int stageTopMargin, boolean readings, int readingsGap) {
+            this(line, percent, percentScale, photo, track, stageHeight, stageTopMargin, readings, readingsGap, 0);
+        }
+
+        Plan(boolean line, boolean percent, float percentScale, boolean photo, boolean track, int stageHeight,
+             int stageTopMargin, boolean readings, int readingsGap, int percentTopMargin) {
             this.line = line; this.percent = percent; this.percentScale = percentScale; this.photo = photo;
             this.track = track; this.stageHeight = stageHeight; this.stageTopMargin = stageTopMargin;
-            this.readings = readings; this.readingsGap = readingsGap;
+            this.readings = readings; this.readingsGap = readingsGap; this.percentTopMargin = percentTopMargin;
         }
 
         /** The height the plan stacks to, given the same heights it was made from (the percentage at its scale). */
         int stacked(int lineHeight, int percentHeight, int readingsHeight) {
-            return (line ? lineHeight : 0) + (percent ? scaled(percentHeight, percentScale) : 0)
+            return (line ? lineHeight : 0) + (percent ? percentTopMargin + scaled(percentHeight, percentScale) : 0)
                     + stageHeight + stageTopMargin + (readings ? readingsGap + readingsHeight : 0);
         }
 
         @Override public String toString() {
-            return "line=" + line + " percent=" + (percent ? percentScale : 0) + " photo=" + photo + " track=" + track
-                    + " stage=" + stageHeight + "@" + stageTopMargin + " readings=" + readings + " gap=" + readingsGap;
+            return "line=" + line + " percent=" + (percent ? percentScale : 0) + "@" + percentTopMargin + " photo=" + photo
+                    + " track=" + track + " stage=" + stageHeight + "@" + stageTopMargin + " readings=" + readings + " gap=" + readingsGap;
         }
     }
 
@@ -77,9 +92,9 @@ final class ChargingFit {
      * full-size percentage and the readings row measured at the slot's width.
      */
     static Plan plan(int inner, int lineHeight, int percentHeight, int readingsHeight, float density) {
-        int track = dp(TRACK_DP, density) + dp(TRACK_GAP_DP, density);
+        int trackOnly = dp(TRACK_DP, density), track = trackOnly + dp(TRACK_GAP_DP, density);
         int gap = dp(READINGS_GAP_DP, density);
-        int photoMin = dp(PHOTO_MIN_DP, density), overlap = dp(OVERLAP_DP, density);
+        int photoMin = dp(PHOTO_MIN_DP, density), pad = dp(PHOTO_PAD_DP, density);
         int readings = gap + readingsHeight;
         // Rounded up, so the scale a room gives is never below the smallest share.
         int minPercent = Math.max(1, (int) Math.ceil(percentHeight * PERCENT_MIN_SCALE));
@@ -87,12 +102,17 @@ final class ChargingFit {
         inner = Math.max(0, inner);
 
         if (readingsHeight <= inner) {
-            // 1. Everything at full size; the photo only with room for it under the percentage.
-            int below = inner - lineHeight - percentHeight - readings;
-            if (below >= photoMin) return new Plan(true, true, 1, true, true, below + overlap, -overlap, true, gap);
-            if (below >= track) return new Plan(true, true, 1, false, true, below, 0, true, gap);
+            // 1. Everything at full size: the percentage in the middle of the room between the line and the track. The
+            // stage runs from under the line to the track's bottom, beside the percentage, so the photo (when that is
+            // tall enough) spans it with 8 dp to spare at each end; with no photo the stage starts under the percentage.
+            int room = inner - lineHeight - readings - track;
+            if (room >= percentHeight) {
+                int stage = inner - lineHeight - readings, above = (room - percentHeight) / 2;
+                if (stage - trackOnly - 2 * pad >= photoMin)
+                    return new Plan(true, true, 1, true, true, stage, -(above + percentHeight), true, gap, above);
+                return new Plan(true, true, 1, false, true, stage - above - percentHeight, 0, true, gap, above);
+            }
             // 2. The percentage gets smaller (to half its size) to keep the line and the track.
-            int room = inner - lineHeight - track - readings;
             if (room >= halfPercent) return shrunk(true, room, percentHeight, track, inner - lineHeight - readings, gap);
             // 3. Without the line: the percentage as large as fits, down to its smallest.
             room = inner - track - readings;

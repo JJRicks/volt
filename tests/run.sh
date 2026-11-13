@@ -61,9 +61,11 @@ sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 # Clean Home's charging view: what shows in its slot, the readings last to give way (council review 5886927849).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
+# Clean's charging photo: every bundled photo declares its kind; size and place by the owner's rule (#383 6849341616).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargingPhoto.java" "$TEST_DIR/ChargingPhotoTest.java")
 # Clean Home's round quick actions: columns, circle, names and values (owner's decision on #383, part 8b).
 sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/QuickActionLayoutTest.java")
-# Clean Home's header: two 48 dp targets, the name smaller before it wraps (part 8b review).
+# Clean Home's header: 48 dp targets at about the mock-up's height, the name smaller before it wraps (part 8b).
 sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
@@ -178,6 +180,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/c
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingPhotoTest "$APP_DIR/src/com/jjricks/volt/ScooterPhotos.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
