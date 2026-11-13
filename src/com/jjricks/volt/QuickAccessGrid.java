@@ -16,6 +16,11 @@ final class QuickAccessGrid extends ViewGroup {
     private final ScreenHost host;
     private final Ui ui;
     private final boolean editing, tiles;
+    /**
+     * Clean Home's four, as the Layout Plan draws them (owner's decision on #383): equal circles in one row, the name
+     * under each circle and the value as a second line under the name (QuickActionLayout). Widgets never uses it.
+     */
+    private final boolean round;
     private final ArrayList<Cell> cells = new ArrayList<>();
     private int budget, columns = 1, rowHeight, fittedWidth = -1, fittedBudget = -1;
     private boolean iconsOnly, tileLabels = true, tileCompact;
@@ -42,13 +47,18 @@ final class QuickAccessGrid extends ViewGroup {
      * outside the catalog (its own Ride and Record), as round buttons.
      */
     QuickAccessGrid(ScreenHost host, List<String> ids, Consumer<String> action, java.util.function.Function<String, QuickAccessActions.Entry> entries) {
-        this(host, ids, false, action, false, entries);
+        this(host, ids, false, action, false, entries, true);
     }
 
     private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
                             java.util.function.Function<String, QuickAccessActions.Entry> entries) {
+        this(host, shown, editing, action, tiles, entries, false);
+    }
+
+    private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
+                            java.util.function.Function<String, QuickAccessActions.Entry> entries, boolean round) {
         super(host.activity());
-        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles;
+        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles; this.round = round;
         setTag(tiles ? "setting-tiles" : "quick-access-grid");
         for (String id : shown) {
             QuickAccessActions.Entry entry = entries.apply(id);
@@ -183,9 +193,13 @@ final class QuickAccessGrid extends ViewGroup {
                     if (cell.lockState) cell.requestLayout();
                 }
                 ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
-                cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
+                if (round && !state.contentEquals(cell.shownValue)) { cell.shownValue = state; cell.requestLayout(); }
+                // A round action's value line is placed while measuring (a lock word too wide for it drops).
+                if (!round) cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
                 cell.value.setTag(state);
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
+                // A round action is filled while it is on: a control switched on, or Record while a ride records.
+                if (round) selected |= HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording();
                 if (cell.isSelected() != selected) { cell.setSelected(selected); cell.updateBackground(); }
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
                 if (alerts && !featureLive) cell.setAlpha(.65f);
@@ -258,15 +272,11 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
-        /**
-         * Clean Home's way into riding mode (owner's answer 6 on #383): it reads as entering another mode, not as a
-         * shortcut to a settings menu, so it takes the Widgets header's RIDE pill look: accent fill, a pill shape,
-         * the speedometer and the word in onAccent, letter-spaced. Only Clean holds this id; Widgets' pill is untouched.
-         */
-        final boolean ride;
+        /** Round only: the circle the icon sits in (filled while the action is on), and the value last laid out. */
+        FrameLayout circle;
+        CharSequence shownValue = "";
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
-            ride = !tiles && HomeQuickActions.RIDING.equals(entry.id);
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
             // Narrow rows must not depend on a device-specific RippleDrawable outline
             // when their pressed/selected state or dimensions change.
@@ -309,14 +319,40 @@ final class QuickAccessGrid extends ViewGroup {
             setTag("quick-action:" + entry.id);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setMinimumHeight(ui.dp(48));
-            icon = ui.icon(entry.icon, 20, ride ? ui.onAccent : ui.accent);
+            if (round) {
+                // The plan's round button: the icon in a circle, the name and the value under it, outside the circle.
+                // The whole column is the one touch target (at least 48 dp each way) and is spoken once.
+                setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                circle = new FrameLayout(host.activity());
+                circle.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                icon = ui.icon(entry.icon, 22, ui.text);
+                circle.addView(icon, new FrameLayout.LayoutParams(ui.dp(22), ui.dp(22), Gravity.CENTER));
+                int side = ui.dp(QuickActionLayout.CIRCLE_DP);
+                addView(circle, new LinearLayout.LayoutParams(side, side));
+                label = ui.text(entry.label(), QuickActionLayout.NAME_SP, false);
+                label.setTextColor(ui.muted);
+                label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
+                label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(-1, -2);
+                nameSize.topMargin = ui.dp(QuickActionLayout.NAME_GAP_DP);
+                addView(label, nameSize);
+                value = ui.text("", QuickActionLayout.VALUE_SP, false); value.setTypeface(ui.medium());
+                value.setGravity(Gravity.CENTER); value.setIncludeFontPadding(false);
+                value.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+                value.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-1, -2);
+                valueSize.topMargin = ui.dp(2);
+                addView(value, valueSize);
+                setTooltipText(entry.label()); updateBackground();
+                for (View child : new View[]{icon, label, value})
+                    child.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                return;
+            }
+            icon = ui.icon(entry.icon, 20, ui.accent);
             addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
             label = ui.text(entry.label(), 12, false);
             label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
-            if (ride) {
-                label.setTypeface(label.getTypeface(), android.graphics.Typeface.BOLD);
-                label.setTextColor(ui.onAccent); label.setLetterSpacing(.06f);
-            }
             label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
             addView(label, new LinearLayout.LayoutParams(-1, -2));
             value = ui.text("", 11, false); value.setTypeface(ui.medium());
@@ -344,9 +380,16 @@ final class QuickAccessGrid extends ViewGroup {
                         ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
-            if (ride) {
-                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.onAccent, 40)),
-                        ui.shape(ui.accent, radius, 0), ui.shape(android.graphics.Color.WHITE, radius, 0)));
+            if (round) {
+                // Raised while off, filled with the accent while on (a control switched on, a ride recording).
+                boolean on = isSelected();
+                android.graphics.drawable.GradientDrawable disc = new android.graphics.drawable.GradientDrawable();
+                disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                disc.setColor(on ? ui.accent : ui.raised);
+                circle.setBackground(disc);
+                ui.setIcon(icon, null, on ? ui.onAccent : ui.text);
+                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), null,
+                        ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
             setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
@@ -354,8 +397,7 @@ final class QuickAccessGrid extends ViewGroup {
                             isSelected() ? Ui.withAlpha(ui.accent, 100) : 0),
                     ui.shape(android.graphics.Color.WHITE, radius, 0)));
         }
-        /** The RIDE action is a pill: its radius is clamped to half the shorter side by the drawable and the outline. */
-        private float cornerRadius() { return tiles ? 20 : ride ? 100 : 12; }
+        private float cornerRadius() { return tiles ? 20 : 12; }
         int blendAccent() {
             float a = ui.dark ? .14f : .08f;
             int from = ui.surface, to = ui.accent;
@@ -410,6 +452,43 @@ final class QuickAccessGrid extends ViewGroup {
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         }
+        /**
+         * Round: the circle at its size for this column, the name (its full form, else its short form, on one line
+         * before two) and the value as a second line (QuickActionLayout). Words get smaller only once no form fits.
+         */
+        void measureRound(int width) {
+            float density = getResources().getDisplayMetrics().density;
+            int side = ui.dp(QuickActionLayout.circleDp(width / density));
+            LinearLayout.LayoutParams circleSize = (LinearLayout.LayoutParams) circle.getLayoutParams();
+            if (circleSize.width != side) { circleSize.width = circleSize.height = side; }
+            int pad = ui.dp(QuickActionLayout.SIDE_DP);
+            setPadding(pad, ui.dp(2), pad, ui.dp(4));
+            float room = width - 2 * pad;
+            // Measured at the full size on a copy of the paint, so the views' sizes change only when the choice does.
+            QuickActionLayout.Words name = QuickActionLayout.name(entry.label().render(), tileLabel(entry), room,
+                    fullSize(label, QuickActionLayout.NAME_SP)::measureText);
+            label.setVisibility(name.lines == 0 ? GONE : VISIBLE);
+            if (name.lines > 0) {
+                label.setMaxLines(name.lines);
+                label.setTextSize(QuickActionLayout.NAME_SP * ui.textScale * name.scale);
+                if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
+            }
+            String state = shownValue.toString();
+            QuickActionLayout.Words line = QuickActionLayout.value(state, lockState, room,
+                    fullSize(value, QuickActionLayout.VALUE_SP)::measureText);
+            value.setVisibility(line.lines == 0 ? GONE : VISIBLE);
+            if (line.lines > 0) value.setMaxLines(line.lines);
+            value.setTextSize(QuickActionLayout.VALUE_SP * ui.textScale * line.scale);
+            measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        }
+        /** A copy of a text's paint at {@code sp} times the app's text scale (and the system's, as sp is). */
+        private android.text.TextPaint fullSize(TextView text, float sp) {
+            android.text.TextPaint paint = new android.text.TextPaint(text.getPaint());
+            paint.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                    sp * ui.textScale, getResources().getDisplayMetrics()));
+            return paint;
+        }
         void measureContent(int width, boolean compact) {
             label.setVisibility(iconsOnly ? GONE : VISIBLE);
             icon.setAlpha(editing && iconsOnly ? .22f : 1f);
@@ -436,6 +515,7 @@ final class QuickAccessGrid extends ViewGroup {
 
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         if (tiles) { measureTiles(MeasureSpec.getSize(widthSpec)); return; }
+        if (round) { measureRound(MeasureSpec.getSize(widthSpec)); return; }
         int width = MeasureSpec.getSize(widthSpec), gap = ui.dp(6);
         iconsOnly = width < ui.dp(100);
         columns = Math.min(Math.min(4, cells.size()), Math.max(1,
@@ -485,6 +565,21 @@ final class QuickAccessGrid extends ViewGroup {
             if (natural > perRow) { tileLabels = false; natural = measureTileCells(cellWidth, true, perRow); }
         } else natural = measureTileCells(cellWidth, false, perRow);
         rowHeight = perRow != Integer.MAX_VALUE && perRow >= natural ? perRow : natural;
+        for (Cell cell : cells) cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
+        setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
+    }
+
+    /** Clean's round actions: four equal columns while each holds its circle and words (QuickActionLayout), else two. */
+    private void measureRound(int width) {
+        int gap = ui.dp(QuickActionLayout.GAP_DP), count = cells.size();
+        if (count == 0) { setMeasuredDimension(width, 0); return; }
+        float density = getResources().getDisplayMetrics().density;
+        columns = QuickActionLayout.columns(width / density, count);
+        int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
+        int rows = (count + columns - 1) / columns;
+        rowHeight = ui.dp(48);
+        for (Cell cell : cells) { cell.measureRound(cellWidth); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
         for (Cell cell : cells) cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
         setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
