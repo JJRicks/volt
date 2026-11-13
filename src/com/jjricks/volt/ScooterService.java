@@ -510,7 +510,7 @@ public final class ScooterService extends Service {
     /**
      * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start. An
      * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
-     * marked (autoChargeNoRoom) so that clearing its recordings or turning the switch on again tries once more.
+     * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
      */
     private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source){
         if(isChargeRecording())return false;
@@ -628,6 +628,16 @@ public final class ScooterService extends Service {
      * place of the reason a new one can't start, until any newer status replaces it (Terra's review of #416, finding 2).
      */
     public boolean chargeStatusIsOutcome(){return chargeOutcome!=null&&chargeOutcome==chargeStatus;}
+    /**
+     * The page shows that outcome in place of why a new recording can't start only when the reason follows from the charge
+     * having ended (waiting for charging readings, battery full); any other reason, such as a ride, is shown (Terra's
+     * review of #416 at 39f813dd).
+     */
+    public boolean chargeOutcomeOverReason(){
+        if(!chargeStatusIsOutcome())return false;
+        CharSequence why=chargeCaptureBlocked();
+        return why==null||M.serviceChargeWaitReadings().equals(why)||M.serviceChargeBatteryFull().equals(why);
+    }
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
@@ -660,8 +670,9 @@ public final class ScooterService extends Service {
             try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=M.serviceChargeClearFailed();}
             final CharSequence message=error;final ChargeSessionStore.Snapshot result=snapshot;
             handler.post(()->{if(destroyed)return;chargeModelLoading=false;if(result!=null)chargeSnapshot=result;
-                // Room now: a charge refused for lack of it records after all (Terra's review of #416, finding 1).
-                if(message==null)releaseAutoChargeNoRoom(profile);
+                // Room now: a charge refused for lack of it records after all (Terra's review of #416, finding 1). The
+                // twenty are shared by every scooter, so every scooter's refusal goes (its review at 39f813dd).
+                if(message==null)releaseAutoChargeNoRoom(null);
                 chargeStatus=message==null?M.serviceChargeCleared():message;changed();if(completion!=null)completion.run();});});return true;
     }
     public boolean chargeExporting(){return chargeExporting;}
