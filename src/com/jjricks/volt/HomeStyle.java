@@ -93,6 +93,31 @@ final class HomeStyle {
     }
 
     /**
+     * The origin an explicit pick (setup's end included) records, given whether a style is already stored. With no
+     * origin and no style, the seed found no earlier owner: a new install. With no origin but a stored style, that style
+     * came from a restore (the seed writes nothing while first-run setup is under way, and a restore never carries the
+     * origin), for example App preferences restored from the welcome screen carrying the Widgets an earlier phone's
+     * seed wrote: an earlier owner, {@link #ORIGIN_UPDATE}, so that owner still sees the What's new sheet once.
+     * A stored origin is never rewritten.
+     */
+    static String pickedOrigin(String storedOrigin, boolean styleStored) {
+        if (ORIGIN_INSTALL.equals(storedOrigin) || ORIGIN_UPDATE.equals(storedOrigin)) return storedOrigin;
+        return styleStored ? ORIGIN_UPDATE : ORIGIN_INSTALL;
+    }
+
+    /**
+     * Restoring a backup made before Home styles (no home_style) brings back an earlier owner's widget dashboards and
+     * preferences, whose Home was Widgets. Whether the restore stores Widgets: yes when this phone's style was not
+     * chosen by its owner but is stored, or would be Clean by its install origin (setup skipped on a new phone stores
+     * Clean unchosen), so Home lands on the backup owner's Widgets instead of staying or turning Clean. A chosen style
+     * is kept (part 6's rule), and a phone with neither a style nor an install origin is left as it is (absent reads as
+     * Widgets, and the seed's earlier-owner rule keeps it so).
+     */
+    static boolean preHubRestoreGivesWidgets(boolean chosen, boolean styleStored, Object storedOrigin) {
+        return !chosen && (styleStored || ORIGIN_INSTALL.equals(storedOrigin));
+    }
+
+    /**
      * The style setup's last step shows selected: the one already picked there (pending), else the stored style on a
      * rerun of setup or on an installation that has one (absent reads as Widgets), else Clean, the preselected choice of
      * a new install (Joel 6).
@@ -105,11 +130,13 @@ final class HomeStyle {
 
     /**
      * What a skipped setup leaves stored, as {style, origin}; null for either means unchanged. It chooses nothing: an
-     * installation with no origin records {@link #ORIGIN_INSTALL}, and one whose origin is install and that has no style
-     * gets Clean, the style the seed would give it at the next start anyway. A stored style is never changed.
+     * installation with no origin records {@link #ORIGIN_INSTALL}, or {@link #ORIGIN_UPDATE} when a style is already
+     * stored (a restore during setup brought an earlier owner's style: {@link #pickedOrigin(String, boolean)}), and one
+     * whose origin is install and that has no style gets Clean, the style the seed would give it at the next start
+     * anyway. A stored style is never changed.
      */
     static String[] afterSkippedSetup(String storedOrigin, boolean styleStored) {
-        String origin = storedOrigin == null ? ORIGIN_INSTALL : null;
+        String origin = storedOrigin == null ? pickedOrigin(null, styleStored) : null;
         String style = !styleStored && ORIGIN_INSTALL.equals(storedOrigin == null ? ORIGIN_INSTALL : storedOrigin) ? CLEAN : null;
         return new String[]{style, origin};
     }
