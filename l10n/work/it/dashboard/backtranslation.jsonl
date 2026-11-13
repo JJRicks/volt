@@ -126,3 +126,4 @@
 {"back":"Recording in progress: %1$s, %2$s. Stop and save","key":"dashboard_recording_spoken_parts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"543107fa182d2cbeb83b1d2257513ceef111b403","target":"Registrazione in corso: %1$s, %2$s. Interrompi e salva"}
 {"back":"Other time: %1$s","key":"dashboard_charge_time_other","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"c340e13d9afa59f30aa10dae9ecb3de951f8f0ab","target":"Altro tempo: %1$s"}
 {"back":"Change time","key":"dashboard_charge_time_switch","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"13d494c3d3db09eb6ce058e1a82f206e6a00b846","target":"Cambia tempo"}
+{"back":"%1$s of remaining range","key":"dashboard_range_left_spoken","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"6a60e792167ca3bcb8635b26b5811eb87dac17d6","target":"%1$s di autonomia residua"}
