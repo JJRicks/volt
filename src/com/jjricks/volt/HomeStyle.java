@@ -111,8 +111,9 @@ final class HomeStyle {
      * preferences, whose Home was Widgets. Whether the restore stores Widgets: yes when this phone's style was not
      * chosen by its owner but is stored, or would be Clean by its install origin (setup skipped on a new phone stores
      * Clean unchosen), so Home lands on the backup owner's Widgets instead of staying or turning Clean. A chosen style
-     * is kept (part 6's rule), and a phone with neither a style nor an install origin is left as it is (absent reads as
-     * Widgets, and the seed's earlier-owner rule keeps it so).
+     * is kept (part 6's rule), and a phone with neither a style nor an install origin is left to
+     * {@link #preHubRestoreStoresWidgets} (App preferences store Widgets, unchosen, when no origin is stored either;
+     * otherwise it is left as it is, since absent reads as Widgets).
      */
     static boolean preHubRestoreGivesWidgets(boolean chosen, boolean styleStored, Object storedOrigin) {
         return !chosen && (styleStored || ORIGIN_INSTALL.equals(storedOrigin));

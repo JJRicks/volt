@@ -1243,13 +1243,14 @@ the photo goes before the readings. The Ride row shows a running recording and
 its time while a ride records, else the last ride. Setup's last step offers
 the choice (Clean selected on a new install), each style drawn in detail with
 the scooter's photo and sample readings. Owners updating from a Volt without
-Clean (or restoring App preferences from a backup made before Home styles)
-keep Widgets and see a one-time What's new sheet: first, for owners who had
-Record rides automatically on, a notice that background starts are now off,
-with the Start recording in the background switch and a link to Recording
-settings; then Switch to Clean or Keep Widgets (left out once they chose a
-style or Home is already Clean); then the installed version's changelog,
-bundled in the APK, with a link to its release page.
+Clean (or a new phone restoring App preferences from a backup made before
+Home styles during setup) keep Widgets and see a one-time What's new sheet:
+first, for owners who had Record rides automatically on, a notice that
+background starts are now off, with the Start recording in the background
+switch and a link to Recording settings; then Switch to Clean or Keep
+Widgets (left out once they chose a style or Home is already Clean); then the
+installed version's changelog, bundled in the APK, with a link to its release
+page.
 
 QUICK ACCESS
 
