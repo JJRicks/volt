@@ -677,6 +677,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
         return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+            public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
             public void openSearch(){open(HubPages.SCOOTER);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
@@ -1754,12 +1755,32 @@ public final class MainActivity extends Activity implements ScreenHost {
      * Sends at once, or first asks where the official app asks on that model (an OEM-mapped control off the
      * UT5 MAX). The UT5 MAX keeps today's direct controls.
      */
-    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send){
+    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send){confirmChange(feature,value,send,()->{});}
+    /** The same, telling cancelled when nothing is sent: Cancel, Back, or the caution closing (Home's charging bar puts its mark back). */
+    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send,Runnable cancelled){
+        boolean[] done={false};
         String caution=scooterService==null?null:ModelRegistry.caution(scooterService.ble.decision(feature.key),value);
         if(caution==null){send.run();return;}
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(shortLabel(feature)).setMessage(caution)
-                .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(scooterService!=null)send.run();}).create();
+                .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(done[0])return;done[0]=true;if(scooterService!=null)send.run();else cancelled.run();}).create();
+        dialog.setOnDismissListener(d->{if(!done[0]){done[0]=true;cancelled.run();}});
         dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    /**
+     * Home's charging bar released a charge limit (ChargeBar): the Charge limit control's gates in Quick access's order
+     * and its choice sheet's (an offered value, not the current one), said in their words; then its caution and write.
+     * accepted(true) once the scooter was sent the change; ChargeBar watches the readback as the choice sheet does.
+     */
+    private void chargeLimitFromBar(int value,java.util.function.Consumer<Boolean> accepted){
+        ScooterService service=scooterService;
+        ScooterCommands.Feature feature=ScooterCommands.find(ChargeBar.KEY);
+        ChargeBarDrag.Gate gate=ChargeBarDrag.limitGate(ChargeBar.limitState(service),value);
+        if(feature==null||gate!=ChargeBarDrag.Gate.OK){String why=ChargeBar.limitMessage(gate,service);if(why!=null)toast(why);accepted.accept(false);return;}
+        confirmChange(feature,value,()->{
+            boolean sent=scooterService!=null&&scooterService.ble.set(feature.key,value);
+            if(!sent&&scooterService!=null)toast(scooterService.ble.displayMessage());
+            accepted.accept(sent);redraw();
+        },()->accepted.accept(false));
     }
     private TextView metricLine(LinearLayout parent,String label){LinearLayout line=row();line.setGravity(Gravity.CENTER_VERTICAL);TextView labelView=design.caption(label);line.addView(labelView,new LinearLayout.LayoutParams(0,-2,1));TextView value=design.text("—",16,true);value.setGravity(Gravity.RIGHT);line.addView(value);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=design.dp(8);p.bottomMargin=design.dp(8);parent.addView(line,p);return value;}
     private final class LoadingScreen implements AppScreen {
