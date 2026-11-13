@@ -88,10 +88,21 @@ jobs:
     # Measured 5.4 to 9.6 minutes over 8 runs (Nov 13 2026). It runs tests/run.sh, which alone has taken
     # up to 9.8 minutes in core-tests, plus three builds; 25 is about twice that slowest case.
     timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: head
     steps:
+      # The job's own setup comes from this workflow's commit, never from the head it proves: a pull
+      # request whose head predates a setup file must still get it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          path: workflow
+          sparse-checkout: .github
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: head
           # The proof compares the commits since the base, so it needs full history. It reads the pull
           # request's own head, as it does locally: G5 needs the head, not GitHub's merge commit.
           fetch-depth: 0
@@ -101,7 +112,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Android SDK (build-tools 36.1.0, platform android-36)
-        run: bash .github/android-sdk.sh
+        run: bash ../workflow/.github/android-sdk.sh
+      # From the head, which pins the jars it builds with (--fetch exists since Oct 13 2026, before any open head).
       - name: Pinned Shizuku dependencies (checksums in setup/shizuku-dependencies.py)
         run: python3 setup/shizuku-dependencies.py --fetch
       - name: English proof (tools/l10n/prove-english.sh --pseudo)

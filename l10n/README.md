@@ -685,8 +685,8 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"`), then, as for any
   change, `bash tests/run.sh` and `bash build.sh`. CI runs `prove-english.sh <base> --pseudo` on every
   pull request (the `english-proof` job), so an ordinary pull request need not run it by hand.
-  It applies the same rules: G1 reads `not applied`, never PASS, because such a
-  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  It applies the same rules: G1 and G5 read `not applied`, never PASS, because such a
+  change may change a literal and edit characterization tests with the code, and a golden change reads REPORT, so its report is not a proof that
   English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
@@ -780,7 +780,7 @@ Known limits:
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
@@ -844,7 +844,7 @@ path or id.
 **G5.** Characterization tests are the files under `tests/l10n/characterization/`. Every one the
 pull request adds or changes must be added by its first commit and left alone afterwards, and that
 commit changes nothing under `src/` or `res/`. A batch with a `template` or `plural` ledger row must
-have them. `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
+have them. G5 does not bind an ordinary change, in CI or in `prove-english.sh`. For the other kinds `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
 and fails when a characterization test is not an active entry of a `tests/l10n/*.sources` list,
 read as `tests/run.sh` reads it (from `#` on is a comment, the rest is trimmed, and the entry must be
 exactly the test's path). An English change is the exception: its characterization tests pin the

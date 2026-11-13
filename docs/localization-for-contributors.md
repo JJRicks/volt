@@ -340,7 +340,7 @@ Say in your PR what you ran, and what you couldn't run.
 
 ### The `prove-english.sh` caveat
 
-`tools/l10n/prove-english.sh` is the proof for moving old text. CI runs it on every pull request (`english-proof`, with `--pseudo`), so you don't need to run it yourself. On an ordinary PR it applies the rules `ci_gates.py` gives that kind: `G1` reads `not applied` and a golden change reads REPORT, so its summary there is not a proof that English is unchanged.
+`tools/l10n/prove-english.sh` is the proof for moving old text. CI runs it on every pull request (`english-proof`, with `--pseudo`), so you don't need to run it yourself. On an ordinary PR it applies the rules `ci_gates.py` gives that kind: `G1` and `G5` read `not applied` and a golden change reads REPORT, so its summary there is not a proof that English is unchanged.
 
 ## See your text in the pseudo-locale build
 
