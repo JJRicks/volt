@@ -61,6 +61,21 @@
     <!-- The button that accepts the online map question and turns the basemap on. -->
     <string name="maps_consent_enable" volt:screen="Online map consent" volt:purpose="button"
         volt:safety="privacy">Enable basemap</string>
+    <!-- Title of a one-time question, asked only of someone who turned the basemap on while USGS Topo
+         was Volt's default and who opens a map outside the United States: move to OpenStreetMap? -->
+    <string name="maps_switch_osm_title" volt:screen="Online map, leave USGS" volt:purpose="question"
+        volt:safety="privacy" volt:dnt="OpenStreetMap">Switch to OpenStreetMap?</string>
+    <!-- Body of that question. USGS Topo has map tiles only for the United States, so the map elsewhere
+         is empty. Like the online map consent, it says what leaves the phone if they switch: the map area
+         is requested from OpenStreetMap's servers, which see the phone's IP address; rides never leave. -->
+    <string name="maps_switch_osm_message" volt:screen="Online map, leave USGS" volt:purpose="message"
+        volt:safety="privacy" volt:dnt="USGS Topo|OpenStreetMap">USGS Topo only covers the United States. If you switch, your map area is requested from OpenStreetMap\'s servers, which see your IP. Rides stay on phone.</string>
+    <!-- Button: use OpenStreetMap from now on (saved as their own choice). -->
+    <string name="maps_switch_osm_switch" volt:screen="Online map, leave USGS" volt:purpose="button"
+        volt:safety="privacy">Switch</string>
+    <!-- Button: stay with USGS Topo; Volt never asks again. -->
+    <string name="maps_switch_osm_keep" volt:screen="Online map, leave USGS" volt:purpose="button"
+        volt:dnt="USGS">Keep USGS</string>
     <!-- Title of the map provider selector (Off, USGS, OSM, Custom). -->
     <string name="maps_online_map" volt:screen="Map settings" volt:purpose="label">Online map</string>
     <!-- Selector option: the USGS basemap, which covers only the United States. -->
