@@ -11,6 +11,7 @@ public final class HubSummariesTest {
         controls();
         security();
         service();
+        ride();
         System.out.println("HubSummaries: " + checks + " checks passed");
     }
 
@@ -126,5 +127,22 @@ public final class HubSummariesTest {
     private static void require(boolean ok, String message) {
         checks++;
         if (!ok) throw new AssertionError(message);
+    }
+
+    private static void ride() {
+        // While a ride records, the row shows the recording, not the ride before it (or "No rides yet" on a first ride).
+        require(HubSummaries.rideLine(true) == HubSummaries.RideLine.RECORDING, "Recording: the running recording");
+        require(HubSummaries.rideLine(false) == HubSummaries.RideLine.LAST_RIDE, "Not recording: the newest finished ride");
+        long every = 30_000;
+        // No look at the finished rides while recording, whatever else holds.
+        require(!HubSummaries.rescanRides(true, false, false, every * 2, every), "Recording, nothing known: no look");
+        require(!HubSummaries.rescanRides(true, true, true, every * 2, every), "Recording again: no look");
+        // A recording that just ended is looked for at once, even within the interval.
+        require(HubSummaries.rescanRides(false, true, true, 0, every), "Just ended: look at once");
+        // Nothing known yet: look on every refresh.
+        require(HubSummaries.rescanRides(false, false, false, 0, every), "Unknown: look");
+        // Otherwise at the interval.
+        require(!HubSummaries.rescanRides(false, false, true, every - 1, every), "Known, within the interval: no look");
+        require(HubSummaries.rescanRides(false, false, true, every, every), "Known, the interval passed: look");
     }
 }

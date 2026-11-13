@@ -803,12 +803,15 @@ final class RidingScreen implements AppScreen {
         recordDisc.setEnabled(enabled);
         recordDisc.setClickable(enabled);
         // Home's words for a disc that can't start here: saving, connecting, or needing a connection (which this disc never makes).
-        recordDisc.setContentDescription(recording ? T.ridesEndDescription() : DashboardScreen.recordIdleSpoken(saving, ready, reconnecting(ble, ready)));
+        recordDisc.setContentDescription(recording ? endRideSpoken() : DashboardScreen.recordIdleSpoken(saving, ready, reconnecting(ble, ready)));
         recordGlyph.set(recording, enabled ? ui.onAccent : ui.dim);
         if (recordLive != null && recordLive == enabled) return;
         recordLive = enabled;
         recordDisc.setBackground(oval(enabled ? ui.accent : ui.raised));
     }
+
+    /** What a record control says while a ride records: activating it ends and saves the ride (also Clean's Record). */
+    static String endRideSpoken() { return T.ridesEndDescription(); }
 
     /** The record mark (a ring and dot) or stop mark (a rounded square), drawn as Home's recorder disc draws them. */
     private final class RecordGlyph extends View {
