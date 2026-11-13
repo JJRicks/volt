@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **The line under Stay connected in background says what stays connected anyway:** "Recordings stay connected, and so do Live charging and charge alerts during a charge" (it said only recordings). The user guide lists every case. Other languages show this line in English until the next translation update.
 - **OpenStreetMap is now the default basemap**, instead of USGS Topo, which covers only the United States and left ride maps elsewhere empty with **Map tiles unavailable (HTTP 404)**. The basemap still starts off, and the one-time explanation before the first map tiles now names the provider you'll get. If you already turned the basemap on with USGS Topo as the default, you keep USGS Topo, and a provider you chose yourself never changes, also after restoring a backup. The first time you then open a map of a ride outside the United States, Volt asks once whether to **Switch** to OpenStreetMap or **Keep USGS**. In **Map settings**, OpenStreetMap now comes first.
 - Name ST3 Pro (Model ID 23452) drive modes WALK, DRIVE and SPORT (codes 11, 2 and 3), from an owner's answer, instead of raw numbers in Stats, on Home, in riding mode's chips, in the Hub's controls summary and in new rides' names. The scooter's own display shows DRIVE as D. Other Model IDs in its group keep raw codes until an owner reports them.
 

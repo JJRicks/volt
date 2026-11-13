@@ -683,6 +683,10 @@ hiding the app or turning the screen off starts a 10-second grace period. If
 still hidden without a recording, the deadline closes the idle session, cancels
 reconnects and removes its notification. Failed connections and retries cannot
 extend it.
+Whatever the option says, a ride or charge recording, Live charging's hold, a
+charge alert waiting for this charge, Charge done by's measuring window and the
+scheduled charging test keep the connection while they last (WorkReasons); the
+caption under Stay connected in background names the first three.
 Returning to the app cancels the deadline. Changing the option while already
 hidden or stopping a hidden recording creates no new grace period. Active
 ride/charge capture retains foreground-service protection and an immediate
