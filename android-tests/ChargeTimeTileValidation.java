@@ -300,6 +300,28 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         } finally { automation.setOnAccessibilityEventListener(null); }
         main(() -> require(String.valueOf(tile().getContentDescription()).equals(String.valueOf(value(FULL).getContentDescription())), "After switching the tile speaks the old reading"));
         checks.add("TalkBack: one focusable node speaking the shown reading, click action switches, one announcement per switch and none for fresh values, faces hidden");
+        // The catalog follow-up names the switch: a labelled click, a "Switch time" action and the other time as state.
+        int switchId = getTargetContext().getResources().getIdentifier("charge_time_switch", "id", getTargetContext().getPackageName());
+        if (switchId != 0) {
+            int before = readingNow();
+            main(() -> {
+                AccessibilityNodeInfo node = tile().createAccessibilityNodeInfo();
+                CharSequence clickLabel = null, switchLabel = null;
+                for (AccessibilityNodeInfo.AccessibilityAction action : node.getActionList()) {
+                    if (action.getId() == AccessibilityNodeInfo.ACTION_CLICK) clickLabel = action.getLabel();
+                    if (action.getId() == switchId) switchLabel = action.getLabel();
+                }
+                require(clickLabel != null && clickLabel.length() > 0 && switchLabel != null && switchLabel.length() > 0,
+                        "The switch is not named as a click and an action: " + clickLabel + " / " + switchLabel);
+                if (Build.VERSION.SDK_INT >= 30) require(String.valueOf(node.getStateDescription()).contains(String.valueOf(caption(other(before)).getContentDescription())),
+                        "The tile does not say there is another time: " + node.getStateDescription());
+                require(tile().performAccessibilityAction(switchId, null), "The switch action was refused");
+            });
+            awaitRest();
+            main(() -> require(shownReading() == other(before), "The switch action did not switch"));
+            main(() -> tile().performAccessibilityAction(switchId, null)); awaitRest();
+            checks.add("TalkBack names the switch (labelled click and a Switch time action) and the other time as state; the action switches");
+        } else checks.add("No Switch time action in this build: the catalog follow-up adds it");
     }
 
     private void verifyFrames() throws Exception {
@@ -373,7 +395,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 int[] fullBox = boxes();
                 require(Arrays.equals(limitBox, fullBox), label + ": the tile or power moved between readings " + Arrays.toString(limitBox) + " vs " + Arrays.toString(fullBox));
                 shot(label + "-full");
-                hero(50, null, 0.1);  // low current: the state pill on both faces
+                hero(50, null, 0.03);  // under ChargingEstimate.MINIMUM_ETA_CURRENT_A: the Low current pill on both faces
                 main(() -> require(tags(FULL).isShown(), label + ": no state pill at low current"));
                 assertLayout("full-low");
                 shot(label + "-full-low");
@@ -403,7 +425,9 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 if (!(v instanceof TextView) || !v.isShown()) continue;
                 TextView t = (TextView) v;
                 TextFit.collectNarrowTextProblems(t, "charge time tile", problems);
-                if (t.length() > 0 && t.getTextSize() / sp < 12 - .01f) problems.add("tiny text: " + t.getText() + " " + t.getTextSize() / sp);
+                // The state pill keeps main's 11 sp chip style (tagChip), unchanged by the tile; everything else has a 12 sp floor.
+                boolean pill = t == tags(LIMIT) || t == tags(FULL);
+                if (t.length() > 0 && t.getTextSize() / sp < (pill ? 11 : 12) - .01f) problems.add("tiny text: " + t.getText() + " " + t.getTextSize() / sp);
             }
             require(problems.isEmpty(), label + " " + what + ": " + problems);
             if (!two()) return;
