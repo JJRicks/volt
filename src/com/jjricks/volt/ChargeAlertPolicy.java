@@ -242,6 +242,15 @@ public final class ChargeAlertPolicy {
         return Math.round(percent) >= settings.chargeAt ? null : Integer.valueOf(settings.chargeAt);
     }
 
+    /**
+     * What Home's Charge alerts shortcut shows: null when this scooter has no charge alerts (a model with a built-in
+     * charge limit, or none selected), 0 when the charge alert is off, else its level (100 is Full; levelText words it).
+     */
+    public static Integer shortcutLevel(boolean offered, Settings settings) {
+        if (!offered) return null;
+        return settings == null || !settings.charge ? Integer.valueOf(0) : Integer.valueOf(settings.chargeAt);
+    }
+
     // Notification wording, kept here so the formatting is unit-tested.
     public static String levelText(int level) { return level >= 100 ? T.chargingAlertLevelFull() : T.fmtPercent(Fmt.integer(level)); }
     public static String watchTitle(int target) { return target >= 100 ? T.chargingAlertWatchFull() : T.chargingAlertWatchTitle(Fmt.integer(target)); }
