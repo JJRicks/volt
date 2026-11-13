@@ -754,8 +754,9 @@
     <string name="more_dev_simulation_scene_charging" volt:screen="Developer options" volt:purpose="value">Charging</string>
     <!-- Row and dialog title: the simulated scooter's drive mode (the mode names come from the scooter and stay as they are). -->
     <string name="more_dev_simulation_drive_mode" volt:screen="Developer options" volt:purpose="row">Drive mode</string>
-    <!-- Drive mode choice where the model gives two codes the same name (SPORT is 3 and 5 on a GT5 Max): %1$s is the scooter's own mode name, %2$s its code number. -->
-    <string name="more_dev_simulation_drive_mode_code" volt:screen="Developer options" volt:purpose="value">%1$s (code %2$s)</string>
+    <!-- Drive mode choice where the model gives two codes the same name (SPORT is 3 and 5 on a GT5 Max): %1$s is the scooter's own mode name, %2$s its code number.
+         A no-break space joins "code" and its number, so a narrow row never leaves the number alone on a line. -->
+    <string name="more_dev_simulation_drive_mode_code" volt:screen="Developer options" volt:purpose="value">%1$s (code %2$s)</string>
     <!-- Shown while the simulator runs. -->
     <string name="more_dev_simulation_active" volt:screen="Developer options" volt:purpose="caption">Simulation active · sample data</string>
     <!-- Developer options row value while the simulator runs. -->
