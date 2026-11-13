@@ -985,8 +985,9 @@ Fold 5 at default display settings. Fewer columns apply only below 280 dp of
 available dashboard width.
 Existing current/empty/custom layouts and all saved slots stay intact.
 The battery overview uses a red cell with percentage/range and configurable
-readings. Fresh charging status swaps to separate Charging power and Time to
-full tiles. Draw is red; charging is green; stale values remain grey with their
+readings. Fresh charging status swaps to separate Charging power and charging
+time tiles (To N% limit below a 100% limit, else Time to full (est.), or To 100%
+if uncapped with the limit unknown). Draw is red; charging is green; stale values remain grey with their
 timestamps. Battery/health/capacity cards have clearer spacing and explanations.
 Chart widgets support Relative/Absolute axes: percentage axes stay within 0–100,
 signed power/current can center on zero, and timestamp density fits the width.
@@ -1141,7 +1142,9 @@ README.md links official NAVEE specifications and TI's gauging reference.
 
 CHARGING POWER, RECORDING AND ESTIMATES
 
-Fresh charging status shows separate Charging power and Time to full tiles;
+Fresh charging status shows separate Charging power and charging time tiles
+(To N% limit below a 100% limit, else Time to full (est.), or To 100% if
+uncapped with the limit unknown);
 ordinary battery details return when charging is no longer freshly reported.
 The charging card above the widgets shows Charging power beside one time tile.
 With a charge limit below 100% or a charge alert ahead, the tile holds the time to that
