@@ -299,7 +299,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
     private void verifyAccessibility() throws Exception {
         openAdding("quick");
         main(() -> {
-            String first = sectionIds().get(0);
+            String firstHeader = sectionIds().get(0);
             for (String id : sectionIds()) {
                 View head = sheet().findViewWithTag("quick-section-header:" + id);
                 AccessibilityNodeInfo info = head.createAccessibilityNodeInfo();
@@ -320,21 +320,21 @@ public final class ShortcutPickerValidation extends Instrumentation {
                 nodes.add("  said=\"" + head.getContentDescription() + "\" state=\"" + (Build.VERSION.SDK_INT >= 30 ? info.getStateDescription() : "") + "\"");
                 require(head.getContentDescription() != null && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-name:" + id)))
                         && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-count:" + id))), id + " is not spoken with its name and count: " + head.getContentDescription());
-                String state = open ? T.statsStateExpanded() : T.statsStateCollapsed();
-                require(Build.VERSION.SDK_INT >= 36 || (Build.VERSION.SDK_INT >= 30 ? state.equals(String.valueOf(info.getStateDescription()))
-                        : head.getContentDescription().toString().endsWith(state)), id + " does not speak its open or closed state");
+                String openState = open ? T.statsStateExpanded() : T.statsStateCollapsed();
+                require(Build.VERSION.SDK_INT >= 36 || (Build.VERSION.SDK_INT >= 30 ? openState.equals(String.valueOf(info.getStateDescription()))
+                        : head.getContentDescription().toString().endsWith(openState)), id + " does not speak its open or closed state");
                 // Every Android version speaks the state once: in the description before 11, as the state from 11 to 15,
                 // as the node's expanded state from 16 (checked above on this emulator).
-                String name = text(head.findViewWithTag("quick-section-name:" + id));
-                int count = Integer.parseInt(text(head.findViewWithTag("quick-section-count:" + id)).replaceAll("[^0-9]", ""));
+                String headerName = text(head.findViewWithTag("quick-section-name:" + id));
+                int headerCount = Integer.parseInt(text(head.findViewWithTag("quick-section-count:" + id)).replaceAll("[^0-9]", ""));
                 for (int sdk : new int[] {26, 29, 30, 35, 36}) {
-                    String said = DashboardScreen.pickerHeaderSaid(name, count, open, sdk).toString();
-                    CharSequence stated = DashboardScreen.pickerHeaderState(open, sdk);
-                    require(said.contains(name) && said.contains(Fmt.integer(count)), id + " on API " + sdk + " is said without its name or count: " + said);
-                    require(sdk < 30 ? said.endsWith(state) && stated == null
-                            : !said.contains(state) && (sdk < 36 ? state.equals(String.valueOf(stated)) : stated == null),
-                            id + " on API " + sdk + " speaks its state wrongly: \"" + said + "\" / " + stated);
-                    if (id.equals(first)) nodes.add("  API " + sdk + ": said=\"" + said + "\" state=\"" + stated + "\"");
+                    String headerSaid = DashboardScreen.pickerHeaderSaid(headerName, headerCount, open, sdk).toString();
+                    CharSequence headerStated = DashboardScreen.pickerHeaderState(open, sdk);
+                    require(headerSaid.contains(headerName) && headerSaid.contains(Fmt.integer(headerCount)), id + " on API " + sdk + " is said without its name or count: " + headerSaid);
+                    require(sdk < 30 ? headerSaid.endsWith(openState) && headerStated == null
+                            : !headerSaid.contains(openState) && (sdk < 36 ? openState.equals(String.valueOf(headerStated)) : headerStated == null),
+                            id + " on API " + sdk + " speaks its state wrongly: \"" + headerSaid + "\" / " + headerStated);
+                    if (id.equals(firstHeader)) nodes.add("  API " + sdk + ": said=\"" + headerSaid + "\" state=\"" + headerStated + "\"");
                 }
             }
             View head = sheet().findViewWithTag("quick-section-header:battery");
