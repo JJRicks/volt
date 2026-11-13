@@ -1731,7 +1731,8 @@ public final class DashboardScreen implements AppScreen {
         /**
          * Fresh values for both faces, also mid-switch. With two readings the 100% face is the plain time to 100%
          * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
-         * view already says what it charges to); with one it is the estimate's own time, exactly as the single
+         * view already says what it charges to; never shorter than the time to the limit beside it,
+         * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
          * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
          * and speaks no status, as the alert tile did.
          */
@@ -1739,7 +1740,8 @@ public final class DashboardScreen implements AppScreen {
             int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
             fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
-                    estimate, estimate.remainingMinutesToFull, estimate.status);
+                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
+                    estimate.status);
             if (scooterLimit)
                 fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
             else if (alert != null)
