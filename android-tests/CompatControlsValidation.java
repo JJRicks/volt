@@ -91,7 +91,7 @@ public final class CompatControlsValidation extends Instrumentation {
         model("25851", null);
         scooterPage("q-noregion");
         expectHidden("maximum_speed");
-        main(() -> require(((View)field(field(controls(), "topSpeed"), "card")).getVisibility() != View.VISIBLE, "UT5 MAX top speed card shown for another model"));
+        main(() -> require(HubTestPages.requireOnPage(activity, (View)field(field(controls(), "topSpeed"), "card"), "the top speed card").getVisibility() != View.VISIBLE, "UT5 MAX top speed card shown for another model"));
         for (String key : new String[]{"traction_control", "low_power", "charge_limit", "timed_charging", "hill_start_assist", "parking_assist",
                 "hill_descent_control", "prompt_tone", "dual_drive", "start_speed"}) expectCaption(key, "Untested here");
         expectHidden("long_range_mode"); expectHidden("speed_limit"); expectHidden("overspeed_control");
@@ -99,9 +99,11 @@ public final class CompatControlsValidation extends Instrumentation {
         expectChoices("start_speed", new int[]{3, 4, 5});
         main(() -> require(activity.service().ble.decision("maximum_speed").reason == CapabilityResolver.Reason.REGION_RULE, "No-region 2585 Top speed: " + activity.service().ble.decision("maximum_speed")));
         screenshotRow("q-noregion-rows", "traction_control");
-        // A long charge-start value moves under the label beside its caption instead of squeezing both.
+        // A long charge-start value moves under the label beside its caption instead of squeezing both. Checked on the
+        // displayed row: Battery & charging, its page (#414 review: this read the row the Controls page builds but never places).
+        showPageOf("charge_start");
         main(() -> {
-            Object row = row("charge_start");
+            Object row = shownRow("charge_start");
             String value = String.valueOf(((TextView)field(row, "value")).getText()), sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
             require(value.isEmpty() && sub.startsWith("Not scheduled") && sub.contains("Untested here"), "Charge start row value \"" + value + "\" caption \"" + sub + "\"");
         });
@@ -128,7 +130,7 @@ public final class CompatControlsValidation extends Instrumentation {
         lightsPage("q-lights");
         showPageOf("line_color"); screenshot("q-lights-line");
         main(() -> {
-            Object row = row("line_color");
+            Object row = shownRow("line_color");
             require(Boolean.TRUE.equals(field(row, "wideSwatches")), "2585 line colour swatches are not on their own line");
             int visible = 0; for (Object v : ((java.util.Map<?, ?>)field(row, "options")).values()) if (((View)v).getVisibility() == View.VISIBLE) visible++;
             require(visible == 6, "2585 line colour shows " + visible + " swatches");
@@ -152,6 +154,8 @@ public final class CompatControlsValidation extends Instrumentation {
                 require(!activity.service().ble.experimentalDecision(key).experimental() && !experiments.contains(key), "2585 lists " + key + " as an experiment");
             require(Arrays.equals(activity.service().ble.experimentalDecision("start_speed").values(), new int[]{0, 1, 2, 3}), "2585 kick-start try offers "
                     + Arrays.toString(activity.service().ble.experimentalDecision("start_speed").values()));
+            HubTestPages.requireShown(activity, (View)field(more(), "labTitle"), "the Experimental controls title");
+            for (Object row : (List<?>)field(more(), "labRows")) HubTestPages.requireShown(activity, (View)field(row, "line"), "the Lab row " + ((ScooterCommands.Feature)field(row, "feature")).key);
             require(((List<?>)field(more(), "labRows")).size() == 7 && "Controls to try".contentEquals(((TextView)field(more(), "labTitle")).getText()),
                     "2585 rows: the kick-start try, the speed cap and five Help verify rows, got " + ((List<?>)field(more(), "labRows")).size() + ", titled " + ((TextView)field(more(), "labTitle")).getText());
         });
@@ -206,7 +210,7 @@ public final class CompatControlsValidation extends Instrumentation {
         lightsPage("q2547-lights");
         showPageOf("line_color"); screenshot("q2547-lights-line");
         main(() -> {
-            Object row = row("line_color");
+            Object row = shownRow("line_color");
             int visible = 0; for (Object v : ((java.util.Map<?, ?>)field(row, "options")).values()) if (((View)v).getVisibility() == View.VISIBLE) visible++;
             require(visible == 2 && !Boolean.TRUE.equals(field(row, "wideSwatches")), "2547 line colour shows " + visible + " swatches");
         });
@@ -228,7 +232,7 @@ public final class CompatControlsValidation extends Instrumentation {
         main(() -> {
             CapabilityResolver.Decision pin = activity.service().ble.decision("pin");
             require(pin.reason == CapabilityResolver.Reason.FIRMWARE_UNKNOWN && !(Boolean)invoke(more(), "ownerReady"), "K PIN without firmware: " + pin);
-            String notice = String.valueOf(((TextView)field(more(), "securityNotice")).getText());
+            String notice = String.valueOf(HubTestPages.requireShown(activity, (TextView)field(more(), "securityNotice"), "the Security notice").getText());
             require(notice.equals("Firmware not read yet"), "K security notice " + notice);
         });
         screenshot("k-security");
@@ -270,7 +274,7 @@ public final class CompatControlsValidation extends Instrumentation {
         // Line and star zone rows would be on Line lights and Star lights (#385): hidden on their own pages.
         for (String key : new String[]{"line_light", "star_light"}) {
             showPageOf(key);
-            main(() -> require(((View)field(row(key), "card")).getVisibility() != View.VISIBLE, "S shows " + key));
+            main(() -> require(((View)field(row(key), "card")).getVisibility() != View.VISIBLE, "S shows " + key + " on its page"));
         }
         choiceSheet("logo_light", new String[]{"Off", "On", "Follow headlight"}, "s-logo-choices");
         closeSheet();
@@ -304,7 +308,7 @@ public final class CompatControlsValidation extends Instrumentation {
     /** Back on the UT5 MAX simulator: no Untested captions, the top speed card, no OEM-only rows. */
     private void ut5Unchanged() throws Exception {
         scooterPage("ut5");
-        main(() -> require(((View)field(field(controls(), "topSpeed"), "card")).getVisibility() == View.VISIBLE, "UT5 MAX top speed card"));
+        main(() -> require(HubTestPages.requireShown(activity, (View)field(field(controls(), "topSpeed"), "card"), "the UT5 MAX top speed card").getVisibility() == View.VISIBLE, "UT5 MAX top speed card"));
         // Every Scooter page (#385): no OEM-only, Lab or maximum speed row on any of them.
         for (String page : HubTestPages.scooterRowPages()) {
             openPage(page);
@@ -312,6 +316,9 @@ public final class CompatControlsValidation extends Instrumentation {
                 BleController ble = activity.service().ble;
                 for (Object row : (List<?>)field(controls(), "rows")) {
                     ScooterCommands.Feature feature = (ScooterCommands.Feature)field(row, "feature");
+                    // Each row this page lists is placed on it, so the checks below read the displayed row there; the screen's
+                    // other rows are built but not placed (built state, checked on purpose; each is placed on its own page in this loop).
+                    if (HubTestPages.pageLists(page, feature.key)) HubTestPages.requireOnPage(activity, (View)field(row, "card"), "UT5 MAX " + feature.key + " on " + page);
                     String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
                     require(!sub.contains("Untested here") && !sub.contains("Not offered"), "UT5 MAX caption on " + feature.key + ": " + sub);
                     if (ScooterCommands.oemOnly(feature.key) || feature.experimental || feature.key.equals("maximum_speed"))
@@ -348,8 +355,10 @@ public final class CompatControlsValidation extends Instrumentation {
                     ScooterCommands.Feature feature = (ScooterCommands.Feature)field(row, "feature");
                     if (feature.key.equals("range_algorithm")) continue;
                     View card = (View)field(row, "card");
+                    if (HubTestPages.pageLists(page, feature.key)) HubTestPages.requireOnPage(activity, card, label + ": " + page + "'s " + feature.key + " row");
                     if (card.getVisibility() != View.VISIBLE) continue;
                     require(HubTestPages.pageLists(page, feature.key), label + ": " + page + " shows " + feature.key + ", another page's row");
+                    HubTestPages.requireShown(activity, card, label + ": " + page + "'s " + feature.key + " row");
                     CapabilityResolver.Decision d = ble.decision(feature.key);
                     String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
                     require(d.support == CapabilityResolver.Support.KNOWN_ENCODING, label + ": shown row " + feature.key + " without a known encoding");
@@ -459,6 +468,7 @@ public final class CompatControlsValidation extends Instrumentation {
         main(() -> {
             Object row = row(key);
             require(((View)field(row, "card")).getVisibility() == View.VISIBLE, "Row " + key + " hidden for " + activity.service().ble.descriptor());
+            shownRow(key);
             String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
             require(sub.contains(text), "Row " + key + " caption \"" + sub + "\" lacks \"" + text + "\"");
             if (!text.equals("Untested here")) require(!((View)field(row, "action")).isEnabled() || field(row, "toggle") != null && !((View)field(row, "toggle")).isEnabled(), "Refused row " + key + " is enabled");
@@ -476,19 +486,28 @@ public final class CompatControlsValidation extends Instrumentation {
         showPageOf(key);
         main(() -> {
             // Bring the row near the top, below the page header.
-            View card = (View)field(row(key), "card"), scroll = (View)field(activity, "scroll");
+            View card = (View)field(shownRow(key), "card"), scroll = (View)field(activity, "scroll");
             int[] a = new int[2], b = new int[2]; card.getLocationInWindow(a); scroll.getLocationInWindow(b);
             scroll.scrollBy(0, a[1] - b[1] - Math.round(96 * card.getResources().getDisplayMetrics().density));
         }); settle();
         screenshot(label);
     }
+    /** A rider's tap on the row's switch, on the page that shows it (shown, enabled, on screen and not covered). */
     private void toggleRow(String key) {
         showPageOf(key);
-        main(() -> { View toggle = (View)field(row(key), "toggle"); require(toggle != null && toggle.isEnabled(), "Toggle " + key + " unavailable"); toggle.performClick(); }); settle();
+        View[] toggle = {null};
+        main(() -> { toggle[0] = (View)field(shownRow(key), "toggle"); require(toggle[0] != null && toggle[0].isEnabled(), "Toggle " + key + " unavailable");
+            HubTestPages.requireShown(activity, toggle[0], "the " + key + " switch"); });
+        HubTestPages.tapView(this, activity, toggle[0], "the " + key + " switch"); settle();
     }
     private void choiceSheet(String key, String[] labels, String label) throws Exception {
         main(() -> require(field(activity, "choiceSheet") == null, "A choice sheet is still open before " + key));
-        main(() -> invoke(activity, "editFeature", new Class<?>[]{ScooterCommands.Feature.class}, ScooterCommands.find(key))); settle(); SystemClock.sleep(400); settle();
+        // Opened as a rider opens it: a tap on the displayed row of the page that holds it (it used to call editFeature,
+        // which opened the sheet even for a row the page did not show).
+        showPageOf(key);
+        View[] line = {null};
+        main(() -> line[0] = (View)field(shownRow(key), "action"));
+        HubTestPages.tapView(this, activity, line[0], "the " + key + " row"); settle(); SystemClock.sleep(400); settle();
         main(() -> {
             Object sheet = field(activity, "choiceSheet"); require(sheet != null, "No choice sheet for " + key);
             int[] choices = (int[])field(sheet, "choices");
@@ -576,10 +595,10 @@ public final class CompatControlsValidation extends Instrumentation {
     private Object screen() { return field(activity, "screen"); }
     /** The shown Scooter page's rows (a ControlsScreen, alone or a HubPageScreen's part). */
     private Object controls() { return HubTestPages.part(activity, "ControlsScreen"); }
-    private Object row(String key) {
-        for (Object row : (List<?>)field(controls(), "rows")) if (((ScooterCommands.Feature)field(row, "feature")).key.equals(key)) return row;
-        throw new IllegalStateException("No row " + key);
-    }
+    /** The control's row on the page now shown, placed there (visible or not); for hidden checks on its own page. Main thread. */
+    private Object row(String key) { return HubTestPages.controlRow(activity, key); }
+    /** The control's row on the page now shown, shown there: what a rider sees. Main thread. */
+    private Object shownRow(String key) { return HubTestPages.shownControlRow(activity, key); }
     /** More's screen, or the MoreScreen section a Hub page shows (Security, Experimental controls). */
     private MoreScreen more() { Object screen = HubTestPages.part(screen(), "MoreScreen"); require(screen instanceof MoreScreen, "More screen is not active"); return (MoreScreen)screen; }
     private String texts(View view) {

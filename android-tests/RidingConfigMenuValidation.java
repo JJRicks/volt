@@ -276,12 +276,14 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         View ridingView = activity.getWindow().getDecorView();
         View autoOpen = findTag(ridingView, "preference_riding_auto_open");
         require(autoOpen != null, "Ride › Riding mode settings has Open automatically");
+        { View shown = autoOpen; main(() -> HubTestPages.requireShown(activity, shown, "Open automatically on Riding mode settings")); }
         main(() -> { ScrollView scroll = scroller(autoOpen); int[] a = new int[2], b = new int[2]; autoOpen.getLocationInWindow(a); scroll.getLocationInWindow(b); scroll.scrollBy(0, a[1] - b[1] - scroll.getHeight() / 2); });
         settle();
         shot(label + "-11-riding-page");
         // Ride › Recording settings: Record rides automatically.
         HubTestPages.reach(this, activity, "ride.recording"); settle();
         require(hasText(activity.getWindow().getDecorView(), "Record rides automatically"), "Ride › Recording settings has Record rides automatically");
+        { View shown = findText(activity.getWindow().getDecorView(), "Record rides automatically"); main(() -> HubTestPages.requireShown(activity, shown, "Record rides automatically on Recording settings")); }
         shot(label + "-12-recording");
         note("App preferences shows no automatic switch and no moved setting; Open automatically is on Riding mode settings, Record rides automatically on Recording settings");
     }

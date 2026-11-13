@@ -46,7 +46,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
             verifyCaptureConfirmation();
             main(()->{
                 // The charger has one home, Estimates & charger › Charger (owner, #383): this row shows it and links there.
-                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null&&selector.isClickable(),"Charger row missing");
+                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null&&selector.isClickable(),"Charger row missing");HubTestPages.requireShown(activity,selector,"the charge history Charger row");
                 require(findText(selector,"Automatic")!=null,"Charger row does not show Automatic");
                 require(!root().findViewWithTag("charge-capture-action").isEnabled(),"Disconnected capture action is enabled");
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.STOCK)&&!service.isChargeRecording(),"Disconnected start bypassed guard");
@@ -320,7 +320,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
         HubTestPages.reach(this,activity,"battery.estimates");settle();
         main(()->{
             View row=root().findViewWithTag("estimate-charger-setting");
-            require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");
+            require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");HubTestPages.requireShown(activity,row,"the Charger for estimates row");
             require(((TextView)root().findViewWithTag("estimate-charger-value")).getText().toString().equals("Automatic"),"Default Automatic preference is not shown");
             row.performClick();
         });settle();screenshot("charger-choice");

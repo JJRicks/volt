@@ -131,6 +131,161 @@ public final class HubTestPages {
         }
     }
 
+    /**
+     * A rider's tap on any view of the shown page (a history row, a switch, a row's chevron), with the same rules as
+     * {@link #tapRow}: shown, enabled, scrolled fully on screen and still, not covered, then a real touch at its centre.
+     * Instrumentation thread. Waits for idle afterwards; what the tap should open is the caller's to require.
+     */
+    public static void tapView(Instrumentation instrumentation, MainActivity activity, View view, String name) {
+        String[] problem = {null};
+        onMain(instrumentation, () -> {
+            if (!onShownPage(activity, view)) problem[0] = capital(name) + " is not on page " + current(activity) + " (built but not placed there)";
+            else if (!view.isShown()) problem[0] = capital(name) + " is hidden on page " + current(activity);
+        });
+        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+        tap(instrumentation, activity, view, name);
+    }
+
+    /**
+     * Whether a view is placed on the page now shown: attached to the window inside the shown screen's view. A screen
+     * builds rows it never places (a ControlsScreen builds every control, and places only its page's), so a row object
+     * from the screen says nothing about the page until this holds. Main thread.
+     */
+    public static boolean onShownPage(MainActivity activity, View view) {
+        Object screen = field(activity, "screen");
+        View page = screen instanceof AppScreen ? ((AppScreen) screen).view() : null;
+        return view != null && page != null && view.isAttachedToWindow() && inside(view, page);
+    }
+
+    /** Whether a rider can see the view on the page now shown: placed there ({@link #onShownPage}) and shown (it and every parent visible). Main thread. */
+    public static boolean shownOnPage(MainActivity activity, View view) { return onShownPage(activity, view) && view.isShown(); }
+
+    /**
+     * The view, required placed on the page now shown (visible or not): for checks that a row is hidden on its own page,
+     * which mean nothing for a row that page never placed. Throws, naming it and the page. Main thread.
+     */
+    public static <V extends View> V requireOnPage(MainActivity activity, V view, String what) {
+        if (view == null) throw new IllegalStateException(capital(what) + " does not exist on page " + current(activity));
+        if (!onShownPage(activity, view)) throw new IllegalStateException(capital(what) + " is not on page " + current(activity) + " (built but not placed there)");
+        return view;
+    }
+
+    /** The view, required on the page now shown and shown there (a rider could scroll to it and see it). Throws, naming it and the page. Main thread. */
+    public static <V extends View> V requireShown(MainActivity activity, V view, String what) {
+        requireOnPage(activity, view, what);
+        if (!view.isShown()) throw new IllegalStateException(capital(what) + " is on page " + current(activity) + " but hidden");
+        return view;
+    }
+
+    /** The view tagged tag on the page now shown, required shown there. Main thread. */
+    public static View shownTag(MainActivity activity, Object tag) {
+        Object screen = field(activity, "screen");
+        View page = screen instanceof AppScreen ? ((AppScreen) screen).view() : null;
+        View found = page == null ? null : page.findViewWithTag(tag);
+        return requireShown(activity, found, "the view tagged " + tag);
+    }
+
+    /**
+     * The control row for a feature key on the page now shown (a ControlRow of the page's ControlsScreen part), required
+     * placed on that page, visible or not; see {@link #shownControlRow} for a row the rider sees. Main thread.
+     */
+    public static Object controlRow(MainActivity activity, String key) {
+        Object controls = part(activity, "ControlsScreen");
+        for (Object row : (List<?>) field(controls, "rows")) {
+            if (!key.equals(field(field(row, "feature"), "key"))) continue;
+            requireOnPage(activity, (View) field(row, "card"), "the " + key + " row");
+            return row;
+        }
+        throw new IllegalStateException("No " + key + " row built on page " + current(activity));
+    }
+
+    /** The control row for a feature key on the page now shown, required shown there. Main thread. */
+    public static Object shownControlRow(MainActivity activity, String key) {
+        Object row = controlRow(activity, key);
+        requireShown(activity, (View) field(row, "card"), "the " + key + " row");
+        return row;
+    }
+
+    /**
+     * Whether this window should get Volt's wide layout, predicted from the window and the saved Text size (WideLayout's
+     * rule: width over Text size times the system font scale), not read from the screen being checked. Main thread.
+     */
+    public static boolean expectWide(MainActivity activity) {
+        android.content.res.Configuration configuration = activity.getResources().getConfiguration();
+        float text = activity.getSharedPreferences("app_settings", 0).getFloat("text_scale", 1f);
+        text = Math.max(0.75f, Math.min(1.8f, text));
+        return com.jjricks.volt.WideLayout.wide(configuration.screenWidthDp, text * configuration.fontScale);
+    }
+
+    /**
+     * Opens a saved ride's details the rider's way: the Rides tab, the Ride page's All rides & compare row (the only page
+     * with the wide two panes; the Ride page itself is always compact), then the ride's history row, all by touch. Requires
+     * the layout the window should get ({@link #expectWide}): wide, the ride selected in the right pane with no dialog
+     * (its row selected, the pane shown and titled with the ride); compact, one new details dialog showing the ride. So a
+     * wide window that falls back to the dialog, or a compact one that shows no dialog, fails. Returns whether it was wide.
+     * Instrumentation thread.
+     */
+    public static boolean openRideDetails(Instrumentation instrumentation, MainActivity activity, String rideId, String rideTitle) {
+        reach(instrumentation, activity, HubPages.RIDE_RIDES);
+        boolean[] wide = {false};
+        int[] dialogsBefore = {0};
+        View[] row = {null};
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        String[] problem = {null};
+        while (SystemClock.uptimeMillis() < until) {
+            onMain(instrumentation, () -> {
+                Object screen = field(activity, "screen");
+                if (!screen.getClass().getSimpleName().equals("RidesScreen")) { problem[0] = "All rides & compare is not a RidesScreen (" + screen.getClass().getSimpleName() + ")"; return; }
+                boolean expected = expectWide(activity), actual = Boolean.TRUE.equals(field(screen, "wide"));
+                if (expected != actual) throw new IllegalStateException("All rides & compare uses the " + (actual ? "wide" : "compact") + " layout where this window ("
+                        + activity.getResources().getConfiguration().screenWidthDp + " dp) should get the " + (expected ? "wide two panes" : "compact list"));
+                wide[0] = actual;
+                dialogsBefore[0] = ((List<?>) field(screen, "dialogs")).size();
+                // A history row's first child is its route thumbnail, kept by ride id while the rows are shown.
+                View thumb = (View) ((Map<?, ?>) field(screen, "thumbs")).get(rideId);
+                row[0] = thumb != null && thumb.getParent() instanceof View ? (View) thumb.getParent() : null;
+                problem[0] = row[0] == null || !shownOnPage(activity, row[0]) ? "All rides & compare shows no history row for ride " + rideId : null;
+            });
+            if (problem[0] == null) break;
+            SystemClock.sleep(40);
+        }
+        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+        tapView(instrumentation, activity, row[0], "the history row of ride " + rideId);
+        long shown = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < shown) {
+            onMain(instrumentation, () -> problem[0] = rideDetailsProblem(activity, wide[0], dialogsBefore[0], rideId, rideTitle));
+            if (problem[0] == null) return wide[0];
+            SystemClock.sleep(40);
+            instrumentation.waitForIdleSync();
+        }
+        throw new IllegalStateException("Tapping ride " + rideId + "'s history row: " + problem[0]);
+    }
+
+    /** Null once the tapped ride's details show the way the layout says; else what is wrong. Main thread. */
+    private static String rideDetailsProblem(MainActivity activity, boolean wide, int dialogsBefore, String rideId, String rideTitle) {
+        Object screen = field(activity, "screen");
+        List<?> dialogs = (List<?>) field(screen, "dialogs");
+        if (wide) {
+            if (dialogs.size() != dialogsBefore) return "the wide layout opened a details dialog instead of its right pane";
+            if (!rideId.equals(field(screen, "selectedRide"))) return "the wide list selected " + field(screen, "selectedRide");
+            View pane = (View) field(screen, "detailPane");
+            if (pane == null || !shownOnPage(activity, pane) || pane.getWidth() == 0) return "the wide right pane is not shown";
+            View title = pane.findViewWithTag("ride-title");
+            if (!(title instanceof android.widget.TextView) || !title.isShown()) return "the right pane shows no ride title";
+            if (!rideTitle.contentEquals(((android.widget.TextView) title).getText())) return "the right pane shows \"" + ((android.widget.TextView) title).getText() + "\"";
+            View chosen = (View) ((Map<?, ?>) field(screen, "historyRows")).get(rideId);
+            if (chosen == null || !chosen.isSelected()) return "the ride's history row is not marked selected";
+            return null;
+        }
+        if (dialogs.size() != dialogsBefore + 1) return "the compact layout opened " + (dialogs.size() - dialogsBefore) + " details dialogs";
+        android.app.Dialog dialog = (android.app.Dialog) dialogs.get(dialogs.size() - 1);
+        if (!dialog.isShowing()) return "the details dialog is not showing";
+        View title = dialog.getWindow().getDecorView().findViewWithTag("ride-title");
+        if (!(title instanceof android.widget.TextView) || !title.isShown()) return "the details dialog shows no ride title";
+        if (!rideTitle.contentEquals(((android.widget.TextView) title).getText())) return "the details dialog shows \"" + ((android.widget.TextView) title).getText() + "\"";
+        return null;
+    }
+
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */
     public static boolean rowShown(MainActivity activity, String target) {
         for (View view : rowsTo(activity, target)) if (view.isShown()) return true;
@@ -173,14 +328,17 @@ public final class HubTestPages {
                 // A rider's touch reaches the page only while its window has focus (no dialog or sheet over it).
                 if (!activity.hasWindowFocus()) { problem[0] = "is under another window (the page has no focus)"; return; }
                 Rect visible = new Rect();
-                boolean whole = view.getGlobalVisibleRect(visible) && visible.width() >= view.getWidth() - 1 && visible.height() >= view.getHeight() - 1;
+                // Whole: all of the view but a deliberate negative-margin bleed (the wide ride list's selection tint runs
+                // into its card's padding, which clips it in every scroll position), so that is not asked to be on screen.
+                int[] room = reachable(view);
+                boolean whole = view.getGlobalVisibleRect(visible) && visible.width() >= room[0] - 1 && visible.height() >= room[1] - 1;
                 if (!centred[0] || !whole) {
                     // Scroll as a rider would: the row's page scroller brings it to its middle (a page transition or the
                     // tab's own scroll to the top may still be moving it, so this repeats until it holds).
                     centred[0] = true;
                     if (centre(view)) { problem[0] = "is not fully on screen"; return; }
                 }
-                if (!whole) { problem[0] = "is not fully on screen"; return; }
+                if (!whole) { problem[0] = "is not fully on screen (" + visible.width() + "x" + visible.height() + " px of " + room[0] + "x" + room[1] + " visible at " + visible.toShortString() + ")"; return; }
                 int[] at = new int[2]; view.getLocationOnScreen(at);
                 centre[0] = at[0] + view.getWidth() / 2; centre[1] = at[1] + view.getHeight() / 2;
                 // A scroller still animating (a fling, or the tab's scroll to the top even when already there) takes a
@@ -204,6 +362,21 @@ public final class HubTestPages {
         try { instrumentation.sendPointerSync(down); instrumentation.sendPointerSync(up); }
         finally { down.recycle(); up.recycle(); }
         instrumentation.waitForIdleSync();
+    }
+
+    /**
+     * The width and height the view must show to count as whole: all of it, less only a deliberate bleed (a negative margin
+     * that lays it out past its parent's edge, like the wide ride list's selection tint) on each side that has one. Any
+     * other clipping still counts against it.
+     */
+    private static int[] reachable(View view) {
+        int width = view.getWidth(), height = view.getHeight();
+        if (view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            width += Math.min(0, margins.leftMargin) + Math.min(0, margins.rightMargin);
+            height += Math.min(0, margins.topMargin) + Math.min(0, margins.bottomMargin);
+        }
+        return new int[]{Math.max(0, width), Math.max(0, height)};
     }
 
     /** Whether a ScrollView around the view has an unfinished scroll animation (its touch would stop it instead of tapping). */

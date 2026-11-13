@@ -356,7 +356,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         finally { event.recycle(); }
     }
     @SuppressWarnings("unchecked") private List<TextView> choices(String key) { return (List<TextView>)field(field(selector(key), "track"), "choices"); }
-    private View selector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
+    private View selector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return HubTestPages.requireShown(activity, found, "the " + key + " selector"); }
     private void assertSelector(String key) {
         View selector = selector(key); Object track = field(selector, "track");
         require(selector instanceof HorizontalScrollView && selector.isShown() && selector.getWidth() > 0, "Selector lost its bounded readable track");
@@ -517,7 +517,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
                 // The row shows a result chip only for this session's results, which carry a time.
                 Map<String,Long> resultTimes=(Map<String,Long>)field(ble,"resultTimes");
                 SegmentedSelector selector=(SegmentedSelector)root().findViewWithTag("scooter-selector-"+key);
-                require(selector!=null,"Missing lighting selector "+key);Object row=control(key);invoke(row,"refresh");
+                require(selector!=null,"Missing lighting selector "+key);HubTestPages.requireShown(activity,selector,"the "+key+" selector");Object row=control(key);invoke(row,"refresh");
                 int before=values.get(key),next=(before+1)%3;
                 selectorChoices(selector).get(next).performClick();invoke(row,"refresh");
                 require(values.get(key)==next&&selected(selector)==next,"Confirmed simulated pattern not displayed: "+key+" actual="+values.get(key)+" selected="+selected(selector)+" enabled="+selector.isEnabled()+" fresh="+activity.service().featureFresh(key)+" message="+ble.message());
@@ -569,7 +569,8 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         main(() -> {((AlertDialog)field(field(activity,"choiceSheet"),"dialog")).dismiss();assertTransportIdle();});
         checks.add("Lighting and short fixed scooter choices use readable tracks, retain confirmed state while pending/rejected, clear unknown values, and close only after confirmed readback");
     }
-    private Object control(String key){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing control "+key);}
+    /** The control's row on the page now shown, required shown there. */
+    private Object control(String key){return HubTestPages.shownControlRow(activity,key);}
     @SuppressWarnings("unchecked") private List<TextView> selectorChoices(SegmentedSelector selector){return (List<TextView>)field(field(selector,"track"),"choices");}
     private int selected(SegmentedSelector selector){return ((Number)field(field(selector,"track"),"selected")).intValue();}
     private void assertChoiceTargets(SegmentedSelector selector){

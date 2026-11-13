@@ -628,6 +628,7 @@ public final class AutoStartValidation extends Instrumentation {
             final View[] found = {null};
             main(() -> found[0] = find(activity.getWindow().getDecorView(), label));
             require(found[0] != null, label + " row shown");
+            main(() -> HubTestPages.requireShown(activity, found[0], label + " on " + row[1]));
             main(() -> found[0].requestRectangleOnScreen(new Rect(0, -200, found[0].getWidth(), found[0].getHeight() + 300), true)); settle();
             shot("settings-" + label.split(" ")[0].toLowerCase(Locale.ROOT));
         }

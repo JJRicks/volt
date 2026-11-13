@@ -211,11 +211,11 @@ public final class ChargeEstimateValidation extends Instrumentation {
             HubTestPages.reach(this,activity,"battery.estimates");settle();
             main(()->{require(service.setChargeCharger(charger),"Charger preference unavailable");activity.redraw();});settle();
             main(()->{
-                View row=root().findViewWithTag("estimate-charger-setting");require(row!=null,"Charger estimate row missing");
+                View row=root().findViewWithTag("estimate-charger-setting");require(row!=null,"Charger estimate row missing");HubTestPages.requireShown(activity,row,"the Charger for estimates row");
                 row.requestRectangleOnScreen(new Rect(0,0,row.getWidth(),row.getHeight()),true);
             });settle();
             main(()->{
-                Object row=field(HubTestPages.part(activity,"ControlsScreen"),"chargerLine");
+                Object row=field(HubTestPages.part(activity,"ControlsScreen"),"chargerLine");HubTestPages.requireShown(activity,(View)field(row,"card"),"the Charger for estimates row");
                 TextView name=(TextView)field(row,"name"),value=(TextView)field(row,"value");
                 require("Charger for estimates".contentEquals(name.getText()),"Charger label changed");
                 require((charger==null?"Automatic":"High-speed").contentEquals(value.getText()),"Charger row value missing");
@@ -243,6 +243,7 @@ public final class ChargeEstimateValidation extends Instrumentation {
                 boolean checkedStart=false;
                 for(Object control:(Iterable<?>)field(HubTestPages.part(activity,"ControlsScreen"),"rows")){
                     if(!"charge_start".equals(((ScooterCommands.Feature)field(control,"feature")).key))continue;
+                    HubTestPages.requireShown(activity,(View)field(control,"card"),"the Charge start row");
                     TextView start=(TextView)field(control,"name");Layout startLayout=start.getLayout();
                     require(startLayout!=null&&startLayout.getLineCount()>0,"Charge start label not laid out");
                     int end=startLayout.getLineCount()-1;

@@ -187,6 +187,10 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                     boolean known = feature.key.equals("range_algorithm") || (feature.experimental ? ordinary : topSpeedRow ? oemTable : ble.controlOffered(feature.key));
                     if (!feature.experimental && !topSpeedRow) require(known == (feature.key.equals("range_algorithm") || decision.support == CapabilityResolver.Support.KNOWN_ENCODING), label + ": simulated models always have identity evidence");
                     require((card.getVisibility() == View.VISIBLE) == (known && onPage), label + ": " + page + " row " + feature.key + " visibility does not follow its decision");
+                    // On the displayed page, not the screen's built rows: a row this page lists is placed on it, and an offered one is
+                    // shown there (#414 review). Rows of other pages are built but never placed here; they are GONE by the check above.
+                    if (onPage) HubTestPages.requireOnPage(activity, card, label + ": " + page + "'s " + feature.key + " row");
+                    if (known && onPage) HubTestPages.requireShown(activity, card, label + ": " + page + "'s offered " + feature.key + " row");
                     if (ut5) require(known != (feature.experimental || topSpeedRow || ScooterCommands.oemOnly(feature.key)), "UT5 MAX row set changed: " + feature.key);
                     offered.put(feature.key, known);
                     if (card.getVisibility() == View.VISIBLE) shownOn.merge(feature.key, 1, Integer::sum);
@@ -204,17 +208,21 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 Map<?, ?> rowViews = (Map<?, ?>)field(screen, "rowViews"), labEntries = (Map<?, ?>)field(screen, "labEntries");
                 for (Object id : HubTestPages.pageRows(page)) {
                     View rowView = (View)rowViews.get(id), entry = (View)labEntries.get(id);
-                    if (rowView != null && rowView.getVisibility() == View.VISIBLE || entry != null && entry.getVisibility() == View.VISIBLE) any = true;
+                    // What the rider sees on this page (placed and shown), which its link on the parent page must follow.
+                    if (HubTestPages.shownOnPage(activity, rowView) || HubTestPages.shownOnPage(activity, entry)) any = true;
                 }
                 pageShows.put(page, any);
-                View banner = (View)field(screen, "readOnlyBanner");
+                View banner = HubTestPages.requireOnPage(activity, (View)field(screen, "readOnlyBanner"), label + ": " + page + "'s limited-model banner");
                 require((banner.getVisibility() == View.VISIBLE) == !ut5, label + ": " + page + " limited-model banner");
+                if (!ut5) HubTestPages.requireShown(activity, banner, label + ": " + page + "'s limited-model banner");
                 if (!ut5) require(texts(banner).contains(BleController.LIMITED_MODEL), label + ": banner copy");
                 require(((View)field(screen, "identifyAction")).getVisibility() != View.VISIBLE, label + ": no Identify for a simulated advertised model");
                 // The clock row is on Lights & sound since the Hub layout; every other page leaves it out.
                 View clockCard = (View)field(field(screen, "clockLine"), "card");
                 boolean clockKnown = ble.controlOffered("clock_sync"), clockPage = HubTestPages.pageLists(page, "clock_sync");
                 require((clockCard.getVisibility() == View.VISIBLE) == (clockKnown && clockPage), label + ": " + page + " clock row visibility");
+                if (clockPage) HubTestPages.requireOnPage(activity, clockCard, label + ": " + page + "'s clock row");
+                if (clockKnown && clockPage) HubTestPages.requireShown(activity, clockCard, label + ": " + page + "'s clock row");
                 require(clockKnown == !pid.equals("39991"), label + ": clock row is offered for the UT5 MAX and the mapped group only");
                 CapabilityResolver.Decision clock = ble.decision("clock_sync");
                 require(((View)field(screen, "clockButton")).isEnabled() == (clock.available() || clock.blockedByRide()), label + ": clock row enabled state");
@@ -223,6 +231,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 CapabilityResolver.Decision speed = ble.decision("maximum_speed");
                 boolean card = ble.controlOffered("maximum_speed") && (speed.variant == null || speed.variant.decode == FeatureVariant.Decode.UT5_FEATURE);
                 require((topSpeed.getVisibility() == View.VISIBLE) == (card && HubTestPages.pageHasTopSpeed(page)), label + ": " + page + " top speed card");
+                if (HubTestPages.pageHasTopSpeed(page)) HubTestPages.requireOnPage(activity, topSpeed, label + ": " + page + "'s top speed card");
+                if (card && HubTestPages.pageHasTopSpeed(page)) HubTestPages.requireShown(activity, topSpeed, label + ": " + page + "'s top speed card");
                 if (ut5) require(card, "UT5 MAX lost its top speed card");
             });
             screenshot(label + "-" + page);

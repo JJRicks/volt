@@ -151,7 +151,7 @@ public final class LearnedRangeValidation extends Instrumentation {
             main(()->{
                 service.invalidateCapacityEstimate();
                 View row=((View)field(activity,"root")).findViewWithTag("scooter-range-estimate");
-                require(row!=null&&row.isEnabled(),"Disconnected Scooter range setting missing or disabled");row.performClick();
+                require(row!=null&&row.isEnabled(),"Disconnected Scooter range setting missing or disabled");HubTestPages.requireShown(activity,row,"the range estimate row");row.performClick();
                 Object sheet=picker();View root=pickerRoot();
                 @SuppressWarnings("unchecked") List<View> options=(List<View>)field(sheet,"options");
                 require(options.size()==2,"Range menu must have exactly two choices");
