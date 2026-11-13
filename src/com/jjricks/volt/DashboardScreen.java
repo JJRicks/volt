@@ -1751,6 +1751,8 @@ public final class DashboardScreen implements AppScreen {
         }
         /** The label icon hides in a narrow cell, where the caption needs the room. */
         void showIcons(boolean shown) { labelIcon.setVisibility(shown ? VISIBLE : GONE); }
+        /** The captions this cell can show (one; the time tile has one per face). */
+        TextView[] captions() { return new TextView[] {label}; }
     }
 
     private final class InfoTiles extends LinearLayout {
@@ -1823,6 +1825,36 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
             super.onMeasure(widthSpec, heightSpec);
+            if (evenLabels()) super.onMeasure(widthSpec, heightSpec);
+        }
+        /**
+         * Tiles side by side give their captions the same number of lines (the most any of them wraps to), so the
+         * values under them share one line when only one label wraps. The line count is the text's own, whatever the
+         * minimum, so this settles in one pass. True when a minimum changed and the row needs measuring again.
+         */
+        private boolean evenLabels() {
+            boolean changed = false;
+            for (int r = 0; r < getChildCount(); r++) {
+                if (!(getChildAt(r) instanceof ViewGroup)) continue;
+                ViewGroup line = (ViewGroup) getChildAt(r);
+                ArrayList<TextView> shown = new ArrayList<>();
+                int most = 1;
+                for (int c = 0; c < line.getChildCount(); c++) {
+                    if (!(line.getChildAt(c) instanceof InfoCell) || line.getChildAt(c).getVisibility() == GONE) continue;
+                    for (TextView caption : ((InfoCell) line.getChildAt(c)).captions()) {
+                        shown.add(caption);
+                        if (caption.getLayout() != null) most = Math.max(most, caption.getLineCount());
+                    }
+                }
+                int lines = shown.size() > 1 ? most : 0;
+                for (TextView caption : shown)
+                    // getMinLines is -1 while a minimum height is set instead; nothing to undo then.
+                    if (caption.getMinLines() != lines && (lines > 0 || caption.getMinLines() > 0)) {
+                        caption.setMinLines(lines);
+                        changed = true;
+                    }
+            }
+            return changed;
         }
     }
 
@@ -1974,6 +2006,8 @@ public final class DashboardScreen implements AppScreen {
             spoken[reading] = spokenChargeTime(names[0], values[reading].getText(), tags[reading], status);
             values[reading].setContentDescription(spoken[reading]);
         }
+
+        @Override TextView[] captions() { return captions; }
 
         /** The reading the user has chosen (or the only one), which the tile shows at rest. */
         int chosen() { return two ? state.target : FULL; }
@@ -3941,6 +3975,23 @@ public final class DashboardScreen implements AppScreen {
                         if (lines == 0) readingsBox.setVisibility(GONE);
                     }
                 }
+                // Hiding a whole row can free more height than the percentage needed: bring back what fits again, the
+                // range line first, then the rows from the first, so the spare height goes to the percentage (which
+                // shrinks for it) rather than to blank gaps.
+                if (rangeWanted && range.getVisibility() == GONE) {
+                    range.setVisibility(VISIBLE);
+                    rangeFits = true;
+                    if (!fitPercent(widthSpec)) { range.setVisibility(GONE); rangeFits = false; }
+                }
+                while (lines < readingsBox.getChildCount()) {
+                    readingsBox.setVisibility(VISIBLE);
+                    readingsBox.getChildAt(lines).setVisibility(VISIBLE);
+                    if (fitPercent(widthSpec)) { lines++; continue; }
+                    readingsBox.getChildAt(lines).setVisibility(GONE);
+                    if (lines == 0) readingsBox.setVisibility(GONE);
+                    break;
+                }
+                fitPercent(widthSpec);
                 speak();
                 spread(widthSpec, heightSpec);
             }

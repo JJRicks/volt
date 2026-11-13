@@ -26,7 +26,13 @@ public final class TopAreaTest {
         // would push the Lock bar under the bar (emulator, part 8b), so the area takes what the window leaves.
         int short14 = TopArea.heightDp(604, false, 1.4f);
         require(short14 < 291 && short14 >= TopArea.FLOOR_DP, "725x604 at 1.4x: smaller than the grown minimum, " + short14);
-        require(604 - short14 >= TopArea.reserveDp(false, 1.4f), "725x604 at 1.4x: the Lock bar and quick actions fit on first view");
+        // With the header's two 48 dp targets (status line, name row), this window cannot also keep the quick actions
+        // in view: the area sits at its floor, which the charging view's worst case needs (ChargingFitTest, a wrapped
+        // pill at 1.4x), and the window keeps the header, the Lock bar and the bottom bar; the quick actions' names
+        // fall under the bottom bar (PR #449, deferred).
+        require(short14 == TopArea.FLOOR_DP, "725x604 at 1.4x: the floor, " + short14);
+        int quickActions = 12 + 54 + 6 + 16 + 14;
+        require(604 - short14 >= TopArea.reserveDp(false, 1.4f) - quickActions, "725x604 at 1.4x: the Lock bar fits on first view");
         require(TopArea.heightDp(500, false, 1.4f) == TopArea.FLOOR_DP, "Large text on a short window: the floor");
         // The parked card's spare height: spread over three gaps, none of them a band of 40 dp at the checked sizes.
         for (int extra : new int[]{0, 1, 7, 60, 76, 90, 95}) {
@@ -35,6 +41,12 @@ public final class TopAreaTest {
             require(gaps[0] >= 0 && gaps[1] >= 0 && gaps[2] >= 0, "no negative gap for " + extra);
             require(Math.max(gaps[0], Math.max(gaps[1], gaps[2])) < 44, "no band of 44 dp or more for " + extra);
         }
+        // Weighted as the mock-up spreads it (about 36, 37 and 20 dp of 93): the readings sit close under the bar.
+        int[] mock = TopArea.parkedGaps(93);
+        require(Math.abs(mock[0] - 36) <= 1 && Math.abs(mock[1] - 37) <= 1 && Math.abs(mock[2] - 20) <= 1,
+                "the mock-up's split, about 36/37/20 of 93: " + mock[0] + "/" + mock[1] + "/" + mock[2]);
+        require(mock[2] < mock[0] && mock[2] < mock[1], "the gap over the readings is the smallest");
+        require(TopArea.parkedGaps(Math.round(84 * 3f))[2] <= 56, "pixels: the same weights at 3 px per dp");
         require(TopArea.parkedGaps(-3)[0] == 0 && TopArea.parkedGaps(-3)[1] == 0, "no spare height, no gaps");
         // The parked photo (the mock-up's ~144 dp picture right of the words): full size on a 344 dp phone at 1x (a
         // card's content is about 276 dp there), narrower but still shown at 1.4x, full size on the wide window.
