@@ -419,9 +419,13 @@ public final class ScooterService extends Service {
     }
     /** Why a charger family drives estimates, in precedence order. */
     public enum ChargerBasis{RECORDING,MANUAL,DETECTED,UNKNOWN}
-    /** A recording's manually confirmed label is temporary and never changes the preference. */
+    /**
+     * A recording's manually confirmed label is temporary and never changes the preference. An automatic recording's label
+     * is the charger in effect only when it was chosen or detected (ChargeAutoRecordPolicy.countsAsCharger): a guess
+     * labels the file, and estimates, Charge done by and the charging view keep waiting for the choice or for detection.
+     */
     public ChargerBasis chargerBasis(){
-        if(isChargeRecording()&&activeProfileId().equals(chargeStore.profile()))return ChargerBasis.RECORDING;
+        if(isChargeRecording()&&activeProfileId().equals(chargeStore.profile())&&ChargeAutoRecordPolicy.countsAsCharger(chargeStore.labelSource()))return ChargerBasis.RECORDING;
         if(chargeCharger()!=null)return ChargerBasis.MANUAL;
         return detectedCharger()!=null?ChargerBasis.DETECTED:ChargerBasis.UNKNOWN;
     }
@@ -549,12 +553,14 @@ public final class ScooterService extends Service {
             boolean selected=connected&&ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
             // Live by the recording's own 5 s frame rule, else null: a stale reading neither starts nor clears anything.
             Boolean live=selected?ChargeAutoRecordPolicy.liveCharging(chargeFrame(mono,System.currentTimeMillis()).state,mono):null;
-            if(selected&&ChargeAutoRecordPolicy.clearsHold(live!=null,live==null?-1:live?1:0))clearAutoChargeHold(active.id);
+            // A pause Volt holds itself (schedule, Charge done by, a schedule test) reads like an unplug but is not one.
+            if(selected&&ChargeAutoRecordPolicy.clearsHold(live!=null,live==null?-1:live?1:0,scheduledChargePause()))clearAutoChargeHold(active.id);
             boolean movedAway=ChargeAutoRecordPolicy.movedAway(connected,ble.speedRaw(),ble.motionSampleMs(),mono);
             if(isChargeRecording()){
                 if(!chargeStore.automatic())return;
-                // Ended by itself: no hold, and auto-record rides may start a ride in this same change.
-                if(movedAway){finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
+                // Ended by itself: no hold, and auto-record rides may start a ride in this same change. The work policy waits
+                // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
+                if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
                 ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detectedCharger());
                 if(relabel!=null)try{
                     if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){chargeReferenceGate.reset();updateNotification();}
@@ -566,6 +572,8 @@ public final class ScooterService extends Service {
             boolean charging=Boolean.TRUE.equals(live);
             // The manual start's own checks last: they cost the most.
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),false,isChargeRecording(),held,movedAway))return;
+            // Never in the middle of a guided test (or its write-back) or a compatibility check; no latch, so it starts after.
+            if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
                     qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
@@ -763,8 +771,10 @@ public final class ScooterService extends Service {
         // ordinary background connection preference would otherwise keep retrying.
         if(recovering)ble.suspend();
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!phoneSaving())wakeLock.release();
-        if(!destroyed){refreshChargeCurves();applyWorkPolicy(false);updateNotification();}
+        if(!destroyed){refreshChargeCurves();if(!workPolicyAfterAutoStart)applyWorkPolicy(false);updateNotification();}
     }
+    /** Set while an automatic recording ends on moving off: changed() applies the work policy after auto-record rides looked. */
+    private boolean workPolicyAfterAutoStart;
     /**
      * Why a charge recording stopped, as the status line shows it: a label for each stop code, whose English is the
      * code's name in lower case with spaces (what the line always printed). The code itself stays the journal's id.
@@ -1347,7 +1357,8 @@ public final class ScooterService extends Service {
      */
     private boolean chargeLiveShown(){
         if(destroyed||simulating())return false;
-        if(isChargeRecording())return true;
+        // A schedule test's status and Cancel come first, even over a charge recording (now often an automatic one).
+        if(isChargeRecording())return scheduleTestStatus()==null||isRecording()||phoneSaving();
         if(isRecording()||phoneSaving()||chargeMeasure.active()||scheduleTestStatus()!=null||alarmPlaying()||alertWatchShown())return false;
         return chargeLiveHold();
     }
@@ -2344,7 +2355,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());if(workPolicyAfterAutoStart){workPolicyAfterAutoStart=false;applyWorkPolicy(false);}observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -2944,7 +2955,8 @@ public final class ScooterService extends Service {
                         open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         boolean measuring = chargeMeasure.active() && !isChargeRecording() && !isRecording() && !phoneSaving();
-        String testStatus = measuring || isChargeRecording() || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
+        // A schedule test ranks above a charge recording (its Cancel matters more; Stop charge recording stays in the app).
+        String testStatus = measuring || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
         // A sounding battery alarm, then a watched charge, rank below every recording, measure and test.
         boolean alarming = !measuring && !testing && alarmPlaying() && !isChargeRecording() && !isRecording() && !phoneSaving();
         boolean watching = !measuring && !testing && alertWatchShown();

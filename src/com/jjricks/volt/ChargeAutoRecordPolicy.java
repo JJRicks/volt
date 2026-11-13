@@ -23,10 +23,19 @@ import java.util.Set;
  *
  * Kept: an automatic recording that ran under {@link #MIN_KEEP_MS} or gained under {@link #MIN_KEEP_POINTS}
  * percentage points is discarded ({@link #keep}). At the 20-recording limit an automatic recording may replace only
- * older automatic ones; it never deletes a manual one ({@link #automaticToRemove}).
+ * older automatic ones, and only once it is kept; it never deletes a manual one, and nothing saved goes for one that is
+ * discarded ({@link #automaticToRemove}, ChargeSessionStore.trimAutomatic).
+ *
+ * Waits: an automatic start never arrives in the middle of other work a recording would block or cut short: a guided
+ * setting test (running, or with a write-back outstanding) or a compatibility check ({@link #waits}). It starts by itself
+ * once that is over, if the charge is still on.
+ *
+ * What a label stands for: only a chosen or detected label is the charger in effect while recording, and only those
+ * teach a charger's curve ({@link #countsAsCharger}). A guess labels the file and nothing else.
  *
  * Hold: stopping a recording by hand (Stop on the page or in the notification, or starting a ride by hand) holds that
- * scooter until a fresh "not charging" reading is seen, across reconnects and restarts: an automatic recording always,
+ * scooter until a fresh "not charging" reading is seen while Volt is not holding the current off itself (a
+ * schedule or Charge done by pause is not an unplug; {@link #clearsHold}), across reconnects and restarts: an automatic recording always,
  * and one the owner started while the switch is on, so Volt never starts recording the charge the owner just stopped
  * recording (owner's answer 4: a manual stop holds until the next plug-in). The service
  * stores the held scooters ({@link #HOLD_KEY}). A recording that ended by itself sets no hold. A start that failed
@@ -148,8 +157,27 @@ public final class ChargeAutoRecordPolicy {
         return state.value == 1 ? Boolean.TRUE : state.value == 0 ? Boolean.FALSE : null;
     }
 
-    /** Whether a reading clears holds and latches: only a fresh "not charging" reading does. */
-    public static boolean clearsHold(boolean fresh, double chargingState) { return fresh && chargingState == 0; }
+    /**
+     * Whether a reading clears holds and latches: only a fresh "not charging" reading does, and not while Volt itself holds
+     * the current off (heldOff: a charging schedule, Charge done by or a schedule test pausing this charge,
+     * ScooterService.scheduledChargePause). That pause reads exactly like an unplug, but the charger is still there.
+     */
+    public static boolean clearsHold(boolean fresh, double chargingState, boolean heldOff) { return fresh && chargingState == 0 && !heldOff; }
+
+    /**
+     * Whether an automatic start waits: a guided setting test is running, one has a write-back outstanding (its restore
+     * would be refused while a recording runs), or a compatibility check is running (a recording starting cuts it short).
+     * Waiting sets no latch: the start happens on its own once the work is over and the scooter still charges.
+     */
+    public static boolean waits(boolean guidedTest, boolean restoreOutstanding, boolean compatibilityCheck) {
+        return guidedTest || restoreOutstanding || compatibilityCheck;
+    }
+
+    /**
+     * Whether a recording's label is a charger Volt may act on (estimates, Charge done by, learned curves): a manual
+     * recording's (null source) and a chosen or detected one. A guess is not.
+     */
+    public static boolean countsAsCharger(ChargeSessionStore.LabelSource source) { return source != ChargeSessionStore.LabelSource.GUESS; }
 
     /** The held scooters stored in HOLD_KEY. */
     public static Set<String> holds(String stored) {

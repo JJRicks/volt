@@ -231,10 +231,14 @@ public final class ChargeSessionStore {
         for(File file:files())if(file.getName().endsWith(".active")){
             append(file,"end,INTERRUPTED\n");File recovered=new File(directory,file.getName().replace(".active",".csv"));
             if(!file.renameTo(recovered))throw new IOException("Could not finalize interrupted charge");
-            // An interrupted automatic recording is judged like any other automatic one: a short one is not kept.
+            // An interrupted automatic recording is judged like any other automatic one: a short one is not kept, and
+            // nothing saved made room for it.
             Session session=labelSource(recovered.getName())==null?null:read(recovered);
             if(session!=null&&!keeps(session))recovered.delete();
         }
+        // A kept automatic recording (recovered here, or saved by a stop that a process death cut short before it made
+        // room) makes room among automatic recordings only, before the ordinary pruning sees the folder.
+        trimAutomatic();
         prune();
     }
     private boolean keeps(Session session){
@@ -263,8 +267,10 @@ public final class ChargeSessionStore {
         begin(profile,charger,null,wall,mono);
     }
     /**
-     * An automatic recording. It never deletes a manual one: at the limit it may only replace the oldest automatic
-     * recordings, and when the rules find no room it does not start (false).
+     * An automatic recording. It never deletes a manual one, and nothing saved is deleted for it until it is kept: at
+     * the limit it checks now that older automatic recordings could make room, and they make it only when it is saved
+     * (stop, or recovery after a process death; {@link #trimAutomatic}). When the rules find no room it does not start
+     * (false). Until then the folder holds one file over the limit: the running journal.
      */
     public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
@@ -276,11 +282,10 @@ public final class ChargeSessionStore {
         String id=UUID.randomUUID().toString();
         if(source==null)pruneTo(MAX_SESSIONS-1);
         else{
+            // Room is only checked here; nothing is deleted for a recording that may not be kept.
             List<File> entries=files();int automatic=0;
             for(File file:entries)if(labelSource(file.getName())!=null)automatic++;
-            int remove=rules.toRemove(entries.size(),automatic,MAX_SESSIONS);
-            if(remove<0)return false;
-            for(File file:entries)if(remove>0&&labelSource(file.getName())!=null){remove(file);remove--;}
+            if(rules.toRemove(entries.size(),automatic,MAX_SESSIONS)<0)return false;
             id=automaticId(id,source);
         }
         File file=new File(directory,id+".active");
@@ -426,16 +431,20 @@ public final class ChargeSessionStore {
      */
     public synchronized boolean stop(Stop reason) throws IOException {
         if(active==null)return false;
-        boolean kept=labelSource==null||samples>0&&rules.keep(lastWriteMono-startMono,lastSoc-firstSoc);
+        boolean automatic=labelSource!=null,kept=!automatic||samples>0&&rules.keep(lastWriteMono-startMono,lastSoc-firstSoc);
         File file=active;active=null;profile=null;charger=null;labelSource=null;
         // Close an open schedule pause at its last fresh reading so its length survives the stop.
         if(paused)append(file,"p,"+(startWall+(lastFreshMono-startMono))+","+lastFreshMono+",0\n");
         paused=false;chargerPaused=false;resetElectricalCandidate();
         append(file,"end,"+reason.name()+"\n");
         boolean discarded=!kept&&file.delete();
-        if(!discarded&&!file.renameTo(new File(directory,file.getName().replace(".active",".csv"))))throw new IOException("Charge could not be finalized");
+        File saved=new File(directory,file.getName().replace(".active",".csv"));
+        if(!discarded&&!file.renameTo(saved))throw new IOException("Charge could not be finalized");
+        // Saved first, then room made: a process death in between leaves one file too many, which the next start trims
+        // the same way. There is no moment when the old recording and the new one are both gone.
+        if(automatic&&!discarded)trimAutomatic();
         prune();
-        return !discarded;
+        return !discarded&&saved.exists();
     }
     public synchronized void clear(String targetProfile) throws IOException {
         if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
@@ -459,7 +468,9 @@ public final class ChargeSessionStore {
             if(session==null)continue;sessions++;
             double[] accepted=gaugeCharge(session);
             if(accepted!=null){double[] sum=gauge.computeIfAbsent(session.profile,ignored->new double[3]);sum[0]+=accepted[0];sum[1]+=accepted[1];sum[2]++;}
-            if(bins==null)continue;
+            // A recording that ended with a guessed charger label teaches no curve (it stays in the list, marked as a guess).
+            // Its gauge evidence above counts: ampere-hours per gauge point does not depend on which charger supplied them.
+            if(bins==null||!learnsCurve(file.getName()))continue;
             String key=key(session.profile,session.charger);eligible.computeIfAbsent(key,ignored->new ArrayList<>()).add(bins);subjects.put(key,session);
         }
         Map<String,Curve> curves=new LinkedHashMap<>();for(Map.Entry<String,List<Evidence>> item:eligible.entrySet()){
@@ -520,7 +531,7 @@ public final class ChargeSessionStore {
                     +"\",\"charger\":\""+session.charger.name()+"\",\"started_automatically\":"+(source!=null)
                     +",\"label_source\":"+(source==null?"null":"\""+source.name().toLowerCase(Locale.ROOT)+"\"")+",\"started_wall_ms\":"+session.startedWall
                     +",\"started_elapsed_ms\":"+session.startedMono+",\"stop_reason\":"+(session.stop==null?"null":"\""+session.stop.name()+"\"")
-                    +",\"qualified_for_learning\":"+(session.evidence()!=null)+",\"observed_complete_elapsed_ms\":"+session.observedCompletion()+",\"schedule_pauses\":[");
+                    +",\"qualified_for_learning\":"+(session.evidence()!=null&&learnsCurve(file.getName()))+",\"observed_complete_elapsed_ms\":"+session.observedCompletion()+",\"schedule_pauses\":[");
             writePauses(out,session,0);
             // Additive field: times the charger itself stopped below 99% and the recording waited for it.
             out.write("],\"charger_pauses\":[");
@@ -539,6 +550,11 @@ public final class ChargeSessionStore {
         out.write("]}");out.flush();return count;
     }
     public static String key(String profile,Charger charger){return profile+":"+charger.name();}
+    /**
+     * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen
+     * or detected. A label that is still a guess when the recording ends labels the file and nothing else.
+     */
+    public static boolean learnsCurve(String id){return labelSource(id)!=LabelSource.GUESS;}
     private static String csv(Object value){return value==null?"":value.toString();}
     private static void writeEstimateJson(Writer out,Estimate value)throws IOException{
         if(value==null){out.write("null");return;}
@@ -558,6 +574,15 @@ public final class ChargeSessionStore {
         List<File> result=new ArrayList<>(Arrays.asList(items));result.sort(Comparator.comparingLong(File::lastModified).thenComparing(File::getName));return result;
     }
     private void prune()throws IOException{pruneTo(MAX_SESSIONS);}
+    /**
+     * Over the limit, the oldest automatic recordings go first, and only they: a manual recording is never deleted to
+     * make room for an automatic one. A running journal is left alone. Called once an automatic recording is saved, never
+     * at its start.
+     */
+    private void trimAutomatic()throws IOException{
+        List<File> entries=files();int over=entries.size()-MAX_SESSIONS;
+        for(File file:entries)if(over>0&&!file.equals(active)&&labelSource(file.getName())!=null){remove(file);over--;}
+    }
     private void pruneTo(int limit)throws IOException{
         List<File> entries=files();int remove=entries.size()-limit;if(remove<=0)return;
         Map<String,List<File>> qualified=new LinkedHashMap<>();List<File> rejected=new ArrayList<>();
@@ -587,7 +612,8 @@ public final class ChargeSessionStore {
         Retention(File file,String bucket){length=file.length();modified=file.lastModified();this.bucket=bucket;}
     }
     private synchronized Retention rememberRetention(File file,Session session,Evidence evidence){
-        Retention info=new Retention(file,evidence==null?null:key(session.profile,session.charger));
+        // A guessed label is in no charger's bucket: it protects no curve, so the ordinary pruning may remove it first.
+        Retention info=new Retention(file,evidence==null||!learnsCurve(file.getName())?null:key(session.profile,session.charger));
         retentionCache.put(file.getName(),info);return info;
     }
     private synchronized Retention retention(File file)throws IOException{
