@@ -160,8 +160,8 @@
     <string name="readings_overspeed_control_short" volt:src="e9b69c7d0fb01ead4885b3e71326cc556d35018c">Control de exceso de velocidad (en bruto)</string>
     <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Ajuste de alerta de exceso de velocidad (en bruto)</string>
     <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Alerta de exceso de velocidad (en bruto)</string>
-    <string name="readings_drive_speed_limit" volt:src="9c1bf0cb421a374f21b66bd4cccb587844a88709">Ajuste del límite de velocidad del modo de conducción (en bruto)</string>
-    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Límite de velocidad de conducción (en bruto)</string>
+    <string name="readings_drive_speed_limit" volt:src="9c1bf0cb421a374f21b66bd4cccb587844a88709" volt:attempt="2">Ajuste del límite de velocidad del modo de conducción Drive (en bruto)</string>
+    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114" volt:attempt="2">Límite de velocidad de Drive (en bruto)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware del medidor</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware del medidor</string>
     <string name="readings_meter_version_compact" volt:src="3af54421c2b7f705dd57e0bcd6b26cb01806f0c9">Firmware del medidor</string>
@@ -261,6 +261,9 @@
     <string name="readings_chart_elevation" volt:src="43284f542b28a9aa8621fcbd297b8c18910c1602">Altitud</string>
     <string name="readings_chart_gps_acceleration" volt:src="c415bb6299c3269b5bed4e1c1a4c3ba44b429d95">Aceleración GPS</string>
     <string name="readings_chart_energy_distance" volt:src="5e03198574edc59e86a254a341205f8e62a6aa92">Energía / distancia</string>
+    <string name="readings_chart_gps_accuracy" volt:src="c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601">Precisión del GPS</string>
+    <string name="readings_accuracy_value" volt:src="b1b01669302e998e619e58732cf9a7febe96ec96">±%1$s</string>
+    <string name="readings_chart_axis_at_least" volt:src="c19948a14a0e989b0ca349d0fe8f7ad0c2a71486">≥%1$s</string>
     <string name="readings_chart_est_finish" volt:src="025a56ff0a8058a86a507ab29885d9d88f2141f1">Hora de fin estimada</string>
     <string name="readings_chart_est_countdown" volt:src="14031bfeb3be34cbf79c3c63ca28dd159ab444da">Tiempo restante estimado</string>
     <string name="readings_chart_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Corriente</string>

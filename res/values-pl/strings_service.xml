@@ -144,6 +144,12 @@
     <string name="service_charge_saved_full">Zachowano zapis ładowania · bateria osiągnęła 100%%</string>
     <!-- src:7d1c1cc6bca567ad6f3596d2f6340628e77bfd14 -->
     <string name="service_charge_saved">Zachowano zapis ładowania</string>
+    <!-- src:31f872ceeb975374bc8e8f1ea8331a295f49bb5a -->
+    <string name="service_charge_not_kept">Nie zachowano zapisu ładowania · poniżej 10 min lub 5%%</string>
+    <!-- src:8c8a5ff695247603854db647ac54d85eaede73c5 -->
+    <string name="service_charge_auto_no_room">To ładowanie nie jest zapisywane: wszystkie 20 zachowanych zapisów ładowania, wspólnych dla wszystkich Twoich hulajnóg, zostało rozpoczętych przez Ciebie. Aby zwolnić miejsce, należy wyczyścić zapisy ładowania jednej z hulajnóg.</string>
+    <!-- src:50ad0009a5426ee1508e0b0681adbddceaf41638 -->
+    <string name="service_charge_charger_guessed">%1$s · przypuszczalna ładowarka</string>
     <!-- src:66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4 -->
     <string name="service_charge_storage_error">Zatrzymano zapis ładowania po błędzie pamięci</string>
     <!-- src:1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5 -->

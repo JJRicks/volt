@@ -312,7 +312,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Invia</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Subito dopo si aprirà l\'app email, così potrai leggerlo prima.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Scegli il tuo monopattino o «Non sono sicuro», poi «Invia».</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Verrà allegato un file di diagnostica: dettagli dell\'app e del monopattino ed eventi recenti di connessione e comando. Non include mai la chiave del proprietario, il PIN, il numero di serie, la posizione o i nomi.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff">Verrà allegato un file di diagnostica: dettagli su app, telefono e monopattino, impostazioni e ultimo arresto anomalo di Volt, conteggio delle registrazioni, eventi recenti di connessione e comando, nonché la cronologia di ricarica e programmazione del monopattino selezionato con gli orari. Non conterrà mai la tua chiave del proprietario, il PIN, il numero di serie, la posizione o i nomi.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Invia un\'email a Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Anteprima</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Mostra l\'anteprima del file di diagnostica</string>

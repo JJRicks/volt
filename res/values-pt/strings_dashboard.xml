@@ -100,6 +100,10 @@
     <string name="dashboard_hero_time_status">%1$s, %2$s. %3$s</string>
     <!-- src:f5f890cf656f55df359eda425e26bd0923b1b81f -->
     <string name="dashboard_hero_time_tag_status">%1$s, %2$s, %3$s. %4$s</string>
+    <!-- src:c340e13d9afa59f30aa10dae9ecb3de951f8f0ab -->
+    <string name="dashboard_charge_time_other">Outro tempo: %1$s</string>
+    <!-- src:13d494c3d3db09eb6ce058e1a82f206e6a00b846 -->
+    <string name="dashboard_charge_time_switch">Alternar tempo</string>
     <!-- src:bae5d367b7ef5a1b6b72b1e9a82d78879e77350a -->
     <string name="dashboard_hero_charge_not_reported">Carga sem dados</string>
     <!-- src:965e0afe188b4a0839857e2b00f69286bd86ce17 -->
@@ -194,6 +198,8 @@
     <string name="dashboard_battery">Bateria</string>
     <!-- src:8206a75d21118fc55fb4ff8545d2cbf4c953f973 -->
     <string name="dashboard_range_left">%1$s</string>
+    <!-- src:6a60e792167ca3bcb8635b26b5811eb87dac17d6 -->
+    <string name="dashboard_range_left_spoken">%1$s de autonomia restante</string>
     <!-- src:43dd6778ce24b90d06842f406e1e4939192ea7db -->
     <string name="dashboard_overview_not_reported">Bateria sem dados</string>
     <!-- src:ea0748130f30c6687f41cc741f75eca549fa43c4 -->
@@ -504,6 +510,20 @@
     <string name="dashboard_choose_shortcut">Escolher atalho</string>
     <!-- src:c7755a6119eae598ffe1a9382a2098e74f6e2856 -->
     <string name="dashboard_close_shortcut_picker">Fechar o seletor de atalhos</string>
+    <!-- src:143345d8abdf3fe8a744ade57520d8b9a48f1100 -->
+    <plurals name="dashboard_picker_section">
+        <item quantity="one">%2$s, %1$d atalho</item>
+        <item quantity="many">%2$s, %1$d de atalhos</item>
+        <item quantity="other">%2$s, %1$d atalhos</item>
+    </plurals>
+    <!-- src:f7864d693de33d8067bd3787984fe52dbd48e0b7 -->
+    <plurals name="dashboard_picker_section_state">
+        <item quantity="one">%2$s, %1$d atalho, %3$s</item>
+        <item quantity="many">%2$s, %1$d de atalhos, %3$s</item>
+        <item quantity="other">%2$s, %1$d atalhos, %3$s</item>
+    </plurals>
+    <!-- src:e29978a9db24183f719bcc7565e8038070e03695 -->
+    <string name="dashboard_picker_category_reason">%1$s, %2$s</string>
     <!-- src:6e7df924b7fbadb647ad83fce0565824089d8ac7 -->
     <string name="dashboard_save">Guardar</string>
     <!-- src:07ed5aac0e459c8e497b5b10fa5863ebc480dbef -->

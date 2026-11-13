@@ -81,6 +81,9 @@
     <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">L’enregistrement de recharge a atteint sa limite de stockage ou de durée</string>
     <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Enregistrement de recharge sauvegardé · la batterie a atteint 100 %%</string>
     <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Enregistrement de recharge sauvegardé</string>
+    <string name="service_charge_not_kept" volt:src="31f872ceeb975374bc8e8f1ea8331a295f49bb5a">Enregistrement de recharge non conservé · moins de 10 min ou 5 %%</string>
+    <string name="service_charge_auto_no_room" volt:src="8c8a5ff695247603854db647ac54d85eaede73c5">Cette recharge n’est pas enregistrée : les 20 enregistrements de recharge sauvegardés, partagés entre toutes vos trottinettes, ont tous été démarrés par vous. Effacez les enregistrements de recharge d’une trottinette pour libérer de la place.</string>
+    <string name="service_charge_charger_guessed" volt:src="50ad0009a5426ee1508e0b0681adbddceaf41638">%1$s · chargeur supposé</string>
     <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">Enregistrement de recharge arrêté après une erreur de stockage</string>
     <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">Enregistrement de recharge arrêté · %1$s</string>
     <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">recharge terminée</string>

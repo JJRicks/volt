@@ -138,6 +138,12 @@
     <string name="service_charge_saved_full">Enregistrement de recharge sauvegardé · la batterie a atteint 100 %%</string>
     <!-- src:7d1c1cc6bca567ad6f3596d2f6340628e77bfd14 -->
     <string name="service_charge_saved">Enregistrement de recharge sauvegardé</string>
+    <!-- src:31f872ceeb975374bc8e8f1ea8331a295f49bb5a -->
+    <string name="service_charge_not_kept">Enregistrement de recharge non conservé · moins de 10 min ou de 5 %%</string>
+    <!-- src:8c8a5ff695247603854db647ac54d85eaede73c5 -->
+    <string name="service_charge_auto_no_room">Cette recharge n’est pas enregistrée : les 20 enregistrements de recharge sauvegardés, partagés entre toutes vos trottinettes, sont tous des enregistrements que vous avez lancés. Effacez les enregistrements de recharge d’une trottinette pour libérer de la place.</string>
+    <!-- src:50ad0009a5426ee1508e0b0681adbddceaf41638 -->
+    <string name="service_charge_charger_guessed">%1$s · chargeur supposé</string>
     <!-- src:66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4 -->
     <string name="service_charge_storage_error">Enregistrement de recharge arrêté après une erreur de stockage</string>
     <!-- src:1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5 -->

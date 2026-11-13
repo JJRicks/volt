@@ -616,6 +616,8 @@
     <string name="main_report_email_next">Seu app de e-mail será aberto em seguida para que você possa ler primeiro.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Escolha seu patinete ou “Não tenho certeza” e depois toque em “Enviar”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">Será anexado um arquivo de diagnóstico: detalhes do app, do telefone e do patinete, as configurações e a última falha do Volt, o número de gravações, eventos recentes de conexão e de controles e o histórico de carregamento e de programação do patinete selecionado, com horários. Nunca inclui sua chave de proprietário, PIN, número de série, localização nem nomes.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Enviar e-mail ao Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

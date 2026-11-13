@@ -312,7 +312,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Envoyer</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Votre application de messagerie va s’ouvrir, pour que vous puissiez d’abord lire le rapport.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Choisissez votre trottinette, ou « Je ne sais pas », puis « Envoyer ».</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Un fichier de diagnostic sera ajouté : détails de l’application et de la trottinette, et événements récents de connexion et de commande. Il ne contient jamais votre clé de propriétaire, votre code PIN, votre numéro de série, votre position ni vos noms.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff">Un fichier de diagnostic sera joint : détails de l’application, du téléphone et de la trottinette, réglages et dernier plantage de Volt, nombre d’enregistrements, événements récents de connexion et de commande, ainsi que l’historique de recharge et de programmation de la trottinette sélectionnée, avec les heures. Il ne contient jamais votre clé de propriétaire, votre code PIN, votre numéro de série, votre position ni aucun nom.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Écrire à Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Aperçu</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Afficher un aperçu du fichier de diagnostic</string>

@@ -81,6 +81,9 @@
     <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">La registrazione della ricarica ha raggiunto il limite di spazio o di tempo</string>
     <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Registrazione della ricarica salvata · la batteria ha raggiunto il 100%%</string>
     <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Registrazione della ricarica salvata</string>
+    <string name="service_charge_not_kept" volt:src="31f872ceeb975374bc8e8f1ea8331a295f49bb5a">Registrazione della ricarica non conservata · meno di 10 min o 5%%</string>
+    <string name="service_charge_auto_no_room" volt:src="8c8a5ff695247603854db647ac54d85eaede73c5">Ricarica non registrata: le 20 registrazioni della ricarica salvate, condivise tra tutti i tuoi monopattini, sono state tutte avviate da te. Elimina le registrazioni della ricarica di un monopattino per liberare spazio.</string>
+    <string name="service_charge_charger_guessed" volt:src="50ad0009a5426ee1508e0b0681adbddceaf41638">%1$s · caricabatterie ipotizzato</string>
     <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">Registrazione della ricarica interrotta dopo un errore di archiviazione</string>
     <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">Registrazione della ricarica interrotta · %1$s</string>
     <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">ricarica terminata</string>
