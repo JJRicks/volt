@@ -1,0 +1,7 @@
+# Idle efficiency (owner, Nov 12 2026): the connection notice posts only when it changed (NoticeRepeat), the
+# keep-screen-on flag is touched only on a change (KeepScreenOn), and the simulator lets the service stop out of sight
+# (WorkReasons). tests/run.sh compiles every path listed here and runs IdleEfficiencyTest from the repository root.
+src/com/jjricks/volt/NoticeRepeat.java
+src/com/jjricks/volt/KeepScreenOn.java
+src/com/jjricks/volt/WorkReasons.java
+tests/l10n/IdleEfficiencyTest.java
