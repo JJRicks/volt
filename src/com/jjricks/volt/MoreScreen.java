@@ -2558,6 +2558,9 @@ public final class MoreScreen implements AppScreen {
             String unavailable=s.chargeCaptureUnavailable();if(unavailable!=null){host.toast(unavailable);return;}
             recordChargeDialog(s);
         });chargeCaptureRow.view.setTag("charge-capture-action");
+        // Record charges automatically (off by default): beside the recording controls, its only place.
+        preferenceToggle(capture,"recording",T.moreChargeAutoRecord(),T.moreChargeAutoRecordSub(),ChargeAutoRecordPolicy.KEY,false)
+                .view.setTag(ChargeAutoRecordPolicy.KEY);
         chargeCaptureStatus=footnote("");chargeCaptureStatus.setTag("charge-capture-status");
         LinearLayout chargeData=group();
         chargeHistoryRow=row(chargeData,"chart",T.moreDevRecordings(), T.moreDevRecordingsSub(),()->{
@@ -2636,6 +2639,9 @@ public final class MoreScreen implements AppScreen {
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
             chargeCaptureRow.enabled(s!=null&&(capturing||unavailable==null));
             chargeCaptureStatus.setText(capturing||unavailable==null?s.chargeCaptureStatus():unavailable);
+            // The recording that just ended (not kept, saved, stopped) stays shown over a reason that follows from the charge
+            // ending (an unplug makes one at once), until a newer status replaces it; never over others, such as a ride.
+            if(!capturing&&unavailable!=null&&s!=null&&s.chargeOutcomeOverReason())chargeCaptureStatus.setText(s.chargeCaptureStatus());
             refreshChargeCurve(s);
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
