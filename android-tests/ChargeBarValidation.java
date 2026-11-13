@@ -421,6 +421,38 @@ public final class ChargeBarValidation extends Instrumentation {
             from[0] = Math.round(b.drawn);
         });
         writes.clear(); toasts.clear();
+        // Keyboard focus: the value and the row's note show before any key writes.
+        setInTouchMode(false); waitForIdleSync();
+        try {
+            main(() -> require(bar().requestFocus(), "The bar did not take keyboard focus"));
+            settle();
+            main(() -> {
+                ChargeBar b = bar();
+                require(!b.labelBox.isEmpty() && b.labelText(Math.round(b.drawn)).contains(untested), "Focused, the bar does not show its value and note: " + b.labelBox);
+                require(writes.isEmpty(), "Focusing the bar wrote " + writes);
+            });
+            shot("untested-focused");
+            main(() -> bar().clearFocus()); settle();
+            main(() -> require(bar().labelBox.isEmpty(), "The label stayed after focus left"));
+        } finally { setInTouchMode(true); waitForIdleSync(); }
+        // A pending write keeps the note in the spoken state, as the label keeps it.
+        trap = "hold";
+        try {
+            int up = from[0] >= 100 ? -1 : 1;
+            Finger held1 = new Finger(mark());
+            held1.move(up * (stepPx() + slop() * .5f), 0, 8); held1.up(); settle();
+            main(() -> {
+                ChargeBar b = bar();
+                require(b.writePending(), "The held write is not pending");
+                String state = Build.VERSION.SDK_INT >= 30 ? String.valueOf(b.getStateDescription()) : String.valueOf(b.getContentDescription());
+                String lower = state.toLowerCase(java.util.Locale.ROOT);
+                require(lower.contains(T.mainRowConfirmingPart().toLowerCase(java.util.Locale.ROOT).trim()) && lower.contains(untested.toLowerCase(java.util.Locale.ROOT)),
+                        "Pending, the spoken state is '" + state + "', not confirming with the note");
+                require(b.labelText(Math.round(b.drawn)).contains(untested), "Pending, the label lost the note");
+            });
+            main(() -> { Consumer<Boolean> c = held; held = null; if (c != null) c.accept(false); });
+            settle(); SystemClock.sleep(300);
+        } finally { trap = null; held = null; writes.clear(); toasts.clear(); }
         int direction = from[0] >= 100 ? -1 : 1;
         Finger f = new Finger(mark());
         f.move(direction * (stepPx() + slop() * .5f), 0, 8);
@@ -440,7 +472,7 @@ public final class ChargeBarValidation extends Instrumentation {
         main(() -> { service.ble.setSimulationModel(""); service.ble.tickSimulation(); });
         redrawUntil(() -> shownAtRest() && bar().kind == ChargeBarDrag.LIMIT && bar().note == null, "Back on the UT5 MAX the note stayed");
         writes.clear(); toasts.clear();
-        checks.add("Simulated 24431 (OEM-mapped): the bar carries the Charge limit row's 'Untested here', spoken in its state and shown beside the dragged value; the drag still writes once; none on the UT5 MAX");
+        checks.add("Simulated 24431 (OEM-mapped): the bar carries the Charge limit row's 'Untested here', spoken in its state and shown beside the dragged value; keyboard focus shows it before any key writes; a pending write keeps it spoken; the drag still writes once; none on the UT5 MAX");
     }
 
     /** Left and right step the focused bar as increase and decrease do, mirrored right to left, through the same commit. */
