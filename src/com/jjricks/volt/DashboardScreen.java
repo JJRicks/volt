@@ -1561,12 +1561,26 @@ public final class DashboardScreen implements AppScreen {
 
     /** Full, normal and compact names for the charging time; an unknown cutoff never claims "full". */
     private String[] chargeTimeLabels(ChargingEstimate.Result estimate, boolean widget) {
-        if (estimate.targetPercent != null && estimate.targetPercent < 100) {
-            String target = T.fmtPercent(Fmt.decimal(Locale.US, estimate.targetPercent, 0));
+        return chargeTimeLabels(estimate.targetPercent, widget);
+    }
+
+    /** The same names for a cutoff alone (null: unknown, so "100% if uncapped"). */
+    private String[] chargeTimeLabels(Double targetPercent, boolean widget) {
+        return chargeTimeLabels(targetPercent, widget, false);
+    }
+
+    /**
+     * plainHundred names a 100% cutoff as a plain percentage ("Time to 100%", "To 100%"): the charging time tile's
+     * second reading beside a limit or an alert, where the charging view already says what it charges to (owner,
+     * Nov 12 2026: "if uncapped" is redundant there).
+     */
+    private String[] chargeTimeLabels(Double targetPercent, boolean widget, boolean plainHundred) {
+        if (targetPercent != null && (targetPercent < 100 || plainHundred)) {
+            String target = T.fmtPercent(Fmt.decimal(Locale.US, targetPercent, 0));
             String name = widget ? T.dashboardChargeToLimit(target) : T.dashboardChargeTimeTo(target);
             return new String[] {name, name, T.dashboardChargeTimeToCompact(target)};
         }
-        if (estimate.targetPercent == null)
+        if (targetPercent == null)
             return new String[] {T.dashboardChargeTimeUncapped(), T.dashboardChargeTimeUncappedShort(), T.dashboardChargeTimeUncappedCompact()};
         return new String[] {T.dashboardChargeTimeFull(), T.dashboardChargeTimeFullShort(), T.dashboardChargeTimeFullCompact()};
     }
@@ -1577,7 +1591,11 @@ public final class DashboardScreen implements AppScreen {
      */
     private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate) {
         boolean limit = estimate.targetPercent != null && estimate.targetPercent < 100;
-        Double minutes = limit ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull;
+        showChargeTime(value, tag, estimate, limit ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull);
+    }
+
+    /** The same slot for a chosen time (the charging view's limit, alert or 100% reading), with the estimate's state. */
+    private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate, Double minutes) {
         boolean low = ChargingEstimate.LOW_CURRENT.equals(estimate.label);
         String state = estimate.label == null || estimate.label.isEmpty() ? "—" : estimate.label;
         // The state as shown: Low current in the current language, any other state its own display message.
@@ -1590,7 +1608,37 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /** Compact, labeled metric cards shared by charging and the reading-list widget. */
-    private final class InfoCell extends LinearLayout {
+    /** A metric card's label row (icon and caption) and its value: an InfoCell's body, and each charge time reading. */
+    private final class InfoFace {
+        final LinearLayout labelRow;
+        final View icon;
+        final DashboardCaption label;
+        final FittedValue value;
+        InfoFace(String iconName, String full, String normal, String compact) {
+            labelRow = row();
+            labelRow.setGravity(Gravity.CENTER_VERTICAL);
+            icon = new GlyphView(iconName, ui.muted);
+            LinearLayout.LayoutParams iconSpace = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
+            iconSpace.setMarginEnd(ui.dp(5));
+            labelRow.addView(icon, iconSpace);
+            label = new DashboardCaption(host.activity(), ui, full, normal, compact,
+                    glyphDrawable(iconName, ui.muted, 18));
+            labelRow.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+            // Keep ordinary number/unit pairs together before permitting a
+            // readable-floor wrap for unusually long diagnostic values.
+            value = new FittedValue("—", 12, 26, 1);
+            value.setIncludeFontPadding(true);
+            value.setGravity(Gravity.CENTER_VERTICAL);
+            value.setMinHeight(ui.dp(48 * ui.textScale));
+        }
+        LinearLayout.LayoutParams valueSpace() {
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+            p.topMargin = ui.dp(2);
+            return p;
+        }
+    }
+
+    private class InfoCell extends LinearLayout {
         final TextView label, value;
         final View labelIcon;
         /** Optional pill beside the value for a short state. */
@@ -1601,25 +1649,12 @@ public final class DashboardScreen implements AppScreen {
             setOrientation(VERTICAL);
             setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(10));
             setBackground(ui.shape(ui.raised, 14, 0));
-            LinearLayout labelRow = row();
-            labelRow.setGravity(Gravity.CENTER_VERTICAL);
-            labelIcon = new GlyphView(icon, ui.muted);
-            LinearLayout.LayoutParams iconSpace = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
-            iconSpace.setMarginEnd(ui.dp(5));
-            labelRow.addView(labelIcon, iconSpace);
-            label = new DashboardCaption(host.activity(), ui, full, normal, compact,
-                    glyphDrawable(icon, ui.muted, 18));
-            labelRow.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
-            addView(labelRow, new LinearLayout.LayoutParams(-1, -2));
-            // Keep ordinary number/unit pairs together before permitting a
-            // readable-floor wrap for unusually long diagnostic values.
-            value = new FittedValue("—", 12, 26, 1);
-            value.setIncludeFontPadding(true);
-            value.setGravity(Gravity.CENTER_VERTICAL);
-            value.setMinHeight(ui.dp(48 * ui.textScale));
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
-            p.topMargin = ui.dp(2);
-            addView(value, p);
+            InfoFace face = new InfoFace(icon, full, normal, compact);
+            labelIcon = face.icon;
+            label = face.label;
+            addView(face.labelRow, new LinearLayout.LayoutParams(-1, -2));
+            value = face.value;
+            addView(value, face.valueSpace());
         }
         /** A cell made with one title gets a shorter narrow label (the charging power's "Power"). */
         InfoCell narrowLabel(String title, String compact) {
@@ -1631,8 +1666,12 @@ public final class DashboardScreen implements AppScreen {
             if (tag != null) return tag;
             LinearLayout.LayoutParams old = (LinearLayout.LayoutParams) value.getLayoutParams();
             removeView(value);
-            final TextView chip = tagChip();
-            tag = chip;
+            tag = tagChip();
+            addView(tagLine(value, tag), old);
+            return tag;
+        }
+        /** A value with its state pill at the end of the line; the pill wraps below a long value in a narrow cell. */
+        LinearLayout tagLine(final TextView value, final TextView chip) {
             LinearLayout line = new LinearLayout(host.activity()) {
                 @Override protected void onMeasure(int widthSpec, int heightSpec) {
                     int width = MeasureSpec.getSize(widthSpec);
@@ -1665,8 +1704,7 @@ public final class DashboardScreen implements AppScreen {
             chipSpace.setMarginStart(ui.dp(6));
             chipSpace.gravity = Gravity.CENTER_VERTICAL;
             line.addView(chip, chipSpace);
-            addView(line, old);
-            return chip;
+            return line;
         }
         void fitHeight(int pixels) {
             heightBudget = pixels;
@@ -1680,9 +1718,11 @@ public final class DashboardScreen implements AppScreen {
             int inset = ui.dp(narrow ? 6 : 12);
             int vertical = ui.dp(heightBudget == Integer.MAX_VALUE ? 10 : 4);
             setPadding(inset, vertical, inset, vertical);
-            labelIcon.setVisibility(narrow ? GONE : VISIBLE);
+            showIcons(!narrow);
             super.onMeasure(widthSpec, heightSpec);
         }
+        /** The label icon hides in a narrow cell, where the caption needs the room. */
+        void showIcons(boolean shown) { labelIcon.setVisibility(shown ? VISIBLE : GONE); }
     }
 
     private final class InfoTiles extends LinearLayout {
@@ -1698,7 +1738,10 @@ public final class DashboardScreen implements AppScreen {
             cell.setVisibility(visibility); columns = 0; requestLayout();
         }
         InfoCell add(String icon, String title) {
-            InfoCell cell = new InfoCell(icon, title, title, title); cells.add(cell); columns = 0;
+            return add(new InfoCell(icon, title, title, title));
+        }
+        InfoCell add(InfoCell cell) {
+            cells.add(cell); columns = 0;
             requestLayout(); return cell;
         }
         InfoCell addReading(String key) {
@@ -1772,14 +1815,409 @@ public final class DashboardScreen implements AppScreen {
         return height;
     }
 
+    /** What TalkBack and the tooltip say for a charging time: its name, the value, a shown state pill and the estimate's status. */
+    private String spokenChargeTime(String name, CharSequence value, TextView tag, String status) {
+        // Deferred (B5 follow-up): ChargingEstimate.Result.status has no Msg yet, so the spoken
+        // charge status stays English inside these templates (here and in describeCharging below).
+        boolean plain = status == null || status.isEmpty();
+        if (tag != null && tag.getVisibility() == View.VISIBLE)
+            return plain ? T.dashboardHeroTimeTag(name, value, tag.getText()) : T.dashboardHeroTimeTagStatus(name, value, tag.getText(), status);
+        return plain ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
+    }
+
+    /**
+     * The charging view's one time tile (owner's design, Nov 12 2026; ChargeTimeReadings holds the rules). With two
+     * readings, the time to the limit (the scooter's own, or the charge alert's level) and the time to 100%, two
+     * dots in the upper end corner show which is up, and a tap or a sideways swipe brings the other. Each reading is
+     * one face (label row, value and state pill), so a label never moves without its value. Both faces are always
+     * measured, so the tile keeps one height whichever shows. The choice is saved per scooter as it is made; with one
+     * reading this is the single time tile it replaced: no dots, no switching, the same speech.
+     */
+    private final class ChargeTimeTile extends InfoCell {
+        static final int LIMIT = ChargeTimeReadings.LIMIT, FULL = ChargeTimeReadings.FULL;
+        final InfoFace limitFace;
+        final LinearLayout[] faces = new LinearLayout[2];
+        final View[] rows = new View[2];
+        final DashboardCaption[] captions = new DashboardCaption[2];
+        final TextView[] values = new TextView[2], tags = new TextView[2];
+        final String[] spoken = {"", ""};
+        final FrameLayout stack;
+        final ChargeTimeReadings.Switch state = new ChargeTimeReadings.Switch();
+        final Paint dots = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final int slop;
+        final float minFling;
+        int preferred;
+        boolean two;
+        android.animation.ValueAnimator motion;
+        VelocityTracker velocity;
+        float downX, downY, dragFromX;
+        /** dragging: a sideways drag owns the gesture; passing: it moved up or down first, so it is no tap. */
+        boolean dragging, passing;
+        /** owning: this gesture began while switchable, so the tile takes it whatever child is under the finger;
+         *  holding: the parents (Home's scroller) are held off until the gesture's direction is known. */
+        boolean owning, holding;
+        /** The switch under way began as a drag: its faces keep following the finger's scale to the end. */
+        boolean fromDrag;
+        /** The touch under way: the tile's own, the plain tile's, or cut off by a reset until the next one begins. */
+        final ChargeTimeReadings.Touch touch = new ChargeTimeReadings.Touch();
+
+        ChargeTimeTile(String title) {
+            super("clock", title, title, title);
+            addTag();
+            // InfoCell built the 100% face (label row, value line); the limit face is built the same way beside it.
+            rows[FULL] = getChildAt(0);
+            View fullLine = getChildAt(1);
+            removeAllViews();
+            captions[FULL] = (DashboardCaption) label; values[FULL] = value; tags[FULL] = tag;
+            limitFace = new InfoFace("clock", title, title, title);
+            rows[LIMIT] = limitFace.labelRow;
+            captions[LIMIT] = limitFace.label; values[LIMIT] = limitFace.value; tags[LIMIT] = tagChip();
+            stack = new FrameLayout(host.activity());
+            for (int r : new int[] {LIMIT, FULL}) {
+                LinearLayout face = column();
+                face.addView(rows[r]);
+                face.addView(r == FULL ? fullLine : tagLine(values[r], tags[r]), r == FULL ? fullLine.getLayoutParams() : limitFace.valueSpace());
+                faces[r] = face;
+                stack.addView(face, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
+            }
+            addView(stack, new LinearLayout.LayoutParams(-1, -2));
+            // Faces slide out to the card's rounded edge, not to its padding.
+            setBackground(ripple(Ui.withAlpha(ui.accent, 30), ui.shape(ui.raised, 14, 0), null));
+            setClipToOutline(true);
+            setClipChildren(false); setClipToPadding(false);
+            stack.setClipChildren(false); stack.setClipToPadding(false);
+            ViewConfiguration touch = ViewConfiguration.get(host.activity());
+            slop = touch.getScaledTouchSlop();
+            minFling = Math.max(touch.getScaledMinimumFlingVelocity(), ui.dp(300));
+            setOnClickListener(v -> tapSwitch());
+            String saved = null;
+            try {
+                if (ChargeTimeReadings.key(profileId) != null)
+                    saved = preferences.getString(ChargeTimeReadings.KEY + profileId, null);
+            } catch (ClassCastException damaged) { saved = null; }
+            preferred = ChargeTimeReadings.preferred(saved);
+            two = true; setTwo(false);
+        }
+
+        /**
+         * Fresh values for both faces, also mid-switch. With two readings the 100% face is the plain time to 100%
+         * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
+         * view already says what it charges to; never shorter than the time to the limit beside it,
+         * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
+         * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
+         * and speaks no status, as the alert tile did.
+         */
+        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
+            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
+            boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
+            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
+                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
+                    estimate.status);
+            if (scooterLimit)
+                fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
+            else if (alert != null)
+                fill(LIMIT, chargeTimeLabels(alert, false), estimate, ChargingEstimate.minutesToAlert(alert, estimate), null);
+            setTwo(ChargeTimeReadings.two(source));
+            describe();
+        }
+
+        private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {
+            captions[reading].setLabels(names[0], names[1], names[2]);
+            showChargeTime(values[reading], tags[reading], estimate, minutes);
+            spoken[reading] = spokenChargeTime(names[0], values[reading].getText(), tags[reading], status);
+            values[reading].setContentDescription(spoken[reading]);
+        }
+
+        /** The reading the user has chosen (or the only one), which the tile shows at rest. */
+        int chosen() { return two ? state.target : FULL; }
+
+        /** Two readings make one switchable control for TalkBack; one reading reads as the single tile did. */
+        private void describe() {
+            String text = spoken[chosen()];
+            setTooltipText(text);
+            setContentDescription(two ? text : null);
+        }
+
+        private void setTwo(boolean next) {
+            if (next == two) return;
+            two = next;
+            stopMotion(); endDrag(); cutTouch();
+            state.rest(ChargeTimeReadings.shown(two, preferred));
+            setClickable(two); setFocusable(two);
+            setImportantForAccessibility(two ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            int reserve = two ? dotsWidth() + ui.dp(6) : 0;
+            for (int r : new int[] {LIMIT, FULL}) {
+                faces[r].setImportantForAccessibility(two ? IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+                rows[r].setPaddingRelative(0, 0, reserve, 0);
+            }
+            render();
+            requestLayout();
+        }
+
+        boolean switchable() { return two && !editing && !closed; }
+
+        private void tapSwitch() {
+            if (!switchable() || dragging) return;
+            int before = state.target;
+            if (state.atRest()) fromDrag = false;
+            state.tap(getLayoutDirection() == LAYOUT_DIRECTION_RTL);
+            decided(before);
+        }
+
+        /** After a tap or a lift: save the choice, say it once if it changed, then run to it. */
+        private void decided(int before) {
+            int target = state.target;
+            if (target != preferred) {
+                preferred = target;
+                if (ChargeTimeReadings.key(profileId) != null)
+                    preferences.edit().putString(ChargeTimeReadings.KEY + profileId, ChargeTimeReadings.encode(target)).apply();
+            }
+            describe();
+            if (target != before) announceForAccessibility(spoken[target]);
+            animateToGoal();
+        }
+
+        private void animateToGoal() {
+            stopMotion();
+            if (!Ui.motionEnabled() || closed || !isAttachedToWindow() || !isShown()) { state.settle(); render(); return; }
+            final float from = state.progress, to = state.goal();
+            if (from == to) { state.step(to); render(); return; }
+            final android.animation.ValueAnimator run = android.animation.ValueAnimator.ofFloat(0, 1);
+            motion = run;
+            // A whole switch takes Motion.CHANGE_MS; the rest of a drag or a turn back takes its share, never under ~100 ms.
+            run.setDuration(Math.round(Motion.CHANGE_MS * Math.max(.45f, Math.abs(to - from))));
+            run.setInterpolator(Motion.STANDARD);
+            run.addUpdateListener(a -> {
+                if (motion != run) return;
+                if (!Ui.motionEnabled() || closed) { settle(); return; }
+                state.step(from + (to - from) * a.getAnimatedFraction());
+                render();
+            });
+            run.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator animation) {
+                    if (motion != run) return;
+                    motion = null; state.settle(); render();
+                }
+            });
+            run.start();
+        }
+
+        private void stopMotion() {
+            android.animation.ValueAnimator old = motion;
+            motion = null;
+            if (old != null) old.cancel();
+        }
+
+        /** Ends any switch where it was heading: hidden, detached, rotated, folded or motion turned off. */
+        void settle() {
+            if (stack == null) return;
+            stopMotion(); endDrag(); cutTouch();
+            state.settle(); render();
+        }
+
+        private void endDrag() {
+            if (dragging) state.cancelDrag();
+            dragging = false;
+            if (velocity != null) { velocity.recycle(); velocity = null; }
+        }
+
+        /**
+         * A reset (or a change in whether the tile can switch) with a finger down: the rest of that touch does
+         * nothing, no drag, no switch, no tap and no long press, until the next touch begins, and Home's scroller is
+         * let go so an up or down move still scrolls.
+         */
+        private void cutTouch() {
+            if (!touch.cut()) return;
+            endDrag();
+            passing = false;
+            release();
+            // The plain view's press goes too (pressed look, pending tap, long-press tooltip), so the lift cannot click.
+            long now = android.os.SystemClock.uptimeMillis();
+            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+            super.onTouchEvent(cancel);
+            cancel.recycle();
+        }
+
+        /** How far a drag goes to switch fully; the faces follow the finger one to one. */
+        private float travel() { return Math.max(ui.dp(24), Math.min(ui.dp(96), stack.getWidth() * .5f)); }
+        /** A tap's slide is short, a shared-axis step: the faces hint at the direction, the fade does the rest. */
+        private float tapTravel() { return Math.max(ui.dp(16), Math.min(ui.dp(30), stack.getWidth() * .25f)); }
+
+        /** Lays the faces out for the switch's state: at rest only the chosen one is drawn. */
+        private void render() {
+            if (stack == null) return;
+            if (!two) {
+                place(faces[FULL], VISIBLE, 1, 0);
+                place(faces[LIMIT], GONE, 1, 0);
+            } else {
+                int resting = state.resting, other = ChargeTimeReadings.other(resting);
+                float p = state.progress, distance = fromDrag ? travel() : tapTravel();
+                boolean moving = !state.atRest() && p > 0;
+                place(faces[resting], VISIBLE, ChargeTimeReadings.outgoingAlpha(p), ChargeTimeReadings.outgoingShift(p, state.direction) * distance);
+                place(faces[other], moving ? VISIBLE : INVISIBLE, moving ? ChargeTimeReadings.incomingAlpha(p) : 1,
+                        moving ? ChargeTimeReadings.incomingShift(p, state.direction) * distance : 0);
+            }
+            invalidate();
+        }
+
+        private void place(View face, int visibility, float alpha, float shift) {
+            if (face.getVisibility() != visibility) face.setVisibility(visibility);
+            face.setAlpha(alpha);
+            face.setTranslationX(shift);
+        }
+
+        private float dotRadius() { return ui.dp(6) / 2f; }
+        private int dotGap() { return ui.dp(9); }
+        private int dotsWidth() { return Math.round(dotRadius() * 2) + dotGap(); }
+
+        /** The two dots, like a page indicator: the first is the limit, mirrored right to left. They stay still. */
+        @Override protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (!two || stack == null) return;
+            DashboardCaption caption = captions[state.resting];
+            float y = stack.getTop() + faces[state.resting].getTop() + rows[state.resting].getTop() + caption.getTop();
+            android.text.Layout layout = caption.getLayout();
+            if (layout == null || layout.getLineCount() == 0) y += caption.getHeight() / 2f;
+            else {
+                Paint.FontMetrics metrics = caption.getPaint().getFontMetrics();
+                y += caption.getTotalPaddingTop() + layout.getLineBaseline(0) + (metrics.ascent + metrics.descent) / 2f;
+            }
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            float r = dotRadius(), first = rtl ? getPaddingLeft() + dotsWidth() - r : getWidth() - getPaddingRight() - dotsWidth() + r;
+            for (int reading : new int[] {LIMIT, FULL}) {
+                float x = first + (rtl ? -1 : 1) * reading * dotGap();
+                dots.setColor(blend(Ui.withAlpha(ui.muted, 110), ui.text, ChargeTimeReadings.dotFill(state, reading)));
+                canvas.drawCircle(x, y, r, dots);
+            }
+        }
+
+        private int blend(int from, int to, float share) {
+            float s = Math.max(0, Math.min(1, share));
+            return Color.argb(Math.round(Color.alpha(from) + (Color.alpha(to) - Color.alpha(from)) * s),
+                    Math.round(Color.red(from) + (Color.red(to) - Color.red(from)) * s),
+                    Math.round(Color.green(from) + (Color.green(to) - Color.green(from)) * s),
+                    Math.round(Color.blue(from) + (Color.blue(to) - Color.blue(from)) * s));
+        }
+
+        @Override void showIcons(boolean shown) {
+            super.showIcons(shown);
+            if (limitFace != null) limitFace.icon.setVisibility(shown ? VISIBLE : GONE);
+        }
+
+        /**
+         * With two readings the tile is one control: every touch inside it is the tile's, whichever child is under
+         * the finger (a caption sets a tooltip, and a view with a tooltip takes the touches that start on it). The
+         * choice is made as the gesture starts and kept to its end. With one reading, or while editing, nothing is
+         * intercepted: the captions keep their own tooltips and long-press, as the single tile had.
+         */
+        @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) owning = switchable();
+            return owning || super.onInterceptTouchEvent(event);
+        }
+
+        /** Follows every touch from its first contact to its lift or cancel, whichever view in the tile takes it. */
+        @Override public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) touch.begin(switchable());
+            boolean handled = super.dispatchTouchEvent(event);
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL || (action == MotionEvent.ACTION_DOWN && !handled)) touch.end();
+            return handled;
+        }
+
+        /** Lets the parents (Home's scroller) take the gesture again, once it is known to go up or down. */
+        private void release() {
+            if (!holding) return;
+            holding = false;
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        }
+
+        /**
+         * A tap is the click (TalkBack's double-tap too); a long press shows the shown reading's tooltip and never
+         * switches. From the first touch the parents are held off, so a sideways swipe that drifts up or down at
+         * the start is still the tile's. A sideways move past the touch slop that is more sideways than up or down
+         * becomes a drag, and the outgoing face follows the finger. Up or down first, the parents are let go and
+         * Home's scroller takes it from the next move (the tile only sees a cancel); where nothing scrolls, the
+         * press is dropped all the same, so moving past the tile is never a tap. A touch that began with one reading
+         * stays the plain tile's; one cut off by a reset, or whose switchability changed under it, does nothing more.
+         */
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action != MotionEvent.ACTION_DOWN && touch.changed(switchable())) cutTouch();
+            if (touch.dead()) {
+                // The press was cancelled when the touch was cut, so the lift only lets a tooltip go; it cannot click.
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) super.onTouchEvent(event);
+                return true;
+            }
+            if (!touch.own()) return super.onTouchEvent(event);
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (velocity == null) velocity = VelocityTracker.obtain(); else velocity.clear();
+                downX = event.getX(); downY = event.getY(); dragging = false; passing = false;
+                holding = true;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+            }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) holding = false;
+            if (passing) {
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) { passing = false; endDrag(); }
+                return true;
+            }
+            if (velocity != null) velocity.addMovement(event);
+            if (action == MotionEvent.ACTION_MOVE) {
+                float dx = event.getX() - downX, dy = event.getY() - downY;
+                boolean sideways = Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy);
+                if (!dragging && (sideways || Math.abs(dy) > slop)) {
+                    MotionEvent cancel = MotionEvent.obtain(event);
+                    cancel.setAction(MotionEvent.ACTION_CANCEL);
+                    super.onTouchEvent(cancel);
+                    cancel.recycle();
+                    if (!sideways) { passing = true; release(); return true; }
+                    dragging = true;
+                    stopMotion();
+                    state.startDrag();
+                    fromDrag = true;
+                    dragFromX = downX + Math.signum(dx) * slop;
+                }
+                if (dragging) { state.drag((event.getX() - dragFromX) / travel()); render(); return true; }
+            } else if (action == MotionEvent.ACTION_UP && dragging) {
+                // A live drag always has its tracker (a reset cuts the touch first); no tracker reads as no fling.
+                float vx = 0;
+                if (velocity != null) { velocity.computeCurrentVelocity(1000); vx = velocity.getXVelocity(); }
+                int before = state.resting;
+                dragging = false;
+                state.release(Math.abs(vx) >= minFling ? (vx > 0 ? 1 : -1) : 0);
+                if (velocity != null) { velocity.recycle(); velocity = null; }
+                decided(before);
+                return true;
+            } else if (action == MotionEvent.ACTION_CANCEL && dragging) {
+                dragging = false;
+                state.cancelDrag();
+                if (velocity != null) { velocity.recycle(); velocity = null; }
+                animateToGoal();
+                return true;
+            }
+            return super.onTouchEvent(event);
+        }
+
+        @Override protected void onDetachedFromWindow() { settle(); super.onDetachedFromWindow(); }
+
+        @Override protected void onVisibilityChanged(View changedView, int visibility) {
+            super.onVisibilityChanged(changedView, visibility);
+            if (visibility != VISIBLE) settle();
+        }
+
+        @Override protected void onWindowVisibilityChanged(int visibility) {
+            super.onWindowVisibilityChanged(visibility);
+            if (visibility != VISIBLE) settle();
+        }
+    }
+
     /**
      * Charging takeover, kept as a hero above the grid: shown only while charging is freshly
      * reported, with the percentage, the scooter photo over a red glow and a floor line that
      * fills to the charge and then, in grey, to the charge limit.
      */
     private final class ChargingHero extends LinearLayout {
-        final TextView chip, percent, etaLabel, eta, etaTag, power;
-        final InfoCell timeCell, alertCell;
+        final TextView chip, percent, power;
+        final ChargeTimeTile timeTile;
         final InfoTiles tiles;
         final ImageView photo;
         final Stage stage;
@@ -1791,8 +2229,9 @@ public final class DashboardScreen implements AppScreen {
         float glow = 1;
         /**
          * Clean Home's charging view (hub layout plan 1.5): a plain muted line instead of the chip, the photo filling
-         * a fixed-height slot behind the percentage, a full track with a tick at the limit, and no alert time. Clean's
-         * top area decides when it shows; Widgets keeps the takeover above the grid unchanged.
+         * a fixed-height slot behind the percentage and a full track with a tick at the limit. Its readings are the
+         * widget dashboard's: power beside the one switching time tile (the limit or charge alert time, then the time
+         * to 100%). Clean's top area decides when it shows; Widgets keeps the takeover above the grid unchanged.
          */
         final boolean clean;
         final LinearLayout rows;
@@ -1862,19 +2301,14 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout rows = column();
             this.rows = rows;
             tiles = new InfoTiles();
-            // With a charge alert to reach: power alone, then its time and the time to full side by side.
+            // One row: power beside the one time tile, the pair kept at one height (each tile matches the row).
             tiles.loneFirst = true;
             InfoCell powerCell = tiles.add("bolt", T.dashboardChargingPower());
             String timeToFull = T.dashboardTimeToFull();
-            alertCell = tiles.add("clock", timeToFull);
-            tiles.show(alertCell, false);
-            InfoCell timeCell = tiles.add("clock", timeToFull);
+            timeTile = new ChargeTimeTile(timeToFull);
+            tiles.add(timeTile);
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
-            this.timeCell = timeCell;
-            etaLabel = timeCell.label;
-            eta = timeCell.value;
-            etaTag = timeCell.addTag();
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
         }
@@ -1883,10 +2317,11 @@ public final class DashboardScreen implements AppScreen {
             revealGeneration++;
             if (reveal != null) { reveal.cancel(); reveal = null; }
             // Clean's top area owns the view's size and visibility.
-            if (clean) { updatePulse(); return; }
+            if (clean) { timeTile.settle(); updatePulse(); return; }
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
+            timeTile.settle();
             updatePulse();
         }
 
@@ -1995,17 +2430,7 @@ public final class DashboardScreen implements AppScreen {
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
-            String[] timeLabel = chargeTimeLabels(estimate, false);
-            ((DashboardCaption) etaLabel).setLabels(timeLabel[0], timeLabel[1], timeLabel[2]);
-            showChargeTime(eta, etaTag, estimate);
-            // Deferred (B5 follow-up): ChargingEstimate.Result.status has no Msg yet, so the spoken
-            // charge status stays English inside these templates (here and in describeCharging below).
-            String time = etaTag.getVisibility() == View.VISIBLE
-                    ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
-                    : spokenTime(timeLabel[0], eta.getText(), estimate.status);
-            eta.setContentDescription(time);
-            timeCell.setTooltipText(time);
-            showAlertTime(chargeAlertEstimate(values), estimate);
+            timeTile.update(estimate, chargeAlertEstimate(values));
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -2021,26 +2446,6 @@ public final class DashboardScreen implements AppScreen {
         /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
         private CharSequence cleanLine(boolean hasLimit, double limit) {
             return (hasLimit ? HubText.chargingToLimit(Fmt.percent(Fmt.integerNumber(Math.round(limit)))) : HubText.charging()).render();
-        }
-
-        private String spokenTime(String name, CharSequence value, String status) {
-            return status == null || status.isEmpty() ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
-        }
-
-        /** The tile counting down to a charge alert's level; it keeps its place with a dash while no time is known. */
-        private void showAlertTime(ChargingEstimate.Result alert, ChargingEstimate.Result estimate) {
-            // Clean's view has room for two tiles only: power and the time to the limit.
-            if (clean) alert = null;
-            tiles.show(alertCell, alert != null);
-            if (alert == null) return;
-            String[] labels = chargeTimeLabels(alert, false);
-            ((DashboardCaption) alertCell.label).setLabels(labels[0], labels[1], labels[2]);
-            Double minutes = ChargingEstimate.minutesToAlert(alert, estimate);
-            alertCell.value.setText(minutes == null ? "—" : duration(minutes));
-            alertCell.value.setTextColor(minutes == null ? ui.muted : ui.text);
-            String spoken = spokenTime(labels[0], alertCell.value.getText(), null);
-            alertCell.value.setContentDescription(spoken);
-            alertCell.setTooltipText(spoken);
         }
 
         /** Glow and floor line under the photo. */
