@@ -33,7 +33,11 @@ clearing history also clears the selected last-seen cache. Controls are in
 
 Ride files are separate from connected history and remain until you delete them
 or clear app storage. Charge recording retains up to 20 sessions across profiles
-and charger labels; older sessions are pruned to stay within that limit. Phone
+and charger labels; older sessions are pruned to stay within that limit. With
+**Record charges automatically** on (off by default), a charge recording can start
+by itself whenever Volt is connected and the scooter starts charging; it is stored
+the same way, only on your phone, and nothing leaves the phone unless you send or
+export it. It only replaces older automatic recordings, never ones you started. Phone
 location and motion sensors run only during ride recording when enabled and
 permitted. A foreground notification supports background recording; Android or
 device restrictions can still interrupt it.
