@@ -57,7 +57,9 @@ public final class QuickActionLayoutTest {
         for (String[] name : NAMES) {
             QuickActionLayout.Words words = QuickActionLayout.name(name[0], name[1], room, names);
             require(words.lines >= 1 && words.lines <= 2 && !words.clipped, at + ": " + name[0] + " shows whole: " + words);
-            if (wider == 1) require(words.scale == 1, at + ": " + name[0] + " at its full size: " + words);
+            if (wider == 1) require(words.scale == 1 || words.lines == 1 && words.scale >= QuickActionLayout.MIN_SCALE,
+                    at + ": " + name[0] + " at its full size, or on one line a little smaller: " + words);
+            if (words.lines == 2) require(words.text.indexOf('\n') > 0, at + ": " + name[0] + " breaks where the lines are even: " + words);
             System.out.println("  " + at + ": " + name[0] + " -> " + words);
         }
         for (String value : VALUES) {
@@ -77,8 +79,14 @@ public final class QuickActionLayoutTest {
                     at + ": Record ride, else Record, on one line: " + record);
             QuickActionLayout.Words alerts = QuickActionLayout.name("Battery alerts", "Alerts", room, names);
             require(alerts.brief && alerts.lines == 1, at + ": Battery alerts takes its short form before it wraps: " + alerts);
+            // Charge done by has no shorter English form (a shorter one is text for part 10): one line a little smaller at
+            // 1x, so the value is the column's second line; at 1.4x two even lines, never "Charge done" / "by".
             QuickActionLayout.Words done = QuickActionLayout.name("Charge done by", "Charge done by", room, names);
-            require(!done.brief && done.lines == 2, at + ": a name with no shorter form wraps onto two lines of whole words: " + done);
+            if (text == 1) require(!done.brief && done.lines == 1 && done.scale < 1 && done.scale >= QuickActionLayout.MIN_SCALE,
+                    at + ": a name with no shorter form gets a little smaller before it wraps: " + done);
+            else require(done.lines == 2 && done.text.equals("Charge\ndone by"), at + ": two even lines of whole words: " + done);
+            QuickActionLayout.Words cruise = QuickActionLayout.name("Cruise control", "Cruise control", room, names);
+            if (text == 1) require(cruise.lines == 1, at + ": Cruise control on one line: " + cruise);
         }
     }
 
@@ -90,9 +98,17 @@ public final class QuickActionLayoutTest {
         words = QuickActionLayout.name("Abcdefgh", "Abc", 60, w);
         require(words.text.equals("Abc") && words.lines == 1 && words.brief, "the short form before the full name wraps");
         words = QuickActionLayout.name("Abcd efgh", "Abc defg", 60, w);
-        require(words.text.equals("Abc defg") && words.lines == 2 && words.brief, "the short form wraps before the full name does: " + words);
+        require(words.text.equals("Abc\ndefg") && words.lines == 2 && words.brief, "the short form wraps before the full name does: " + words);
         words = QuickActionLayout.name("Abcd efgh", "Abcdefghijkl", 60, w);
-        require(words.text.equals("Abcd efgh") && words.lines == 2 && !words.brief, "the full name wraps when the short form can't: " + words);
+        require(words.text.equals("Abcd\nefgh") && words.lines == 2 && !words.brief, "the full name wraps when the short form can't: " + words);
+        words = QuickActionLayout.name("Abcdefg", "Abcdef", 55, w);
+        require(words.text.equals("Abcdef") && words.lines == 1 && words.brief && words.scale < 1,
+                "a little smaller on one line before anything wraps: " + words);
+        require(QuickActionLayout.even("Ab cdefgh ij", 95, w).equals("Ab cdefgh\nij") || QuickActionLayout.even("Ab cdefgh ij", 95, w).equals("Ab\ncdefgh ij"),
+                "two lines of whole words: " + QuickActionLayout.even("Ab cdefgh ij", 95, w));
+        require(QuickActionLayout.even("Abcdef gh ij", 90, w).equals("Abcdef\ngh ij"), "the more even break, not the greedy one: "
+                + QuickActionLayout.even("Abcdef gh ij", 90, w));
+        require(QuickActionLayout.even("Abc", 20, w).equals("Abc") && QuickActionLayout.even("Ab cd", 60, w).equals("Ab cd"), "one word, or one line: as it is");
         words = QuickActionLayout.name("Abcdefghijkl", "Abcdefg", 60, w);
         require(words.text.equals("Abcdefg") && words.lines == 1 && words.scale < 1 && words.scale >= QuickActionLayout.MIN_SCALE && !words.clipped,
                 "only then the short form gets smaller: " + words);

@@ -193,6 +193,8 @@ final class QuickAccessGrid extends ViewGroup {
                     if (cell.lockState) cell.requestLayout();
                 }
                 ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
+                // A round action drawn with the speedometer that is not Ride gets the speedometer's max marker (glyph).
+                if (round && "speed".equals(cell.entry.icon)) ui.setIcon(cell.icon, cell.glyph(cell.entry.icon));
                 if (round && !state.contentEquals(cell.shownValue)) { cell.shownValue = state; cell.requestLayout(); }
                 // A round action's value line is placed while measuring (a lock word too wide for it drops).
                 if (!round) cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
@@ -272,6 +274,13 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
+        /**
+         * The glyph a cell shows. Round: Ride keeps the speedometer, and any other action drawn with it (cruise control,
+         * maximum speed) gets the speedometer with its max marker, so no two of the four look the same.
+         */
+        String glyph(String icon) {
+            return round && "speed".equals(icon) && !HomeQuickActions.RIDING.equals(entry.id) ? "speed_max" : icon;
+        }
         /** Round only: the circle the icon sits in (filled while the action is on), and the value last laid out. */
         FrameLayout circle;
         CharSequence shownValue = "";
@@ -325,7 +334,7 @@ final class QuickAccessGrid extends ViewGroup {
                 setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
                 circle = new FrameLayout(host.activity());
                 circle.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-                icon = ui.icon(entry.icon, 22, ui.text);
+                icon = ui.icon(glyph(entry.icon), 22, ui.text);
                 circle.addView(icon, new FrameLayout.LayoutParams(ui.dp(22), ui.dp(22), Gravity.CENTER));
                 int side = ui.dp(QuickActionLayout.CIRCLE_DP);
                 addView(circle, new LinearLayout.LayoutParams(side, side));

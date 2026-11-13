@@ -5,11 +5,13 @@ package com.jjricks.volt;
  * in one row, each action's name under its circle, outside it, and its value (90%, Off, Recording) as a second line
  * under the name. Pure Java, so the JVM suite checks it at the sizes the maintainers check (tests/QuickActionLayoutTest).
  *
- * <p>The circle does not grow with large text: only the words under it do. A name takes, in this order, the first
- * that fits its column: the full name on one line, the short form on one line, the short form on two lines of whole
- * words, the full name on two lines of whole words; only then does the short form get smaller (down to
- * {@link #MIN_SCALE} of its size, on one line or two), and failing that it takes two lines and ends in an ellipsis (its
- * spoken name stays whole). A value takes one line, else two lines of whole words; a lock word that fits neither drops
+ * <p>The circle does not grow with large text: only the words under it do. A name stays on one line where it can, so
+ * the value is the column's second line (the plan's two lines, never "Charge done" / "by" / "Off"). It takes, in this
+ * order, the first that fits its column: the full name on one line, the short form on one line, the short form and
+ * then the full name on one line a little smaller (down to {@link #MIN_SCALE} of its size); only then two lines of
+ * whole words, the short form before the full name, broken where the two lines are most even ("Charge" / "done by",
+ * not "Charge done" / "by"); then two even lines a little smaller; and failing that two lines ending in an ellipsis
+ * (its spoken name stays whole). A value takes one line, else two lines of whole words; a lock word that fits neither drops
  * (the circle's open or closed padlock and the spoken state remain); any other value gets smaller the same way, else
  * ends in an ellipsis on its second line. Widths are measured at the full size, in the same unit as {@code room}.
  */
@@ -36,7 +38,7 @@ final class QuickActionLayout {
 
     /** What a line of words under the circle shows. */
     static final class Words {
-        /** The text shown (the full name or its short form), or null when nothing shows. */
+        /** The text shown (the full name or its short form; on two lines, with a line break where it breaks), or null. */
         final String text;
         /** One or two lines; 0 when nothing shows. */
         final int lines;
@@ -80,15 +82,48 @@ final class QuickActionLayout {
     /** The room for words in a column this wide (dp): the column less its side padding. */
     static float room(float column) { return Math.max(0, column - 2 * SIDE_DP); }
 
-    /** The name under a circle: short forms before anything wraps, and wrapping before anything is cut. */
+    /** The name under a circle: short forms, then a little smaller, before anything wraps; wrapping before cutting. */
     static Words name(String full, String brief, float room, Width width) {
         if (full == null || full.isEmpty()) return new Words(null, 0, false, false);
         boolean hasBrief = brief != null && !brief.isEmpty() && !brief.equals(full);
         if (fits(full, room, 1, width)) return new Words(full, 1, false, false);
         if (hasBrief && fits(brief, room, 1, width)) return new Words(brief, 1, true, false);
-        if (hasBrief && fits(brief, room, 2, width)) return new Words(brief, 2, true, false);
-        if (fits(full, room, 2, width)) return new Words(full, 2, false, false);
-        return smaller(hasBrief ? brief : full, hasBrief, room, width);
+        Words one = hasBrief ? smallerOn(brief, true, 1, room, width) : null;
+        if (one == null) one = smallerOn(full, false, 1, room, width);
+        if (one != null) return one;
+        if (hasBrief && fits(brief, room, 2, width)) return new Words(even(brief, room, width), 2, true, false);
+        if (fits(full, room, 2, width)) return new Words(even(full, room, width), 2, false, false);
+        String text = hasBrief ? brief : full;
+        Words two = smallerOn(text, hasBrief, 2, room, width);
+        return two != null ? two : new Words(text, 2, hasBrief, true);
+    }
+
+    /** The text on {@code lines} lines at the largest size from {@link #MIN_SCALE} up that fits, or null. */
+    private static Words smallerOn(String text, boolean brief, int lines, float room, Width width) {
+        for (int step = 1; 1 - step * SCALE_STEP >= MIN_SCALE - 1e-4f; step++) {
+            float scale = Math.round((1 - step * SCALE_STEP) * 100) / 100f;
+            if (fits(text, room / scale, lines, width))
+                return new Words(lines == 2 ? even(text, room / scale, width) : text, lines, brief, false, scale);
+        }
+        return null;
+    }
+
+    /**
+     * A text that fits two lines of whole words in {@code room}, broken where the longer line is shortest (the most
+     * even break), with a line break there; the text as it is when it fits one line or has no break that fits.
+     */
+    static String even(String text, float room, Width width) {
+        String[] words = text.trim().split(" +");
+        if (words.length < 2 || fits(text, room, 1, width)) return text;
+        String best = null;
+        float longest = Float.MAX_VALUE;
+        for (int at = 1; at < words.length; at++) {
+            String first = String.join(" ", java.util.Arrays.copyOfRange(words, 0, at));
+            String second = String.join(" ", java.util.Arrays.copyOfRange(words, at, words.length));
+            float wider = Math.max(width.of(first), width.of(second));
+            if (wider <= room && wider < longest) { longest = wider; best = first + "\n" + second; }
+        }
+        return best == null ? text : best;
     }
 
     /** The value line under the name: one line, else two whole-word lines; a lock word that fits neither drops. */
