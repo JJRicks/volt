@@ -220,5 +220,12 @@ public final class HubSearchTextTest {
         // size). Part 11 sets that tag on the switch in MoreScreen.
         check(settings.contains(HubSearchTables.SETTING_HAPTICS), "Haptic feedback is listed");
         check(!HubSearchTables.SETTING_HAPTICS.equals(HubSearchTables.SETTING_DISPLAY), "Haptic feedback has a tag apart from the display card");
+        // Part 11: the Haptic feedback switch carries that tag (search finds rows by their view tags).
+        check(Pattern.compile("Row\\s+haptics\\s*=\\s*preferenceToggle\\([^;]*Haptics\\.PREFERENCE[^;]*;\\s*haptics\\.view\\.setTag\\(HubSearchTables\\.SETTING_HAPTICS\\)")
+                .matcher(read("src/com/jjricks/volt/MoreScreen.java")).find(), "MoreScreen tags the Haptic feedback switch with SETTING_HAPTICS");
+        // Part 11: the What's new sheet shows the cut line when the notes were cut short, above the release-page button.
+        String sheet = read("src/com/jjricks/volt/WhatsNewSheet.java");
+        int cut = sheet.indexOf("if (notes.cut)"), line = sheet.indexOf("HubText.whatsNewCut()"), button = sheet.indexOf("HubText.whatsNewReleasePage()");
+        check(cut >= 0 && line > cut && button > line, "WhatsNewSheet shows HubText.whatsNewCut() under notes.cut, above the release-page button");
     }
 }

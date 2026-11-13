@@ -152,6 +152,12 @@ final class WhatsNewSheet {
             line.setPaddingRelative(start, ui.dp(item.bullet ? 8 : 12), 0, 0);
             box.addView(line, new LinearLayout.LayoutParams(-1, -2));
         }
+        // Notes cut short (WhatsNewNotes.Notes.cut): say these are the first, and the release page has them all.
+        if (notes.cut) {
+            TextView cut = ui.caption(HubText.whatsNewCut().render());
+            cut.setPadding(0, ui.dp(12), 0, 0);
+            box.addView(cut, new LinearLayout.LayoutParams(-1, -2));
+        }
         TextView page = ui.secondaryButton(HubText.whatsNewReleasePage().render(), () -> openPage(host, notes.page()));
         page.setTag(TAG_RELEASE_PAGE);
         LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);
