@@ -614,8 +614,6 @@
     <string name="main_report_email_next">Ardından e-posta uygulamanız açılır, böylece önce okuyabilirsiniz.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Scooter’ınızı veya “Emin değilim” seçeneğini seçin, ardından “Gönder” düğmesine dokunun.</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Tanılama dosyası eklenecek: uygulama ve scooter ayrıntıları, son bağlantı ve ayar olayları. Sahip anahtarınız, PIN’iniz, seri numaranız, konumunuz veya adlarınız asla eklenmez.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Volt’a e-posta gönder</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->
