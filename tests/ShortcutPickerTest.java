@@ -211,6 +211,19 @@ public final class ShortcutPickerTest {
         check(ShortcutPicker.unavailable(QuickAccessActions.find("section:Line lights"), scooter(unmappedModel, true)),
                 "an unmapped model's Line lights menu waits for a mapping");
 
+        // Clean Home's own actions (HomeQuickActions, listed before the catalog) lead the sections they belong to.
+        List<QuickAccessActions.Entry> withOwn = new ArrayList<>(HomeQuickActions.ownEntries(true));
+        withOwn.addAll(QuickAccessActions.catalog());
+        List<ShortcutPicker.Section> clean = ShortcutPicker.sections(withOwn, null);
+        ShortcutPicker.Section cleanRide = ShortcutPicker.sectionOf(clean, HomeQuickActions.RIDING);
+        ShortcutPicker.Section cleanBattery = ShortcutPicker.sectionOf(clean, HomeQuickActions.CHARGE_ALERTS);
+        check(cleanRide != null && ShortcutPicker.RIDE.equals(cleanRide.id) && cleanRide.entries.get(0).id.equals(HomeQuickActions.RIDING)
+                && cleanRide.entries.get(1).id.equals(HomeQuickActions.RECORD), "Clean's Ride and Record lead the Ride section");
+        check(cleanBattery != null && ShortcutPicker.BATTERY.equals(cleanBattery.id)
+                && cleanBattery.entries.get(0).id.equals(HomeQuickActions.CHARGE_ALERTS), "Clean's Battery alerts lead the Battery section");
+        check(cleanRide.entries.size() > 2 && !HomeQuickActions.cleanOnly(cleanRide.entries.get(2).id),
+                "the catalog's Ride shortcuts follow (and still name the section)");
+
         // Charge alerts: only where the model has no built-in charge limit, whether connected or not.
         QuickAccessActions.Entry alerts = QuickAccessActions.find(QuickAccessActions.CHARGE_ALERTS_ID);
         if (alerts != null) {

@@ -14,6 +14,8 @@ public final class HomeQuickActionsTest {
         defaults();
         normalize();
         storage();
+        entries();
+        endsRide();
         System.out.println("HomeQuickActions: " + checks + " checks passed");
     }
 
@@ -28,6 +30,21 @@ public final class HomeQuickActionsTest {
         for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) require(HomeQuickActions.known(entry.id), "Every catalog id is offered: " + entry.id);
         require(!HomeQuickActions.known("bogus") && !HomeQuickActions.known(null) && !HomeQuickActions.known(""), "Unknown ids are not");
         require(!HomeQuickActions.ICON_RIDING.isEmpty() && !HomeQuickActions.ICON_RECORD.isEmpty() && !HomeQuickActions.ICON_CHARGE_ALERTS.isEmpty(), "All have icons");
+    }
+
+    private static void endsRide() {
+        require(HomeQuickActions.endsRide(HomeQuickActions.RECORD, true), "Record while a ride records ends and saves it, and says so");
+        require(!HomeQuickActions.endsRide(HomeQuickActions.RECORD, false), "Record with no ride recording starts one");
+        require(!HomeQuickActions.endsRide(HomeQuickActions.RIDING, true) && !HomeQuickActions.endsRide("rides", true)
+                && !HomeQuickActions.endsRide(null, true), "No other action ends a ride");
+        require(HomeQuickActions.startsRide(HomeQuickActions.RECORD, false), "Record with no ride recording starts one, and says so");
+        require(!HomeQuickActions.startsRide(HomeQuickActions.RECORD, true), "Record while a ride records does not start one");
+        require(!HomeQuickActions.startsRide(HomeQuickActions.RIDING, false) && !HomeQuickActions.startsRide("rides", false)
+                && !HomeQuickActions.startsRide(null, false), "No other action starts a ride");
+        // Exactly one of the two holds for Record, whatever the state.
+        for (boolean recording : new boolean[]{false, true})
+            require(HomeQuickActions.startsRide(HomeQuickActions.RECORD, recording) != HomeQuickActions.endsRide(HomeQuickActions.RECORD, recording),
+                    "Record either starts or ends a ride");
     }
 
     private static void defaults() {
@@ -103,6 +120,31 @@ public final class HomeQuickActionsTest {
         require(HomeQuickActions.load(" , ", d).equals(d) && HomeQuickActions.load("bogus,nonsense", d).equals(d), "Unreadable: the defaults");
         require(HomeQuickActions.load("feature:maximum_speed,lights,stats,rides", d).equals(Arrays.asList(MAX, "lights", "stats", "rides")),
                 "An owner's stored four are kept as stored, Maximum speed included");
+    }
+
+    /** Clean's own as entries outside the catalog (PR 8): shown by Clean's grid and picker, never findable. */
+    private static void entries() {
+        for (String id : Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD, HomeQuickActions.CHARGE_ALERTS)) {
+            QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
+            require(entry != null && entry.id.equals(id) && entry.featureKey == null && entry.feature() == null, "An entry for " + id);
+            require(entry.label().id() == HubText.quickActionLabel(id).id() && entry.shortLabel().id() == HubText.quickActionShortLabel(id).id(),
+                    "Named by HubText, with its own short rung: " + id);
+            require(entry.icon.equals(id.equals(HomeQuickActions.RIDING) ? HomeQuickActions.ICON_RIDING
+                    : id.equals(HomeQuickActions.RECORD) ? HomeQuickActions.ICON_RECORD : HomeQuickActions.ICON_CHARGE_ALERTS), "Its icon: " + id);
+            require(!entry.directToggle(), "Not a direct toggle: " + id);
+            require(QuickAccessActions.find(id) == null, "Still not in the catalog: " + id);
+            for (QuickAccessActions.Entry listed : QuickAccessActions.catalog()) require(!listed.id.equals(id), "Not listed in the catalog: " + id);
+        }
+        require(HomeQuickActions.entry("lights") == QuickAccessActions.find("lights"), "A catalog id resolves to the catalog's entry");
+        require(HomeQuickActions.entry("bogus") == null && HomeQuickActions.entry(null) == null, "Unknown ids resolve to nothing");
+        List<QuickAccessActions.Entry> own = HomeQuickActions.ownEntries(false);
+        require(own.size() == 2 && own.get(0).id.equals(HomeQuickActions.RIDING) && own.get(1).id.equals(HomeQuickActions.RECORD), "The picker lists Ride, then Record");
+        own = HomeQuickActions.ownEntries(true);
+        require(own.size() == 3 && own.get(2).id.equals(HomeQuickActions.CHARGE_ALERTS), "Battery alerts follow where the model has them");
+        require(HomeQuickActions.entry(HomeQuickActions.RIDING).label().id() == M.ridingRideButton().id(), "Clean's way into riding mode says RIDE, as the Widgets header does");
+        require(QuickAccessActions.find("lights").shortLabel().id() == M.dashboardModelQaLightsShort().id()
+                && QuickAccessActions.find("rides").shortLabel().id() == M.dashboardModelQaRidesShort().id(), "Catalog short rungs unchanged");
+        for (String id : HomeQuickActions.defaults(false, true, offers("cruise_control"))) require(HomeQuickActions.entry(id) != null, "Every default has an entry: " + id);
     }
 
     private static void require(boolean condition, String message) {
