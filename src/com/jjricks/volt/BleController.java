@@ -115,15 +115,24 @@ public final class BleController {
      * simulated setting brought to a value this model and region offer (ScooterSimulation.conform): a GT5 Max never opens
      * with the UT5 MAX's 50 km/h. Runs whenever the model or region changes, and when simulation starts.
      */
-    private void applySimulationModel(){if(simulation==null)return;DeviceDescriptor d=descriptor();boolean[] f=SimulatorModels.facts(d);simulation.setModelFacts(f[0],f[1],f[2]);simulation.conform(d);simulation.setFastCharger(simulationFastCharger);simulation.setDriveMode(simulationDriveMode);}
+    private void applySimulationModel(){if(simulation==null)return;DeviceDescriptor d=descriptor();boolean[] f=SimulatorModels.facts(d);simulation.setModelFacts(f[0],f[1],f[2]);simulation.conform(d);simulation.setFastCharger(simulationFastCharger);
+        // The model's own named drive-mode codes; a mode it doesn't name becomes its Sport.
+        simulation.setDriveModes(SimulatorModels.driveModes(d));if(simulation.offersDriveMode(simulationDriveMode))simulation.setDriveMode(simulationDriveMode);else simulationDriveMode=simulation.driveMode();}
+    /** The drive-mode codes the simulated model offers (SimulatorModels.driveModes); empty when not simulating. */
+    public int[] simulationDriveModes(){return simulation==null?new int[0]:simulation.driveModes();}
+    /**
+     * The simulated model's name for headers and titles while simulating (SimulatorModels: "UT5 MAX", "GT5 Max", ...), else
+     * null. Display only: the profile's own stored name never changes.
+     */
+    public String simulationName(){return simulating()?SimulatorModels.find(simulation==null?simulationModel:simulation.model(),simulationRegion).name:null;}
     /** Developer simulator model: "" (UT5 MAX) or a synthetic advertised ID. Memory only; never reaches a profile. */
     public String simulationModel(){return simulationModel;}
-    /** Developer simulator serial region for another simulated model ("US", "DE", ... or null); memory only, never on the UT5 MAX. */
+    /** Developer simulator serial region for the simulated model ("US", "DE", ... or null, the UT5 MAX's US default); memory only. */
     public String simulationRegion(){return simulationRegion;}
     /**
      * Like a model change, a region change that changes the simulated descriptor stops a running check and
-     * clears its results (the report's descriptor would no longer match). The UT5 MAX simulator ignores the
-     * region, so changing it there keeps the check.
+     * clears its results (the report's descriptor would no longer match). The UT5 MAX simulator takes a region
+     * too now (UT5 MAX (US) and (EU)), so it follows the same rule.
      */
     public void setSimulationRegion(String region){
         String next=region!=null&&region.matches("[A-Z]{2}")?region:null;

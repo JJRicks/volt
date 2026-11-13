@@ -116,6 +116,17 @@ public final class SimulatorScenesValidation extends Instrumentation {
                 ScooterProfiles.Profile active = service.profiles.active();
                 require(ModelRegistry.modelName(service.modelDescriptor(active)).equals(model[2]), "The screens' model is " + model[2]);
                 require(service.ble.descriptor().simulated && (model[1] == null || model[1].equals(service.ble.simulationRegion())), "Simulated descriptor and region");
+                // Every simulated setting is one the model offers (review round 2: a GT5 Max never keeps the UT5 MAX's 50 km/h).
+                main(() -> {
+                    for (String key : service.ble.simulationFeatures().keySet()) {
+                        int[] offered = service.ble.featureChoices(key); Integer value = service.ble.featureValue(key);
+                        if (offered.length > 0) require(value != null && Arrays.stream(offered).anyMatch(v -> v == value), model[2] + ": " + key + " = " + value + " is not among " + Arrays.toString(offered));
+                    }
+                });
+                // The headers name the simulated model; the profile's stored name stays.
+                go("home");
+                main(() -> require(model[2].contentEquals(((android.widget.TextView) field(field(activity, "screen"), "profileName")).getText()), "Home's header names the simulated " + model[2]));
+                require("UT5 MAX".equals(new ScooterProfiles(getTargetContext()).active().name), model[2] + ": the stored profile name is untouched");
                 boolean alertsModel = !model[0].isEmpty();
                 require(service.chargeAlertsOffered() == alertsModel, model[2] + ": charge alerts only where the model has no charge limit");
                 for (ScooterSimulation.Scene scene : ScooterSimulation.Scene.values()) {
@@ -136,6 +147,12 @@ public final class SimulatorScenesValidation extends Instrumentation {
                         require(model[0].equals("24182") ? amps > 0 : amps < 0, label + ": the model's current sign while charging, " + amps);
                         require(model[0].isEmpty() == (number(service, "charge_limit_percent") != null), label + ": a charge limit reading only on the UT5 MAX");
                         require(!service.chargeAlertWatching() && !service.chargeAlarmPlaying(), label + ": simulated charge alerts never watch or ring");
+                        // Charge done by follows the simulated model's charge reference: a real UT5 MAX on the Automatic charger
+                        // doesn't hold another simulated model to charger detection, which never runs while simulating.
+                        if (!model[0].isEmpty()) {
+                            Object context = call(service, "chargeScheduleContext", new Class<?>[0]);
+                            require(field(context, "estimateUnavailableReason") == null, label + ": Charge done by waits for charger detection: " + field(context, "estimateUnavailableReason"));
+                        }
                     }
                     for (String page : new String[]{"home", "scooter", "battery", "battery.estimates", "data"}) {
                         go(page); capture(label + "-" + page.replace('.', '-'));
@@ -150,6 +167,16 @@ public final class SimulatorScenesValidation extends Instrumentation {
                     require(!service.isRecording() && !service.isChargeRecording(), label + ": nothing recording");
                 }
             }
+            // UT5 MAX (EU): the real EU UT5 MAX's controls (no Top speed, kick-start 3-5 km/h); the header still names the UT5 MAX.
+            main(() -> service.ble.setSimulationModel("", "EU")); settle();
+            main(() -> {
+                require("EU".equals(service.ble.descriptor().region) && ModelRegistry.ut5Max(service.ble.descriptor()), "UT5 MAX (EU) is simulated");
+                require(service.ble.decision("maximum_speed").reason == com.jjricks.volt.CapabilityResolver.Reason.REGION_RULE, "UT5 MAX (EU) has no Top speed");
+                require(Arrays.equals(service.ble.featureChoices("start_speed"), new int[]{3, 4, 5}), "UT5 MAX (EU) kick-start is 3-5 km/h: " + Arrays.toString(service.ble.featureChoices("start_speed")));
+                Integer start = service.ble.featureValue("start_speed");
+                require(start != null && start >= 3 && start <= 5, "UT5 MAX (EU) kick-start setting is one it offers: " + start);
+            });
+            go("scooter"); capture("ut5max-eu-scooter");
             main(() -> { service.ble.setSimulationModel("", null); require(service.setSimulation(false), "Simulation did not stop"); }); settle();
             go("home"); SystemClock.sleep(2500); settle();
 

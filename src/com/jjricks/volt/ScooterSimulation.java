@@ -29,9 +29,11 @@ public final class ScooterSimulation {
         public static Scene of(String id) { for (Scene s : values()) if (s.id.equals(id)) return s; return PARKED; }
     }
     private Scene scene = Scene.PARKED;
-    /** Drive-mode codes the simulator offers: Walk, the low mode (Eco or Drive by model) and Sport. */
+    /** The generic drive-mode codes: Walk, the low mode (Eco or Drive by model) and Sport, for a model with no named codes. */
     static final int WALK = 11, LOW_MODE = 2, SPORT = 3;
     private static final int[] DRIVE_MODES = {WALK, LOW_MODE, SPORT};
+    /** The codes the simulated model names (SimulatorModels.driveModes); the generic three until the caller says. */
+    private int[] driveModes = DRIVE_MODES.clone();
     private int driveMode = SPORT;
     /**
      * The model facts readings depend on, decided by the caller from the registry (BleController): whether the model has
@@ -209,12 +211,23 @@ public final class ScooterSimulation {
         rideClock = 0;
     }
 
-    /** The drive-mode codes the simulator offers (Walk, the low mode, Sport); a model's labels name them. */
-    public static int[] driveModes() { return DRIVE_MODES.clone(); }
+    /** The generic drive-mode codes (Walk, the low mode, Sport), for a model whose codes Volt doesn't name. */
+    public static int[] genericDriveModes() { return DRIVE_MODES.clone(); }
+    /** The drive-mode codes this simulated model offers. */
+    public int[] driveModes() { return driveModes.clone(); }
+    /**
+     * The model's own named codes (SimulatorModels.driveModes; the generic three when empty). A drive mode the new model
+     * doesn't name becomes its Sport (3, which every table names), else its last code.
+     */
+    public void setDriveModes(int[] codes) {
+        driveModes = codes == null || codes.length == 0 ? DRIVE_MODES.clone() : codes.clone();
+        if (!offersDriveMode(driveMode)) driveMode = offersDriveMode(SPORT) ? SPORT : driveModes[driveModes.length - 1];
+    }
+    public boolean offersDriveMode(int code) { for (int mode : driveModes) if (mode == code) return true; return false; }
     public int driveMode() { return driveMode; }
     public void setDriveMode(int code) {
-        for (int mode : DRIVE_MODES) if (mode == code) { driveMode = code; return; }
-        throw new IllegalArgumentException("Unavailable simulation setting");
+        if (!offersDriveMode(code)) throw new IllegalArgumentException("Unavailable simulation setting");
+        driveMode = code;
     }
 
     /**
@@ -381,7 +394,7 @@ public final class ScooterSimulation {
     /** Pack voltage at rest for a battery level (50.4 V at the sample's 78 %; about 0.124 V per percent, as UT5 MAX charges show). */
     static double restVolts(double percent) { return 50.4 + .124 * (percent - 78); }
 
-    /** The riding loop's cruise speed: by drive mode, under the simulated top speed. */
+    /** The riding loop's cruise speed: by drive mode (Walk, the low mode, or a Sport code: 3, or 5 on the GT5 Max family), under the simulated top speed. */
     private double cruise() {
         double speed = driveMode == WALK ? 6 : driveMode == LOW_MODE ? 19 : 27;
         Integer top = features.get("maximum_speed");

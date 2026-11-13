@@ -2900,7 +2900,9 @@ public final class MoreScreen implements AppScreen {
         BleController.State state = s.ble.state();
         String link = s.ble.ready() ? T.moreLinkConnected()
                 : state == BleController.State.DISCONNECTED ? T.moreLinkDisconnected() : T.moreLinkConnecting();
-        String name = p == null ? T.moreIndexNoScooter() : p.displayName();
+        // While simulating, the simulated model's name, beside its photo (display only; the stored name is untouched).
+        String simulated = s.ble.simulationName();
+        String name = simulated != null ? simulated : p == null ? T.moreIndexNoScooter() : p.displayName();
         String status = p == null ? T.moreIndexAdd() : T.moreIndexStatus(role, link);
         indexProfileName.setText(name); indexProfileState.setText(status);
         indexProfileCard.setContentDescription(T.moreIndexDescription(name, status));

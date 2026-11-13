@@ -32,11 +32,16 @@ public final class SimulatorModels {
 
     private static List<Entry> entries;
 
-    /** UT5 MAX, then the named models by name (each region group in turn), then the mapped and unknown models. */
+    /**
+     * UT5 MAX (one entry per region group, like every model: US and EU), then the named models by name (each region group
+     * in turn), then the mapped and unknown models. The simulator's default, a UT5 MAX with no region, keeps the US
+     * choices and shows as UT5 MAX (US) (find matches the rules).
+     */
     public static synchronized List<Entry> entries() {
         if (entries != null) return entries;
         List<Entry> out = new ArrayList<>();
-        out.add(new Entry("", null, "UT5 MAX"));
+        List<String> ut5 = regionGroups("");
+        for (String region : ut5) out.add(new Entry("", ut5.size() == 1 ? null : region, "UT5 MAX"));
         List<Map.Entry<String, String[]>> known = new ArrayList<>(ModelRegistry.knownModels().entrySet());
         Collections.sort(known, (a, b) -> a.getValue()[0].compareToIgnoreCase(b.getValue()[0]));
         for (Map.Entry<String, String[]> model : known) {
@@ -82,6 +87,27 @@ public final class SimulatorModels {
     public static boolean[] facts(DeviceDescriptor d) {
         return new boolean[]{!ChargeAlertPolicy.offered(d), d == null || !UNSIGNED_CURRENT.contains(d.rulePid()),
                 ModelRegistry.chargeReferenceProduct(d) == 2538};
+    }
+
+    /**
+     * The drive-mode codes the simulator offers for a model: exactly the codes Volt names for it (Telemetry.drivingModeLabel
+     * with ModelRegistry.driveModeLabelProduct), Walk first, then by code; the generic Walk, low mode and Sport for a model
+     * whose codes Volt doesn't name.
+     */
+    public static int[] driveModes(DeviceDescriptor d) {
+        int product = ModelRegistry.driveModeLabelProduct(d);
+        if (product == 0) return ScooterSimulation.genericDriveModes();
+        List<Integer> codes = new ArrayList<>();
+        if (named(product, ScooterSimulation.WALK)) codes.add(ScooterSimulation.WALK);
+        for (int code = 0; code <= 255; code++) if (code != ScooterSimulation.WALK && named(product, code)) codes.add(code);
+        if (codes.isEmpty()) return ScooterSimulation.genericDriveModes();
+        int[] out = new int[codes.size()];
+        for (int i = 0; i < out.length; i++) out[i] = codes.get(i);
+        return out;
+    }
+    private static boolean named(int product, int code) {
+        String label = Telemetry.drivingModeLabel(product, (double) code);
+        return !Telemetry.rawReading(null, label) && !label.equals("—");
     }
 
     /** The row value: the picker line, with the first simulator's short words for the two synthetic models. */

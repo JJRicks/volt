@@ -35,26 +35,27 @@ public final class SimulatorScenesTest {
         System.out.println("SimulatorScenes tests passed: " + checks + " assertions");
     }
 
-    /** The UT5 MAX, the GT3 Max (no charge limit, unsigned current) and both GT5 Max regions. */
+    /** Both UT5 MAX regions, the GT3 Max (no charge limit, unsigned current) and both GT5 Max regions. */
     private static List<SimulatorModels.Entry> threeModels() {
         List<SimulatorModels.Entry> out = new ArrayList<>();
         for (SimulatorModels.Entry e : SimulatorModels.entries())
             if (e.pid.isEmpty() || e.pid.equals("24182") || e.pid.equals("25462")) out.add(e);
-        check(out.size() == 1 + 2 + 2, "UT5 MAX, two GT3 Max and two GT5 Max entries: " + out);
+        check(out.size() == 2 + 2 + 2, "two UT5 MAX, two GT3 Max and two GT5 Max entries: " + out);
         return out;
     }
 
     private static void pickerListsEveryNamedModel() {
         List<SimulatorModels.Entry> entries = SimulatorModels.entries();
-        check(entries.get(0).pid.isEmpty() && entries.get(0).label().equals("UT5 MAX") && entries.get(0).region == null,
-                "the UT5 MAX comes first, with no region");
+        check(entries.get(0).pid.isEmpty() && entries.get(0).label().equals("UT5 MAX (US)") && "US".equals(entries.get(0).region)
+                && entries.get(1).pid.isEmpty() && entries.get(1).label().equals("UT5 MAX (EU)") && "EU".equals(entries.get(1).region),
+                "the UT5 MAX comes first, as UT5 MAX (US) and UT5 MAX (EU)");
         SimulatorModels.Entry mapped = entries.get(entries.size() - 2), unknown = entries.get(entries.size() - 1);
         check(mapped.pid.equals("24431") && unknown.pid.equals("39991"), "the first simulator's mapped and unknown models stay, last");
         check(SimulatorModels.shortLabel(mapped).equals("Mapped") && SimulatorModels.shortLabel(unknown).equals("Unknown"),
                 "their short row values stay");
         Set<String> names = new HashSet<>(), labels = new HashSet<>();
         String previous = "";
-        for (SimulatorModels.Entry e : entries.subList(1, entries.size() - 2)) {
+        for (SimulatorModels.Entry e : entries.subList(2, entries.size() - 2)) {
             names.add(e.name);
             check(labels.add(e.label()), "every line is distinct: " + e.label());
             check(e.name.compareToIgnoreCase(previous) >= 0, "named models are in name order: " + e.name);
@@ -65,8 +66,15 @@ public final class SimulatorScenesTest {
         for (String[] known : ModelRegistry.knownModels().values())
             check(names.contains(known[0]), "every model the registry names is offered: " + known[0]);
         check(names.size() == ModelRegistry.knownModels().size(), "and nothing the registry doesn't name");
-        check(SimulatorModels.find("", null) == entries.get(0) && SimulatorModels.find(null, "US") == entries.get(0),
-                "the UT5 MAX is found with or without a region (it takes none)");
+        check(SimulatorModels.find("", null) == entries.get(0) && SimulatorModels.find(null, "US") == entries.get(0)
+                && SimulatorModels.find("", "EU") == entries.get(1) && SimulatorModels.find("", "DE") == entries.get(1),
+                "the default UT5 MAX simulator (no region) shows as UT5 MAX (US); other regions as the entry with their rules");
+        // The UT5 MAX entry chosen before this change (no region) still means US controls: the same decisions as UT5 MAX (US).
+        check(SimulatorModels.signature(DeviceDescriptor.simulated("", 0, null)).equals(SimulatorModels.signature(entries.get(0).descriptor())),
+                "the old UT5 MAX entry and UT5 MAX (US) decide every control alike");
+        check(CapabilityResolver.decide("maximum_speed", entries.get(1).descriptor(), StatusFields.NONE, null).reason == CapabilityResolver.Reason.REGION_RULE
+                && CapabilityResolver.decide("maximum_speed", entries.get(0).descriptor(), StatusFields.NONE, null).support == CapabilityResolver.Support.KNOWN_ENCODING,
+                "UT5 MAX (EU) has no Top speed, as a real EU UT5 MAX; UT5 MAX (US) has it");
         check(SimulatorModels.find("99999", null) == entries.get(0), "an ID the picker doesn't offer shows as the UT5 MAX row");
     }
 
@@ -184,6 +192,7 @@ public final class SimulatorScenesTest {
         boolean[] f = SimulatorModels.facts(e.descriptor());
         s.setModelFacts(f[0], f[1], f[2]);
         s.conform(e.descriptor());
+        s.setDriveModes(SimulatorModels.driveModes(e.descriptor()));
         return s;
     }
     private static double n(Telemetry t, String key) {
@@ -322,12 +331,35 @@ public final class SimulatorScenesTest {
     }
 
     private static void driveModes() {
-        int[] modes = ScooterSimulation.driveModes();
-        check(Arrays.equals(modes, new int[]{11, 2, 3}), "Walk, the low mode and Sport");
-        for (int mode : modes) {
-            check(!Telemetry.drivingModeLabel(2538, (double) mode).matches("[0-9]+") && !Telemetry.drivingModeLabel(25462, (double) mode).matches("[0-9]+"),
-                    "the UT5 MAX and the GT5 Max family name every offered code: " + mode);
+        check(Arrays.equals(ScooterSimulation.genericDriveModes(), new int[]{11, 2, 3}), "the generic codes: Walk, the low mode and Sport");
+        // Each model's own named codes (Telemetry.drivingModeLabel), the generic three where Volt names none.
+        check(Arrays.equals(SimulatorModels.driveModes(SimulatorModels.find("", null).descriptor()), new int[]{11, 2, 3}), "UT5 MAX: WALK, ECO, SPORT");
+        check(Arrays.equals(SimulatorModels.driveModes(SimulatorModels.find("23452", "US").descriptor()), new int[]{11, 2, 3}), "ST3 Pro: exactly 11, 2 and 3");
+        for (String gt5Family : new String[]{"25462", "22131", "24162", "24182"})
+            check(Arrays.equals(SimulatorModels.driveModes(SimulatorModels.find(gt5Family, "US").descriptor()), new int[]{11, 2, 3, 5}), gt5Family + ": the GT5 Max table, Sport 5 too");
+        check(Arrays.equals(SimulatorModels.driveModes(SimulatorModels.find(SimulatorModels.UNKNOWN, null).descriptor()), new int[]{11, 2, 3}), "an unknown model: the generic three");
+        for (SimulatorModels.Entry e : SimulatorModels.entries()) {
+            int product = ModelRegistry.driveModeLabelProduct(e.descriptor());
+            int[] modes = SimulatorModels.driveModes(e.descriptor());
+            check(modes.length >= 3 && modes[0] == 11, e + ": Walk first, at least three modes");
+            if (product != 0) for (int code = 0; code <= 255; code++) {
+                boolean offered = false; for (int m : modes) offered |= m == code;
+                check(offered == !Telemetry.rawReading(null, Telemetry.drivingModeLabel(product, (double) code)), e + ": code " + code + " offered exactly when named");
+            }
         }
+        ScooterSimulation st3 = simulation(SimulatorModels.find("23452", "US"));
+        st3.setDriveMode(3);
+        boolean five = false;
+        try { st3.setDriveMode(5); } catch (IllegalArgumentException expected) { five = true; }
+        check(five && st3.driveMode() == 3, "the ST3 Pro refuses 5 (its Turbo acceleration value, not a drive mode)");
+        ScooterSimulation gt5 = simulation(SimulatorModels.find("25462", "US")); Telemetry g = new Telemetry();
+        gt5.setDriveMode(5); gt5.setScene(ScooterSimulation.Scene.RIDING);
+        double sport5 = 0;
+        for (int i = 0; i <= 120; i++) { gt5.tick(g, i * 500L); sport5 = Math.max(sport5, n(g, "speed_kmh")); }
+        check(n(g, "driving_mode") == 5 && sport5 > 20, "GT5 Max Sport 5 rides as Sport: " + sport5);
+        // A model change to one that doesn't name the current mode: its Sport.
+        gt5.setDriveModes(SimulatorModels.driveModes(SimulatorModels.find("23452", "US").descriptor()));
+        check(gt5.driveMode() == 3, "5 on a GT5 Max becomes the ST3 Pro's Sport, 3");
         ScooterSimulation s = simulation(SimulatorModels.find("25462", "US")); Telemetry t = new Telemetry();
         s.setScene(ScooterSimulation.Scene.RIDING);
         double top = 0;
