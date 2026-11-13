@@ -1126,12 +1126,16 @@ connects or turns on another setting, so a charge that starts while Volt isn't
 connected, or with notifications off, is missed; connecting mid-charge records the
 rest. The label is the chosen charger, else Volt's detection, else a best guess (the
 charger with more qualified recordings, stock on a tie); a detected or guessed label
-follows detection to the other charger. It ends at once above about 3 mph (4.8 km/h,
+follows detection to the other charger. Only a chosen or detected label is the
+charger in effect (estimates, Charge done by); a recording that ends with a guess
+is listed but teaches no curve. It waits while a guided setting test runs or has
+a write-back outstanding, or a compatibility check runs, and starts after. It ends at once above about 3 mph (4.8 km/h,
 so Record rides automatically can start the ride in the same moment), two minutes
 after charging stops unless Volt's schedule holds the current off, or when a ride is
 started by hand. One under 10 minutes or 5 percentage points is not kept. At the
-20-recording limit it replaces only the oldest automatic recording, never a manual
-one. A hand stop holds that scooter until it stops charging and starts again,
+20-recording limit a kept one replaces only the oldest automatic recording, never a
+manual one, and only once kept. A hand stop holds that scooter until it stops
+charging and starts again (a pause Volt's own schedule holds is not a stop),
 across reconnects: an automatic recording's, and a manual one's while the switch
 is on. Once running it records out of sight whatever Stay connected in background
 says, as any charge recording; it never opens or keeps a connection itself. It
