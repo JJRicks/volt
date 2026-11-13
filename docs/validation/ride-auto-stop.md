@@ -181,7 +181,7 @@ existing rules.
 ## Preference
 
 **Rides → Recording settings → End rides automatically** (`ride_auto_stop`,
-default on), caption "When the scooter turns off, or stays out of reach for 5
+default on; in More → App preferences until the Hub layout, #389), caption "When the scooter turns off, or stays out of reach for 5
 min". One switch covers both rules. Included in full app backups as a boolean.
 
 ## Automated checks
