@@ -20,7 +20,7 @@ import java.util.Locale;
 /**
  * Clean Home's seven subjects (hub layout plan, PR 8), in Home's order: each row has the subject's icon, name and a
  * live one-line summary, and opens the subject's own page (ScreenHost.open with its HubPages id: the pages parts 3-5
- * built, as the Scooter tab's index opens them). Service carries an orange dot while a maintenance check is due. A
+ * built, as the Scooter tab's index opens them). While a maintenance check is due, an orange dot leads Service's summary. A
  * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary, the same
  * source as the Scooter tab's index; Ride's and Data's lines are Clean's own (Ride shows the running recording while a
  * ride records, HubSummaries.rideLine). Words from HubText.
@@ -76,22 +76,28 @@ final class CleanSubjects {
         name.setMaxLines(2);
         ui.decorate(name, HubPages.icon(subject));
         words.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        TextView value = ui.caption("");
-        value.setMaxLines(1);
-        value.setEllipsize(TextUtils.TruncateAt.END);
-        value.setPaddingRelative(ui.dp(42), ui.dp(3), 0, 0);
-        value.setVisibility(View.GONE);
-        words.addView(value, new LinearLayout.LayoutParams(-1, -2));
-        line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        // The summary line, under the name: Service's due dot leads it ("● Tyre check in 40 mi"), as in the plan.
+        LinearLayout summary = new LinearLayout(host.activity());
+        summary.setOrientation(LinearLayout.HORIZONTAL);
+        summary.setGravity(Gravity.CENTER_VERTICAL);
+        summary.setPaddingRelative(ui.dp(42), ui.dp(3), 0, 0);
+        summary.setVisibility(View.GONE);
         View dot = new View(host.activity());
         GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
         disc.setColor(ui.orange);
         dot.setBackground(disc);
         dot.setVisibility(View.GONE);
-        LinearLayout.LayoutParams dotSize = new LinearLayout.LayoutParams(ui.dp(10), ui.dp(10));
-        dotSize.setMarginStart(ui.dp(8));
-        line.addView(dot, dotSize);
+        LinearLayout.LayoutParams dotSize = new LinearLayout.LayoutParams(ui.dp(8), ui.dp(8));
+        dotSize.setMarginEnd(ui.dp(6));
+        summary.addView(dot, dotSize);
+        TextView value = ui.caption("");
+        value.setMaxLines(1);
+        value.setEllipsize(TextUtils.TruncateAt.END);
+        value.setVisibility(View.GONE);
+        summary.addView(value, new LinearLayout.LayoutParams(0, -2, 1));
+        words.addView(summary, new LinearLayout.LayoutParams(-1, -2));
+        line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
         chevronSize.setMarginStart(ui.dp(8));
         line.addView(ui.icon("chevron", 15, ui.muted), chevronSize);
@@ -120,6 +126,7 @@ final class CleanSubjects {
             }
             boolean due = subject.equals(HubPages.SERVICE) && HubSubjects.serviceDue(service);
             dots.get(i).setVisibility(due ? View.VISIBLE : View.GONE);
+            ((View) value.getParent()).setVisibility(due || value.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE);
             // TalkBack reads the name and the summary; while a check is due, the name says so, as the tab's dot does.
             names.get(i).setContentDescription(due ? HubText.dueDescription(HubText.title(subject)).render() : null);
         }

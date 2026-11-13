@@ -1284,6 +1284,17 @@ public final class Ui {
                 p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
+            } else if (key.equals("bars")) {
+                // Four rising bars (Controls).
+                canvas.drawLine(4, 20, 4, 16, paint); canvas.drawLine(9, 20, 9, 12, paint);
+                canvas.drawLine(14, 20, 14, 8, paint); canvas.drawLine(19, 20, 19, 4, paint);
+            } else if (key.equals("wrench")) {
+                // A wrench (Service): an open-jawed head at the top right on a handle to the bottom left.
+                canvas.save(); canvas.rotate(45, 12, 12);
+                canvas.drawArc(new RectF(7.5f, 1.5f, 16.5f, 10.5f), -55, 290, false, paint);
+                p.moveTo(9.4f, 2.3f); p.lineTo(10.6f, 5.2f); p.lineTo(13.4f, 5.2f); p.lineTo(14.6f, 2.3f); canvas.drawPath(p, paint);
+                canvas.drawRoundRect(new RectF(10.3f, 10.2f, 13.7f, 22.5f), 1.7f, 1.7f, paint);
+                canvas.restore();
             } else {
                 canvas.drawCircle(12, 12, 9, paint); canvas.drawLine(12, 11, 12, 17, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 7, 1, paint);
             }
