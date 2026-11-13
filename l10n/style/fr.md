@@ -91,16 +91,16 @@ An abbreviation ends in a period, which counts toward the width, unless the word
 | Maximum speed, the setting | Vitesse maximale (102.1) | Vitesse max. (73.6) | Vit. max. (50.4) |
 | Energy recovery | Récupération d’énergie (134.3) | Récupération (77.2) | icon |
 | Compatibility check | Vérification de compatibilité (161.9) | Compatibilité (76.5) | Vérification (66.5) |
-| Experimental controls; `dashboard_model_qa_experimental` is 64dp and its `_short` 90dp | Commandes expérimentales (164.1) | `_short`: Expérimental (77.1) | The 64dp key: Expérim. (48.8 at 12sp) |
+| Experimental controls; `dashboard_model_qa_experimental` is 66dp and its `_short` 90dp | Commandes expérimentales (164.1) | `_short`: Expérimental (77.1) | The 66dp key: Expérim. (48.8 at 12sp) |
 | Unverified here / Unverified | Non vérifié ici (78.8) | Non vérifié (63.5) | Non vérifié |
 | Worked here / Worked | A fonctionné ici (89.2) | A fonctionné (73.8) | |
-| Charge done by; on the 64dp and 90dp shortcut keys use the narrow form | Finir la recharge à (103.3) | Finir à (34.5 at 12sp, 36.0 at 12.5sp) | |
+| Charge done by; on the 66dp and 90dp shortcut keys use the narrow form | Finir la recharge à (103.3) | Finir à (34.5 at 12sp, 36.0 at 12.5sp) | |
 | Charge done by time | Heure de fin de recharge (142.4) | Heure de fin (71.1) | Heure fin (51.6 at 12sp) |
 
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: *Verrouiller* 60.6 (tight; *Verrouillage* is 70.3 and doesn't fit), *Réglages* 53.7 (*Paramètres* is 67.4), *Batterie* 46.8, *Trajets* 40.1.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: *Feux* 27.1, *Réglages* 51.6, *En direct* 48.7, *Trajets* 38.5, *Conduite* 49.4, *Batterie* 44.9, *Bandes* 41.8, *Étoiles* 37.6, *Écran, son* 57.1, *PIN, prox.* 53.9, *Nom* 26.1, *Préf. appli* 56.7, *Mes trott.* 54.2 (*Trottinettes* is 65.9), *Expérim.* 48.8, *Données* 48.8, *À propos* 49.5, *Finir à* 34.5, *Heure fin* 51.6.
+- `dashboard_model_qa_*`, 66dp at 12sp, one line: *Feux* 27.1, *Réglages* 51.6, *En direct* 48.7, *Trajets* 38.5, *Conduite* 49.4, *Batterie* 44.9, *Bandes* 41.8, *Étoiles* 37.6, *Écran, son* 57.1, *PIN, prox.* 53.9, *Nom* 26.1, *Préf. appli* 56.7, *Mes trott.* 54.2 (*Trottinettes* is 65.9, which fits since the room became 66dp), *Expérim.* 48.8, *Données* 48.8, *À propos* 49.5, *Finir à* 34.5, *Heure fin* 51.6.
 - `dashboard_model_tile_*`, 90dp at 12.5sp: *Vitesse max.* 73.6, *Prog. recharge* 84.4. The `_short` rungs of `dashboard_model_qa_*` are 90dp at 12.5sp too: *Expérimental* 77.1, *Finir à* 36.0, *Heure de fin* 71.1.
 - `more_lab_badge`, 40dp at 10.5sp: *LABO* 27.4. *LABO* is for the badge keys only.
 - `owner_shizuku_install`, 48dp at 14sp: *Installer* is 52.9, over budget. Use *Install.*, measured below.
@@ -133,7 +133,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Handlebar PIN | **code PIN du guidon** | Toggle: **Déverrouillage par code PIN** |
 | Owner key | **clé de propriétaire** | A secret. *Clé* is the usual word for a digital key too. "Not a password" is *Ce n’est pas un mot de passe* |
 | Charge limit | **Limite de recharge** | Never *Limite de charge*, which reads as a load limit in kilograms (see section 7). Never *plafond* |
-| Experimental | **Expérimental**, *expérimentale*, *expérimentaux*, *expérimentales* | The section is **Commandes expérimentales**. *Expérim.* only on the 64dp shortcut |
+| Experimental | **Expérimental**, *expérimentale*, *expérimentaux*, *expérimentales* | The section is **Commandes expérimentales**. *Expérim.* only on the 66dp shortcut |
 | Untested | **Non testé** | *Non testée* with a feminine subject. The card title `more_lab_untested` now reads *Controls to try* (D3, merged): it is not *Untested*, so translate the merged English |
 | Unconfirmed, a try's status | **Sans confirmation** | Only a try's status chip or outcome: acknowledged but not kept or read back. Always a status beside its control, never "done without asking". Anywhere else (a model ID, current direction, logging cleanup) "unconfirmed" is **non confirmé**, agreed, naming what is unconfirmed. **Debate item:** *Non maintenu*, or *Non confirmé (non relu)*; *Non confirmé* alone is taken by *Not confirmed* |
 | Not confirmed | **Non confirmé** | Not read back |

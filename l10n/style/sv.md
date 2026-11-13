@@ -48,18 +48,18 @@
 
 ## 5. How to shorten labels for ladder rungs
 
-Order: full → `_short` → `_compact` → icon. Never a break in the middle of a word and never smaller text. Measure with Saira, don't count letters. Budgets are single-line: a 64dp Quick access name may wrap at a space into two lines, but **each word must fit the line alone**, so Swedish's long compounds fail where English passes. Try, in this order:
+Order: full → `_short` → `_compact` → icon. Never a break in the middle of a word and never smaller text. Measure with Saira, don't count letters. Budgets are single-line: a 66dp Quick access name may wrap at a space into two lines, but **each word must fit the line alone**, so Swedish's long compounds fail where English passes. Try, in this order:
 
 1. **Drop what the screen already supplies.** *Batteriinställningar* → *Batteri* (it is listed among settings). *Körinställningar* → *Körning*. *Beräknad räckvidd* → *Räckvidd*.
 2. **Use the shorter compound first part.** *Laddnings-* → **Ladd-** where Swedish already has it (*laddtid, laddschema, laddgräns*): *Laddningsgräns* → *Laddgräns*, *Laddningsschema* → *Laddschema*.
-3. **Split a compound into words with a preposition if that puts a space in**, so it wraps: *Namn på elspark* (*Namn på* / *elspark*) rather than *Elsparkcykelns namn*, whose first word is 82.5dp at 12sp. *Elsparkcykel* alone is 68.8dp at 12sp, so it can't take a 64dp line: there the short form **elspark** is used (see 7).
+3. **Split a compound into words with a preposition if that puts a space in**, so it wraps: *Namn på elspark* (*Namn på* / *elspark*) rather than *Elsparkcykelns namn*, whose first word is 82.5dp at 12sp. *Elsparkcykel* alone is 68.8dp at 12sp, so it can't take a 66dp line: there the short form **elspark** is used (see 7).
 4. **Use an abbreviation from this table.** It ends in a period (Swedish writes the period, and it counts toward the width), is cut after a consonant at a natural syllable or compound joint, and never cuts inside a safety word. **Nothing else:** no invented cuts.
 
 | Full | Abbreviated | Width at 12.5sp (dp) | Note |
 |---|---|---|---|
 | Maxhastighet | **Maxhast.** | 80 → 53 | The setting. Never *Max. hastighet*, which contradicts the *max* row below, and never *Maxfart* |
 | Toppfart | none | 49 | Measured value. Already short |
-| Inställningar | **Inställn.** | 73 → 46 | Fits the 62 and 64dp budgets; the full word doesn't |
+| Inställningar | **Inställn.** | 73 → 46 | Fits the 62 and 66dp budgets; the full word doesn't |
 | Batteriinställningar | **Batteriinställn.**, then **Batteri** | 112 → 85.5 → 40 | Same pattern for *Körinställn.* (66) |
 | Appinställningar | **Appinställn.**, then **Appinst.** | 96 → 69, and 46 at 12sp | **-inst.** only as a compound tail, because alone it reads as *institution* |
 | Experimentella reglage | **Experimentella**, then **Experiment** | 134 → 87.5 → 66.9 | A whole word, so no period. Never *Exp.*: it isn't an accepted cut |
@@ -76,9 +76,9 @@ Order: full → `_short` → `_compact` → icon. Never a break in the middle of
 | information | **info** | | No period |
 | till exempel, och så vidare, med mera, på grund av, bland annat, respektive, fortsättning | **t.ex., o.s.v., m.m., p.g.a., bl.a., resp., forts.** | | Microsoft's accepted list. Never *etc.* |
 
-Measured words that fit as they are: *Lås* 20, *Batteri* 40, *Turer* 31 (under the 62dp tab budget); *Linjeljus* 48, *Stjärnljus* 55, *Ljus* 24 (under 64dp at 12sp too); *Mina elsparkar* 86.4 (under the 90dp tile, or wrapped in two lines at 64dp; *Mina elsparkcyklar* is 108.8 and fits neither); *Maxhastighet* 80 and *Laddschema* 73 (under the 90dp tile); *Display & ljud* 80 and *Data & historik* 86 (under 90dp, where *och* doesn't fit: *Display och ljud* is 91.1).
+Measured words that fit as they are: *Lås* 20, *Batteri* 40, *Turer* 31 (under the 62dp tab budget); *Linjeljus* 48, *Stjärnljus* 55, *Ljus* 24 (under 66dp at 12sp too); *Mina elsparkar* 86.4 (under the 90dp tile, or wrapped in two lines at 66dp; *Mina elsparkcyklar* is 108.8 and fits neither); *Maxhastighet* 80 and *Laddschema* 73 (under the 90dp tile); *Display & ljud* 80 and *Data & historik* 86 (under 90dp, where *och* doesn't fit: *Display och ljud* is 91.1).
 
-Fit problems to record in notes rather than force: *Experimentella*, *Behörigheter*, *Inställningar* each exceed 64dp at 12sp alone, and *Experiment* is 64.2dp there, 0.2 over. *Livestatistik* is 67.8dp at 12sp, so the 64dp rung is *Statistik* (step 1) and the 90dp rung keeps the full word. *Namn på elspark* is 97.5 at 12.5sp, over the 90dp tile on one line. *About & permissions* is **Om & behörigheter**, about 110 at 12.5sp: over the 90dp tile, and *Behörigheter* alone is over 64dp, so write it and record the overflow. *Om appen* (59) would fit but drops permissions; the debate can decide whether that counts as a shortening. The full rung also serves as the screen-reader name, so an abbreviated full rung is read as written: flag it.
+Fit problems to record in notes rather than force: *Experimentella*, *Behörigheter*, *Inställningar* each exceed 66dp at 12sp alone; *Experiment* is 64.2dp there, which fits since the room became 66dp. *Livestatistik* is 67.8dp at 12sp, so the 66dp rung is *Statistik* (step 1) and the 90dp rung keeps the full word. *Namn på elspark* is 97.5 at 12.5sp, over the 90dp tile on one line. *About & permissions* is **Om & behörigheter**, about 110 at 12.5sp: over the 90dp tile, and *Behörigheter* alone is over 66dp, so write it and record the overflow. *Om appen* (59) would fit but drops permissions; the debate can decide whether that counts as a shortening. The full rung also serves as the screen-reader name, so an abbreviated full rung is read as written: flag it.
 
 **Never abbreviate:** *Lås, Lås upp, Låst, Upplåst, Okänd, Aldrig, Alltid, Larm, Inte verifierad* (the only shorter form is *Ej verifierad*), *Otestad, PIN*. *Upplåst* never shortens to *Upp* or *Öppen*, and *Lås upp* never loses *upp*. If one doesn't fit, write the full word and report it in your notes, as with any overflow.
 
