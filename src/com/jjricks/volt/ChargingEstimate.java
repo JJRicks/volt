@@ -349,7 +349,8 @@ public final class ChargingEstimate {
         if(shown==null||shown.status==null)return shown==null?null:shown.status;
         Double full=shown.remainingMinutesToFull,carried=carriedToFull(shown,soc);
         if(carried==null||!(carried>full)||learnedRateToFull(shown,soc)==null)return shown.status;
-        return shown.status.replace(FULL_AT_CURRENT_RATE,"").replace(REFERENCE_FOR_OTHER,"").replace("Time to displayed 100%",CARRIED_TO_FULL+"Time to displayed 100%");
+        // A limitRate comes only with withHistory's status, which then says exactly one of the two of the time to 100%.
+        return shown.status.replace(FULL_AT_CURRENT_RATE,CARRIED_TO_FULL).replace(REFERENCE_FOR_OTHER,CARRIED_TO_FULL);
     }
 
     /** The time to the limit carried on to 100% (see minutesToFullBesideLimit); null without a limit below 100% or either time. */
