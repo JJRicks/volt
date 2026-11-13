@@ -30,7 +30,8 @@ import java.util.function.BooleanSupplier;
  * Bluetooth stays off. Needs hidden_api_policy 1 for the stand-in.
  *
  * <p>No arguments runs the full pass on a fresh install. {@code -e only gates}, {@code gps-grant}, {@code gps-decline},
- * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant} and {@code restored-decline} are
+ * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant}, {@code restored-decline} and
+ * {@code background-switch} are
  * single runs on a fresh install too. The release sweep runs all of these. The remaining {@code -e only} scenarios follow a
  * permission across runs of one install, so whoever runs them changes it between runs with {@code pm} (see
  * {@link #permissionState}). In order, with cleared app data at the start: expiry-first; revoke location, again-offer-grant;
@@ -80,6 +81,7 @@ public final class AutoStartValidation extends Instrumentation {
             if ("gps-riding".equals(only)) { gpsDuringRide(); result.putString("result", "PASS"); return; }
             if ("cadence".equals(only)) { backgroundCadence(); result.putString("result", "PASS"); return; }
             if ("location".equals(only)) { locationChoice(); result.putString("result", "PASS"); return; }
+            if ("background-switch".equals(only)) { backgroundSwitch(); result.putString("result", "PASS"); return; }
             switchesOffDoNothing();
             autoRecord();
             autoRecordInBackground();
@@ -146,12 +148,63 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Precondition: not recording, hold cleared");
         goHome();
         require(!resumed(), "Volt is in the background");
+        moving(); settle(); moving(); settle();
+        require(!recording(), "Start recording in the background off (the default): no start while Volt is in the background");
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         moving(); await(this::recording, "Auto-record starts in the background");
         require(!ridingOpen(), "Auto ride mode stayed off");
         moving(); main(() -> service.stopRide());
         require(!recording(), "Manual stop in the background holds too");
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
+    }
+
+    /**
+     * Start recording in the background, off by default: with it off nothing starts in the moment after Home (Volt paused,
+     * not yet stopped), in the background, or under another app's window (a permission prompt pauses Volt without
+     * stopping it); a ride held back starts once Volt is in front again. With it on, the background start works as before.
+     */
+    private void backgroundSwitch() throws Exception {
+        require(!prefs().contains(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY), "Background switch absent on a fresh install");
+        enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        reconnect(); stopped(); settle();
+        require(!recording(), "Precondition: not recording");
+        Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getTargetContext().startActivity(home);
+        await(() -> !resumed(), "Volt left the front");
+        moving();
+        require(!recording(), "Background switch off: nothing starts in the moment after Home");
+        SystemClock.sleep(400);
+        moving(); settle(); moving(); settle();
+        require(!recording(), "Background switch off: nothing starts while Volt is in the background");
+        returnToVolt();
+        moving(); await(this::recording, "Held back in the background, the ride starts once Volt is in front");
+        moving(); main(() -> service.stopRide());
+        require(!recording(), "Stopped by hand");
+
+        reconnect(); stopped(); settle();
+        require(!PhoneRideRecorder.hasLocationPermission(getTargetContext()), "Precondition: no location permission, so Android asks");
+        main(() -> activity.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 7301));
+        await(() -> !resumed(), "Android's permission prompt paused Volt");
+        moving(); settle(); moving(); settle();
+        require(!recording(), "Background switch off: nothing starts under another app's window");
+        shot("background-switch-under-prompt");
+        pressPermission("permission_deny_button");
+        await(() -> resumed() && focused(), "Volt in front again after the prompt");
+        moving(); await(this::recording, "In front again: the held-back ride starts");
+        moving(); main(() -> service.stopRide());
+        require(!recording(), "Stopped by hand again");
+
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
+        reconnect(); stopped(); settle();
+        goHome();
+        moving(); await(this::recording, "Background switch on: auto-record starts in the background, as before");
+        moving(); main(() -> service.stopRide());
+        require(!recording(), "Manual stop in the background");
+        returnToVolt();
+        enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     private void autoRide() throws Exception {
@@ -212,6 +265,7 @@ public final class AutoStartValidation extends Instrumentation {
      */
     private void backgroundCadence() throws Exception {
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         reconnect(); stopped(); settle();
         goHome();
         ageStatus(9000);
@@ -232,6 +286,7 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Stopped the background recording");
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     /** Turning the switch on is the location choice; a backup-restored switch or a Phone GPS that is off never prompts. */
@@ -576,6 +631,7 @@ public final class AutoStartValidation extends Instrumentation {
         prefs().edit().putBoolean("background_connection", false).commit();
         reconnect(); stopped(); settle();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, true);
         stopped(); settle();
         require(!recording(), "Precondition: not recording");
         goHome();
@@ -586,6 +642,7 @@ public final class AutoStartValidation extends Instrumentation {
         require(!recording(), "Motion after the cutoff can't start a recording");
         require(!prefs().getBoolean("background_connection", true), "The rider's preference is left alone");
         require(prefs().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false), "Auto-record stays on");
+        enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
     private void settingsRows() throws Exception {

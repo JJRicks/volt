@@ -62,6 +62,10 @@ final class BackupRegistry {
         // problem belong to this phone.
         add(app, "auto_record_rides", Boolean.class, PREFERENCES);
         add(app, "riding_auto_open", Boolean.class, PREFERENCES);
+        // Auto-record's background switch (AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY) travels with it; absent is off.
+        add(app, "auto_record_background", Boolean.class, PREFERENCES);
+        // The one-time What's new note about that switch belongs to this installation's update, not to the settings.
+        exclude(app, AutoStartPolicy.BACKGROUND_NOTICE_KEY, String.class, PENDING);
         exclude(app, AutoStartPolicy.LOCATION_ASKED_KEY, Boolean.class, PERMISSION);
         add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
         add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
