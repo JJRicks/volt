@@ -35,6 +35,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ChargeAlertValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery alert rows, sheet and delivery validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeTileValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time tile validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.ShortcutPickerValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shortcut picker and Charge alerts shortcut validation" />
   <instrumentation android:name="com.jjricks.volt.tests.QuickHapticsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Quick access haptics validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ConnectionHapticsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated connection haptics validation" />
   <instrumentation android:name="com.jjricks.volt.tests.AppDataBackupValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated encrypted full app backup validation" />
