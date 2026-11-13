@@ -7,6 +7,7 @@ import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -41,21 +42,26 @@ final class HubBatterySummary implements AppScreen {
         card = ui.card(); card.setTag("hub-battery-summary");
         LinearLayout figures = new SideOrStack();
         LinearLayout main = new LinearLayout(host.activity()); main.setOrientation(LinearLayout.VERTICAL);
-        level = ui.text("", 48, true); level.setMaxLines(1); main.addView(level, new LinearLayout.LayoutParams(-2, -2));
-        rangeLine = ui.text("", 14, false); rangeLine.setTextColor(ui.muted); rangeLine.setPadding(0, ui.dp(6), 0, 0);
+        // The digits sit level with the right column's first line and the range line about 10 dp under them
+        // (BatterySummaryFit): the font's own space above and below the large digits is taken away in onMeasure.
+        level = ui.text("", 48, true); level.setMaxLines(1); level.setIncludeFontPadding(false);
+        main.addView(level, new LinearLayout.LayoutParams(-2, -2));
+        rangeLine = ui.text("", 14, false); rangeLine.setTextColor(ui.muted); rangeLine.setIncludeFontPadding(false);
         main.addView(rangeLine, new LinearLayout.LayoutParams(-1, -2));
         figures.addView(main);
         side = new LinearLayout(host.activity()); side.setOrientation(LinearLayout.VERTICAL);
-        healthName = ui.text("", 14, false); healthValue = ui.text("", 14, true);
+        // The column reads quietly, names and values alike muted and regular ("Health 97%"), as the plan draws it.
+        healthName = ui.text("", 14, false); healthValue = ui.text("", 14, false);
         healthRow = fact(healthName, healthValue); side.addView(healthRow);
-        packName = ui.text("", 14, false); packValue = ui.text("", 14, true);
+        packName = ui.text("", 14, false); packValue = ui.text("", 14, false);
         packRow = fact(packName, packValue); side.addView(packRow);
-        state = ui.text("", 14, false); state.setTextColor(ui.muted); state.setPadding(0, ui.dp(2), 0, ui.dp(2));
+        state = ui.text("", 14, false); state.setTextColor(ui.muted);
         side.addView(state, new LinearLayout.LayoutParams(-2, -2));
         figures.addView(side);
         card.addView(figures, new LinearLayout.LayoutParams(-1, -2));
         track = new ChargeTrack(host.activity(), ui);
-        LinearLayout.LayoutParams trackParams = new LinearLayout.LayoutParams(-1, ChargeTrack.height(ui)); trackParams.topMargin = ui.dp(14);
+        // About 12 dp between the figures and the track itself; the view's top holds the tick's reach above it.
+        LinearLayout.LayoutParams trackParams = new LinearLayout.LayoutParams(-1, ChargeTrack.height(ui)); trackParams.topMargin = ui.dp(12) - Math.round(ChargeTrack.reach(ui));
         card.addView(track, trackParams);
         view.addView(card);
         refresh();
@@ -64,11 +70,12 @@ final class HubBatterySummary implements AppScreen {
     /** A line of the right column: a reading's name, muted, then its value; spoken as one item. */
     private LinearLayout fact(TextView name, TextView value) {
         LinearLayout row = new LinearLayout(host.activity()); row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, ui.dp(2), 0, ui.dp(2));
+        // Lines about 21 dp apart, as the plan's column: no padding beyond the text's own.
+        row.setGravity(Gravity.CENTER_VERTICAL);
         name.setTextColor(ui.muted); name.setMaxLines(1);
         row.addView(name, new LinearLayout.LayoutParams(-2, -2));
-        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(6);
-        value.setMaxLines(1); row.addView(value, valueParams);
+        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(5);
+        value.setTextColor(ui.muted); value.setMaxLines(1); row.addView(value, valueParams);
         if (Build.VERSION.SDK_INT >= 28) row.setScreenReaderFocusable(true);
         return row;
     }
@@ -161,10 +168,42 @@ final class HubBatterySummary implements AppScreen {
                 int room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
                 column.measure(MeasureSpec.makeMeasureSpec(Math.max(0, room), MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                 float need = Layout.getDesiredWidth(level.getText(), level.getPaint()) + level.getPaddingLeft() + level.getPaddingRight();
-                stack = room - column.getMeasuredWidth() - ui.dp(12) < need;
+                stack = BatterySummaryFit.stacks(room, column.getMeasuredWidth(), ui.dp(12), need);
             }
             arrange(stack);
+            fit(stack || column.getVisibility() == GONE ? 0 : firstLineCapTop());
             super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** The level's margins and the range line's gap (BatterySummaryFit), from the fonts' measured glyphs. */
+        private void fit(int besideCapTop) {
+            String digits = level.getText().toString().replaceAll("[^0-9]", "");
+            if (digits.isEmpty()) return;
+            android.graphics.Paint.FontMetricsInt metrics = level.getPaint().getFontMetricsInt();
+            android.graphics.Rect glyphs = new android.graphics.Rect();
+            level.getPaint().getTextBounds(digits, 0, digits.length(), glyphs);
+            int[] margins = BatterySummaryFit.levelMargins(glyphs.top - metrics.ascent, metrics.descent - glyphs.bottom, besideCapTop);
+            LayoutParams size = (LayoutParams) level.getLayoutParams();
+            if (size.topMargin != margins[0] || size.bottomMargin != margins[1]) { size.topMargin = margins[0]; size.bottomMargin = margins[1]; level.setLayoutParams(size); }
+            int gap = BatterySummaryFit.rangePadding(ui.dp(BatterySummaryFit.RANGE_GAP_DP), capTop(rangeLine, false));
+            if (rangeLine.getPaddingTop() != gap) rangeLine.setPadding(0, gap, 0, 0);
+        }
+
+        /** Where the right column's first shown line's capitals start, from the column's top. */
+        private int firstLineCapTop() {
+            View first = null;
+            for (int i = 0; i < side.getChildCount() && first == null; i++) if (side.getChildAt(i).getVisibility() != GONE) first = side.getChildAt(i);
+            if (first == null) return 0;
+            TextView words = first instanceof TextView ? (TextView) first : (TextView) ((ViewGroup) first).getChildAt(0);
+            return first.getPaddingTop() + capTop(words, words.getIncludeFontPadding());
+        }
+
+        /** The space a text view keeps above its capitals ("H"), with or without its font padding. */
+        private int capTop(TextView words, boolean padded) {
+            android.graphics.Paint.FontMetricsInt metrics = words.getPaint().getFontMetricsInt();
+            android.graphics.Rect cap = new android.graphics.Rect();
+            words.getPaint().getTextBounds("H", 0, 1, cap);
+            return (padded ? -metrics.top : -metrics.ascent) + cap.top;
         }
 
         private void arrange(boolean stack) {
