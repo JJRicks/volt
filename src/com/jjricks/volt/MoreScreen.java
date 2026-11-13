@@ -2573,10 +2573,8 @@ public final class MoreScreen implements AppScreen {
         simulationRow.toggle.setTag("developer-simulation-toggle");
         simulationModelRow = row(controls, "scooter", M.moreDevSimulatedModel(), null, this::chooseSimulationModel);
         simulationModelRow.view.setTag("developer-simulation-model");
-        simulationSceneRow = row(controls, "scooter", T.moreDevSimulationScene(), null, this::chooseSimulationScene);
-        simulationSceneRow.view.setTag("developer-simulation-scene");
-        simulationDriveModeRow = row(controls, "scooter", T.moreDevSimulationDriveMode(), null, this::chooseSimulationDriveMode);
-        simulationDriveModeRow.view.setTag("developer-simulation-drive-mode");
+        simulationSceneRow = simulatorRow(controls, T.moreDevSimulationScene(), SIMULATION_SCENE_TAG, this::chooseSimulationScene);
+        simulationDriveModeRow = simulatorRow(controls, T.moreDevSimulationDriveMode(), SIMULATION_DRIVE_MODE_TAG, this::chooseSimulationDriveMode);
         simulationStatus = footnote(T.moreDevSimulationActive());
         simulationStatus.setTag("developer-simulation-status");
         simulationStatus.setTextColor(ui.orange);
@@ -2773,6 +2771,16 @@ public final class MoreScreen implements AppScreen {
                     current.ble.setSimulationDriveMode(SIMULATION_DRIVE_MODES[which]); d.dismiss();
                     refreshSimulation(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
+    }
+
+    /** Developer options' Scene and Drive mode rows' view tags (the rows and their text arrive with the catalog PR). */
+    static final String SIMULATION_SCENE_TAG = "developer-simulation-scene", SIMULATION_DRIVE_MODE_TAG = "developer-simulation-drive-mode";
+
+    /** One more simulator row under Simulated model: the scooter icon, a title, no value yet, and its view tag. */
+    private Row simulatorRow(LinearLayout group, String title, String tag, Runnable open) {
+        Row row = row(group, "scooter", title, null, open);
+        row.view.setTag(tag);
+        return row;
     }
 
     /** Developer options' simulation rows and the simulating note on More's menu. */
