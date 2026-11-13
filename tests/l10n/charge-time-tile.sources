@@ -1,0 +1,3 @@
+# The charging view's combined time tile: readings, the saved choice and every switch path (ChargeTimeReadings).
+src/com/jjricks/volt/ChargeTimeReadings.java
+tests/l10n/ChargeTimeReadingsTest.java

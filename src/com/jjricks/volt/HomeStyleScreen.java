@@ -28,11 +28,8 @@ final class HomeStyleScreen implements AppScreen {
         preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         view = new LinearLayout(host.activity());
         view.setOrientation(LinearLayout.VERTICAL);
-        // While the tab bar remains, the page header names the Settings tab; this page names itself.
-        TextView title = ui.text(HubText.title(HubPages.SETTINGS_HOME), 24, true);
-        if (android.os.Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
-        title.setPadding(ui.dp(2), 0, 0, ui.dp(10));
-        view.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        // The activity's header already shows this page's title (HubText) under its back link, as for every page
+        // below a tab's root, so the page adds none of its own (as More's sections opened as pages do).
         view.addView(HomeStylePicker.build(host, preferences), new LinearLayout.LayoutParams(-1, -2));
         LinearLayout card = ui.groupCard();
         card.addView(toggle(HomeMoment.CHARGING_KEY, HubText.momentCharging(), HubText.momentChargingDescription()));

@@ -282,8 +282,37 @@ public final class ChargeSessionStoreTest {
         }
         s.stop(stop);
     }
+    /**
+     * The charging tile's pair beside a scooter's own limit (council review of #422 at baccf967, finding 1): two past
+     * charges that stop at a 95% limit, five minutes a percent, make the time to the limit longer than the current-rate
+     * time to 100%. The tile shows the time to the limit unchanged and a time to 100% no shorter than it.
+     */
+    static void tilePairOrder()throws Exception{
+        ChargeSessionStore s=store();
+        for(int n=0;n<2;n++)session(s,"one",ChargeSessionStore.Charger.STOCK,40,95,300000,false,false);
+        ChargeSessionStore.Curve c=curve(s,"one",ChargeSessionStore.Charger.STOCK);
+        ChargingEstimate.Value on=new ChargingEstimate.Value(1d,true,100),soc=new ChargingEstimate.Value(50d,true,100),ah=new ChargingEstimate.Value(14.5,true,100);
+        ChargingEstimate.Result baseline=ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),soc,ah,new ChargingEstimate.Value(95d,true,100));
+        ChargingEstimate.Result r=ChargingEstimate.forScooter(baseline,soc,ah,-1,ChargeSessionStore.Charger.STOCK,c);
+        check(r.learnedToLimit&&!r.learnedToFull,"Past charges to the limit, none to 100%");
+        near(225,r.remainingMinutesToLimit,"Learned time from 50% to the 95% limit");
+        near(217.5,r.remainingMinutesToFull,"Current-rate time to 100%, shorter than the time to the limit");
+        Double full=ChargingEstimate.minutesToFullBesideLimit(r);
+        check(full!=null&&full>=r.remainingMinutesToLimit,"The tile's time to 100% is never shorter than its time to the limit: "+full+" vs "+r.remainingMinutesToLimit);
+        near(225,full,"Bounded by the time to the limit, no new estimate");
+        // Every other case is the estimate's own time to 100%, unchanged.
+        ChargingEstimate.Result ordinary=ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),soc,ah,new ChargingEstimate.Value(80d,true,100));
+        near(ordinary.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(ordinary),"A time to the limit already shorter leaves 100% alone");
+        ChargingEstimate.Result none=ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),soc,ah,new ChargingEstimate.Value(100d,true,100));
+        near(none.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(none),"No limit below 100%: the estimate's own time");
+        check(ChargingEstimate.minutesToFullBesideLimit(null)==null,"No estimate, no time");
+        // The estimate's own fields, which the notification, Charge done by and the single tile read, are untouched.
+        near(225,r.remainingMinutesToLimit,"The time to the limit is unchanged");near(217.5,r.remainingMinutesToFull,"The estimate's time to 100% is unchanged");
+    }
+
     public static void main(String[] args)throws Exception{
         gaugeChargeCheck();
+        tilePairOrder();
         ChargeSessionStore a=store();
         session(a,"one",ChargeSessionStore.Charger.STOCK,40,100,60000,false,false);
         ChargeSessionStore.Curve first=curve(a,"one",ChargeSessionStore.Charger.STOCK);

@@ -189,6 +189,11 @@ final class QuickAccessGrid extends ViewGroup {
             Msg spoken = tiles ? null : HubText.quickActionDescription(cell.entry.id);
             // Clean's Record while a ride records ends and saves it, and says so as riding mode's record control does.
             if (HomeQuickActions.endsRide(cell.entry.id, service != null && service.isRecording())) description = RidingScreen.endRideSpoken();
+            // Idle, it starts one, and says so in the recorder disc's words, as riding mode's Record does: "Start
+            // recording", or why it can't yet (the last ride still saving, no scooter connected).
+            else if (HomeQuickActions.startsRide(cell.entry.id, service != null && service.isRecording()))
+                description = DashboardScreen.recordIdleSpoken(service != null && service.phoneSaving(),
+                        service != null && service.ble.ready(), false);
             else if (spoken != null) description = spoken.render();
             cell.setContentDescription(description);
             if (android.os.Build.VERSION.SDK_INT >= 30) cell.setStateDescription(state);
