@@ -756,7 +756,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
         return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
-            // The search page (HubSearchScreen) with its field focused; Clean's and the Widgets header's search button.
+            // The search page (HubSearchScreen) with its field focused; Clean header's search button (Widgets: the dock's All sheet).
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.

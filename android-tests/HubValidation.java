@@ -219,8 +219,8 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * The header's search, as far as part 11 has it: its field focused, the subjects listed, typing hides them; Back
-     * clears the query before it leaves, the page's back link leaves at once. Search's results arrive with part 12.
+     * The header's search: its field focused, the subjects listed, typing hides them; a result opens over the search and
+     * Back returns to it as it was; Back then clears the query before it leaves, and the page's back link leaves at once.
      */
     private void search() throws Exception {
         tapTag("home-search");
