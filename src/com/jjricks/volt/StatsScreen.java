@@ -84,6 +84,10 @@ public final class StatsScreen implements AppScreen {
     private final Ui.BatteryRing batteryRing;
     /** The Data & history row at the foot of the sections. */
     private final HubListScreen storageLink;
+    /** The link's value, the stored history's size ("0.1 MiB"; empty while unknown or nothing is stored). */
+    private String storedSize = "";
+    private long storedSizeChecked;
+    private boolean storedSizePending, closed;
     private static final class Row {
         final String key, group, label, search;
         final LinearLayout layout;
@@ -267,7 +271,7 @@ public final class StatsScreen implements AppScreen {
         diagnosticsSection.addView(rawCard);
         // Under every section: Data's link to the storage settings and the detail density (hub layout plan, PR 5).
         storageLink = new HubListScreen(host, java.util.Collections.singletonList(new HubListScreen.Row(HubPages.DATA_STORAGE, "history",
-                HubText.title(HubPages.DATA_STORAGE), null, null, null, () -> host.open(HubPages.DATA_STORAGE))));
+                HubText.title(HubPages.DATA_STORAGE), () -> storedSize, null, null, () -> host.open(HubPages.DATA_STORAGE))));
         LinearLayout.LayoutParams linkParams = new LinearLayout.LayoutParams(-1, -2); linkParams.topMargin = ui.dp(6);
         page.addView(storageLink.view(), linkParams);
         applyFilter(); showSection(); refresh();
@@ -498,6 +502,7 @@ public final class StatsScreen implements AppScreen {
     }
     @Override public View view() { return scroll; }
     @Override public void refresh() {
+        refreshStoredSize();
         Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
         for (TelemetryHistory.Reading reading : readings.values()) {
             if (!readingsShown()) continue;
@@ -766,7 +771,23 @@ public final class StatsScreen implements AppScreen {
     }
     void resetScroll() { sectionScroll.scrollTo(0, 0); if (readingsScroll != null) readingsScroll.scrollTo(0, 0); clearSavedScroll(); }
     static void clearSavedScroll() { savedSectionScroll = savedReadingsScroll = 0; }
+    /**
+     * Keeps the Data & history link's value current from the history's storage refresh, the one Data & history's
+     * storage card uses (and More's Data row used before the Hub layout), at most once a minute while Live Stats shows.
+     */
+    private void refreshStoredSize() {
+        TelemetryHistory history = service.history;
+        if (history == null || storedSizePending) return;
+        long now = SystemClock.elapsedRealtime();
+        if (storedSizeChecked > 0 && now - storedSizeChecked < 60000) return;
+        storedSizeChecked = now; storedSizePending = true;
+        history.storage(storage -> {
+            storedSizePending = false; if (closed) return;
+            storedSize = MoreScreen.mib(storage.bytes); storageLink.refresh();
+        });
+    }
     @Override public void close() {
+        closed = true;
         sectionTabs.finishMotion();
         if (metricDialog != null) metricDialog.dismiss();
         if (orderDialog != null) orderDialog.dismiss();

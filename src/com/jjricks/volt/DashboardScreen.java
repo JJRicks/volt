@@ -908,12 +908,18 @@ public final class DashboardScreen implements AppScreen {
     /** "about 31 mi": the range reading rounded, in the rider's distance units. */
     private String rangeText(TelemetryHistory.Reading r) {
         if (r == null || r.value == null) return "";
-        if (r.number == null) return T.dashboardAbout(format(r));
+        if (r.number == null) return aboutRange(format(r));
         String km = T.fmtQuantity(Fmt.decimal(Locale.US, r.number, 0), T.unitsKm());
         String miles = T.fmtQuantity(Fmt.decimal(Locale.US, r.number / 1.609344, 0), T.unitsMi());
         String units = units();
-        return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
+        return aboutRange((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
+
+    /**
+     * A range figure as the battery cards give it, an estimate: "about 31 mi". Battery & charging's summary
+     * (HubBatterySummary) speaks its range in this form too, so its spoken and drawn lines agree with Home's card.
+     */
+    static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }
 
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
