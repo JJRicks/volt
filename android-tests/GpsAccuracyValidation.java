@@ -598,8 +598,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
         settle();
         // The chart draws the scooter's lines first; the phone journal (and so GPS accuracy) arrives after it loads.
         boolean journal = !id.equals(none);
-        await(() -> { AtomicReference<Boolean> ok = new AtomicReference<>(false);
-                main(() -> { View p = panel(); ok.set(p != null && field(p, "data") != null && (!journal || field(p, "phone") != null)); }); return ok.get(); },
+        // await's condition already runs on the main thread.
+        await(() -> { View p = panel(); return p != null && field(p, "data") != null && (!journal || field(p, "phone") != null); },
                 "chart never loaded", 15000);
         if (!journal) SystemClock.sleep(1500);
         settle();
@@ -715,6 +715,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
                 }
                 main(() -> { try { invoke(activity, "closeRiding", new Class<?>[0]); } catch (Throwable ignored) { } activity.finish(); ScooterService.setUiVisible(false);
                     getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
+                // Clearing app_settings below tells a live MainActivity's listener of a null key, which it doesn't expect.
+                await(activity::isDestroyed, "the Activity did not finish", 8000);
             }
         } catch (Throwable ignored) { }
         try {
