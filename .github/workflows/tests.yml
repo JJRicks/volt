@@ -18,7 +18,8 @@ jobs:
     # Private workers require trusted collaborators and disabled fork workflows.
     # Job/run labels route eligible work; they are not an authorization boundary.
     runs-on: ${{ fromJSON(github.event.repository.private == true && (github.actor == 'JJRicks' || github.actor == 'ollies5') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && format('["self-hosted","Linux","ARM64","volt-ci","volt-job-core-tests","volt-run-{0}-{1}"]', github.run_id, github.run_attempt) || '["ubuntu-latest"]') }}
-    timeout-minutes: 10
+    # Runs took 7.5 minutes (median) and up to 9.8 on Nov 11-12 2026; about twice the slowest.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,6 +52,81 @@ jobs:
           bash tests/l10n/golden.sh
           # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
           python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"
+  android-build:
+    # Android SDK builds stay off the private ARM workers (ops/ci/README.md): Google ships no Linux ARM64
+    # build-tools, and the worker controller only serves core-tests and web-setup. GitHub's runner image
+    # has the SDK. No secrets: build.sh signs with a key it makes for this run in an empty NAVEE_KEY_DIR.
+    runs-on: ubuntu-latest
+    # Measured 1.5 to 2 minutes over 6 runs (Nov 13 2026); 10 leaves room for a slow runner or a slow SDK download.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK (build-tools 36.1.0, platform android-36)
+        run: bash .github/android-sdk.sh
+      - name: Pinned Shizuku dependencies (checksums in setup/shizuku-dependencies.py)
+        run: python3 setup/shizuku-dependencies.py --fetch
+      - name: Throwaway signing key for this run only
+        # build.sh makes a new key in an empty NAVEE_KEY_DIR; the runner's temp folder is wiped after the job.
+        run: echo "NAVEE_KEY_DIR=$RUNNER_TEMP/volt-throwaway-key" >> "$GITHUB_ENV"
+      - name: Build the app (build.sh)
+        run: bash build.sh
+      - name: Build with pseudo-locales (VOLT_PSEUDO_LOCALES=1 build.sh)
+        run: VOLT_PSEUDO_LOCALES=1 bash build.sh
+      - name: Build the Android validations (android-tests/build.sh)
+        run: bash android-tests/build.sh
+      - name: Shipped languages through aapt (ship_check.py --aapt required)
+        run: python3 tools/l10n/ship_check.py --aapt required
+  english-proof:
+    # Not on the private ARM workers, for the same reasons as android-build.
+    runs-on: ubuntu-latest
+    # Measured 5.4 to 9.6 minutes over 8 runs (Nov 13 2026). It runs tests/run.sh, which alone has taken
+    # up to 9.8 minutes in core-tests, plus three builds; 25 is about twice that slowest case.
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: head
+    steps:
+      # The job's own setup comes from this workflow's commit, never from the head it proves: a pull
+      # request whose head predates a setup file must still get it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: workflow
+          sparse-checkout: .github
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: head
+          # The proof compares the commits since the base, so it needs full history. It reads the pull
+          # request's own head, as it does locally: G5 needs the head, not GitHub's merge commit.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK (build-tools 36.1.0, platform android-36)
+        run: bash ../workflow/.github/android-sdk.sh
+      # From the head, which pins the jars it builds with (--fetch exists since Oct 13 2026, before any open head).
+      - name: Pinned Shizuku dependencies (checksums in setup/shizuku-dependencies.py)
+        run: python3 setup/shizuku-dependencies.py --fetch
+      - name: English proof (tools/l10n/prove-english.sh --pseudo)
+        env:
+          # As in core-tests. On a push to main this is the pushed commit itself, so the gates that compare
+          # with the base have nothing to compare; the builds, tests, lint and pseudo-APK checks still run.
+          L10N_BASE: origin/${{ github.base_ref || 'main' }}
+        run: |
+          # GitHub's default shell is bash -e without pipefail: without this, tee's exit status would hide a failed proof.
+          set -o pipefail
+          # A throwaway signing key for this run only (build.sh makes it in an empty NAVEE_KEY_DIR).
+          export NAVEE_KEY_DIR="$RUNNER_TEMP/volt-throwaway-key"
+          bash tools/l10n/prove-english.sh "$L10N_BASE" --pseudo | tee -a "$GITHUB_STEP_SUMMARY"
   web-setup:
     # Private workers require trusted collaborators and disabled fork workflows.
     # Job/run labels route eligible work; they are not an authorization boundary.

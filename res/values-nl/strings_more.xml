@@ -126,8 +126,6 @@
     <string name="more_prefs_auto_connect">Automatisch verbinden</string>
     <!-- src:25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a -->
     <string name="more_prefs_background">Verbonden blijven op de achtergrond</string>
-    <!-- src:5ca7fc47f600cdbf58fdace126eae295fa294226 -->
-    <string name="more_prefs_background_sub">Tijdens opnamen blijft de verbinding altijd actief</string>
     <!-- src:83881e36841edbacf388110c732b3b73770b8f36 -->
     <string name="more_prefs_awake">Scherm aan laten</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->
