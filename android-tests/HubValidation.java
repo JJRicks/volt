@@ -54,18 +54,18 @@ import com.jjricks.volt.ScooterService;
  *   search, and Back returns through the search to Home.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown.</li>
- *   <li><b>Widgets Home</b>: its header's search and gear (as on Clean Home's header, since part 11) open Search and
- *   Settings over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only (never on a subject
- *   page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet listing all seven
- *   subjects, whose rows open their subject and close the sheet. With -e wide true or false, the dock must hold all seven (wide) or the
- *   phone's most-used ones (HubPages.dockSubjects).</li>
+ *   <li><b>Widgets Home</b>: its header is main's (no search or gear of its own); Search and Settings are the first rows
+ *   of the dock's All sheet and open over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only
+ *   (never on a subject page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet
+ *   listing all seven subjects, whose rows open their subject and close the sheet. With -e wide true or false, the dock
+ *   must hold all seven (wide) or the phone's most-used ones (HubPages.dockSubjects).</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
  *
- * Pass -e mode all (the default) for all of the above. -e mode widgets-header checks only Widgets Home's header,
- * starting on Widgets: it has the search and gear buttons the product spec gives both Homes ("Settings (gear icon in
- * the Home header)"), and they open Search and Settings. -e theme dark|light and -e text_scale (1 by default) as the other
+ * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
+ * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
+ * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. Every word it types or reads is English: run it with the emulator in en-US.
  */
 public final class HubValidation extends Instrumentation {
@@ -95,8 +95,8 @@ public final class HubValidation extends Instrumentation {
         try {
             admit(); admitted = true;
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-header"), "Unknown -e mode " + mode + " (all or widgets-header)");
-            boolean widgetsFirst = mode.equals("widgets-header");
+            require(mode.equals("all") || mode.equals("widgets-pages"), "Unknown -e mode " + mode + " (all or widgets-pages)");
+            boolean widgetsFirst = mode.equals("widgets-pages");
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
@@ -107,7 +107,7 @@ public final class HubValidation extends Instrumentation {
             seed();
             launch();
             simulate();
-            if (widgetsFirst) widgetsHeader(true);
+            if (widgetsFirst) widgetsPages(true);
             else {
                 cleanSubjects();
                 pageStack();
@@ -252,7 +252,7 @@ public final class HubValidation extends Instrumentation {
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
         screenshot("widgets-home");
-        widgetsHeader(false);
+        widgetsPages(false);
         for (String subject : shown) {
             main(() -> { View item = root().findViewWithTag("hub-dock-" + subject); require(shown(item), "The dock has no " + subject + " item");
                 require(item.getContentDescription() != null && item.getContentDescription().length() > 0, "The dock's " + subject + " item has no spoken name"); });
@@ -267,10 +267,7 @@ public final class HubValidation extends Instrumentation {
         checks.add("Widgets dock: " + shown + " each open their subject over Home; Back returns to Widgets Home; no dock on subject pages");
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
-            tapTag("hub-dock-handle");
-            AlertDialog[] sheet = new AlertDialog[1];
-            await(() -> onMain(() -> { sheet[0] = (AlertDialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
-            settle();
+            AlertDialog[] sheet = {openAllSheet()};
             main(() -> {
                 View content = sheet[0].getWindow().getDecorView();
                 require(content.findViewWithTag("hub-dock-sheet") != null, "The All sheet has no content tag");
@@ -293,24 +290,41 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * Widgets Home's header: the search and gear buttons both Homes have (product spec), opening Search and Settings.
-     * Alone (-e mode widgets-header) it takes its own screenshot; in the main walk, widgets-home shows the header.
+     * How Widgets Home reaches Search and Settings: its header is main's (no search or gear of its own, the owner's answer
+     * on #392), and the dock's All sheet lists both first, under Clean Home's header tags; each opens over Home and Back
+     * returns to Widgets Home. Alone (-e mode widgets-pages) it takes its own screenshots.
      */
-    private void widgetsHeader(boolean alone) throws Exception {
+    private void widgetsPages(boolean alone) throws Exception {
         requireHome("DashboardScreen");
-        if (alone) screenshot("widgets-header");
-        main(() -> require(shown(root().findViewWithTag("home-search")), "Widgets Home's header has no search button (home-search)"));
-        main(() -> require(shown(root().findViewWithTag("home-settings")), "Widgets Home's header has no gear for Settings (home-settings)"));
-        tapTag("home-search");
-        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        hideKeyboard();
-        systemBack();
-        requireHome("DashboardScreen");
-        tapTag("home-settings");
-        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
-        systemBack();
-        requireHome("DashboardScreen");
-        checks.add("Widgets Home's header: search opens Search and the gear opens Settings, each over Home");
+        if (alone) screenshot("widgets-home");
+        main(() -> require(root().findViewWithTag("home-search") == null && root().findViewWithTag("home-settings") == null,
+                "Widgets Home's header has a search or gear of its own; part 11 keeps main's header"));
+        for (String[] each : new String[][]{{"home-search", HubPages.SEARCH}, {"home-settings", HubPages.SETTINGS}}) {
+            AlertDialog sheet = openAllSheet();
+            main(() -> require(shown(sheet.getWindow().getDecorView().findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
+            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages");
+            main(() -> click(sheet.getWindow().getDecorView().findViewWithTag(each[0]), each[0] + " in the All sheet"));
+            settle();
+            await(() -> onMain(() -> !sheet.isShowing()), "The All sheet stayed open after " + each[0]);
+            arrived(each[1], HubPages.HOME, each[1]);
+            if (each[1].equals(HubPages.SEARCH)) {
+                await(() -> onMain(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); return field != null && field.hasFocus(); }),
+                        "Search opened from the All sheet without its field focused");
+                hideKeyboard();
+            }
+            systemBack();
+            requireHome("DashboardScreen");
+        }
+        checks.add("Widgets Home keeps main's header; the All sheet's Search and Settings rows open those pages over Home, and Back returns to Widgets Home");
+    }
+
+    /** Taps the dock's All item and returns its sheet, open and settled. */
+    private AlertDialog openAllSheet() {
+        tapTag("hub-dock-handle");
+        AlertDialog[] sheet = new AlertDialog[1];
+        await(() -> onMain(() -> { sheet[0] = (AlertDialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
+        settle();
+        return sheet[0];
     }
 
     /** Nothing on the walk reached the scooter: the simulator's settings, radio, queue, pending change and recordings. */
