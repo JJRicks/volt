@@ -1889,6 +1889,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final java.util.HashMap<View,View> gluedBelow=new java.util.HashMap<>(),gluedTo=new java.util.HashMap<>();
         /** The page's own card, its rows in the spec's order; null on the index. */
         private final LinearLayout pageBody;
+        /** The card of the page's trailing sub-page links under pageBody (ControlsPages.linksCardFrom); null when they share it. */
+        private final LinearLayout linksBody;
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
@@ -2011,25 +2013,33 @@ public final class MainActivity extends Activity implements ScreenHost {
                 shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
             }
             pageBody=spec.search?null:design.groupCard();
+            // The Layout Plan: the rows in one card, then the sub-page links in a card of their own under it.
+            int linksFrom=ControlsPages.linksCardFrom(spec);
+            linksBody=pageBody!=null&&linksFrom<spec.rows.size()?design.groupCard():null;
             if(pageBody!=null){
-                for(String id:spec.rows){
+                for(int i=0;i<spec.rows.size();i++){
+                    String id=spec.rows.get(i);LinearLayout body=i>=linksFrom&&linksBody!=null?linksBody:pageBody;
                     String target=ControlsPages.linkTarget(id);
-                    if(target!=null){place(linkRow(target));continue;}
+                    if(target!=null){place(body,linkRow(target));continue;}
                     View card=rowViews.get(id);if(card==null)continue;
-                    place(card);View done=gluedBelow.get(card);if(done!=null)place(done);
+                    place(body,card);View done=gluedBelow.get(card);if(done!=null)place(body,done);
                     // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
-                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
+                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(body,entry);}
                 }
                 view.addView(pageBody,new LinearLayout.LayoutParams(-1,-2));
+                if(linksBody!=null){LinearLayout.LayoutParams under=new LinearLayout.LayoutParams(-1,-2);under.topMargin=design.dp(10);view.addView(linksBody,under);}
+                // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
+                if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:new LinearLayout[]{pageBody,linksBody})if(body!=null)
+                    for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.bare();}
             }
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
         }
-        /** Moves a row into the page's card (out of its section body, whose divider stays behind), with a divider before it. */
-        private void place(View card){
+        /** Moves a row into one of the page's cards (out of its section body, whose divider stays behind), with a divider before it. */
+        private void place(LinearLayout body,View card){
             if(card.getParent() instanceof ViewGroup)((ViewGroup)card.getParent()).removeView(card);
-            if(pageBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(card);pageBody.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}
-            pageBody.addView(card);
+            if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(card);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}
+            body.addView(card);
         }
         /** A row that opens one of this page's sub-pages. */
         private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
@@ -2054,7 +2064,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
             // The badge sits under the name on every entry (beside a short name it moved to the row's end).
-            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
+            entry.tag(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
@@ -2122,6 +2132,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
             if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
+            if(linksBody!=null)linksBody.setVisibility(hideDividers(linksBody)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
@@ -2412,10 +2423,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         return pill;
     }
     /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
+    /** Each SettingLine by its card, so a page can restyle the rows it places (ControlsScreen: icon tiles). */
+    private final java.util.WeakHashMap<View,SettingLine> settingLines=new java.util.WeakHashMap<>();
     private final class SettingLine {
         final LinearLayout card=column(),line=row(),words=column();
         final TextView name,sub,value;
         SettingLine(String icon,CharSequence label,CharSequence detail){
+            settingLines.put(card,this);
             line.setGravity(Gravity.CENTER_VERTICAL);line.setBaselineAligned(false);line.setMinimumHeight(design.dp(60));line.setPadding(0,design.dp(8),0,design.dp(8));
             name=design.text(label,15,false);name.setMaxLines(2);design.decorate(name,icon);
             value=design.text("",14,false);value.setTextColor(design.muted);value.setGravity(Gravity.END);value.setMaxLines(1);
@@ -2454,6 +2468,24 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
         void setSub(CharSequence text){setSub(text==null?null:text.toString());}
+        /** No icon tile: the name and its sub-line start at the card's padding. */
+        void bare(){
+            android.graphics.drawable.Drawable[] old=name.getCompoundDrawablesRelative();
+            name.setCompoundDrawablesRelative(null,old[1],old[2],old[3]);name.setCompoundDrawablePadding(0);
+            sub.setPaddingRelative(0,sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
+            ViewGroup.LayoutParams p=sub.getLayoutParams();if(p instanceof ViewGroup.MarginLayoutParams)((ViewGroup.MarginLayoutParams)p).setMarginStart(0);
+        }
+        /**
+         * The sub-line as the Layout Plan's EXPERIMENTAL tag: small semibold capitals, orange on a light orange fill, under
+         * the name where the icon tile's indent ends.
+         */
+        void tag(CharSequence text){
+            setSub(text);
+            sub.setAllCaps(true);sub.setTextSize(11*design.textScale);sub.setTypeface(design.medium());sub.setTextColor(design.orange);
+            sub.setLetterSpacing(.04f);sub.setBackground(design.shape(Ui.withAlpha(design.orange,46),6,0));
+            int start=sub.getPaddingStart();sub.setPaddingRelative(design.dp(7),design.dp(2),design.dp(7),design.dp(2));
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.setMarginStart(start);p.topMargin=design.dp(4);sub.setLayoutParams(p);
+        }
     }
     private boolean chargeAlertsOffered(){return scooterService!=null&&scooterService.chargeAlertsOffered();}
     /** Why an alert can't reach the owner now, or null; shared by the rows and the sheet. */
@@ -3128,7 +3160,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private Integer requested;private View pulsing;private android.animation.ValueAnimator pulse;
         TopSpeedCard(){
             card.setPadding(design.dp(16),design.dp(14),design.dp(16),design.dp(16));
-            LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);cardParams.bottomMargin=design.dp(2);card.setLayoutParams(cardParams);
+            LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);cardParams.bottomMargin=design.dp(10);card.setLayoutParams(cardParams);
             // Naming Sport here states the "Sport mode only" fact without a separate line.
             title=design.text(T.mainSpeedTitle(),12.5f,false);title.setTypeface(design.medium());card.addView(title);
             LinearLayout reading=row();reading.setPadding(0,design.dp(8),0,design.dp(14));

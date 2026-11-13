@@ -160,6 +160,25 @@ final class ControlsPages {
         return false;
     }
 
+    /**
+     * Where a page's links to its sub-pages start their own card (the owner's Layout Plan: the rows in one card, then
+     * "More controls", Battery modes and the other sub-pages in a second card under it): the index in spec.rows from
+     * which every row is a link. rows.size() keeps one card: no trailing links, links in the middle of the rows (Lights
+     * & sound's Line and Star lights), or a page of links only.
+     */
+    static int linksCardFrom(Spec spec) {
+        if (spec == null) return 0;
+        int from = spec.rows.size();
+        while (from > 0 && isLink(spec.rows.get(from - 1))) from--;
+        return from == 0 ? spec.rows.size() : from;
+    }
+
+    /**
+     * Whether a page's rows carry their icon tiles. The Layout Plan draws them on the Controls rows and leaves them off
+     * the Battery & charging page (its CHARGING card and the links under it).
+     */
+    static boolean iconTiles(String page) { return !HubPages.BATTERY.equals(page); }
+
     /** The page that shows a row (a "Done by" row's parent decides for it); null when no page does. */
     static String pageOf(String id) {
         for (Spec spec : SPECS.values()) if (spec.includes(id)) return spec.page;

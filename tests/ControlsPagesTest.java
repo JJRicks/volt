@@ -29,6 +29,7 @@ public final class ControlsPagesTest {
         order();
         experimental();
         linkVisibility();
+        cards();
         System.out.println("ControlsPages: " + checks + " checks passed");
     }
 
@@ -130,8 +131,8 @@ public final class ControlsPagesTest {
         // ...and ControlsScreen places it directly after its parent's card: glued below that card, then placed straight after it.
         String source = new String(Files.readAllBytes(Paths.get(mainActivity)), StandardCharsets.UTF_8).replaceAll("\\s+", "");
         require(source.contains("gluedBelow.put(control.card,done.row.card);"), "Each Done by row is glued below its parent row");
-        require(source.contains("place(card);Viewdone=gluedBelow.get(card);if(done!=null)place(done);"),
-                "A page places a Done by row directly after its parent");
+        require(source.contains("place(body,card);Viewdone=gluedBelow.get(card);if(done!=null)place(body,done);"),
+                "A page places a Done by row directly after its parent, in the same card");
         // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages.
         require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("\"linestarlightszonesambientpatterncolorboost\""),
                 "The index's search finds Line lights and Star lights by the zones row's words");
@@ -140,6 +141,8 @@ public final class ControlsPagesTest {
         require(source.contains("pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);")
                 && source.contains("privatebooleanhideDividers(LinearLayoutbody)") && source.contains("returnhasVisible;"),
                 "A page's card shows only while one of its rows does");
+        require(source.contains("linksBody.setVisibility(hideDividers(linksBody)?View.VISIBLE:View.GONE);"),
+                "The links' own card shows only while one of its links does");
         // Disconnected, Security shows one Connect, the lock bar's (#387 review): the banner's pill and More's button hide there.
         require(ControlsPages.CONNECT_ABOVE.equals(Arrays.asList(HubPages.SECURITY)), "Security's lock bar has the page's Connect");
         require(source.contains("bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);"),
@@ -243,6 +246,29 @@ public final class ControlsPagesTest {
         int n = 0;
         for (String page : ControlsPages.pages()) if (ControlsPages.spec(page).includes(id)) n++;
         return n;
+    }
+
+    /** The Layout Plan's two cards: the rows, then the trailing links in a card of their own; no icon tiles on Battery. */
+    private static void cards() {
+        ControlsPages.Spec controls = ControlsPages.spec(HubPages.CONTROLS);
+        int from = ControlsPages.linksCardFrom(controls);
+        require(controls.rows.get(from).equals(ControlsPages.link(HubPages.CONTROLS_ASSISTS)) && from == controls.rows.size() - 2,
+                "Controls: Assists and Speed limits in a card of their own");
+        ControlsPages.Spec battery = ControlsPages.spec(HubPages.BATTERY);
+        from = ControlsPages.linksCardFrom(battery);
+        require(battery.rows.get(from).equals(ControlsPages.link(HubPages.BATTERY_MODES)) && from == battery.rows.size() - 3,
+                "Battery & charging: the three sub-page links under the charging rows");
+        for (int i = from; i < battery.rows.size(); i++) require(ControlsPages.isLink(battery.rows.get(i)), "Only links in the second card");
+        for (int i = 0; i < from; i++) require(!ControlsPages.isLink(battery.rows.get(i)), "No link in the first card");
+        ControlsPages.Spec lights = ControlsPages.spec(HubPages.LIGHTS);
+        require(ControlsPages.linksCardFrom(lights) == lights.rows.size(), "Lights: links between rows keep one card");
+        ControlsPages.Spec assists = ControlsPages.spec(HubPages.CONTROLS_ASSISTS);
+        require(ControlsPages.linksCardFrom(assists) == assists.rows.size(), "A page without links keeps one card");
+        require(ControlsPages.linksCardFrom(ControlsPages.spec(HubPages.SCOOTER)) == 0 && ControlsPages.linksCardFrom(null) == 0,
+                "The index (no rows) and no spec: nothing to split");
+        require(!ControlsPages.iconTiles(HubPages.BATTERY), "No icon tiles on Battery & charging");
+        for (String page : new String[]{HubPages.CONTROLS, HubPages.CONTROLS_ASSISTS, HubPages.LIGHTS, HubPages.BATTERY_MODES, HubPages.SECURITY})
+            require(ControlsPages.iconTiles(page), "Icon tiles stay on " + page);
     }
 
     private static void require(boolean ok, String message) {
