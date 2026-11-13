@@ -405,7 +405,8 @@ public final class RouteMapView extends View {
         float maxWidth = Math.max(ui.dp(60), getWidth() - ui.dp(8) - controls);
         // The context line, joined with " · ". When it is wider than the popup can be, it breaks at
         // those joins onto further lines rather than cutting a value, as long as the taller popup still
-        // fits the map; otherwise, or when one part alone is too wide, it is cut with an ellipsis.
+        // fits the map and fits above or below the tapped point; otherwise, or when one part alone is
+        // too wide, it is cut with an ellipsis.
         List<String> lines = new ArrayList<String>();
         if (!secondary.isEmpty()) lines.add(secondary);
         if (rest.size() > 1 && small.measureText(secondary) > maxWidth - 2 * padX) {
@@ -419,7 +420,10 @@ public final class RouteMapView extends View {
                     start = end;
                 }
             }
-            if (h1 + gap + h2 * wrapped.size() + 2 * padY <= getHeight() - 2 * ui.dp(8)) lines = wrapped;
+            float wrappedHeight = h1 + gap + h2 * wrapped.size() + 2 * padY;
+            if (wrappedHeight <= getHeight() - 2 * ui.dp(8)
+                    && RoutePopupPlacement.clearOfPoint(
+                            screenY(p), wrappedHeight, getHeight(), ui.dp(16), ui.dp(44), ui.dp(8))) lines = wrapped;
         }
         float secondaryWidth = 0;
         for (String line : lines) secondaryWidth = Math.max(secondaryWidth, small.measureText(line));
@@ -433,9 +437,7 @@ public final class RouteMapView extends View {
         float height = h1 + gap + h2 * lines.size() + 2 * padY;
         float px = screenX(p), py = screenY(p);
         float left = Math.max(ui.dp(8), Math.min(getWidth() - controls - width, px - width / 2));
-        float top = py - ui.dp(16) - height;
-        if (top < ui.dp(44)) top = py + ui.dp(16);
-        top = Math.max(ui.dp(8), Math.min(getHeight() - ui.dp(8) - height, top));
+        float top = RoutePopupPlacement.top(py, height, getHeight(), ui.dp(16), ui.dp(44), ui.dp(8));
         RectF box = new RectF(left, top, left + width, top + height);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(paper());

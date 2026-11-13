@@ -11,7 +11,8 @@ import java.util.Map;
  * The summary at the top of Battery & charging (hub layout plan, PR 4): the battery level with the range left, then
  * whether it is charging and to which limit. Readings come from ScooterService.dashboardReadings(), so the range is
  * the learned one where the owner chose it, as on Home. A level that isn't known hides the card. Words come from
- * HubText, and the plain "Charging" (no known limit) from BatteryOverviewSpeech, as Home's battery card says it;
+ * HubText, and the plain "Charging" (no known limit) from BatteryOverviewSpeech, as Home's battery card says it; a
+ * last-seen level is spoken in that card's "…, last seen" forms (DashboardScreen.overviewSpoken);
  * numbers and units from Fmt, and a refresh sets them again, so nothing rendered is kept.
  */
 final class HubBatterySummary implements AppScreen {
@@ -44,6 +45,13 @@ final class HubBatterySummary implements AppScreen {
         CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
         level.setText(range == null ? percent : HubText.batteryLevelRange(percent, range));
         level.setTextColor(soc.live ? ui.text : ui.muted);
+        // A last-seen level is drawn muted; while connected nothing else on the page says it is old, so it is spoken in
+        // Home's battery card's words: "Battery 62 percent, about 40 mi of range left, last seen 14:05". The range goes in
+        // as Home's card passes it, an estimate wrapped in "about" (DashboardScreen.aboutRange), as the drawn line says it.
+        double clamped = Math.max(0, Math.min(100, soc.number));
+        level.setContentDescription(soc.live ? null : DashboardScreen.overviewSpoken(clamped, Long.toString(Math.round(clamped)),
+                range == null ? "" : BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)),
+                DisplayTime.recent(host.activity(), service.settings, soc.capturedWallMs, System.currentTimeMillis())).render());
         // Charging or not only from a live reading (as the Scooter tab's Battery summary), and only beside a live level:
         // a last-seen or missing state, or a last-seen level above it, hides the line (HubSummaries.card).
         TelemetryHistory.Reading charge = readings.get("charging_state");
