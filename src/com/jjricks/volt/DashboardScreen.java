@@ -1687,6 +1687,8 @@ public final class DashboardScreen implements AppScreen {
         boolean owning, holding;
         /** The switch under way began as a drag: its faces keep following the finger's scale to the end. */
         boolean fromDrag;
+        /** The touch under way: the tile's own, the plain tile's, or cut off by a reset until the next one begins. */
+        final ChargeTimeReadings.Touch touch = new ChargeTimeReadings.Touch();
 
         ChargeTimeTile(String title) {
             super("clock", title, title, title);
@@ -1766,7 +1768,7 @@ public final class DashboardScreen implements AppScreen {
         private void setTwo(boolean next) {
             if (next == two) return;
             two = next;
-            stopMotion(); endDrag();
+            stopMotion(); endDrag(); cutTouch();
             state.rest(ChargeTimeReadings.shown(two, preferred));
             setClickable(two); setFocusable(two);
             setImportantForAccessibility(two ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
@@ -1836,7 +1838,7 @@ public final class DashboardScreen implements AppScreen {
         /** Ends any switch where it was heading: hidden, detached, rotated, folded or motion turned off. */
         void settle() {
             if (stack == null) return;
-            stopMotion(); endDrag();
+            stopMotion(); endDrag(); cutTouch();
             state.settle(); render();
         }
 
@@ -1844,6 +1846,23 @@ public final class DashboardScreen implements AppScreen {
             if (dragging) state.cancelDrag();
             dragging = false;
             if (velocity != null) { velocity.recycle(); velocity = null; }
+        }
+
+        /**
+         * A reset (or a change in whether the tile can switch) with a finger down: the rest of that touch does
+         * nothing, no drag, no switch, no tap and no long press, until the next touch begins, and Home's scroller is
+         * let go so an up or down move still scrolls.
+         */
+        private void cutTouch() {
+            if (!touch.cut()) return;
+            endDrag();
+            passing = false;
+            release();
+            // The plain view's press goes too (pressed look, pending tap, long-press tooltip), so the lift cannot click.
+            long now = android.os.SystemClock.uptimeMillis();
+            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+            super.onTouchEvent(cancel);
+            cancel.recycle();
         }
 
         /** How far a drag goes to switch fully; the faces follow the finger one to one. */
@@ -1923,6 +1942,15 @@ public final class DashboardScreen implements AppScreen {
             return owning || super.onInterceptTouchEvent(event);
         }
 
+        /** Follows every touch from its first contact to its lift or cancel, whichever view in the tile takes it. */
+        @Override public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) touch.begin(switchable());
+            boolean handled = super.dispatchTouchEvent(event);
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL || (action == MotionEvent.ACTION_DOWN && !handled)) touch.end();
+            return handled;
+        }
+
         /** Lets the parents (Home's scroller) take the gesture again, once it is known to go up or down. */
         private void release() {
             if (!holding) return;
@@ -1936,11 +1964,18 @@ public final class DashboardScreen implements AppScreen {
          * the start is still the tile's. A sideways move past the touch slop that is more sideways than up or down
          * becomes a drag, and the outgoing face follows the finger. Up or down first, the parents are let go and
          * Home's scroller takes it from the next move (the tile only sees a cancel); where nothing scrolls, the
-         * press is dropped all the same, so moving past the tile is never a tap.
+         * press is dropped all the same, so moving past the tile is never a tap. A touch that began with one reading
+         * stays the plain tile's; one cut off by a reset, or whose switchability changed under it, does nothing more.
          */
         @Override public boolean onTouchEvent(MotionEvent event) {
-            if (!switchable()) { if (dragging) settle(); passing = false; release(); return super.onTouchEvent(event); }
             int action = event.getActionMasked();
+            if (action != MotionEvent.ACTION_DOWN && touch.changed(switchable())) cutTouch();
+            if (touch.dead()) {
+                // The press was cancelled when the touch was cut, so the lift only lets a tooltip go; it cannot click.
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) super.onTouchEvent(event);
+                return true;
+            }
+            if (!touch.own()) return super.onTouchEvent(event);
             if (action == MotionEvent.ACTION_DOWN) {
                 if (velocity == null) velocity = VelocityTracker.obtain(); else velocity.clear();
                 downX = event.getX(); downY = event.getY(); dragging = false; passing = false;
@@ -1970,8 +2005,9 @@ public final class DashboardScreen implements AppScreen {
                 }
                 if (dragging) { state.drag((event.getX() - dragFromX) / travel()); render(); return true; }
             } else if (action == MotionEvent.ACTION_UP && dragging) {
-                velocity.computeCurrentVelocity(1000);
-                float vx = velocity.getXVelocity();
+                // A live drag always has its tracker (a reset cuts the touch first); no tracker reads as no fling.
+                float vx = 0;
+                if (velocity != null) { velocity.computeCurrentVelocity(1000); vx = velocity.getXVelocity(); }
                 int before = state.resting;
                 dragging = false;
                 state.release(Math.abs(vx) >= minFling ? (vx > 0 ? 1 : -1) : 0);

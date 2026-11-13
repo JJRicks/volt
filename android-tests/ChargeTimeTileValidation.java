@@ -46,7 +46,8 @@ import com.jjricks.volt.*;
  * a tooltip), the value, the state pill and beside the dots all switch; a sideways swipe drifting up or down at the start
  * still switches and Home does not scroll; a scroll that starts on the tile scrolls Home and never switches; a long press
  * shows the tile's tooltip with two readings and the label's own with one; editing takes no touch; the second reading is
- * the plain time to 100%. Argument "cases" (comma list, e.g. touch-label,diagonal) runs only those cases; rapid taps, hiding mid-switch, a
+ * the plain time to 100%; a reset under a finger (the reveal ending, the second reading arriving) ends that touch with
+ * no crash, drag, switch or tap, and the next tap and swipe work. Argument "cases" (comma list, e.g. touch-label,diagonal) runs only those cases; rapid taps, hiding mid-switch, a
  * re-parent (fold) mid-switch and a rotation mid-switch all end at rest on the last choice; the choice survives
  * hiding the view and an activity restart, per scooter; a scooter with a charge limit; reduced motion; TalkBack's
  * node and one announcement; slowed frames of one tap and one held drag saved as crops.
@@ -94,6 +95,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                     if (wanted("scroll")) verifyScrollFromTile();
                     if (wanted("longpress")) verifyLongPress();
                     if (wanted("edit")) verifyEditMode();
+                    if (wanted("reset")) verifyResetMidTouch();
                     if (wanted("label")) verifyHundredLabel();
                     if (wanted("interruptions")) verifyInterruptions();
                     if (wanted("scooters")) verifyPerScooterAndRestart();
@@ -321,7 +323,145 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         checks.add("Edit mode hides the charging view; a tap or drag handed to the tile switches nothing");
     }
 
-    /** The second reading reads as the plain time to 100% (owner, Nov 12 2026: no "if uncapped" beside a limit), spoken the same. */
+    /**
+     * A reset of the tile while a finger is down ends that touch: the rest of it does nothing (no drag, no switch, no
+     * tap), Home's scroller gets it back, and the next ordinary tap and swipe work. The resets: the charging view's
+     * reveal ending under the finger (real, slowed), the same call made directly (it also runs when the view is shown or
+     * hidden), and the second reading arriving under a touch that began with one.
+     */
+    private void verifyResetMidTouch() throws Exception {
+        if (wanted("reset-reveal")) {
+            hero(50, null, 2);
+            int start = readingNow(); String saved = callString(() -> pref(a));
+            hero(50, null, 0);  // hidden, so the next charging readings reveal it again
+            main(() -> scroller().scrollTo(0, 0));
+            scale("10");
+            long down;
+            float[] p;
+            try {
+                refreshNow(50, null, 2);
+                p = touchableDuringReveal();
+                down = SystemClock.uptimeMillis();
+                send(MotionEvent.ACTION_DOWN, down, p[0], p[1]);
+                boolean[] revealing = new boolean[1];
+                main(() -> revealing[0] = field(hero(), "reveal") != null);
+                require(revealing[0], "The reveal ended before the touch began");
+                await(() -> field(hero(), "reveal") == null, "The reveal did not end");
+            } finally { scale("1"); }
+            sidewaysAndLift(down, p, start);
+            awaitRest();
+            main(() -> require(two() && shownReading() == start && Objects.equals(saved, pref(a)), "A swipe after the reveal ended under the finger switched"));
+            checks.add("A touch begun during the charging view's reveal, held past its end, then swiped sideways and lifted: no crash, no switch");
+            ordinaryAfter("the reveal ended under a finger");
+        }
+        if (wanted("reset-direct")) {
+            hero(50, null, 2);
+            int start = readingNow(); String saved = callString(() -> pref(a));
+            float[] p = centre();
+            long down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]);
+            main(() -> invoke(hero(), "stopReveal"));  // what the reveal's end, and showing or hiding the view, run
+            sidewaysAndLift(down, p, start);
+            awaitRest();
+            main(() -> require(shownReading() == start && Objects.equals(saved, pref(a)), "A swipe after a reset under the finger switched"));
+            down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(30);
+            main(() -> invoke(hero(), "stopReveal"));
+            send(MotionEvent.ACTION_UP, down, p[0], p[1]);
+            settle(); SystemClock.sleep(300); awaitRest();
+            main(() -> require(shownReading() == start && Objects.equals(saved, pref(a)), "A lift after a reset under the finger tapped the tile"));
+            checks.add("A reset under the finger (the reveal-end call), then a sideways swipe or a plain lift: no crash, no switch, no tap");
+            // The cut touch lets Home's scroller go: an up or down move after the reset still scrolls Home.
+            p = point("value");
+            int sign = scrollRoom(), before = scrollY();
+            float s = slop();
+            down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(16);
+            main(() -> invoke(hero(), "stopReveal"));
+            for (int i = 1; i <= 10; i++) { send(MotionEvent.ACTION_MOVE, down, p[0], p[1] + sign * 1.2f * s * i); SystemClock.sleep(16); }
+            SystemClock.sleep(120);
+            send(MotionEvent.ACTION_UP, down, p[0], p[1] + sign * 12f * s);
+            settle(); SystemClock.sleep(300); settle();
+            int after = scrollY();
+            require(Math.abs(after - before) >= 3 * s, "After a reset under the finger an up or down move did not scroll Home: " + before + " -> " + after);
+            main(() -> require(shownReading() == start && cleanRest() && Objects.equals(saved, pref(a)), "A scroll after a reset under the finger switched"));
+            checks.add("After a reset under the finger an up or down move scrolls Home (" + (after - before) + " px) and does not switch");
+            ordinaryAfter("a reset under a finger");
+        }
+        if (wanted("reset-second")) {
+            hero(50, null, 2);
+            tap(); awaitRest();  // an ordinary touch at the centre first: the one the old gesture's coordinates came from
+            int shown = readingNow(); String saved = callString(() -> pref(a));
+            main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+            hero(50, null, 2);
+            main(() -> require(!two(), "Alert off: still two readings"));
+            float[] p = centre();
+            long down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(30);
+            main(() -> require(service.setChargeAlerts(alert70), "Could not turn the alert back on"));
+            refreshNow(50, null, 2);  // the second reading arrives under the finger
+            main(() -> require(two(), "The second reading did not arrive"));
+            sidewaysAndLift(down, p, shown);
+            awaitRest();
+            main(() -> require(two() && shownReading() == shown && Objects.equals(saved, pref(a)), "A swipe after the second reading arrived under the finger switched"));
+            // The same with a plain lift: no tap either.
+            main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+            hero(50, null, 2);
+            p = centre();
+            down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(30);
+            main(() -> require(service.setChargeAlerts(alert70), "Could not turn the alert back on"));
+            refreshNow(50, null, 2);
+            send(MotionEvent.ACTION_UP, down, p[0], p[1]);
+            settle(); SystemClock.sleep(300); awaitRest();
+            main(() -> require(two() && shownReading() == shown && Objects.equals(saved, pref(a)), "A lift after the second reading arrived under the finger tapped the tile"));
+            checks.add("A touch begun with one reading, the second arriving under it, then a sideways swipe or a plain lift: no crash, no switch, no tap");
+            ordinaryAfter("the second reading arrived under a finger");
+        }
+    }
+    /** Ten sideways moves of most of the tile's width, away from the shown reading, then the lift. */
+    private void sidewaysAndLift(long down, float[] p, int shown) throws Exception {
+        float dx = (shown == LIMIT ? -1 : 1) * .8f * tileWidth();
+        for (int i = 1; i <= 10; i++) { send(MotionEvent.ACTION_MOVE, down, p[0] + dx * i / 10f, p[1]); SystemClock.sleep(12); }
+        send(MotionEvent.ACTION_UP, down, p[0] + dx, p[1]);
+        settle(); SystemClock.sleep(300); settle();
+    }
+    /** The next ordinary tap and swipe after a cut-off touch both switch. */
+    private void ordinaryAfter(String what) throws Exception {
+        int start = readingNow();
+        tap(); awaitRest();
+        main(() -> require(shownReading() == other(start) && ChargeTimeReadingsPref(pref(a)) == other(start), "After " + what + ", the next tap did not switch"));
+        swipe(start == LIMIT ? .8f : -.8f, false); awaitRest();
+        main(() -> require(shownReading() == start && ChargeTimeReadingsPref(pref(a)) == start, "After " + what + ", the next swipe did not switch"));
+        checks.add("After " + what + ": the next tap and swipe switch");
+    }
+    /** Charging readings handed to the hero with no wait, as a fresh estimate arrives. */
+    private void refreshNow(double percent, Double limit, double amps) {
+        Map<String, TelemetryHistory.Reading> values = readings(percent, limit, amps);
+        main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
+    }
+    /** Waits, during the slowed reveal, until the shown label is inside the growing view; its centre on screen. */
+    private float[] touchableDuringReveal() {
+        float[] p = new float[2]; boolean[] ok = new boolean[1]; String[] why = {""};
+        long end = SystemClock.uptimeMillis() + 6000;
+        while (!ok[0] && SystemClock.uptimeMillis() < end) {
+            main(() -> {
+                View h = hero(); TextView c = caption(shownReading());
+                if (field(h, "reveal") == null) { why[0] = "the reveal ended first"; return; }
+                int[] hat = new int[2], cat = new int[2], sat = new int[2]; h.getLocationOnScreen(hat); c.getLocationOnScreen(cat);
+                View s = scroller(); s.getLocationOnScreen(sat);
+                int bottom = cat[1] + c.getHeight();
+                why[0] = "label bottom " + bottom + ", view bottom " + (hat[1] + h.getHeight()) + ", Home bottom " + (sat[1] + s.getHeight());
+                if (c.getHeight() > 0 && bottom + activity.ui().dp(4) <= hat[1] + h.getHeight() && cat[1] >= sat[1] && bottom <= sat[1] + s.getHeight() && c.isShown()) {
+                    p[0] = cat[0] + c.getWidth() / 2f; p[1] = cat[1] + c.getHeight() / 2f; ok[0] = true;
+                }
+            });
+            if (!ok[0]) SystemClock.sleep(15);
+        }
+        require(ok[0], "The label never came under a finger during the reveal: " + why[0]);
+        return p;
+    }
+
     private void verifyHundredLabel() throws Exception {
         String[] uncapped = new String[3];
         main(() -> { uncapped[0] = string("dashboard_charge_time_uncapped"); uncapped[1] = string("dashboard_charge_time_uncapped_short"); uncapped[2] = string("dashboard_charge_time_uncapped_compact"); });
@@ -719,11 +859,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     private void hero(double percent, Double limit, double amps) throws Exception { hero(percent, limit, amps, true); }
     /** expectShown false: edit mode, where charging readings leave the view hidden. */
     private void hero(double percent, Double limit, double amps, boolean expectShown) throws Exception {
-        long wall = System.currentTimeMillis();
-        Map<String, TelemetryHistory.Reading> values = new LinkedHashMap<>();
-        for (Object[] r : new Object[][]{{"charging_state", amps > 0 ? 1d : 0d}, {"voltage_v", 52d}, {"current_a", -amps}, {"battery_percent", percent}, {"rated_capacity_ah", 14.5d}})
-            values.put((String) r[0], new TelemetryHistory.Reading((String) r[0], (String) r[0], "Synthetic fixture", String.valueOf(r[1]), "", (Double) r[1], wall, true));
-        if (limit != null) values.put("charge_limit_percent", new TelemetryHistory.Reading("charge_limit_percent", "charge_limit_percent", "Synthetic fixture", limit + " %", "%", limit, wall, true));
+        Map<String, TelemetryHistory.Reading> values = readings(percent, limit, amps);
         main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
         settle(); SystemClock.sleep(amps > 0 ? 420 : 320); settle();
         boolean[] stray = new boolean[1];
@@ -739,6 +875,15 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             require(h.isShown() && tile().isShown(), "The charging view did not show for the fixture readings: shown=" + field(h, "shown")
                     + " attached=" + h.isAttachedToWindow() + " charging=" + service.chargingEstimate(values).charging + " chain=" + chain);
         });
+    }
+
+    private static Map<String, TelemetryHistory.Reading> readings(double percent, Double limit, double amps) {
+        long wall = System.currentTimeMillis();
+        Map<String, TelemetryHistory.Reading> values = new LinkedHashMap<>();
+        for (Object[] r : new Object[][]{{"charging_state", amps > 0 ? 1d : 0d}, {"voltage_v", 52d}, {"current_a", -amps}, {"battery_percent", percent}, {"rated_capacity_ah", 14.5d}})
+            values.put((String) r[0], new TelemetryHistory.Reading((String) r[0], (String) r[0], "Synthetic fixture", String.valueOf(r[1]), "", (Double) r[1], wall, true));
+        if (limit != null) values.put("charge_limit_percent", new TelemetryHistory.Reading("charge_limit_percent", "charge_limit_percent", "Synthetic fixture", limit + " %", "%", limit, wall, true));
+        return values;
     }
 
     // ---- Touch ------------------------------------------------------------------------------------------------
