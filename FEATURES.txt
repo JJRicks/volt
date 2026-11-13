@@ -1320,22 +1320,25 @@ CLEAN HOME
 Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
 Home (the pencil on Clean), or from the Home style row at the top of the Layout
 sheet while editing Widgets. Switching never changes widget layouts or saved
-slots. Clean's four quick actions are round buttons with the name (and any
-state) under each, red while on: RIDE (into riding mode), Record ride, Charge done by where the
+slots. Clean's four quick actions are round buttons with one short name on one
+line under each (Ride, Record, Cruise), red while on, with no value line; each
+still says its full name and state to a screen reader. Until changed they are
+Ride (into riding mode), Record ride, Charge done by where the
 scooter has scheduled charging, else Battery alerts, then the first offered
 control in this order: cruise control, walk assist, traction control, power
 assist, energy recovery, hill descent control, overspeed control. On a scooter
 with neither scheduled charging nor battery alerts, a second offered control
 takes the third place; any place still empty goes to Rides and then Settings.
 There is no drive mode action. Edit Home changes any of the four per scooter.
-What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
-charging view shows the charging power beside the same switching time tile as
-Widgets: the time to the charge limit, or to the charge alert's level on a
-scooter without a limit while that alert is on and not yet reached, then the
-time to 100%. Where the view is too small, the photo goes first, then the
-charge gets smaller and the Charging line goes; the readings go last. The Ride
-row shows a running recording and its time while a ride records, else the last
-ride.
+What each model offers: see OTHER NAVEE MODELS above. The parked battery card
+shows the scooter's photo right of the charge and range. While charging, Clean's
+charging view sits on the page: "Charging to your 90% limit" (or "Charging"),
+the charge centred with the scooter's photo large under and behind it on a red
+glow, the track with a tick at the limit, then two fixed tiles: Charging power
+and Time to 90% (Time to full without a limit). Where the view is too small,
+nothing is dropped: the line shortens, the photo and then the charge get
+smaller, and only then the line goes; the tiles stay. The Ride row shows a
+running recording and its time while a ride records, else the last ride.
 
 QUICK ACCESS
 
