@@ -651,7 +651,6 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
     /**
      * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): Clean's
      * own (HubText.quickActionRoundName); for cruise control, traction control and energy recovery, the one-word name
@@ -669,6 +668,7 @@ final class QuickAccessGrid extends ViewGroup {
     private static final java.util.Set<String> ROUND_STATS_NAMES =
             new java.util.HashSet<>(java.util.Arrays.asList("cruise_control", "traction_control", "energy_recovery"));
 
+    /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeScheduleShort();
