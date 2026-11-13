@@ -240,10 +240,13 @@ public final class RidesScreen implements AppScreen {
         } else {
             compareRow = navRow("compare", M.ridesCompareTwo(), "", "", this::chooseComparison);
             comparison.addView(compareRow.view);
-            ui.divider(comparison);
         }
-        Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
-        backups.view.setTag("ride-backups-menu");comparison.addView(backups.view);
+        // Ride backups has one home, the Ride page (as the owner's "one home" answer for the charger); All rides & compare
+        // keeps Compare two rides only.
+        if (mode == SUMMARY) {
+            Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
+            backups.view.setTag("ride-backups-menu"); comparison.addView(backups.view);
+        }
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1350,12 +1353,8 @@ public final class RidesScreen implements AppScreen {
         View close = null;
         if (sheet) close = sheetHeader(content, title, service.isRecording() ? chip : null);
         else {
-            LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-            head.addView(ui.sectionLabel(title));
-            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
-            chipParams.topMargin = ui.dp(8);
-            head.addView(chip, chipParams); nextRideTag = chip;
-            content.addView(head);
+            // The tag sits beside the heading, or on its own line under it when the two don't fit side by side.
+            content.addView(new HeadingTag(ui.sectionLabel(title), chip)); nextRideTag = chip;
         }
         LinearLayout sensors = ui.groupCard();
         switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
@@ -2430,6 +2429,53 @@ public final class RidesScreen implements AppScreen {
                 int x = column * (cell + gap), left = rtl ? getWidth() - getPaddingRight() - x - cell : getPaddingLeft() + x;
                 child.layout(left, y, left + cell, y + child.getMeasuredHeight());
             }
+        }
+    }
+    /**
+     * A section heading with a one-line tag (Recording settings' Phone sensors heading and its Next ride tag). The tag
+     * sits beside the heading, centred on its text, when both fit whole; otherwise it drops to its own line under the
+     * heading, so it is never cut mid-word (the narrow-label rule; MoreScreen's RowLine steps its icon aside the same
+     * way). Decided on every measure, so a wider window or smaller text puts it back beside the heading.
+     */
+    private final class HeadingTag extends ViewGroup {
+        private final View heading, tag;
+        private boolean below;
+        HeadingTag(View heading, View tag) { super(host.activity()); this.heading = heading; this.tag = tag; addView(heading); addView(tag); }
+        /** The gap between heading and tag when side by side. */
+        private int gap() { return ui.dp(10); }
+        /** The tag's top beside the heading: centred as the heading's text sits (below its 14 dp top padding). */
+        private int besideTop() { return Math.max(0, (heading.getMeasuredHeight() - tag.getMeasuredHeight() + ui.dp(8)) / 2); }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec);
+            int available = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE / 4
+                    : Math.max(1, width - getPaddingLeft() - getPaddingRight());
+            int unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+            heading.measure(MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST), unspecified);
+            boolean shown = tag.getVisibility() != GONE;
+            int height = heading.getMeasuredHeight(), used = heading.getMeasuredWidth();
+            below = false;
+            if (shown) {
+                tag.measure(unspecified, unspecified);
+                below = heading.getMeasuredWidth() + gap() + tag.getMeasuredWidth() > available;
+                if (tag.getMeasuredWidth() > available) tag.measure(MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST), unspecified);
+                if (below) { height += tag.getMeasuredHeight() + ui.dp(6); used = Math.max(used, ui.dp(4) + tag.getMeasuredWidth()); }
+                else { height = Math.max(height, besideTop() + tag.getMeasuredHeight()); used += gap() + tag.getMeasuredWidth(); }
+            }
+            int measuredWidth = MeasureSpec.getMode(widthSpec) == MeasureSpec.EXACTLY ? width : Math.min(used + getPaddingLeft() + getPaddingRight(),
+                    MeasureSpec.getMode(widthSpec) == MeasureSpec.AT_MOST ? width : Integer.MAX_VALUE);
+            setMeasuredDimension(measuredWidth, resolveSize(height + getPaddingTop() + getPaddingBottom(), heightSpec));
+        }
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            int top = getPaddingTop(), w = heading.getMeasuredWidth();
+            int left = rtl ? getWidth() - getPaddingRight() - w : getPaddingLeft();
+            heading.layout(left, top, left + w, top + heading.getMeasuredHeight());
+            if (tag.getVisibility() == GONE) return;
+            int tw = tag.getMeasuredWidth(), th = tag.getMeasuredHeight();
+            // Under the heading the tag lines up with the heading's text (sectionLabel's 4 dp side padding).
+            int x = below ? ui.dp(4) : w + gap(), y = below ? top + heading.getMeasuredHeight() : top + besideTop();
+            int tagLeft = rtl ? getWidth() - getPaddingRight() - x - tw : getPaddingLeft() + x;
+            tag.layout(tagLeft, y, tagLeft + tw, y + th);
         }
     }
     /** Wrapping row for chips. */
