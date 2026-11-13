@@ -6,7 +6,7 @@ import java.util.Arrays;
 public final class ReadPolicyTest {
     private static int assertions;
     public static void main(String[] args) {
-        ut5Unchanged(); adaptive(); silence(); rejection(); core(); layerSwitch(); neverPin();
+        ut5Unchanged(); adaptive(); silence(); rejection(); core(); layerSwitch(); neverPin(); quietRequests();
         System.out.println("ReadPolicy tests passed: "+assertions+" assertions");
     }
 
@@ -90,6 +90,44 @@ public final class ReadPolicyTest {
         }
         check(ReadPolicy.cls(0x7a)==null,"0x7A has no read class");
     }
+    /**
+     * #418: the connected notice's background read (noticeBattery, sent as a quiet request) can never switch a read off for
+     * the rest of the connection. A quiet silence is never counted; a nonzero status still rejects; in sight every silence
+     * is counted exactly as before, even with a quiet request outstanding when it is made.
+     */
+    private static void quietRequests() {
+        for(ModelRegistry.Layer layer:new ModelRegistry.Layer[]{ModelRegistry.Layer.OEM_GROUP,ModelRegistry.Layer.SHARED,ModelRegistry.Layer.UT5_MAX,null}){
+            ReadPolicy p=layer==null?ReadPolicy.legacy():ReadPolicy.forLayer(layer);
+            check(p.noticeBattery().length==0,"Nothing for the notice before 0x72 has answered ("+layer+")");
+            p.requested(0x72,0);p.responded(0x72,0,36,300);p.requested(0x79,0);p.responded(0x79,0,2,300);
+            check(Arrays.equals(p.noticeBattery(),new int[]{0x72}),"The notice reads 0x72 alone, never 0x79 ("+layer+")");
+            for(int i=0;i<20;i++){long t=1000+i*15000L;p.requested(0x72,t,true);p.tick(t+3000);}
+            check(p.suppressed().isEmpty()&&p.allowed(0x72)&&Arrays.equals(p.noticeBattery(),new int[]{0x72}),"Quiet silences are never counted ("+layer+")");
+            // An identification that follows (no identity yet is legacy) finds nothing switched off by them.
+            p.layer(ModelRegistry.Layer.SHARED,true);check(p.allowed(0x72)&&p.suppressed().isEmpty(),"and a later switch to an adaptive layer finds 0x72 allowed ("+layer+")");
+        }
+        // In sight, the same requests and ticks suppress at the same moment whether or not quiet requests went before them.
+        for(long quietAt=-3000;quietAt<=4000;quietAt+=250){
+            ReadPolicy plain=answered72(),mixed=answered72();
+            for(long t=6_000;t<=20_000;t+=250){
+                if(t==10_000+quietAt)mixed.requested(0x72,t,true);
+                if(t>=10_000&&t%2000==0){plain.requested(0x72,t);mixed.requested(0x72,t);}
+                plain.tick(t);mixed.tick(t);
+                check(plain.allowed(0x72)==mixed.allowed(0x72),"In sight, counted as before (quiet at "+quietAt+", t "+t+")");
+            }
+            check(!plain.allowed(0x72)&&!mixed.allowed(0x72),"Two in-sight silences still suppress (quiet at "+quietAt+")");
+        }
+        // A quiet request joining an in-sight one outstanding leaves it counted.
+        ReadPolicy joined=answered72();joined.requested(0x72,0);joined.requested(0x72,1000,true);joined.tick(2600);joined.requested(0x72,3000);joined.tick(5600);
+        check(!joined.allowed(0x72),"The in-sight request's silence still counts");
+        // A nonzero status to a quiet request is the scooter's own answer: rejected, as before.
+        ReadPolicy rejected=answered72();rejected.requested(0x72,0,true);rejected.responded(0x72,3,0,100);
+        check(!rejected.allowed(0x72)&&rejected.noticeBattery().length==0&&rejected.periodicBattery().length==0,"A rejection still suppresses, and the notice reads nothing more");
+        // An empty ACK ends a quiet wait without an answer; a later in-sight silence counts from its own request.
+        ReadPolicy ack=answered72();ack.requested(0x72,0,true);ack.responded(0x72,0,0,100);ack.tick(5000);
+        check(ack.allowed(0x72)&&ack.suppressed().isEmpty(),"An acknowledgement is not a silence");
+    }
+    private static ReadPolicy answered72(){ReadPolicy p=ReadPolicy.forLayer(ModelRegistry.Layer.OEM_GROUP);p.requested(0x72,-9000);p.responded(0x72,0,36,-8700);return p;}
     private static boolean contains(int[] values,int v){for(int x:values)if(x==v)return true;return false;}
     private static void check(boolean condition,String message){assertions++;if(!condition)throw new AssertionError(message);}
 }

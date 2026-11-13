@@ -37,7 +37,7 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();linkedNotReady();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();linkedNotReady();staleSettings();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
     }
     /** The start-sent listener hears only a start the scooter confirmed. */
@@ -630,11 +630,12 @@ public final class ChargeScheduleControllerTest {
     private static final String GATE="Connect your scooter to change this";
     /**
      * Just after a wake (or the first seconds back in sight): the same live connection (linked), a status not fresh enough
-     * to write (not ready), the gate refusing, and readings from before the sleep no longer live. #418's service context.
+     * to write (not ready), the gate refusing, and readings from before the sleep no longer live, the settings report too.
+     * #418's service context.
      */
-    private static void woken(Rig r){r.c.ready=false;r.c.linked=true;r.c.toggleReason=GATE;r.c.timeReason=GATE;r.c.charging=null;r.c.soc=null;r.c.target=null;r.c.enabled=null;r.c.wireStart=null;r.c.estimateMinutes=null;}
+    private static void woken(Rig r){r.c.ready=false;r.c.linked=true;r.c.settingsLive=false;r.c.toggleReason=GATE;r.c.timeReason=GATE;r.c.charging=null;r.c.soc=null;r.c.target=null;r.c.enabled=null;r.c.wireStart=null;r.c.estimateMinutes=null;}
     /** The fresh status after it: ready again, readings live. */
-    private static void fresh(Rig r,Integer enabled,Long wire){r.c.ready=true;r.c.toggleReason=null;r.c.timeReason=null;r.c.charging=1;r.c.soc=79d;r.c.target=100d;r.c.estimateMinutes=90d;r.c.enabled=enabled;r.c.wireStart=wire;}
+    private static void fresh(Rig r,Integer enabled,Long wire){r.c.ready=true;r.c.settingsLive=true;r.c.toggleReason=null;r.c.timeReason=null;r.c.charging=1;r.c.soc=79d;r.c.target=100d;r.c.estimateMinutes=90d;r.c.enabled=enabled;r.c.wireStart=wire;}
 
     /**
      * #418 round 4: every use of the context's connection answer, with linked (the same live connection) and ready (can
@@ -694,11 +695,11 @@ public final class ChargeScheduleControllerTest {
         check(running.controller.testing()&&tested.isEmpty()&&running.writes.isEmpty(),"a running schedule test is not interrupted by a stale status");
 
         // Looking at readings: linked, each reading by its own freshness.
-        Rig target=new Rig();target.arm();woken(target);target.c.soc=100d;target.c.target=100d;target.controller.observe();
+        Rig target=new Rig();target.arm();woken(target);target.c.soc=100d;target.c.target=100d;target.c.settingsLive=true;target.controller.observe();
         check(!target.controller.view().doneByEnabled&&"Charge target reached".equals(target.controller.view().status),"a fresh reading on the live connection still retires a plan");
         Rig still=new Rig();still.arm();long planned=still.controller.view().startWallMs;long stillWire=still.c.wireStart;woken(still);
         check(still.controller.startStillPlanned("owner-A",planned),"stale readings: the claim stands");
-        still.c.enabled=0;still.c.wireStart=stillWire;
+        still.c.enabled=0;still.c.wireStart=stillWire;still.c.settingsLive=true;
         check(!still.controller.startStillPlanned("owner-A",planned),"a fresh OFF beside the plan's time retires the claim");
         ChargeScheduleController.Diagnostics d=still.controller.diagnostics();
         check(d.readEnabled!=null&&d.readEnabled==0&&d.readWireStart!=null&&d.readWireStart==stillWire,"diagnostics report the fresh readings");
@@ -707,6 +708,43 @@ public final class ChargeScheduleControllerTest {
         // ready implies linked: a driver that sets only ready (every older driver) means both.
         Rig old=new Rig();check(!old.c.linked&&old.c.ready,"fixture: an older driver");old.enable();old.controller.observe();
         check(old.controller.busy()&&old.writes.equals(java.util.Arrays.asList("clock")),"ready alone keeps work in flight");
+    }
+
+    /**
+     * #418 round 5: a live battery level beside a settings report that is not live (just after a wake: the level comes
+     * from 0x72 replies and 0x90 reports, the limit only from the 0x70 status). No outcome is judged against the plan's
+     * saved target until the settings report is live again. 4164feba retired a plan at 85 as "Charge target reached" on
+     * a limit that may have been raised meanwhile, and a retired plan is never taken up again.
+     */
+    private static void staleSettings(){
+        // The finding: a plan at 85, a live level of 85, the settings stale. The plan waits.
+        Rig wait=new Rig();wait.c.target=85d;wait.c.estimateMinutes=20d;wait.arm();
+        woken(wait);wait.c.charging=1;wait.c.soc=85d;wait.controller.observe();
+        check(wait.controller.view().doneByEnabled&&wait.controller.view().status.isEmpty(),"a stale limit never retires the plan (4164feba did) "+wait.controller.view().status);
+        // The settings report live and the limit unchanged: retired, as before.
+        wait.c.settingsLive=true;wait.c.target=85d;wait.controller.observe();
+        check(!wait.controller.view().doneByEnabled&&"Charge target reached".equals(wait.controller.view().status)
+                &&wait.controller.diagnostics().outcome==ChargeScheduleController.Outcome.TARGET_REACHED,"retired once the live settings show the limit unchanged");
+        // A raised limit arriving live is followed: the start kept, the obsolete Done by dropped, nothing retired.
+        Rig raised=new Rig();raised.c.target=85d;raised.c.estimateMinutes=20d;raised.arm();long start=raised.controller.view().startWallMs;
+        woken(raised);raised.c.charging=1;raised.c.soc=85d;raised.controller.observe();
+        raised.c.settingsLive=true;raised.c.target=100d;raised.controller.observe();
+        ChargeScheduleController.View v=raised.controller.view();
+        check(!v.doneByEnabled&&v.manualEnabled&&v.startWallMs==start&&"Charge limit changed; update Charge done by".equals(v.status),"a raised limit is followed, not taken as reached "+v.status);
+        // A model with no limit reading: target is null even while the settings are live, and the plan's target is 100.
+        Rig none=withManualOnly();none.c.target=null;none.controller.setManualEnabled(true,none.results::add);none.reply(true);none.reply(true);none.c.enabled=1;none.reply(true);
+        check(none.results.get(0)==null&&none.controller.view().manualEnabled,"armed on a model with no limit reading");
+        woken(none);none.c.charging=1;none.c.soc=100d;none.controller.observe();
+        check(none.controller.view().manualEnabled,"no limit reading, stale settings: waits");
+        none.c.settingsLive=true;none.controller.observe();
+        check(!none.controller.view().manualEnabled&&"Charge target reached".equals(none.controller.view().status),"no limit reading, live settings: retired at 100");
+        // The same class past the start: missed against passed is not decided on a stale limit. Here it was lowered unseen
+        // below the level, so the charger stopped at it: not a missed start.
+        Rig low=manualAt41();low.c.now=time("2026-10-20T11:02:00Z");low.c.sampleMs+=6*3600_000L;
+        woken(low);low.c.charging=0;low.c.soc=41d;low.controller.observe();
+        check(low.controller.view().manualEnabled&&low.controller.view().missed==null,"stale settings: no missed start yet (4164feba raised one)");
+        low.c.settingsLive=true;low.c.target=40d;low.c.enabled=1;low.controller.observe();
+        check(!low.controller.view().manualEnabled&&low.controller.view().missed==null&&"Charge target reached".equals(low.controller.view().status),"the live limit says it was reached "+low.controller.view().status);
     }
 
     /** A test armed on a scooter with a manual Charge start preference (11:00Z), ON confirmed and still charging. */

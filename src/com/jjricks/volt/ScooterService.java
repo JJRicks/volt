@@ -1655,6 +1655,8 @@ public final class ScooterService extends Service {
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
         if(!c.linked)return c;
         // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
+        // The same rule says whether the limit is known unchanged (settingsLive), also for a model that reports none.
+        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000);
         c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();

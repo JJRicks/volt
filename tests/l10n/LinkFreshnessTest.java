@@ -3,9 +3,11 @@ package com.jjricks.volt;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 
@@ -254,17 +256,22 @@ public final class LinkFreshnessTest {
         final List<Runnable> onStatus = new ArrayList<>();
         /**
          * Battery reads, when batteryPolicy is set: BleController.pollTick's and refresh(false)'s periodicBattery, through
-         * ReadPolicy on the awake clock (sourceAudit4 pins the lines). batteryOutOfSight false is fde6403f's rule (in sight
-         * or recording only); batteryAnswers false is a scooter that ignores the read.
+         * ReadPolicy on the awake clock (sourceAudit4 pins the lines); out of sight with no battery watch (watch) and no
+         * recording, pollTick's noticeBattery, sent quietly. batteryOutOfSight false is fde6403f's rule (in sight, recording
+         * or watching only); noticeOnly false is 4164feba's (periodicBattery with every poll out of sight, counted as any
+         * read); batteryAnswers false is a scooter that ignores the battery reads, ignored one that ignores those opcodes.
          */
         ReadPolicy batteryPolicy;
-        boolean batteryOutOfSight = true, batteryAnswers = true;
+        boolean batteryOutOfSight = true, batteryAnswers = true, noticeOnly = true, watch;
+        final Set<Integer> ignored = new HashSet<>();
         long batteryMs, lastBatteryPoll;
         final List<Long> batteryReads = new ArrayList<>();
-        void readBattery() {
-            for (int cmd : batteryPolicy.periodicBattery()) {
-                batteryPolicy.requested(cmd, clock.up);batteryReads.add(now());int gen = generation;
-                if (answering && batteryAnswers) clock.post(() -> { if (gen == generation && up && answering && batteryAnswers) { batteryPolicy.responded(cmd, 0, 36, clock.up);batteryMs = now(); } }, reply);
+        final List<Integer> batteryCmds = new ArrayList<>();
+        void readBattery() { readBattery(false); }
+        void readBattery(boolean notice) {
+            for (int cmd : notice ? batteryPolicy.noticeBattery() : batteryPolicy.periodicBattery()) {
+                batteryPolicy.requested(cmd, clock.up, notice);batteryReads.add(now());batteryCmds.add(cmd);int gen = generation;
+                if (answering && batteryAnswers && !ignored.contains(cmd)) clock.post(() -> { if (gen == generation && up && answering && batteryAnswers) { batteryPolicy.responded(cmd, 0, cmd == 0x79 ? 2 : 36, clock.up);if (cmd != 0x79) batteryMs = now(); } }, reply);
             }
         }
         /** The connected notice's level: linked, and the battery reading live by its own rule (BleController.liveNumber, 15 s). */
@@ -316,7 +323,7 @@ public final class LinkFreshnessTest {
             if (silentNow()) { fail("READ_TIMEOUT"); return; }
             if (batteryPolicy != null) batteryPolicy.tick(clock.up);
             requestStatus();
-            if (batteryPolicy != null && (batteryOutOfSight || fast()) && now() - lastBatteryPoll >= 2000) { readBattery();lastBatteryPoll = now(); }
+            if (batteryPolicy != null && (batteryOutOfSight || fast() || watch) && now() - lastBatteryPoll >= 2000) { readBattery(noticeOnly && !fast() && !watch);lastBatteryPoll = now(); }
             chain.next();
         }
         /** The old poll(): the flags read when each poll is scheduled, the silence limit when it runs. */
@@ -829,7 +836,8 @@ public final class LinkFreshnessTest {
     // an argument; sourceAudit pins the BleController and ScooterService lines the parts mirror.
 
     static final String[] AUDIT = {"sourceAudit", "readsAcrossSleep", "checkAcrossSleep", "noticeBattery", "scheduleMarker",
-            "sourceAudit4", "doneTimeAfterWake", "switchAfterWake", "noticeKeepsLevel", "noticeDropsLevel", "batteryReadsOnlyOutOfSight"};
+            "sourceAudit4", "doneTimeAfterWake", "switchAfterWake", "noticeKeepsLevel", "noticeDropsLevel", "batteryReadsOnlyOutOfSight",
+            "backgroundSilence", "inSightSilenceUnchanged", "watchReads"};
 
     private static void audit(String name) throws Exception {
         switch (name) {
@@ -844,6 +852,9 @@ public final class LinkFreshnessTest {
             case "noticeKeepsLevel": noticeKeepsLevel();break;
             case "noticeDropsLevel": noticeDropsLevel();break;
             case "batteryReadsOnlyOutOfSight": batteryReadsOnlyOutOfSight();break;
+            case "backgroundSilence": backgroundSilence();break;
+            case "inSightSilenceUnchanged": inSightSilenceUnchanged();break;
+            case "watchReads": watchReads();break;
             default: throw new IllegalArgumentException(name);
         }
     }
@@ -851,7 +862,7 @@ public final class LinkFreshnessTest {
     private static void sourceAudit() throws Exception {
         String ble = read("src/com/jjricks/volt/BleController.java");
         check(ble.contains("private static long awake(){return SystemClock.uptimeMillis();}"), "BleController has the awake clock for request timeouts");
-        check(ble.contains("readPolicy.requested(cmd,awake());") && ble.contains("readPolicy.responded(f.cmd,f.error(),f.data.length-1,awake());")
+        check(ble.contains("readPolicy.requested(cmd,awake(),quiet&&!(visible||recording||batteryWatch()));") && ble.contains("readPolicy.responded(f.cmd,f.error(),f.data.length-1,awake());")
                 && ble.contains("if(readPolicy!=null)readPolicy.tick(awake());"), "ReadPolicy hears every request, reply and tick on the awake clock");
         check(!ble.contains("readPolicy.requested(cmd,now())") && !ble.contains("readPolicy.tick(now())") && !ble.contains("f.data.length-1,now())"),
                 "no ReadPolicy or check call is left on the elapsed clock");
@@ -1053,8 +1064,13 @@ public final class LinkFreshnessTest {
         check(ctl.contains("private static boolean alive(Context c){return c.ready||c.linked;}") && ctl.contains("if(c.ready&&view.doneByEnabled){enableDone("),
                 "the controller carries on with alive and reprograms a Done by edit only when ready");
         String ble = read("src/com/jjricks/volt/BleController.java");
-        check(ble.contains("if(!discovering&&!testing()&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}"),
-                "the poll reads the battery through ReadPolicy at its interval, out of sight too");
+        check(ble.contains("if(!discovering&&!testing()&&now()-lastBatteryPollMs>=(recording?2000:interval)){if(visible||recording||batteryWatch())for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));else for(int cmd:policy().noticeBattery())sendQuietly(Protocol.frame(cmd,null));lastBatteryPollMs=now();}"),
+                "the poll reads the battery through ReadPolicy at its interval, out of sight too: periodicBattery in sight, recording or watching, else noticeBattery, quietly");
+        check(ble.contains("private void sendQuietly(byte[] frame){quietReads.add(frame);send(frame);boolean queued=false;for(byte[] q:queue)queued|=q==frame;if(!queued)quietReads.remove(frame);}")
+                && ble.contains("DiscoveryCoordinator owner=discoveryQueue.remove(frame);boolean quiet=quietReads.remove(frame);")
+                && ble.contains("queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;")
+                && ble.contains("if(simulating()){queue.clear();discoveryQueue.clear();quietReads.clear();writing=false;return;}"),
+                "a quiet read is marked per queued frame, taken off as it goes out, and cleared with the queue");
         check(!ble.contains("(visible||recording||batteryWatch())&&now()-lastBatteryPollMs"), "no longer only in sight, recording or watching");
         check(ble.contains("send(Protocol.frame(0x70,null));for(int cmd:policy.periodicBattery())send(Protocol.frame(cmd,null));}"), "the resume refresh reads it as before");
         int tick = ble.indexOf("private void pollTick(int session){");
@@ -1155,14 +1171,15 @@ public final class LinkFreshnessTest {
     }
 
     /**
-     * The level is still dropped when it isn't current: a model that ignores the battery read has it suppressed by
-     * ReadPolicy (two 2.5 s silences awake) and the notice names the scooter alone, with no more battery reads that
-     * session; a scooter that stops answering loses the level 20 s after its last answer, before the link ends at 35 s.
+     * The level is still dropped when it isn't current: a model that never answers the battery read is not asked again out
+     * of sight (noticeBattery needs an answer this connection), so the notice names the scooter alone and the one silence
+     * from the connect bundle switches nothing off (round 5); a scooter that stops answering loses the level 20 s after its
+     * last answer, before the link ends at 35 s.
      */
     private static void noticeDropsLevel() {
         Rig ignored = batteryRig(ModelRegistry.Layer.OEM_GROUP);ignored.batteryAnswers = false;ignored.connect();ignored.run(T0 + 60 * S);
         int reads = ignored.batteryReads.size();
-        check(!ignored.batteryPolicy.allowed(0x72) && ignored.batteryPolicy.suppressed().contains(0x72), "an ignored battery read is suppressed out of sight too");
+        check(ignored.batteryPolicy.allowed(0x72) && ignored.batteryPolicy.suppressed().isEmpty() && ignored.batteryReads.size() == 1, "an ignored battery read is not asked again out of sight, nor switched off there " + ignored.batteryReads.size());
         ignored.run(T0 + 5 * 60 * S);
         check(ignored.batteryReads.size() == reads && reads <= 3 && !ignored.levelShown() && ignored.linkUp() && !ignored.failed(), "then no more reads and the name alone, on a healthy link " + reads);
         Rig silent = batteryRig(ModelRegistry.Layer.OEM_GROUP);silent.connect();silent.run(T0 + 60 * S);
@@ -1177,7 +1194,7 @@ public final class LinkFreshnessTest {
 
     /**
      * The read joins only the out-of-sight polls: in sight and recording the battery reads are exactly fde6403f's; out of
-     * sight one per 15 s poll (0x72, plus 0x79 once it has answered); none once the link is lost.
+     * sight one per 15 s poll (0x72 alone, round 5); none once the link is lost.
      */
     private static void batteryReadsOnlyOutOfSight() {
         for (int how = 0; how < 2; how++) {
@@ -1195,11 +1212,98 @@ public final class LinkFreshnessTest {
             int at = r.batteryReads.size();r.run(T0 + 5 * 60 * S);
             if (before) { oldReads = r.batteryReads.size() - at;continue; }
             newReads = r.batteryReads.subList(at, r.batteryReads.size());
-            // Polls at 2.5 + 15k s: 0x72 at each (0x79 joins only once it has answered, which this rig's scooter never asked).
+            // Polls at 2.5 + 15k s: 0x72 at each, never 0x79 (backgroundSilence has a scooter whose 0x79 has answered).
             check(newReads.size() == 16 && newReads.stream().allMatch(t -> (t - T0 - 2500) % StatusCadence.POLL_SLOW_MS == 0), "out of sight: one battery read per 15 s poll " + newReads);
             r.fail("NATIVE_DISCONNECT");int lost = r.batteryReads.size();r.run(T0 + 10 * 60 * S);
             check(r.batteryReads.size() == lost, "nothing once the link is lost");
         }
         check(oldReads == 0, "fde6403f read no battery out of sight: " + oldReads);
+    }
+
+    // ---- Round 5 (#418): the notice's background read never switches a read off ---------------------------------------
+
+    /** The connect bundle's 0x79 probe, answered (ReadPolicy then polls 0x79 with 0x72 where periodicBattery is used). */
+    private static void probe79(Rig r) { r.batteryPolicy.requested(0x79, r.clock.up);r.batteryPolicy.responded(0x79, 0, 2, r.clock.up); }
+    private static boolean has(int[] values, int v) { for (int x : values) if (x == v) return true;return false; }
+
+    /**
+     * Round 5 finding. 4164feba sent periodicBattery with every poll out of sight and ReadPolicy counted those silences, so
+     * a parked scooter leaving the direction read (0x79) unanswered twice switched it off for the rest of the connection,
+     * and back in sight every current reading kept the last direction (the same for 0x72, the battery read itself). Now
+     * out of sight, with no battery watch and no recording, only 0x72 goes out, quietly: its silence is never counted.
+     */
+    private static void backgroundSilence() {
+        for (int ignore = 0; ignore < 2; ignore++) for (boolean before : new boolean[]{false, true}) {
+            Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.noticeOnly = !before;
+            r.visibility(true, false);r.connect();r.run(T0 + 5 * S);probe79(r);r.run(T0 + 30 * S);
+            check(has(r.batteryPolicy.periodicBattery(), 0x79), "in sight: the direction read is polled once it has answered");
+            String what = ignore == 1 ? "0x79 and 0x72 ignored out of sight" : "0x79 ignored out of sight";
+            r.visibility(false, false);r.ignored.add(0x79);if (ignore == 1) r.ignored.add(0x72);
+            int at = r.batteryCmds.size();r.run(T0 + 5 * 60 * S);
+            List<Integer> out = new ArrayList<>(r.batteryCmds.subList(at, r.batteryCmds.size()));
+            check(r.linkUp() && !r.failed(), "the link stays up: " + what);
+            r.ignored.clear();r.visibility(true, false);r.run(r.now() + 10 * S);
+            if (before) {
+                check(r.batteryPolicy.suppressed().contains(0x79) && !has(r.batteryPolicy.periodicBattery(), 0x79) && (ignore == 0) == r.batteryPolicy.allowed(0x72),
+                        "4164feba switched a read off from the background (" + what + "): " + r.batteryPolicy.suppressed());
+                continue;
+            }
+            check(out.size() >= 17 && !out.contains(0x79) && out.stream().allMatch(c -> c == 0x72), "out of sight: 0x72 alone (" + what + ") " + out);
+            check(r.batteryPolicy.suppressed().isEmpty() && Arrays.equals(r.batteryPolicy.periodicBattery(), new int[]{0x72, 0x79}), "back in sight both reads go out again (" + what + ")");
+            check(r.levelShown() && r.batteryCmds.subList(r.batteryCmds.size() - 4, r.batteryCmds.size()).contains(0x79), "and are read (" + what + ")");
+        }
+    }
+
+    /**
+     * ReadPolicy in sight and recording is main's: a read ignored there is switched off exactly as with 4164feba's rule and
+     * fde6403f's. And back in sight after a background spell, a read the scooter now ignores is switched off at the same
+     * moment as under fde6403f's rule (no read out of sight), wherever the return falls against the last quiet read.
+     */
+    private static void inSightSilenceUnchanged() {
+        for (int how = 0; how < 2; how++) {
+            List<String> runs = new ArrayList<>();
+            for (int rule = 0; rule < 3; rule++) {
+                Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.noticeOnly = rule != 1;r.batteryOutOfSight = rule != 2;
+                if (how == 0) r.visibility(true, false); else r.visibility(false, true);
+                r.connect();r.run(T0 + 5 * S);probe79(r);r.run(T0 + 20 * S);r.ignored.add(0x79);r.run(T0 + 60 * S);
+                runs.add(r.batteryCmds + " " + r.batteryReads + " " + r.batteryPolicy.suppressed());
+            }
+            check(runs.get(0).equals(runs.get(1)) && runs.get(0).equals(runs.get(2)) && runs.get(0).endsWith("[121]"),
+                    (how == 0 ? "in sight" : "recording") + ": an ignored read is switched off as before " + runs.get(0).substring(Math.max(0, runs.get(0).length() - 40)));
+        }
+        int compared = 0;
+        for (long back = 60 * S; back <= 76 * S; back += 250) {
+            long[] off = new long[2];
+            for (int rule = 0; rule < 2; rule++) {
+                Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.batteryOutOfSight = rule == 0;r.connect();
+                r.run(T0 + back - S);r.ignored.add(0x72);r.run(T0 + back);r.visibility(true, false);
+                for (long t = r.now() + STEP; t <= T0 + back + 30 * S && off[rule] == 0; t += STEP) { r.run(t);if (!r.batteryPolicy.allowed(0x72)) off[rule] = t - T0 - back; }
+            }
+            check(off[0] > 0 && off[0] == off[1], "back in sight at " + back + ": switched off " + off[0] + " ms after, as under fde6403f's rule (" + off[1] + ")");
+            compared++;
+        }
+        check(compared == 65, "every return compared " + compared);
+    }
+
+    /**
+     * Which reads go out of sight. With a battery watch: periodicBattery with each poll, counted as any read, exactly as
+     * fde6403f (and main) send them. Without one: 0x72 alone, quietly.
+     */
+    private static void watchReads() {
+        List<String> runs = new ArrayList<>();
+        for (int rule = 0; rule < 2; rule++) {
+            Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.batteryOutOfSight = rule == 0;r.watch = true;
+            r.connect();r.run(T0 + 5 * S);probe79(r);r.run(T0 + 60 * S);
+            int at = r.batteryCmds.size();r.ignored.add(0x79);r.run(T0 + 3 * 60 * S);
+            List<Integer> later = r.batteryCmds.subList(at, r.batteryCmds.size());
+            check(later.contains(0x79) && !r.batteryPolicy.allowed(0x79), "watching: the direction read goes out and is counted as before " + later);
+            runs.add(r.batteryCmds + " " + r.batteryReads + " " + r.batteryPolicy.suppressed());
+        }
+        check(runs.get(0).equals(runs.get(1)), "watching: the same reads as fde6403f " + runs.get(0).length());
+        Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.connect();r.run(T0 + 5 * S);probe79(r);
+        int at = r.batteryCmds.size();r.run(T0 + 3 * 60 * S);
+        List<Integer> later = r.batteryCmds.subList(at, r.batteryCmds.size());
+        check(later.size() >= 11 && later.stream().allMatch(c -> c == 0x72) && Arrays.equals(r.batteryPolicy.periodicBattery(), new int[]{0x72, 0x79}),
+                "no watch: 0x72 alone, the direction read left as it was " + later);
     }
 }

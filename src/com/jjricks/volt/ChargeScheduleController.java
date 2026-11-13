@@ -57,6 +57,12 @@ public final class ChargeScheduleController {
     public static final class Context {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;
         public boolean ready, linked, wholeHours;
+        /**
+         * The settings report (the status carrying the charge limit, the switch and the start) is live by the readings'
+         * own rule. Only it can say the limit is unchanged, so a plan is judged against its saved target only then (#418).
+         * A model with no limit reading has target null even so. A driver that does not say means live, as before.
+         */
+        public boolean settingsLive = true;
         public int generation;
         public long now, sampleMs;
         /** Elapsed realtime when now was read; 0 when unknown. */
@@ -182,7 +188,7 @@ public final class ChargeScheduleController {
     public ChargeScheduleController(Store store,Driver driver){this.store=store;this.driver=driver;}
     private Context context(){
         Context raw=driver.context(),c=new Context();
-        c.scope=raw.scope;c.ready=raw.ready;c.linked=raw.linked;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
+        c.scope=raw.scope;c.ready=raw.ready;c.linked=raw.linked;c.settingsLive=raw.settingsLive;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
         c.charging=raw.charging;c.enabled=raw.enabled;c.wireStart=raw.wireStart;c.soc=raw.soc;c.target=raw.target;c.estimateMinutes=raw.estimateMinutes;
         c.timeReason=raw.timeReason;c.toggleReason=raw.toggleReason;c.estimateUnavailableReason=raw.estimateUnavailableReason;c.zone=(TimeZone)raw.zone.clone();return c;
     }
@@ -237,9 +243,13 @@ public final class ChargeScheduleController {
             if(s.mode==2){s.mode=1;s.deadline=s.start+24*60*60_000L;s.status="Charge limit changed; update Charge done by";}
             s.target=c.target;save(c,s);
         }
-        if(finite(c.soc)&&c.soc>=s.target){retire(c,s,"Charge target reached",Outcome.TARGET_REACHED);return;}
+        // Every outcome from here is judged against the scooter's limit, which s.target stands for only while the settings
+        // report is live (a battery level can be live without it, after a sleep): until then nothing is retired, and the
+        // next live pass decides, so the same charge is never labelled from a limit that may have changed (#418).
+        if(finite(c.soc)&&c.soc>=s.target){if(c.settingsLive)retire(c,s,"Charge target reached",Outcome.TARGET_REACHED);return;}
         if(c.charging==null)return;
         if(c.charging==1&&c.now>=s.start&&!s.started){s.started=true;save(c,s);}
+        if(!c.settingsLive)return;
         boolean ended=c.now>=s.deadline+START_GRACE_MS;
         // The battery decides whether a passed start ever charged: no rise since arming is a missed
         // start, a rise is a charge that ran and stopped (unplugged or done), and unknown stays quiet.
