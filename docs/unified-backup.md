@@ -272,7 +272,7 @@ Recorded answers to the open questions of the first draft:
 2. Rides → **Ride backups** stays as a shortcut into Back up & restore with Rides preselected.
 3. `.voltrides` export is retired: new ride backups are always encrypted `.voltbackup` v2 files. `.voltrides` import stays.
 4. `text_scale`, `background_connection`, `keep_screen_awake` and `poll_interval_ms` stay in App preferences; there is no separate "This phone" group.
-5. `map_basemap_enabled` and `map_basemap_explained` restore as the user's recorded choice. The preview shows "Online map: on" whenever the restored result has it on.
+5. `map_basemap_enabled`, `map_basemap_explained` and `map_usgs_switch_answered` restore as the user's recorded choice; an absent provider restores as absent, so an older backup taken under the USGS default keeps USGS when its basemap was on or explained (`MapDefault`). The preview shows "Online map: on" whenever the restored result has it on.
 6. A merged history that would exceed the 24 MiB limit is pruned with TelemetryHistory's own retention rules (`applyRetention`) before it replaces history; if it is still too large the restore stops before any change.
 7. No per-scooter export filter.
 8. **Superseded by the backup discovery follow-up:** the plaintext owner-only export is retired from profile and onboarding screens. Both now use the unified encrypted backup. Legacy owner-file import remains supported.

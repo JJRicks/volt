@@ -286,6 +286,58 @@ public final class BackupPlanTest {
             check(HomeStyle.WIDGETS.equals(app.get(HomeStyle.KEY)) && !app.containsKey(HomeStyle.CHOSEN_KEY),
                     "a backup that has a style applies it, with its own choice flag (absent here): " + app);
         }
+        // Part 6's second review, note 1: a pre-Hub restore after setup ended on a style the owner never chose (setup
+        // skipped: Clean stored unchosen with origin install) lands on the backup owner's Widgets; a chosen one stays.
+        for (int how = 0; how < 3; how++) {
+            BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-style-unchosen-" + how));
+            phone.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN);
+            phone.put("app_settings", HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL);
+            if (how == 0) phone.restore(preHub, BackupTestStore.all(), true, null);
+            else if (how == 1) phone.restore(preHub, set(BackupRegistry.PREFERENCES), false, null);
+            else phone.restore(preHub, set(BackupRegistry.DASHBOARDS), false, C);
+            Map<String, Object> app = phone.preferences().get("app_settings");
+            String named = how == 0 ? "Replace everything" : how == 1 ? "App preferences" : "Dashboards";
+            check(HomeStyle.WIDGETS.equals(app.get(HomeStyle.KEY)) && !app.containsKey(HomeStyle.CHOSEN_KEY),
+                    named + " from a pre-Hub backup onto a style never chosen lands on Widgets: " + app);
+            check(HomeStyle.ORIGIN_INSTALL.equals(app.get(HomeStyle.ORIGIN_KEY)), named + " keeps this phone's origin");
+        }
+        BackupTestStore installOnly = BackupArchiveTest.phone(new File(root, "home-style-install-origin"));
+        installOnly.put("app_settings", HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL);
+        installOnly.restore(preHub, BackupTestStore.all(), true, null);
+        check(HomeStyle.WIDGETS.equals(installOnly.preferences().get("app_settings").get(HomeStyle.KEY)),
+                "an install origin with no style (which the seed would turn Clean) also gets Widgets from a pre-Hub backup");
+        BackupTestStore chosenWidgets = BackupArchiveTest.phone(new File(root, "home-style-chosen-dashboards"));
+        chosenWidgets.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN); chosenWidgets.put("app_settings", HomeStyle.CHOSEN_KEY, true);
+        chosenWidgets.restore(preHub, set(BackupRegistry.DASHBOARDS), false, C);
+        check(HomeStyle.CLEAN.equals(chosenWidgets.preferences().get("app_settings").get(HomeStyle.KEY))
+                && Boolean.TRUE.equals(chosenWidgets.preferences().get("app_settings").get(HomeStyle.CHOSEN_KEY)), "a chosen Clean stays when only dashboards come back");
+        BackupTestStore cleanSource = BackupTestStore.rich(new File(root, "home-style-clean-source"));
+        cleanSource.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN);
+        BackupTestStore unchosen = BackupArchiveTest.phone(new File(root, "home-style-unchosen-hub"));
+        unchosen.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS);
+        unchosen.restore(cleanSource.export(BackupTestStore.all()), BackupTestStore.all(), true, null);
+        check(HomeStyle.CLEAN.equals(unchosen.preferences().get("app_settings").get(HomeStyle.KEY)), "a backup that has a style still applies it as backed up");
+        // Note 3: a pre-Hub backup has no moment switches; restoring it keeps this phone's instead of dropping them.
+        for (boolean replace : new boolean[]{true, false}) {
+            BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-moments-" + replace));
+            phone.put("app_settings", HomeMoment.CHARGING_KEY, false); phone.put("app_settings", HomeMoment.RIDE_KEY, false);
+            phone.restore(preHub, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+            Map<String, Object> app = phone.preferences().get("app_settings");
+            check(Boolean.FALSE.equals(app.get(HomeMoment.CHARGING_KEY)) && Boolean.FALSE.equals(app.get(HomeMoment.RIDE_KEY)),
+                    (replace ? "Replace everything" : "App preferences") + " from a pre-Hub backup keeps this phone's moment switches: " + app);
+        }
+        BackupTestStore noMoments = BackupArchiveTest.phone(new File(root, "home-moments-none"));
+        noMoments.restore(preHub, BackupTestStore.all(), true, null);
+        check(!noMoments.preferences().get("app_settings").containsKey(HomeMoment.CHARGING_KEY)
+                && !noMoments.preferences().get("app_settings").containsKey(HomeMoment.RIDE_KEY), "a phone without switches gets none (absent means on)");
+        BackupTestStore momentSource = BackupTestStore.rich(new File(root, "home-moments-source"));
+        momentSource.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS); momentSource.put("app_settings", HomeMoment.RIDE_KEY, false);
+        BackupTestStore applied = BackupArchiveTest.phone(new File(root, "home-moments-applied"));
+        applied.put("app_settings", HomeMoment.CHARGING_KEY, false);
+        applied.restore(momentSource.export(BackupTestStore.all()), set(BackupRegistry.PREFERENCES), false, null);
+        Map<String, Object> afterHub = applied.preferences().get("app_settings");
+        check(!afterHub.containsKey(HomeMoment.CHARGING_KEY) && Boolean.FALSE.equals(afterHub.get(HomeMoment.RIDE_KEY)),
+                "a Hub backup applies its switches as backed up (its absent charging switch means on): " + afterHub);
     }
 
     private static void freshInstall(File root, BackupTestStore source) throws Exception {

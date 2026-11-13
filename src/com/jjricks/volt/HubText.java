@@ -211,18 +211,30 @@ public final class HubText {
     /** The charging view's power tile. */
     public static Msg chargingPower() { return M.dashboardChargingPower(); }
 
-    /** The last ride's muted line; minutes since it was saved (less than one reads "just now"). */
-    public static Msg justBackSaved(long minutes) {
-        return minutes < 1 ? M.homeJustBackSavedNow() : M.homeJustBackSavedMinutes(minutes, minutes);
+    /**
+     * The last ride's muted line; minutes since the ride's shown end (HomeMoment.minutesAgo), less than one reads
+     * "just now". For a ride that ended by itself the shown end is the last movement, before the save, so the line
+     * says when the ride ended, not when it was saved (owner's answer on #383).
+     */
+    public static Msg justBackEnded(long minutes) {
+        return minutes < 1 ? M.homeJustBackEndedNow() : M.homeJustBackEndedMinutes(minutes, minutes);
     }
     /** Screen-reader text of the round X that closes the last ride. */
     public static Msg justBackClose() { return M.homeJustBackClose(); }
     /** Screen-reader text of the last ride's card; distance with its unit. */
     public static Msg justBackDescription(CharSequence distance) { return M.homeJustBackDescription(distance); }
-    /** The last ride's three tiles: ride time, average speed and battery used. */
+    /** The last ride's three tiles: ride time, average speed and the battery change. */
     public static Msg justBackRideTime() { return M.ridingLabelRideTime(); }
     public static Msg justBackAvgSpeed() { return M.ridesTileAvgSpeed(); }
-    public static Msg justBackBatteryUsed() { return M.homeJustBackBatteryUsed(); }
+    /**
+     * The battery tile's label, with the Rides page's own words (owner's answer on #383): "Battery gain" when the
+     * ride ended with more charge than it started, else "Battery drop". batteryDropPercent is the saved ride's
+     * start minus end (RideStore.Summary.batteryDropPercent), chosen exactly as RidesScreen chooses: a gain only
+     * for a known value below zero, so zero and an unknown change read as a drop.
+     */
+    public static Msg justBackBattery(Double batteryDropPercent) {
+        return batteryDropPercent != null && batteryDropPercent < 0 ? M.ridesTileBatteryGain() : M.ridesTileBatteryDrop();
+    }
 
     // ===== Clean Home's Edit sheet and quick actions =====
 

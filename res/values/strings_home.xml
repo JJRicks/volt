@@ -37,8 +37,10 @@
     <string name="home_style_widgets_preview" volt:screen="Setup, Settings and What's new" volt:purpose="accessibility">Picture of the Widgets Home: the RIDE button at the top, then the scooter overview, the lock bar, reading and setting tiles and the ride recorder, in a grid you arrange.</string>
 
     <!-- ===== Settings › Home style: what Clean's top area shows by itself ===== -->
-    <!-- Switch: Clean Home's top area changes to the charging view while the scooter charges. -->
-    <string name="home_moment_charging" volt:screen="Home style settings" volt:purpose="switch" volt:safety="charge">Show charging while plugged in</string>
+    <!-- Switch: Clean Home's top area changes to the charging view by itself while the scooter reports that it is
+         charging (not merely plugged in: a scooter waiting for a scheduled start, or stopped at its limit, is not
+         charging). The line under it says when. -->
+    <string name="home_moment_charging" volt:screen="Home style settings" volt:purpose="switch" volt:safety="charge">Show charging automatically</string>
     <string name="home_moment_charging_sub" volt:screen="Home style settings" volt:purpose="description" volt:safety="charge">Home shows the charge by itself when charging starts.</string>
     <!-- Switch: after a ride ends, Clean Home's top area shows that ride. -->
     <string name="home_moment_ride" volt:screen="Home style settings" volt:purpose="switch">Show the last ride after riding</string>
@@ -48,20 +50,23 @@
     <!-- Muted line above the big percent while charging. %1$s is the charge limit as a percent ("90%"). Without a limit Home shows "Charging" instead. -->
     <string name="home_charging_to_limit" volt:screen="Clean Home charging view" volt:purpose="status" volt:safety="charge">Charging to your %1$s limit</string>
 
-    <!-- ===== Clean Home: the last ride, for about an hour after riding ===== -->
-    <!-- Muted line above the ride's distance, in its first minute. -->
-    <string name="home_just_back_saved_now" volt:screen="Clean Home after a ride" volt:purpose="status">Ride saved just now</string>
-    <!-- Muted line above the ride's distance. %1$d is the minutes since the ride was saved (1 to 59). -->
-    <plurals name="home_just_back_saved_minutes" volt:screen="Clean Home after a ride" volt:purpose="status">
-        <item quantity="one">Ride saved %1$d minute ago</item>
-        <item quantity="other">Ride saved %1$d minutes ago</item>
+    <!-- ===== Clean Home: the last ride, for about an hour after riding =====
+      Its battery tile reuses the Rides page's labels (rides_tile_battery_drop, rides_tile_battery_gain in
+      strings_rides.xml), chosen by the sign of the change as the Rides page chooses them. -->
+    <!-- Muted line above the ride's distance, in the first minute after the ride's end. The end is the one the
+         saved ride shows: for a ride that ended by itself, the last movement, which can be minutes before it was
+         saved. -->
+    <string name="home_just_back_ended_now" volt:screen="Clean Home after a ride" volt:purpose="status">Ride ended just now</string>
+    <!-- Muted line above the ride's distance. %1$d is the minutes since the ride's end (1 to 59), counted from the
+         end the saved ride shows: for a ride that ended by itself, the last movement, not the moment it was saved. -->
+    <plurals name="home_just_back_ended_minutes" volt:screen="Clean Home after a ride" volt:purpose="status">
+        <item quantity="one">Ride ended %1$d minute ago</item>
+        <item quantity="other">Ride ended %1$d minutes ago</item>
     </plurals>
     <!-- Screen-reader text of the round X that closes the last ride until the next one. -->
     <string name="home_just_back_close" volt:screen="Clean Home after a ride" volt:purpose="accessibility">Close the last ride</string>
     <!-- Screen-reader text of the last ride's card. %1$s is the ride's distance with its unit ("6.2 mi"). Tapping opens the ride. -->
     <string name="home_just_back_description" volt:screen="Clean Home after a ride" volt:purpose="accessibility">Last ride, %1$s. Opens the ride.</string>
-    <!-- Tile label: how much of the battery the ride used ("-18%"). -->
-    <string name="home_just_back_battery_used" volt:screen="Clean Home after a ride" volt:purpose="label">Battery used</string>
 
     <!-- ===== Clean Home: the Edit sheet ===== -->
     <string name="home_edit_title" volt:screen="Clean Home edit sheet" volt:purpose="title">Edit Home</string>
