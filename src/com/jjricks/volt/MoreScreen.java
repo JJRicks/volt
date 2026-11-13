@@ -3255,7 +3255,12 @@ public final class MoreScreen implements AppScreen {
                     }
                     showStored.run();
                 };
-                if (enabled && beforeOn != null) RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored); else save.run();
+                if (enabled && beforeOn != null) {
+                    // Ui.toggleRow already said On for the tap; until the answer lands, TalkBack hears what's stored.
+                    ViewGroup parent = (ViewGroup) row[0];
+                    describeSwitch((Switch) parent.getChildAt(parent.getChildCount() - 1), stored(key));
+                    RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored);
+                } else save.run();
             });
             row[0].setTag(tag);
             return row[0];
