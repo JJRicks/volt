@@ -255,7 +255,8 @@ public final class DeveloperSettingsValidation extends Instrumentation {
                 main(() -> {
                     View selector = selector("theme"), groupView = root().findViewWithTag("preference-display-options");
                     require(groupView.getTop() - selector.getBottom() >= activity.ui().dp(16), "Display submenu touches final selector");
-                    require(!selector("units").isShown() && !selector("temperature_unit").isShown(), "Unit controls still crowd App preferences");
+                    // Deliberately the built-but-hidden selectors: App preferences must not show them until the Units submenu opens.
+                    require(!builtSelector("units").isShown() && !builtSelector("temperature_unit").isShown(), "Unit controls still crowd App preferences");
                     View units = root().findViewWithTag("preference-units-menu");
                     require(units != null && units.isShown(), "Units submenu is missing"); units.performClick();
                 }); settle();
@@ -268,7 +269,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
             require(((MoreScreen)more()).back(), "Back did not leave Units");
             require("App".equals(field(more(), "selectedSection")), "Units back skipped App preferences");
         }); settle();
-        main(() -> require(selector("theme").isShown() && !selector("units").isShown(), "Back did not restore App preferences"));
+        main(() -> require(selector("theme").isShown() && !builtSelector("units").isShown(), "Back did not restore App preferences"));
         screenshot("preferences");
         HubTestPages.reach(this, activity, "data.storage"); settle();
         verifySelectorChoices("stats_density", new String[]{"comfortable", "dense"});
@@ -356,7 +357,10 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         finally { event.recycle(); }
     }
     @SuppressWarnings("unchecked") private List<TextView> choices(String key) { return (List<TextView>)field(field(selector(key), "track"), "choices"); }
-    private View selector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return HubTestPages.requireShown(activity, found, "the " + key + " selector"); }
+    /** The selector for key, required shown on the page now shown (every check that reads or taps it). */
+    private View selector(String key) { return HubTestPages.requireShown(activity, builtSelector(key), "the " + key + " selector"); }
+    /** The selector for key as built, shown or not: only for checks that it is hidden. */
+    private View builtSelector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
     private void assertSelector(String key) {
         View selector = selector(key); Object track = field(selector, "track");
         require(selector instanceof HorizontalScrollView && selector.isShown() && selector.getWidth() > 0, "Selector lost its bounded readable track");
