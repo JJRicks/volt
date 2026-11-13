@@ -61,8 +61,41 @@ public final class MapTilesValidation extends Instrumentation {
     private void sourceSettings() throws Exception {
         preferencesName = "map-validation-" + System.nanoTime();
         SharedPreferences preferences = getTargetContext().getSharedPreferences(preferencesName, Context.MODE_PRIVATE);
-        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL), "Fresh default is not USGS");
+        require(MapSource.load(preferences).url.equals(MapSource.OSM_URL), "Fresh default is not OpenStreetMap");
         require(!preferences.getBoolean("map_tiles_enabled", false), "Choosing default enabled maps");
+        // Basemap on or explained under the old USGS default, no provider saved: USGS stays (MapDefault).
+        for (int mask = 0; mask < 4; mask++) {
+            boolean enabled = (mask & 1) != 0, explained = (mask & 2) != 0;
+            SharedPreferences.Editor edit = preferences.edit().remove("map_tile_url");
+            if (enabled) edit.putBoolean("map_basemap_enabled", true); else edit.remove("map_basemap_enabled");
+            if (explained) edit.putBoolean("map_basemap_explained", true); else edit.remove("map_basemap_explained");
+            edit.commit();
+            String expected = enabled || explained ? MapSource.USGS_URL : MapSource.OSM_URL;
+            require(MapSource.load(preferences).url.equals(expected) && MapSource.pinnedToUsgs(preferences) == (enabled || explained),
+                    "Default for enabled=" + enabled + " explained=" + explained);
+            preferences.edit().putBoolean("map_basemap_enabled", false).commit();
+            require(MapSource.load(preferences).url.equals(explained ? MapSource.USGS_URL : MapSource.OSM_URL), "Turning the basemap off moved the provider");
+        }
+        preferences.edit().putBoolean("map_basemap_enabled", true).putBoolean("map_basemap_explained", true).commit();
+        MapPreferences.answerUsgsSwitch(preferences, true); preferences.edit().commit();
+        require(MapSource.load(preferences).url.equals(MapSource.OSM_URL) && preferences.getBoolean("map_usgs_switch_answered", false)
+                && "© OpenStreetMap contributors".equals(MapSource.load(preferences).attribution), "Switch answer not saved as an OpenStreetMap choice");
+        preferences.edit().remove("map_tile_url").remove("map_usgs_switch_answered").commit();
+        MapPreferences.answerUsgsSwitch(preferences, false); preferences.edit().commit();
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL) && preferences.contains("map_tile_url")
+                && preferences.getBoolean("map_usgs_switch_answered", false), "Keep answer not saved as a USGS choice");
+        MapPreferences.answerUsgsSwitch(preferences, true);
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL), "A later answer overwrote the saved one");
+        preferences.edit().remove("map_basemap_enabled").remove("map_basemap_explained").remove("map_usgs_switch_answered").commit();
+        // The old-default pin written down once (MapSource.keepPin): on, never explained, no provider.
+        preferences.edit().remove("map_tile_url").putBoolean("map_basemap_enabled", true).commit();
+        require(MapSource.usgsByDefault(preferences) && MapSource.keepPin(preferences) && MapSource.USGS_URL.equals(preferences.getString("map_tile_url", ""))
+                && preferences.getBoolean("map_usgs_by_default", false) && !MapSource.keepPin(preferences), "Pin not written down once");
+        preferences.edit().putBoolean("map_basemap_enabled", false).commit();
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL) && MapSource.usgsByDefault(preferences), "Turning a written pin off lost USGS");
+        MapSource.USGS.save(preferences);
+        require(!preferences.contains("map_usgs_by_default") && !MapSource.usgsByDefault(preferences), "An own USGS choice kept the old-default mark");
+        preferences.edit().remove("map_basemap_enabled").commit();
         preferences.edit().putString("map_tile_url", MapSource.OSM_URL).commit();
         require(MapSource.load(preferences).url.equals(MapSource.OSM_URL), "Explicit OSM choice lost");
         String custom = "https://maps.example.test/{z}/{x}/{y}.png";
@@ -77,7 +110,7 @@ public final class MapTilesValidation extends Instrumentation {
         fixture.enqueue(200).header("Cache-Control", "max-age=60");
         require(fixture.tiles.get(16, 12000, 24000) != null, "USGS fixture failed");
         require(fixture.address.endsWith("/tile/16/24000/12000"), "USGS row/column order wrong");
-        checks.add("USGS default and row/column order, explicit/custom choice preservation, HTTPS and zoom limits");
+        checks.add("OpenStreetMap default, USGS kept for basemaps approved under the old default, switch answers saved as choices, USGS row/column order, explicit/custom choice preservation, HTTPS and zoom limits");
     }
 
     private void successAndConditionalCache() throws Exception {

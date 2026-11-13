@@ -1,0 +1,7 @@
+# The offer to leave USGS: the old-default pin written down once (MapPinTest) and the question's lifetime
+# across two maps, a closed screen and a recreated activity (OneQuestionTest). The backup classes and
+# BackupTestStore are compiled by tests/run.sh; MapDefault is also listed by map-default.sources.
+src/com/jjricks/volt/MapDefault.java
+src/com/jjricks/volt/OneQuestion.java
+tests/l10n/MapPinTest.java
+tests/l10n/OneQuestionTest.java
