@@ -641,16 +641,17 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
             public boolean keep(long ranMs, double gainedPoints) { return true; }
             public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
         });
-        String guessed = fixture(fixtures, 1, true).replace(".csv", ""), manual = fixture(fixtures, 2, false).replace(".csv", "");
-        require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manual) == null, "Fixtures: " + guessed + " " + manual);
+        String guessed = fixture(fixtures, 1, true).replace(".csv", "");
+        String manualId = fixture(fixtures, 2, false).replace(".csv", "");
+        require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);
         ensureFront();
         main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, HubPages.HOME); for (String step : HubPages.path(HubPages.BATTERY_HISTORY)) if (!step.equals(HubPages.HOME)) activity.open(step); });
         settle();
         main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
-        await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manual) != null), 10 * S, "The saved list did not show both recordings");
+        await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manualId) != null), 10 * S, "The saved list did not show both recordings");
         String marked = T.serviceChargeChargerGuessed("");
         String guessRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + guessed).getContentDescription()));
-        String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manual).getContentDescription()));
+        String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manualId).getContentDescription()));
         require(guessRow.contains(marked), "The saved list showed a guessed charger as known: " + guessRow);
         require(!manualRow.contains(marked), "The saved list marked a recording you labelled as guessed: " + manualRow);
         main(() -> historyView("charge-history-session:" + guessed).performClick()); settle();
