@@ -16,7 +16,8 @@ public final class GpsAccuracyTextTest {
         states();
         graph();
         riding();
-        System.out.println("GpsAccuracyTextTest: " + checks + " checks passed (values, axis marks, states, the graph's line, the riding reading)");
+        stepDown();
+        System.out.println("GpsAccuracyTextTest: " + checks + " checks passed (values, axis marks, states, the graph's line, the riding reading, its step-down)");
     }
 
     private static void values() {
@@ -91,5 +92,102 @@ public final class GpsAccuracyTextTest {
             for (RidingLayout.Spot spot : RidingLayout.frameDef(frame).spots)
                 check(!RidingLayout.GPS_ACCURACY.equals(spot.fallback), "no frame shows it until chosen: " + frame + "/" + spot.id);
         check(T.ridingLabelGpsAccuracy().equals("GPS accuracy") && T.ridingLabelGpsAccuracyShort().equals("GPS"), "its names, full and short");
+    }
+
+    /**
+     * A state too long for its spot steps down to the no-reading dash instead of hiding the chip or drawing small
+     * (Terra on #428): widths in dp as Trace's column and Halo's row measure them at 344 dp, 1x text.
+     */
+    private static void stepDown() {
+        for (GpsAccuracy.State s : new GpsAccuracy.State[]{GpsAccuracy.State.NOT_RECORDING, GpsAccuracy.State.OFF, GpsAccuracy.State.WAITING, GpsAccuracy.State.NO_FIX})
+            check(T.ridingNoValue().equals(GpsAccuracyText.compact(s)) && !GpsAccuracyText.state(s).equals(GpsAccuracyText.compact(s)), "each state steps down to the dash: " + s);
+        check(GpsAccuracyText.compact(GpsAccuracy.State.FIX) == null, "a fix has no step-down form: its value is short");
+
+        // Tiles: the words stay while they draw at a chip's value size or more, or at the tile's own largest size.
+        float floor = GpsAccuracyText.STATE_MIN_SP;
+        check(!RidingClockSeconds.keepsMarker(11, 60, floor), "Focus's bottom tile: \"Not recording\" at 11 dp shows the dash instead");
+        check(RidingClockSeconds.keepsMarker(17, 60, floor) && RidingClockSeconds.keepsMarker(30, 60, floor), "at a chip's size or more the words stay");
+        check(!RidingClockSeconds.keepsMarker(16.9f, 60, floor), "just under a chip's size, the dash");
+        check(RidingClockSeconds.keepsMarker(14, 14, floor), "a spot whose largest size is under the floor keeps its words at that size");
+        check(!RidingClockSeconds.keepsMarker(20, 60, floor * 1.4f), "at 1.4x text the floor grows with the chip's text");
+
+        String gps = RidingLayout.GPS_ACCURACY, trip = RidingLayout.TRIP, time = RidingLayout.RIDE_TIME, temp = RidingLayout.BATTERY_TEMPERATURE;
+        // Trace's column at 344 dp: 45% of the row, about 105 dp; GPS accuracy first, temperature second.
+        int notRecording = 120, noFix = 50, dash = 18;
+        Chip g = new Chip("gps-full", "gps-short", 92, 30, notRecording, dash), tc = Chip.namesItself(45);
+        RidingChipFit plain = RidingChipFit.column(marks(g, tc), new String[]{gps, temp}, widths(false, g, tc), 105);
+        check(!plain.shown[0] && plain.shown[1], "in full, \"Not recording\" steps aside in Trace's column (the finding)");
+        RidingChipFit fit = RidingChipFit.stepping(marks(g, tc), new String[]{gps, temp}, widths(false, g, tc), widths(true, g, tc), new boolean[]{true, false}, true, 8, 105);
+        check(fit.shown[0] && fit.compact[0] && fit.shown[1] && !fit.compact[1], "stepping: the GPS chip shows its dash and temperature stays");
+        check(fit.rung == RidingChipFit.SHORT_NAMES && fit.steps[0] == RidingChipFit.NAME_SHORT && fit.steps[1] == -1, "\"GPS \u2014\", temperature unchanged");
+        check(widths(true, g, tc).at(0, fit.rung, fit.steps[0]) <= 105 && widths(false, g, tc).at(1, fit.rung, fit.steps[1]) <= 105, "both fit the column");
+        Chip nf = new Chip("gps-full", "gps-short", 92, 30, noFix, dash);
+        RidingChipFit noFixFit = RidingChipFit.stepping(marks(nf, tc), new String[]{gps, temp}, widths(false, nf, tc), widths(true, nf, tc), new boolean[]{true, false}, true, 8, 105);
+        check(noFixFit.shown[0] && !noFixFit.compact[0] && noFixFit.rung == RidingChipFit.ICON_NAMES, "\"No fix\" fits with the icon: its words stay");
+
+        // Halo's row at 344 dp (296 dp): trip, ride time, then GPS accuracy, which in full would be the chip to go.
+        Chip tr = new Chip("trip-name", "trip-name", 32, 32, 50, dash), rt = new Chip("time-full", "time-short", 62, 34, 45, dash);
+        String[] rowContents = {trip, time, gps};
+        RidingChipFit rowPlain = RidingChipFit.row(marks(tr, rt, g), rowContents, widths(false, tr, rt, g), 8, 296);
+        check(rowPlain.count == 2 && !rowPlain.shown[2], "in full the GPS chip steps aside from the row");
+        RidingChipFit row = RidingChipFit.stepping(marks(tr, rt, g), rowContents, widths(false, tr, rt, g), widths(true, tr, rt, g), new boolean[]{false, false, true}, false, 8, 296);
+        check(row.count == 3 && row.compact[2] && !row.compact[0] && !row.compact[1], "stepping: all three show, GPS as its dash");
+        long used = 16;
+        for (int i = 0; i < 3; i++) used += widths(i == 2, tr, rt, g).at(i, row.rung, row.steps[i]);
+        check(used <= 296, "and they fit the row: " + used);
+
+        // Nothing else changes: with GPS first its words take the row as before (the owner keeps that), and with no
+        // chip able to step down the fit is the plain one.
+        String[] first = {gps, trip, time};
+        RidingChipFit before = RidingChipFit.row(marks(g, tr, rt), first, widths(false, g, tr, rt), 8, 296);
+        RidingChipFit after = RidingChipFit.stepping(marks(g, tr, rt), first, widths(false, g, tr, rt), widths(true, g, tr, rt), new boolean[]{true, false, false}, false, 8, 296);
+        check(before.shown[0] && same(before, after) && !after.compact[0], "a GPS chip that shows in full keeps its words, the rest as before");
+        RidingChipFit none = RidingChipFit.stepping(marks(tr, rt, g), rowContents, widths(false, tr, rt, g), widths(true, tr, rt, g), new boolean[3], false, 8, 296);
+        check(same(rowPlain, none), "no chip that can step down: the plain fit");
+        RidingChipFit noneColumn = RidingChipFit.stepping(marks(g, tc), new String[]{gps, temp}, widths(false, g, tc), widths(true, g, tc), null, true, 8, 105);
+        check(same(plain, noneColumn), "the same for a column");
+    }
+
+    private static boolean same(RidingChipFit a, RidingChipFit b) {
+        return a.count == b.count && a.rung == b.rung && Arrays.equals(a.shown, b.shown) && Arrays.equals(a.steps, b.steps);
+    }
+
+    /** A chip as RidingScreen measures it: padding, then its name (full, short or icon) or its decorative icon, then its value. */
+    private static final class Chip {
+        final String full, shortName;
+        final int fullWidth, shortWidth, value, compact;
+        final boolean namesItself;
+        Chip(String full, String shortName, int fullWidth, int shortWidth, int value, int compact) {
+            this.full = full; this.shortName = shortName; this.fullWidth = fullWidth; this.shortWidth = shortWidth;
+            this.value = value; this.compact = compact; this.namesItself = false;
+        }
+        private Chip(int value) {
+            this.full = null; this.shortName = null; this.fullWidth = 0; this.shortWidth = 0;
+            this.value = value; this.compact = value; this.namesItself = true;
+        }
+        static Chip namesItself(int value) { return new Chip(value); }
+        String[] marks(int i) {
+            String icon = RidingChipFit.iconMark("icon" + i);
+            return namesItself ? new String[]{null, null, icon} : new String[]{full, shortName, icon};
+        }
+        int width(int rung, int step, boolean compactForm) {
+            int padding = rung == RidingChipFit.TIGHT ? 12 : 30;
+            int mark;
+            if (namesItself) mark = rung < RidingChipFit.NO_ICONS ? 24 : 0;
+            else mark = step == RidingChipFit.NAME_FULL ? fullWidth + 6 : step == RidingChipFit.NAME_SHORT ? shortWidth + 6 : 24;
+            return padding + mark + (compactForm ? compact : value);
+        }
+    }
+
+    private static String[][] marks(Chip... chips) {
+        String[][] out = new String[chips.length][];
+        for (int i = 0; i < chips.length; i++) out[i] = chips[i].marks(i);
+        return out;
+    }
+
+    private static RidingChipFit.Widths widths(final boolean compact, final Chip... chips) {
+        return new RidingChipFit.Widths() {
+            @Override public int at(int chip, int rung, int step) { return chips[chip].width(rung, step, compact); }
+        };
     }
 }

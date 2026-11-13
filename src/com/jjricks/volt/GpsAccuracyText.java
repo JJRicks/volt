@@ -7,6 +7,18 @@ package com.jjricks.volt;
 final class GpsAccuracyText {
     private GpsAccuracyText() { }
 
+    /**
+     * Riding mode's state in a tile keeps its words while they draw at least this large (sp, times the label's text
+     * scale), the size a chip draws its value at, or at the tile's own largest size; below both it shows the
+     * no-reading dash (RidingClockSeconds.keepsMarker's rule), so a state never draws smaller than it does in a chip.
+     */
+    static final float STATE_MIN_SP = 17;
+
+    /** Riding mode's shorter form for a state that won't fit whole: the no-reading dash. Spoken, it stays the whole state. */
+    static String compact(GpsAccuracy.State state) {
+        return state == GpsAccuracy.State.FIX ? null : T.ridingNoValue();
+    }
+
     /** A shown accuracy, already in its unit ("ft" or "m"), as "±12 ft": a whole number, never ±0 for a real radius. */
     static Formatted value(double shown, String unit) {
         return Fmt.quantity(Fmt.compose(T.READINGS_ACCURACY_VALUE, Fmt.integerNumber(GpsAccuracy.whole(shown))), Fmt.unitText(unit));

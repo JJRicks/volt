@@ -82,7 +82,8 @@ EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real l
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
             'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect',
-            'AutoStartValidation cadence and location': 'auto-start (the full pass)'}
+            'AutoStartValidation cadence and location': 'auto-start (the full pass)',
+            'ShortcutPickerValidation look': 'the shortcut-picker steps, which take the same pictures and check them (look runs on any build, for before/after pictures)'}
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 STATUS_LABEL = {'passed': 'PASS', 'failed': 'FAIL', 'reported': 'REPORT', 'did-not-finish': 'REPORT (did not finish)', 'skipped': 'SKIPPED'}
 
@@ -164,6 +165,10 @@ STEPS += [
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
+    # The charging view's one time tile; its restart mode needs the same install, so it runs by hand after this one.
+    inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
+    inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
@@ -185,6 +190,13 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
+# and German and European Portuguese (the longest names) on that tightest case.
+PHONE_LARGE = ('344x882', 'dark', '1.4')
+STEPS += [inst(f'shortcut-picker-{w}', T + 'ShortcutPickerValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size)
+          for (size, theme, text), w in [(case, size_name(case)) for case in SIZES] + [(PHONE_LARGE, '344-large')]]
+STEPS += [inst(f'shortcut-picker-{tag}-344-large', T + 'ShortcutPickerValidation', '-e', 'language', tag, '-e', 'theme', 'light',
+               '-e', 'text_scale', '1.4', size='344x882') for tag in ('de', 'pt-PT')]
 # Maintenance reminders added with no connection (never-read and stale scooters, a restart), phone and wide.
 STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
           for case in (PHONE, WIDE)]

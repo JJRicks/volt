@@ -87,6 +87,15 @@ public final class DashboardScreen implements AppScreen {
     private final String restoreUndoKey;
     /** The bottom notice (e.g. "Defaults restored · Undo"), if one is showing. */
     private PopupWindow notice;
+    /**
+     * The shortcut picker as it was when Home was rebuilt around it (a turn or fold of the phone, a theme change): the
+     * next Home for the same scooter, made in the same step, reopens it with its search text, open sections and scroll.
+     * Anything else (closing the picker, another page, another scooter) leaves it closed.
+     */
+    private static PickerMemo pickerMemo;
+    /** The open picker's sheet and how to read its state, for close(). */
+    private AlertDialog pickerDialog;
+    private java.util.function.Supplier<PickerMemo> pickerState;
 
     public DashboardScreen(ScreenHost host, Actions actions) {
         this.host = host;
@@ -111,6 +120,9 @@ public final class DashboardScreen implements AppScreen {
         reconcileModelTiles(modelTiles, profile == null ? null : ModelTiles.previousSettingTiles(profile.savedDescriptor()));
         editing = preferences.getBoolean("dashboard_editing", false);
         view = column();
+        PickerMemo reopen = pickerMemo;
+        pickerMemo = null;
+        if (reopen != null && reopen.profileId.equals(profileId)) view.post(() -> { if (!closed) reopenPicker(reopen); });
         // Home header: a muted status line, the scooter name and a round edit button.
         toolbar = new LinearLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -1390,12 +1402,26 @@ public final class DashboardScreen implements AppScreen {
 
     /** Full, normal and compact names for the charging time; an unknown cutoff never claims "full". */
     private String[] chargeTimeLabels(ChargingEstimate.Result estimate, boolean widget) {
-        if (estimate.targetPercent != null && estimate.targetPercent < 100) {
-            String target = T.fmtPercent(Fmt.decimal(Locale.US, estimate.targetPercent, 0));
+        return chargeTimeLabels(estimate.targetPercent, widget);
+    }
+
+    /** The same names for a cutoff alone (null: unknown, so "100% if uncapped"). */
+    private String[] chargeTimeLabels(Double targetPercent, boolean widget) {
+        return chargeTimeLabels(targetPercent, widget, false);
+    }
+
+    /**
+     * plainHundred names a 100% cutoff as a plain percentage ("Time to 100%", "To 100%"): the charging time tile's
+     * second reading beside a limit or an alert, where the charging view already says what it charges to (owner,
+     * Nov 12 2026: "if uncapped" is redundant there).
+     */
+    private String[] chargeTimeLabels(Double targetPercent, boolean widget, boolean plainHundred) {
+        if (targetPercent != null && (targetPercent < 100 || plainHundred)) {
+            String target = T.fmtPercent(Fmt.decimal(Locale.US, targetPercent, 0));
             String name = widget ? T.dashboardChargeToLimit(target) : T.dashboardChargeTimeTo(target);
             return new String[] {name, name, T.dashboardChargeTimeToCompact(target)};
         }
-        if (estimate.targetPercent == null)
+        if (targetPercent == null)
             return new String[] {T.dashboardChargeTimeUncapped(), T.dashboardChargeTimeUncappedShort(), T.dashboardChargeTimeUncappedCompact()};
         return new String[] {T.dashboardChargeTimeFull(), T.dashboardChargeTimeFullShort(), T.dashboardChargeTimeFullCompact()};
     }
@@ -1406,7 +1432,11 @@ public final class DashboardScreen implements AppScreen {
      */
     private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate) {
         boolean limit = estimate.targetPercent != null && estimate.targetPercent < 100;
-        Double minutes = limit ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull;
+        showChargeTime(value, tag, estimate, limit ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull);
+    }
+
+    /** The same slot for a chosen time (the charging view's limit, alert or 100% reading), with the estimate's state. */
+    private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate, Double minutes) {
         boolean low = ChargingEstimate.LOW_CURRENT.equals(estimate.label);
         String state = estimate.label == null || estimate.label.isEmpty() ? "—" : estimate.label;
         // The state as shown: Low current in the current language, any other state its own display message.
@@ -1419,7 +1449,37 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /** Compact, labeled metric cards shared by charging and the reading-list widget. */
-    private final class InfoCell extends LinearLayout {
+    /** A metric card's label row (icon and caption) and its value: an InfoCell's body, and each charge time reading. */
+    private final class InfoFace {
+        final LinearLayout labelRow;
+        final View icon;
+        final DashboardCaption label;
+        final FittedValue value;
+        InfoFace(String iconName, String full, String normal, String compact) {
+            labelRow = row();
+            labelRow.setGravity(Gravity.CENTER_VERTICAL);
+            icon = new GlyphView(iconName, ui.muted);
+            LinearLayout.LayoutParams iconSpace = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
+            iconSpace.setMarginEnd(ui.dp(5));
+            labelRow.addView(icon, iconSpace);
+            label = new DashboardCaption(host.activity(), ui, full, normal, compact,
+                    glyphDrawable(iconName, ui.muted, 18));
+            labelRow.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+            // Keep ordinary number/unit pairs together before permitting a
+            // readable-floor wrap for unusually long diagnostic values.
+            value = new FittedValue("—", 12, 26, 1);
+            value.setIncludeFontPadding(true);
+            value.setGravity(Gravity.CENTER_VERTICAL);
+            value.setMinHeight(ui.dp(48 * ui.textScale));
+        }
+        LinearLayout.LayoutParams valueSpace() {
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+            p.topMargin = ui.dp(2);
+            return p;
+        }
+    }
+
+    private class InfoCell extends LinearLayout {
         final TextView label, value;
         final View labelIcon;
         /** Optional pill beside the value for a short state. */
@@ -1430,25 +1490,12 @@ public final class DashboardScreen implements AppScreen {
             setOrientation(VERTICAL);
             setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(10));
             setBackground(ui.shape(ui.raised, 14, 0));
-            LinearLayout labelRow = row();
-            labelRow.setGravity(Gravity.CENTER_VERTICAL);
-            labelIcon = new GlyphView(icon, ui.muted);
-            LinearLayout.LayoutParams iconSpace = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
-            iconSpace.setMarginEnd(ui.dp(5));
-            labelRow.addView(labelIcon, iconSpace);
-            label = new DashboardCaption(host.activity(), ui, full, normal, compact,
-                    glyphDrawable(icon, ui.muted, 18));
-            labelRow.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
-            addView(labelRow, new LinearLayout.LayoutParams(-1, -2));
-            // Keep ordinary number/unit pairs together before permitting a
-            // readable-floor wrap for unusually long diagnostic values.
-            value = new FittedValue("—", 12, 26, 1);
-            value.setIncludeFontPadding(true);
-            value.setGravity(Gravity.CENTER_VERTICAL);
-            value.setMinHeight(ui.dp(48 * ui.textScale));
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
-            p.topMargin = ui.dp(2);
-            addView(value, p);
+            InfoFace face = new InfoFace(icon, full, normal, compact);
+            labelIcon = face.icon;
+            label = face.label;
+            addView(face.labelRow, new LinearLayout.LayoutParams(-1, -2));
+            value = face.value;
+            addView(value, face.valueSpace());
         }
         /** A cell made with one title gets a shorter narrow label (the charging power's "Power"). */
         InfoCell narrowLabel(String title, String compact) {
@@ -1460,8 +1507,12 @@ public final class DashboardScreen implements AppScreen {
             if (tag != null) return tag;
             LinearLayout.LayoutParams old = (LinearLayout.LayoutParams) value.getLayoutParams();
             removeView(value);
-            final TextView chip = tagChip();
-            tag = chip;
+            tag = tagChip();
+            addView(tagLine(value, tag), old);
+            return tag;
+        }
+        /** A value with its state pill at the end of the line; the pill wraps below a long value in a narrow cell. */
+        LinearLayout tagLine(final TextView value, final TextView chip) {
             LinearLayout line = new LinearLayout(host.activity()) {
                 @Override protected void onMeasure(int widthSpec, int heightSpec) {
                     int width = MeasureSpec.getSize(widthSpec);
@@ -1494,8 +1545,7 @@ public final class DashboardScreen implements AppScreen {
             chipSpace.setMarginStart(ui.dp(6));
             chipSpace.gravity = Gravity.CENTER_VERTICAL;
             line.addView(chip, chipSpace);
-            addView(line, old);
-            return chip;
+            return line;
         }
         void fitHeight(int pixels) {
             heightBudget = pixels;
@@ -1509,9 +1559,11 @@ public final class DashboardScreen implements AppScreen {
             int inset = ui.dp(narrow ? 6 : 12);
             int vertical = ui.dp(heightBudget == Integer.MAX_VALUE ? 10 : 4);
             setPadding(inset, vertical, inset, vertical);
-            labelIcon.setVisibility(narrow ? GONE : VISIBLE);
+            showIcons(!narrow);
             super.onMeasure(widthSpec, heightSpec);
         }
+        /** The label icon hides in a narrow cell, where the caption needs the room. */
+        void showIcons(boolean shown) { labelIcon.setVisibility(shown ? VISIBLE : GONE); }
     }
 
     private final class InfoTiles extends LinearLayout {
@@ -1527,7 +1579,10 @@ public final class DashboardScreen implements AppScreen {
             cell.setVisibility(visibility); columns = 0; requestLayout();
         }
         InfoCell add(String icon, String title) {
-            InfoCell cell = new InfoCell(icon, title, title, title); cells.add(cell); columns = 0;
+            return add(new InfoCell(icon, title, title, title));
+        }
+        InfoCell add(InfoCell cell) {
+            cells.add(cell); columns = 0;
             requestLayout(); return cell;
         }
         InfoCell addReading(String key) {
@@ -1601,14 +1656,433 @@ public final class DashboardScreen implements AppScreen {
         return height;
     }
 
+    /** What TalkBack and the tooltip say for a charging time: its name, the value, a shown state pill and the estimate's status. */
+    private String spokenChargeTime(String name, CharSequence value, TextView tag, String status) {
+        // Deferred (B5 follow-up): ChargingEstimate.Result.status has no Msg yet, so the spoken
+        // charge status stays English inside these templates (here and in describeCharging below).
+        boolean plain = status == null || status.isEmpty();
+        if (tag != null && tag.getVisibility() == View.VISIBLE)
+            return plain ? T.dashboardHeroTimeTag(name, value, tag.getText()) : T.dashboardHeroTimeTagStatus(name, value, tag.getText(), status);
+        return plain ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
+    }
+
+    /**
+     * The charging view's one time tile (owner's design, Nov 12 2026; ChargeTimeReadings holds the rules). With two
+     * readings, the time to the limit (the scooter's own, or the charge alert's level) and the time to 100%, two
+     * dots in the upper end corner show which is up, and a tap or a sideways swipe brings the other. Each reading is
+     * one face (label row, value and state pill), so a label never moves without its value. Both faces are always
+     * measured, so the tile keeps one height whichever shows. The choice is saved per scooter as it is made; with one
+     * reading this is the single time tile it replaced: no dots, no switching, the same speech.
+     */
+    private final class ChargeTimeTile extends InfoCell {
+        static final int LIMIT = ChargeTimeReadings.LIMIT, FULL = ChargeTimeReadings.FULL;
+        final InfoFace limitFace;
+        final LinearLayout[] faces = new LinearLayout[2];
+        final View[] rows = new View[2];
+        final DashboardCaption[] captions = new DashboardCaption[2];
+        final TextView[] values = new TextView[2], tags = new TextView[2];
+        final String[] spoken = {"", ""};
+        final FrameLayout stack;
+        final ChargeTimeReadings.Switch state = new ChargeTimeReadings.Switch();
+        final Paint dots = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final int slop;
+        final float minFling;
+        int preferred;
+        boolean two;
+        android.animation.ValueAnimator motion;
+        VelocityTracker velocity;
+        float downX, downY, dragFromX;
+        /** dragging: a sideways drag owns the gesture; passing: it moved up or down first, so it is no tap. */
+        boolean dragging, passing;
+        /** owning: this gesture began while switchable, so the tile takes it whatever child is under the finger;
+         *  holding: the parents (Home's scroller) are held off until the gesture's direction is known. */
+        boolean owning, holding;
+        /** The switch under way began as a drag: its faces keep following the finger's scale to the end. */
+        boolean fromDrag;
+        /** The touch under way: the tile's own, the plain tile's, or cut off by a reset until the next one begins. */
+        final ChargeTimeReadings.Touch touch = new ChargeTimeReadings.Touch();
+
+        ChargeTimeTile(String title) {
+            super("clock", title, title, title);
+            addTag();
+            // InfoCell built the 100% face (label row, value line); the limit face is built the same way beside it.
+            rows[FULL] = getChildAt(0);
+            View fullLine = getChildAt(1);
+            removeAllViews();
+            captions[FULL] = (DashboardCaption) label; values[FULL] = value; tags[FULL] = tag;
+            limitFace = new InfoFace("clock", title, title, title);
+            rows[LIMIT] = limitFace.labelRow;
+            captions[LIMIT] = limitFace.label; values[LIMIT] = limitFace.value; tags[LIMIT] = tagChip();
+            stack = new FrameLayout(host.activity());
+            for (int r : new int[] {LIMIT, FULL}) {
+                LinearLayout face = column();
+                face.addView(rows[r]);
+                face.addView(r == FULL ? fullLine : tagLine(values[r], tags[r]), r == FULL ? fullLine.getLayoutParams() : limitFace.valueSpace());
+                faces[r] = face;
+                stack.addView(face, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
+            }
+            addView(stack, new LinearLayout.LayoutParams(-1, -2));
+            // Faces slide out to the card's rounded edge, not to its padding.
+            setBackground(ripple(Ui.withAlpha(ui.accent, 30), ui.shape(ui.raised, 14, 0), null));
+            setClipToOutline(true);
+            setClipChildren(false); setClipToPadding(false);
+            stack.setClipChildren(false); stack.setClipToPadding(false);
+            ViewConfiguration touch = ViewConfiguration.get(host.activity());
+            slop = touch.getScaledTouchSlop();
+            minFling = Math.max(touch.getScaledMinimumFlingVelocity(), ui.dp(300));
+            setOnClickListener(v -> tapSwitch());
+            String saved = null;
+            try {
+                if (ChargeTimeReadings.key(profileId) != null)
+                    saved = preferences.getString(ChargeTimeReadings.KEY + profileId, null);
+            } catch (ClassCastException damaged) { saved = null; }
+            preferred = ChargeTimeReadings.preferred(saved);
+            two = true; setTwo(false);
+        }
+
+        /**
+         * Fresh values for both faces, also mid-switch. With two readings the 100% face is the plain time to 100%
+         * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
+         * view already says what it charges to; never shorter than the time to the limit beside it,
+         * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
+         * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
+         * and speaks no status, as the alert tile did.
+         */
+        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
+            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
+            boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
+            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
+                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
+                    estimate.status);
+            if (scooterLimit)
+                fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
+            else if (alert != null)
+                fill(LIMIT, chargeTimeLabels(alert, false), estimate, ChargingEstimate.minutesToAlert(alert, estimate), null);
+            setTwo(ChargeTimeReadings.two(source));
+            describe();
+        }
+
+        private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {
+            captions[reading].setLabels(names[0], names[1], names[2]);
+            showChargeTime(values[reading], tags[reading], estimate, minutes);
+            spoken[reading] = spokenChargeTime(names[0], values[reading].getText(), tags[reading], status);
+            values[reading].setContentDescription(spoken[reading]);
+        }
+
+        /** The reading the user has chosen (or the only one), which the tile shows at rest. */
+        int chosen() { return two ? state.target : FULL; }
+
+        /**
+         * Two readings make one switchable control for TalkBack; one reading reads as the single tile did. The state
+         * names the other time (its name only: a state that changed with every estimate would be read out each time).
+         */
+        private void describe() {
+            String text = spoken[chosen()];
+            setTooltipText(text);
+            setContentDescription(two ? text : null);
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                CharSequence other = captions[ChargeTimeReadings.other(chosen())].getContentDescription();
+                setStateDescription(two && other != null ? T.dashboardChargeTimeOther(other.toString()) : null);
+            }
+        }
+
+        /** The switch, named: double-tap says "Switch time", and the same is in the actions menu. */
+        @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            if (!switchable()) return;
+            String name = T.dashboardChargeTimeSwitch();
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                    android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, name));
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(R.id.charge_time_switch, name));
+        }
+
+        @Override public boolean performAccessibilityAction(int action, android.os.Bundle arguments) {
+            if (action != R.id.charge_time_switch) return super.performAccessibilityAction(action, arguments);
+            if (!switchable()) return false;
+            tapSwitch();
+            return true;
+        }
+
+        private void setTwo(boolean next) {
+            if (next == two) return;
+            two = next;
+            stopMotion(); endDrag(); cutTouch();
+            state.rest(ChargeTimeReadings.shown(two, preferred));
+            setClickable(two); setFocusable(two);
+            setImportantForAccessibility(two ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            int reserve = two ? dotsWidth() + ui.dp(6) : 0;
+            for (int r : new int[] {LIMIT, FULL}) {
+                faces[r].setImportantForAccessibility(two ? IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+                rows[r].setPaddingRelative(0, 0, reserve, 0);
+            }
+            render();
+            requestLayout();
+        }
+
+        boolean switchable() { return two && !editing && !closed; }
+
+        private void tapSwitch() {
+            if (!switchable() || dragging) return;
+            int before = state.target;
+            if (state.atRest()) fromDrag = false;
+            state.tap(getLayoutDirection() == LAYOUT_DIRECTION_RTL);
+            decided(before);
+        }
+
+        /** After a tap or a lift: save the choice, say it once if it changed, then run to it. */
+        private void decided(int before) {
+            int target = state.target;
+            if (target != preferred) {
+                preferred = target;
+                if (ChargeTimeReadings.key(profileId) != null)
+                    preferences.edit().putString(ChargeTimeReadings.KEY + profileId, ChargeTimeReadings.encode(target)).apply();
+            }
+            describe();
+            if (target != before) announceForAccessibility(spoken[target]);
+            animateToGoal();
+        }
+
+        private void animateToGoal() {
+            stopMotion();
+            if (!Ui.motionEnabled() || closed || !isAttachedToWindow() || !isShown()) { state.settle(); render(); return; }
+            final float from = state.progress, to = state.goal();
+            if (from == to) { state.step(to); render(); return; }
+            final android.animation.ValueAnimator run = android.animation.ValueAnimator.ofFloat(0, 1);
+            motion = run;
+            // A whole switch takes Motion.CHANGE_MS; the rest of a drag or a turn back takes its share, never under ~100 ms.
+            run.setDuration(Math.round(Motion.CHANGE_MS * Math.max(.45f, Math.abs(to - from))));
+            run.setInterpolator(Motion.STANDARD);
+            run.addUpdateListener(a -> {
+                if (motion != run) return;
+                if (!Ui.motionEnabled() || closed) { settle(); return; }
+                state.step(from + (to - from) * a.getAnimatedFraction());
+                render();
+            });
+            run.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator animation) {
+                    if (motion != run) return;
+                    motion = null; state.settle(); render();
+                }
+            });
+            run.start();
+        }
+
+        private void stopMotion() {
+            android.animation.ValueAnimator old = motion;
+            motion = null;
+            if (old != null) old.cancel();
+        }
+
+        /** Ends any switch where it was heading: hidden, detached, rotated, folded or motion turned off. */
+        void settle() {
+            if (stack == null) return;
+            stopMotion(); endDrag(); cutTouch();
+            state.settle(); render();
+        }
+
+        private void endDrag() {
+            if (dragging) state.cancelDrag();
+            dragging = false;
+            if (velocity != null) { velocity.recycle(); velocity = null; }
+        }
+
+        /**
+         * A reset (or a change in whether the tile can switch) with a finger down: the rest of that touch does
+         * nothing, no drag, no switch, no tap and no long press, until the next touch begins, and Home's scroller is
+         * let go so an up or down move still scrolls.
+         */
+        private void cutTouch() {
+            if (!touch.cut()) return;
+            endDrag();
+            passing = false;
+            release();
+            // The plain view's press goes too (pressed look, pending tap, long-press tooltip), so the lift cannot click.
+            long now = android.os.SystemClock.uptimeMillis();
+            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+            super.onTouchEvent(cancel);
+            cancel.recycle();
+        }
+
+        /** How far a drag goes to switch fully; the faces follow the finger one to one. */
+        private float travel() { return Math.max(ui.dp(24), Math.min(ui.dp(96), stack.getWidth() * .5f)); }
+        /** A tap's slide is short, a shared-axis step: the faces hint at the direction, the fade does the rest. */
+        private float tapTravel() { return Math.max(ui.dp(16), Math.min(ui.dp(30), stack.getWidth() * .25f)); }
+
+        /** Lays the faces out for the switch's state: at rest only the chosen one is drawn. */
+        private void render() {
+            if (stack == null) return;
+            if (!two) {
+                place(faces[FULL], VISIBLE, 1, 0);
+                place(faces[LIMIT], GONE, 1, 0);
+            } else {
+                int resting = state.resting, other = ChargeTimeReadings.other(resting);
+                float p = state.progress, distance = fromDrag ? travel() : tapTravel();
+                boolean moving = !state.atRest() && p > 0;
+                place(faces[resting], VISIBLE, ChargeTimeReadings.outgoingAlpha(p), ChargeTimeReadings.outgoingShift(p, state.direction) * distance);
+                place(faces[other], moving ? VISIBLE : INVISIBLE, moving ? ChargeTimeReadings.incomingAlpha(p) : 1,
+                        moving ? ChargeTimeReadings.incomingShift(p, state.direction) * distance : 0);
+            }
+            invalidate();
+        }
+
+        private void place(View face, int visibility, float alpha, float shift) {
+            if (face.getVisibility() != visibility) face.setVisibility(visibility);
+            face.setAlpha(alpha);
+            face.setTranslationX(shift);
+        }
+
+        private float dotRadius() { return ui.dp(6) / 2f; }
+        private int dotGap() { return ui.dp(9); }
+        private int dotsWidth() { return Math.round(dotRadius() * 2) + dotGap(); }
+
+        /** The two dots, like a page indicator: the first is the limit, mirrored right to left. They stay still. */
+        @Override protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (!two || stack == null) return;
+            DashboardCaption caption = captions[state.resting];
+            float y = stack.getTop() + faces[state.resting].getTop() + rows[state.resting].getTop() + caption.getTop();
+            android.text.Layout layout = caption.getLayout();
+            if (layout == null || layout.getLineCount() == 0) y += caption.getHeight() / 2f;
+            else {
+                Paint.FontMetrics metrics = caption.getPaint().getFontMetrics();
+                y += caption.getTotalPaddingTop() + layout.getLineBaseline(0) + (metrics.ascent + metrics.descent) / 2f;
+            }
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            float r = dotRadius(), first = rtl ? getPaddingLeft() + dotsWidth() - r : getWidth() - getPaddingRight() - dotsWidth() + r;
+            for (int reading : new int[] {LIMIT, FULL}) {
+                float x = first + (rtl ? -1 : 1) * reading * dotGap();
+                dots.setColor(blend(Ui.withAlpha(ui.muted, 110), ui.text, ChargeTimeReadings.dotFill(state, reading)));
+                canvas.drawCircle(x, y, r, dots);
+            }
+        }
+
+        private int blend(int from, int to, float share) {
+            float s = Math.max(0, Math.min(1, share));
+            return Color.argb(Math.round(Color.alpha(from) + (Color.alpha(to) - Color.alpha(from)) * s),
+                    Math.round(Color.red(from) + (Color.red(to) - Color.red(from)) * s),
+                    Math.round(Color.green(from) + (Color.green(to) - Color.green(from)) * s),
+                    Math.round(Color.blue(from) + (Color.blue(to) - Color.blue(from)) * s));
+        }
+
+        @Override void showIcons(boolean shown) {
+            super.showIcons(shown);
+            if (limitFace != null) limitFace.icon.setVisibility(shown ? VISIBLE : GONE);
+        }
+
+        /**
+         * With two readings the tile is one control: every touch inside it is the tile's, whichever child is under
+         * the finger (a caption sets a tooltip, and a view with a tooltip takes the touches that start on it). The
+         * choice is made as the gesture starts and kept to its end. With one reading, or while editing, nothing is
+         * intercepted: the captions keep their own tooltips and long-press, as the single tile had.
+         */
+        @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) owning = switchable();
+            return owning || super.onInterceptTouchEvent(event);
+        }
+
+        /** Follows every touch from its first contact to its lift or cancel, whichever view in the tile takes it. */
+        @Override public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) touch.begin(switchable());
+            boolean handled = super.dispatchTouchEvent(event);
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL || (action == MotionEvent.ACTION_DOWN && !handled)) touch.end();
+            return handled;
+        }
+
+        /** Lets the parents (Home's scroller) take the gesture again, once it is known to go up or down. */
+        private void release() {
+            if (!holding) return;
+            holding = false;
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        }
+
+        /**
+         * A tap is the click (TalkBack's double-tap too); a long press shows the shown reading's tooltip and never
+         * switches. From the first touch the parents are held off, so a sideways swipe that drifts up or down at
+         * the start is still the tile's. A sideways move past the touch slop that is more sideways than up or down
+         * becomes a drag, and the outgoing face follows the finger. Up or down first, the parents are let go and
+         * Home's scroller takes it from the next move (the tile only sees a cancel); where nothing scrolls, the
+         * press is dropped all the same, so moving past the tile is never a tap. A touch that began with one reading
+         * stays the plain tile's; one cut off by a reset, or whose switchability changed under it, does nothing more.
+         */
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action != MotionEvent.ACTION_DOWN && touch.changed(switchable())) cutTouch();
+            if (touch.dead()) {
+                // The press was cancelled when the touch was cut, so the lift only lets a tooltip go; it cannot click.
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) super.onTouchEvent(event);
+                return true;
+            }
+            if (!touch.own()) return super.onTouchEvent(event);
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (velocity == null) velocity = VelocityTracker.obtain(); else velocity.clear();
+                downX = event.getX(); downY = event.getY(); dragging = false; passing = false;
+                holding = true;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+            }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) holding = false;
+            if (passing) {
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) { passing = false; endDrag(); }
+                return true;
+            }
+            if (velocity != null) velocity.addMovement(event);
+            if (action == MotionEvent.ACTION_MOVE) {
+                float dx = event.getX() - downX, dy = event.getY() - downY;
+                boolean sideways = Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy);
+                if (!dragging && (sideways || Math.abs(dy) > slop)) {
+                    MotionEvent cancel = MotionEvent.obtain(event);
+                    cancel.setAction(MotionEvent.ACTION_CANCEL);
+                    super.onTouchEvent(cancel);
+                    cancel.recycle();
+                    if (!sideways) { passing = true; release(); return true; }
+                    dragging = true;
+                    stopMotion();
+                    state.startDrag();
+                    fromDrag = true;
+                    dragFromX = downX + Math.signum(dx) * slop;
+                }
+                if (dragging) { state.drag((event.getX() - dragFromX) / travel()); render(); return true; }
+            } else if (action == MotionEvent.ACTION_UP && dragging) {
+                // A live drag always has its tracker (a reset cuts the touch first); no tracker reads as no fling.
+                float vx = 0;
+                if (velocity != null) { velocity.computeCurrentVelocity(1000); vx = velocity.getXVelocity(); }
+                int before = state.resting;
+                dragging = false;
+                state.release(Math.abs(vx) >= minFling ? (vx > 0 ? 1 : -1) : 0);
+                if (velocity != null) { velocity.recycle(); velocity = null; }
+                decided(before);
+                return true;
+            } else if (action == MotionEvent.ACTION_CANCEL && dragging) {
+                dragging = false;
+                state.cancelDrag();
+                if (velocity != null) { velocity.recycle(); velocity = null; }
+                animateToGoal();
+                return true;
+            }
+            return super.onTouchEvent(event);
+        }
+
+        @Override protected void onDetachedFromWindow() { settle(); super.onDetachedFromWindow(); }
+
+        @Override protected void onVisibilityChanged(View changedView, int visibility) {
+            super.onVisibilityChanged(changedView, visibility);
+            if (visibility != VISIBLE) settle();
+        }
+
+        @Override protected void onWindowVisibilityChanged(int visibility) {
+            super.onWindowVisibilityChanged(visibility);
+            if (visibility != VISIBLE) settle();
+        }
+    }
+
     /**
      * Charging takeover, kept as a hero above the grid: shown only while charging is freshly
      * reported, with the percentage, the scooter photo over a red glow and a floor line that
      * fills to the charge and then, in grey, to the charge limit.
      */
     private final class ChargingHero extends LinearLayout {
-        final TextView chip, percent, etaLabel, eta, etaTag, power;
-        final InfoCell timeCell, alertCell;
+        final TextView chip, percent, power;
+        final ChargeTimeTile timeTile;
         final InfoTiles tiles;
         final ImageView photo;
         final Stage stage;
@@ -1651,19 +2125,14 @@ public final class DashboardScreen implements AppScreen {
             addView(stage, new LinearLayout.LayoutParams(-1, -2));
             LinearLayout rows = column();
             tiles = new InfoTiles();
-            // With a charge alert to reach: power alone, then its time and the time to full side by side.
+            // One row: power beside the one time tile, the pair kept at one height (each tile matches the row).
             tiles.loneFirst = true;
             InfoCell powerCell = tiles.add("bolt", T.dashboardChargingPower());
             String timeToFull = T.dashboardTimeToFull();
-            alertCell = tiles.add("clock", timeToFull);
-            tiles.show(alertCell, false);
-            InfoCell timeCell = tiles.add("clock", timeToFull);
+            timeTile = new ChargeTimeTile(timeToFull);
+            tiles.add(timeTile);
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
-            this.timeCell = timeCell;
-            etaLabel = timeCell.label;
-            eta = timeCell.value;
-            etaTag = timeCell.addTag();
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
         }
@@ -1674,6 +2143,7 @@ public final class DashboardScreen implements AppScreen {
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
+            timeTile.settle();
             updatePulse();
         }
 
@@ -1767,17 +2237,7 @@ public final class DashboardScreen implements AppScreen {
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
             stage.setMinimumHeight(ui.dp(known ? 236 : 44));
             updatePulse();
-            String[] timeLabel = chargeTimeLabels(estimate, false);
-            ((DashboardCaption) etaLabel).setLabels(timeLabel[0], timeLabel[1], timeLabel[2]);
-            showChargeTime(eta, etaTag, estimate);
-            // Deferred (B5 follow-up): ChargingEstimate.Result.status has no Msg yet, so the spoken
-            // charge status stays English inside these templates (here and in describeCharging below).
-            String time = etaTag.getVisibility() == View.VISIBLE
-                    ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
-                    : spokenTime(timeLabel[0], eta.getText(), estimate.status);
-            eta.setContentDescription(time);
-            timeCell.setTooltipText(time);
-            showAlertTime(chargeAlertEstimate(values), estimate);
+            timeTile.update(estimate, chargeAlertEstimate(values));
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -1788,24 +2248,6 @@ public final class DashboardScreen implements AppScreen {
                             : (hasLimit ? T.dashboardHeroChargeLimitCount(Math.round(level), Fmt.integer(Math.round(level)), T.dashboardHeroLimitPercent(Math.round(limit), Fmt.integer(Math.round(limit)))) : T.dashboardHeroChargeCount(Math.round(level), Fmt.integer(Math.round(level)))));
             stage.invalidate();
             showAnimated(true);
-        }
-
-        private String spokenTime(String name, CharSequence value, String status) {
-            return status == null || status.isEmpty() ? T.dashboardHeroTime(name, value) : T.dashboardHeroTimeStatus(name, value, status);
-        }
-
-        /** The tile counting down to a charge alert's level; it keeps its place with a dash while no time is known. */
-        private void showAlertTime(ChargingEstimate.Result alert, ChargingEstimate.Result estimate) {
-            tiles.show(alertCell, alert != null);
-            if (alert == null) return;
-            String[] labels = chargeTimeLabels(alert, false);
-            ((DashboardCaption) alertCell.label).setLabels(labels[0], labels[1], labels[2]);
-            Double minutes = ChargingEstimate.minutesToAlert(alert, estimate);
-            alertCell.value.setText(minutes == null ? "—" : duration(minutes));
-            alertCell.value.setTextColor(minutes == null ? ui.muted : ui.text);
-            String spoken = spokenTime(labels[0], alertCell.value.getText(), null);
-            alertCell.value.setContentDescription(spoken);
-            alertCell.setTooltipText(spoken);
         }
 
         /** Glow and floor line under the photo. */
@@ -5621,65 +6063,350 @@ public final class DashboardScreen implements AppScreen {
         config.save(); render(); quickOptions(widget);
     }
 
-    private void chooseQuickAction(DashboardConfig.Widget widget, int index) {
-        LinearLayout content = column();
+    /**
+     * Choose shortcut: every shortcut in a collapsible section named for its category (ShortcutPicker), and the search
+     * box above them. A search lists its matches flat, each captioned with its category; clearing it returns to the
+     * sections as they were. Rows keep their tags (quick-choice:<id>) and exist while their section is closed.
+     */
+    private void chooseQuickAction(DashboardConfig.Widget widget, int index) { chooseQuickAction(widget, index, null); }
+
+    /** Opens the picker; {@code memo}, when Home was rebuilt around it, restores its search, open sections and scroll. */
+    private void chooseQuickAction(DashboardConfig.Widget widget, int index, PickerMemo memo) {
+        String current = index >= 0 && index < widget.quickActions.size() ? widget.quickActions.get(index) : null;
+        LinearLayout header = column();
         EditText search = new EditText(dialogContext);
         search.setSingleLine(true); search.setHint(T.dashboardSearchSettings());
         search.setContentDescription(T.dashboardSearchQuickSettings()); ui.styleSearch(search);
-        content.addView(search, ui.searchLayout());
-        LinearLayout choices = column(); content.addView(choices);
+        header.addView(search, ui.searchLayout());
+        LinearLayout choices = column(); choices.setTag("quick-choices");
+        choices.setPadding(0, 0, 0, ui.dp(8));
+        // The scooter's model decides which controls it offers, judged once as the picker opens (as Home's tiles judge them).
+        BleController ble = service == null ? null : service.ble;
+        ShortcutPicker.Scooter scooter = new ShortcutPicker.Scooter() {
+            @Override public boolean connected() { return ble != null && ble.connected(); }
+            @Override public CapabilityResolver.Decision decision(String key) { return ble == null ? null : ble.decision(key); }
+            @Override public boolean controlOffered(String key) { return ble != null && ble.controlOffered(key); }
+            @Override public CapabilityResolver.Reason chargeAlertsMissing() {
+                return service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
+            }
+            @Override public CapabilityResolver.Reason chargeScheduleMissing() { return service == null ? null : service.chargeScheduleMissing(); }
+        };
+        // Why each shortcut the scooter can't use can't be used, in the resolver's words (its section's name, its search caption).
+        Map<String, CapabilityResolver.Reason> unavailable = new HashMap<>();
+        List<ShortcutPicker.Section> sections = ShortcutPicker.sections(QuickAccessActions.catalog(), entry -> {
+            CapabilityResolver.Reason reason = ShortcutPicker.missing(entry, scooter);
+            if (reason != null) unavailable.put(entry.id, ShortcutPicker.canonical(reason));
+            return reason;
+        });
+        Set<String> open = new HashSet<>();
+        String first = ShortcutPicker.firstOpen(sections, current, widget.quickActions);
+        if (memo != null) open.addAll(memo.open);
+        else if (first != null) open.add(first);
+        if (memo != null) search.setText(memo.query);
+        List<PickerSection> shown = new ArrayList<>();
         Runnable filter = () -> {
+            for (PickerSection section : shown) section.stop();
+            shown.clear();
             choices.removeAllViews();
             String query = SearchFold.fold(search.getText().toString()).trim();
-            for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
-                boolean selected = widget.quickActions.contains(entry.id);
-                boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
-                // The English name and group still match, beside the shown ones.
-                if (!query.isEmpty() && !SearchFold.holds(entry.label, entry.group, query)
-                        && !SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query)) continue;
-                LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
-                item.setMinimumHeight(ui.dp(60)); item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-                item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-                LinearLayout words = column();
-                words.addView(ui.text(entry.label(), 14, false));
-                words.addView(ui.caption(entry.groupLabel().toString()));
-                LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
-                item.addView(words, space);
-                // A check marks a chosen shortcut; a switch marks one that toggles directly.
-                if (selected || entry.directToggle()) {
-                    GlyphView kind = new GlyphView(selected ? "check" : "toggle", selected ? ui.accent : ui.muted);
-                    LinearLayout.LayoutParams kindSize = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
-                    kindSize.setMarginStart(ui.dp(8));
-                    item.addView(kind, kindSize);
+            if (query.isEmpty()) {
+                for (ShortcutPicker.Section section : sections) {
+                    PickerSection view = new PickerSection(section, open, choices);
+                    // A row the scooter can't use keeps its category as a caption; its section's name says why.
+                    for (QuickAccessActions.Entry entry : section.entries)
+                        view.body.addView(quickChoice(widget, index, current, entry,
+                                ShortcutPicker.unavailableSection(section.id) ? entry.groupLabel() : null, null),
+                                new LinearLayout.LayoutParams(-1, -2));
+                    view.place(open.contains(section.id), false);
+                    shown.add(view);
+                    choices.addView(view.block, new LinearLayout.LayoutParams(-1, -2));
                 }
-                item.setTag("quick-choice:" + entry.id);
-                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label, entry.group)
-                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label, entry.group) : T.dashboardShortcut(entry.label, entry.group));
-                item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || current);
-                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), entry.groupLabel())
-                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), entry.groupLabel()) : T.dashboardShortcut(entry.label(), entry.groupLabel()));
-                item.setAlpha(item.isEnabled() ? 1 : .4f);
-                item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
-                item.setOnClickListener(v -> {
-                    if (selected && !current) return;
-                    if (index < 0) {
-                        if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
-                        widget.quickActions.add(entry.id);
-                    } else widget.quickActions.set(index, entry.id);
-                    saveQuickActions(widget);
-                });
-                choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
+            } else {
+                // The English name and group still match, beside the shown ones.
+                for (QuickAccessActions.Entry entry : ShortcutPicker.matches(sections, entry ->
+                        SearchFold.holds(entry.label, entry.group, query)
+                                || SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query))) {
+                    // Its category always (Experimental controls included), and why the scooter can't use it below that.
+                    CapabilityResolver.Reason reason = unavailable.get(entry.id);
+                    choices.addView(quickChoice(widget, index, current, entry, entry.groupLabel(),
+                            reason == null ? null : CapabilityResolver.message(reason)), new LinearLayout.LayoutParams(-1, -2));
+                }
+                if (choices.getChildCount() == 0) {
+                    TextView none = ui.caption(T.dashboardNoMatchingSettings());
+                    none.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), ui.dp(12));
+                    choices.addView(none);
+                }
             }
-            if (choices.getChildCount() == 0) choices.addView(ui.caption(T.dashboardNoMatchingSettings()));
         };
         search.addTextChangedListener(new android.text.TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) { filter.run(); }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filter.run();
+                if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, 0);
+            }
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        showSheet(T.dashboardChooseShortcut(), content, null, T.dashboardCloseShortcutPicker(), null);
+        showSheet(T.dashboardChooseShortcut(), header, choices, null, T.dashboardCloseShortcutPicker(), null);
         if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
+        pickerDialog = dialog;
+        pickerState = () -> new PickerMemo(profileId, widget.id, index, current, search.getText().toString(), open,
+                choices.getParent() instanceof View ? ((View) choices.getParent()).getScrollY() : 0);
+        if (memo != null && memo.scrollY > 0)
+            Motion.beforeNextDraw(choices, () -> { if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, memo.scrollY); }, null);
+    }
+
+    /** One open picker's state (see pickerMemo). */
+    private static final class PickerMemo {
+        final String profileId, widgetId, current, query;
+        final int index, scrollY;
+        final Set<String> open;
+        PickerMemo(String profileId, String widgetId, int index, String current, String query, Set<String> open, int scrollY) {
+            this.profileId = profileId; this.widgetId = widgetId; this.index = index; this.current = current;
+            this.query = query; this.open = new HashSet<>(open); this.scrollY = scrollY;
+        }
+    }
+
+    /** close(): keeps the picker's state when it is the open sheet, for a Home made in this same step only. */
+    private void rememberPicker() {
+        PickerMemo memo = dialog != null && dialog == pickerDialog && dialog.isShowing() && pickerState != null ? pickerState.get() : null;
+        pickerDialog = null; pickerState = null;
+        pickerMemo = memo;
+        if (memo != null) new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> { if (pickerMemo == memo) pickerMemo = null; });
+    }
+
+    /** Reopens a remembered picker when its widget, and the shortcut it was replacing, are still there. */
+    private void reopenPicker(PickerMemo memo) {
+        for (DashboardConfig.Widget widget : config.widgets) {
+            if (!widget.id.equals(memo.widgetId)) continue;
+            boolean same = memo.index < 0 ? widget.quickActions.size() < DashboardConfig.maximumShortcuts(widget.type)
+                    : memo.index < widget.quickActions.size() && widget.quickActions.get(memo.index).equals(memo.current);
+            if (same) chooseQuickAction(widget, memo.index, memo);
+            return;
+        }
+    }
+
+    /**
+     * One choice: its icon, name, an optional caption (null inside its own section), why the scooter can't use it (a
+     * search match only; null otherwise) and the chosen or toggle marker.
+     */
+    private View quickChoice(DashboardConfig.Widget widget, int index, String current, QuickAccessActions.Entry entry,
+            CharSequence caption, CharSequence reason) {
+        boolean selected = widget.quickActions.contains(entry.id);
+        boolean replacing = entry.id.equals(current);
+        CharSequence group = caption == null ? entry.groupLabel() : caption;
+        LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
+        item.setMinimumHeight(ui.dp(caption == null ? 52 : 60));
+        item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+        item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+        LinearLayout words = column();
+        words.addView(ui.text(entry.label(), 14, false));
+        if (caption != null) words.addView(ui.caption(caption.toString()));
+        if (reason != null) { TextView why = ui.caption(reason.toString()); why.setTag("quick-choice-reason"); words.addView(why); }
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
+        item.addView(words, space);
+        // A check marks a chosen shortcut; a switch marks one that toggles directly.
+        if (selected || entry.directToggle()) {
+            GlyphView kind = new GlyphView(selected ? "check" : "toggle", selected ? ui.accent : ui.muted);
+            LinearLayout.LayoutParams kindSize = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+            kindSize.setMarginStart(ui.dp(8));
+            item.addView(kind, kindSize);
+        }
+        item.setTag("quick-choice:" + entry.id);
+        item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || replacing);
+        // The reason is spoken as the row's state from Android 11; before that it takes the group's place, as it did.
+        boolean stated = reason != null && android.os.Build.VERSION.SDK_INT >= 30;
+        if (reason != null && !stated) group = reason;
+        item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), group)
+                : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), group) : T.dashboardShortcut(entry.label(), group));
+        if (stated) item.setStateDescription(reason);
+        item.setAlpha(item.isEnabled() ? 1 : .4f);
+        item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
+        item.setOnClickListener(v -> {
+            if (selected && !replacing) return;
+            if (index < 0) {
+                if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
+                widget.quickActions.add(entry.id);
+            } else widget.quickActions.set(index, entry.id);
+            saveQuickActions(widget);
+        });
+        return item;
+    }
+
+    /**
+     * A collapsible section of the shortcut picker: a header (name, count, a chevron that turns) over its rows. It
+     * opens and closes by animating its rows' height (Motion.CHANGE_MS, instant with animations off); opening one low
+     * on the sheet scrolls just enough to show its first rows, never past its header. The sheet keeps its height.
+     */
+    private final class PickerSection {
+        final ShortcutPicker.Section section;
+        final Set<String> open;
+        final LinearLayout block, head, body;
+        final View chevron;
+        android.animation.ValueAnimator animator;
+        boolean expanded;
+
+        PickerSection(ShortcutPicker.Section section, Set<String> open, ViewGroup list) {
+            this.section = section; this.open = open;
+            block = column(); block.setTag("quick-section:" + section.id);
+            if (list.getChildCount() > 0) {
+                View rule = new View(host.activity());
+                rule.setBackgroundColor(ui.outline);
+                block.addView(rule, new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(.75f))));
+            }
+            head = row(); head.setGravity(Gravity.CENTER_VERTICAL); head.setTag("quick-section-header:" + section.id);
+            head.setMinimumHeight(ui.dp(56)); head.setPadding(ui.dp(4), ui.dp(10), ui.dp(2), ui.dp(10));
+            head.setClickable(true); head.setFocusable(true);
+            head.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
+            TextView name = ui.text(sectionName(section), 15, true);
+            name.setTag("quick-section-name:" + section.id);
+            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+            name.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+            head.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView count = ui.text(Fmt.integer(section.entries.size()), 12, false);
+            count.setTag("quick-section-count:" + section.id);
+            count.setTypeface(ui.medium()); count.setTextColor(ui.muted); count.setGravity(Gravity.CENTER);
+            count.setMinWidth(ui.dp(26)); count.setPadding(ui.dp(8), ui.dp(3), ui.dp(8), ui.dp(3));
+            count.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 10, 0));
+            LinearLayout.LayoutParams countSpace = new LinearLayout.LayoutParams(-2, -2); countSpace.setMarginStart(ui.dp(10));
+            head.addView(count, countSpace);
+            chevron = ui.icon("chevron", 16, ui.muted);
+            chevron.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(40), ui.dp(24));
+            head.addView(chevron, chevronSize);
+            if (android.os.Build.VERSION.SDK_INT >= 28) head.setAccessibilityHeading(true);
+            head.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override public void onInitializeAccessibilityNodeInfo(View v, android.view.accessibility.AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(v, info);
+                    info.addAction(expanded ? android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE
+                            : android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND);
+                    if (android.os.Build.VERSION.SDK_INT >= 36)
+                        info.setExpandedState(expanded ? android.view.accessibility.AccessibilityNodeInfo.EXPANDED_STATE_FULL
+                                : android.view.accessibility.AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED);
+                }
+                @Override public boolean performAccessibilityAction(View v, int action, android.os.Bundle arguments) {
+                    if (action == android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND.getId() && !expanded
+                            || action == android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE.getId() && expanded) {
+                        toggle(); return true;
+                    }
+                    return super.performAccessibilityAction(v, action, arguments);
+                }
+            });
+            head.setOnClickListener(v -> toggle());
+            block.addView(head, new LinearLayout.LayoutParams(-1, -2));
+            body = column(); body.setTag("quick-section-rows:" + section.id);
+            body.setPadding(0, 0, 0, ui.dp(6));
+            block.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        void toggle() {
+            place(!expanded, true);
+            if (expanded) open.add(section.id); else open.remove(section.id);
+        }
+
+        /** Shows the section open or closed; animated only when asked, laid out, and Android animations are on. */
+        void place(boolean next, boolean animate) {
+            stop();
+            expanded = next;
+            float turned = next ? -90 : 90;
+            ViewGroup.LayoutParams size = body.getLayoutParams();
+            int width = body.getWidth() > 0 ? body.getWidth() : block.getWidth();
+            if (!animate || !Ui.motionEnabled() || !block.isLaidOut() || width <= 0) {
+                size.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                body.setVisibility(next ? View.VISIBLE : View.GONE); body.setAlpha(1); chevron.setRotation(turned);
+                body.requestLayout();
+                if (animate && next) Motion.beforeNextDraw(block, () -> reveal(body.getHeight()), null);
+                announceState();
+                return;
+            }
+            int from = body.getVisibility() == View.VISIBLE ? body.getHeight() : 0;
+            body.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int to = next ? body.getMeasuredHeight() : 0;
+            float fromTurn = chevron.getRotation(), fromAlpha = body.getVisibility() == View.VISIBLE ? body.getAlpha() : 0;
+            body.setVisibility(View.VISIBLE);
+            size.height = from; body.requestLayout();
+            android.animation.ValueAnimator run = android.animation.ValueAnimator.ofFloat(0f, 1f);
+            run.setDuration(Motion.CHANGE_MS);
+            run.setInterpolator(Motion.STANDARD);
+            run.addUpdateListener(a -> {
+                float t = a.getAnimatedFraction(), eased = (float) a.getAnimatedValue();
+                size.height = Math.round(from + (to - from) * eased); body.requestLayout();
+                // Rows fade in over the opening and out over the first half of the closing.
+                body.setAlpha(next ? fromAlpha + (1 - fromAlpha) * Math.min(1f, t * 1.4f) : fromAlpha * Math.max(0f, 1 - t * 2));
+                chevron.setRotation(fromTurn + (turned - fromTurn) * eased);
+                if (next) reveal(size.height);
+            });
+            run.addListener(new android.animation.AnimatorListenerAdapter() {
+                boolean cancelled;
+                @Override public void onAnimationCancel(android.animation.Animator a) { cancelled = true; }
+                @Override public void onAnimationEnd(android.animation.Animator a) {
+                    if (animator == run) animator = null;
+                    if (cancelled) return;
+                    settle();
+                    // Each frame's reveal ran before that frame's layout, so the scroll range lagged a frame; reveal once
+                    // more on the settled height (a slow device's last frame can be tens of pixels).
+                    if (next) Motion.beforeNextDraw(block, () -> reveal(body.getHeight()), null);
+                }
+            });
+            animator = run;
+            run.start();
+            announceState();
+        }
+
+        /** Ends any opening or closing at once on the chosen state: a settled section is wholly open or wholly closed. */
+        void stop() {
+            android.animation.ValueAnimator running = animator;
+            animator = null;
+            if (running != null) { running.cancel(); settle(); }
+        }
+
+        private void settle() {
+            body.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            body.setVisibility(expanded ? View.VISIBLE : View.GONE);
+            body.setAlpha(1); chevron.setRotation(expanded ? -90 : 90);
+            body.requestLayout();
+        }
+
+        /** Scrolls the sheet so the header and up to its first three rows show, without moving the header above the top. */
+        private void reveal(int bodyHeight) {
+            if (!(block.getParent() instanceof View) || !(((View) block.getParent()).getParent() instanceof ScrollView)) return;
+            View list = (View) block.getParent();
+            ScrollView scroll = (ScrollView) list.getParent();
+            int top = list.getTop() + block.getTop() + head.getTop();
+            int goal = Math.min(bodyHeight, ui.dp(52) * 3 + ui.dp(6));
+            int viewport = scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom();
+            int want = Math.min(top, top + head.getHeight() + goal - viewport);
+            if (want > scroll.getScrollY()) scroll.scrollTo(0, want);
+        }
+
+        /** The header's node changed state (its action, and its expanded state from Android 16): tell an accessibility service. */
+        private void announceState() {
+            android.view.accessibility.AccessibilityManager manager = (android.view.accessibility.AccessibilityManager)
+                    host.activity().getSystemService(Context.ACCESSIBILITY_SERVICE);
+            if (!head.isAttachedToWindow() || manager == null || !manager.isEnabled()) return;
+            android.view.accessibility.AccessibilityEvent event = android.view.accessibility.AccessibilityEvent.obtain(
+                    android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED);
+            event.setContentChangeTypes(android.os.Build.VERSION.SDK_INT >= 36
+                    ? android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_EXPANDED
+                    : android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED);
+            head.sendAccessibilityEventUnchecked(event);
+        }
+    }
+
+    /**
+     * A section's shown name: its catalog group's (Ride, Battery, Pages, Menus, Experimental), the on/off control's
+     * name for the line and star lights (Line lights, Star lights), and the resolver's message for a reason the scooter
+     * can't use what a last section holds ("Not on this model", "Not mapped for this model", ...).
+     */
+    private static CharSequence sectionName(ShortcutPicker.Section section) {
+        CapabilityResolver.Reason reason = ShortcutPicker.reasonOf(section.id);
+        if (reason != null) return CapabilityResolver.message(reason);
+        switch (section.id) {
+            case ShortcutPicker.LINE_LIGHTS: return ScooterCommands.find("line_light").label();
+            case ShortcutPicker.STAR_LIGHTS: return ScooterCommands.find("star_light").label();
+            default: return section.entries.get(0).groupLabel();
+        }
     }
 
     private void duplicateWidget(DashboardConfig.Widget widget) {
@@ -6952,6 +7679,7 @@ public final class DashboardScreen implements AppScreen {
         stopEditTransition();
         editHistory.clear();
         for (Tile tile : tiles) tile.active = false;
+        rememberPicker();
         dismiss();
         if (grid != null) {
             grid.finishGesture(false);
