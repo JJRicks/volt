@@ -110,8 +110,12 @@ public final class BleController {
     public void setSimulationDriveMode(int mode){if(simulation==null)return;simulation.setDriveMode(mode);simulationDriveMode=mode;tickSimulation();changed();}
     /** The charger the Charging scene uses (the owner's charger choice); only the UT5 MAX tells them apart. */
     public void setSimulationFastCharger(boolean fast){if(simulationFastCharger==fast)return;simulationFastCharger=fast;if(simulation!=null){simulation.setFastCharger(fast);tickSimulation();}}
-    /** The registry's facts for the simulated model and region (SimulatorModels.facts), handed to the simulation. */
-    private void applySimulationModel(){if(simulation==null)return;boolean[] f=SimulatorModels.facts(descriptor());simulation.setModelFacts(f[0],f[1],f[2]);simulation.setFastCharger(simulationFastCharger);simulation.setDriveMode(simulationDriveMode);}
+    /**
+     * The registry's facts for the simulated model and region (SimulatorModels.facts), handed to the simulation, and every
+     * simulated setting brought to a value this model and region offer (ScooterSimulation.conform): a GT5 Max never opens
+     * with the UT5 MAX's 50 km/h. Runs whenever the model or region changes, and when simulation starts.
+     */
+    private void applySimulationModel(){if(simulation==null)return;DeviceDescriptor d=descriptor();boolean[] f=SimulatorModels.facts(d);simulation.setModelFacts(f[0],f[1],f[2]);simulation.conform(d);simulation.setFastCharger(simulationFastCharger);simulation.setDriveMode(simulationDriveMode);}
     /** Developer simulator model: "" (UT5 MAX) or a synthetic advertised ID. Memory only; never reaches a profile. */
     public String simulationModel(){return simulationModel;}
     /** Developer simulator serial region for another simulated model ("US", "DE", ... or null); memory only, never on the UT5 MAX. */

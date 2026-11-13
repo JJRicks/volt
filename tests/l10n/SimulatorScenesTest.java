@@ -19,6 +19,7 @@ public final class SimulatorScenesTest {
         pickerListsEveryNamedModel();
         regionEntriesFollowTheRules();
         modelFacts();
+        settingsFollowTheModel();
         for (SimulatorModels.Entry e : threeModels()) {
             parked(e);
             riding(e);
@@ -112,11 +113,77 @@ public final class SimulatorScenesTest {
         check(!gt3[0] && !gt3[1] && !gt3[2], "GT3 Max: no charge limit (alerts instead), an unsigned current, one charger");
     }
 
+    /**
+     * Review finding (P2): a newly chosen model keeps no setting it doesn't offer. Every model after every other model
+     * (each carrying in the settings the one before left), every control: inside its own choices as the screens read them.
+     */
+    private static void settingsFollowTheModel() {
+        ScooterSimulation fresh = new ScooterSimulation();
+        Map<String, Integer> defaults = fresh.features();
+        fresh.conform(SimulatorModels.find("", null).descriptor());
+        check(fresh.features().equals(defaults), "the UT5 MAX simulator's own settings are all its choices already: nothing changes");
+        List<SimulatorModels.Entry> entries = SimulatorModels.entries();
+        int controls = 0;
+        for (SimulatorModels.Entry from : entries) for (SimulatorModels.Entry to : entries) {
+            ScooterSimulation s = new ScooterSimulation();
+            s.conform(from.descriptor());
+            s.conform(to.descriptor());
+            controls += inside(s, to, from + " then " + to);
+        }
+        check(controls > entries.size() * entries.size(), "the sweep looked at the models' controls: " + controls);
+        // The finding's own case: the UT5 MAX's 50 km/h on a US GT5 Max becomes its nearest offered speed, 45.
+        SimulatorModels.Entry gt5 = SimulatorModels.find("25462", "US");
+        ScooterSimulation s = new ScooterSimulation();
+        check(s.featureValue("maximum_speed") == 50, "the UT5 MAX simulator starts at 50 km/h");
+        s.setModel(gt5.pid); s.conform(gt5.descriptor());
+        int[] offered = CapabilityResolver.decide("maximum_speed", gt5.descriptor(), StatusFields.NONE, simulationRuntime()).values();
+        check(Arrays.equals(offered, new int[]{25, 32, 40, 45}) && s.featureValue("maximum_speed") == 45,
+                "a US GT5 Max opens at 45 km/h, its nearest choice: " + s.featureValue("maximum_speed") + " of " + Arrays.toString(offered));
+        // A value the new model still offers is kept.
+        ScooterSimulation kept = new ScooterSimulation();
+        kept.set("maximum_speed", 32);
+        kept.setModel(gt5.pid); kept.conform(gt5.descriptor());
+        check(kept.featureValue("maximum_speed") == 32, "a Top speed the GT5 Max also offers stays");
+        // And back on the UT5 MAX nothing is put back: 45 is a UT5 MAX choice too.
+        kept.set("maximum_speed", 45, ScooterSimulation.offeredVariant("maximum_speed", gt5.descriptor()));
+        kept.setModel(""); kept.conform(SimulatorModels.find("", null).descriptor());
+        check(kept.featureValue("maximum_speed") == 45, "returning to the UT5 MAX keeps 45 km/h");
+        // A validation can still set an unoffered value on purpose (Home's unreadable dash).
+        kept.setUnoffered("maximum_speed", 51);
+        check(kept.featureValue("maximum_speed") == 51, "setUnoffered sets the value as given");
+    }
+    private static CapabilityResolver.Runtime simulationRuntime() {
+        CapabilityResolver.Runtime rt = new CapabilityResolver.Runtime();
+        rt.simulation = true; rt.ready = true;
+        return rt;
+    }
+    /** Every simulated setting inside the model's offered variant and inside the choices a screen lists for it; the controls checked. */
+    private static int inside(ScooterSimulation s, SimulatorModels.Entry e, String where) {
+        DeviceDescriptor d = e.descriptor();
+        int checked = 0;
+        for (Map.Entry<String, Integer> f : s.features().entrySet()) {
+            FeatureVariant v = ScooterSimulation.offeredVariant(f.getKey(), d);
+            if (v == null) continue;
+            checked++;
+            check(f.getValue() != null && v.allows(f.getValue()), where + ": " + f.getKey() + " = " + f.getValue() + " is outside " + v.id);
+            for (CapabilityResolver.Decision shown : new CapabilityResolver.Decision[]{
+                    CapabilityResolver.decide(f.getKey(), d, StatusFields.NONE, simulationRuntime()),
+                    CapabilityResolver.decideTry(f.getKey(), d, StatusFields.NONE, simulationRuntime())}) {
+                if (shown.support != CapabilityResolver.Support.KNOWN_ENCODING || shown.variant != v || shown.values().length == 0) continue;
+                boolean listed = false;
+                for (int c : shown.values()) listed |= c == f.getValue();
+                check(listed, where + ": " + f.getKey() + " = " + f.getValue() + " is not among the screen's choices " + Arrays.toString(shown.values()));
+            }
+        }
+        return checked;
+    }
+
     private static ScooterSimulation simulation(SimulatorModels.Entry e) {
         ScooterSimulation s = new ScooterSimulation();
         s.setModel(e.pid);
         boolean[] f = SimulatorModels.facts(e.descriptor());
         s.setModelFacts(f[0], f[1], f[2]);
+        s.conform(e.descriptor());
         return s;
     }
     private static double n(Telemetry t, String key) {
@@ -231,6 +298,15 @@ public final class SimulatorScenesTest {
                 "the UT5 MAX stops at its charge limit: " + n(t, "battery_percent") + " % at " + ms + " ms");
         ut5.tick(t, ms + 600000);
         check(n(t, "battery_percent") == 80, "and stays there");
+        // Review finding (P3): a limit lowered below the level stops the charge and leaves the level where it is.
+        ScooterSimulation above = simulation(SimulatorModels.find("", null)); t = new Telemetry();
+        above.setScene(ScooterSimulation.Scene.CHARGING); above.setFastCharger(true);
+        for (ms = 0; above.battery() < 86; ms += 5000) above.tick(t, ms);
+        double reached = above.battery();
+        above.set("charge_limit", 80);
+        for (int i = 1; i <= 120; i++) above.tick(t, ms + i * 5000L);
+        check(above.battery() == reached && n(t, "battery_percent") == Math.floor(reached) && n(t, "charging_state") == 0 && n(t, "current_a") == 0,
+                "a limit lowered to 80 % at " + reached + " % stops the charge and keeps the level: " + above.battery());
         ScooterSimulation stock = simulation(SimulatorModels.find("", null));
         stock.setScene(ScooterSimulation.Scene.CHARGING); stock.tick(t = new Telemetry(), 1000);
         check(Math.abs(stock.chargeAmps() - 2.3) < 1e-9, "UT5 MAX stock charger: about 2.3 A");
