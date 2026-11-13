@@ -174,7 +174,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private int navFrom = -1;
     private View pageHeader;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
-        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")) {
+        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
             handler.postDelayed(settingsRebuild, Ui.motionEnabled() ? 210 : 0);
         } else if(key.equals("text_scale")) { handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); }
@@ -2096,13 +2096,25 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        if (entry == null) return;
+        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
+        if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
+        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
+            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
+            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
+            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
+            showChargeAlerts(); return;
+        }
+        boolean ridingMode = HomeQuickActions.RIDING.equals(id);
+        if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
+        if (ridingMode) { openRiding(); return; }
         // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
         String sheet = HubRoutes.sheetFor(id);
         if (sheet != null) { showQuickSettings(sheet); return; }
