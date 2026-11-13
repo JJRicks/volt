@@ -50,6 +50,7 @@ public final class QuickAccessActions {
                 case T.DASHBOARD_MODEL_QA_ABOUT_PERMISSIONS: return M.dashboardModelQaAboutPermissionsShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_BY: return M.dashboardModelQaChargeDoneByShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_TIME: return M.dashboardModelQaChargeDoneTimeShort();
+                case T.HOME_QA_CHARGE_ALERTS: return M.homeQaChargeAlertsShort();
                 default: return labelMsg;
             }
         }
@@ -96,6 +97,9 @@ public final class QuickAccessActions {
         // Volt schedules a supported charge-start command; these are not new BLE opcodes.
         add("charge_done_by", M.dashboardModelQaChargeDoneBy(), "clock", M.controlsGroupBattery(), null);
         add("charge_done_time", M.dashboardModelQaChargeDoneTime(), "clock", M.controlsGroupBattery(), null);
+        // Battery alerts, named as on Clean Home (home_qa_charge_alerts, short rung Alerts): opens the Battery page's alerts
+        // sheet; offered only where ChargeAlertPolicy offers alerts (no built-in charge limit).
+        add(CHARGE_ALERTS_ID, M.homeQaChargeAlerts(), "bolt", M.controlsGroupBattery(), null);
         for (ScooterCommands.Feature feature : ScooterCommands.catalog())
             add(FEATURE_PREFIX + feature.key, feature.label(), icon(feature.key),
                     feature.experimental ? M.dashboardModelQaGroupExperimental() : feature.groupLabel(), feature.key);
