@@ -185,7 +185,7 @@ STEPS += [
 ]
 # Start recording in the background's row in More › App preferences and the one-time What's new dialog, at both widths
 # with normal and 1.4x text (the behaviour is auto-start-background-switch).
-STEPS += [inst(f'background-recording-{label}', T + 'BackgroundRecordingValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
+STEPS += [inst(f'background-recording-{label}', PKG + '.AutoStartValidation', '-e', 'only', 'background-recording', '-e', 'theme', theme, '-e', 'text_scale', text,
                '-e', 'variant', f'background-recording-{label}', size=size)
           for label, (size, theme, text) in (('344', PHONE), ('344-large', ('344x882', 'light', '1.4')), ('725', WIDE), ('725-large', WIDE_LARGE))]
 for theme in ('dark', 'light'):
