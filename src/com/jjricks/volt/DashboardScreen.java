@@ -750,8 +750,10 @@ public final class DashboardScreen implements AppScreen {
     /** Home status line: Connected · drive mode, Connecting… or Disconnected · last seen. */
     private void refreshHeader(
             ScooterProfiles.Profile profile, Map<String, TelemetryHistory.Reading> readings) {
-        profileName.setText(profile == null ? T.dashboardYourScooter() : profile.name);
         BleController ble = service == null ? null : service.ble;
+        // While simulating, the simulated model's name (display only; the profile's stored name is untouched).
+        String simulated = ble == null ? null : ble.simulationName();
+        profileName.setText(simulated != null ? simulated : profile == null ? T.dashboardYourScooter() : profile.name);
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean connecting =

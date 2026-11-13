@@ -1681,7 +1681,8 @@ public final class ScooterService extends Service {
             c.estimateMinutes=estimate.planningMinutesToLimit;
             // A raw current-rate estimate remains useful on the dashboard while automatic
             // identification gathers its first frames, but must not freeze a finish plan yet.
-            if(ModelRegistry.chargeReferenceProduct(active.savedDescriptor())==Ut5MaxStockChargeReference.PRODUCT_ID
+            // The model the estimate itself follows (modelDescriptor: the simulated one while simulating).
+            if(ModelRegistry.chargeReferenceProduct(modelDescriptor(active))==Ut5MaxStockChargeReference.PRODUCT_ID
                     &&effectiveChargeCharger()==null)
                 c.estimateUnavailableReason=T.serviceChargerDetection();
         }
@@ -1714,7 +1715,8 @@ public final class ScooterService extends Service {
         if(!liveCharge(frame.state,"charging_state",now))return;
         boolean paired=liveCharge(frame.soc,"battery_percent",now)&&liveCharge(frame.voltage,"voltage_v",now)
                 &&liveCharge(frame.current,"current_a",now)&&frame.voltage.mono==frame.current.mono;
-        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(profile.savedDescriptor()),frame.state.value==1d,paired?frame.soc.value:null,
+        // Never reached while simulating (above); the same model reader as the estimate all the same.
+        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,paired?frame.soc.value:null,
                 paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);

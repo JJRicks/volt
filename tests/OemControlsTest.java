@@ -565,7 +565,7 @@ public final class OemControlsTest {
         check(Arrays.equals(decide("start_speed",model("25041","US"),d).values(),span(3,5))&&decide("maximum_speed",model("25041","US"),d).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,
             "A 2504-prefix USA model: 3-5 (PID.m) and no Top speed row (it opens the plugins screen)");
         check(Arrays.equals(decide("start_speed",model("24431","RU"),d).values(),span(0,5))&&decide("maximum_speed",model("24431","CN"),d).available(),"RU and CN share the USA bucket");
-        // The developer simulator: another simulated model follows its synthetic serial region; the UT5 MAX simulator never takes one.
+        // The developer simulator: every simulated model follows its synthetic serial region, the UT5 MAX simulator included.
         CapabilityResolver.Runtime sim=new CapabilityResolver.Runtime();sim.simulation=true;sim.ready=true;
         for(String area:new String[]{"US","ES",null}){
             DeviceDescriptor simulated=DeviceDescriptor.simulated("24431",0,area);boolean usa="US".equals(area);
@@ -574,9 +574,14 @@ public final class OemControlsTest {
             check(Arrays.equals(start.values(),usa?span(0,5):span(3,5))&&CapabilityResolver.admit("start_speed",0,simulated,StatusFields.NONE,sim).available()==usa
                 &&CapabilityResolver.admit("start_speed",4,simulated,StatusFields.NONE,sim).available(),"Simulated 24431 "+area+" kick-start "+Arrays.toString(start.values()));
         }
-        DeviceDescriptor simUt5=DeviceDescriptor.simulated("",0,"DE");
-        check(simUt5.region==null&&CapabilityResolver.decide("maximum_speed",simUt5,StatusFields.NONE,sim).available()
-            &&CapabilityResolver.admit("start_speed",0,simUt5,StatusFields.NONE,sim).available(),"The UT5 MAX simulator keeps Top speed and 0-5 km/h whatever region is chosen");
+        DeviceDescriptor simUt5=DeviceDescriptor.simulated("",0,"DE"),simUt5Us=DeviceDescriptor.simulated("",0,"US"),simUt5None=DeviceDescriptor.simulated("",0);
+        check("DE".equals(simUt5.region)&&CapabilityResolver.decide("maximum_speed",simUt5,StatusFields.NONE,sim).reason==CapabilityResolver.Reason.REGION_RULE
+            &&Arrays.equals(CapabilityResolver.decide("start_speed",simUt5,StatusFields.NONE,sim).values(),span(3,5))
+            &&!CapabilityResolver.admit("start_speed",0,simUt5,StatusFields.NONE,sim).available()&&CapabilityResolver.admit("start_speed",4,simUt5,StatusFields.NONE,sim).available(),
+            "A DE UT5 MAX simulator follows the real DE UT5 MAX: no Top speed, kick-start 3-5 km/h");
+        for(DeviceDescriptor us:new DeviceDescriptor[]{simUt5Us,simUt5None})
+            check(CapabilityResolver.decide("maximum_speed",us,StatusFields.NONE,sim).available()&&CapabilityResolver.admit("start_speed",0,us,StatusFields.NONE,sim).available(),
+                "The US UT5 MAX simulator, and the default one with no region, keep Top speed and 0-5 km/h ("+us.region+")");
         // Same bytes and readback as the 0–5 table and the catalogue for every offered 3–5 value.
         for(int v=3;v<=5;v++)check(Arrays.equals(ModelRegistry.START_3_5.encode(v),ModelRegistry.START_0_5.encode(v))&&Arrays.equals(ModelRegistry.START_3_5.encode(v),ScooterCommands.set("start_speed",v)),"Kick-start bytes "+v);
         boolean refused=false;try{ModelRegistry.START_3_5.encode(2);}catch(IllegalArgumentException expected){refused=true;}

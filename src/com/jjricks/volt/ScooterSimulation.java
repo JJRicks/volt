@@ -29,9 +29,11 @@ public final class ScooterSimulation {
         public static Scene of(String id) { for (Scene s : values()) if (s.id.equals(id)) return s; return PARKED; }
     }
     private Scene scene = Scene.PARKED;
-    /** Drive-mode codes the simulator offers: Walk, the low mode (Eco or Drive by model) and Sport. */
+    /** The generic drive-mode codes: Walk, the low mode (Eco or Drive by model) and Sport, for a model with no named codes. */
     static final int WALK = 11, LOW_MODE = 2, SPORT = 3;
     private static final int[] DRIVE_MODES = {WALK, LOW_MODE, SPORT};
+    /** The codes the simulated model names (SimulatorModels.driveModes); the generic three until the caller says. */
+    private int[] driveModes = DRIVE_MODES.clone();
     private int driveMode = SPORT;
     /**
      * The model facts readings depend on, decided by the caller from the registry (BleController): whether the model has
@@ -171,7 +173,10 @@ public final class ScooterSimulation {
         chargeStart = local;
     }
 
-    /** Developer model choice. Keeps every catalogue value: the UI hides or greys controls by decision. */
+    /**
+     * Developer model choice: the model ID only. The caller (BleController) then brings the settings to the model's own
+     * choices with {@link #conform}, which needs the region too.
+     */
     public void setModel(String advertisedPid) {
         String pid = advertisedPid == null ? "" : advertisedPid;
         if (!pid.isEmpty() && !pid.matches("[1-9][0-9]{0,4}"))
@@ -206,12 +211,76 @@ public final class ScooterSimulation {
         rideClock = 0;
     }
 
-    /** The drive-mode codes the simulator offers (Walk, the low mode, Sport); a model's labels name them. */
-    public static int[] driveModes() { return DRIVE_MODES.clone(); }
+    /** The generic drive-mode codes (Walk, the low mode, Sport), for a model whose codes Volt doesn't name. */
+    public static int[] genericDriveModes() { return DRIVE_MODES.clone(); }
+    /** The drive-mode codes this simulated model offers. */
+    public int[] driveModes() { return driveModes.clone(); }
+    /**
+     * The model's own named codes (SimulatorModels.driveModes; the generic three when empty). A drive mode the new model
+     * doesn't name becomes its Sport (3, which every table names), else its last code.
+     */
+    public void setDriveModes(int[] codes) {
+        driveModes = codes == null || codes.length == 0 ? DRIVE_MODES.clone() : codes.clone();
+        if (!offersDriveMode(driveMode)) driveMode = offersDriveMode(SPORT) ? SPORT : driveModes[driveModes.length - 1];
+    }
+    public boolean offersDriveMode(int code) { for (int mode : driveModes) if (mode == code) return true; return false; }
     public int driveMode() { return driveMode; }
     public void setDriveMode(int code) {
-        for (int mode : DRIVE_MODES) if (mode == code) { driveMode = code; return; }
-        throw new IllegalArgumentException("Unavailable simulation setting");
+        if (!offersDriveMode(code)) throw new IllegalArgumentException("Unavailable simulation setting");
+        driveMode = code;
+    }
+
+    /**
+     * Brings every simulated setting to a value this model and region offer, as the screens read its choices: the
+     * ordinary rule's variant (CapabilityResolver.decide), else the Experimental controls try rule's. A value still
+     * offered is kept; another becomes the nearest offered value (the lower one on a tie). A control the model doesn't
+     * have keeps its value, which no screen shows. Memory only, like everything here.
+     */
+    public void conform(DeviceDescriptor d) {
+        for (Map.Entry<String, Integer> entry : features.entrySet()) {
+            FeatureVariant v = offeredVariant(entry.getKey(), d);
+            if (v == null || entry.getValue() != null && v.allows(entry.getValue())) continue;
+            Integer next = nearest(v, entry.getValue());
+            if (next != null) entry.setValue(next);
+        }
+    }
+    /** The variant whose choices a screen offers for this control on this model, or null where it has none. */
+    static FeatureVariant offeredVariant(String key, DeviceDescriptor d) {
+        CapabilityResolver.Decision decision = CapabilityResolver.decide(key, d, StatusFields.NONE, null);
+        if (decision.support == CapabilityResolver.Support.KNOWN_ENCODING && decision.variant != null) return decision.variant;
+        decision = CapabilityResolver.decideTry(key, d, StatusFields.NONE, null);
+        return decision.support == CapabilityResolver.Support.KNOWN_ENCODING ? decision.variant : null;
+    }
+    /** The offered value nearest to this one (a slider's range clamped and stepped), or null when none is offered. */
+    private static Integer nearest(FeatureVariant v, Integer value) {
+        int[] candidates = v.values;
+        int min = v.min, max = v.max, step = Math.max(1, v.step);
+        if (candidates.length == 0 && v.decode == FeatureVariant.Decode.UT5_FEATURE) {
+            ScooterCommands.Feature f = ScooterCommands.find(v.feature);
+            candidates = f.optionValues; min = f.min; max = f.max; step = Math.max(1, f.step);
+        }
+        int target = value == null ? Integer.MIN_VALUE : value;
+        if (candidates.length > 0) {
+            Integer best = null;
+            for (int c : candidates) {
+                if (!v.allows(c)) continue;
+                if (best == null || value != null && Math.abs((long) c - target) < Math.abs((long) best - target)) best = c;
+            }
+            return best;
+        }
+        if (min > max) return null;
+        long clamped = Math.max(min, Math.min(max, (long) target));
+        int stepped = (int) (min + (clamped - min) / step * step);
+        for (int c = stepped; c >= min; c -= step) if (v.allows(c)) return c;
+        return null;
+    }
+    /**
+     * A setting the simulated model doesn't offer, as a scooter changed elsewhere can report one, for the validations
+     * that check how a screen shows such a value (Home's unreadable dash). Memory only; no screen calls it.
+     */
+    void setUnoffered(String key, int value) {
+        if (!features.containsKey(key)) throw new IllegalArgumentException("Unavailable simulation setting");
+        features.put(key, value);
     }
 
     /** The registry's facts for the simulated model (see the fields); BleController sets them with the model. */
@@ -297,8 +366,9 @@ public final class ScooterSimulation {
                 tripMax = Math.max(tripMax, speed);
                 battery = clampBattery(battery - ridePower(rideClock) * step / 3600 / (RATED_AH * NOMINAL_V) * 100);
             } else if (scene == Scene.CHARGING) {
+                // Above a lowered limit the charger has stopped (0 A): the level stays where it is.
                 double amps = chargeAmps();
-                battery = Math.min(chargeTarget(), battery + amps * step / 3600 / RATED_AH * 100);
+                if (amps > 0) battery = Math.min(chargeTarget(), battery + amps * step / 3600 / RATED_AH * 100);
             }
         }
     }
@@ -324,7 +394,7 @@ public final class ScooterSimulation {
     /** Pack voltage at rest for a battery level (50.4 V at the sample's 78 %; about 0.124 V per percent, as UT5 MAX charges show). */
     static double restVolts(double percent) { return 50.4 + .124 * (percent - 78); }
 
-    /** The riding loop's cruise speed: by drive mode, under the simulated top speed. */
+    /** The riding loop's cruise speed: by drive mode (Walk, the low mode, or a Sport code: 3, or 5 on the GT5 Max family), under the simulated top speed. */
     private double cruise() {
         double speed = driveMode == WALK ? 6 : driveMode == LOW_MODE ? 19 : 27;
         Integer top = features.get("maximum_speed");

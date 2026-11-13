@@ -430,8 +430,8 @@ public final class ModelRegistry {
                 FeatureVariant v=Ut5.VARIANTS.get(feature);
                 if(v==null)return excluded(); // another model's light control; the UT5 MAX has none
                 // Version 17: a serial region outside the official app's USA bucket follows its Top speed and kick-start rules.
-                // A UT5 MAX without a serial region keeps the choices verified on a US one. Only the simulator (which never takes a
-                // region) or a descriptor before any serial is read has none: Volt connects only to a serial that passes
+                // A UT5 MAX without a serial region keeps the choices verified on a US one. Only the simulator without a region
+                // (its default) or a descriptor before any serial is read has none: Volt connects only to a serial that passes
                 // DeviceDescriptor.validSerial (BleController's 0x74 check), and every such serial names an area, as BleHandler.b reads it.
                 if(ut5OutsideUsa(d)){
                     if(feature.equals("maximum_speed"))return regionHidden();
@@ -981,12 +981,16 @@ public final class ModelRegistry {
     /**
      * Models whose drive-mode codes Volt names: the UT5 MAX (2538), the GT5 Max (25462) and the XT5 Pro (24162, same
      * codes) from owner reports, and the N65i (22131), assumed by the maintainer to match the GT5 Max until an owner
-     * reports otherwise, and the GT3 Max (24182), whose owner answered Drive 2, Sport 3, Walk 11; 0 keeps raw codes.
+     * reports otherwise, the GT3 Max (24182), whose owner answered Drive 2, Sport 3, Walk 11, and, with a table of its
+     * own (23452), the ST3 Pro, whose owner answered Walk 11, Drive 2, Sport 3 in November 2026; 0 keeps raw codes.
      */
     public static int driveModeLabelProduct(DeviceDescriptor d){
         if(ut5Max(d))return 2538;if(known(d)==null)return 0;
         // The XT5 Pro (24162) reported the same codes in a closed cycle: 11 Walk, 2 Drive, 3 Sport.
         String pid=d.rulePid();
+        // The ST3 Pro (23452): its owner answered Walk 11, Drive 2, Sport 3 (November 2026; the display shows Drive as D).
+        // Its own table, without the GT5 Max owner's Sport 5: on this model 5 is also its Turbo acceleration value.
+        if("23452".equals(pid))return 23452;
         return "25462".equals(pid)||"22131".equals(pid)||"24162".equals(pid)||"24182".equals(pid)?25462:0;
     }
     public static int rangeFollowProduct(DeviceDescriptor d){return ut5Max(d)?2538:0;}
