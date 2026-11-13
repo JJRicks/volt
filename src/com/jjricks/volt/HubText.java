@@ -281,6 +281,25 @@ public final class HubText {
         return null;
     }
 
+    /**
+     * The one short name a round quick action shows under its circle on Clean Home (the contributor's decisions on
+     * #383: "Cruise" for Cruise control, "Ride" not "RIDE"), where an existing short text says it; null for any other
+     * action (it shows its short rung, QuickAccessGrid.tileLabel). Its spoken name stays the full one.
+     * Until part 10 adds Clean's own short names (listed in #449), Cruise control, traction control and energy recovery
+     * reuse the statistics' short reading names, which are the same words.
+     */
+    public static Msg quickActionRoundName(String id, String featureKey) {
+        if (HomeQuickActions.RIDING.equals(id)) return shortTitle(HubPages.RIDE);
+        if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
+        if (featureKey == null) return null;
+        switch (featureKey) {
+            case "cruise_control": return M.statsRowCruiseControl();
+            case "traction_control": return M.statsRowTractionControl();
+            case "energy_recovery": return M.statsRowEnergyRecovery();
+            default: return null;
+        }
+    }
+
     /** The Record action's value while a ride is being recorded. */
     public static Msg qaRecording() { return M.homeQaRecording(); }
 
