@@ -616,8 +616,6 @@
     <string name="main_report_email_next">Subito dopo si aprirà l\'app email, così potrai leggerlo prima.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Scegli il tuo monopattino o «Non sono sicuro», poi «Invia».</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Verrà aggiunto un file di diagnostica con i dettagli dell\'app e del monopattino e gli eventi recenti di connessione e dei comandi. Non include mai la tua chiave del proprietario, il PIN, il numero di serie, la posizione né i nomi.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Scrivi a Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->
