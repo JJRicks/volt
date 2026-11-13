@@ -252,6 +252,10 @@ public final class ShortcutPickerTest {
         check(ChargeAlertPolicy.shortcutLevel(true, ChargeAlertPolicy.Settings.OFF.charge(true, 100)) == 100, "Full");
         check(ChargeAlertPolicy.shortcutLevel(true, ChargeAlertPolicy.Settings.OFF.low(true, 20)) == 0, "only the low alert on: the charge alert reads Off");
         check(ChargeAlertPolicy.shortcutLevel(true, ChargeAlertPolicy.Settings.decode("charge=1;at=72")) == 70, "a stored level snaps as the sheet saves it");
+        check(ChargeAlertPolicy.shortcutLow(true, ChargeAlertPolicy.Settings.OFF.low(true, 20)) == 20, "only the low alert on: its level");
+        check(ChargeAlertPolicy.shortcutLow(true, ChargeAlertPolicy.Settings.OFF.charge(true, 90).low(true, 20)) == null, "both on: the charge alert's level shows");
+        check(ChargeAlertPolicy.shortcutLow(true, ChargeAlertPolicy.Settings.OFF) == null && ChargeAlertPolicy.shortcutLow(true, null) == null, "neither on, or nothing read: Off");
+        check(ChargeAlertPolicy.shortcutLow(false, ChargeAlertPolicy.Settings.OFF.low(true, 20)) == null, "not offered: no low level either");
         System.out.println("ShortcutPickerTest: " + checks + " checks passed");
     }
 }
