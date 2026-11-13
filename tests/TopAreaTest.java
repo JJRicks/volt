@@ -41,12 +41,11 @@ public final class TopAreaTest {
             require(gaps[0] >= 0 && gaps[1] >= 0 && gaps[2] >= 0, "no negative gap for " + extra);
             require(Math.max(gaps[0], Math.max(gaps[1], gaps[2])) < 44, "no band of 44 dp or more for " + extra);
         }
-        // Weighted as the mock-up spreads it (about 36, 37 and 20 dp of 93): the readings sit close under the bar.
-        int[] mock = TopArea.parkedGaps(93);
-        require(Math.abs(mock[0] - 36) <= 1 && Math.abs(mock[1] - 37) <= 1 && Math.abs(mock[2] - 20) <= 1,
-                "the mock-up's split, about 36/37/20 of 93: " + mock[0] + "/" + mock[1] + "/" + mock[2]);
-        require(mock[2] < mock[0] && mock[2] < mock[1], "the gap over the readings is the smallest");
-        require(TopArea.parkedGaps(Math.round(84 * 3f))[2] <= 56, "pixels: the same weights at 3 px per dp");
+        // An even split: the gap over the readings is no larger than the others (the mock-up's 36/37/20 dp weights left
+        // bands of 40 dp or more over the bar on the emulator's 344 and 412 dp phones).
+        int[] even = TopArea.parkedGaps(93);
+        require(even[2] <= even[0] && Math.abs(even[0] - even[1]) <= 1 && Math.abs(even[1] - even[2]) <= 1,
+                "about even: " + even[0] + "/" + even[1] + "/" + even[2]);
         require(TopArea.parkedGaps(-3)[0] == 0 && TopArea.parkedGaps(-3)[1] == 0, "no spare height, no gaps");
         // The parked photo (the mock-up's ~144 dp picture right of the words): full size on a 344 dp phone at 1x (a
         // card's content is about 276 dp there), narrower but still shown at 1.4x, full size on the wide window.
