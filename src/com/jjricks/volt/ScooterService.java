@@ -482,6 +482,12 @@ public final class ScooterService extends Service {
         }catch(IOException|IllegalStateException failure){chargeStatus=M.serviceChargeStartFailed();finishChargeCapture(ChargeSessionStore.Stop.ERROR);changed();return false;}
     }
     public void stopChargeRecording(){finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
+    /**
+     * The last charge status as its message (a Msg), not rendered: what a finished export just set when it failed ("Charge
+     * recordings could not be exported", or "No saved charge recordings for this scooter"). Email to Volt holds it in
+     * ChargeSend.MAILBOX until a screen shows it, so it renders then, in the language current then (#419 review, P3 1).
+     */
+    public CharSequence chargeStatusMessage(){return chargeStatus;}
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())

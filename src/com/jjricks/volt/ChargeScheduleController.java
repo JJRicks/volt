@@ -603,7 +603,10 @@ public final class ChargeScheduleController {
         ChargeScheduleTest t=test;if(t==null||t.phase()==ChargeScheduleTest.Phase.ARMING||t.phase()==ChargeScheduleTest.Phase.ENDING)return;
         // Disconnects and new sessions send nothing: the tracked intention's own checks take over.
         if(!sameContext(testContext,c)){endTest(ChargeScheduleTest.Outcome.INTERRUPTED,false,null,why(testContext,c));return;}
-        if(t.observe(c.now,c.mono,c.charging,c.soc,c.target)!=ChargeScheduleTest.Outcome.NONE)endTest(t.outcome(),true,null,t.interruption());
+        ChargeScheduleTest.Outcome verdict=t.observe(c.now,c.mono,c.charging,c.soc,c.target);
+        // The pause is saved when seen, so a test cut off later (even by the process ending) still says it paused.
+        if(t.paused()){State s=state(testContext);if(!s.testPaused){s.testPaused=true;save(testContext,s);}}
+        if(verdict!=ChargeScheduleTest.Outcome.NONE)endTest(t.outcome(),true,null,t.interruption());
     }
     /** why: what cut an INTERRUPTED test off (null for a verdict, a cancel or a failed arming). */
     private void endTest(ChargeScheduleTest.Outcome reason,boolean cleanup,String failure,Interruption why){

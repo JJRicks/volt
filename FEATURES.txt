@@ -453,6 +453,9 @@ Long range mode    OEM-mapped   Parked; 2745 and the 2543 group; its status
 Charge ceiling,    OEM-mapped   Parked; 2416/2443/2529, 2547/2585 and the 2543
 scheduled charging              group; four IDs need the full model ID; start
 and start time                  times on the hour, within 48 hours
+Battery alerts     Volt's own   Identified models without the charge ceiling
+                                above (such as the GT3 Max); Charge done by
+                                needs scheduled charging and its start time
 Lock duration      OEM-mapped   Parked; firmware read this session where the
                                 official app checks it
 Walk, power and    OEM-mapped   Parked; 2547, 2585, 2619, 2620, 2646
@@ -565,14 +568,16 @@ confirmed current direction before it can be called net battery consumption.
 
 Report diagnostics (volt-diagnostics.json, sent only in a report email with
 Include diagnostics ticked) also carry the selected scooter's charge evidence:
-the last 10 schedule plans (start, deadline, how each ended, and the battery,
+the last 10 schedule plans (start, deadline and target as set, the last change
+to them with its time, how each ended, and the battery,
 lock and schedule readings at arming, start and end, each from a reading within
 30 s after that moment on the connection that was up at it, else unknown), the
 last 5 schedule tests with why one was cut short (a test the app's closing cut
 off reads as interrupted), a 300-entry charging timeline, readings around a start Volt set and after
 a test, how each schedule change ended, and changes to the schedule switch,
 start time, lock or charge limit that Volt didn't send. The control log keeps
-the start time and clock Volt sent. Typed numbers only, kept on the phone
+the start time and clock Volt sent (none for a change cancelled before it went
+out). Typed numbers only, kept on the phone
 (never backed up) and removed when the scooter is forgotten.
 
 No decoded per-cell voltages, cell balance, motor/controller temperature,
@@ -1220,8 +1225,9 @@ preview shows "Online map: on" when it will be on. Provider changes
 alone do not enable tiles. Local routes and recording work with Basemap off.
 OpenStreetMap is the default provider (worldwide), with caching and attribution;
 the first-enable explanation names it. A Basemap turned on under the old USGS
-Topo default with no provider saved keeps USGS (U.S. streets/terrain); explicit
-choices never change. OSM, USGS and custom
+Topo default with no provider saved keeps USGS (U.S. streets/terrain); a map of a
+ride outside USGS coverage asks once to switch to OpenStreetMap (Switch or Keep USGS,
+saved as their choice); explicit choices never change. OSM, USGS and custom
 HTTPS providers remain selectable. Unsupported closer USGS
 zooms enlarge available level-16 tiles. HTTP errors and X-Blocked images show a
 status while local routes remain visible. Provider denial pauses further requests;
@@ -1237,7 +1243,10 @@ Shortcuts to whole settings pages open the page: Settings opens the Scooter
 tab, PIN/proximity opens Scooter > Security, experimental controls open
 their test in Scooter > Service > Experimental controls, app-preference
 shortcuts open More on that menu, and Data & history opens Live Stats > Data &
-history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Legacy
+history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Which
+controls, scheduled charging and battery alerts each model has: see the UT5 MAX
+tables and OTHER NAVEE MODELS above. There is no drive mode shortcut: the
+scooter's drive mode is changed on the scooter, never from the app. Legacy
 widgets default to Lights, Settings, Stats and Rides. Saved slots and duplicates
 retain the chosen list. Labels wrap; compact cards scroll when needed, while
 moderate-height cards fit a two-by-two button arrangement without extra overflow.

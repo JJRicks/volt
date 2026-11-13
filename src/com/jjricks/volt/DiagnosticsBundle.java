@@ -189,10 +189,13 @@ final class DiagnosticsBundle {
                 mode(r[ChargeEvidence.I_END_MODE]),
                 num(r[ChargeEvidence.I_ARMED_READ]), num(r[ChargeEvidence.I_ARMED_SOC]), num(r[ChargeEvidence.I_LOCK_ARMED]),
                 num(r[ChargeEvidence.I_START_READ]), num(r[ChargeEvidence.I_LOCK_START]),
-                num(r[ChargeEvidence.I_END_READ]), num(r[ChargeEvidence.I_END_SOC]), num(r[ChargeEvidence.I_END_ENABLED]), num(r[ChargeEvidence.I_END_WIRE]), num(r[ChargeEvidence.I_LOCK_END])));
+                num(r[ChargeEvidence.I_END_READ]), num(r[ChargeEvidence.I_END_SOC]), num(r[ChargeEvidence.I_END_ENABLED]), num(r[ChargeEvidence.I_END_WIRE]), num(r[ChargeEvidence.I_LOCK_END]),
+                rel(r[ChargeEvidence.I_CHANGED], at), mode(r[ChargeEvidence.I_CHANGED_MODE]), rel(r[ChargeEvidence.I_CHANGED_DEADLINE], at), num(r[ChargeEvidence.I_CHANGED_TARGET])));
         m.put("intentions", table(rows, "mode", "armed_ms", "start_ms", "deadline_ms", "wire_start", "clock_offset_s", "target", "started",
                 "end", "end_ms", "end_mode", "arming_sample_after_ms", "soc_at_arming", "locked_at_arming", "start_sample_after_ms", "locked_at_start",
-                "end_sample_after_ms", "end_soc", "end_schedule_on", "end_wire_start", "locked_at_end"));
+                "end_sample_after_ms", "end_soc", "end_schedule_on", "end_wire_start", "locked_at_end",
+                // mode, deadline_ms and target are as armed; the last change to them before the plan ended, and when Volt saw it, else unknown.
+                "changed_ms", "changed_mode", "changed_deadline_ms", "changed_target"));
         rows = new ArrayList<>();
         for (long[] r : b.tests) rows.add(Arrays.asList(rel(r[ChargeEvidence.X_WALL], at), rel(r[ChargeEvidence.X_START], at), name(ChargeScheduleTest.Outcome.values(), r[ChargeEvidence.X_OUTCOME]),
                 num(r[ChargeEvidence.X_OFFSET]), num(r[ChargeEvidence.X_PAUSED]), num(r[ChargeEvidence.X_OFF]), name(ChargeScheduleController.Interruption.values(), r[ChargeEvidence.X_WHY])));

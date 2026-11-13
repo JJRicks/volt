@@ -44,6 +44,9 @@ public final class ChargeEvidenceTest {
         // Council review of 4e7c8802, one per finding (2's file side is CommandLogTest and DiagnosticsBundleTest).
         momentsNeedTheirConnection(); everySavedScooterLoads(); processEndInterruptsTest(); missedStartKeepsItsWindow(); pendingOnlyExplainsItsValue();
         otherScootersWritesExplainNothing(); armedBeforeTheUpdate(); versionOneStillReads();
+        // Council review of 6c968d5c, one per finding (2 is CommandLogTest and DiagnosticsBundleTest; 4 is ChargeScheduleControllerTest, through this class).
+        lostConfirmationAfterALongWait(); laterOutsideChangesStillCount(); lostConfirmationAcrossAReconnect(); versionTwoStillReads();
+        planChangeKeepsWhatWasArmed();
         System.out.println("ChargeEvidenceTest: " + checks + " assertions passed");
     }
 
@@ -527,9 +530,9 @@ public final class ChargeEvidenceTest {
         r.advance(1_000); s = r.sample(3, 0L); s[ChargeEvidence.S_LOCK] = 0; r.evidence.offer(A, s, "lock", 1L);
         r.evidence.unlinked(A); r.advance(30_000); s = r.sample(4, 0L); s[ChargeEvidence.S_LOCK] = 1; r.offer(A, s);
         check(count(r.book(A), ChargeEvidence.Watched.LOCK) == 1, "A's own write explains A's readback across a reconnection, log or not");
-        // Own writes survive a restart (they are in the file).
+        // Spent: the run it explained has ended, so it explains nothing more, also after a restart (lostConfirmationAcrossAReconnect keeps one on disk).
         r.evidence.flush().get(10, TimeUnit.SECONDS); r.open(); r.evidence.prefetch(A);
-        check(r.book(A).own.size() == 1 && r.book(A).own.get(0)[ChargeEvidence.OW_KEY] == ChargeEvidence.Watched.LOCK.ordinal(), "the own write is kept on disk");
+        check(r.book(A).own.isEmpty(), "the own write is spent once it explained a change");
     }
 
     /** Finding 9: a plan armed before the update (no evidence file yet) is handed over at the start: open intention and start window. */
@@ -568,8 +571,8 @@ public final class ChargeEvidenceTest {
             out.writeShort(1); out.writeByte(ChargeEvidence.I_COLUMNS_V1); for (long v : row) out.writeLong(v);
             int[] empty = {ChargeEvidence.X_COLUMNS, ChargeEvidence.T_COLUMNS, ChargeEvidence.O_COLUMNS, ChargeEvidence.C_COLUMNS, ChargeEvidence.W_COLUMNS};
             for (int columns : empty) { out.writeShort(0); out.writeByte(columns); }
-            out.writeShort(ChargeEvidence.Watched.values().length); out.writeByte(ChargeEvidence.F_COLUMNS);
-            for (int i = 0; i < ChargeEvidence.Watched.values().length * ChargeEvidence.F_COLUMNS; i++) out.writeLong(ChargeEvidence.NONE);
+            out.writeShort(ChargeEvidence.Watched.values().length); out.writeByte(ChargeEvidence.F_COLUMNS_V2);
+            for (int i = 0; i < ChargeEvidence.Watched.values().length * ChargeEvidence.F_COLUMNS_V2; i++) out.writeLong(ChargeEvidence.NONE);
             out.writeShort(0); out.writeByte(ChargeEvidence.S_COLUMNS); out.writeBoolean(false);
         }
         byte[] body = buffer.toByteArray(); java.util.zip.CRC32 crc = new java.util.zip.CRC32(); crc.update(body);
@@ -578,6 +581,160 @@ public final class ChargeEvidenceTest {
         check(b.open != null && b.open[ChargeEvidence.I_START] == WALL + 60_000 && b.open[ChargeEvidence.I_TARGET] == 90 && b.own.isEmpty()
                 && unknown(b.open, ChargeEvidence.I_ARMED_SOC, ChargeEvidence.I_LOCK_ARMED, ChargeEvidence.I_LOCK_START, ChargeEvidence.I_ARMED_READ, ChargeEvidence.I_START_READ),
                 "a version 1 file reads, its at-moment values unknown");
-        check(ChargeEvidence.decode(ChargeEvidence.encode(b)).open[ChargeEvidence.I_START] == WALL + 60_000, "and writes back as version 2");
+        check(unknown(b.open, ChargeEvidence.I_CHANGED, ChargeEvidence.I_CHANGED_MODE, ChargeEvidence.I_CHANGED_DEADLINE, ChargeEvidence.I_CHANGED_TARGET), "with no plan change known");
+        check(ChargeEvidence.decode(ChargeEvidence.encode(b)).open[ChargeEvidence.I_START] == WALL + 60_000, "and writes back as the current version");
+    }
+
+    private static long[] enabled(Rig r, int generation, long value) { long[] s = r.sample(generation, 0L); s[ChargeEvidence.S_ENABLED] = value; return s; }
+    private static CommandLog.Session real() { return new CommandLog.Session(WALL - 1, "1.13.1", "24011", ModelRegistry.Layer.values()[0], "", "", false); }
+
+    /**
+     * Finding 1: Volt turns the schedule on in sight on a weak link. The old value keeps reading every 2 s while the
+     * write waits 6.5 s and longer, the confirmation is lost (timeout), and the value Volt asked for reads back later:
+     * the change is Volt's, however long the old value kept reading after the write was issued.
+     */
+    private static void lostConfirmationAfterALongWait() throws Exception {
+        Rig r = new Rig(); r.log.add(real());
+        r.offer(A, enabled(r, 1, 0));
+        long issued = r.wall.get() + 2_000;
+        for (int i = 0; i < 4; i++) { r.advance(2_000); r.evidence.offer(A, enabled(r, 1, 0), "timed_charging", 1L); }
+        r.log.add(write(issued + 6_500, "timed_charging", 1, CommandLog.Outcome.TIMEOUT, null));
+        for (int i = 0; i < 5; i++) { r.advance(2_000); r.offer(A, enabled(r, 1, 0)); }
+        r.advance(2_000); r.offer(A, enabled(r, 1, 1));
+        check(count(r.book(A), ChargeEvidence.Watched.TIMED_CHARGING) == 0, "a lost confirmation read back after 18 s of the old value is Volt's");
+    }
+    /** Finding 1, the other side: an own write already confirmed and seen applied explains no later outside change to the same value. */
+    private static void laterOutsideChangesStillCount() throws Exception {
+        Rig r = new Rig(); r.log.add(real());
+        r.offer(A, enabled(r, 1, 0));
+        r.advance(2_000); r.evidence.offer(A, enabled(r, 1, 0), "timed_charging", 1L);
+        r.log.add(write(r.wall.get() + 500, "timed_charging", 1, CommandLog.Outcome.READBACK_SAME, null));
+        r.advance(2_000); r.evidence.offer(A, enabled(r, 1, 1), "timed_charging", 1L);
+        r.advance(2_000); r.offer(A, enabled(r, 1, 1));
+        check(count(r.book(A), ChargeEvidence.Watched.TIMED_CHARGING) == 0, "Volt's confirmed ON is Volt's");
+        // The official app turns it off, then on again, in sight: both are outside changes.
+        r.advance(2_000); r.offer(A, enabled(r, 1, 0));
+        r.advance(2_000); r.offer(A, enabled(r, 1, 1));
+        ChargeEvidence.Book b = r.book(A);
+        check(count(b, ChargeEvidence.Watched.TIMED_CHARGING) == 2 && b.changes.get(1)[ChargeEvidence.C_NEW] == 1, "a later ON by someone else is listed, though Volt once wrote ON");
+        // The same after a write whose confirmation was lost: it explains its own readback once, then nothing.
+        Rig lost = new Rig(); lost.log.add(real());
+        lost.offer(A, enabled(lost, 1, 0));
+        lost.advance(2_000); lost.evidence.offer(A, enabled(lost, 1, 0), "timed_charging", 1L);
+        lost.log.add(write(lost.wall.get() + 6_500, "timed_charging", 1, CommandLog.Outcome.TIMEOUT, null));
+        for (int i = 0; i < 4; i++) { lost.advance(2_000); lost.offer(A, enabled(lost, 1, 0)); }
+        lost.advance(2_000); lost.offer(A, enabled(lost, 1, 1));
+        lost.advance(60_000); lost.offer(A, enabled(lost, 1, 0));
+        lost.advance(60_000); lost.offer(A, enabled(lost, 1, 1));
+        b = lost.book(A);
+        check(count(b, ChargeEvidence.Watched.TIMED_CHARGING) == 2 && b.changes.get(0)[ChargeEvidence.C_NEW] == 0 && b.changes.get(1)[ChargeEvidence.C_NEW] == 1,
+                "the lost write explains its own readback only; the later OFF and ON are listed");
+        // A rejected write explains nothing, however its run goes.
+        Rig rejected = new Rig(); rejected.log.add(real());
+        rejected.offer(A, enabled(rejected, 1, 0));
+        rejected.advance(2_000); rejected.evidence.offer(A, enabled(rejected, 1, 0), "timed_charging", 1L);
+        rejected.log.add(write(rejected.wall.get() + 300, "timed_charging", 1, CommandLog.Outcome.REJECTED, null));
+        rejected.advance(2_000); rejected.offer(A, enabled(rejected, 1, 0));
+        rejected.advance(10_000); rejected.offer(A, enabled(rejected, 1, 1));
+        check(count(rejected.book(A), ChargeEvidence.Watched.TIMED_CHARGING) == 1, "a rejected ON does not explain an ON");
+    }
+    /** Finding 1 across a reconnection and a process restart: the run of the old value and the own write are both on disk. */
+    private static void lostConfirmationAcrossAReconnect() throws Exception {
+        Rig r = new Rig(); r.log.add(real());
+        r.offer(A, enabled(r, 1, 0));
+        for (int i = 0; i < 3; i++) { r.advance(2_000); r.evidence.offer(A, enabled(r, 1, 0), "timed_charging", 1L); }
+        r.log.add(write(r.wall.get(), "timed_charging", 1, CommandLog.Outcome.INTERRUPTED, null));
+        r.evidence.unlinked(A); r.evidence.flush().get(10, TimeUnit.SECONDS);
+        r.open(); r.evidence.prefetch(A);
+        ChargeEvidence.Book kept = r.book(A);
+        check(kept.own.size() == 1 && kept.own.get(0)[ChargeEvidence.OW_RUN] == WALL && kept.fresh[ChargeEvidence.Watched.TIMED_CHARGING.ordinal()][ChargeEvidence.F_SINCE] == WALL,
+                "the own write, tagged with the old value's run, and that run's first reading are kept on disk");
+        // The next connection first reads the old value for a while, then the value Volt asked for.
+        r.advance(120_000);
+        for (int i = 0; i < 6; i++) { r.advance(2_000); r.offer(A, enabled(r, 2, 0)); }
+        r.advance(2_000); r.offer(A, enabled(r, 2, 1));
+        ChargeEvidence.Book b = r.book(A);
+        check(count(b, ChargeEvidence.Watched.TIMED_CHARGING) == 0 && b.own.isEmpty(), "Volt's write, read back on the next connection after a restart; then spent");
+        // Read back at once on the next connection: Volt's too, and marked so had it been listed (it is not).
+        Rig quick = new Rig(); quick.log.add(real());
+        quick.offer(A, enabled(quick, 1, 0));
+        quick.advance(2_000); quick.evidence.offer(A, enabled(quick, 1, 0), "timed_charging", 1L); quick.evidence.unlinked(A);
+        quick.advance(60_000); quick.offer(A, enabled(quick, 2, 1));
+        check(count(quick.book(A), ChargeEvidence.Watched.TIMED_CHARGING) == 0, "read back first thing on the next connection: Volt's");
+        // Another value across the reconnection is listed, marked across.
+        quick.evidence.unlinked(A); quick.advance(60_000); quick.offer(A, enabled(quick, 3, 0));
+        b = quick.book(A);
+        check(count(b, ChargeEvidence.Watched.TIMED_CHARGING) == 1 && b.changes.get(0)[ChargeEvidence.C_ACROSS] == 1, "an OFF nobody in Volt sent, across a disconnection");
+    }
+    /** Version 2 files (development builds of this pull request) still read: each run begins at its last reading, an own write the old rule counted joins it, no plan change is known. */
+    private static void versionTwoStillReads() throws Exception {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        long lastRead = WALL + 20_000;
+        try (DataOutputStream out = new DataOutputStream(buffer)) {
+            out.writeInt(0x56434556); out.writeInt(2);
+            long[] row = new long[ChargeEvidence.I_COLUMNS_V2]; Arrays.fill(row, ChargeEvidence.NONE);
+            row[ChargeEvidence.I_ARMED] = WALL; row[ChargeEvidence.I_MODE] = 2; row[ChargeEvidence.I_START] = WALL + 60_000; row[ChargeEvidence.I_TARGET] = 90;
+            row[ChargeEvidence.I_STARTED] = 0; row[ChargeEvidence.I_END] = ChargeEvidence.END_OPEN; row[ChargeEvidence.I_START_SEEN] = 0;
+            out.writeShort(1); out.writeByte(ChargeEvidence.I_COLUMNS_V2); for (long v : row) out.writeLong(v);
+            int[] empty = {ChargeEvidence.X_COLUMNS, ChargeEvidence.T_COLUMNS, ChargeEvidence.O_COLUMNS, ChargeEvidence.C_COLUMNS, ChargeEvidence.W_COLUMNS};
+            for (int columns : empty) { out.writeShort(0); out.writeByte(columns); }
+            out.writeShort(ChargeEvidence.Watched.values().length); out.writeByte(ChargeEvidence.F_COLUMNS_V2);
+            for (ChargeEvidence.Watched w : ChargeEvidence.Watched.values()) {
+                if (w == ChargeEvidence.Watched.TIMED_CHARGING) { out.writeLong(0); out.writeLong(lastRead); out.writeLong(1_020_000); }
+                else for (int i = 0; i < ChargeEvidence.F_COLUMNS_V2; i++) out.writeLong(ChargeEvidence.NONE);
+            }
+            out.writeShort(0); out.writeByte(ChargeEvidence.S_COLUMNS); out.writeBoolean(false);
+            // Two own writes of ON: one the old rule still counted (2 s before the last reading), one it no longer did (60 s before).
+            out.writeShort(2); out.writeByte(ChargeEvidence.OW_COLUMNS_V2);
+            for (long wall : new long[]{lastRead - 2_000, lastRead - 60_000}) { out.writeLong(ChargeEvidence.Watched.TIMED_CHARGING.ordinal()); out.writeLong(1); out.writeLong(wall); }
+        }
+        byte[] body = buffer.toByteArray(); java.util.zip.CRC32 crc = new java.util.zip.CRC32(); crc.update(body);
+        byte[] all = Arrays.copyOf(body, body.length + 8); long v = crc.getValue(); for (int i = 0; i < 8; i++) all[body.length + i] = (byte) (v >>> (56 - 8 * i));
+        ChargeEvidence.Book b = ChargeEvidence.decode(all);
+        long[] f = b.fresh[ChargeEvidence.Watched.TIMED_CHARGING.ordinal()];
+        check(b.open != null && b.open[ChargeEvidence.I_MODE] == 2 && unknown(b.open, ChargeEvidence.I_CHANGED, ChargeEvidence.I_CHANGED_MODE, ChargeEvidence.I_CHANGED_DEADLINE, ChargeEvidence.I_CHANGED_TARGET)
+                && f[ChargeEvidence.F_SINCE] == lastRead && b.own.size() == 2 && b.own.get(0)[ChargeEvidence.OW_RUN] == lastRead && b.own.get(1)[ChargeEvidence.OW_RUN] == ChargeEvidence.NONE,
+                "a version 2 file reads: its runs begin at their last reading, the own write the old rule counted joins that run, no plan change known");
+        check(ChargeEvidence.decode(ChargeEvidence.encode(b)).own.size() == 2, "and writes back as the current version");
+        // In use: the counted write still explains its readback.
+        Rig r = new Rig(); r.log.add(real());
+        Files.write(new File(r.dir, A).toPath(), all); r.open(); r.evidence.prefetch(A);
+        r.wall.set(lastRead + 30_000); r.offer(A, enabled(r, 1, 1));
+        check(count(r.book(A), ChargeEvidence.Watched.TIMED_CHARGING) == 0, "a version 2 own write the old rule counted still explains its readback");
+    }
+    private static String withTarget(String record, int mode, int target) {
+        String[] v = record.split("\\|", -1); v[1] = String.valueOf(mode); v[7] = target + ".0"; return String.join("|", v);
+    }
+    /** Finding 3: a charge limit edit before the start turns Charge done by into a manual plan; the row keeps the plan as armed and the change apart. */
+    private static void planChangeKeepsWhatWasArmed() throws Exception {
+        Rig r = new Rig();
+        long start = WALL + 3_600_000, deadline = start + 86_400_000L;
+        String armed = encoded(2, WALL, start, ChargeScheduleController.Outcome.NONE, 0, ChargeScheduleTest.Outcome.NONE, 0);
+        r.evidence.saved(A, ChargeScheduleController.diagnostics(armed, 1));
+        r.advance(600_000); long changedAt = r.wall.get();
+        String changed = withTarget(armed, 1, 80);
+        r.evidence.saved(A, ChargeScheduleController.diagnostics(changed, 1));
+        ChargeEvidence.Book b = r.book(A);
+        check(b.open[ChargeEvidence.I_MODE] == 2 && b.open[ChargeEvidence.I_DEADLINE] == deadline && b.open[ChargeEvidence.I_TARGET] == 90
+                && b.open[ChargeEvidence.I_CHANGED] == changedAt && b.open[ChargeEvidence.I_CHANGED_MODE] == 1 && b.open[ChargeEvidence.I_CHANGED_DEADLINE] == ChargeEvidence.NONE
+                && b.open[ChargeEvidence.I_CHANGED_TARGET] == 80, "Charge done by as armed, then the change to a manual plan to 80 %, with when");
+        // The same record saved again later is no new change.
+        r.advance(60_000); r.evidence.saved(A, ChargeScheduleController.diagnostics(changed, 1));
+        check(r.book(A).open[ChargeEvidence.I_CHANGED] == changedAt, "an unchanged save keeps the change's time");
+        // It ends: the ended row still says what was armed and what it became.
+        r.advance(60_000);
+        r.evidence.saved(A, ChargeScheduleController.diagnostics(encoded(0, WALL, start, ChargeScheduleController.Outcome.TURNED_OFF, r.wall.get(), ChargeScheduleTest.Outcome.NONE, 0), 1));
+        b = r.book(A);
+        check(b.open == null && b.intentions.size() == 1 && b.intentions.get(0)[ChargeEvidence.I_MODE] == 2 && b.intentions.get(0)[ChargeEvidence.I_CHANGED_MODE] == 1
+                && b.intentions.get(0)[ChargeEvidence.I_CHANGED_TARGET] == 80, "the ended plan keeps both");
+        // Armed again for the same start: the plan as newly armed, no change yet.
+        Rig again = new Rig();
+        again.evidence.saved(A, ChargeScheduleController.diagnostics(armed, 1));
+        again.advance(1_000); again.evidence.saved(A, ChargeScheduleController.diagnostics(changed, 1));
+        again.advance(1_000); again.evidence.saved(A, ChargeScheduleController.diagnostics(withTarget(encoded(2, again.wall.get(), start, ChargeScheduleController.Outcome.NONE, 0,
+                ChargeScheduleTest.Outcome.NONE, 0), 2, 85), 1));
+        b = again.book(A);
+        check(b.open[ChargeEvidence.I_ARMED] == again.wall.get() && b.open[ChargeEvidence.I_MODE] == 2 && b.open[ChargeEvidence.I_TARGET] == 85
+                && unknown(b.open, ChargeEvidence.I_CHANGED, ChargeEvidence.I_CHANGED_MODE, ChargeEvidence.I_CHANGED_DEADLINE, ChargeEvidence.I_CHANGED_TARGET), "a re-arm starts a new plan as armed");
     }
 }

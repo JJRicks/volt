@@ -1524,6 +1524,7 @@ public final class RidesScreen implements AppScreen {
         if (!track.points.isEmpty()) top.addView(MapPreferences.basemapControl(host, enabled -> {
             map.setStreets(enabled);
             attribution.setVisibility(enabled ? View.VISIBLE : View.GONE);
+            if (enabled) MapPreferences.offerOsmSwitch(host, mapFrame, track.points);
         }));
         TextView mapStatus = ui.caption(""); mapStatus.setTextColor(ui.orange);
         mapStatus.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), 0); top.addView(mapStatus);
