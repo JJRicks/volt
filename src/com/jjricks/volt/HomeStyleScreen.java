@@ -10,7 +10,7 @@ import android.widget.TextView;
 
 /**
  * Settings › Home style (page {@link HubPages#SETTINGS_HOME}, hub layout plan PR 8): the style choice with its two
- * drawings, then Clean Home's two moments, "Show charging while plugged in" and "Show the last ride after riding".
+ * drawings, then Clean Home's two moments, "Show charging automatically" and "Show the last ride after riding".
  * Text from HubText only.
  */
 final class HomeStyleScreen implements AppScreen {

@@ -1516,13 +1516,15 @@ public final class RidesScreen implements AppScreen {
         int plate = ui.dark ? ui.bg : ui.text, ink = ui.dark ? ui.text : ui.surface;
         TextView attribution = ui.text(source.displayAttribution(), 10.5f, false); attribution.setTextColor(ink); attribution.setMaxLines(3);
         attribution.setBackground(ui.shape(Ui.withAlpha(plate, 215), 7, 0)); attribution.setPadding(ui.dp(7), ui.dp(4), ui.dp(7), ui.dp(4));
-        attribution.setOnClickListener(v -> openWeb(source.attributionUrl));
+        MapSource[] shown = {source};
+        attribution.setOnClickListener(v -> openWeb(shown[0].attributionUrl));
         FrameLayout.LayoutParams creditParams = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
         creditParams.setMargins(ui.dp(8), 0, ui.dp(64), ui.dp(8)); mapFrame.addView(attribution, creditParams);
         attribution.setVisibility(View.GONE);
         if (!track.points.isEmpty()) top.addView(MapPreferences.basemapControl(host, enabled -> {
             map.setStreets(enabled);
             attribution.setVisibility(enabled ? View.VISIBLE : View.GONE);
+            if (enabled) MapPreferences.offerOsmSwitch(host, mapFrame, track.points);
         }));
         TextView mapStatus = ui.caption(""); mapStatus.setTextColor(ui.orange);
         mapStatus.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), 0); top.addView(mapStatus);
@@ -1551,9 +1553,22 @@ public final class RidesScreen implements AppScreen {
             fitParams.setMargins(0, ui.dp(6), ui.dp(6), 0);
             mapFrame.addView(mapButton("center", T.ridesMapFit(), map::fitRoute), fitParams);
         }
+        // The provider can change while this map is open (map settings, or the offer to leave USGS): the
+        // tiles and the credit change together, so a credit never sits under another provider's tiles.
+        SharedPreferences.OnSharedPreferenceChangeListener providerChanged = (changed, key) -> {
+            if (key != null && !key.startsWith("map_")) return;
+            MapSource now = MapSource.load(preferences);
+            if (now.url.equals(shown[0].url) && now.attribution.equals(shown[0].attribution)
+                    && now.attributionUrl.equals(shown[0].attributionUrl)) return;
+            shown[0] = now; map.setSource(now.url); attribution.setText(now.displayAttribution());
+        };
         mapFrame.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View view) { }
+            @Override public void onViewAttachedToWindow(View view) {
+                preferences.registerOnSharedPreferenceChangeListener(providerChanged);
+                providerChanged.onSharedPreferenceChanged(preferences, null);
+            }
             @Override public void onViewDetachedFromWindow(View view) {
+                preferences.unregisterOnSharedPreferenceChangeListener(providerChanged);
                 if (ride.expandedDialog != null) ride.expandedDialog.dismiss();
             }
         });

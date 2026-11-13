@@ -40,6 +40,8 @@ public final class ChargeSendTest {
         attachment();
         compression();
         prepareSmall();
+        failureHandover();
+        leftovers();
         System.out.println("ChargeSend: " + checks + " checks passed");
     }
 
@@ -241,6 +243,99 @@ public final class ChargeSendTest {
                     && !new File(dir, "charges-small.json.gz").exists(), "A small export is attached as it is");
             require(!ChargeSend.of(small).compressed && ChargeSend.NAME.equals(ChargeSend.of(small).name), "Named volt-charge-recordings.json");
             require(small.delete() && dir.delete(), "Cleaned up");
+        } catch (IOException e) { throw new AssertionError(e); }
+    }
+
+    /**
+     * #412 round-2 review, P3 1: a failed export goes through the same hand-over as a file, so the activity showing Volt
+     * when it ends, a recreated one too, shows it exactly once, and it never emails.
+     */
+    private static void failureHandover() {
+        try {
+            File dir = Files.createTempDirectory("charge-failure").toFile();
+            String failed = "Charge recordings could not be exported";
+            List<ChargeSend.Export> got = new ArrayList<>();
+            Consumer<ChargeSend.Export> old = got::add, recreated = got::add, later = got::add;
+            ChargeSend.Export failure = ChargeSend.Export.failed(failed);
+            require(failure.failed() && failure.file == null && failed.equals(failure.failure) && failure.model.isEmpty()
+                    && !new ChargeSend.Export(file(dir, "ok"), "M").failed(), "A failure carries its text and no file; a file export is no failure");
+            require(ChargeSend.Export.failed(null).failed() && ChargeSend.Export.failed(null).failure.isEmpty(), "A failure without text is still one");
+            // The activity that started it still shows Volt: it gets the failure, once.
+            ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+            box.register(old, 0);
+            box.deliver(ChargeSend.Export.failed(failed), 1);
+            require(got.size() == 1 && got.get(0).failed() && got.get(0).file == null, "Delivered to the activity showing Volt");
+            // Recreated while the export ran: the failure waits for the new activity and reaches it once.
+            box.unregister(old, true);
+            box.deliver(ChargeSend.Export.failed(failed), 1_000);
+            require(got.size() == 1, "Held while no activity shows Volt");
+            box.register(recreated, 2_000);
+            require(got.size() == 2 && got.get(1).failed() && failed.equals(got.get(1).failure), "The recreated activity shows it");
+            // Consumed: a later recreation shows nothing again.
+            box.unregister(recreated, true);
+            box.register(later, 3_000);
+            require(got.size() == 2, "Shown once: a later recreation gets nothing");
+            // The app closed for good: dropped, never shown later.
+            box.unregister(later, false);
+            box.deliver(ChargeSend.Export.failed(failed), 4_000);
+            box.register(later, 4_100);
+            require(got.size() == 2, "After the app closed, a failure is never shown later");
+            // Held too long: dropped.
+            box.unregister(later, true);
+            box.deliver(ChargeSend.Export.failed(failed), 5_000);
+            box.register(later, 5_000 + ChargeSend.Mailbox.HOLD_MS);
+            require(got.size() == 2, "A stale failure is dropped");
+            // One held at a time: a failure after a held file deletes the file (no email); a file after a failure replaces it.
+            ChargeSend.Mailbox two = new ChargeSend.Mailbox();
+            File a = file(dir, "a");
+            two.deliver(new ChargeSend.Export(a, "M"), 0);
+            two.deliver(ChargeSend.Export.failed(failed), 1);
+            List<ChargeSend.Export> only = new ArrayList<>();
+            two.register(only::add, 2);
+            require(!a.exists() && only.size() == 1 && only.get(0).failed(), "The newer failure replaces a held file, which is deleted");
+            ChargeSend.Mailbox three = new ChargeSend.Mailbox();
+            File b = file(dir, "b");
+            three.deliver(ChargeSend.Export.failed(failed), 0);
+            three.deliver(new ChargeSend.Export(b, "M"), 1);
+            List<ChargeSend.Export> next = new ArrayList<>();
+            three.register(next::add, 2);
+            require(b.exists() && next.size() == 1 && next.get(0).file == b && !next.get(0).failed(), "A newer file replaces a held failure");
+            // Exactly one hand-over per export: a file or a failure, never both.
+            require(got.stream().noneMatch(x -> x.failed() && x.file != null), "A failure never carries a file to email");
+            for (File f : dir.listFiles()) f.delete();
+            require(dir.delete(), "Cleaned up");
+        } catch (IOException e) { throw new AssertionError(e); }
+    }
+
+    /**
+     * #412 round-2 review (emulator): what a killed compression leaves in cache/charge-exports goes at the next export;
+     * a finished export, plain or compressed, never does (it keeps its one-day window).
+     */
+    private static void leftovers() {
+        java.util.Set<String> killedMid = new java.util.HashSet<>(Arrays.asList("charges-1.json", "charges-1.json.gz.tmp"));
+        require(ChargeSend.leftover("charges-1.json.gz.tmp", killedMid) && ChargeSend.leftover("charges-1.json", killedMid),
+                "Killed mid-compression: the temporary file and its uncompressed export are leftovers");
+        java.util.Set<String> killedAfter = new java.util.HashSet<>(Arrays.asList("charges-2.json", "charges-2.json.gz"));
+        require(ChargeSend.leftover("charges-2.json", killedAfter) && !ChargeSend.leftover("charges-2.json.gz", killedAfter),
+                "Killed after the rename: the uncompressed export goes, the finished .gz stays");
+        java.util.Set<String> finished = new java.util.HashSet<>(Arrays.asList("charges-3.json", "charges-4.json.gz", "charges-5.json", "charges-6.json.gz.tmp"));
+        require(!ChargeSend.leftover("charges-3.json", finished) && !ChargeSend.leftover("charges-4.json.gz", finished)
+                && !ChargeSend.leftover("charges-5.json", finished), "A finished export, plain or compressed, is never a leftover");
+        require(ChargeSend.leftover("charges-6.json.gz.tmp", finished) && ChargeSend.leftover("x.tmp", new java.util.HashSet<>()),
+                "Any temporary file is a leftover, its export gone or not");
+        require(!ChargeSend.leftover("charges-7.json", new java.util.HashSet<>(Arrays.asList("charges-7.json", "charges-70.json.gz", "other.json.gz.tmp"))),
+                "Only its own .gz or .gz.tmp makes an export a leftover");
+        try {
+            File dir = Files.createTempDirectory("charge-leftovers").toFile();
+            File killed = file(dir, "charges-1.json"), partial = file(dir, "charges-1.json.gz.tmp"), raw = file(dir, "charges-2.json"),
+                    zipped = file(dir, "charges-2.json.gz"), plain = file(dir, "charges-3.json"), held = file(dir, "charges-4.json.gz");
+            require(ChargeSend.clearLeftovers(dir) == 3, "Three leftovers cleared");
+            require(!killed.exists() && !partial.exists() && !raw.exists(), "The leftovers are gone");
+            require(zipped.isFile() && plain.isFile() && held.isFile(), "Every finished export stays");
+            require(ChargeSend.clearLeftovers(dir) == 0 && zipped.isFile() && plain.isFile() && held.isFile(), "Again: nothing more goes");
+            require(ChargeSend.clearLeftovers(new File(dir, "missing")) == 0, "No folder: nothing to clear");
+            for (File f : dir.listFiles()) f.delete();
+            require(dir.delete(), "Cleaned up");
         } catch (IOException e) { throw new AssertionError(e); }
     }
 

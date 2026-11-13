@@ -151,6 +151,25 @@ public final class HomeStyleTest {
         String[] restored = HomeStyle.afterSkippedSetup(HomeStyle.ORIGIN_UPDATE, false);
         require(restored[0] == null && restored[1] == null, "An update whose style a restore dropped is left to the seed (Widgets)");
         require(HomeStyle.reseed(fresh[1], false, false, false, false, false, 1, 1)[0].equals(fresh[0]), "and the next start's seed agrees with it");
+
+        // Part 6's second review, note 2: App preferences restored from the welcome screen during first-run setup bring
+        // an earlier owner's style (seeded Widgets) with no origin; setup's end records update, not install.
+        String[] skippedAfterRestore = HomeStyle.afterSkippedSetup(null, true);
+        require(skippedAfterRestore[0] == null && HomeStyle.ORIGIN_UPDATE.equals(skippedAfterRestore[1]),
+                "Skipping setup after a restore brought a style: the style stays and the origin is update");
+        require(HomeStyle.showWhatsNew(skippedAfterRestore[1], false, false, false, true, true), "so that owner still sees What's new once");
+        require(HomeStyle.pickedOrigin(null, true).equals(HomeStyle.ORIGIN_UPDATE), "Finishing setup over a restored style records update");
+        require(HomeStyle.pickedOrigin(null, false).equals(HomeStyle.ORIGIN_INSTALL), "and over no style, install");
+        require(HomeStyle.pickedOrigin(HomeStyle.ORIGIN_INSTALL, true).equals(HomeStyle.ORIGIN_INSTALL)
+                && HomeStyle.pickedOrigin(HomeStyle.ORIGIN_UPDATE, false).equals(HomeStyle.ORIGIN_UPDATE), "A stored origin is never rewritten, style or not");
+        require(HomeStyle.setupChoice(null, false, "widgets").equals(HomeStyle.WIDGETS), "and setup's last step preselects the restored Widgets");
+        // Note 1: a pre-Hub restore lands on Widgets unless this phone's owner chose the style.
+        require(HomeStyle.preHubRestoreGivesWidgets(false, true, HomeStyle.ORIGIN_INSTALL), "Clean stored unchosen (setup skipped): Widgets");
+        require(HomeStyle.preHubRestoreGivesWidgets(false, false, HomeStyle.ORIGIN_INSTALL), "No style but an install origin, which the seed would turn Clean: Widgets");
+        require(HomeStyle.preHubRestoreGivesWidgets(false, true, null), "A seeded or restored style with no origin: Widgets");
+        require(!HomeStyle.preHubRestoreGivesWidgets(true, true, HomeStyle.ORIGIN_INSTALL), "A chosen style is kept");
+        require(!HomeStyle.preHubRestoreGivesWidgets(false, false, null) && !HomeStyle.preHubRestoreGivesWidgets(false, false, HomeStyle.ORIGIN_UPDATE),
+                "Nothing stored, or an update origin (the seed gives Widgets): left as it is");
     }
 
     private static void keys() {

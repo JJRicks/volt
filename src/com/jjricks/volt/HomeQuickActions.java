@@ -80,6 +80,12 @@ final class HomeQuickActions {
         return id != null && (cleanOnly(id) || QuickAccessActions.find(id) != null);
     }
 
+    /**
+     * Whether activating this action now ends and saves a ride: Record while a ride is recording. Its spoken
+     * description then says so, in riding mode's own words for its record control (council review 5885572395).
+     */
+    static boolean endsRide(String id, boolean recording) { return recording && RECORD.equals(id); }
+
     /** Whether an id is one of Clean's own, which Widgets never stores. */
     static boolean cleanOnly(String id) { return RIDING.equals(id) || RECORD.equals(id) || CHARGE_ALERTS.equals(id); }
 
