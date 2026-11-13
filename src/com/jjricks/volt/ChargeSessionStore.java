@@ -21,6 +21,24 @@ public final class ChargeSessionStore {
     public enum Charger { STOCK, HIGH_SPEED }
     public enum Stop { STOPPED, COMPLETE, CHARGING_ENDED, DISCONNECTED, PROFILE_CHANGED, READINGS_STOPPED, LIMIT, ERROR, PROCESS_ENDED, INTERRUPTED, RECOVERY_TIMEOUT, CONNECTION_FAILED, BLUETOOTH_OFF, PERMISSION_LOST, IDENTITY_CHANGED }
     public enum Source { CURRENT_RATE, STOCK_REFERENCE, PERSONAL, FAST_REFERENCE }
+    /**
+     * How an automatic recording's charger label was chosen (Record charges automatically). Manual recordings have
+     * none. It lives in the recording's id, not in the journal: a UUID's version digit (index 14) is always 4, and an
+     * automatic recording's id carries a, b or c there instead. The name still matches every reader's pattern, so an
+     * older Volt reads, prunes, backs up and restores it unchanged, and old files need nothing new.
+     */
+    public enum LabelSource { CHOSEN, DETECTED, GUESS }
+    /** Which automatic recordings are kept and which may make room (ChargeAutoRecordPolicy). Manual ones never ask. */
+    public interface AutomaticRules {
+        /** ranMs: start to last saved sample; gainedPoints: battery percent from first to last saved sample. */
+        boolean keep(long ranMs,double gainedPoints);
+        /** How many of the oldest automatic recordings to remove so one more fits under max, or -1 for none possible. */
+        int toRemove(int saved,int automatic,int max);
+    }
+    private static final AutomaticRules NO_AUTOMATIC=new AutomaticRules(){
+        public boolean keep(long ranMs,double gainedPoints){return true;}
+        public int toRemove(int saved,int automatic,int max){return -1;}
+    };
     /** A prediction made at capture time, never recalculated when a recording is read. */
     public static final class Estimate {
         public final String version;
@@ -51,8 +69,10 @@ public final class ChargeSessionStore {
         public final long pausedMs;public final int pauses;
         /** Times the charger itself stopped below 99% and the recording waited, and for how long in all. */
         public final long chargerPausedMs;public final int chargerPauses;
+        /** Null for a recording started by hand. */
+        public final LabelSource labelSource;public final boolean automatic;
         private HistorySession(String id,Session session){
-            this.id=id;profile=session.profile;charger=session.charger;stop=session.stop;startedWall=session.startedWall;startedMono=session.startedMono;
+            this.id=id;labelSource=labelSource(id);automatic=labelSource!=null;profile=session.profile;charger=session.charger;stop=session.stop;startedWall=session.startedWall;startedMono=session.startedMono;
             List<HistoryPoint> copy=new ArrayList<>();for(Point point:session.points)copy.add(new HistoryPoint(point));points=Collections.unmodifiableList(copy);
             observedCompleteMono=session.observedCompletion();observedCompleteWall=observedCompleteMono==null?null:clockAt(observedCompleteMono);
             long last=session.points.isEmpty()?startedMono:session.points.get(session.points.size()-1).mono;
@@ -182,12 +202,15 @@ public final class ChargeSessionStore {
      *  flags mark rejected frames between normal samples (at most 0.2% of a full stock charge). */
     static final long GAUGE_CHARGE_GAP_MS = 30000L;
     private final File directory;
+    private final AutomaticRules rules;
     // snapshot() normally primes this on the analysis worker before capture is admitted,
     // avoiding reparsing the full retained history in start()'s bounded pruning step.
     private final Map<String,Retention> retentionCache=new HashMap<>();
     private File active;
     private String profile;
     private Charger charger;
+    private LabelSource labelSource;
+    private double firstSoc;
     private long startWall,startMono,lastWriteMono,lastElectricalMono,lastFreshMono,pauseGraceUntilMono,pausedSinceMono;
     private Double lastSoc,lastPower,lastVoltage;
     private int samples,pauses;
@@ -196,16 +219,44 @@ public final class ChargeSessionStore {
     private long candidateMono,candidateElectricalMono;
     private int candidateSamples;
 
-    public ChargeSessionStore(File directory) throws IOException {
-        this.directory=directory;
+    public ChargeSessionStore(File directory) throws IOException {this(directory,NO_AUTOMATIC);}
+    public ChargeSessionStore(File directory,AutomaticRules rules) throws IOException {
+        this.directory=directory;this.rules=rules==null?NO_AUTOMATIC:rules;
         if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException("Charge storage unavailable");
+        // A relabel that a process death interrupted before its rename: the journal itself is untouched.
+        File[] stale=directory.listFiles((dir,name)->name.matches("[a-f0-9-]{36}\\.active\\.mapping"));
+        if(stale!=null)for(File file:stale)file.delete();
         // A process restart never silently resumes a capture. Interrupted journals remain inspectable,
         // but do not enter learned curves because their stop/continuity was not observed.
+        List<File> recoveredFiles=new ArrayList<>();
         for(File file:files())if(file.getName().endsWith(".active")){
-            append(file,"end,INTERRUPTED\n");File recovered=new File(directory,file.getName().replace(".active",".csv"));
+            // A stop that a process death cut short after its end line keeps that line: a second one would make it unreadable.
+            if(!ended(file))append(file,"end,INTERRUPTED\n");
+            File recovered=new File(directory,file.getName().replace(".active",".csv"));
             if(!file.renameTo(recovered))throw new IOException("Could not finalize interrupted charge");
+            // An interrupted automatic recording is judged like any other automatic one: a short one is not kept, and
+            // nothing saved made room for it.
+            Session session=labelSource(recovered.getName())==null?null:read(recovered);
+            if(session!=null&&!keeps(session))recovered.delete();
+            else if(session!=null)recoveredFiles.add(recovered);
         }
+        // A kept automatic recording (recovered here, or saved by a stop that a process death cut short before it made
+        // room) makes room among automatic recordings only, before the ordinary pruning sees the folder.
+        trimAutomatic(recoveredFiles);
         prune();
+    }
+    private boolean keeps(Session session){
+        if(session.points.isEmpty())return false;
+        Point first=session.points.get(0),last=session.points.get(session.points.size()-1);
+        return rules.keep(last.mono-session.startedMono,last.soc-first.soc);
+    }
+    /** Null for a manual recording's id or file name. */
+    public static LabelSource labelSource(String id){
+        if(id==null||id.length()<36||id.charAt(8)!='-'||id.charAt(13)!='-')return null;
+        switch(id.charAt(14)){case 'a':return LabelSource.CHOSEN;case 'b':return LabelSource.DETECTED;case 'c':return LabelSource.GUESS;default:return null;}
+    }
+    private static String automaticId(String id,LabelSource source){
+        char[] chars=id.substring(0,36).toCharArray();chars[14]=(char)('a'+source.ordinal());return new String(chars);
     }
     public synchronized boolean active(){return active!=null;}
     public synchronized String profile(){return profile;}
@@ -213,15 +264,62 @@ public final class ChargeSessionStore {
     public synchronized int sampleCount(){return samples;}
     public synchronized long lastFreshMono(){return lastFreshMono;}
     public synchronized long startedMono(){return startMono;}
+    /** Null for a manual recording or none. */
+    public synchronized LabelSource labelSource(){return active==null?null:labelSource;}
+    public synchronized boolean automatic(){return active!=null&&labelSource!=null;}
     public synchronized void start(String profile,Charger charger,long wall,long mono) throws IOException {
+        begin(profile,charger,null,wall,mono);
+    }
+    /**
+     * An automatic recording. It never deletes a manual one, and nothing saved is deleted for it until it is kept: at
+     * the limit it checks now that older automatic recordings could make room, and they make it only when it is saved
+     * (stop, or recovery after a process death; {@link #trimAutomatic}). When the rules find no room it does not start
+     * (false). Until then the folder holds one file over the limit: the running journal.
+     */
+    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
+        if(source==null)throw new IllegalArgumentException();
+        return begin(profile,charger,source,wall,mono);
+    }
+    private boolean begin(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
-        pruneTo(MAX_SESSIONS-1);
-        File file=new File(directory,UUID.randomUUID().toString()+".active");
+        String id=UUID.randomUUID().toString();
+        if(source==null)pruneTo(MAX_SESSIONS-1);
+        else{
+            // Room is only checked here; nothing is deleted for a recording that may not be kept.
+            List<File> entries=files();int automatic=0;
+            for(File file:entries)if(labelSource(file.getName())!=null)automatic++;
+            if(rules.toRemove(entries.size(),automatic,MAX_SESSIONS)<0)return false;
+            id=automaticId(id,source);
+        }
+        File file=new File(directory,id+".active");
         append(file,"charge-v2,"+profile+","+charger.name()+","+wall+","+mono+"\n");
-        this.active=file;this.profile=profile;this.charger=charger;startWall=wall;startMono=mono;lastFreshMono=mono;pauseGraceUntilMono=0;
-        lastWriteMono=lastElectricalMono=0;lastSoc=lastPower=lastVoltage=null;samples=0;gap=true;paused=false;pauses=0;
+        this.active=file;this.profile=profile;this.charger=charger;labelSource=source;startWall=wall;startMono=mono;lastFreshMono=mono;pauseGraceUntilMono=0;
+        lastWriteMono=lastElectricalMono=0;lastSoc=lastPower=lastVoltage=null;firstSoc=Double.NaN;samples=0;gap=true;paused=false;pauses=0;
         resetElectricalCandidate();
+        return true;
+    }
+    /**
+     * Changes a running automatic recording's charger label and how it was chosen. The header is rewritten through a
+     * temporary file renamed over the journal, then the journal is renamed to the id that carries the new source. A
+     * process death between the two leaves the new charger with the old source in the id, nothing worse.
+     */
+    public synchronized boolean relabel(Charger to,LabelSource source) throws IOException {
+        if(active==null||labelSource==null||to==null||source==null)return false;
+        if(to!=charger){
+            byte[] bytes=java.nio.file.Files.readAllBytes(active.toPath());int end=0;
+            while(end<bytes.length&&end<=512&&bytes[end]!='\n')end++;
+            if(end>=bytes.length||end>512)return false;
+            String[] header=new String(bytes,0,end,StandardCharsets.UTF_8).split(",",-1);
+            if(header.length!=5)return false;
+            header[2]=to.name();File temporary=new File(active.getPath()+".mapping");
+            try(FileOutputStream out=new FileOutputStream(temporary)){out.write(String.join(",",header).getBytes(StandardCharsets.UTF_8));out.write(bytes,end,bytes.length-end);out.getFD().sync();}
+            if(!temporary.renameTo(active)){temporary.delete();return false;}
+            charger=to;
+        }
+        File renamed=new File(directory,automaticId(active.getName(),source)+".active");
+        if(!renamed.equals(active)&&(renamed.exists()||!active.renameTo(renamed)))return true;
+        active=renamed;labelSource=source;return true;
     }
     /** Returns true only for a newly committed, fresh paired sample. Rejected samples break continuity. */
     public synchronized boolean sample(Frame frame) throws IOException {
@@ -258,7 +356,7 @@ public final class ChargeSessionStore {
         String line="s,"+frame.wall+","+frame.mono+","+frame.soc.value+","+frame.voltage.value+","+frame.current.value+","+power+","+(temperature==null?"":temperature)+","+(gap||discontinuity?1:0)
                 +","+saved.version+","+csv(saved.remainingMinutesToFull)+","+csv(saved.remainingMinutesToLimit)+","+csv(saved.targetPercent)
                 +","+csv(saved.fullSource)+","+csv(saved.limitSource)+","+saved.learnedSessions+"\n";
-        append(active,line);samples++;lastWriteMono=frame.mono;lastElectricalMono=frame.voltage.mono;
+        append(active,line);if(samples==0)firstSoc=frame.soc.value;samples++;lastWriteMono=frame.mono;lastElectricalMono=frame.voltage.mono;
         lastSoc=frame.soc.value;lastPower=power;lastVoltage=frame.voltage.value;gap=false;
         resetElectricalCandidate();
         return true;
@@ -307,9 +405,13 @@ public final class ChargeSessionStore {
      * An open schedule pause whose grace has run out ends it as before.
      */
     public synchronized ChargerOff chargerStopped(long wall,long mono) throws IOException {
+        return chargerStopped(wall,mono,CHARGER_PAUSE_MAX_MS);
+    }
+    /** maxMs: how long the pause may last (an automatic recording waits less, ChargeAutoRecordPolicy). */
+    public synchronized ChargerOff chargerStopped(long wall,long mono,long maxMs) throws IOException {
         if(active==null)return ChargerOff.ENDED;
         if(!paused){pause(wall,mono,true);return active==null?ChargerOff.ENDED:ChargerOff.PAUSED;}
-        if(!chargerPaused||mono-pausedSinceMono>=CHARGER_PAUSE_MAX_MS)return ChargerOff.ENDED;
+        if(!chargerPaused||mono-pausedSinceMono>=maxMs)return ChargerOff.ENDED;
         heartbeat(mono);return ChargerOff.WAITING;
     }
 
@@ -327,15 +429,26 @@ public final class ChargeSessionStore {
         if(active==null||!paused)return;
         append(active,"p,"+wall+","+mono+",0\n");paused=false;chargerPaused=false;lastFreshMono=Math.max(lastFreshMono,mono);markGap();
     }
-    public synchronized void stop(Stop reason) throws IOException {
-        if(active==null)return;
-        File file=active;active=null;profile=null;charger=null;
+    /**
+     * Ends the recording. Returns whether it was kept: an automatic recording the rules judge too short (time from its
+     * start to its last saved sample, or battery points gained between its first and last saved samples) is deleted.
+     */
+    public synchronized boolean stop(Stop reason) throws IOException {
+        if(active==null)return false;
+        boolean automatic=labelSource!=null,kept=!automatic||samples>0&&rules.keep(lastWriteMono-startMono,lastSoc-firstSoc);
+        File file=active;active=null;profile=null;charger=null;labelSource=null;
         // Close an open schedule pause at its last fresh reading so its length survives the stop.
         if(paused)append(file,"p,"+(startWall+(lastFreshMono-startMono))+","+lastFreshMono+",0\n");
         paused=false;chargerPaused=false;resetElectricalCandidate();
         append(file,"end,"+reason.name()+"\n");
-        if(!file.renameTo(new File(directory,file.getName().replace(".active",".csv"))))throw new IOException("Charge could not be finalized");
+        boolean discarded=!kept&&file.delete();
+        File saved=new File(directory,file.getName().replace(".active",".csv"));
+        if(!discarded&&!file.renameTo(saved))throw new IOException("Charge could not be finalized");
+        // Saved first, then room made: a process death in between leaves one file too many, which the next start trims
+        // the same way. There is no moment when the old recording and the new one are both gone.
+        if(automatic&&!discarded)trimAutomatic(Collections.singletonList(saved));
         prune();
+        return !discarded&&saved.exists();
     }
     public synchronized void clear(String targetProfile) throws IOException {
         if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
@@ -359,7 +472,9 @@ public final class ChargeSessionStore {
             if(session==null)continue;sessions++;
             double[] accepted=gaugeCharge(session);
             if(accepted!=null){double[] sum=gauge.computeIfAbsent(session.profile,ignored->new double[3]);sum[0]+=accepted[0];sum[1]+=accepted[1];sum[2]++;}
-            if(bins==null)continue;
+            // A recording that ended with a guessed charger label teaches no curve (it stays in the list, marked as a guess).
+            // Its gauge evidence above counts: ampere-hours per gauge point does not depend on which charger supplied them.
+            if(bins==null||!learnsCurve(file.getName()))continue;
             String key=key(session.profile,session.charger);eligible.computeIfAbsent(key,ignored->new ArrayList<>()).add(bins);subjects.put(key,session);
         }
         Map<String,Curve> curves=new LinkedHashMap<>();for(Map.Entry<String,List<Evidence>> item:eligible.entrySet()){
@@ -414,10 +529,13 @@ public final class ChargeSessionStore {
             Session session=read(file);
             if(session==null||!targetProfile.equals(session.profile))continue;
             if(count++>0)out.write(",");
+            // Additive fields: whether Record charges automatically started it, and how its charger label was chosen.
+            LabelSource source=labelSource(file.getName());
             out.write("{\"id\":\""+file.getName().replace(".csv","")+"\",\"profile_id\":\""+session.profile
-                    +"\",\"charger\":\""+session.charger.name()+"\",\"started_wall_ms\":"+session.startedWall
+                    +"\",\"charger\":\""+session.charger.name()+"\",\"started_automatically\":"+(source!=null)
+                    +",\"label_source\":"+(source==null?"null":"\""+source.name().toLowerCase(Locale.ROOT)+"\"")+",\"started_wall_ms\":"+session.startedWall
                     +",\"started_elapsed_ms\":"+session.startedMono+",\"stop_reason\":"+(session.stop==null?"null":"\""+session.stop.name()+"\"")
-                    +",\"qualified_for_learning\":"+(session.evidence()!=null)+",\"observed_complete_elapsed_ms\":"+session.observedCompletion()+",\"schedule_pauses\":[");
+                    +",\"qualified_for_learning\":"+(session.evidence()!=null&&learnsCurve(file.getName()))+",\"observed_complete_elapsed_ms\":"+session.observedCompletion()+",\"schedule_pauses\":[");
             writePauses(out,session,0);
             // Additive field: times the charger itself stopped below 99% and the recording waited for it.
             out.write("],\"charger_pauses\":[");
@@ -436,6 +554,11 @@ public final class ChargeSessionStore {
         out.write("]}");out.flush();return count;
     }
     public static String key(String profile,Charger charger){return profile+":"+charger.name();}
+    /**
+     * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen
+     * or detected. A label that is still a guess when the recording ends labels the file and nothing else.
+     */
+    public static boolean learnsCurve(String id){return labelSource(id)!=LabelSource.GUESS;}
     private static String csv(Object value){return value==null?"":value.toString();}
     private static void writeEstimateJson(Writer out,Estimate value)throws IOException{
         if(value==null){out.write("null");return;}
@@ -455,6 +578,29 @@ public final class ChargeSessionStore {
         List<File> result=new ArrayList<>(Arrays.asList(items));result.sort(Comparator.comparingLong(File::lastModified).thenComparing(File::getName));return result;
     }
     private void prune()throws IOException{pruneTo(MAX_SESSIONS);}
+    /**
+     * Over the limit, the oldest automatic recordings go first, and only they: a manual recording is never deleted to
+     * make room for an automatic one. A running journal is left alone. Called once an automatic recording is saved, never
+     * at its start. Never one in keep (the recording just saved or recovered, whatever its modification time: a restore
+     * dates a recording by its saved start). An automatic file that cannot be read is no recording to Volt (not listed,
+     * learned or exported), so it goes before any readable one: it never costs another recording its place.
+     */
+    private void trimAutomatic(List<File> keep)throws IOException{
+        List<File> entries=files();int over=entries.size()-MAX_SESSIONS;if(over<=0)return;
+        List<File> candidates=new ArrayList<>();
+        for(File file:entries)if(!file.equals(active)&&!keep.contains(file)&&labelSource(file.getName())!=null)candidates.add(file);
+        List<File> unreadable=new ArrayList<>();
+        for(File file:candidates)if(read(file)==null)unreadable.add(file);
+        candidates.removeAll(unreadable);candidates.addAll(0,unreadable);
+        for(File file:candidates)if(over>0){remove(file);over--;}
+    }
+    /** Whether a journal already has its end line (a stop wrote it before a process death cut the stop short). */
+    private static boolean ended(File file)throws IOException{
+        try(BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(file),StandardCharsets.UTF_8))){
+            String line;while((line=in.readLine())!=null)if(line.startsWith("end,"))return true;
+        }
+        return false;
+    }
     private void pruneTo(int limit)throws IOException{
         List<File> entries=files();int remove=entries.size()-limit;if(remove<=0)return;
         Map<String,List<File>> qualified=new LinkedHashMap<>();List<File> rejected=new ArrayList<>();
@@ -484,7 +630,8 @@ public final class ChargeSessionStore {
         Retention(File file,String bucket){length=file.length();modified=file.lastModified();this.bucket=bucket;}
     }
     private synchronized Retention rememberRetention(File file,Session session,Evidence evidence){
-        Retention info=new Retention(file,evidence==null?null:key(session.profile,session.charger));
+        // A guessed label is in no charger's bucket: it protects no curve, so the ordinary pruning may remove it first.
+        Retention info=new Retention(file,evidence==null||!learnsCurve(file.getName())?null:key(session.profile,session.charger));
         retentionCache.put(file.getName(),info);return info;
     }
     private synchronized Retention retention(File file)throws IOException{

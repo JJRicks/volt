@@ -299,6 +299,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
     private void verifyAccessibility() throws Exception {
         openAdding("quick");
         main(() -> {
+            String firstHeader = sectionIds().get(0);
             for (String id : sectionIds()) {
                 View head = sheet().findViewWithTag("quick-section-header:" + id);
                 AccessibilityNodeInfo info = head.createAccessibilityNodeInfo();
@@ -316,6 +317,25 @@ public final class ShortcutPickerValidation extends Instrumentation {
                 if (Build.VERSION.SDK_INT >= 36) require(info.getExpandedState() == (open ? AccessibilityNodeInfo.EXPANDED_STATE_FULL : AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED),
                         id + " expanded state " + info.getExpandedState());
                 require(texts(head).size() >= 2, id + " header does not say its name and count: " + texts(head));
+                nodes.add("  said=\"" + head.getContentDescription() + "\" state=\"" + (Build.VERSION.SDK_INT >= 30 ? info.getStateDescription() : "") + "\"");
+                require(head.getContentDescription() != null && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-name:" + id)))
+                        && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-count:" + id))), id + " is not spoken with its name and count: " + head.getContentDescription());
+                String openState = open ? T.statsStateExpanded() : T.statsStateCollapsed();
+                require(Build.VERSION.SDK_INT >= 36 || (Build.VERSION.SDK_INT >= 30 ? openState.equals(String.valueOf(info.getStateDescription()))
+                        : head.getContentDescription().toString().endsWith(openState)), id + " does not speak its open or closed state");
+                // Every Android version speaks the state once: in the description before 11, as the state from 11 to 15,
+                // as the node's expanded state from 16 (checked above on this emulator).
+                String headerName = text(head.findViewWithTag("quick-section-name:" + id));
+                int headerCount = Integer.parseInt(text(head.findViewWithTag("quick-section-count:" + id)).replaceAll("[^0-9]", ""));
+                for (int sdk : new int[] {26, 29, 30, 35, 36}) {
+                    String headerSaid = DashboardScreen.pickerHeaderSaid(headerName, headerCount, open, sdk).toString();
+                    CharSequence headerStated = DashboardScreen.pickerHeaderState(open, sdk);
+                    require(headerSaid.contains(headerName) && headerSaid.contains(Fmt.integer(headerCount)), id + " on API " + sdk + " is said without its name or count: " + headerSaid);
+                    require(sdk < 30 ? headerSaid.endsWith(openState) && headerStated == null
+                            : !headerSaid.contains(openState) && (sdk < 36 ? openState.equals(String.valueOf(headerStated)) : headerStated == null),
+                            id + " on API " + sdk + " speaks its state wrongly: \"" + headerSaid + "\" / " + headerStated);
+                    if (id.equals(firstHeader)) nodes.add("  API " + sdk + ": said=\"" + headerSaid + "\" state=\"" + headerStated + "\"");
+                }
             }
             View head = sheet().findViewWithTag("quick-section-header:battery");
             require(head.performAccessibilityAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND.getId(), null), "Expand action refused");
@@ -331,6 +351,8 @@ public final class ShortcutPickerValidation extends Instrumentation {
         main(() -> require(settled("battery", false), "The collapse action did not close Battery"));
         checks.add("Each header is a clickable heading that says its name and count, offers Expand or Collapse by state"
                 + (Build.VERSION.SDK_INT >= 36 ? " and reports its expanded state" : "") + "; both actions work (node dump in accessibility-nodes.txt)");
+        checks.add("Each header speaks its open or closed state once on API 26 to 36: in its description before 30, as its state from 30 to 35,"
+                + " as the node's expanded state from 36");
     }
 
     private void verifyReducedMotion() throws Exception {
@@ -424,6 +446,8 @@ public final class ShortcutPickerValidation extends Instrumentation {
             require(texts(row).contains(category) && texts(row).contains(reason), "Long range mode's search row lost its category or reason: " + texts(row));
             String spoken = String.valueOf(row.getContentDescription()) + (Build.VERSION.SDK_INT >= 30 ? " " + row.getStateDescription() : "");
             require(spoken.contains(reason) && (Build.VERSION.SDK_INT < 30 || spoken.contains(category)), "Long range mode is spoken without its reason or category: " + spoken);
+            require(String.valueOf(row.getContentDescription()).contains(T.dashboardPickerCategoryReason(category, reason)),
+                    "Long range mode's description lacks its category and reason on this version: " + row.getContentDescription());
             nodes.add("search long_range_mode: said=\"" + spoken + "\"");
             fit("unavailable-search");
         });
