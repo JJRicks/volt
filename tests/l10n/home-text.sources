@@ -1,0 +1,7 @@
+# Hub layout plan, PR 7: Home's text (Clean and Widgets). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/HomeTextTest.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java
+src/com/jjricks/volt/HomeQuickActions.java
+# QuickAccessActions and the classes it needs compile with tests/run.sh's core list.
