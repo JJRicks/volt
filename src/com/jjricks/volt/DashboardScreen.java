@@ -3801,10 +3801,13 @@ public final class DashboardScreen implements AppScreen {
             /**
              * Clean Home's card (CleanParts): it fills its fixed-height area as the Layout Plan's mock-up does, the
              * readings along the bottom and the spare height spread above the top row, under it and over the readings
-             * (TopArea.parkedGaps), never one blank band. The photo keeps its size and place in the row (owner,
-             * 6848579838 §1). The widget dashboard's card keeps its own height.
+             * (TopArea.parkedGaps), never one blank band. The photo takes the mock-up's size and place, right of the
+             * percentage and the range line (TopArea.parkedPhotoDp, the contributor's decisions on #383), growing into
+             * the spare height first. The widget dashboard's card keeps its own height.
              */
             boolean fill;
+            /** Clean: the photo's side in pixels (TopArea.parkedPhotoDp), 0 while it does not show. */
+            int parkedSide;
 
             OverviewCard(List<String> keys) {
                 super(host.activity());
@@ -3905,9 +3908,18 @@ public final class DashboardScreen implements AppScreen {
                 // Fit with no spread gaps: they are what is left over afterwards.
                 margins(new int[3]);
                 arrangeReadings(width);
-                // The photo only takes width the percentage and range can spare.
+                // The photo only takes width the percentage and range can spare (Clean: the mock-up's size, TopArea).
                 int photoWidth = Math.min(ui.dp(150), Math.round(width * .42f));
                 boolean photo = photoAllowed && width - photoWidth - ui.dp(10) >= ui.dp(116 * textFactor());
+                if (fill) {
+                    float density = getResources().getDisplayMetrics().density;
+                    parkedSide = Math.round(TopArea.parkedPhotoDp(width / density, textFactor()) * density);
+                    photoWidth = parkedSide;
+                    photo = photoAllowed && parkedSide > 0;
+                    LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
+                    photoSize.height = -1;
+                    photoSize.setMarginStart(ui.dp(TopArea.PARKED_PHOTO_GAP_DP));
+                }
                 picture.setVisibility(photo ? VISIBLE : GONE);
                 LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
                 if (photoSize.width != photoWidth) photoSize.width = photoWidth;
@@ -3936,7 +3948,16 @@ public final class DashboardScreen implements AppScreen {
                 int[] gaps = {0, 0, 0};
                 if (fill && budget > 0) {
                     margins(gaps);
-                    super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    int unbounded = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+                    LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
+                    photoSize.height = -1;
+                    super.onMeasure(widthSpec, unbounded);
+                    // The photo grows into the spare height first, up to the mock-up's size; the gaps share what is left.
+                    if (picture.getVisibility() == VISIBLE && parkedSide > 0) {
+                        int row = top.getMeasuredHeight();
+                        int height = TopArea.parkedPhotoHeight(row, budget - getMeasuredHeight(), parkedSide);
+                        if (height > row) { photoSize.height = height; super.onMeasure(widthSpec, unbounded); }
+                    }
                     gaps = TopArea.parkedGaps(budget - getMeasuredHeight());
                 }
                 margins(gaps);

@@ -36,6 +36,20 @@ public final class TopAreaTest {
             require(Math.max(gaps[0], Math.max(gaps[1], gaps[2])) < 44, "no band of 44 dp or more for " + extra);
         }
         require(TopArea.parkedGaps(-3)[0] == 0 && TopArea.parkedGaps(-3)[1] == 0, "no spare height, no gaps");
+        // The parked photo (the mock-up's ~144 dp picture right of the words): full size on a 344 dp phone at 1x (a
+        // card's content is about 276 dp there), narrower but still shown at 1.4x, full size on the wide window.
+        require(TopArea.parkedPhotoDp(276, 1f) == TopArea.PARKED_PHOTO_DP, "344 dp at 1x: the mock-up's photo");
+        int large = TopArea.parkedPhotoDp(276, 1.4f);
+        require(large >= TopArea.PARKED_PHOTO_MIN_DP && large < TopArea.PARKED_PHOTO_DP, "344 dp at 1.4x: the photo stays, narrower: " + large);
+        require(276 - large - TopArea.PARKED_PHOTO_GAP_DP >= TopArea.PARKED_WORDS_DP * 1.4f, "344 dp at 1.4x: the words keep their room");
+        require(TopArea.parkedPhotoDp(344, 1f) == TopArea.PARKED_PHOTO_DP && TopArea.parkedPhotoDp(600, 1.4f) == TopArea.PARKED_PHOTO_DP,
+                "412 dp and wide windows: the mock-up's photo");
+        require(TopArea.parkedPhotoDp(180, 1.4f) == 0 && TopArea.parkedPhotoDp(100, Float.NaN) == 0, "no room for the words and a photo: no photo");
+        // Its height: the mock-up's size where the card has the height, else the words' row (it never pushes them out).
+        require(TopArea.parkedPhotoHeight(100, 80, 144) == 144, "spare height: the photo takes its full side");
+        require(TopArea.parkedPhotoHeight(100, 20, 144) == 120, "a little spare: the photo grows by it");
+        require(TopArea.parkedPhotoHeight(100, 0, 144) == 100 && TopArea.parkedPhotoHeight(100, -5, 144) == 100, "no spare: the words' height");
+        require(TopArea.parkedPhotoHeight(150, 50, 144) == 150, "words taller than the photo: the row's height");
         for (int h = 300; h <= 1400; h += 7)
             for (float scale : new float[]{0.8f, 1f, 1.3f, 2f})
                 for (boolean wide : new boolean[]{false, true}) {
