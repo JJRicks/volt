@@ -43,7 +43,8 @@ import com.jjricks.volt.TelemetryHistory;
  * unsigned current, GT5 Max EU whose controls differ by region) in each scene (Parked, Riding, Charging): Home, the
  * Scooter index, the Battery page and its estimates, Live Stats and riding mode (opened by hand) each captured, with
  * auto-record and auto riding mode on to show a simulated ride starts neither. In the Riding scene riding mode's Max and
- * Avg must move, and a UT5 MAX high-speed charge seen in riding mode must grow its scale on screen only. The real side holds
+ * Avg must move, and a UT5 MAX high-speed charge seen in riding mode must grow its scale on screen only. Then the same
+ * through Developer options' Scene and Drive mode rows: Charging with the high-speed charger, Riding and a drive mode. The real side holds
  * a history point, a recorded ride, a charge recording and a saved riding power scale beforehand. Then simulation ends and every private
  * store is compared with its state before: databases, files and no_backup byte for byte, preferences key by key, the
  * command log's new records (simulated sessions only), and no notification raised meanwhile.
@@ -215,6 +216,9 @@ public final class SimulatorScenesValidation extends Instrumentation {
             require(SAVED_SCALE.equals(settings().getString(SCALE_PREFIX + id[0], null)), "A simulated charge changed the saved power scale: " + settings().getString(SCALE_PREFIX + id[0], null));
             note("fast charge in riding mode: " + chargeWatts + " W; riding mode's regen scale " + shownRegen + " W; saved scale " + settings().getString(SCALE_PREFIX + id[0], null));
             main(() -> require(service.setChargeCharger(null), "Charger back to Automatic")); settle();
+            rowsCharging(service);
+            rowsRiding(service);
+            require(SAVED_SCALE.equals(settings().getString(SCALE_PREFIX + id[0], null)), "The saved power scale changed: " + settings().getString(SCALE_PREFIX + id[0], null));
             // UT5 MAX (EU): the real EU UT5 MAX's controls (no Top speed, kick-start 3-5 km/h); the header still names the UT5 MAX.
             main(() -> service.ble.setSimulationModel("", "EU")); settle();
             main(() -> {
@@ -386,6 +390,78 @@ public final class SimulatorScenesValidation extends Instrumentation {
         return out.toString("UTF-8");
     }
     private static Object field(Object target, String name) { try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch (NoSuchFieldException e) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); } catch (Exception e) { throw new IllegalStateException("Field " + name, e); } }
+    /**
+     * Developer options' Scene row, as a person would use it: on a UT5 MAX at 50 % with the high-speed charger chosen,
+     * Parked then Charging through the row, then riding mode, whose regen scale grows on screen only.
+     */
+    private void rowsCharging(ScooterService service) throws Exception {
+        main(() -> service.ble.setSimulationModel("", null)); settle();
+        main(() -> service.ble.setSimulationScene(ScooterSimulation.Scene.PARKED)); settle();
+        main(() -> require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED), "rows: High-speed charger")); settle();
+        main(() -> { setField(field(service.ble, "simulation"), "battery", 50.0); service.ble.tickSimulation(); }); settle();
+        go("settings.developer");
+        String chosen = pickRow("simulationSceneRow", 2);
+        require(service.ble.simulationScene() == ScooterSimulation.Scene.CHARGING && "Charging".equals(chosen) && "Charging".equals(rowValue("simulationSceneRow")),
+                "The Scene row chose Charging: " + chosen + ", row shows " + rowValue("simulationSceneRow") + ", scene " + service.ble.simulationScene());
+        capture("rows-scene-charging");
+        Double watts = number(service, "power_w");
+        require(watts != null && watts < -500, "rows: a high-speed charge at 50 % reads more than 500 W: " + watts);
+        main(() -> activity.openRiding());
+        await(() -> field(activity, "riding") != null, "rows: riding mode did not open on Charging", 8000); settle();
+        await(() -> regenScale() >= 750, "rows: riding mode's regen scale did not grow", 8000);
+        capture("rows-charging-riding-mode");
+        note("rows: Scene " + chosen + ", " + watts + " W, riding mode's regen scale " + regenScale() + " W");
+        main(() -> activity.onBackPressed());
+        await(() -> field(activity, "riding") == null, "rows: Back did not close riding mode", 8000); settle();
+        main(() -> require(service.setChargeCharger(null), "rows: charger back to Automatic")); settle();
+    }
+
+    /** The Scene row's Riding and the Drive mode row (another mode, then the one it had), then riding mode, whose Max and Avg move. */
+    private void rowsRiding(ScooterService service) throws Exception {
+        go("settings.developer");
+        String chosen = pickRow("simulationSceneRow", 1);
+        require(service.ble.simulationScene() == ScooterSimulation.Scene.RIDING && "Riding".equals(chosen) && "Riding".equals(rowValue("simulationSceneRow")),
+                "The Scene row chose Riding: " + chosen + ", row shows " + rowValue("simulationSceneRow"));
+        int[] modes = service.ble.simulationDriveModes();
+        int before = service.ble.simulationDriveMode();
+        int beforeIndex = indexOf(modes, before);
+        int otherIndex = beforeIndex == 0 ? 1 : 0;
+        require(modes.length > 1 && beforeIndex >= 0, "The Drive mode row offers the model's modes: " + Arrays.toString(modes) + ", current " + before);
+        String other = pickRow("simulationDriveModeRow", otherIndex);
+        require(service.ble.simulationDriveMode() == modes[otherIndex] && other.equals(rowValue("simulationDriveModeRow")),
+                "The Drive mode row chose " + other + " (" + modes[otherIndex] + "): mode " + service.ble.simulationDriveMode() + ", row shows " + rowValue("simulationDriveModeRow"));
+        capture("rows-scene-riding-drive-mode");
+        String back = pickRow("simulationDriveModeRow", beforeIndex);
+        require(service.ble.simulationDriveMode() == before && back.equals(rowValue("simulationDriveModeRow")), "The Drive mode row chose " + back + " back");
+        main(() -> activity.openRiding());
+        await(() -> field(activity, "riding") != null, "rows: riding mode did not open on Riding", 8000); settle();
+        Object speed = field(field(activity, "riding"), "speed");
+        await(() -> topKmh(speed) > 5 && averageKmh(speed) > 1, "rows: riding mode's Max and Avg did not move in the Riding scene", 20000);
+        capture("rows-riding-mode");
+        note("rows: Scene " + chosen + "; Drive mode " + other + " then " + back + "; riding mode's Max " + topKmh(speed) + " km/h, Avg " + averageKmh(speed) + " km/h");
+        main(() -> activity.onBackPressed());
+        await(() -> field(activity, "riding") == null, "rows: Back did not close riding mode", 8000); settle();
+    }
+    /** Riding mode's Max (RidingSpeed.maxKmh), read from its fields: 0 before a reading. */
+    private static double topKmh(Object speed) { return (Double)field(speed, "topKmh"); }
+    /** Riding mode's Avg (RidingSpeed.averageKmh) over its moving time: 0 before it has moved. */
+    private static double averageKmh(Object speed) { double ms = (Double)field(speed, "movingMs"); return ms > 0 ? (Double)field(speed, "movingKmhMs") / ms : 0; }
+    private static int indexOf(int[] values, int value) { for (int i = 0; i < values.length; i++) if (values[i] == value) return i; return -1; }
+    /** Taps a Developer options simulator row (a MoreScreen Row field) and picks its dialog's choice at a position; the choice's text. */
+    private String pickRow(String row, int position) {
+        main(() -> { View view = (View)field(field(field(activity, "screen"), row), "view");
+            require(view.isShown() && view.isEnabled(), row + " is not shown and enabled");
+            view.requestRectangleOnScreen(new android.graphics.Rect(0, 0, view.getWidth(), view.getHeight()), true); view.performClick(); }); settle();
+        String[] picked = new String[1];
+        main(() -> { List<?> open = (List<?>)field(field(activity, "screen"), "dialogs"); require(!open.isEmpty(), row + " opened no dialog");
+            android.widget.ListView list = ((android.app.AlertDialog)open.get(open.size() - 1)).getListView();
+            picked[0] = String.valueOf(list.getAdapter().getItem(position));
+            list.performItemClick(list.getChildAt(position - list.getFirstVisiblePosition()), position, list.getAdapter().getItemId(position)); }); settle();
+        main(() -> require(((List<?>)field(field(activity, "screen"), "dialogs")).isEmpty(), row + ": the dialog stayed open after a choice"));
+        return picked[0];
+    }
+    /** What a Developer options simulator row shows as its value. */
+    private String rowValue(String row) { String[] text = new String[1]; main(() -> text[0] = String.valueOf(((android.widget.TextView)field(field(field(activity, "screen"), row), "value")).getText())); return text[0]; }
     /** The open riding mode's regen scale, W. */
     private double regenScale() { Object[] scale = new Object[1]; main(() -> scale[0] = call(field(field(activity, "riding"), "values"), "scale", new Class<?>[0])); return (Double)field(scale[0], "regenW"); }
     private static void setField(Object target, String name, Object value) { try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); f.set(target, value); return; } catch (NoSuchFieldException e) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); } catch (Exception e) { throw new IllegalStateException("Field " + name, e); } }
