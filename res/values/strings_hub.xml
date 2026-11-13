@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Text that main keeps in its Hub file, for the 1.13 release branch, which has no Hub. Only the keys
+  this branch uses are here, with main's key names, English and attributes, so main's translations
+  carry over by key. Here they show in More › App preferences › Connection & recording.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== More › App preferences › Connection & recording ===== -->
+    <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
+    <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>
+    <!-- Under that switch. A locked phone or a dark screen counts as the background too. Android does not let Volt turn on location from the background, so such a ride has no map. -->
+    <string name="hub_recording_auto_background_note" volt:screen="Recording settings" volt:purpose="caption" volt:safety="ride" volt:dnt="Volt|GPS">A ride that starts while Volt is in the background or with the screen locked has no GPS route.</string>
+</resources>

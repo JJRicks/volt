@@ -134,6 +134,16 @@ final class AutoStartPolicy {
         return NOTICE_DUE.equals(now) && screenClear;
     }
 
+    /**
+     * The note's state when its dialog closes. Only the person can end a due note: closing it themselves (OK, back, a tap
+     * outside; byPerson) or changing the switch in it (switchChanged; they have acted, so a later dismissal by Volt doesn't
+     * bring it back). A dismissal by Volt itself, such as a rebuild or the activity going away, is neither, so the note stays
+     * due and shows again on the next clear screen. Any other state is kept.
+     */
+    static String backgroundNoticeClosed(String stored, boolean byPerson, boolean switchChanged) {
+        return NOTICE_DUE.equals(stored) && (byPerson || switchChanged) ? NOTICE_DONE : stored;
+    }
+
     /** Whether to start a recording now. Refusal reasons are inputs here so that the automatic start stays silent. */
     boolean shouldRecord(boolean enabled, boolean moving, boolean recording, boolean chargeRecording, boolean simulating,
             boolean phoneSaving, boolean canStart) {
