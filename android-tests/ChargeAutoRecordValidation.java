@@ -288,7 +288,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.GUESS), "Expected a guessed label (no charger chosen, nothing detected yet)");
         String guessedStatus = onMainText(() -> service.chargeCaptureStatus());
         require(guessedStatus.endsWith(T.serviceChargeChargerGuessed("")), "The status line showed a guessed charger as known: " + guessedStatus);
-        await(() -> notice().contains(T.serviceChargeChargerGuessed("")), 10 * S, "The notification showed a guessed charger as known: " + notice());
+        await(() -> noticeTexts().contains(T.serviceChargeChargerGuessed("")), 10 * S, "The notification showed a guessed charger as known: " + noticeTexts());
         require(onMain(() -> service.chargerBasis() != ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == null),
                 "A guessed label stood in for the charger choice or detection: basis " + onMainText(() -> service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("out of sight: started " + (SystemClock.elapsedRealtime() - plugged) + " ms after plugging in, label " + onMainText(() -> String.valueOf(chargeStore().labelSource())) + "; notice: " + notice());
@@ -661,6 +661,17 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
         main(() -> ((android.app.Dialog) field(viewer(), "dialog")).dismiss());
         for (File file : saved()) file.delete();
+    }
+    /** Every text the connection notice carries: title, text, sub text, the big text and its summary (where the recording status goes beside the live card). */
+    private String noticeTexts() {
+        StatusBarNotification n = connection();
+        if (n == null) return "(no connection notice)";
+        Bundle extras = n.getNotification().extras; StringBuilder out = new StringBuilder();
+        for (String key : new String[]{Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_BIG_TEXT, Notification.EXTRA_SUMMARY_TEXT}) {
+            CharSequence value = extras.getCharSequence(key);
+            if (value != null) out.append(value).append(" | ");
+        }
+        return out.toString();
     }
     private Object viewer() { return field(field(activity, "screen"), "chargeHistoryDialog"); }
     private View historyView(String tag) {
