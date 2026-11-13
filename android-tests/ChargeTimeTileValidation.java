@@ -661,7 +661,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         Bitmap part = Bitmap.createBitmap(frame, clip.left, clip.top, clip.width(), clip.height());
         try (FileOutputStream out = new FileOutputStream(file)) { part.compress(Bitmap.CompressFormat.PNG, 100, out); }
         finally { part.recycle(); frame.recycle(); }
-        TextCensus.skip(file, "Crop of one mid-switch frame; the settled screenshots carry the census");
+        TextCensus.writeView(this, file, tile());  // the crop shows the tile: census its text as drawn (both faces mid-switch)
     }
     private File dir() { File d = new File(getTargetContext().getExternalFilesDir(null), "charge-time-tile-validation"); d.mkdirs(); return d; }
     private void shot(String name) throws Exception { settle(); SystemClock.sleep(500); waitForIdleSync(); screenshot(name); }
