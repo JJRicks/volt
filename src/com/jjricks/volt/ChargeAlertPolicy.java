@@ -262,6 +262,16 @@ public final class ChargeAlertPolicy {
         return settings == null || !settings.charge ? Integer.valueOf(0) : Integer.valueOf(settings.chargeAt);
     }
 
+    /**
+     * The low-battery alert's level for Home's Battery alerts shortcut while it is the only alert on, so the tile reads
+     * "Low 20%" rather than Off; null when alerts aren't offered, no settings were read, the charge alert is on (its level
+     * shows, shortcutLevel) or the low alert is off.
+     */
+    public static Integer shortcutLow(boolean offered, Settings settings) {
+        if (!offered || settings == null || settings.charge || !settings.low) return null;
+        return Integer.valueOf(settings.lowBelow);
+    }
+
     // Notification wording, kept here so the formatting is unit-tested.
     public static String levelText(int level) { return level >= 100 ? T.chargingAlertLevelFull() : T.fmtPercent(Fmt.integer(level)); }
     public static String watchTitle(int target) { return target >= 100 ? T.chargingAlertWatchFull() : T.chargingAlertWatchTitle(Fmt.integer(target)); }
