@@ -320,11 +320,10 @@ public final class ScooterSimulation {
             throw new IllegalArgumentException("Clear real telemetry before simulating");
         boolean scripted = !script.isEmpty() && scene == Scene.PARKED;
         if (!scripted) advance(elapsedMs); else lastTickMs = elapsedMs;
+        Readings out = new Readings();
         for (Telemetry.Metric metric : telemetry.metrics()) {
-            // A script's ride sets speed below at this same time: one reading per tick, as a real report has.
-            if (scripted && metric.key.equals(RidingValues.SPEED_KEY)) continue;
             Sample value = fixed.get(metric.key);
-            telemetry.putSimulationSample(metric.key,
+            out.putSimulationSample(metric.key,
                     value == null ? NO_RESPONSE : value.text,
                     value == null ? null : value.number, elapsedMs);
         }
@@ -339,31 +338,50 @@ public final class ScooterSimulation {
                     | ((value << feature.readbackShift) & feature.readbackMask));
         }
         for (Map.Entry<String, Integer> field : fields.entrySet())
-            telemetry.putSimulationSample(field.getKey(), field.getValue() + SIMULATION,
+            out.putSimulationSample(field.getKey(), field.getValue() + SIMULATION,
                     field.getValue().doubleValue(), elapsedMs);
-        telemetry.putSimulationSample("lock_status", features.get("lock") == 0
+        out.putSimulationSample("lock_status", features.get("lock") == 0
                 ? "Unlocked (simulation)" : "Locked (simulation)", features.get("lock").doubleValue(), elapsedMs);
         // A model without a native charge limit has no limit reading: it charges to full (ChargeAlertPolicy.offered).
-        if (chargeLimitModel) telemetry.putSimulationSample("charge_limit_percent", features.get("charge_limit") + " %",
+        if (chargeLimitModel) out.putSimulationSample("charge_limit_percent", features.get("charge_limit") + " %",
                 features.get("charge_limit").doubleValue(), elapsedMs);
-        else telemetry.putSimulationSample("charge_limit_percent", NO_RESPONSE, null, elapsedMs);
-        telemetry.putSimulationSample("scheduled_charge_time_raw", chargeStart == 0
+        else out.putSimulationSample("charge_limit_percent", NO_RESPONSE, null, elapsedMs);
+        out.putSimulationSample("scheduled_charge_time_raw", chargeStart == 0
                 ? "No schedule (simulation)" : chargeStart + SIMULATION, (double) chargeStart, elapsedMs);
-        telemetry.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
+        out.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
         double phase = elapsedMs / 1000.0;
-        quantity(telemetry, "temperature_c", 23.5 + .5 * Math.sin(phase / 37), "°C", 1, elapsedMs);
+        quantity(out, "temperature_c", 23.5 + .5 * Math.sin(phase / 37), "°C", 1, elapsedMs);
         if (scripted) {
             // The riding-mode screenshot scripts keep their fixed readings (parked electrical samples beneath them).
             double volts = 50.4 + .08 * Math.sin(phase / 19), amps = .36 + .08 * Math.sin(phase / 7);
-            quantity(telemetry, "voltage_v", volts, "V", 2, elapsedMs);
-            quantity(telemetry, "current_a", amps, "A", 2, elapsedMs);
-            quantity(telemetry, "power_w", volts * amps, "W", 1, elapsedMs);
-            charging(telemetry, false, elapsedMs);
-            signState(telemetry, false, elapsedMs);
-            ride(telemetry, elapsedMs, phase);
-            return;
+            quantity(out, "voltage_v", volts, "V", 2, elapsedMs);
+            quantity(out, "current_a", amps, "A", 2, elapsedMs);
+            quantity(out, "power_w", volts * amps, "W", 1, elapsedMs);
+            charging(out, false, elapsedMs);
+            signState(out, false, elapsedMs);
+            ride(out, elapsedMs, phase);
+        } else scene(out, elapsedMs, phase);
+        out.flush(telemetry);
+    }
+
+    /**
+     * One tick's readings, written to Telemetry together at the tick's time. A key written twice in a tick (the catalog's
+     * fixed sample, then the scene's or the script's own) keeps only the last: one reading per key per tick, as a real
+     * report has. Telemetry passes every speed it takes to riding mode's Max and Avg (RidingSpeed), which drops a second
+     * reading at the same time, so a fixed 0 sent first would have hidden the scene's speed from them.
+     */
+    private static final class Readings {
+        private final LinkedHashMap<String, Object[]> pending = new LinkedHashMap<>();
+        private long time = -1;
+        void putSimulationSample(String key, String value, Double number, long elapsedMs) {
+            if (time >= 0 && elapsedMs != time) throw new IllegalArgumentException("One tick, one time");
+            time = elapsedMs;
+            pending.put(key, new Object[]{value, number});
         }
-        scene(telemetry, elapsedMs, phase);
+        void flush(Telemetry telemetry) {
+            for (Map.Entry<String, Object[]> e : pending.entrySet())
+                telemetry.putSimulationSample(e.getKey(), (String) e.getValue()[0], (Double) e.getValue()[1], time);
+        }
     }
 
     private static final String SIMULATION = " (simulation)";
@@ -478,7 +496,7 @@ public final class ScooterSimulation {
     }
 
     /** The scene's readings, written in one tick: every key any scene writes, so a switch leaves nothing behind. */
-    private void scene(Telemetry telemetry, long time, double phase) {
+    private void scene(Readings telemetry, long time, double phase) {
         boolean riding = scene == Scene.RIDING && !locked(), charging = scene == Scene.CHARGING;
         double speed = riding ? rideSpeed(rideClock) : 0, volts, amps;
         if (riding) {
@@ -512,10 +530,10 @@ public final class ScooterSimulation {
         if (scene == Scene.RIDING) telemetry.putSimulationSample("driving_status", moving + SIMULATION, (double) moving, time);
         telemetry.putSimulationSample("driving_mode", driveMode + SIMULATION, (double) driveMode, time);
     }
-    private static void charging(Telemetry telemetry, boolean on, long time) {
+    private static void charging(Readings telemetry, boolean on, long time) {
         telemetry.putSimulationSample("charging_state", on ? "Charging (simulation)" : "Not charging (simulation)", on ? 1.0 : 0.0, time);
     }
-    private void signState(Telemetry telemetry, boolean charging, long time) {
+    private void signState(Readings telemetry, boolean charging, long time) {
         if (!signedCurrent) telemetry.putSimulationSample("current_sign_state", 254 + SIMULATION, 254.0, time);
         else telemetry.putSimulationSample("current_sign_state", charging ? "1 (simulation)" : "0 (simulation)", charging ? 1.0 : 0.0, time);
     }
@@ -524,7 +542,7 @@ public final class ScooterSimulation {
      * A scooter that doesn't sign its current (a GT3 Max answers 0x79 with 254): always a positive
      * reading, with a repeating pull-away, cruise and brake where the voltage rises. Regen inference only.
      */
-    private void unsignedRegenRide(Telemetry telemetry, long time, double phase) {
+    private void unsignedRegenRide(Readings telemetry, long time, double phase) {
         double cycle = phase % 32, volts = 50.4, amps, speed;
         if (cycle < 6) { speed = 6 + 4 * cycle; amps = 16; volts -= 16 * .08; }
         else if (cycle < 14) { speed = 30; amps = .45; }
@@ -542,7 +560,7 @@ public final class ScooterSimulation {
     }
 
     /** A ride for riding mode's screenshots: speed and power that swing into regen, a growing trip. */
-    private void ride(Telemetry telemetry, long time, double phase) {
+    private void ride(Readings telemetry, long time, double phase) {
         if (script.equals(UNSIGNED_REGEN)) { unsignedRegenRide(telemetry, time, phase); return; }
         boolean moving = !script.equals(STOPPED);
         double speed = moving ? 24.3 + 5.5 * Math.sin(phase / 9) : 0;
@@ -565,11 +583,11 @@ public final class ScooterSimulation {
         if (script.equals(WARNING)) telemetry.putSimulationSample("warning_code", Telemetry.format(14, 0), 14.0, time);
     }
 
-    private static void reading(Telemetry telemetry, String key, double number, int decimals, String suffix, long time) {
+    private static void reading(Readings telemetry, String key, double number, int decimals, String suffix, long time) {
         telemetry.putSimulationSample(key, Telemetry.format(number, decimals) + suffix, number, time);
     }
 
-    private static void quantity(Telemetry telemetry, String key, double number,
+    private static void quantity(Readings telemetry, String key, double number,
             String unit, int decimals, long time) {
         telemetry.putSimulationSample(key, String.format(Locale.US, "%." + decimals + "f %s", number, unit), number, time);
     }
