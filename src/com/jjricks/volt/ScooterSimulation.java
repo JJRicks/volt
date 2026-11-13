@@ -320,7 +320,7 @@ public final class ScooterSimulation {
             throw new IllegalArgumentException("Clear real telemetry before simulating");
         boolean scripted = !script.isEmpty() && scene == Scene.PARKED;
         if (!scripted) advance(elapsedMs); else lastTickMs = elapsedMs;
-        Readings out = new Readings();
+        Readings out = new Readings(elapsedMs);
         for (Telemetry.Metric metric : telemetry.metrics()) {
             Sample value = fixed.get(metric.key);
             out.putSimulationSample(metric.key,
@@ -372,10 +372,11 @@ public final class ScooterSimulation {
      */
     private static final class Readings {
         private final LinkedHashMap<String, Object[]> pending = new LinkedHashMap<>();
-        private long time = -1;
+        private final long time;
+        Readings(long time) { this.time = time; }
+        /** One reading at the tick's own time. */
         void putSimulationSample(String key, String value, Double number, long elapsedMs) {
-            if (time >= 0 && elapsedMs != time) throw new IllegalArgumentException("One tick, one time");
-            time = elapsedMs;
+            if (elapsedMs != time) throw new IllegalArgumentException();
             pending.put(key, new Object[]{value, number});
         }
         void flush(Telemetry telemetry) {
