@@ -44,6 +44,8 @@ import com.jjricks.volt.tests.TextCensus;
  * with Stay connected off, riding away still starts the ride before the link is let go. Its review of bd671732: during an
  * automatic recording with a guessed label the owner's charger choice is accepted, labels the recording chosen and
  * ends Charge done by's wait; it stays refused during a manual recording and an automatic one with the chosen charger.
+ * Its review of 8be6104f, in #416: a guessed charger is marked as guessed ("· charger guessed") in the status line, the
+ * notification, the saved list and the recording's detail.
  *
  * Mode "page": Battery & charging › Charge history & recordings with the switch, screenshots and a text check for cut
  * or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text. An app with no switch at
@@ -103,6 +105,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                     rideAwayOutOfSight();
                 }
                 if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", ""))) manualNeverDeleted();
+                if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
             result.putString("result", "PASS");
@@ -157,6 +160,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         long started = awaitRecording(10 * S, "on screen");
         require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN
                 && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED), "Expected the chosen high-speed label");
+        String chosenStatus = onMainText(() -> service.chargeCaptureStatus());
+        require(!chosenStatus.endsWith(T.serviceChargeChargerGuessed("")), "A chosen charger was marked as guessed: " + chosenStatus);
         require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK)
                 && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED
                 && service.chargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED), "The charger changed during an automatic recording with the chosen charger");
@@ -175,6 +180,11 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(saved().length == 0, "A recording under 10 minutes was kept: " + Arrays.toString(saved()));
         notSaidSaved();
         require(!holds(), "A recording that ended by itself set a hold");
+        require(onMain(() -> service.chargeCaptureUnavailable() != null), "Fixture: a new recording could start right after the unplug, so the page check proves nothing");
+        String notKeptOnPage = pageStatus();
+        require(notKeptOnPage.equals(T.serviceChargeNotKept()), "The page hid the outcome of the recording that just ended: " + notKeptOnPage);
+        log("page after the unplug: \"" + notKeptOnPage + "\" (in place of: " + onMainText(() -> service.chargeCaptureUnavailable()) + ")");
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.HOME);
     }
 
     /** Jostling below 4.8 km/h keeps it; above, it ends at once and Record rides automatically starts a ride in that moment. */
@@ -292,6 +302,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() != ChargeSessionStore.LabelSource.CHOSEN
                 && chargeStore().charger() == ChargeSessionStore.Charger.STOCK), "Expected a stock label not marked as chosen");
         require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.GUESS), "Expected a guessed label (no charger chosen, nothing detected yet)");
+        String guessedStatus = onMainText(() -> service.chargeCaptureStatus());
+        require(guessedStatus.endsWith(T.serviceChargeChargerGuessed("")), "The status line showed a guessed charger as known: " + guessedStatus);
+        await(() -> noticeTexts().contains(T.serviceChargeChargerGuessed("")), 10 * S, "The notification showed a guessed charger as known: " + noticeTexts());
         require(onMain(() -> service.chargerBasis() != ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == null),
                 "A guessed label stood in for the charger choice or detection: basis " + onMainText(() -> service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("out of sight: started " + (SystemClock.elapsedRealtime() - plugged) + " ms after plugging in, label " + onMainText(() -> String.valueOf(chargeStore().labelSource())) + "; notice: " + notice());
@@ -308,6 +321,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK) && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED),
                 "Once chosen, the recording's charger changed again");
         log("out of sight: the owner chose high-speed during the guessed recording: label " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger()) + ", Charge done by no longer waits");
+        String chosenNow = onMainText(() -> service.chargeCaptureStatus());
+        require(!chosenNow.endsWith(T.serviceChargeChargerGuessed("")), "The status line still marked the charger as guessed after the owner chose it: " + chosenNow);
         SystemClock.sleep(5 * S);
         getTargetContext().startForegroundService(new Intent(getTargetContext(), ScooterService.class).setAction("STOP_CHARGE_RECORDING"));
         await(() -> onMain(() -> !service.isChargeRecording()), 10 * S, "The notification's Stop did not stop it");
@@ -339,8 +354,25 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
         require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
         log("20 manual saved: start tried and refused, all kept");
+        String refusedStatus = onMainText(() -> service.chargeCaptureStatus());
+        require(refusedStatus.equals(T.serviceChargeAutoNoRoom()), "A start refused for lack of room said nothing: " + refusedStatus);
+        String refusedOnPage = pageStatus();
+        require(refusedOnPage.equals(T.serviceChargeAutoNoRoom()), "The page did not say the start was refused for lack of room: " + refusedOnPage);
+        log("refused for lack of room; page says: \"" + refusedOnPage + "\"");
+        File makeRoom = saved()[0];
+        require(makeRoom.delete(), "Could not remove a fixture");
+        SystemClock.sleep(6 * S);
+        require(onMain(() -> !service.isChargeRecording() && latched()), "Fixture: the latch let go by itself once a file went");
+        main(() -> settings().edit().putBoolean(KEY, false).commit());
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
+        awaitRecording(20 * S, "after the switch was turned on again with room");
+        log("switch off and on again with room: the charge under way records");
+        main(() -> service.stopChargeRecording());
+        fixture(fixtures, 50, false);
+        require(names().size() == ChargeSessionStore.MAX_SESSIONS, "Fixture: expected 20 manual again: " + names());
         main(() -> { link.charging(OFF); link.home(); });
         await(() -> onMain(() -> !latched()), 20 * S, "A not-charging reading did not clear the latch");
+        await(() -> !holds(), 20 * S, "A not-charging reading did not clear the hand stop's hold");
         File oldest = saved()[0];
         require(oldest.delete(), "Could not remove a fixture");
         String automatic = fixture(fixtures, 99, true);
@@ -353,6 +385,17 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> service.stopChargeRecording());
         require(names().equals(before), "An automatic recording that was not kept cost a saved one: " + names());
         log("stopped short, not kept: all 20 still there (room is made only for a kept one; JVM tests cover the replacement)");
+        unplugAndSettle();
+        for (File file : saved()) file.delete();
+        for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, 60 + i, false);
+        ensureFront();
+        plugIn();
+        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual (clear check)");
+        require(onMain(() -> !service.isChargeRecording()), "Recorded with all 20 manual (clear check)");
+        main(() -> require(service.clearChargeRecordings(null), "Clearing was refused"));
+        awaitRecording(20 * S, "after clearing made room");
+        log("cleared while charging: the charge under way records");
+        main(() -> service.stopChargeRecording());
         unplugAndSettle();
         for (File file : saved()) file.delete();
     }
@@ -507,6 +550,13 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> textProblems(capture));
         SystemClock.sleep(400); screenshot("charge-auto-record-on-" + size);
         log("page " + size + ": this app has no Record charges automatically switch (a release sweep's base app); page captured without it");
+    }
+    /** The status line under the recording controls on Battery & charging › Charge history & recordings, as shown. */
+    private String pageStatus() {
+        ensureFront();
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
+        settle();
+        return onMainText(() -> { View line = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-capture-status"); return line == null ? "(no status line)" : String.valueOf(((TextView) line).getText()); });
     }
     /** Every visible text in the row: not ellipsized, and each line break falls between words. */
     private void textProblems(View view) {
@@ -670,6 +720,51 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         return "answered " + field(policy, "answered") + ", suppressed " + field(policy, "suppressed") + ", legacy " + field(policy, "legacy");
     }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
+    /** Terra's second review of #415: a guessed label reads as a guess in the saved list and its detail; a manual one does not. */
+    private void savedListMarksGuess() throws Exception {
+        unplugAndSettle();
+        for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
+            public boolean keep(long ranMs, double gainedPoints) { return true; }
+            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
+        });
+        String guessed = fixture(fixtures, 1, true).replace(".csv", "");
+        String manualId = fixture(fixtures, 2, false).replace(".csv", "");
+        require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);
+        ensureFront();
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
+        settle();
+        main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
+        await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manualId) != null), 10 * S, "The saved list did not show both recordings");
+        String marked = T.serviceChargeChargerGuessed("");
+        String guessRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + guessed).getContentDescription()));
+        String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manualId).getContentDescription()));
+        require(guessRow.contains(marked), "The saved list showed a guessed charger as known: " + guessRow);
+        require(!manualRow.contains(marked), "The saved list marked a recording you labelled as guessed: " + manualRow);
+        main(() -> historyView("charge-history-session:" + guessed).performClick()); settle();
+        await(() -> onMain(() -> historyView("charge-history-detail") != null), 5 * S, "The guessed recording's detail did not open");
+        String detail = onMainText(() -> String.valueOf(((TextView) ((ViewGroup) historyView("charge-history-detail")).getChildAt(1)).getText()));
+        require(detail.endsWith(marked), "The detail showed a guessed charger as known: " + detail);
+        log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
+        main(() -> ((android.app.Dialog) field(viewer(), "dialog")).dismiss());
+        for (File file : saved()) file.delete();
+    }
+    /** Every text the connection notice carries: title, text, sub text, the big text and its summary (where the recording status goes beside the live card). */
+    private String noticeTexts() {
+        StatusBarNotification n = connection();
+        if (n == null) return "(no connection notice)";
+        Bundle extras = n.getNotification().extras; StringBuilder out = new StringBuilder();
+        for (String key : new String[]{Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_BIG_TEXT, Notification.EXTRA_SUMMARY_TEXT}) {
+            CharSequence value = extras.getCharSequence(key);
+            if (value != null) out.append(value).append(" | ");
+        }
+        return out.toString();
+    }
+    private Object viewer() { return field(field(activity, "screen"), "chargeHistoryDialog"); }
+    private View historyView(String tag) {
+        Object viewer = viewer(); android.app.Dialog dialog = viewer == null ? null : (android.app.Dialog) field(viewer, "dialog");
+        return dialog == null || dialog.getWindow() == null ? null : dialog.getWindow().getDecorView().findViewWithTag(tag);
+    }
     private Object scheduleContext() { return invoke(service, "chargeScheduleContext", new Class<?>[0]); }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }
     private static Object field(Object object, String name) { try { return reflected(object, name).get(object); } catch (Exception error) { throw new IllegalStateException(error); } }
