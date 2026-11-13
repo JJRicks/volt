@@ -154,6 +154,9 @@ public final class CommandLogTest {
         require(CommandLog.expired(true, true, 1, 1) == CommandLog.Outcome.UNCONFIRMED, "a matching readback finishes earlier, never as other");
         require(CommandLog.closed(false, false) == CommandLog.Outcome.CANCELLED && CommandLog.closed(true, false) == CommandLog.Outcome.INTERRUPTED
                 && CommandLog.closed(true, true) == CommandLog.Outcome.UNCONFIRMED, "a disconnect: cancelled before sending, interrupted, or unconfirmed after the ACK");
+        // Council review of 6c968d5c (finding 2): only a write that went out keeps the time and offset it carried.
+        require(CommandLog.sentTime(true, 1_792_000_000L) == 1_792_000_000L && CommandLog.sentOffset(true, -21600) == -21600, "a sent write keeps its wire time and offset");
+        require(CommandLog.sentTime(false, 1_792_000_000L) == null && CommandLog.sentOffset(false, -21600) == null, "a write cancelled before it was sent has neither");
     }
 
     /** The try journal path: GuidedTest's observer, through CommandLog.fromTest as BleController records it. */

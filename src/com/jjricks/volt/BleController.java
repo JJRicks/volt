@@ -169,7 +169,7 @@ public final class BleController {
     /** The pending mutation's own step; its value is the target it was admitted with. */
     private void logMutation(Mutation m,CommandLog.Outcome outcome,int code,Integer read){
         if(m.request==null)return;
-        logCommand(commandKind(m.request),m.request.origin,m.key,m.target,outcome,code,null,read,m.sent?Math.max(0,now()-m.sentMs):-1,m.logTime,m.logOffset);
+        logCommand(commandKind(m.request),m.request.origin,m.key,m.target,outcome,code,null,read,m.sent?Math.max(0,now()-m.sentMs):-1,CommandLog.sentTime(m.sent,m.logTime),CommandLog.sentOffset(m.sent,m.logOffset));
     }
     private static CommandLog.Kind commandKind(MutationGate.Request r){
         return r.origin==MutationGate.Origin.GUIDED_TEST?CommandLog.Kind.TRY:r.origin==MutationGate.Origin.GUIDED_RESTORE?CommandLog.Kind.RESTORE

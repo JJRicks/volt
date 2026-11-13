@@ -786,6 +786,22 @@ public final class ChargeScheduleControllerTest {
         pass.c.wireStart=pass.sentTime/1000+pass.sentOffset;pass.reply(true);pass.c.enabled=1;pass.reply(true);pass.writes.clear();
         at(pass,start-110_000,0);at(pass,start+6_000,1);cleanup(pass,"journalled pass");
         check(hp.ops.contains("TEST_END OK PASSED test")&&hp.last().equals("TEST_CLEANUP OK test"),"a verdict and its cleanup");
+        // Council review of 6c968d5c (finding 4): the pause is saved when the test sees it, so a test the process end cuts off still says it paused.
+        tested.clear();Rig pausing=withManualOnly();Heard hpz=new Heard();pausing.controller.journal(hpz);pausing.controller.startTest(tested::add);pausing.reply(true);
+        pausing.c.wireStart=pausing.sentTime/1000+pausing.sentOffset;pausing.reply(true);pausing.c.enabled=1;pausing.reply(true);pausing.writes.clear();
+        at(pausing,start-110_000,1);check(!hpz.saved.get(hpz.saved.size()-1).testPaused,"charging: no pause yet");int saves=hpz.saved.size();
+        at(pausing,start-100_000,0);ChargeScheduleController.Diagnostics live=pausing.controller.diagnostics();
+        check(hpz.saved.size()==saves+1&&hpz.saved.get(saves).testPaused&&live.testOutcome==ChargeScheduleTest.Outcome.RUNNING&&live.testPaused&&pausing.writes.isEmpty(),
+                "the pause is saved once, as seen, the test still running, nothing sent");
+        at(pausing,start-90_000,0);check(hpz.saved.size()==saves+1,"and not saved again while it stays paused");
+        try{
+            java.io.File dir=java.nio.file.Files.createTempDirectory("charge-evidence-pause").toFile();String scope="0b0c5e9e-2d1f-4c3a-9a51-7f5b2e8d1c00";
+            ChargeEvidence before=new ChargeEvidence(dir,java.util.ArrayList::new,()->start-100_000,()->1_000_000L);before.saved(scope,live);before.flush().get(10,java.util.concurrent.TimeUnit.SECONDS);
+            ChargeEvidence after=new ChargeEvidence(dir,java.util.ArrayList::new,()->start,()->2_000_000L);after.prefetch(scope);after.flush().get(10,java.util.concurrent.TimeUnit.SECONDS);
+            long[] row=after.snapshot(scope).book.tests.get(0);
+            check(row[ChargeEvidence.X_OUTCOME]==ChargeScheduleTest.Outcome.INTERRUPTED.ordinal()&&row[ChargeEvidence.X_PAUSED]==1
+                    &&row[ChargeEvidence.X_WHY]==ChargeScheduleController.Interruption.PROCESS_ENDED.ordinal(),"cut off by the process end: the evidence row is interrupted, paused");
+        }catch(Exception e){throw new AssertionError(e);}
         // The journal never changes behaviour: the same steps with a journal that throws send exactly the same writes.
         Rig plain=new Rig();plain.arm();plain.controller.setDoneTime(9,0,plain.results::add);plain.reply(true);
         Rig broken=new Rig();Heard hx=new Heard();hx.fail=true;broken.controller.journal(hx);broken.arm();broken.controller.setDoneTime(9,0,broken.results::add);broken.reply(true);

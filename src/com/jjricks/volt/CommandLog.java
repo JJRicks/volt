@@ -172,6 +172,9 @@ final class CommandLog {
     }
     /** The connection closed with the change still pending. */
     static Outcome closed(boolean sent, boolean ack) { return !sent ? Outcome.CANCELLED : ack ? Outcome.UNCONFIRMED : Outcome.INTERRUPTED; }
+    /** The time and UTC offset a write's event keeps: only what went on the wire, so a write never sent (cancelled while queued) has neither. */
+    static Long sentTime(boolean sent, Long time) { return sent ? time : null; }
+    static Integer sentOffset(boolean sent, Integer offset) { return sent ? offset : null; }
     /**
      * A guided write's journalled outcome (GuidedTest.Observer) as its command event, or null for one logged where it
      * happens (the scooter's ACK or rejection, Volt's refusal) or not about a write in flight (the owner's observation).

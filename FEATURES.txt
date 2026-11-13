@@ -568,14 +568,16 @@ confirmed current direction before it can be called net battery consumption.
 
 Report diagnostics (volt-diagnostics.json, sent only in a report email with
 Include diagnostics ticked) also carry the selected scooter's charge evidence:
-the last 10 schedule plans (start, deadline, how each ended, and the battery,
+the last 10 schedule plans (start, deadline and target as set, the last change
+to them with its time, how each ended, and the battery,
 lock and schedule readings at arming, start and end, each from a reading within
 30 s after that moment on the connection that was up at it, else unknown), the
 last 5 schedule tests with why one was cut short (a test the app's closing cut
 off reads as interrupted), a 300-entry charging timeline, readings around a start Volt set and after
 a test, how each schedule change ended, and changes to the schedule switch,
 start time, lock or charge limit that Volt didn't send. The control log keeps
-the start time and clock Volt sent. Typed numbers only, kept on the phone
+the start time and clock Volt sent (none for a change cancelled before it went
+out). Typed numbers only, kept on the phone
 (never backed up) and removed when the scooter is forgotten.
 
 No decoded per-cell voltages, cell balance, motor/controller temperature,

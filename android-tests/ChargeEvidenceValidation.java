@@ -498,9 +498,11 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         long start = wall + 3_600_000L, wire = start / 1000 - 6 * 3600, N = ChargeEvidence.NONE;
         for (int i = 0; i < ChargeEvidence.INTENTIONS; i++)
             b.intentions.add(new long[]{wall + i, 2, start + i, start + 7_200_000L, wire, -21600, 41, 90, 1, ChargeScheduleController.Outcome.MISSED.ordinal(), start + 130_000L, 2, 41, 1, wire, 1, 1, 0, 1,
-                    ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS});
-        b.open = new long[]{wall + 50, 1, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, N, N, N, N, N, 1, N, N, 0, ChargeEvidence.MOMENT_MS, N, N};
-        for (int i = 0; i < ChargeEvidence.OWN_WRITES; i++) b.own.add(new long[]{ChargeEvidence.Watched.CHARGE_START.ordinal(), 4_294_967_295L, wall + i});
+                    ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS, ChargeEvidence.MOMENT_MS, start + 120_000L + i, 1, start + 86_400_000L, 100});
+        b.open = new long[]{wall + 50, 2, start + 86_400_000L, start + 172_800_000L, wire + 86_400, -21600, 52, 100, 0, ChargeEvidence.END_OPEN, N, N, N, N, N, 1, N, N, 0, ChargeEvidence.MOMENT_MS, N, N,
+                wall + 70, 1, start + 172_800_000L, 80};
+        for (int i = 0; i < ChargeEvidence.OWN_WRITES; i++) b.own.add(new long[]{ChargeEvidence.Watched.CHARGE_START.ordinal(), 4_294_967_295L, wall + i, wall});
+        for (int i = 0; i < b.fresh.length; i++) b.fresh[i] = new long[]{4_294_967_295L, wall, 9_999_999_999L, wall};
         for (int i = 0; i < ChargeEvidence.TESTS; i++)
             b.tests.add(new long[]{wall + i * 600_000L, wall + i * 600_000L + 120_000L, ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(), N, 1, N, ChargeScheduleController.Interruption.READINGS_STALE.ordinal()});
         for (int i = 0; i < ChargeEvidence.TIMELINE; i++) b.timeline.add(new long[]{i % 4, wall + i * 61_000L, 9_999_999_999L + i, i % 2, 100, 249_999, -999_999, -99_999, -79, 1, 4_294_967_295L, 1, 1, 99_999});
