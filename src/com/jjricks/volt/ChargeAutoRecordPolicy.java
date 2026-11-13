@@ -94,11 +94,14 @@ public final class ChargeAutoRecordPolicy {
     }
 
     /**
-     * The new label for a running automatic recording, or null to keep its label. A chosen label never changes on
-     * detection; a detected or guessed one follows detection when it settles on the other family.
+     * The charger a running automatic recording is relabelled to, as DETECTED, or null to keep its label. The source
+     * follows what is known: a chosen label never changes on detection; a detected one follows detection when it settles
+     * on the other family; a guess becomes DETECTED as soon as detection settles, whether or not the family changes (the
+     * store renames only, then). A recording stays a guess only when detection never settled.
      */
     public static ChargeSessionStore.Charger relabel(ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger current, ChargeSessionStore.Charger detected) {
-        if (source == null || source == ChargeSessionStore.LabelSource.CHOSEN || detected == null || detected == current) return null;
+        if (source == null || source == ChargeSessionStore.LabelSource.CHOSEN || detected == null) return null;
+        if (detected == current && source != ChargeSessionStore.LabelSource.GUESS) return null;
         return detected;
     }
 
@@ -172,6 +175,14 @@ public final class ChargeAutoRecordPolicy {
     public static boolean waits(boolean guidedTest, boolean restoreOutstanding, boolean compatibilityCheck) {
         return guidedTest || restoreOutstanding || compatibilityCheck;
     }
+
+    /**
+     * Whether an unfinished guided test or try of the connected scooter (TestJournal, unresolved: its write may have been
+     * sent) holds an automatic start, by its review now: every state but ALREADY_RESTORED, which has nothing left to write
+     * back and resolves itself. WAITING and FIRMWARE_CHANGED can still lead to a restore, and a recording would refuse it;
+     * dismissing the test releases the start.
+     */
+    public static boolean testHolds(GuidedTest.ReviewState review) { return review != GuidedTest.ReviewState.ALREADY_RESTORED; }
 
     /**
      * Whether a recording's label is a charger Volt may act on (estimates, Charge done by, learned curves): a manual

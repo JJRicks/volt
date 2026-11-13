@@ -126,8 +126,6 @@
     <string name="more_prefs_auto_connect">Połącz automatycznie</string>
     <!-- src:25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a -->
     <string name="more_prefs_background">Utrzymuj połączenie w tle</string>
-    <!-- src:5ca7fc47f600cdbf58fdace126eae295fa294226 -->
-    <string name="more_prefs_background_sub">Nagrywanie zawsze utrzymuje połączenie</string>
     <!-- src:83881e36841edbacf388110c732b3b73770b8f36 -->
     <string name="more_prefs_awake">Utrzymuj włączony ekran</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->

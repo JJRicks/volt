@@ -38,6 +38,11 @@ public final class ChargeAutoRecordPolicyTest {
         storeRoomOnlyWhenKept();
         storeRoomAfterProcessDeath();
         storeGuessTeachesNothing();
+        storeConfirmedGuessLearns();
+        storeStopCutShort();
+        storeUnreadableNeverCostsAnother();
+        storeJustSavedNeverTrimmed();
+        testHolds();
         System.out.println("ChargeAutoRecordPolicyTest: " + checks + " checks");
     }
 
@@ -73,7 +78,9 @@ public final class ChargeAutoRecordPolicyTest {
         check(ChargeAutoRecordPolicy.relabel(CHOSEN, STOCK, FAST) == null, "A chosen label never follows detection");
         check(ChargeAutoRecordPolicy.relabel(DETECTED, STOCK, FAST) == FAST, "A detected label follows detection to the other family");
         check(ChargeAutoRecordPolicy.relabel(GUESS, STOCK, FAST) == FAST, "A guess follows detection once it settles");
-        check(ChargeAutoRecordPolicy.relabel(GUESS, STOCK, STOCK) == null, "Same family: nothing to change");
+        // Terra (8be6104f) #1: the source follows what is known. Detection confirming a guess makes it DETECTED.
+        check(ChargeAutoRecordPolicy.relabel(GUESS, STOCK, STOCK) == STOCK, "A guess that detection confirms becomes detected (same family)");
+        check(ChargeAutoRecordPolicy.relabel(DETECTED, STOCK, STOCK) == null, "Detected and still the same family: nothing to change");
         check(ChargeAutoRecordPolicy.relabel(GUESS, FAST, null) == null, "No detection: keep the first label");
         check(ChargeAutoRecordPolicy.relabel(null, STOCK, FAST) == null, "A manual recording is never relabelled");
     }
@@ -412,5 +419,72 @@ public final class ChargeAutoRecordPolicyTest {
         store.start("one", STOCK, WALL + 2000 * MINUTE, MONO); charge(store, 60, 30); store.stop(ChargeSessionStore.Stop.STOPPED);
         ChargeSessionStore.Curve manual = store.snapshot().curves.get(ChargeSessionStore.key("one", STOCK));
         check(manual != null && manual.qualifiedSessions == 1, "A manual recording learns as before");
+    }
+
+    /** Terra (8be6104f) #1: detection confirming a guessed family makes it DETECTED, and then it learns. */
+    static void storeConfirmedGuessLearns() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        store.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(store, 30, 15);
+        // The service's step: relabel when the policy says so (ScooterService.observeAutoCharge).
+        ChargeSessionStore.Charger to = ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), STOCK);
+        check(to != null && store.relabel(to, DETECTED), "Detection settling on the guessed family relabels the source");
+        check(store.labelSource() == DETECTED && store.charger() == STOCK && id(f).charAt(14) == 'b', "Same family, now detected: " + id(f));
+        charge(store, 30, 15);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "Kept");
+        ChargeSessionStore.Curve learned = store.snapshot().curves.get(ChargeSessionStore.key("one", STOCK));
+        check(learned != null && learned.qualifiedSessions == 1, "A confirmed guess learns the stock curve");
+        check(store.recordings("one").get(0).labelSource == DETECTED, "Listed as detected");
+    }
+
+    static File active(File folder) { for (File file : folder.listFiles()) if (file.getName().endsWith(".active")) return file; return null; }
+    static void append(File file, String text) throws Exception { Files.write(file.toPath(), text.getBytes(StandardCharsets.UTF_8), java.nio.file.StandardOpenOption.APPEND); }
+
+    /** Terra (8be6104f) #2: a stop that a process death cut short after its end line: recovery adds no second end line. */
+    static void storeStopCutShort() throws Exception {
+        int max = ChargeSessionStore.MAX_SESSIONS;
+        File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
+        String olderAutomatic = oldestAutomatic(f);
+        store.startAutomatic("one", STOCK, CHOSEN, WALL + 5000 * MINUTE, MONO); charge(store, 20, 10);
+        File journal = active(f); String id = journal.getName().substring(0, 36);
+        append(journal, "end,CHARGING_ENDED\n"); // stop() wrote its end line, then the process died before the rename
+        ChargeSessionStore after = store(f);
+        boolean listed = false; for (ChargeSessionStore.HistorySession h : after.recordings("one")) if (h.automatic && h.charger == STOCK && h.labelSource == CHOSEN && h.points.size() > 60) listed = true;
+        check(listed && names(f).contains(id + ".csv"), "Recovered with one end line: still a readable recording");
+        int ends = 0; for (String line : Files.readAllLines(new File(f, id + ".csv").toPath())) if (line.startsWith("end,")) ends++;
+        check(ends == 1, "Exactly one end line: " + ends);
+        check(saved(f).size() == max && !saved(f).contains(olderAutomatic), "It is kept, and the older automatic one made room for it, as a finished stop would");
+    }
+
+    /** Terra (8be6104f) #2: an automatic file Volt cannot read never costs another recording its place. */
+    static void storeUnreadableNeverCostsAnother() throws Exception {
+        int max = ChargeSessionStore.MAX_SESSIONS;
+        File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
+        String readable = oldestAutomatic(f);
+        File broken = new File(f, "22222222-2222-a222-8222-222222222222.csv");
+        Files.write(broken.toPath(), "charge-v2,one,STOCK,1,1\nend,STOPPED\nend,INTERRUPTED\n".getBytes(StandardCharsets.UTF_8));
+        broken.setLastModified(System.currentTimeMillis() + 60_000);
+        check(saved(f).size() == max + 1, "Fixture: one unreadable automatic file over the limit");
+        store(f);
+        check(!broken.exists() && saved(f).contains(readable) && saved(f).size() == max, "The unreadable file goes, the readable automatic recording stays");
+    }
+
+    /** Terra (8be6104f) #3: the recording just saved is never the one trimmed, whatever the other files' dates. */
+    static void storeJustSavedNeverTrimmed() throws Exception {
+        int max = ChargeSessionStore.MAX_SESSIONS;
+        File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 2, 2);
+        // A restore dates recordings by their saved start: here both automatic ones look newer than anything else.
+        for (File file : f.listFiles()) if (ChargeSessionStore.labelSource(file.getName()) != null) file.setLastModified(System.currentTimeMillis() + 86_400_000L);
+        store.startAutomatic("one", STOCK, CHOSEN, WALL + 9000 * MINUTE, MONO); charge(store, 10, 5);
+        String id = active(f).getName().substring(0, 36);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "The kept recording is reported saved");
+        check(saved(f).contains(id + ".csv") && saved(f).size() == max && automaticCount(f) == 2, "It is still there; one older-dated automatic one made room");
+    }
+
+    /** Terra (8be6104f) #4: any unfinished test that may still write back holds an automatic start. */
+    static void testHolds() {
+        for (GuidedTest.ReviewState state : GuidedTest.ReviewState.values())
+            check(ChargeAutoRecordPolicy.testHolds(state) == (state != GuidedTest.ReviewState.ALREADY_RESTORED), "Test review " + state);
+        check(ChargeAutoRecordPolicy.testHolds(GuidedTest.ReviewState.WAITING) && ChargeAutoRecordPolicy.testHolds(GuidedTest.ReviewState.FIRMWARE_CHANGED),
+                "Waiting for a reading, or for the owner to confirm the firmware, still holds");
     }
 }

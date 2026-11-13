@@ -228,17 +228,21 @@ public final class ChargeSessionStore {
         if(stale!=null)for(File file:stale)file.delete();
         // A process restart never silently resumes a capture. Interrupted journals remain inspectable,
         // but do not enter learned curves because their stop/continuity was not observed.
+        List<File> recoveredFiles=new ArrayList<>();
         for(File file:files())if(file.getName().endsWith(".active")){
-            append(file,"end,INTERRUPTED\n");File recovered=new File(directory,file.getName().replace(".active",".csv"));
+            // A stop that a process death cut short after its end line keeps that line: a second one would make it unreadable.
+            if(!ended(file))append(file,"end,INTERRUPTED\n");
+            File recovered=new File(directory,file.getName().replace(".active",".csv"));
             if(!file.renameTo(recovered))throw new IOException("Could not finalize interrupted charge");
             // An interrupted automatic recording is judged like any other automatic one: a short one is not kept, and
             // nothing saved made room for it.
             Session session=labelSource(recovered.getName())==null?null:read(recovered);
             if(session!=null&&!keeps(session))recovered.delete();
+            else if(session!=null)recoveredFiles.add(recovered);
         }
         // A kept automatic recording (recovered here, or saved by a stop that a process death cut short before it made
         // room) makes room among automatic recordings only, before the ordinary pruning sees the folder.
-        trimAutomatic();
+        trimAutomatic(recoveredFiles);
         prune();
     }
     private boolean keeps(Session session){
@@ -442,7 +446,7 @@ public final class ChargeSessionStore {
         if(!discarded&&!file.renameTo(saved))throw new IOException("Charge could not be finalized");
         // Saved first, then room made: a process death in between leaves one file too many, which the next start trims
         // the same way. There is no moment when the old recording and the new one are both gone.
-        if(automatic&&!discarded)trimAutomatic();
+        if(automatic&&!discarded)trimAutomatic(Collections.singletonList(saved));
         prune();
         return !discarded&&saved.exists();
     }
@@ -577,11 +581,25 @@ public final class ChargeSessionStore {
     /**
      * Over the limit, the oldest automatic recordings go first, and only they: a manual recording is never deleted to
      * make room for an automatic one. A running journal is left alone. Called once an automatic recording is saved, never
-     * at its start.
+     * at its start. Never one in keep (the recording just saved or recovered, whatever its modification time: a restore
+     * dates a recording by its saved start). An automatic file that cannot be read is no recording to Volt (not listed,
+     * learned or exported), so it goes before any readable one: it never costs another recording its place.
      */
-    private void trimAutomatic()throws IOException{
-        List<File> entries=files();int over=entries.size()-MAX_SESSIONS;
-        for(File file:entries)if(over>0&&!file.equals(active)&&labelSource(file.getName())!=null){remove(file);over--;}
+    private void trimAutomatic(List<File> keep)throws IOException{
+        List<File> entries=files();int over=entries.size()-MAX_SESSIONS;if(over<=0)return;
+        List<File> candidates=new ArrayList<>();
+        for(File file:entries)if(!file.equals(active)&&!keep.contains(file)&&labelSource(file.getName())!=null)candidates.add(file);
+        List<File> unreadable=new ArrayList<>();
+        for(File file:candidates)if(read(file)==null)unreadable.add(file);
+        candidates.removeAll(unreadable);candidates.addAll(0,unreadable);
+        for(File file:candidates)if(over>0){remove(file);over--;}
+    }
+    /** Whether a journal already has its end line (a stop wrote it before a process death cut the stop short). */
+    private static boolean ended(File file)throws IOException{
+        try(BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(file),StandardCharsets.UTF_8))){
+            String line;while((line=in.readLine())!=null)if(line.startsWith("end,"))return true;
+        }
+        return false;
     }
     private void pruneTo(int limit)throws IOException{
         List<File> entries=files();int remove=entries.size()-limit;if(remove<=0)return;
