@@ -316,6 +316,11 @@ public final class HubText {
     public static Msg whatsNewChanges(CharSequence version) { return M.homeWhatsNewChanges(version); }
     /** The line above the notes while Volt is not in English: the notes come in English (the update check's line). */
     public static Msg whatsNewNotesInEnglish() { return M.compatUpdateNotesInEnglish(); }
+    /**
+     * The line under the notes when the sheet shows only the first of them (WhatsNewNotes.Notes#cut), above the
+     * link to the release page. Text only here; an ordinary part shows it.
+     */
+    public static Msg whatsNewCut() { return M.hubWhatsNewCut(); }
     /** The link under the notes that opens the release page with the full notes (the update check's button). */
     public static Msg whatsNewReleasePage() { return M.moreUpdateOpen(); }
     /** The message when no browser can open the release page (the update check's). */
@@ -397,7 +402,9 @@ public final class HubText {
     /**
      * The name a settings row already shows, by its view tag ({@link HubSearchTables#SETTINGS}), for search's
      * results; null for any other tag. The display card's tag stands for its Text size row, the one row in it
-     * with no tag of its own; the riding-mode boxes for brightness and night vision are named by their labels.
+     * with no tag of its own: Language and Units carry theirs, and Haptic feedback has its own
+     * ({@link HubSearchTables#SETTING_HAPTICS}, set on the switch by part 11). The riding-mode boxes for
+     * brightness and night vision are named by their labels.
      */
     public static Msg settingTitle(String tag) {
         if (tag == null) return null;
@@ -405,6 +412,7 @@ public final class HubText {
             case HubSearchTables.SETTING_HOME_STYLE: return M.homeStyleTitle();
             case HubSearchTables.SETTING_UNITS: return M.morePrefsUnits();
             case HubSearchTables.SETTING_DISPLAY: return M.morePrefsTextSize();
+            case HubSearchTables.SETTING_HAPTICS: return M.morePrefsHaptics();
             case HubSearchTables.SETTING_LANGUAGE: return M.moreLanguageTitle();
             case HubSearchTables.SETTING_RIDING_AUTO_OPEN: return M.ridingDisplayAutoOpen();
             case HubSearchTables.SETTING_RIDING_AUTO_RECORD: return M.morePrefsAutoRecord();

@@ -716,11 +716,12 @@ the tab bar was: the most-used subjects with short names, and All, or swipe
 up, for every subject with its summary). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
-link. The gear in either Home's header (Clean or Widgets, beside the connection
-line) opens Settings; Home's search button finds pages, settings and
-controls (Experimental entries included), live readings (with their value) and
-rides, each with its subject, and opens the result's page with the row on
-screen; Back returns to the search as it was. The former arrange-and-hide editor is gone, and settings hidden with
+link. The gear in Clean Home's header (beside the connection line), or
+Settings at the top of the dock's All list on Widgets, opens Settings; Search,
+beside it in either place, finds pages, settings and controls (Experimental
+entries included), live readings (with their value) and rides, each with its
+subject, and opens the result's page with the row on screen; Back returns to
+the search as it was. The former arrange-and-hide editor is gone, and settings hidden with
 it show again. Rename the local scooter profile in Settings > My scooters or
 with its widget pencil while editing Home. Maintenance
 (Service > Maintenance, off by default) keeps local reminders by
@@ -1251,11 +1252,14 @@ the photo goes before the readings. The Ride row shows a running recording and
 its time while a ride records, else the last ride. Setup's last step offers
 the choice (Clean selected on a new install), each style drawn in detail with
 the scooter's photo and sample readings. Owners updating from a Volt without
-Clean keep Widgets and see a one-time What's new sheet: Switch to Clean or Keep
-Widgets (left out once they chose a style or Home is already Clean); for owners who had Record rides automatically on, a notice that
+Clean (or a new phone restoring App preferences from a backup made before
+Home styles during setup) keep Widgets and see a one-time What's new sheet:
+first, for owners who had Record rides automatically on, a notice that
 background starts are now off, with the Start recording in the background
-switch and a link to Recording settings; then the installed version's
-changelog, bundled in the APK, with a link to its release page.
+switch and a link to Recording settings; then Switch to Clean or Keep
+Widgets (left out once they chose a style or Home is already Clean); then the
+installed version's changelog, bundled in the APK, with a link to its release
+page.
 
 QUICK ACCESS
 

@@ -29,7 +29,7 @@ It has a shared **50 MiB** budget: detailed samples for up to seven days, minute
 summaries for up to 30 days, and daily summaries for up to two years. Older detail
 can be removed sooner to meet the budget. Turning it off retains last-seen values;
 clearing history also clears the selected last-seen cache. Controls are in
-**Live Stats → Data & history**.
+**Data → Data & history**.
 
 Ride files are separate from connected history and remain until you delete them
 or clear app storage. Charge recording retains up to 20 sessions across profiles

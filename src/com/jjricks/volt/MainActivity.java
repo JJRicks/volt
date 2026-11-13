@@ -217,7 +217,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
         setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
         super.onCreate(saved);
-        if(Build.VERSION.SDK_INT>=33){systemBack=this::navigateBack;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
+        if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
         String stagedExport=documents.getString("path",null);
         if(stagedExport!=null&&!documents.getBoolean("ready",false)&&!preparingExports.contains(stagedExport)){
@@ -312,7 +312,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onPause(){
         connectionHaptics.cancel();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
-        markAway();
+        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
+        long now=SystemClock.elapsedRealtime();
+        if(HubNav.awayClockStarts(OwnDialogs.showing(),launchedAt,now))markAway();
+        launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
@@ -344,18 +347,26 @@ public final class MainActivity extends Activity implements ScreenHost {
             ((DashboardScreen) screen).onUserTouch();
         return super.dispatchTouchEvent(event);
     }
-    @Override public void onBackPressed(){navigateBack();}
-    private void navigateBack(){
+    @Override public void onBackPressed(){navigateBack(false);}
+    /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
+    private void navigateBack(boolean link){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
-        if(screen!=null&&screen.back())return;
+        if(screen!=null&&!(link&&nav.size()>1&&HubNav.linkSkipsPageBack(selectedPage))&&screen.back())return;
         if(nav.size()>1){goBack();return;}
         finish();
     }
     @Override public void onConfigurationChanged(Configuration next){super.onConfigurationChanged(next);rebuild();fitTallSheet();}
+    /** When Volt last started an activity (elapsed realtime; -1 for none): HubNav.awayClockStarts. */
+    private long launchedAt=-1;
+    @Override public void startActivityForResult(Intent intent,int requestCode,Bundle options){
+        launchedAt=SystemClock.elapsedRealtime();
+        super.startActivityForResult(intent,requestCode,options);
+    }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
+        if(focused&&searchKeyboard!=null){EditText field=searchKeyboard;searchKeyboard=null;showSearchKeyboard(field);}
         // Returning to the app (or dismissing a dialog) is not a new scooter connection.
         observeConnectionFeedback(true);
     }
@@ -529,7 +540,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
-            dock=new HubDock(this,expanded,dashboard::editing);
+            // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
+            dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
             scroll.setClipToPadding(false);
             scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());
@@ -756,7 +768,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
+    }
+    /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
+    private EditText searchKeyboard;
+    private void showSearchKeyboard(EditText field){
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow()&&field.hasFocus())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
     }
     private static EditText firstEditText(View view){
         if(view instanceof EditText)return (EditText)view;
@@ -1213,7 +1231,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         backRow.addView(design.icon("back",16,design.accent),new LinearLayout.LayoutParams(design.dp(16),design.dp(16)));
         TextView backText=design.text(name,13.5f,false);backText.setTypeface(design.medium());backText.setTextColor(design.accent);backText.setPadding(design.dp(4),0,design.dp(10),0);backRow.addView(backText);
         backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(HubText.backTo(name));backRow.setBackground(rowRipple());
-        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack());
+        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack(true));
         return backRow;
     }
     /**
@@ -2268,13 +2286,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
-            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
-            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
-            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
-            showChargeAlerts(); return;
-        }
+        // Battery alerts (Clean's own, in place of Charge done by on models without scheduled charging, owner's answer
+        // 11; the same id as the Quick access Charge alerts shortcut): one action for both homes. A stored or restored
+        // four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
@@ -2605,6 +2620,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             lock.setAlpha(on?1f:0.5f);
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
+    }
+    /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
+    private void chargeAlertsShortcut(){
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
+        closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;
     private void showChargeAlerts(){
@@ -3631,6 +3652,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        OwnDialogs.track(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);

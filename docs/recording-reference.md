@@ -85,7 +85,7 @@ for the evidence threshold, fallback and limitations.
    on the screen layout remaining visible. It is designed to continue while
    folded, rotated, outside the app or with the screen off. The connection
    notification provides Stop. Active ride/charge work uses immediate foreground
-   notification and a renewed bounded CPU wake lock. Rides > Recording settings >
+   notification and a renewed bounded CPU wake lock. Ride > Recording settings >
    Battery use opens Android's battery setting for Volt. Keep-screen-awake
    is optional. Real manufacturer battery policy remains a testing limit.
 4. Stop to save the session. New sessions preserve previous sessions. With
@@ -117,7 +117,7 @@ data while it sleeps or is outside Bluetooth range.
 
 Basemap tiles are separate from GPS, the local route and recording. They start
 off when no preference is saved; existing explicit choices remain. Use Basemap
-below either map view or in Rides > Recording settings > Map settings. The first new enable
+below either map view or in Ride > Recording settings > Map settings. The first new enable
 explains provider access to your IP address and viewed area, with Enable basemap/Cancel
 choices. The switch and acknowledgement are remembered across views and included
 in a full app backup. Recording does not enable or request map tiles.
@@ -289,7 +289,7 @@ no-motion rule):
 
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.
-Rides > Recording settings > End rides automatically turns this off. Exact rules:
+Ride > Recording settings > End rides automatically turns this off. Exact rules:
 [ride auto-end](validation/ride-auto-stop.md).
 Ride > Recording settings > Record rides automatically starts a ride when the
 connected scooter moves while Volt is in front (its activity resumed); it

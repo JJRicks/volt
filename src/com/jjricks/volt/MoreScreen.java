@@ -244,7 +244,9 @@ public final class MoreScreen implements AppScreen {
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
-            if (section.equals("Scooters")) scootersIndexRow = row;
+            // Each row has a tag, as Home style's and Developer options' have, so a validation taps the row an owner would.
+            if (section.equals("Scooters")) { scootersIndexRow = row; row.view.setTag("my-scooters-menu"); }
+            else if (section.equals("About")) row.view.setTag("about-menu");
             else if (section.equals("Lab")) badge(row.value, T.moreLabBadge());
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
@@ -1222,7 +1224,9 @@ public final class MoreScreen implements AppScreen {
         valueRefreshers.add(() -> units.value(unitsSummary()));
         Row text = row(display, "text", T.morePrefsTextSize(), null, this::textSize);
         valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
-        preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        // Its own tag, so search (HubSearchTables.SETTING_HAPTICS, PR 12) finds the switch apart from the card.
+        Row haptics = preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        haptics.view.setTag(HubSearchTables.SETTING_HAPTICS);
     }
     private boolean batteryUnrestricted() {
         try {

@@ -123,6 +123,22 @@ public final class HubPagesTest {
         require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
                 "Large text: fewer, still comfortable: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f));
         require(HubPages.dockSubjects(HubPages.dockRoom(600), 1f).size() == 7, "A wide phone shows all seven");
+        // A wide dock (#392 early review): full names only when every one fits on one line, else every short name.
+        // 725 dp less 24 dp each side gives 677 dp, eight items of about 83.6 dp, captions of about 79.6 dp.
+        float[] fits = {40, 70, 60, 79};
+        require(HubPages.wideDockNames(fits, 677, 8, 96, 4), "Every name fits: full names");
+        float[] oneWraps = {40, 90, 60, 50};
+        require(!HubPages.wideDockNames(oneWraps, 677, 8, 96, 4), "One name would wrap (Battery & charging at 725 dp): short names");
+        // With room to spare an item is capped at 96 dp: 92 dp captions.
+        require(HubPages.wideDockNames(new float[] {92}, 2000, 8, 96, 4), "The cap's caption: 92 dp fits");
+        require(!HubPages.wideDockNames(new float[] {92.5f}, 2000, 8, 96, 4), "Past the cap's caption: short names");
+        require(!HubPages.wideDockNames(new float[] {10}, 677, 0, 96, 4), "No items: short names");
+        require(!HubPages.wideDockNames(new float[] {Float.NaN}, 677, 8, 96, 4), "An unmeasured name: short names");
+        // The dock's upward swipe: past twice the slop upward and more up than across; a quick flick counts on its first move.
+        require(HubPages.dockSwipe(17, 0, 8), "17 dp up past a 8 dp slop: a swipe");
+        require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
+        require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
+        require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 
     private static void riding() {

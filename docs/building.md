@@ -124,7 +124,7 @@ python3 android-tests/run-release-sweep.py --adb "$ANDROID_SDK_ROOT/platform-too
     --out .local/evidence/dashboard --only dashboard
 ```
 
-It ends with `dashboard: PASS` and `Gating steps: 1 passed, 0 failed`. For settings screens, `--only more-menu-phone` walks More's menu and sections, and `--only compat-menu-edit` drove the Scooter tab's menu editor (removed in Hub layout part 3, so that step fails until the maintainers retire it); `--only hub-344` walks the Hub on the simulator (both Homes and their headers' search and gear, every subject page and sub-page, the page stack, the dock, Settings and search), and `--only hub-widgets-header-344` checks Widgets Home's search and gear on their own; `--only` can be repeated. `python3 android-tests/run-release-sweep.py --list` prints every step.
+It ends with `dashboard: PASS` and `Gating steps: 1 passed, 0 failed`. For settings screens, `--only more-menu-phone` walks More's menu and sections, and `--only compat-menu-edit` drove the Scooter tab's menu editor (removed in Hub layout part 3, so that step fails until the maintainers retire it); `--only hub-344` walks the Hub on the simulator (both Homes, Search and Settings from Clean Home's header and from Widgets Home's All sheet, every subject page and sub-page, the page stack, the dock, Settings and search; `--only hub-344-large` walks it again at 1.4 times text size), and `--only hub-widgets-pages-344` checks Widgets Home's way to Search and Settings on its own; `--only` can be repeated. `python3 android-tests/run-release-sweep.py --list` prints every step.
 
 What the runner does to the emulator:
 
