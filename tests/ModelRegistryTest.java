@@ -208,6 +208,14 @@ public final class ModelRegistryTest {
         }
         // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
         check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
+        // Settings byte 1 is the acceleration setting (Eco 3, Turbo 5), never the drive mode: the ACCELERATION prefixes,
+        // groups D and O, and the GT3 Max (its owner's byte sat at Eco 3). The UT5 MAX and models without it keep the byte.
+        for(String pid:new String[]{"23452","27141","25091","25462","25451","26191","24182"})
+            check(ModelRegistry.settingsByteIsAcceleration(advertised(pid)),"Settings byte 1 is the acceleration setting: "+pid);
+        for(String pid:new String[]{"22131","24162","24181","25471","24431"})
+            check(!ModelRegistry.settingsByteIsAcceleration(advertised(pid)),"Settings byte 1 stays the drive mode: "+pid);
+        check(!ModelRegistry.settingsByteIsAcceleration(serial("Q2538ZZ9US7777777"))&&!ModelRegistry.settingsByteIsAcceleration(null)
+            &&!ModelRegistry.settingsByteIsAcceleration(advertised("")),"The UT5 MAX, no descriptor and no model ID keep the byte as the mode");
         // Version 18: the owner's recording showed the official app sending traction control; it is an ordinary OEM-mapped row (not verified).
         ModelRegistry.Rule tcs=ModelRegistry.rule("traction_control",gt3,null,null);
         check(tcs.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcs.reason==CapabilityResolver.Reason.NONE&&tcs.evidence==CapabilityResolver.Evidence.OEM_MAPPED

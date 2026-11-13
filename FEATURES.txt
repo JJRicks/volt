@@ -853,9 +853,19 @@ on emulators only.
 
 Auto-start (More > App preferences, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
-above zero, also in the background with Stay connected in background on (a
-ride started that way has no GPS route). Riding mode > Open automatically
-(also in riding mode's tune menu) opens riding mode the same way, only while Volt is on screen and no dialog
+above zero while Volt is in front (resumed). While Volt is in the background
+it starts one only with More > App preferences > Connection & recording >
+Start recording in the background on (also off by default, for updating owners
+too, who are told once in a What's new dialog) and the scooter still
+connected; a ride started that way has no GPS route. Stay connected in
+background is what keeps the connection once Volt is out of sight: without
+it the link lasts about ten seconds after Volt leaves the screen, or longer
+while something else holds it (such as a charge recording or Live charging).
+A locked or dark screen, Home, another app or a window over Volt count as
+background; on Android 8 and 9 a Volt in split screen without focus does too
+(a known limit).
+Riding mode > Open automatically (also in riding mode's tune menu) opens
+riding mode the same way, only while Volt is in front and no dialog
 or sheet is open. A manual stop or backing out holds that switch until the
 scooter reconnects; a ride that ends by itself does not. Emulator-tested.
 
@@ -985,9 +995,12 @@ readings vertically on the right, defaulting to odometer and drive mode. Reporte
 available in Stats and as custom readings. The old four-reading default migrates
 once to the two-reading list, preserving saved card positions/sizes and other
 custom lists. New scooter cards use four rows and may shrink to three.
-On PID 2538, owner-observed driving-mode
-codes 11, 2 and 3 display as WALK, ECO and SPORT. Unconfirmed codes and other
-models remain raw. Raw diagnostics and ride exports are unchanged; displayed
+On PID 2538 (UT5 MAX), owner-observed driving-mode codes 11, 2 and 3 display
+as WALK, ECO and SPORT. From owners' answers, the GT5 Max (25462), XT5 Pro
+(24162) and GT3 Max (24182) show 11, 2 and 3 as WALK, DRIVE and SPORT (the GT5
+Max owner's 5 also as SPORT), as the N65i (22131) is assumed to until an owner
+reports otherwise; the ST3 Pro (23452) shows exactly 11, 2 and 3 as WALK, DRIVE
+and SPORT, with 5 raw. Unconfirmed codes and other models remain raw. Raw diagnostics and ride exports are unchanged; displayed
 lifetime counters do not become current-ride totals or capacity measurements.
 Live SPORT uses pale blue on dark backgrounds and a darker readable blue on
 light backgrounds. ECO is green; WALK uses a green pedestrian icon. Stale modes
@@ -1159,10 +1172,40 @@ It neither sets charger output nor starts recording, and cannot change during
 an active capture. The recording screen uses the same saved selection.
 
 Explicit Charge recording lives in Developer options, with a manual Stock or
-High-speed charger selection. There is no automatic charger detection. Bounded
+High-speed charger selection. A manual recording's charger label is the one chosen; Volt's
+charger detection (a hint from charging power) only guides estimates, and labels
+an automatic recording only when no charger is chosen (below). Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
+
+Record charges automatically (in Developer options beside Record this charge, off
+by default, an App preferences setting) starts a charge recording without a prompt whenever Volt is
+connected to the selected scooter, on screen or in the background, and it reports
+charging, if a manual start would be allowed then; never in simulation. It never
+connects or turns on another setting, so a charge that starts while Volt isn't
+connected, or with notifications off, is missed; connecting mid-charge records the
+rest. The label is the chosen charger, else Volt's detection, else a best guess (the
+charger with more qualified recordings, stock on a tie); a detected or guessed label
+follows detection to the other charger. Only a chosen or detected label is the
+charger in effect (estimates, Charge done by); a recording that ends with a guess
+is listed but teaches no curve. It waits while a guided setting test runs or has
+a write-back outstanding, or a compatibility check runs, and starts after. It ends at once above about 3 mph (4.8 km/h,
+so Record rides automatically can start the ride in the same moment), two minutes
+after charging stops unless Volt's schedule holds the current off, or when a ride is
+started by hand. One under 10 minutes or 5 percentage points is not kept, and the
+page keeps saying so after the unplug until a newer status replaces it. At the
+20-recording limit a kept one replaces only the oldest automatic recording, never a
+manual one, and only once kept; the 20 are shared by all scooters, and with all 20
+manual it does not start and the page says so; clearing any scooter's recordings,
+or turning the switch on again, tries the charge under way once more. A hand stop holds that scooter until it stops
+charging and starts again (a pause Volt's own schedule holds is not a stop),
+across reconnects: an automatic recording's, and a manual one's while the switch
+is on. Once running it records out of sight whatever Stay connected in background
+says, as any charge recording; it never opens or keeps a connection itself. It
+decides only on live readings (charging state at most 5 s old, speed at most 3 s),
+never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically and
+label_source. Manual recordings are unchanged.
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate

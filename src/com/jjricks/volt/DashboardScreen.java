@@ -1732,15 +1732,18 @@ public final class DashboardScreen implements AppScreen {
          * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
          * view already says what it charges to; never shorter than the time to the limit beside it,
          * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
-         * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
-         * and speaks no status, as the alert tile did.
+         * tile showed it, named for 100% where the guard took no limit (ChargeTimeReadings.oneReadingTarget). The alert face shares the estimate's state (pill, or its words where no time is known)
+         * and speaks no status, as the alert tile did. level is the battery percent shown above the tile (NaN when
+         * unknown), which minutesToFullBesideLimit needs for the rate learned to the limit.
          */
-        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
-            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
+        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert, double level) {
+            ScooterService service = host.service();
+            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, service != null && service.chargeAlertsOffered(), alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
-            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
-                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
-                    estimate.status);
+            Double soc = Double.isNaN(level) ? null : level;
+            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(ChargeTimeReadings.oneReadingTarget(estimate.targetPercent, source), false),
+                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate, soc) : estimate.remainingMinutesToFull,
+                    scooterLimit ? ChargingEstimate.statusBesideLimit(estimate, soc) : estimate.status);
             if (scooterLimit)
                 fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
             else if (alert != null)
@@ -2239,7 +2242,7 @@ public final class DashboardScreen implements AppScreen {
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
             stage.setMinimumHeight(ui.dp(known ? 236 : 44));
             updatePulse();
-            timeTile.update(estimate, chargeAlertEstimate(values));
+            timeTile.update(estimate, chargeAlertEstimate(values), level);
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -6210,12 +6213,10 @@ public final class DashboardScreen implements AppScreen {
         }
         item.setTag("quick-choice:" + entry.id);
         item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || replacing);
-        // The reason is spoken as the row's state from Android 11; before that it takes the group's place, as it did.
-        boolean stated = reason != null && android.os.Build.VERSION.SDK_INT >= 30;
-        if (reason != null && !stated) group = reason;
+        // A search result the scooter can't use is spoken with its category and why, on every Android version.
+        if (reason != null) group = T.dashboardPickerCategoryReason(group, reason);
         item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), group)
                 : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), group) : T.dashboardShortcut(entry.label(), group));
-        if (stated) item.setStateDescription(reason);
         item.setAlpha(item.isEnabled() ? 1 : .4f);
         item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
         item.setOnClickListener(v -> {
@@ -6271,6 +6272,7 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(40), ui.dp(24));
             head.addView(chevron, chevronSize);
             if (android.os.Build.VERSION.SDK_INT >= 28) head.setAccessibilityHeading(true);
+            // Spoken as one heading, "Ride, 8 shortcuts", with its open or closed state: place() sets both (pickerHeaderSaid).
             head.setAccessibilityDelegate(new View.AccessibilityDelegate() {
                 @Override public void onInitializeAccessibilityNodeInfo(View v, android.view.accessibility.AccessibilityNodeInfo info) {
                     super.onInitializeAccessibilityNodeInfo(v, info);
@@ -6305,6 +6307,8 @@ public final class DashboardScreen implements AppScreen {
             stop();
             expanded = next;
             float turned = next ? -90 : 90;
+            head.setContentDescription(pickerHeaderSaid(sectionName(section), section.entries.size(), next, android.os.Build.VERSION.SDK_INT));
+            if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(pickerHeaderState(next, android.os.Build.VERSION.SDK_INT));
             ViewGroup.LayoutParams size = body.getLayoutParams();
             int width = body.getWidth() > 0 ? body.getWidth() : block.getWidth();
             if (!animate || !Ui.motionEnabled() || !block.isLaidOut() || width <= 0) {
@@ -6388,6 +6392,23 @@ public final class DashboardScreen implements AppScreen {
                     : android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED);
             head.sendAccessibilityEventUnchecked(event);
         }
+    }
+
+    /**
+     * A shortcut picker section header's spoken description: its name and count ("Ride, 8 shortcuts"), and before
+     * Android 11, which has no state of its own to speak, whether it is open ("Ride, 8 shortcuts, Expanded").
+     */
+    public static CharSequence pickerHeaderSaid(CharSequence name, int count, boolean open, int sdk) {
+        return sdk >= 30 ? T.dashboardPickerSection(count, count, name)
+                : T.dashboardPickerSectionState(count, count, name, open ? T.statsStateExpanded() : T.statsStateCollapsed());
+    }
+
+    /**
+     * Its spoken state from Android 11 to 15 (Expanded or Collapsed); null before (said in the description) and from
+     * Android 16, which speaks the node's expanded state instead.
+     */
+    public static CharSequence pickerHeaderState(boolean open, int sdk) {
+        return sdk >= 30 && sdk < 36 ? (open ? T.statsStateExpanded() : T.statsStateCollapsed()) : null;
     }
 
     /**

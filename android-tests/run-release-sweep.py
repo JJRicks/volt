@@ -77,8 +77,7 @@ def size_name(size_case):
 
 # Registered but deliberately not run here, with the reason; everything else must have a step.
 EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan',
-            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator',
-            'BackgroundRecordingValidation': 'checks the switch row and What\'s new note that the text pull request adds; its steps are registered there'}
+            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator'}
 # Modes not run on their own because a step's mode already runs every check they make.
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
@@ -203,12 +202,19 @@ STEPS += [
     *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
       for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline', 'background-switch')],
 ]
+# Start recording in the background's row in More › App preferences and the one-time What's new dialog, at both widths
+# with normal and 1.4x text (the behaviour is auto-start-background-switch).
+STEPS += [inst(f'background-recording-{label}', T + 'BackgroundRecordingValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
+               '-e', 'variant', f'background-recording-{label}', size=size)
+          for label, (size, theme, text) in (('344', PHONE), ('344-large', ('344x882', 'light', '1.4')), ('725', WIDE), ('725-large', WIDE_LARGE))]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
               inst(f'report-shortcuts-{theme}', T + 'ReportShortcutsValidation', '-e', 'theme', theme),
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
+STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
 # Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
 # and German and European Portuguese (the longest names) on that tightest case.
 PHONE_LARGE = ('344x882', 'dark', '1.4')

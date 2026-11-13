@@ -559,6 +559,44 @@ public final class FastChargeTaperTest {
         planningGuards();
         planningLowerLimits();
         planningSchedule();
+        besideLowerLimit();
+    }
+
+    /**
+     * Review of #445 at 6805913a: the charging tile's 100% reading beside an 80% limit, along one charge on Codex's
+     * timeline as the level rises from 75% to 79%. Past charges' time to the limit (42.5 minutes from 75%) is shown
+     * capped at the own taper's time to 100% (about 15), and 6805913a carried that capped time on to 100% as if it
+     * were past charges' (about 76, then about 89 a percent later). The own taper's time to 100% stands, capped or
+     * not (at 79% past charges' 8.5 minutes is under it), the reading never rises while current decays (in the hold
+     * after the stop it is the own taper's own reading, which moves by hundredths), and its status names the own taper.
+     */
+    private static void besideLowerLimit() throws Exception {
+        inTemp(tmp -> {
+            ChargeSessionStore.Curve matching = matching(tmp);
+            int[] own = {0}, seen = {0};
+            stopping((c, stopped) -> { if (c.taper.ownTaper(54.0, c.amps, c.now)) own[0]++; });
+            double[] previous = {Double.NaN};
+            int[] capped = {0}, uncapped = {0}, levels = {0, 0};
+            stopping((c, stopped) -> {
+                if (!c.taper.ownTaper(54.0, c.amps, c.now)) return;
+                double level = 75 + Math.min(4, Math.floor(5d * seen[0]++ / own[0]));
+                ChargingEstimate.Result r = scheduled(level, c.amps, 80, matching, c.taper, c.now), history = past(level, c.amps, 80, matching, c.now);
+                String where = "80% limit at " + level + "%, " + (c.now - T0 - MIN) / SEC + " s, " + c.amps + " A";
+                Double reading = ChargingEstimate.minutesToFullBesideLimit(r, level);
+                near(FastChargeTaper.minutes(54.0, c.amps, 15.3, c.taper), reading, 1e-12, where + ": the 100% reading is the own taper's time to 100%");
+                check(r.limitRate == null, where + ": nothing to carry on under the own taper");
+                // While current decays the reading never rises; in the hold after the stop the own taper's own time
+                // to 100% may tick up by hundredths of a minute, and the reading follows it, never further.
+                check(Double.isNaN(previous[0]) || reading <= previous[0] || stopped && reading - previous[0] <= .1,
+                        where + ": the 100% reading never rises, " + previous[0] + " then " + reading);
+                check(ChargingEstimate.statusBesideLimit(r, level).equals(r.status) && r.status.contains("pack voltage") && r.status.contains("taper"), where + ": the status names the own taper (pack voltage, current, taper)");
+                previous[0] = reading;
+                if (history.learnedToLimit) { if (history.remainingMinutesToLimit > r.remainingMinutesToFull) capped[0]++; else uncapped[0]++; }
+                if (level == 75) levels[0]++; else if (level == 79) levels[1]++;
+            });
+            check(capped[0] >= 5 && uncapped[0] >= 1 && levels[0] > 0 && levels[1] > 0,
+                    "The walk covers 75% to 79%, past charges' time capped (" + capped[0] + ") and not (" + uncapped[0] + ")");
+        });
     }
 
     private interface InTemp { void run(Path tmp) throws Exception; }
