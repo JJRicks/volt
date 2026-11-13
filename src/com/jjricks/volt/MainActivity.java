@@ -2113,6 +2113,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
+        if (id.equals(QuickAccessActions.CHARGE_ALERTS_ID)) { chargeAlertsShortcut(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
@@ -2438,6 +2439,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             lock.setAlpha(on?1f:0.5f);
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
+    }
+    /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
+    private void chargeAlertsShortcut(){
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
+        closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;
     private void showChargeAlerts(){

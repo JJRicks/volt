@@ -744,6 +744,8 @@ public final class ScooterService extends Service {
             public ChargeScheduleController.Context context(){return chargeScheduleContext();}
             public void clock(Consumer<Boolean> completion){ble.syncClock(completion);}
             public void time(long wallMs,int offsetSeconds,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion);}
+            // sent runs when the frame really goes out: a time write refused at the gate (a status from before a sleep, say) leaves no marker.
+            @Override public void time(long wallMs,int offsetSeconds,Runnable sent,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion,sent);}
             public void enabled(boolean enabled,Consumer<Boolean> completion){ble.setChargeSchedule(enabled,completion);}
         });
         return chargeScheduleController;
@@ -808,7 +810,8 @@ public final class ScooterService extends Service {
     /** Start of today's buffered plan; null when it would charge now or has no estimate. */
     private Long bufferedChargeStart(int minute){
         ChargeScheduleController.Context c=chargeScheduleContext();
-        if(!c.ready||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
+        // A plan computed from live readings (the estimate is fresh-only): the live connection is enough; arming asks ready.
+        if(!c.linked||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
         try{ChargeScheduleController.Plan plan=ChargeScheduleController.plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);return plan.startNow?null:plan.startWallMs;}
         catch(IllegalArgumentException outside){return null;}
     }
@@ -839,7 +842,7 @@ public final class ScooterService extends Service {
         ChargeScheduleController.Context c=chargeScheduleContext();
         ChargeProgressTracker.Progress progress=chargeProgress.progress(chargeMeasure.profile(),mono);
         boolean known=progress!=null&&(progress.startObserved||progress.ageInferred)&&chargeSchedule().doneByBlockedReason==null;
-        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.ready,c.charging,known);
+        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.linked,c.ready,c.charging,known);
         if(decision.step==ChargeMeasureWindow.Step.ARM)armMeasured(decision.measured);
         else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);
     }
@@ -1031,6 +1034,22 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
         return !destroyed&&p!=null&&ble!=null&&ChargeAlertPolicy.offered(alertDescriptor(p));
     }
+    /** Why chargeAlertsOffered() is false (ChargeAlertPolicy.missing), or null when it is true. */
+    public CapabilityResolver.Reason chargeAlertsMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return CapabilityResolver.Reason.NOT_CONNECTED;
+        return ChargeAlertPolicy.missing(alertDescriptor(p));
+    }
+    /**
+     * The Battery page's Charge done by rule (timed_charging and charge_start offered) for the selected scooter, judged
+     * like chargeAlertsOffered (the live model while connected to it, its saved model offline): why it can't schedule
+     * charging, or null when it can or no scooter is selected (ShortcutPicker.scheduleMissing).
+     */
+    public CapabilityResolver.Reason chargeScheduleMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return null;
+        return ShortcutPicker.scheduleMissing(alertDescriptor(p));
+    }
     public ChargeAlertPolicy.Settings chargeAlerts(){
         if(destroyed||settings==null)return ChargeAlertPolicy.Settings.OFF;
         ensureAlertPolicy();return alertPolicy==null?ChargeAlertPolicy.Settings.OFF:alertPolicy.settings();
@@ -1109,9 +1128,10 @@ public final class ScooterService extends Service {
             else if(m.key.equals("charge_limit_percent"))limit=m;
         }
         long now=SystemClock.elapsedRealtime();
-        Double charging=liveReading(state,now),percent=liveReading(soc,now);
-        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one.
-        Double target=limit==null||limit.numericValue==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limit.numericValue;
+        Double charging=liveReading(state,now),percent=liveReading(soc,now),limitNow=liveReading(limit,now);
+        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one. The limit is
+        // taken only while live, as the other two (#418): the link outlives a sleep, and the limit may have changed in it.
+        Double target=limitNow==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limitNow;
         Boolean on=charging==null||charging!=0&&charging!=1?null:charging==1;
         Integer pct=percent==null||percent<0||percent>100?null:(int)Math.round(percent);
         Integer cap=target==null||target<1||target>100?null:(int)Math.round(target);
@@ -1650,9 +1670,11 @@ public final class ScooterService extends Service {
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
     /**
-     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
-     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
-     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     * Two answers (#418). linked: the same live connection, BleController.linked(), which outlives a stale status (out of
+     * sight between 15 s polls, after a sleep, the first seconds back in sight); the controller uses it only to keep work
+     * in flight going and to look at readings, each of which carries its own freshness. ready: the scooter can take a write
+     * now, BleController.ready(), the write gate's own rule (CapabilityResolver, which also fills toggleReason and
+     * timeReason below); the controller uses it for every choice to send and every blocked reason.
      */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
@@ -1660,15 +1682,17 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        boolean same=!destroyed&&!dataMaintenance&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
+        c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
         // English ids, whatever the shown language: the controller keeps them in its saved status and its other text is English too (plan R2).
         c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
-        if(!c.ready)return c;
-        c.enabled=ble.featureValue("timed_charging");
+        if(!c.linked)return c;
+        // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
+        c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
         for(Telemetry.Metric metric:ble.telemetry.metrics())readings.put(metric.key,metric);
@@ -1678,6 +1702,10 @@ public final class ScooterService extends Service {
         c.sampleMs=charging==null?0:charging.updatedMs;
         c.soc=freshScheduleNumber(readings.get("battery_percent"),mono);
         c.target=freshScheduleNumber(readings.get("charge_limit_percent"),mono);
+        // Settings live (#418): the status, and the limit reading itself, unless this connection has reported no limit (the
+        // readings are cleared at each connect). A recent status that did not carry the limit never vouches for it.
+        Telemetry.Metric limit=readings.get("charge_limit_percent");
+        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)&&(c.target!=null||limit==null||limit.updatedMs<=0);
         Double raw=freshScheduleNumber(readings.get("scheduled_charge_time_raw"),mono);
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){
@@ -2884,10 +2912,15 @@ public final class ScooterService extends Service {
         liveUpdateBuilt(notice);
         return notice;
     }
-    /** "UT5 MAX · 82%": the connected notification names the scooter and its charge. */
+    /**
+     * "UT5 MAX · 82%": the connected notification names the scooter and its charge, the charge only while that reading is
+     * live by its own rule (BleController.liveNumber). Out of sight the battery is read with every 15 s status poll, so
+     * the level stays current (owner, 2026-11-12); the link can outlive a sleep, and a read the scooter ignores is
+     * suppressed (ReadPolicy), so an older level would read as current: then the notice names the scooter alone.
+     */
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
-        Double battery = ble.telemetry.number("battery_percent");
+        Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
     }
