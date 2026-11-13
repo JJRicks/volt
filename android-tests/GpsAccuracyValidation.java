@@ -593,11 +593,15 @@ public final class GpsAccuracyValidation extends Instrumentation {
         settle();
         main(() -> call(activity, "select", new Class<?>[]{String.class}, "rides"));
         settle();
-        SystemClock.sleep(1500);
+        SystemClock.sleep(2500); // the Rides list loads off the main thread
         main(() -> call(field(activity, "screen"), "openRide", new Class<?>[]{String.class}, id));
         settle();
-        await(() -> { AtomicReference<Boolean> ok = new AtomicReference<>(false); main(() -> { View p = panel(); ok.set(p != null && field(p, "data") != null); }); return ok.get(); },
+        // The chart draws the scooter's lines first; the phone journal (and so GPS accuracy) arrives after it loads.
+        boolean journal = !id.equals(none);
+        await(() -> { AtomicReference<Boolean> ok = new AtomicReference<>(false);
+                main(() -> { View p = panel(); ok.set(p != null && field(p, "data") != null && (!journal || field(p, "phone") != null)); }); return ok.get(); },
                 "chart never loaded", 15000);
+        if (!journal) SystemClock.sleep(1500);
         settle();
         main(() -> {
             View p = panel();
