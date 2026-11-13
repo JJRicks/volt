@@ -422,9 +422,17 @@ public final class ChargeBarValidation extends Instrumentation {
         });
         writes.clear(); toasts.clear();
         // Keyboard focus: the value and the row's note show before any key writes.
+        // Leaving touch mode goes through the window manager and reaches the window later on a slow host.
         setInTouchMode(false); waitForIdleSync();
         try {
-            main(() -> require(bar().requestFocus(), "The bar did not take keyboard focus"));
+            await(() -> !bar().isInTouchMode(), "The window stayed in touch mode");
+            try { await(() -> bar().isFocused() || bar().requestFocus(), "focus"); }
+            catch (IllegalStateException refused) {
+                main(() -> { ChargeBar b = bar(); View holder = b.getRootView().findFocus();
+                    require(false, "The bar did not take keyboard focus: focusable " + b.isFocusable() + ", in touch mode " + b.isInTouchMode()
+                            + ", shown " + b.isShown() + ", enabled " + b.isEnabled() + ", focus held by " + (holder == null ? "nothing" : holder.getClass().getName())); });
+            }
+            main(() -> require(bar().isFocused(), "The bar did not keep keyboard focus"));
             settle();
             main(() -> {
                 ChargeBar b = bar();
