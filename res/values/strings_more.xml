@@ -766,6 +766,10 @@
     <string name="more_dev_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Record this charge</string>
     <!-- Row while a charge is recorded. -->
     <string name="more_dev_stop_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Stop charge recording</string>
+    <!-- Switch beside the charge recording controls: Volt records charges by itself. Off by default. -->
+    <string name="more_charge_auto_record" volt:screen="Charge history &amp; recordings" volt:purpose="row" volt:safety="charge">Record charges automatically</string>
+    <!-- Under that switch. The second sentence says when it cannot catch a charge: Volt was not connected when charging started, or Android notifications are off for Volt. -->
+    <string name="more_charge_auto_record_sub" volt:screen="Charge history &amp; recordings" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Starts when the connected scooter begins charging. Misses a charge that starts while Volt isn\'t connected or its notifications are off.</string>
     <!-- Row: saved charge recordings. -->
     <string name="more_dev_recordings" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Charge recordings</string>
     <!-- Under the Charge recordings row. -->
