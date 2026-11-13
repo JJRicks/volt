@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 /**
  * Charge done by / Scheduled charging and reading freshness out of sight, where status is asked for every 15 s.
  * Drives the real ChargeScheduleController with a context built the way ScooterService.chargeScheduleContext() builds it
- * (ready from StatusCadence.linked(), readings by StatusCadence.readingFreshMs(), toggleReason and timeReason from
- * BleController's own control gate with ready()'s 7 s window), on a fake monotonic clock. Listed in
+ * (linked from StatusCadence.linked(), ready from linked() and ready()'s 7 s window since #418, readings and the switch by
+ * StatusCadence.readingFreshMs(), toggleReason and timeReason from BleController's own control gate), on a fake monotonic clock. Listed in
  * tests/l10n/background-schedule.sources.
  */
 public final class BackgroundScheduleTest {
@@ -45,7 +45,8 @@ public final class BackgroundScheduleTest {
     /** The service sites this test models, as the source has them. */
     private static void source() throws Exception {
         String svc = read("src/com/jjricks/volt/ScooterService.java"), hist = read("src/com/jjricks/volt/TelemetryHistory.java");
-        check(svc.contains("c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&"), "the schedule context's ready is linked()");
+        check(svc.contains("c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();"), "the schedule context's linked is linked(), its ready also needs ready()");
+        check(svc.contains("c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue(\"timed_charging\"):null;"), "the switch, like the readings, only from a live status");
         check(svc.contains("now-metric.updatedMs<=ble.readingFreshMs(10_000)?metric.numericValue:null;"), "the schedule's readings use the cadence allowance");
         check(svc.contains("now - source <= ble.readingFreshMs(TelemetryHistory.freshnessMs(metric.key));"), "displayReadings' live flag too");
         check(svc.contains("now-metric.updatedMs>ble.readingFreshMs(TelemetryHistory.freshnessMs(key)))return false;"), "and the charge reference gate's");
@@ -97,16 +98,16 @@ public final class BackgroundScheduleTest {
         long now = T0, statusMs = T0 - S;
         Consumer<Boolean> pending;
         Rig() { c.scope = "owner-A";c.generation = 1;c.zone = TimeZone.getTimeZone("America/Boise");at(T0); }
-        /** chargeScheduleContext() at t: ready from linked(); the gate's reasons from ready(); readings from the status read. */
+        /** chargeScheduleContext() at t: linked from linked(), ready also from ready(); the gate's reasons from ready(); readings from the status read. */
         void at(long t) {
             now = t;c.now = WALL0 + (t - T0);c.mono = t;
-            c.ready = StatusCadence.linked(up, statusMs, t, fast);
+            c.linked = StatusCadence.linked(up, statusMs, t, fast);c.ready = c.linked && readyBefore(up, statusMs, t);
             boolean gate = up && (fast ? StatusCadence.linked(true, statusMs, t, true) : readyBefore(true, statusMs, t));
             c.toggleReason = gate ? null : GATE;c.timeReason = gate ? null : GATE;
             c.enabled = null;c.charging = null;c.soc = c.target = c.estimateMinutes = null;c.wireStart = null;
-            if (!c.ready) return;
-            c.enabled = 1;
+            if (!c.linked) return;
             boolean live = fresh(statusMs, t, StatusCadence.readingFreshMs(10_000, fast));
+            c.enabled = live ? 1 : null;
             c.charging = live ? 1 : null;c.sampleMs = statusMs;
             c.soc = live ? 62d : null;c.target = live ? 100d : null;c.estimateMinutes = live ? 90d : null;
         }
@@ -142,9 +143,10 @@ public final class BackgroundScheduleTest {
         Rig r = new Rig();
         long gap = T0 + StatusCadence.POLL_SLOW_MS + REPLY + 10 * S;// 10 s after a reply: linked, but past ready()'s 7 s
         r.statusMs = backgroundStatus(gap, Long.MAX_VALUE);r.at(gap);
-        check(r.c.ready && r.c.toggleReason != null, "the gap: the schedule sees the scooter, the control gate does not");
+        check(r.c.linked && !r.c.ready && r.c.toggleReason != null, "the gap: the schedule sees the scooter, the control gate does not");
         r.controller.setDoneEnabled(true, r.results::add);
-        check(r.sent.isEmpty() && r.refused.isEmpty() && GATE.equals(r.results.get(0)), "a write in the gap is refused with the gate's reason, nothing sent: " + r.results);
+        // Since #418 the context's own ready answers before the gate is asked: the same refusal, as when not connected.
+        check(r.sent.isEmpty() && r.refused.isEmpty() && "Connect the scooter first".equals(r.results.get(0)), "a write in the gap is refused before the radio, nothing sent: " + r.results);
         long freshAt = T0 + 2 * StatusCadence.POLL_SLOW_MS + REPLY + S;
         r.statusMs = backgroundStatus(freshAt, Long.MAX_VALUE);r.at(freshAt);
         r.controller.setDoneEnabled(true, r.results::add);
@@ -165,15 +167,15 @@ public final class BackgroundScheduleTest {
         long t = T0 + 2 * 60 * S;
         r.statusMs = backgroundStatus(t, Long.MAX_VALUE);r.at(t);
         r.up = false;r.statusMs = 0;r.at(t + STEP);
-        check(!r.c.ready && !r.controller.view().manualEnabled && !r.controller.view().chargerConnected, "link down: no scooter schedule, no charger");
+        check(!r.c.linked && !r.c.ready && !r.controller.view().manualEnabled && !r.controller.view().chargerConnected, "link down: no scooter schedule, no charger");
         r.controller.setDoneEnabled(true, r.results::add);
         check(r.sent.isEmpty() && r.refused.isEmpty() && r.results.size() == 1 && r.results.get(0) != null, "link down: a write is refused before the radio: " + r.results);
         Rig silent = new Rig();
         long last = T0 + StatusCadence.POLL_SLOW_MS + REPLY;
         silent.statusMs = last;silent.at(last + StatusCadence.SILENCE_SLOW_MS);
-        check(silent.c.ready, "silent but inside the background limit: still linked");
+        check(silent.c.linked, "silent but inside the background limit: still linked");
         silent.at(last + StatusCadence.SILENCE_SLOW_MS + 1);
-        check(!silent.c.ready && !silent.controller.view().manualEnabled, "silent past the background limit: no scooter");
+        check(!silent.c.linked && !silent.c.ready && !silent.controller.view().manualEnabled, "silent past the background limit: no scooter");
         silent.controller.setManualEnabled(true, silent.results::add);
         check(silent.sent.isEmpty() && silent.refused.isEmpty() && silent.results.get(0) != null, "and nothing is sent");
     }
