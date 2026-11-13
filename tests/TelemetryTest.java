@@ -291,6 +291,19 @@ public final class TelemetryTest {
         gt3.clear();
         gt3.accept(0x70, response(new byte[] {0, 3}), 500);
         near(3, gt3.number("driving_mode"), "A fresh connection uses the settings byte until its first home report");
+        // Where that byte is the model's acceleration setting (ModelRegistry.settingsByteIsAcceleration), it never stands
+        // in for the mode, not even before the first home report: no Turbo 5 or Eco 3 shown as the mode after connecting.
+        Telemetry st3 = new Telemetry();
+        st3.settingsByteIsAcceleration(true);
+        st3.accept(0x70, response(new byte[] {0, 5}), 100);
+        check(st3.number("driving_mode") == null, "An acceleration byte is not the drive mode before the first home report");
+        near(5, st3.number("settings_mode_raw"), "The acceleration byte stays visible as its own raw reading");
+        st3.accept(0x90, response(new byte[] {0, 2}), 200);
+        st3.accept(0x70, response(new byte[] {0, 5}), 300);
+        near(2, st3.number("driving_mode"), "The home report alone carries the mode");
+        st3.clear();
+        st3.accept(0x70, response(new byte[] {0, 3}), 400);
+        near(3, st3.number("driving_mode"), "A new connection starts from today's rule until told the model's byte is acceleration");
     }
 
     private static void firmwareSerialAndHistory() {

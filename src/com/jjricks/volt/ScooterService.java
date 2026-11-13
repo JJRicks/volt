@@ -945,7 +945,7 @@ public final class ScooterService extends Service {
         String text=missedStartText(missed,false);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,4,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,4,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(MISSED_START_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(missedStartTitle(missed)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -1042,7 +1042,7 @@ public final class ScooterService extends Service {
         // Off screen, the same one notice a measured arm posts, with the short line. Kept beside chargeDoneNotice: that one's text statements are frozen in a catalog change.
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,3,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             noteStartSentNotice(startWallMs);
             // Manual Scheduled charging has no title of its own; the line says what happened either way.
             post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
@@ -1130,7 +1130,7 @@ public final class ScooterService extends Service {
         String text=scheduleTestText(result);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,5,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,5,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(SCHEDULE_TEST_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(scheduleTestTitle(result)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -1152,7 +1152,7 @@ public final class ScooterService extends Service {
         if(visible){android.widget.Toast.makeText(this,set?T.serviceDoneToastSet(text):T.serviceDoneToastNotSet(text),android.widget.Toast.LENGTH_LONG).show();return;}
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,3,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             noteStartSentNotice(safeStart);
             post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(set?T.serviceDoneTitleSet():T.serviceDoneTitleNotSet()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
@@ -1603,7 +1603,7 @@ public final class ScooterService extends Service {
         String text=profile==null?T.serviceNoticeScooter():profile.displayName();
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,11,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,11,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(CHARGE_LIVE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(title).setContentText(text).setContentIntent(open).setAutoCancel(true)
                     .setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -1727,7 +1727,7 @@ public final class ScooterService extends Service {
      */
     private Notification alertNoticeContent(AlertShown shown,boolean sounding,long when){
         NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
-        PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent open=PendingIntent.getActivity(this,7,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
                 .setContentTitle(alertTitle(shown)).setContentText(alertText(shown)).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                 .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
@@ -1787,7 +1787,7 @@ public final class ScooterService extends Service {
         String text=ChargeAlertPolicy.alertText(event,scooter,0);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,8,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,8,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(ALERT_PAUSED_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(ChargeAlertPolicy.alertTitle(event,0)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -2308,7 +2308,7 @@ public final class ScooterService extends Service {
     private void showAutoStopNotice(String id,String reason){
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,2,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,2,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             RideStore.Summary ride=null;try{ride=rides.get(id);}catch(IOException ignored){}
             String text=RideAutoStopText.notice(reason,ride,ride==null?null:DisplayTime.clock(this,settings,ride.shownEndWallMs));
             post(AUTO_STOP_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
@@ -2354,7 +2354,7 @@ public final class ScooterService extends Service {
     private void showAutoExportNotice(RideAutoExport.Problem problem){
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,10,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,10,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             String text=problem==RideAutoExport.Problem.FOLDER?T.serviceAutoSaveFolder():T.serviceAutoSaveWrite();
             post(AUTO_EXPORT_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(T.serviceAutoSaveFailed()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
@@ -3084,6 +3084,16 @@ public final class ScooterService extends Service {
         notices.posted(71, SystemClock.elapsedRealtime());
     }
 
+
+    /**
+     * A tap on any of Volt's notifications: back to the Volt already open, never a second one stacked on it. Started
+     * from the launcher, the task's root intent is the launcher's, so a plain intent here started another MainActivity
+     * on top; CLEAR_TOP with SINGLE_TOP hands the tap to the open one (MainActivity.onNewIntent, where a plain intent
+     * changes no page), as the maintenance notice's tap already does (MaintenanceNotices).
+     */
+    private Intent openVolt(){
+        return new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    }
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         String label = T.serviceChannelScooter();
@@ -3094,7 +3104,7 @@ public final class ScooterService extends Service {
             scooterChannelLabel = label;
         }
         if (noticeOpen == null)
-            noticeOpen = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            noticeOpen = PendingIntent.getActivity(this, 0, openVolt(), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent content = noticeOpen;
         boolean measuring = chargeMeasure.active() && !isChargeRecording() && !isRecording() && !phoneSaving();
         // A schedule test ranks above a charge recording (its Cancel matters more; Stop charge recording stays in the app).

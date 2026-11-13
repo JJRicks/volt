@@ -672,7 +672,7 @@ public final class BleController {
                 // connected() also covers the owner handshake. Neither telemetry nor public
                 // status/features/motion may expose this account's other scooter during it.
                 if(state!=State.READY){changed();continue;}
-                if(f.cmd!=0x7a&&f.cmd!=0x63)telemetry.accept(f.cmd,f.data,now());if(f.cmd==0x73){sessionFirmware=null;if(commandSession&&!commandFirmware)noteSession();}
+                if(f.cmd!=0x7a&&f.cmd!=0x63)feed(f.cmd,f.data,now());if(f.cmd==0x73){sessionFirmware=null;if(commandSession&&!commandFirmware)noteSession();}
                 if(statusRead(f)){confirmRecheck();confirmMutation(f);checkStatus(f);}
                 if(f.cmd==0x70&&test!=null&&!test.terminal()){boolean sane=statusRead(f);test.onStatus(sane?StatusFields.of(f,now()):StatusFields.NONE,now());stepTest();}
                 if(f.cmd==0x90&&f.error()==0&&f.data.length>=9){warning=f.data[1]&255;warningMs=now();}
@@ -719,12 +719,17 @@ public final class BleController {
         if(justReady){
             // Publish only the two verified handshake responses. Other early reads and pushes
             // were discarded; request fresh model-appropriate readings for this bound scooter.
-            telemetry.accept(0x70,statusFrame.data,statusMs);
+            feed(0x70,statusFrame.data,statusMs);
             if(pendingSerialFrame!=null){telemetry.accept(0x74,pendingSerialFrame.data,now());pendingSerialFrame=null;}
             recordDiagnostic(ConnectionEventLog.Reason.AUTHENTICATED_READY,0);int session=generation;
             handler.post(()->{if(session==generation&&state==State.READY&&authenticated&&gatt!=null)refresh(true);});
         }
         retries=0;if(mutation==null)message=M.bleStatusConnected();if(identifying){identifying=false;notice(captured?M.bleModelIdCaptured():M.bleModelIdNotCaptured());}}return true;}
+    /** A verified frame into telemetry; a settings read first learns whether its byte 1 is this model's acceleration setting. */
+    private void feed(int cmd,byte[] data,long ms){
+        if(cmd==0x70)telemetry.settingsByteIsAcceleration(ModelRegistry.settingsByteIsAcceleration(descriptor()));
+        telemetry.accept(cmd,data,ms);
+    }
     public void refresh(boolean full){if(simulating()){tickSimulation();changed();return;}if(!workAllowed()||!authenticated)return;
         // UT5 MAX: today's bundle, or 0x70 + 0x72 + 0x79. A running check sends its own reads, so only the core status read joins it.
         if(discovering||testing()){send(Protocol.frame(0x70,null));return;}

@@ -972,9 +972,12 @@ readings vertically on the right, defaulting to odometer and drive mode. Reporte
 available in Stats and as custom readings. The old four-reading default migrates
 once to the two-reading list, preserving saved card positions/sizes and other
 custom lists. New scooter cards use four rows and may shrink to three.
-On PID 2538, owner-observed driving-mode
-codes 11, 2 and 3 display as WALK, ECO and SPORT. Unconfirmed codes and other
-models remain raw. Raw diagnostics and ride exports are unchanged; displayed
+On PID 2538 (UT5 MAX), owner-observed driving-mode codes 11, 2 and 3 display
+as WALK, ECO and SPORT. From owners' answers, the GT5 Max (25462), XT5 Pro
+(24162) and GT3 Max (24182) show 11, 2 and 3 as WALK, DRIVE and SPORT (the GT5
+Max owner's 5 also as SPORT), as the N65i (22131) is assumed to until an owner
+reports otherwise; the ST3 Pro (23452) shows exactly 11, 2 and 3 as WALK, DRIVE
+and SPORT, with 5 raw. Unconfirmed codes and other models remain raw. Raw diagnostics and ride exports are unchanged; displayed
 lifetime counters do not become current-ride totals or capacity measurements.
 Live SPORT uses pale blue on dark backgrounds and a darker readable blue on
 light backgrounds. ECO is green; WALK uses a green pedestrian icon. Stale modes
