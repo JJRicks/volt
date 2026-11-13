@@ -62,6 +62,8 @@ import com.jjricks.volt.ScooterService;
  */
 public final class GpsAccuracyValidation extends Instrumentation {
     private static final String PKG = "com.jjricks.volt";
+    /** The GPS accuracy line's place in Ride details' graph: after build()'s readings (RideChartData.forRide). */
+    private static final int GPS_LINE = RideChartData.KEYS.length;
     /** Synthetic coordinates: if any of these digits show on screen, a position leaked. */
     private static final double LAT = 12.3456789, LON = -98.7654321;
     private static final String[] LEAKS = {"12.345", "12,345", "98.765", "98,765"};
@@ -713,9 +715,9 @@ public final class GpsAccuracyValidation extends Instrumentation {
         // Default: the line is offered but off, as the other optional lines are; the default lines are unchanged.
         open(full, 344, 882, "dark", 1f);
         List<RideChartData.Series> data = data();
-        require(data.size() == 9 && data.get(8).key.equals("gps_accuracy") && data.get(8).index == 8, "the line is not the ninth: " + keys(data));
+        require(data.size() == GPS_LINE + 1 && data.get(GPS_LINE).key.equals(GpsAccuracy.KEY) && data.get(GPS_LINE).index == GpsAccuracy.CHART_INDEX, "the line is not the last, after the readings: " + keys(data));
         require(!RideChartData.defaults().contains("gps_accuracy"), "the line is on by default");
-        CheckBox chip = toggle(8);
+        CheckBox chip = toggle(GPS_LINE);
         AtomicReference<Boolean> checked = new AtomicReference<>();
         main(() -> checked.set(chip.isChecked()));
         require(!checked.get(), "the line's chip starts checked");
@@ -726,7 +728,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
         // Values: feet, a gap stays a gap, the poor fixes clip at a "≥" top mark.
         choose(true);
         open(full, 344, 882, "dark", 1f);
-        RideChartData.Series line = data().get(8);
+        RideChartData.Series line = data().get(GPS_LINE);
         require(line.available() && line.unit.equals("ft"), "line unit " + line.unit);
         int before = -1, after = -1; double high = 0;
         for (RideChartData.Value v : line.values) {
@@ -757,8 +759,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
             built.set(RideChartData.build(measured, (PhoneRideStore.Track) field(p, "phone"), true, false, (Boolean) field(p, "inferRegen")));
         });
         List<RideChartData.Series> plain = built.get();
-        require(plain.size() == 8, "build gives " + plain.size() + " lines");
-        for (int i = 0; i < 8; i++) {
+        require(plain.size() == GPS_LINE, "build gives " + plain.size() + " lines");
+        for (int i = 0; i < GPS_LINE; i++) {
             RideChartData.Series a = plain.get(i), b = data().get(i);
             require(a.key.equals(b.key) && a.color == b.color && a.unit.equals(b.unit) && a.index == b.index
                     && a.scale.min == b.scale.min && a.scale.max == b.scale.max && a.values.size() == b.values.size(), "line " + a.key + " changed");
@@ -778,7 +780,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
         // Metres.
         prefs("app_settings").edit().putString("units", "km").commit();
         open(full, 344, 882, "dark", 1f);
-        line = data().get(8);
+        line = data().get(GPS_LINE);
         require(line.unit.equals("m") && line.scale.max >= 18 && line.scale.max <= 60, "metres scale " + line.scale.max + " " + line.unit);
         String metres = inspect(70_000);
         require(metres.contains("±300 m"), "the cursor in metres reads: " + metres);
@@ -787,26 +789,26 @@ public final class GpsAccuracyValidation extends Instrumentation {
 
         // Rides with little or no GPS open without trouble.
         open(none, 344, 882, "dark", 1f);
-        require(!data().get(8).available(), "a ride without a phone journal has GPS accuracy data");
+        require(!data().get(GPS_LINE).available(), "a ride without a phone journal has GPS accuracy data");
         toggles("no-journal");
         shotChart("no-journal");
         open(sensorsOnly, 344, 882, "dark", 1f);
-        require(!data().get(8).available(), "a journal without GPS has GPS accuracy data");
+        require(!data().get(GPS_LINE).available(), "a journal without GPS has GPS accuracy data");
         shotChart("no-gps");
         open(single, 344, 882, "dark", 1f);
-        line = data().get(8);
+        line = data().get(GPS_LINE);
         require(line.available() && line.values.size() == 1, "one fix gives " + line.values.size() + " values");
         require(line.scale.max >= 30, "one fix's scale " + line.scale.max);
         shotChart("one-fix");
         open(pair, 344, 882, "dark", 1f);
-        line = data().get(8);
+        line = data().get(GPS_LINE);
         require(line.values.size() == 2 && line.values.get(0).segment != line.values.get(1).segment, "two fixes across a gap joined");
         shotChart("two-fixes-gap");
         // A choice saved before this change (no gps_accuracy in it) keeps its lines.
         main(() -> service.settings.edit().putStringSet("ride_chart_series", new LinkedHashSet<>(Arrays.asList("power_w", "speed_kmh"))).commit());
         open(full, 344, 882, "dark", 1f);
         AtomicReference<Boolean> kept = new AtomicReference<>();
-        CheckBox gpsChip = toggle(8), powerChip = toggle(0);
+        CheckBox gpsChip = toggle(GPS_LINE), powerChip = toggle(0);
         main(() -> kept.set(!gpsChip.isChecked() && powerChip.isChecked()));
         require(kept.get(), "a remembered choice changed");
         note("rides with no journal, no GPS, one fix and two fixes opened");
@@ -930,8 +932,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
                 require(t.getWidth() <= choices.getWidth() + 1, label + ": chip " + t.getText() + " is wider than its row");
                 seen.append(" [").append(t.getText()).append(" lines=").append(t.getLineCount()).append(']');
             }
-            CheckBox gps = (CheckBox) choices.getChildAt(8);
-            require(gps.getText().toString().contains(str("readings_chart_gps_accuracy")), label + ": chip 8 reads " + gps.getText());
+            CheckBox gps = (CheckBox) choices.getChildAt(GPS_LINE);
+            require(gps.getText().toString().contains(str("readings_chart_gps_accuracy")), label + ": chip " + GPS_LINE + " reads " + gps.getText());
             require(problems.isEmpty(), label + ": " + problems);
             note(label + ":" + seen);
         });

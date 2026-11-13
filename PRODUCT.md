@@ -27,7 +27,7 @@ On the web, the same owners arrive at three different moments:
 Volt is an independent, open-source Android companion for NAVEE electric scooters. It connects over Bluetooth LE to:
 
 - lock and unlock the scooter, and change supported riding, lighting and charging settings;
-- show live readings in a dashboard the owner arranges;
+- show live readings on Home, in one of two styles the owner picks: **Clean** (a fixed Home with the battery, the Lock bar, four quick actions and the scooter's subjects) or **Widgets** (a dashboard the owner arranges);
 - record rides;
 - estimate range and charging time.
 

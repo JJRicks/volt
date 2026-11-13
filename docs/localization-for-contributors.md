@@ -218,7 +218,7 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 | Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
 | `tests/run.sh`, `build.sh`, `android-tests/build.sh`, `.github/workflows/`, `tools/l10n/` and every existing file under `tests/l10n/` except `characterization/`, `golden/` and top-level `*.sources` | May change | Must not change, not even by an added statement. Exceptions: a new `tests/l10n/<Name>.java`, and a `.sources` file |
 | Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May only gain whole statements |
-| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`) |
+| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`). If that commit only adds rows to an existing `.tsv` listing (for example, a new shortcut's row), the proof skips running the tests there and checks that no existing row changed; the new rows are left to the tests at head |
 | `T.` or `M.` calls, catalog strings | Not possible; adding them makes it a `batch` | Yes |
 
 MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `batch`.

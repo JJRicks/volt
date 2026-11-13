@@ -1066,6 +1066,9 @@ docs/app-data-backup.md and docs/user-guide.md.
 
 USABLE RIDE ENERGY (EXPERIMENTAL; FORMERLY CAPACITY EXPERIMENT)
 
+Also shown under Experimental at the bottom of Scooter > Battery & charging >
+Estimates & charger (90-day window, the model's rated energy; no reference
+can be set there), so Clean Home owners find it without a widget.
 Analyzes explicit rides for the selected scooter using:
   100 x summed recorded Wh / summed battery-percentage points used.
 Confirmed-direction rides use net energy drawn minus returned. Unconfirmed
@@ -1237,6 +1240,26 @@ HTTPS providers remain selectable. Unsupported closer USGS
 zooms enlarge available level-16 tiles. HTTP errors and X-Blocked images show a
 status while local routes remain visible. Provider denial pauses further requests;
 legacy unverified cache entries require refresh. No bulk prefetch is performed.
+
+CLEAN HOME
+
+Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
+Home (the pencil on Clean), or from the Home style row at the top of the Layout
+sheet while editing Widgets. Switching never changes widget layouts or saved
+slots. Clean's four quick actions: RIDE (the red pill into riding mode, the same
+look and word as Widgets' RIDE button), Record ride, Charge done by where the
+scooter has scheduled charging, else Battery alerts, then the first offered
+control in this order: cruise control, walk assist, traction control, power
+assist, energy recovery, hill descent control, overspeed control. On a scooter
+with neither scheduled charging nor battery alerts, a second offered control
+takes the third place; any place still empty goes to Rides and then Settings.
+There is no drive mode action. Edit Home changes any of the four per scooter.
+What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
+charging view shows the charging power beside the same switching time tile as
+Widgets: the time to the charge limit, or to the battery alert's level on a
+scooter without a limit, then the time to 100%. Where the view is too small,
+the photo goes before the readings. The Ride row shows a running recording and
+its time while a ride records, else the last ride.
 
 QUICK ACCESS
 
