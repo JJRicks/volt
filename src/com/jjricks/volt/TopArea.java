@@ -20,14 +20,18 @@ final class TopArea {
     static final int MIN_DP = 224, PHONE_MAX_DP = 380, WIDE_MAX_DP = 460;
     static final float MAX_TEXT_GROWTH = 1.3f;
     /**
-     * What a phone window keeps under and over the area at 1x (dp): the status bar (24), the header (about 80), the
+     * What a phone window keeps under and over the area at 1x (dp): the status bar (24), the header (about 100), the
      * Lock bar (12 + 54), the quick actions' circles and names (12 + 54 + 6 + 16 + 14) and the bottom bar (88). The
      * parts made of text grow with it: {@link #RESERVE_TEXT_DP} more per 1x of text scale. A wide window has a rail
      * instead of the bottom bar: {@link #RAIL_SAVES_DP} less.
      */
-    static final int RESERVE_DP = 360, RESERVE_TEXT_DP = 120, RAIL_SAVES_DP = 88;
-    /** The least the area gets on a short window: the charging percentage (smaller) over the readings still fit. */
-    static final int FLOOR_DP = 192;
+    static final int RESERVE_DP = 380, RESERVE_TEXT_DP = 120, RAIL_SAVES_DP = 88;
+    /**
+     * The least the area gets on a short window: the charging view's readings still fit in their worst cases
+     * (ChargingFitTest: the state pill wrapped under the time, at 1.4x text on 725x604 dp with the percentage and its
+     * track over them, about 191 dp, and on a 280x640 dp phone with system bars, where the readings stack).
+     */
+    static final int FLOOR_DP = 208;
 
     private TopArea() {}
 
@@ -56,12 +60,12 @@ final class TopArea {
     /**
      * How the parked battery card shares the height it has beyond its own (pixels, {@code extra} ≥ 0): above its top
      * row (the percentage and the photo), between that row and the bar, and between the bar and the readings, so the
-     * readings sit along the card's bottom and the space is spread about evenly, as the Layout Plan's mock-up spreads
-     * it (about 36, 37 and 20 dp there), instead of one band under the readings.
+     * readings sit along the card's bottom, weighted as the Layout Plan's mock-up spreads it (about 36, 37 and 20 dp
+     * there), so the readings sit close under the bar and no gap becomes a band, instead of one band under the readings.
      */
     static int[] parkedGaps(int extra) {
         int e = Math.max(0, extra);
-        int above = Math.round(e * .34f), under = Math.round(e * .33f);
+        int above = Math.round(e * .39f), under = Math.round(e * .22f);
         return new int[] {above, e - above - under, under};
     }
 }

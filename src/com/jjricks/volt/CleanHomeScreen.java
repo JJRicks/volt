@@ -71,23 +71,18 @@ final class CleanHomeScreen implements AppScreen {
         view.addView(page, new LinearLayout.LayoutParams(-1, -2));
 
         // The plan's header: the status line, then the scooter's name with Edit, search and Settings beside it, level
-        // with the name (CleanHeaderFit). The name row is a 48 dp band. The status line takes its 48 dp target as the
-        // widget dashboard's header gives it one: padding above and below its text, taken back by margins, so the
-        // header is two text lines high (about the mock-up's) rather than two 48 dp bands. Each button keeps its 48 dp
-        // target around a 40 dp disc (the mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name
-        // stays on one line beside the three buttons.
+        // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
+        // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
+        // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
+        // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the three
+        // buttons.
         header = column();
-        header.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
-        header.setClipChildren(false);
-        header.setClipToPadding(false);
+        header.setPadding(0, 0, 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
         TextView status = parts.status();
-        int statusPad = ui.dp(CleanHeaderFit.STATUS_PAD_DP);
-        status.setPadding(0, statusPad, 0, statusPad);
-        status.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        LinearLayout.LayoutParams statusSize = new LinearLayout.LayoutParams(-1, -2);
-        statusSize.topMargin = -statusPad;
-        statusSize.bottomMargin = -statusPad;
-        header.addView(status, statusSize);
+        status.setGravity(Gravity.BOTTOM | Gravity.START);
+        status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
+        status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
+        header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
         float nameFull = name.getTextSize();
         android.graphics.Paint namePaint = new android.graphics.Paint(name.getPaint());
