@@ -16,6 +16,8 @@ final class QuickAccessGrid extends ViewGroup {
     private final ScreenHost host;
     private final Ui ui;
     private final boolean editing, tiles;
+    /** Clean Home's four (HomeQuickActions): their buttons keep their own side padding. */
+    private final boolean clean;
     private final ArrayList<Cell> cells = new ArrayList<>();
     private int budget, columns = 1, rowHeight, fittedWidth = -1, fittedBudget = -1;
     private boolean iconsOnly, tileLabels = true, tileCompact;
@@ -34,7 +36,7 @@ final class QuickAccessGrid extends ViewGroup {
 
     /** {@code tiles} selects the Setting tiles presentation; callers normalize its one-to-four ids. */
     QuickAccessGrid(ScreenHost host, List<String> ids, boolean editing, Consumer<String> action, boolean tiles) {
-        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find);
+        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find, false);
     }
 
     /**
@@ -42,13 +44,13 @@ final class QuickAccessGrid extends ViewGroup {
      * outside the catalog (its own Ride and Record), as round buttons.
      */
     QuickAccessGrid(ScreenHost host, List<String> ids, Consumer<String> action, java.util.function.Function<String, QuickAccessActions.Entry> entries) {
-        this(host, ids, false, action, false, entries);
+        this(host, ids, false, action, false, entries, true);
     }
 
     private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
-                            java.util.function.Function<String, QuickAccessActions.Entry> entries) {
+                            java.util.function.Function<String, QuickAccessActions.Entry> entries, boolean clean) {
         super(host.activity());
-        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles;
+        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles; this.clean = clean;
         setTag(tiles ? "setting-tiles" : "quick-access-grid");
         for (String id : shown) {
             QuickAccessActions.Entry entry = entries.apply(id);
@@ -414,7 +416,10 @@ final class QuickAccessGrid extends ViewGroup {
             label.setVisibility(iconsOnly ? GONE : VISIBLE);
             icon.setAlpha(editing && iconsOnly ? .22f : 1f);
             value.setVisibility(iconsOnly || "".equals(value.getTag()) ? GONE : VISIBLE);
-            setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));
+            // Quick access: 3 dp each side, so a name has 66 dp per line at the 72 dp minimum (dashboard_model_qa_*).
+            // Clean Home's quick actions keep 4 dp: their look was decided on its own (home_qa_* stay 64dp@12sp*2).
+            if (clean) setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));
+            else setPadding(ui.dp(3), ui.dp(compact ? 3 : 7), ui.dp(3), ui.dp(compact ? 3 : 7));
             int side = ui.dp(compact ? 18 : 20);
             icon.getLayoutParams().width = icon.getLayoutParams().height = side;
             ((LinearLayout.LayoutParams)label.getLayoutParams()).topMargin = ui.dp(compact ? 2 : 4);
