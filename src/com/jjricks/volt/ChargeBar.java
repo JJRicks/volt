@@ -29,8 +29,9 @@ import java.util.function.Consumer;
  * the touch band and the label above the mark have room without making the stage taller; where it is short the label
  * goes beside the mark.
  *
- * <p>For TalkBack it is one adjustable control ("Charge limit, 85%"), whose increase and decrease move one step and
- * commit as a lift does. Right to left, the bar and the gesture are mirrored.
+ * <p>For TalkBack it is one adjustable control ("Charge limit, 85%", with the Charge limit row's note when it has one),
+ * whose increase and decrease move one step and commit as a lift does; a held drag is heard step by step. The arrow keys
+ * do what increase and decrease do. Right to left, the bar, the gesture and the keys are mirrored.
  */
 final class ChargeBar extends View {
     static final String KEY = "charge_limit";
@@ -58,9 +59,16 @@ final class ChargeBar extends View {
         String failure(String evidence);
         /** "Charge limit" (the row's short label) or "Charge alert" (the alert row's). */
         String name(boolean alert);
-        /** The row's spoken notes: a write in flight, and "unconfirmed here". */
+        /**
+         * The Charge limit row's own note for this scooter (MainActivity.controlNote, the one source both use): its
+         * reason, "Unconfirmed here" or "Untested here"; null when the row shows none.
+         */
+        String note(ScooterService service);
+        /** A value with a note, as the row joins them ("85% · Untested here"). */
+        String withNote(String value, String note);
+        /** The row's spoken notes: a write in flight, and a note as the row speaks it. */
         String confirming();
-        String unconfirmed();
+        String stateNote(String note);
         /** The row's spoken name, value and note, for TalkBack before Android 11. */
         String spoken(String name, String value, String note);
     }
@@ -69,7 +77,8 @@ final class ChargeBar extends View {
     private final Host host;
     private final float inset, restThick, dragThick, floorFromBottom, bandAbove, bandBelow, grabHalf;
     private final int slop;
-    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG), text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.text.TextPaint text = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final RectF box = new RectF();
     /** Where the mark and the value label were last drawn, in this view's pixels (the label empty when not shown). */
     final RectF markBox = new RectF(), labelBox = new RectF();
@@ -88,6 +97,13 @@ final class ChargeBar extends View {
     boolean otherPending;
     /** An owner saw this model acknowledge a limit change and keep its old value (ModelRegistry.unconfirmed). */
     boolean unconfirmed;
+    /** The Charge limit row's note for this scooter, shown beside the dragged value and spoken (null: none). */
+    String note;
+    /**
+     * In simulation an alert level dragged here is not kept: the mark holds it until simulation ends, and the owner's
+     * real alert settings are never written (nothing done to a simulated scooter is kept).
+     */
+    Integer simulatedAlert;
     /** Where the mark is drawn, in percent (moves to the resting value when it changes). */
     float drawn = Float.NaN;
     /** 0 at rest, 1 fully thickened under the finger. */
@@ -127,7 +143,7 @@ final class ChargeBar extends View {
         this.level = level; this.trackEnd = trackEnd;
         ScooterService service = host.service();
         int next = ChargeBarDrag.NONE; int[] values = ChargeBarDrag.NO_VALUES; Integer value = null;
-        ChargeBarDrag.Gate nextGate = ChargeBarDrag.Gate.OK; String why = null; boolean other = false, kept = false;
+        ChargeBarDrag.Gate nextGate = ChargeBarDrag.Gate.OK; String why = null, rowNote = null; boolean other = false, kept = false;
         ChargeAlertPolicy.Settings alerts = null;
         words = host.words();
         if (service != null && words != null) {
@@ -146,13 +162,15 @@ final class ChargeBar extends View {
                 why = limitMessage(nextGate, service, words);
                 other = KEY.equals(service.ble.pending());
                 kept = ModelRegistry.unconfirmed(service.ble.descriptor(), KEY);
+                rowNote = words.note(service);
             } else if (next == ChargeBarDrag.ALERT) {
                 values = alertValues();
-                value = alerts.chargeAt;
+                value = service.simulating() && simulatedAlert != null ? simulatedAlert : Integer.valueOf(alerts.chargeAt);
             }
+            if (!service.simulating()) simulatedAlert = null;
         }
         if (next != kind) { reset(); kind = next; }
-        allowed = values; gate = nextGate; blocked = why; otherPending = other; unconfirmed = kept;
+        allowed = values; gate = nextGate; blocked = why; otherPending = other; unconfirmed = kept; note = rowNote;
         // A drag on a limit that can't move any more (the scooter disconnected, a test began) ends; the mark returns.
         if (gesture.dragging() && (host.inert() || kind == ChargeBarDrag.LIMIT && gate != ChargeBarDrag.Gate.OK)) cancelDrag();
         if (kind == ChargeBarDrag.LIMIT && commit.phase == ChargeBarDrag.Commit.IN_FLIGHT) resolve(service);
@@ -267,7 +285,7 @@ final class ChargeBar extends View {
 
     /** The value being chosen, in a small pill above the mark (beside it where the view is short), kept inside the view. */
     private void drawLabel(Canvas canvas, float x, float floor, float markHeight, float alpha) {
-        String words = valueText(Math.round(drawn));
+        String words = labelText(Math.round(drawn));
         Paint.FontMetrics m = text.getFontMetrics();
         float padX = ui.dp(8), padY = ui.dp(4), tw = text.measureText(words), th = m.descent - m.ascent;
         float pw = tw + 2 * padX, ph = th + 2 * padY, w = getWidth();
@@ -297,6 +315,16 @@ final class ChargeBar extends View {
     /** "85%" for a limit; the alert sheet's own words for an alert level ("80%", or "Full" at 100). */
     String valueText(int value) {
         return kind == ChargeBarDrag.ALERT ? ChargeAlertPolicy.levelText(value) : Fmt.percent(Fmt.integerNumber(value)).toString();
+    }
+
+    /** The dragged value as the label shows it: with the Charge limit row's note when it has one, fitted to the view. */
+    String labelText(int value) {
+        String shown = valueText(value);
+        if (kind != ChargeBarDrag.LIMIT || note == null || words == null) return shown;
+        String joined = words.withNote(shown, note);
+        float room = getWidth() - ui.dp(16) - ui.dp(16);
+        if (room <= 0 || text.measureText(joined) <= room) return joined;
+        return android.text.TextUtils.ellipsize(joined, text, room, android.text.TextUtils.TruncateAt.END).toString();
     }
 
     String name() { return words == null ? "" : words.name(kind == ChargeBarDrag.ALERT); }
@@ -383,11 +411,11 @@ final class ChargeBar extends View {
                     hold(true);
                     stopSettle();
                     thicken(true);
-                    if (gesture.value != was) tick();
                     drawn = gesture.value; invalidate();
+                    if (gesture.value != was) { tick(); stepSaid(); }
                 } else if (result == ChargeBarDrag.Gesture.STEPPED) {
-                    tick();
                     drawn = gesture.value; invalidate();
+                    tick(); stepSaid();
                 } else if (result == ChargeBarDrag.Gesture.REFUSED) {
                     // A deliberate drag on a mark that can't move: said once, in the control's own words; nothing moves.
                     hold(true);
@@ -402,7 +430,7 @@ final class ChargeBar extends View {
                 hold(false);
                 if (dragged) thicken(false);
                 if (value != null) commitValue(value);
-                else if (dragged) settleTo(commit.shown(), false);
+                else if (dragged) { settleTo(commit.shown(), false); describe(); }
                 return true;
             }
             case MotionEvent.ACTION_CANCEL: fingerDown = false; cancelDrag(); return true;
@@ -428,7 +456,7 @@ final class ChargeBar extends View {
         boolean was = gesture.cancel(fingerDown);
         hold(false);
         if (was || lift > 0) thicken(false);
-        if (was) settleTo(commit.shown(), false);
+        if (was) { settleTo(commit.shown(), false); describe(); }
     }
 
     /**
@@ -460,7 +488,10 @@ final class ChargeBar extends View {
         if (kind == ChargeBarDrag.ALERT) {
             ChargeAlertPolicy.Settings alerts = service == null ? null : service.chargeAlerts();
             // The alert sheet's own check (ChargeAlertSheet.current): still offered here and the alert still on.
-            boolean saved = alerts != null && alerts.charge && service.chargeAlertsOffered() && service.setChargeAlerts(alerts.charge(true, value));
+            boolean open = alerts != null && alerts.charge && service.chargeAlertsOffered();
+            boolean saved;
+            if (open && service.simulating()) { simulatedAlert = value; saved = true; }
+            else saved = open && service.setChargeAlerts(alerts.charge(true, value));
             if (saved) { commit.report(value); confirm(); }
             settleTo(commit.shown(), false);
             describe();
@@ -526,16 +557,17 @@ final class ChargeBar extends View {
         if (getImportantForAccessibility() != importance) setImportantForAccessibility(importance);
         if (isFocusable() != mark) setFocusable(mark);
         if (!mark || words == null) { if (getContentDescription() != null) setContentDescription(null); return; }
-        Integer at = commit.shown();
-        String value = valueText(at == null ? Math.round(drawn) : at);
-        String note = commit.pending() || otherPending ? words.confirming() : unconfirmed ? words.unconfirmed() : "";
+        int at = current();
+        String value = valueText(at);
+        String state = commit.pending() || otherPending ? words.confirming()
+                : kind == ChargeBarDrag.LIMIT && note != null ? words.stateNote(note) : "";
         if (Build.VERSION.SDK_INT >= 30) {
-            String state = value + note;
-            if (!state.contentEquals(String.valueOf(getStateDescription()))) setStateDescription(state);
+            String described = value + state;
+            if (!described.contentEquals(String.valueOf(getStateDescription()))) setStateDescription(described);
             String named = name();
             if (!named.contentEquals(String.valueOf(getContentDescription()))) setContentDescription(named);
         } else {
-            String spoken = words.spoken(name(), value, note);
+            String spoken = words.spoken(name(), value, state);
             if (!spoken.contentEquals(String.valueOf(getContentDescription()))) setContentDescription(spoken);
         }
     }
@@ -545,8 +577,7 @@ final class ChargeBar extends View {
     @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
         if (!hasMark()) return;
-        Integer at = commit.shown();
-        int current = at == null ? Math.round(drawn) : at;
+        int current = current();
         info.setRangeInfo(AccessibilityNodeInfo.RangeInfo.obtain(AccessibilityNodeInfo.RangeInfo.RANGE_TYPE_PERCENT, 0, 100, current));
         if (ChargeBarDrag.step(current, 1, allowed) != current) info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_FORWARD);
         if (ChargeBarDrag.step(current, -1, allowed) != current) info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD);
@@ -560,12 +591,47 @@ final class ChargeBar extends View {
         if (!forward && !back && !set) return super.performAccessibilityAction(action, arguments);
         if (!hasMark() || host.inert()) return false;
         if (!live()) { said = false; refusedDrag(); return false; }
+        int current = current();
+        if (set) {
+            int next = ChargeBarDrag.snap(arguments == null ? current : arguments.getFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, current), allowed);
+            if (next == current) return false;
+            commitValue(next);
+            return true;
+        }
+        return stepBy(forward ? 1 : -1);
+    }
+
+    /** The value the mark stands for now: the dragged step while held, else the resting value. */
+    private int current() {
+        if (gesture.dragging()) return gesture.value;
         Integer at = commit.shown();
-        int current = at == null ? Math.round(drawn) : at;
-        int next = set ? ChargeBarDrag.snap(arguments == null ? current : arguments.getFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, current), allowed)
-                : ChargeBarDrag.step(current, forward ? 1 : -1, allowed);
+        return at == null ? Math.round(drawn) : at;
+    }
+
+    /** One step up or down, committed as a lift is (TalkBack's increase and decrease, the arrow keys). */
+    private boolean stepBy(int direction) {
+        int current = current();
+        int next = ChargeBarDrag.step(current, direction, allowed);
         if (next == current) return false;
         commitValue(next);
         return true;
+    }
+
+    /** A screen reader hears each snapped step of a held drag once (the state changes; before Android 11, a selection event). */
+    private void stepSaid() {
+        describe();
+        if (Build.VERSION.SDK_INT < 30) sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SELECTED);
+    }
+
+    /**
+     * Left and right step the focused mark as TalkBack's increase and decrease do (mirrored right to left), with the
+     * same commit; at either end the key goes on to move focus. A mark that can't move says why, once per press.
+     */
+    @Override public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
+        boolean left = keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT, right = keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT;
+        if ((!left && !right) || !hasMark() || host.inert() || gesture.active()) return super.onKeyDown(keyCode, event);
+        if (!live()) { said = false; refusedDrag(); return true; }
+        int direction = (right ? 1 : -1) * (rtl() ? -1 : 1);
+        return stepBy(direction) || super.onKeyDown(keyCode, event);
     }
 }

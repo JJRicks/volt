@@ -1762,13 +1762,33 @@ public final class MainActivity extends Activity implements ScreenHost {
     private static String rowConfirmingPart(){return T.mainRowConfirmingPart();}
     private static String rowStateNote(String note){return T.mainRowStateNote(lowerInEnglish(note));}
     private static String rowUnconfirmed(){return T.mainRowUnconfirmed();}
+    /**
+     * A setting row's note (SettingRow.rowNote) and Home's charging bar's, from this one place so they cannot drift:
+     * the resolver's reason when the control is unavailable for a reason the row doesn't already show, else "Unconfirmed
+     * here" where an owner saw this model keep its old value, else "Untested here" for an OEM-mapped control on another
+     * model. None on the UT5 MAX.
+     */
+    static String controlNote(BleController ble,CapabilityResolver.Decision d,boolean parked,String key){
+        if(ble==null||d==null||!ble.ready())return null;
+        if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
+                &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
+        if(ModelRegistry.unconfirmed(ble.descriptor(),key))return rowUnconfirmed();
+        return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
+    }
+    /** A row's detail and note joined ("85% · Untested here"); either alone when the other is missing. */
+    private static String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
     /** The charging bar's words: its controls' own (Quick access, the Charge limit row, its choice sheet, the alert row). */
     private final ChargeBar.Words chargeBarWords=new ChargeBar.Words(){
         @Override public String refusal(ChargeBarDrag.Gate gate){return quickRefusal(gate);}
         @Override public String failure(String evidence){return failureWords(evidence);}
         @Override public String name(boolean alert){ScooterCommands.Feature f=ScooterCommands.find(ChargeBar.KEY);return alert?chargeAlertName():f==null?"":shortLabel(f);}
+        @Override public String note(ScooterService service){
+            BleController ble=service==null?null:service.ble;CapabilityResolver.Decision d=ble==null?null:ble.decision(ChargeBar.KEY);
+            return controlNote(ble,d,d!=null&&d.blockedByRide(),ChargeBar.KEY);
+        }
+        @Override public String withNote(String value,String note){return joinNote(value,note);}
         @Override public String confirming(){return rowConfirmingPart();}
-        @Override public String unconfirmed(){return rowStateNote(rowUnconfirmed());}
+        @Override public String stateNote(String note){return rowStateNote(note);}
         @Override public String spoken(String name,String value,String note){return labelValueState(name,value,note);}
     };
     /** The decided variant when it is another model's (not the UT5 MAX catalogue), else null. */
@@ -3009,13 +3029,7 @@ public final class MainActivity extends Activity implements ScreenHost {
          * already shows), else "Unconfirmed here" where an owner saw this model keep its old value, else
          * "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
          */
-        private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){
-            if(ble==null||d==null||!ble.ready())return null;
-            if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
-                    &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
-            if(ModelRegistry.unconfirmed(ble.descriptor(),feature.key))return rowUnconfirmed();
-            return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
-        }
+        private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){return controlNote(ble,d,parked,feature.key);}
         /** UT5 MAX swatches never change; colours beyond them (another model's table) show only while that model offers them. */
         private void extraSwatches(CapabilityResolver.Decision decision){
             int[] offered=decision==null||decision.variant==null||decision.variant.decode==FeatureVariant.Decode.UT5_FEATURE?new int[0]:decision.values();
@@ -3036,7 +3050,6 @@ public final class MainActivity extends Activity implements ScreenHost {
                 boolean shown=false;for(int v:offered)shown|=v==option.getKey();option.getValue().setVisibility(shown?View.VISIBLE:View.GONE);
             }
         }
-        private String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
         private void restorePatternSelection(boolean animate){
             Integer actual=scooterService==null?null:scooterService.ble.featureValue(feature.key);
             if(actual==null&&scooterService!=null)actual=scooterService.displayFeatures().get(feature.key);

@@ -89,6 +89,8 @@ public final class ChargeBarValidation extends Instrumentation {
                 verifyRtl();
                 verifyReducedMotion();
                 verifyAlert();
+                verifyUntested();
+                verifyKeys();
             }
             assertNoRadio();
             result.putString("result", "PASS");
@@ -310,7 +312,29 @@ public final class ChargeBarValidation extends Instrumentation {
         await(() -> !bar().writePending() && service.ble.featureValue("charge_limit") == 85, "Increase did not set 85");
         main(() -> require(writes.equals(Arrays.asList(80, 85)), "Increase wrote " + writes));
         writes.clear();
-        checks.add("TalkBack: an adjustable control spoken 'Charge limit, 85%'; decrease and increase each move one step and write once");
+        limit(85);
+        // A held drag (TalkBack's double-tap and hold): the node and the spoken value follow each snapped step.
+        Finger f = new Finger(mark());
+        f.move(stepPx() * 2 + slop() * .5f, 0, 10);
+        SystemClock.sleep(120); waitForIdleSync();
+        main(() -> {
+            ChargeBar b = bar();
+            require(b.drawn == 95f, "The held drag did not reach 95: " + b.drawn);
+            AccessibilityNodeInfo node = b.createAccessibilityNodeInfo();
+            require(node.getRangeInfo() != null && node.getRangeInfo().getCurrent() == 95f, "During the drag the range says " + (node.getRangeInfo() == null ? null : node.getRangeInfo().getCurrent()));
+            String spoken = Build.VERSION.SDK_INT >= 30 ? String.valueOf(node.getStateDescription()) : String.valueOf(node.getContentDescription());
+            require(spoken.contains("95%"), "During the drag the value is spoken as '" + spoken + "'");
+            node.recycle();
+        });
+        f.send(MotionEvent.ACTION_CANCEL, f.x, f.y); settle(); SystemClock.sleep(300);
+        main(() -> {
+            AccessibilityNodeInfo node = bar().createAccessibilityNodeInfo();
+            require(node.getRangeInfo().getCurrent() == 85f, "After a cancelled drag the range says " + node.getRangeInfo().getCurrent());
+            String spoken = Build.VERSION.SDK_INT >= 30 ? String.valueOf(node.getStateDescription()) : String.valueOf(node.getContentDescription());
+            require(spoken.contains("85%") && writes.isEmpty(), "After a cancelled drag the value is spoken as '" + spoken + "' or wrote " + writes);
+            node.recycle();
+        });
+        checks.add("TalkBack: an adjustable control spoken 'Charge limit, 85%'; decrease and increase each move one step and write once; a held drag is spoken and ranged at each step (95%), and back at 85% after a cancel");
     }
 
     private void verifyRtl() throws Exception {
@@ -368,13 +392,83 @@ public final class ChargeBarValidation extends Instrumentation {
         shot("alert-dragging");
         f.up(); settle();
         main(() -> {
-            require(service.chargeAlerts().charge && service.chargeAlerts().chargeAt == 85, "The drag did not save the alert at 85: " + service.chargeAlerts().chargeAt);
+            // Simulated: the real profile's alert keeps its 80; the mark holds 85 until simulation ends.
+            require(service.chargeAlerts().charge && service.chargeAlerts().chargeAt == 80, "A simulated drag changed the saved alert to " + service.chargeAlerts().chargeAt);
+            require(bar().drawn == 85f && Integer.valueOf(85).equals(bar().simulatedAlert), "The mark did not hold the dragged 85: " + bar().drawn);
+            require(bar().confirms > 0, "The alert drag did not confirm");
             require(writes.isEmpty(), "An alert drag wrote a limit");
         });
-        main(() -> require(service.setChargeAlerts(service.chargeAlerts().charge(false, 85)), "Could not turn the alert off"));
+        main(() -> activity.redraw()); settle();
+        main(() -> require(bar().drawn == 85f, "A refresh put the simulated alert mark back to " + bar().drawn));
+        main(() -> require(service.setChargeAlerts(service.chargeAlerts().charge(false, 80)), "Could not turn the alert off"));
         redrawUntil(() -> bar().kind == ChargeBarDrag.NONE, "The mark stayed with the alert off");
         main(() -> { service.ble.setSimulationModel(""); service.ble.tickSimulation(); });
-        checks.add("Simulated " + chosen + ": the mark is the charge alert, spoken 'Charge alert, 80%'; a drag saves 85 in the alert settings and writes no limit; alert off, no mark");
+        checks.add("Simulated " + chosen + ": the mark is the charge alert, spoken 'Charge alert, 80%'; in simulation a drag to 85 is held by the mark and never saved (the alert settings keep 80) and writes no limit; alert off, no mark");
+    }
+
+    /** The OEM-mapped model the tests use (24431): the Charge limit row says "Untested here"; so does the bar, shown and spoken. */
+    private void verifyUntested() throws Exception {
+        main(() -> { service.ble.setSimulationModel("24431"); service.ble.setSimulationCharging(true); service.ble.tickSimulation(); });
+        settle();
+        redrawUntil(() -> shownAtRest() && bar().kind == ChargeBarDrag.LIMIT && bar().allowed.length > 0 && bar().gate == ChargeBarDrag.Gate.OK, "The mapped model has no draggable limit mark");
+        String untested = T.mainRowUntested();
+        int[] from = new int[1];
+        main(() -> {
+            ChargeBar b = bar();
+            require(untested.equals(b.note), "The bar's note on the mapped model is " + b.note + ", not the row's " + untested);
+            String state = Build.VERSION.SDK_INT >= 30 ? String.valueOf(b.getStateDescription()) : String.valueOf(b.getContentDescription());
+            require(state.toLowerCase(java.util.Locale.ROOT).contains(untested.toLowerCase(java.util.Locale.ROOT)), "The note is not spoken: '" + state + "'");
+            from[0] = Math.round(b.drawn);
+        });
+        writes.clear(); toasts.clear();
+        int direction = from[0] >= 100 ? -1 : 1;
+        Finger f = new Finger(mark());
+        f.move(direction * (stepPx() + slop() * .5f), 0, 8);
+        SystemClock.sleep(260); waitForIdleSync();
+        main(() -> {
+            ChargeBar b = bar();
+            String shown = b.labelText(Math.round(b.drawn));
+            require(shown.contains(untested), "The dragged value does not show the note: '" + shown + "'");
+            RectF inside = new RectF(0, 0, b.getWidth(), b.getHeight());
+            require(!b.labelBox.isEmpty() && inside.contains(b.labelBox), "The label with the note leaves the bar: " + b.labelBox);
+        });
+        shot("untested-dragging");
+        f.up();
+        int wanted = from[0] + direction * 5;
+        await(() -> !bar().writePending() && Objects.equals(service.ble.featureValue("charge_limit"), wanted), "The mapped model's drag did not set " + wanted);
+        main(() -> require(writes.equals(Collections.singletonList(wanted)), "The mapped model's drag wrote " + writes));
+        main(() -> { service.ble.setSimulationModel(""); service.ble.tickSimulation(); });
+        redrawUntil(() -> shownAtRest() && bar().kind == ChargeBarDrag.LIMIT && bar().note == null, "Back on the UT5 MAX the note stayed");
+        writes.clear(); toasts.clear();
+        checks.add("Simulated 24431 (OEM-mapped): the bar carries the Charge limit row's 'Untested here', spoken in its state and shown beside the dragged value; the drag still writes once; none on the UT5 MAX");
+    }
+
+    /** Left and right step the focused bar as increase and decrease do, mirrored right to left, through the same commit. */
+    private void verifyKeys() throws Exception {
+        limit(85);
+        main(() -> require(key(android.view.KeyEvent.KEYCODE_DPAD_RIGHT), "Right was not taken"));
+        await(() -> !bar().writePending() && service.ble.featureValue("charge_limit") == 90, "Right did not set 90");
+        main(() -> activity.redraw()); settle();
+        main(() -> require(key(android.view.KeyEvent.KEYCODE_DPAD_LEFT), "Left was not taken"));
+        await(() -> !bar().writePending() && service.ble.featureValue("charge_limit") == 85, "Left did not set 85");
+        main(() -> { activity.redraw(); bar().setLayoutDirection(View.LAYOUT_DIRECTION_RTL); });
+        settle();
+        try {
+            main(() -> require(key(android.view.KeyEvent.KEYCODE_DPAD_RIGHT), "Right to left, right was not taken"));
+            await(() -> !bar().writePending() && service.ble.featureValue("charge_limit") == 80, "Right to left, right did not lower the limit to 80");
+            main(() -> activity.redraw()); settle();
+            main(() -> require(!key(android.view.KeyEvent.KEYCODE_DPAD_RIGHT), "Right to left, right past the lowest choice was taken"));
+        } finally { main(() -> bar().setLayoutDirection(View.LAYOUT_DIRECTION_INHERIT)); }
+        main(() -> require(writes.equals(Arrays.asList(90, 85, 80)), "The keys wrote " + writes));
+        writes.clear();
+        checks.add("Arrow keys: right and left step the bar and write once each (90, 85); right to left they are mirrored (80); at the end the key is not taken");
+    }
+    private boolean key(int code) {
+        ChargeBar b = bar();
+        long now = SystemClock.uptimeMillis();
+        boolean taken = b.dispatchKeyEvent(new android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_DOWN, code, 0));
+        b.dispatchKeyEvent(new android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_UP, code, 0));
+        return taken;
     }
 
     private void verifyLayoutMatrix() throws Exception {
