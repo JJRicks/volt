@@ -17,12 +17,13 @@ import java.util.regex.Pattern;
  *  - A Setting tile is announced by the full name (entry.label()), or by the two Scooter-page names it
  *    keeps (Charge schedule), while its visible label stays the short rung (Max. speed for Maximum speed).
  *  - Every full shortcut name, which a Quick access button shows, carries that button's width budget,
- *    derived from the cell's own layout numbers and its two lines of whole words (64dp@12sp*2), and the file's
+ *    derived from the cell's own layout numbers and its two lines of whole words (66dp@12sp*2), and the file's
  *    header says a single word must fit one line. A Setting tile's one-line label keeps 90dp@12.5sp.
  */
 public final class DashboardModelTileTest {
     private static final String GRID = "src/com/jjricks/volt/QuickAccessGrid.java";
     private static final String STRINGS = "res/values/strings_dashboard_model.xml";
+    private static final String HOME_STRINGS = "res/values/strings_home.xml";
     private static int checks;
 
     /** Marks each text by its rung: short rungs "short:", every other key "full:". */
@@ -98,9 +99,22 @@ public final class DashboardModelTileTest {
 
     private static void quickAccessBudget() throws Exception {
         String grid = read(GRID);
-        // The cell's layout: columns at least 72 dp, 4 dp padding each side, the label at 12 sp (then 10 sp).
+        // The cell's layout: columns at least 72 dp, 3 dp padding each side, the label at 12 sp (then 10 sp).
         check(grid.contains("ui.dp(72 * ui.textScale) + gap"), "Quick access column minimum is 72 dp");
-        check(grid.contains("setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));"), "Quick access padding is 4 dp");
+        check(grid.contains("setPadding(ui.dp(3), ui.dp(compact ? 3 : 7), ui.dp(3), ui.dp(compact ? 3 : 7));"), "Quick access padding is 3 dp");
+        // Clean Home's quick actions share the cell but keep 4 dp (their look and home_qa_* budgets of 64 dp are their own).
+        check(grid.contains("if (clean) setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));"), "Clean Home quick action padding stays 4 dp");
+        check(grid.contains("this(host, ids, false, action, false, entries, true);"), "only Clean Home's constructor sets clean");
+        String home = read(HOME_STRINGS);
+        Matcher hm = Pattern.compile("<string name=\"(home_qa_[a-z_]+)\"([^>]*volt:max=\"([^\"]+)\"[^>]*)>").matcher(home);
+        int homeNames = 0;
+        while (hm.find()) {
+            if (hm.group(3).contains("@12sp*2")) {
+                homeNames++;
+                check(hm.group(3).equals((72 - 4 - 4) + "dp@12sp*2"), hm.group(1) + " keeps Clean Home's 64dp@12sp*2 budget");
+            }
+        }
+        check(homeNames > 0, "Clean Home quick action names carry a two-line budget");
         check(grid.contains("label = ui.text(entry.label(), 12, false);"), "Quick access label is the full name at 12 sp");
         check(grid.contains("label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);"), "simple line breaks");
         // Up to two lines of whole words (the budget's *2), never smaller; a Setting tile label is one line.
@@ -108,7 +122,7 @@ public final class DashboardModelTileTest {
         check(grid.contains("StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null"),
                 "a Quick access name that does not fit shows its short rung in the same room (volt:overflow=\"short\")");
         check(grid.contains("label.setTextColor(ui.muted); label.setMaxLines(1);"), "a Setting tile label is one line");
-        String budget = (72 - 4 - 4) + "dp@12sp*2";
+        String budget = (72 - 3 - 3) + "dp@12sp*2";
         String strings = read(STRINGS);
         check(strings.contains("A single word must fit one line"), "the header says a single word must fit one line");
         check(strings.contains("volt:max=\"" + budget + "\" on every full name"), "the header names the budget");
