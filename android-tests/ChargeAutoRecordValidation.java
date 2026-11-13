@@ -645,7 +645,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         String manualId = fixture(fixtures, 2, false).replace(".csv", "");
         require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);
         ensureFront();
-        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, HubPages.HOME); for (String step : HubPages.path(HubPages.BATTERY_HISTORY)) if (!step.equals(HubPages.HOME)) activity.open(step); });
+        HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
         settle();
         main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
         await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manualId) != null), 10 * S, "The saved list did not show both recordings");
@@ -659,7 +659,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         String detail = onMainText(() -> String.valueOf(((TextView) ((ViewGroup) historyView("charge-history-detail")).getChildAt(1)).getText()));
         require(detail.endsWith(marked), "The detail showed a guessed charger as known: " + detail);
         log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
-        main(() -> invoke(viewer(), "close", new Class<?>[0]));
+        main(() -> ((android.app.Dialog) field(viewer(), "dialog")).dismiss());
         for (File file : saved()) file.delete();
     }
     private Object viewer() { return field(field(activity, "screen"), "chargeHistoryDialog"); }
