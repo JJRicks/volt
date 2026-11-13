@@ -178,6 +178,11 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(saved().length == 0, "A recording under 10 minutes was kept: " + Arrays.toString(saved()));
         notSaidSaved();
         require(!holds(), "A recording that ended by itself set a hold");
+        require(onMain(() -> service.chargeCaptureUnavailable() != null), "Fixture: a new recording could start right after the unplug, so the page check proves nothing");
+        String notKeptOnPage = pageStatus();
+        require(notKeptOnPage.equals(T.serviceChargeNotKept()), "The page hid the outcome of the recording that just ended: " + notKeptOnPage);
+        log("page after the unplug: \"" + notKeptOnPage + "\" (in place of: " + onMainText(() -> service.chargeCaptureUnavailable()) + ")");
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.HOME);
     }
 
     /** Jostling below 4.8 km/h keeps it; above, it ends at once and Record rides automatically starts a ride in that moment. */
@@ -347,8 +352,25 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
         require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
         log("20 manual saved: start tried and refused, all kept");
+        String refusedStatus = onMainText(() -> service.chargeCaptureStatus());
+        require(refusedStatus.equals(T.serviceChargeAutoNoRoom()), "A start refused for lack of room said nothing: " + refusedStatus);
+        String refusedOnPage = pageStatus();
+        require(refusedOnPage.equals(T.serviceChargeAutoNoRoom()), "The page did not say the start was refused for lack of room: " + refusedOnPage);
+        log("refused for lack of room; page says: \"" + refusedOnPage + "\"");
+        File makeRoom = saved()[0];
+        require(makeRoom.delete(), "Could not remove a fixture");
+        SystemClock.sleep(6 * S);
+        require(onMain(() -> !service.isChargeRecording() && latched()), "Fixture: the latch let go by itself once a file went");
+        main(() -> settings().edit().putBoolean(KEY, false).commit());
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
+        awaitRecording(20 * S, "after the switch was turned on again with room");
+        log("switch off and on again with room: the charge under way records");
+        main(() -> service.stopChargeRecording());
+        fixture(fixtures, 50, false);
+        require(names().size() == ChargeSessionStore.MAX_SESSIONS, "Fixture: expected 20 manual again: " + names());
         main(() -> { link.charging(OFF); link.home(); });
         await(() -> onMain(() -> !latched()), 20 * S, "A not-charging reading did not clear the latch");
+        await(() -> !holds(), 20 * S, "A not-charging reading did not clear the hand stop's hold");
         File oldest = saved()[0];
         require(oldest.delete(), "Could not remove a fixture");
         String automatic = fixture(fixtures, 99, true);
@@ -361,6 +383,17 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> service.stopChargeRecording());
         require(names().equals(before), "An automatic recording that was not kept cost a saved one: " + names());
         log("stopped short, not kept: all 20 still there (room is made only for a kept one; JVM tests cover the replacement)");
+        unplugAndSettle();
+        for (File file : saved()) file.delete();
+        for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, 60 + i, false);
+        ensureFront();
+        plugIn();
+        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual (clear check)");
+        require(onMain(() -> !service.isChargeRecording()), "Recorded with all 20 manual (clear check)");
+        main(() -> require(service.clearChargeRecordings(null), "Clearing was refused"));
+        awaitRecording(20 * S, "after clearing made room");
+        log("cleared while charging: the charge under way records");
+        main(() -> service.stopChargeRecording());
         unplugAndSettle();
         for (File file : saved()) file.delete();
     }
@@ -495,6 +528,13 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(capture != null, "The recording controls are missing");
         main(() -> require(row.getParent() == capture.getParent(), "The switch is not beside the recording controls"));
         log("page " + size + ": switch shown, on and off, text whole");
+    }
+    /** The status line under the recording controls on Battery & charging › Charge history & recordings, as shown. */
+    private String pageStatus() {
+        ensureFront();
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
+        settle();
+        return onMainText(() -> { View line = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-capture-status"); return line == null ? "(no status line)" : String.valueOf(((TextView) line).getText()); });
     }
     /** Every visible text in the row: not ellipsized, and each line break falls between words. */
     private void textProblems(View view) {

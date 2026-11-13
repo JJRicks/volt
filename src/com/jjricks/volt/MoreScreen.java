@@ -2844,6 +2844,9 @@ public final class MoreScreen implements AppScreen {
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
             chargeCaptureRow.enabled(s!=null&&(capturing||unavailable==null));
             chargeCaptureStatus.setText(capturing||unavailable==null?s.chargeCaptureStatus():unavailable);
+            // The recording that just ended (not kept, saved, stopped) stays shown over the reason a new one can't start,
+            // until a newer status replaces it: an unplug ends it and makes that reason at once (Terra's review of #416, 2).
+            if(!capturing&&unavailable!=null&&s!=null&&s.chargeStatusIsOutcome())chargeCaptureStatus.setText(s.chargeCaptureStatus());
             refreshChargeCurve(s);
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
