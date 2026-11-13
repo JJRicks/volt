@@ -105,7 +105,7 @@ public final class QuickAccessActions {
         add("charge_done_time", M.dashboardModelQaChargeDoneTime(), "clock", M.controlsGroupBattery(), null);
         // Battery alerts, the English name Clean Home shows: opens the Battery page's alerts sheet; offered only where
         // ChargeAlertPolicy offers alerts (no built-in charge limit). Its own full and short rung, like the other Volt
-        // shortcuts (Home's short rung is "Alerts"; here both rungs are the same English text).
+        // shortcuts: a Setting tile too narrow for Battery alerts says Alerts (as Clean Home's short rung does), never a cut word.
         add(CHARGE_ALERTS_ID, M.dashboardModelQaChargeAlerts(), "bolt", M.controlsGroupBattery(), null);
         for (ScooterCommands.Feature feature : ScooterCommands.catalog())
             add(FEATURE_PREFIX + feature.key, feature.label(), icon(feature.key),
