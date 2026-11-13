@@ -26,6 +26,10 @@
     <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Mostrar mapa online?</string>
     <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">O fornecedor vê o teu IP e a área do mapa. As viagens ficam no telemóvel.</string>
     <string name="maps_consent_enable" volt:src="bb9ac0845ace7f8b7f2e08bf11f66831ce335172">Ativar mapa de fundo</string>
+    <string name="maps_switch_osm_title" volt:src="c9dc1435baa9620357d46a0caf1f11fa013ef00d">Mudar para OpenStreetMap?</string>
+    <string name="maps_switch_osm_message" volt:src="e49695ad97d399af4c9827a1a50280ff4a474126">USGS Topo só cobre os Estados Unidos. Se mudares, a área do teu mapa é pedida aos servidores do OpenStreetMap, que veem o teu IP. As viagens ficam no telemóvel.</string>
+    <string name="maps_switch_osm_switch" volt:src="d3bd34137a139d6e6ffd870d657824ccb3ad6798">Mudar</string>
+    <string name="maps_switch_osm_keep" volt:src="af0034bdd4b2be28601406264786ea00b3ac9127">Manter USGS</string>
     <string name="maps_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Mapa online</string>
     <string name="maps_provider_usgs" volt:src="8313b012a080d4dcd5f6c9669f3f1c6faeb4a920">USGS (EUA)</string>
     <string name="maps_provider_osm" volt:src="7cec25b29a879b80c59e058a0541a33725dc74b0">OSM</string>
@@ -64,6 +68,9 @@
     <string name="maps_route_elevation_not_measured" volt:src="86964745a1285a51d07b3fa1ee00dbbc8b00ebfc">Altitude não medida</string>
     <string name="maps_route_accel_not_measured" volt:src="31d22e05407c937d7fb5587c96b6a81fb8227970">Aceleração por GPS não medida</string>
     <string name="maps_route_power_not_measured" volt:src="528749ecef0162ba9996ea389dbd583dad8411bb">Potência não medida</string>
+    <string name="maps_route_accel" volt:src="ac3e5c58ce402d6688465d0f288ca20c010d471e">Aceleração GPS: %1$s m/s²</string>
+    <string name="maps_route_elevation_ft" volt:src="6eb13380f96267f1d689bbcffd87bb0463239d1a">Altitude %1$s ft</string>
+    <string name="maps_route_elevation_m" volt:src="1aa79056ad978918fe0c57fc2f278724c1e42893">Altitude %1$s m</string>
     <string name="maps_chart_ride" volt:src="80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a">Gráfico da viagem</string>
     <string name="maps_chart_fit_ride" volt:src="b77c503c54be648b7df6a02be88206ec789e2829">Mostrar a viagem inteira</string>
     <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Gráfico da gravação</string>

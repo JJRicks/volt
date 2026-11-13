@@ -101,6 +101,10 @@
     <string name="dashboard_hero_time_status">%1$s, %2$s. %3$s</string>
     <!-- src:f5f890cf656f55df359eda425e26bd0923b1b81f -->
     <string name="dashboard_hero_time_tag_status">%1$s, %2$s, %3$s. %4$s</string>
+    <!-- src:c340e13d9afa59f30aa10dae9ecb3de951f8f0ab -->
+    <string name="dashboard_charge_time_other">Drugi czas: %1$s</string>
+    <!-- src:13d494c3d3db09eb6ce058e1a82f206e6a00b846 -->
+    <string name="dashboard_charge_time_switch">Przełącz czas</string>
     <!-- src:bae5d367b7ef5a1b6b72b1e9a82d78879e77350a -->
     <string name="dashboard_hero_charge_not_reported">Poziom naładowania: brak danych</string>
     <!-- src:965e0afe188b4a0839857e2b00f69286bd86ce17 -->
@@ -199,6 +203,8 @@
     <string name="dashboard_battery">Bateria</string>
     <!-- src:8206a75d21118fc55fb4ff8545d2cbf4c953f973 -->
     <string name="dashboard_range_left">Pozostało: %1$s</string>
+    <!-- src:6a60e792167ca3bcb8635b26b5811eb87dac17d6 -->
+    <string name="dashboard_range_left_spoken">Pozostały zasięg: %1$s</string>
     <!-- src:43dd6778ce24b90d06842f406e1e4939192ea7db -->
     <string name="dashboard_overview_not_reported">Bateria: brak danych</string>
     <!-- src:ea0748130f30c6687f41cc741f75eca549fa43c4 -->
