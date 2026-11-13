@@ -1918,7 +1918,7 @@ public final class DashboardScreen implements AppScreen {
          * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
          * view already says what it charges to; never shorter than the time to the limit beside it,
          * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
-         * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
+         * tile showed it, named for 100% where the guard took no limit (ChargeTimeReadings.oneReadingTarget). The alert face shares the estimate's state (pill, or its words where no time is known)
          * and speaks no status, as the alert tile did. level is the battery percent shown above the tile (NaN when
          * unknown), which minutesToFullBesideLimit needs for the rate learned to the limit.
          */
@@ -1927,7 +1927,7 @@ public final class DashboardScreen implements AppScreen {
             int source = ChargeTimeReadings.limitSource(estimate.targetPercent, service != null && service.chargeAlertsOffered(), alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
             Double soc = Double.isNaN(level) ? null : level;
-            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
+            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(ChargeTimeReadings.oneReadingTarget(estimate.targetPercent, source), false),
                     estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate, soc) : estimate.remainingMinutesToFull,
                     scooterLimit ? ChargingEstimate.statusBesideLimit(estimate, soc) : estimate.status);
             if (scooterLimit)
