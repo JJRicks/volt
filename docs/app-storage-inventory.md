@@ -38,7 +38,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `phone_placement` | String | global | Durable | Retired: no longer read or written. Older Volt wrote `pocket`/`mounted`; the key stays registered so older backups that hold it restore it. |
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
-| `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. |
+| `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. Absent: OpenStreetMap, or USGS Topo when the basemap is on or explained (approved under the old USGS default; MapDefault). Approving the explanation saves the provider it named. |
+| `map_usgs_switch_answered` | Boolean | global | Durable | The one-time offer to leave USGS was answered (either way). MapDefault. |
 | `stats_favourites`, `stats_chart_favourites` | String set | global | Durable | Favourite readings/charts. |
 | `stats_favourite_order` | String | global | Durable | Favourite order. StatsFavouriteOrder. |
 | `stats_chart_window` | Integer | global | Durable | Chart time window. |
@@ -146,7 +147,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `no_backup/ride-transfer/` | Pending | — | Ride-restore stages and transaction. |
 | `no_backup/rides-index/<uuid>.sum` (+ `<uuid>.<n>.sum.tmp`) | Cache | ride's | Saved summary and 600-point chart preview of one finished ride, so the first Rides open after a restart does not replay every journal. RideSummaryStore. Keyed by ride id, journal length, journal modified time and `ANALYSIS_VERSION`; a mismatch, a damaged entry or an unfinished journal is ignored and rebuilt from the journal. Entries without a journal are pruned at service start. Never in any backup, ride backup or export. |
 | `cache/map-tiles/<sha256>/…` | Cache | — | Downloaded basemap tiles, `.meta`, `.part`, `network.meta`. MapTiles. |
-| `cache/charge-exports/charges-*.json` | Cache | one scooter | Developer charge export; removed after 24 h. |
+| `cache/charge-exports/charges-*.json`, `charges-*.json.gz` (+ `charges-*.json.gz.tmp`) | Cache | one scooter | Developer charge export, and Email to Volt's before it is attached (gzip-compressed over 25 MB); removed after 24 h. What an interrupted compression left (a `.tmp`, and the uncompressed export beside its `.gz.tmp` or `.gz`) is removed when the next export starts. |
 | `cache/diagnostics/<id>.json`, `<id>.volt-charge-recordings.json`, `<id>.volt-charge-recordings.json.gz` (+ `<id>.tmp`) | Cache | — | Report emails' attachments, each written once under a random id and served read-only by DiagnosticsProvider: a report's `volt-diagnostics.json`, or Email to Volt's charge recordings under their own name (gzip-compressed over 25 MB). Pruned to the newest ten and to a day each time one is made; a temporary file is deleted once a minute old. |
 | `cache/ride-<uuid>.csv` | Cache | — | Ride sensor CSV export. |
 | `cache/ride-export-<ms>/ride-<yyyy-MM-dd>_<HH-mm>-<id8>-everything.json` | Cache | — | Ride Everything (JSON) export, made before it is saved ([format](ride-export-everything.md)), in a staging folder of its own. Removed as soon as it is copied for the Save dialog or into the several-files folder, or when that fails; a folder left by a killed save is swept by the next ride export once it is a day old. |

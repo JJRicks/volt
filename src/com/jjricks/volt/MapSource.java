@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 import android.content.SharedPreferences;
 
-/** Replaceable basemaps; choosing one never enables network loading by itself. */
+/** Replaceable basemaps; choosing one never enables network loading by itself. OpenStreetMap is the default. */
 final class MapSource {
     static final String USGS_URL = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}";
     static final String OSM_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -19,19 +19,38 @@ final class MapSource {
         this.attributionUrl = attributionUrl;
     }
 
+    /**
+     * The provider in use: the saved one, or with none saved, OpenStreetMap, except that someone who had
+     * the basemap on or explained under the old USGS default keeps USGS (MapDefault.keepsUsgs).
+     */
     static MapSource load(SharedPreferences settings) {
+        if (pinnedToUsgs(settings)) return USGS;
+        if (!settings.contains(MapDefault.URL_KEY)) return OSM;
         String url = settings.getString("map_tile_url", USGS_URL);
+        // No version saves an address that fails this check; keep the fallback such a value always had.
         if (!MapTiles.validUrl(url)) return USGS;
         MapSource preset = USGS_URL.equals(url) ? USGS : OSM_URL.equals(url) ? OSM : null;
-        if (!settings.contains("map_tile_url")) return USGS;
         return new MapSource(preset == null ? "Custom map" : preset.name, url,
                 settings.getString("map_tile_attribution", preset == null ? "Map provider" : preset.attribution),
                 settings.getString("map_tile_attribution_url", preset == null ? url : preset.attributionUrl));
     }
 
+    /** True when no provider is saved and the old USGS default stays (MapDefault.keepsUsgs). */
+    static boolean pinnedToUsgs(SharedPreferences settings) {
+        return MapDefault.keepsUsgs(settings.contains(MapDefault.URL_KEY),
+                settings.getBoolean(MapDefault.ENABLED_KEY, false), settings.getBoolean(MapDefault.EXPLAINED_KEY, false));
+    }
+
     void save(SharedPreferences settings) {
-        settings.edit().putString("map_tile_url", url).putString("map_tile_attribution", attribution)
-                .putString("map_tile_attribution_url", attributionUrl).apply();
+        SharedPreferences.Editor edit = settings.edit();
+        put(edit);
+        edit.apply();
+    }
+
+    /** Adds this provider to an edit, so it can be saved in the same commit as other map settings. */
+    void put(SharedPreferences.Editor edit) {
+        edit.putString("map_tile_url", url).putString("map_tile_attribution", attribution)
+                .putString("map_tile_attribution_url", attributionUrl);
     }
 
     /**
