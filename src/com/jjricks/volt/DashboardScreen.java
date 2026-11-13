@@ -892,7 +892,7 @@ public final class DashboardScreen implements AppScreen {
         if (r == null || r.value == null) return "—";
         if (r.key.equals("driving_mode") && r.number != null) {
             ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(service.modelDescriptor(profile)), r.number);
+            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(service == null ? null : service.modelDescriptor(profile)), r.number);
         }
         if (r.number != null) {
             if (DisplayTemperature.isTemperature(r.key))

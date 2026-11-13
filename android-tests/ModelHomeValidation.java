@@ -252,16 +252,13 @@ public final class ModelHomeValidation extends Instrumentation {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = text(((ViewGroup) view).getChildAt(i), text); if (found != null) return found; }
         return null;
     }
-    /** The simulator now reports this drive mode (it derives the mode from the acceleration readback, so move both). */
+    /** The simulator now reports this drive mode (its Developer options drive mode); the acceleration readback moves with it, as on a scooter. */
     @SuppressWarnings("unchecked") private void simulateMode(int code) {
         main(() -> {
             try {
                 Object simulation = field(activity.service().ble, "simulation");
-                java.util.Map<String, Object> fixed = (java.util.Map<String, Object>) field(simulation, "fixed");
-                Class<?> sample = Class.forName("com.jjricks.volt.ScooterSimulation$Sample", true, simulation.getClass().getClassLoader());
-                java.lang.reflect.Constructor<?> make = sample.getDeclaredConstructor(String.class, Double.class); make.setAccessible(true);
-                fixed.put("driving_mode", make.newInstance("Mode " + code + " (simulation)", (double) code));
                 ((java.util.Map<String, Integer>) field(simulation, "features")).put("acceleration", code);
+                activity.service().ble.setSimulationDriveMode(code);
                 activity.service().ble.refresh(false);
             } catch (Exception error) { throw new IllegalStateException(error); }
         });
