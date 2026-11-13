@@ -376,7 +376,17 @@ final class QuickAccessGrid extends ViewGroup {
                 value.setTextSize(size);
             }
             // Still too wide at the smallest size: the shorter whole value ("On" for "Low 20%"), never an ellipsis.
-            if (shortValue != null && value.getPaint().measureText(value.getText().toString()) > text) value.setText(shortValue);
+            if (shortValue != null && value.getPaint().measureText(value.getText().toString()) > text) {
+                value.setText(shortValue);
+                // Sized on its own, as large as it fits, like any other short value (not left at the long one's floor).
+                size = 18 * ui.textScale;
+                value.setTextSize(size);
+                while (size > floor && (value.getPaint().measureText(shortValue) > text
+                        || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
+                    size -= .5f;
+                    value.setTextSize(size);
+                }
+            }
             // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
             if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
                 value.setVisibility(GONE); padlock.setVisibility(VISIBLE);
