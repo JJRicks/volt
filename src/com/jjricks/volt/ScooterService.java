@@ -3156,12 +3156,12 @@ public final class ScooterService extends Service {
         Long free=null;try{free=new StatFs(getFilesDir().getPath()).getAvailableBytes();}catch(RuntimeException unavailable){}
         bundle.recordings(recordings).storage(free,rides!=null,rides==null?null:recordingError!=null,chargeStore!=null)
                 .crash(CrashRecord.read(new File(getNoBackupFilesDir(),VoltApp.CRASH_FILE))).clockChanges(connectionEvents);
-        List<String> secrets=new ArrayList<>();
+        List<String> identities=new ArrayList<>(),names=new ArrayList<>();
         for(ScooterProfiles.Profile p:profiles.all()){
-            secrets.add(p.id);secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
-            if(!p.nameDefault)secrets.add(p.name);
+            identities.add(p.id);identities.add(p.serial);identities.add(p.identity);identities.add(p.mac);identities.add(p.mac==null?null:p.mac.replace(":",""));
+            if(!p.nameDefault)names.add(p.name);
         }
-        return bundle.json(secrets);
+        return bundle.json(identities,names);
     }
     /** getLongVersionCode is Android 9's; before it, the int versionCode. */
     @SuppressWarnings("deprecation")
@@ -3172,9 +3172,10 @@ public final class ScooterService extends Service {
     private DiagnosticsBundle.Device diagnosticsDevice(){
         DiagnosticsBundle.Device d=new DiagnosticsBundle.Device();
         try{android.content.res.Configuration c=getResources().getConfiguration();
-            d.appLocale=c.getLocales().isEmpty()?null:c.getLocales().get(0).toLanguageTag();
             d.fontScale=c.fontScale;d.uiNightBits=c.uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK;
             d.smallestWidthDp=c.smallestScreenWidthDp;d.widthDp=c.screenWidthDp;d.heightDp=c.screenHeightDp;d.densityDpi=c.densityDpi;}catch(RuntimeException unavailable){}
+        // Volt's own language: before Android 13 the choice lives in AppLanguage's resources, not the service's own (as notifications use).
+        try{android.os.LocaleList app=AppLanguage.resources(this).getConfiguration().getLocales();d.appLocale=app.isEmpty()?null:app.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
         try{android.os.LocaleList system=android.content.res.Resources.getSystem().getConfiguration().getLocales();d.phoneLocale=system.isEmpty()?null:system.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
         try{PowerManager power=getSystemService(PowerManager.class);if(power!=null){d.batteryOptimisationExempt=power.isIgnoringBatteryOptimizations(getPackageName());d.powerSave=power.isPowerSaveMode();}}catch(RuntimeException unavailable){}
         try{if(Build.VERSION.SDK_INT>=28){ActivityManager am=getSystemService(ActivityManager.class);if(am!=null)d.backgroundRestricted=am.isBackgroundRestricted();}}catch(RuntimeException unavailable){}

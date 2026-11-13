@@ -86,9 +86,11 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             main(() -> require(activity.service().setSimulation(true), "Simulation did not start")); settle();
             await(() -> activity.service().ble.ready(), "Simulated scooter did not connect");
             commandsAndConnections();
+            tallyEnds();
             main(() -> activity.service().ble.setSimulationModel(MODEL)); settle();
             await(() -> activity.service().ble.ready(), "Simulated model did not connect");
             settle();
+            main(() -> require(!modes().contains("code=77,"), "A simulator model change kept the old model's drive modes"));
 
             provider();
             reportIssue();
@@ -119,6 +121,28 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         });
         settle();
     }
+
+    /**
+     * The drive modes and power sign describe the connection only: a simulated disconnect empties them, and so does a
+     * simulator model change (checked after the change above; a mode code no simulator reports stands in for the old
+     * model's). The real link's ends (BleController.close) are wired as DiagnosticsBundleTest checks.
+     */
+    private void tallyEnds() {
+        main(() -> plant(78));
+        main(() -> require(modes().contains("code=78,"), "The planted drive mode did not show"));
+        main(() -> activity.service().ble.disconnect()); settle();
+        main(() -> require(!modes().contains("code=78,") && "no_readings".equals(String.valueOf(((java.util.Map<?, ?>) invoke(tally(), "powerSign", new Class<?>[0])).get("basis"))),
+                "A simulated disconnect kept the drive modes or power sign"));
+        main(() -> activity.service().ble.connectLast()); settle();
+        await(() -> activity.service().ble.ready(), "Simulated scooter did not reconnect");
+        main(() -> plant(77));
+    }
+    private Object tally() { return field(activity.service().ble.telemetry, "tally"); }
+    private void plant(int code) {
+        invoke(tally(), "note", new Class<?>[]{String.class, Double.class, int.class, long.class}, "driving_mode", (double) code, 0x90, SystemClock.elapsedRealtime());
+    }
+    /** The tally's drive modes as their map prints ("{modes=[{code=2, ...}]}"). */
+    private String modes() { return String.valueOf(invoke(tally(), "driveModes", new Class<?>[0])); }
 
     /** Private, read-only, and grantable: the manifest entry the attachment relies on. */
     private void provider() {

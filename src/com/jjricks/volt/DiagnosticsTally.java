@@ -10,12 +10,19 @@ import java.util.Map;
  * What the current connection's readings showed, for the report diagnostics file: each drive mode code the scooter
  * reported, with the highest live speed seen while it was in that mode (how the ST3 Pro's mode names were worked out),
  * and whether its current carries a direction (PowerSign's rule, the one riding mode and recordings use). Telemetry
- * feeds it from every accepted reading and clears it with its readings, so it covers one connection (or one
- * simulation) and is never stored. Memory only: no I/O, no background work.
+ * feeds it from every accepted reading and clears it with its readings and whenever the link ends (BleController.close,
+ * a simulated disconnect, a simulator model change), so it covers one connection (or one simulation) and is never
+ * stored. Memory only: no I/O, no background work.
  */
 final class DiagnosticsTally {
     /** Drive mode codes kept; a scooter has a handful, so more than this is noise. */
     static final int MAX_MODES = 16;
+    /**
+     * The report that carries the drive mode: the home report (0x90), or a simulated sample (no command). Before the
+     * first home report Telemetry also shows the settings frame's mode byte as driving_mode, but on some models that
+     * byte is another setting (an acceleration level on the GT3 Max), so it is never tallied as a mode.
+     */
+    static final int MODE_REPORT = 0x90, SIMULATED = -1;
 
     private static final class Mode { long reports, speedReadings; double topKmh = -1; }
     private final LinkedHashMap<Long, Mode> modes = new LinkedHashMap<>();
@@ -23,13 +30,20 @@ final class DiagnosticsTally {
     private long modesLeftOut;
     private PowerSign sign = new PowerSign();
     private long signStates, currents;
+    /** The time of the last current sample counted: Telemetry republishes one sample when its sign or a later reading changes. */
+    private long currentTime = Long.MIN_VALUE, signStateTime = Long.MIN_VALUE;
 
-    /** One accepted reading (Telemetry.put): only drive mode, speed, current sign state and current are looked at. */
-    synchronized void note(String key, Double numeric) {
+    /**
+     * One accepted reading (Telemetry.put: key, number, the command it came from, its time): only drive mode (from
+     * MODE_REPORT or SIMULATED only), speed, current sign state and current are looked at. A sample published again
+     * with the same time is counted once.
+     */
+    synchronized void note(String key, Double numeric, int cmd, long time) {
         if (key == null || numeric == null || numeric.isNaN() || numeric.isInfinite()) return;
         double v = numeric;
         switch (key) {
             case "driving_mode": {
+                if (cmd != MODE_REPORT && cmd != SIMULATED) return;
                 if (v < 0 || v > 255 || v != Math.rint(v)) return;
                 long code = (long) v;
                 Mode m = modes.get(code);
@@ -46,14 +60,17 @@ final class DiagnosticsTally {
                 m.speedReadings++; if (v > m.topKmh) m.topKmh = v;
                 break;
             }
-            case "current_sign_state": sign.signState(v); signStates++; break;
-            case "current_a": sign.current(v); currents++; break;
+            case "current_sign_state": sign.signState(v); if (time != signStateTime) { signStates++; signStateTime = time; } break;
+            case "current_a": sign.current(v); if (time != currentTime) { currents++; currentTime = time; } break;
             default: break;
         }
     }
 
     /** A new connection, scooter or simulation: nothing seen yet. */
-    synchronized void clear() { modes.clear(); mode = null; modesLeftOut = 0; sign = new PowerSign(); signStates = currents = 0; }
+    synchronized void clear() {
+        modes.clear(); mode = null; modesLeftOut = 0; sign = new PowerSign(); signStates = currents = 0;
+        currentTime = signStateTime = Long.MIN_VALUE;
+    }
 
     /** drive_modes: one row per code in the order first seen; the current one marked. */
     synchronized Map<String, Object> driveModes() {
