@@ -19,7 +19,6 @@ import android.provider.OpenableColumns;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -49,7 +48,14 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
     private static final String FIXTURE_NAME = "Synthetic diagnostics fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
             FIXTURE_SERIAL = "X2538SYNTHETIC0042", FIXTURE_MAC = "C0:FF:EE:12:34:56";
-    private static final String NOTE = "Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names.";
+    /** The consent line as the English catalog has it (main_report_diagnostics_note), so a catalog-only change to its wording needs no edit here. */
+    private String note() {
+        int id = getTargetContext().getResources().getIdentifier("main_report_diagnostics_note", "string", getTargetContext().getPackageName());
+        require(id != 0, "No consent line in the catalog");
+        String text = getTargetContext().getString(id);
+        require(text.startsWith("Adds a diagnostics file") && text.contains("Never your owner key, PIN, serial, location or names."), "The consent line lost its privacy promise: " + text);
+        return text;
+    }
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;
@@ -211,12 +217,13 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
     /** The sheet as it opens: ticked by default, the full label on one line, the consent line, Preview. */
     private void sheetDefaults() {
         require(sheetShowing() && started.get() == null, "No email sheet before the email app");
+        String expectedNote = note();
         main(() -> {
             TextView label = (TextView) sheet("diagnostics-label"), note = (TextView) sheet("diagnostics-note"), preview = (TextView) sheet("diagnostics-preview");
             require(((CheckBox) sheet("diagnostics-include")).isChecked() && sheet("diagnostics-include").isEnabled(), "Include diagnostics is not ticked by default");
             require("Include diagnostics".contentEquals(label.getText()) && label.getLineCount() == 1 && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0,
                     "The label is not the full one on one line: " + label.getText());
-            require(NOTE.contentEquals(note.getText()) && note.isShown(), "The consent line is missing: " + note.getText());
+            require(expectedNote.contentEquals(note.getText()) && note.isShown(), "The consent line is missing: " + note.getText());
             require(preview.isShown() && "Preview".contentEquals(preview.getText()) && preview.getHeight() >= dp(48), "Preview is missing or too small");
             require(byText(sheetRoot(), "To " + ADDRESS) != null, "The sheet does not say where the email goes");
         });
@@ -230,13 +237,18 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             android.app.Dialog d = (android.app.Dialog) field(activity, "diagnosticsPreview");
             require(d != null && d.isShowing(), "Preview did not open");
             View root = d.getWindow().getDecorView();
-            TextView body = (TextView) root.findViewWithTag("diagnostics-preview-text"); ScrollView scroll = (ScrollView) root.findViewWithTag("diagnostics-preview-scroll");
-            require(body != null && body.isShown() && body.getTextSize() >= sp(11) && scroll.getChildAt(0).getHeight() > scroll.getHeight(), "The preview is not a readable, scrolling file");
-            text.set(String.valueOf(body.getText()));
+            // A recycled list of blocks (DiagnosticsBundle.previewBlocks); joined with line breaks they are the file.
+            android.widget.ListView list = (android.widget.ListView) root.findViewWithTag("diagnostics-preview-list");
+            TextView first = list == null || list.getChildCount() == 0 ? null : (TextView) list.getChildAt(0);
+            require(list != null && list.isShown() && first != null && first.isShown() && first.getTextSize() >= sp(11) && list.canScrollVertically(1), "The preview is not a readable, scrolling file");
+            StringBuilder all = new StringBuilder();
+            for (int i = 0; i < list.getAdapter().getCount(); i++) { if (i > 0) all.append('\n'); all.append(list.getAdapter().getItem(i)); }
+            text.set(all.toString());
         });
         require(text.get().startsWith("{\n  \"format\": \"volt-diagnostics-v1\""), "The preview is not the diagnostics file");
         screenshot(label);
-        main(() -> ((ScrollView) ((android.app.Dialog) field(activity, "diagnosticsPreview")).getWindow().getDecorView().findViewWithTag("diagnostics-preview-scroll")).fullScroll(View.FOCUS_DOWN));
+        main(() -> { android.widget.ListView list = (android.widget.ListView) ((android.app.Dialog) field(activity, "diagnosticsPreview")).getWindow().getDecorView().findViewWithTag("diagnostics-preview-list");
+            list.setSelection(list.getAdapter().getCount() - 1); });
         settle(); screenshot(label + "-end");
         main(() -> ((android.app.Dialog) field(activity, "diagnosticsPreview")).dismiss()); settle();
         require(sheetShowing() && started.get() == null, "Closing the preview closed the sheet or sent something");

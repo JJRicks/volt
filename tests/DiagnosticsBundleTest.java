@@ -25,6 +25,7 @@ public final class DiagnosticsBundleTest {
         evidenceSection();
         evidenceSecrets();
         worstCaseSize();
+        previewBlocks();
         System.out.println("DiagnosticsBundle tests passed: " + checks + " assertions");
     }
 
@@ -156,6 +157,18 @@ public final class DiagnosticsBundleTest {
      * longest values. It must stay under the size target; an evidence book beyond its caps is trimmed to the hard cap,
      * oldest dense samples first, and says so.
      */
+    /** Preview's blocks: at most PREVIEW_LINES lines each, and joined with line breaks exactly the file, edges included. */
+    private static void previewBlocks() {
+        for (String file : new String[]{"", "{", "\n", "a\n", "\n\nb\n\n", bundle().json(Collections.<String>emptyList())}) {
+            List<String> blocks = DiagnosticsBundle.previewBlocks(file);
+            require(String.join("\n", blocks).equals(file) && !blocks.isEmpty(), "blocks rebuild the file exactly: " + file.length());
+            for (String b : blocks) require(b.split("\n", -1).length <= DiagnosticsBundle.PREVIEW_LINES, "a block stays within its line count");
+        }
+        StringBuilder many = new StringBuilder(); for (int i = 0; i < 1000; i++) many.append("line ").append(i).append('\n');
+        List<String> blocks = DiagnosticsBundle.previewBlocks(many.toString());
+        require(blocks.size() == 26 && blocks.get(0).startsWith("line 0\n") && blocks.get(1).startsWith("line 40\n") && blocks.get(25).isEmpty(), "1,000 lines make 25 full blocks and the empty last line");
+        require(DiagnosticsBundle.previewBlocks(null).isEmpty(), "no file, no blocks");
+    }
     private static void worstCaseSize() {
         List<CommandLog.Record> commands = new ArrayList<>();
         for (int i = 0; i < CommandLog.MAX_RECORDS; i++)

@@ -88,7 +88,7 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         boolean lastSeenPending;
         final long[][] fresh = new long[Watched.values().length][];
         // Memory only: the live connection, the last charging state, recent change times, a test's end.
-        int liveGeneration = -1;
+        int liveGeneration = -1; boolean firstPending;
         final int[] freshGeneration = {-1, -1, -1, -1};
         long lastCharging = NONE, skipped, testEndWall = NONE, testEndElapsed = NONE;
         final ArrayDeque<Long> recentChanges = new ArrayDeque<>();
@@ -238,8 +238,11 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             int generation = (int) s[S_GENERATION];
             if (b.liveGeneration != generation) {
                 if (b.liveGeneration >= 0) closeLink(b, Kind.LAST);
-                b.liveGeneration = generation; b.recentChanges.clear();
-                add(b.timeline, row(Kind.FIRST, s, takeSkipped(b)), TIMELINE); b.lastCharging = s[S_CHARGING]; delay = EVENT_WRITE_MS;
+                b.liveGeneration = generation; b.recentChanges.clear(); b.firstPending = true;
+            }
+            // The connection's first reading that says whether it is charging (the link is often up before the battery read).
+            if (b.firstPending) {
+                if (s[S_CHARGING] != NONE) { add(b.timeline, row(Kind.FIRST, s, takeSkipped(b)), TIMELINE); b.lastCharging = s[S_CHARGING]; b.firstPending = false; delay = EVENT_WRITE_MS; }
             } else if (s[S_CHARGING] != NONE && s[S_CHARGING] != b.lastCharging) {
                 b.lastCharging = s[S_CHARGING];
                 long now = s[S_ELAPSED];

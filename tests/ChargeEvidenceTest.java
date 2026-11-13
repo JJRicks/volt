@@ -49,6 +49,12 @@ public final class ChargeEvidenceTest {
 
     private static void timeline() throws Exception {
         Rig r = new Rig();
+        // A connection's first row waits for a reading that says whether it is charging.
+        Rig early = new Rig();
+        early.offer(A, early.sample(1, null)); early.advance(2_000); early.offer(A, early.sample(1, 1L)); early.advance(2_000); early.offer(A, early.sample(1, 1L));
+        ChargeEvidence.Book eb = early.book(A);
+        check(eb.timeline.size() == 1 && eb.timeline.get(0)[ChargeEvidence.T_KIND] == ChargeEvidence.Kind.FIRST.ordinal() && eb.timeline.get(0)[ChargeEvidence.T_CHARGING] == 1,
+                "the first row is the first reading with a charging state");
         r.offer(A, r.sample(1, 0L)); r.advance(5_000); r.offer(A, r.sample(1, 0L)); r.advance(5_000); r.offer(A, r.sample(1, 1L));
         r.advance(5_000); r.offer(A, r.sample(1, null)); r.advance(5_000); r.offer(A, r.sample(1, 0L));
         ChargeEvidence.Book b = r.book(A);

@@ -160,6 +160,8 @@ STEPS += [
     inst('dashboard-slots', T + 'DashboardSlotsValidation'),
     inst('capacity-widget', T + 'CapacityWidgetValidation'),
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
+    # Report diagnostics' charge evidence on a fake link through Report an issue, and Preview on a worst-case file at the narrow size.
+    inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),

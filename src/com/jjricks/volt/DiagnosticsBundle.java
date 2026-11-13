@@ -222,6 +222,24 @@ final class DiagnosticsBundle {
         tree.put("charge_evidence", m);
         return this;
     }
+    /** Lines per Preview block: small enough that a block lays out in a few milliseconds. */
+    static final int PREVIEW_LINES = 40;
+    /**
+     * The file in blocks of PREVIEW_LINES lines for Preview's recycled list, so opening lays out only the blocks on
+     * screen: one TextView holding a 500 KB file stalled the main thread for about 5 s. Joined with "\n" the blocks are
+     * the file exactly.
+     */
+    static List<String> previewBlocks(String file) {
+        List<String> blocks = new ArrayList<>();
+        if (file == null) return blocks;
+        int from = 0, lines = 0;
+        for (int i = 0; i < file.length(); i++) {
+            if (file.charAt(i) != '\n' || ++lines < PREVIEW_LINES) continue;
+            blocks.add(file.substring(from, i)); from = i + 1; lines = 0;
+        }
+        blocks.add(file.substring(from));
+        return blocks;
+    }
     private static long min(long base, long... walls) { for (long w : walls) if (w != ChargeEvidence.NONE && w > 0 && w < base) base = w; return base; }
     private static Long rel(long wall, long base) { return wall == ChargeEvidence.NONE || wall <= 0 ? null : wall - base; }
     private static Long num(long v) { return v == ChargeEvidence.NONE ? null : v; }
