@@ -43,6 +43,8 @@ public final class BleController {
     public static final String NEARBY_NEEDED="Nearby devices permission needed",BLUETOOTH_OFF="Bluetooth off",NO_PROFILE="No scooter set up",
             NOTHING_FOUND="No scooter found",OWNER_REJECTED="Owner identity rejected",LIMITED_MODEL="Limited controls on this model";
     private ScooterSimulation simulation;private boolean simulationChanging;private String simulationModel="",simulationRegion=null;
+    /** Developer drive mode and charger: memory only, like the model; a new simulation starts Parked (its own default) in Sport. */
+    private int simulationDriveMode=ScooterSimulation.SPORT;private boolean simulationFastCharger;
     /** Advertised model IDs seen in this scan, by MAC. One is committed to a profile only after authentication and a serial match on that MAC. */
     private final LinkedHashMap<String,AdvertisedIdentity.Result> advertised=new LinkedHashMap<>();
     private AdvertisedIdentity.Result pendingAdvertised;private String pendingAdvertisedMac="";private boolean identifying;
@@ -98,7 +100,8 @@ public final class BleController {
         // callbacks also lose their generation/GATT identity when close() runs.
         wanted=false;recoverableConnectionLoss=false;handler.removeCallbacksAndMessages(null);endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);clearMutation();
         close(State.DISCONNECTED);clearDiscovery();telemetry.clear();profile=null;scanner=null;discoveries.clear();advertised.clear();commandResults.clear();experimentBaselines.clear();
-        simulation=enabled?new ScooterSimulation():null;if(simulation!=null)simulation.setModel(simulationModel);endCommandSession();
+        simulationDriveMode=ScooterSimulation.SPORT;
+        simulation=enabled?new ScooterSimulation():null;if(simulation!=null){simulation.setModel(simulationModel);applySimulationModel();}endCommandSession();
         state=enabled?State.READY:State.DISCONNECTED;
         if(enabled)updateSimulation();
         simulationChanging=false;
@@ -113,21 +116,54 @@ public final class BleController {
     }
     public Map<String,Integer> simulationFeatures(){return simulation==null?Collections.emptyMap():simulation.features();}
     public boolean simulationCharging(){return simulation!=null&&simulation.charging();}
+    public ScooterSimulation.Scene simulationScene(){return simulation==null?ScooterSimulation.Scene.PARKED:simulation.scene();}
+    /** Parked, Riding or Charging at once: one tick rewrites every reading the scenes write (no half state). Memory only. */
+    public void setSimulationScene(ScooterSimulation.Scene scene){if(simulation==null)return;boolean dropout=ScooterSimulation.DROPOUT.equals(simulation.script());simulation.setScene(scene);if(dropout)state=State.READY;tickSimulation();changed();}
+    public int simulationDriveMode(){return simulationDriveMode;}
+    /** A simulated chart point (ScooterSimulation.historyValue); the base itself when not simulating. Generated, never stored. */
+    public double simulationHistoryValue(String key,double base,double fraction,double secondsBefore){return simulation==null?base:simulation.historyValue(key,base,fraction,secondsBefore);}
+    /** The handlebar's drive mode, which no command sets: the simulator's reading only. */
+    public void setSimulationDriveMode(int mode){if(simulation==null)return;simulation.setDriveMode(mode);simulationDriveMode=mode;tickSimulation();changed();}
+    /** The charger the Charging scene uses (the owner's charger choice); only the UT5 MAX tells them apart. */
+    public void setSimulationFastCharger(boolean fast){if(simulationFastCharger==fast)return;simulationFastCharger=fast;if(simulation!=null){simulation.setFastCharger(fast);tickSimulation();}}
+    /** The charger the Automatic choice finds while simulating (ScooterSimulation.detectedFastCharger), or null. Nothing is saved. */
+    public ChargeSessionStore.Charger simulationDetectedCharger(){Boolean fast=simulation==null?null:simulation.detectedFastCharger();return fast==null?null:fast?ChargeSessionStore.Charger.HIGH_SPEED:ChargeSessionStore.Charger.STOCK;}
+    /**
+     * The registry's facts for the simulated model and region (SimulatorModels.facts), handed to the simulation, and every
+     * simulated setting brought to a value this model and region offer (ScooterSimulation.conform): a GT5 Max never opens
+     * with the UT5 MAX's 50 km/h. Runs whenever the model or region changes, and when simulation starts.
+     */
+    private void applySimulationModel(){if(simulation==null)return;DeviceDescriptor d=descriptor();boolean[] f=SimulatorModels.facts(d);simulation.setModelFacts(f[0],f[1],f[2]);simulation.conform(d);simulation.setFastCharger(simulationFastCharger);
+        // The model's own named drive-mode codes; a mode it doesn't name becomes its Sport.
+        simulation.setDriveModes(SimulatorModels.driveModes(d));if(simulation.offersDriveMode(simulationDriveMode))simulation.setDriveMode(simulationDriveMode);else simulationDriveMode=simulation.driveMode();}
+    /** The drive-mode codes the simulated model offers (SimulatorModels.driveModes); empty when not simulating. */
+    public int[] simulationDriveModes(){return simulation==null?new int[0]:simulation.driveModes();}
+    /**
+     * The simulated model's name for headers and titles while simulating (SimulatorModels: "UT5 MAX", "GT5 Max", ...), else
+     * null. Display only: the profile's own stored name never changes.
+     */
+    public String simulationName(){return simulating()?SimulatorModels.find(simulation==null?simulationModel:simulation.model(),simulationRegion).name:null;}
     /** Developer simulator model: "" (UT5 MAX) or a synthetic advertised ID. Memory only; never reaches a profile. */
     public String simulationModel(){return simulationModel;}
-    /** Developer simulator serial region for another simulated model ("US", "DE", ... or null); memory only, never on the UT5 MAX. */
+    /** Developer simulator serial region for the simulated model ("US", "DE", ... or null, the UT5 MAX's US default); memory only. */
     public String simulationRegion(){return simulationRegion;}
     /**
      * Like a model change, a region change that changes the simulated descriptor stops a running check and
-     * clears its results (the report's descriptor would no longer match). The UT5 MAX simulator ignores the
-     * region, so changing it there keeps the check.
+     * clears its results (the report's descriptor would no longer match). The UT5 MAX simulator takes a region
+     * too now (UT5 MAX (US) and (EU)), so it follows the same rule.
      */
     public void setSimulationRegion(String region){
         String next=region!=null&&region.matches("[A-Z]{2}")?region:null;
         if(simulation!=null&&!Objects.equals(DeviceDescriptor.simulated(simulation.model(),0,next).region,DeviceDescriptor.simulated(simulation.model(),0,simulationRegion).region)){if(discovering)stopDiscovery();clearDiscovery();}
-        simulationRegion=next;tickSimulation();changed();
+        simulationRegion=next;applySimulationModel();tickSimulation();changed();
     }
-    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
+    /** A picker entry's model and region together, so no listener sees the new region on the old model. */
+    public void setSimulationModel(String pid,String region){
+        String next=region!=null&&region.matches("[A-Z]{2}")?region:null,model=pid==null?"":pid;
+        if(simulation!=null&&!Objects.equals(DeviceDescriptor.simulated(model,0,next).region,DeviceDescriptor.simulated(model,0,simulationRegion).region)&&model.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();}
+        simulationRegion=next;setSimulationModel(model);
+    }
+    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);applySimulationModel();tickSimulation();}changed();}
     /**
      * Riding-mode screenshot scripts (ScooterSimulation ids; "" for none). Memory only; no command exists.
      * The dropout script holds the link in Connecting, so readings go stale as on a real dropout.

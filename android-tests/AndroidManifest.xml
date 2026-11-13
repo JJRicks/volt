@@ -35,6 +35,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ChargeAlertValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery alert rows, sheet and delivery validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeTileValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time tile validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.ShortcutPickerValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shortcut picker and Charge alerts shortcut validation" />
   <instrumentation android:name="com.jjricks.volt.tests.QuickHapticsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Quick access haptics validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ConnectionHapticsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated connection haptics validation" />
   <instrumentation android:name="com.jjricks.volt.tests.AppDataBackupValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated encrypted full app backup validation" />
@@ -57,6 +58,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.CompatControlsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated OEM control families validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MaintenanceOfflineValidation" android:targetPackage="com.jjricks.volt" android:label="Maintenance reminders added with no connection" />
   <instrumentation android:name="com.jjricks.volt.tests.ScooterMenuEditValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated Scooter menu editor validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.SimulatorScenesValidation" android:targetPackage="com.jjricks.volt" android:label="Developer simulator: three models in Parked, Riding and Charging, then the real state back" />
   <instrumentation android:name="com.jjricks.volt.tests.Ut5SimulationScreens" android:targetPackage="com.jjricks.volt" android:label="Isolated UT5 MAX simulator screen capture" />
   <instrumentation android:name="com.jjricks.volt.GuidedTestValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator guided setting test validation (synthetic link)" />
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />

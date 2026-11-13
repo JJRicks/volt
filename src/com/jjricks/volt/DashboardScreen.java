@@ -87,6 +87,15 @@ public final class DashboardScreen implements AppScreen {
     private final String restoreUndoKey;
     /** The bottom notice (e.g. "Defaults restored · Undo"), if one is showing. */
     private PopupWindow notice;
+    /**
+     * The shortcut picker as it was when Home was rebuilt around it (a turn or fold of the phone, a theme change): the
+     * next Home for the same scooter, made in the same step, reopens it with its search text, open sections and scroll.
+     * Anything else (closing the picker, another page, another scooter) leaves it closed.
+     */
+    private static PickerMemo pickerMemo;
+    /** The open picker's sheet and how to read its state, for close(). */
+    private AlertDialog pickerDialog;
+    private java.util.function.Supplier<PickerMemo> pickerState;
 
     public DashboardScreen(ScreenHost host, Actions actions) {
         this.host = host;
@@ -111,6 +120,9 @@ public final class DashboardScreen implements AppScreen {
         reconcileModelTiles(modelTiles, profile == null ? null : ModelTiles.previousSettingTiles(profile.savedDescriptor()));
         editing = preferences.getBoolean("dashboard_editing", false);
         view = column();
+        PickerMemo reopen = pickerMemo;
+        pickerMemo = null;
+        if (reopen != null && reopen.profileId.equals(profileId)) view.post(() -> { if (!closed) reopenPicker(reopen); });
         // Home header: a muted status line, the scooter name and a round edit button.
         toolbar = new LinearLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -750,8 +762,10 @@ public final class DashboardScreen implements AppScreen {
     /** Home status line: Connected · drive mode, Connecting… or Disconnected · last seen. */
     private void refreshHeader(
             ScooterProfiles.Profile profile, Map<String, TelemetryHistory.Reading> readings) {
-        profileName.setText(profile == null ? T.dashboardYourScooter() : profile.name);
         BleController ble = service == null ? null : service.ble;
+        // While simulating, the simulated model's name (display only; the profile's stored name is untouched).
+        String simulated = ble == null ? null : ble.simulationName();
+        profileName.setText(simulated != null ? simulated : profile == null ? T.dashboardYourScooter() : profile.name);
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean connecting =
@@ -892,7 +906,7 @@ public final class DashboardScreen implements AppScreen {
         if (r == null || r.value == null) return "—";
         if (r.key.equals("driving_mode") && r.number != null) {
             ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), r.number);
+            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(service == null ? null : service.modelDescriptor(profile)), r.number);
         }
         if (r.number != null) {
             if (DisplayTemperature.isTemperature(r.key))
@@ -1066,10 +1080,10 @@ public final class DashboardScreen implements AppScreen {
                 ScooterReadingLabels.compact(key, normal), glyphDrawable(readingIcon(key), ui.muted, 18));
     }
 
-    /** The active scooter's saved model, which decides its photo independent of live readings. */
+    /** The active scooter's saved model (the simulated one while simulating), which decides its photo independent of live readings. */
     private DeviceDescriptor activeModel() {
         ScooterProfiles.Profile p = service == null ? null : service.profiles.active();
-        return p == null ? null : p.savedDescriptor();
+        return service == null ? null : service.modelDescriptor(p);
     }
 
     private String duration(Double minutes) {
@@ -6051,65 +6065,350 @@ public final class DashboardScreen implements AppScreen {
         config.save(); render(); quickOptions(widget);
     }
 
-    private void chooseQuickAction(DashboardConfig.Widget widget, int index) {
-        LinearLayout content = column();
+    /**
+     * Choose shortcut: every shortcut in a collapsible section named for its category (ShortcutPicker), and the search
+     * box above them. A search lists its matches flat, each captioned with its category; clearing it returns to the
+     * sections as they were. Rows keep their tags (quick-choice:<id>) and exist while their section is closed.
+     */
+    private void chooseQuickAction(DashboardConfig.Widget widget, int index) { chooseQuickAction(widget, index, null); }
+
+    /** Opens the picker; {@code memo}, when Home was rebuilt around it, restores its search, open sections and scroll. */
+    private void chooseQuickAction(DashboardConfig.Widget widget, int index, PickerMemo memo) {
+        String current = index >= 0 && index < widget.quickActions.size() ? widget.quickActions.get(index) : null;
+        LinearLayout header = column();
         EditText search = new EditText(dialogContext);
         search.setSingleLine(true); search.setHint(T.dashboardSearchSettings());
         search.setContentDescription(T.dashboardSearchQuickSettings()); ui.styleSearch(search);
-        content.addView(search, ui.searchLayout());
-        LinearLayout choices = column(); content.addView(choices);
+        header.addView(search, ui.searchLayout());
+        LinearLayout choices = column(); choices.setTag("quick-choices");
+        choices.setPadding(0, 0, 0, ui.dp(8));
+        // The scooter's model decides which controls it offers, judged once as the picker opens (as Home's tiles judge them).
+        BleController ble = service == null ? null : service.ble;
+        ShortcutPicker.Scooter scooter = new ShortcutPicker.Scooter() {
+            @Override public boolean connected() { return ble != null && ble.connected(); }
+            @Override public CapabilityResolver.Decision decision(String key) { return ble == null ? null : ble.decision(key); }
+            @Override public boolean controlOffered(String key) { return ble != null && ble.controlOffered(key); }
+            @Override public CapabilityResolver.Reason chargeAlertsMissing() {
+                return service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
+            }
+            @Override public CapabilityResolver.Reason chargeScheduleMissing() { return service == null ? null : service.chargeScheduleMissing(); }
+        };
+        // Why each shortcut the scooter can't use can't be used, in the resolver's words (its section's name, its search caption).
+        Map<String, CapabilityResolver.Reason> unavailable = new HashMap<>();
+        List<ShortcutPicker.Section> sections = ShortcutPicker.sections(QuickAccessActions.catalog(), entry -> {
+            CapabilityResolver.Reason reason = ShortcutPicker.missing(entry, scooter);
+            if (reason != null) unavailable.put(entry.id, ShortcutPicker.canonical(reason));
+            return reason;
+        });
+        Set<String> open = new HashSet<>();
+        String first = ShortcutPicker.firstOpen(sections, current, widget.quickActions);
+        if (memo != null) open.addAll(memo.open);
+        else if (first != null) open.add(first);
+        if (memo != null) search.setText(memo.query);
+        List<PickerSection> shown = new ArrayList<>();
         Runnable filter = () -> {
+            for (PickerSection section : shown) section.stop();
+            shown.clear();
             choices.removeAllViews();
             String query = SearchFold.fold(search.getText().toString()).trim();
-            for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
-                boolean selected = widget.quickActions.contains(entry.id);
-                boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
-                // The English name and group still match, beside the shown ones.
-                if (!query.isEmpty() && !SearchFold.holds(entry.label, entry.group, query)
-                        && !SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query)) continue;
-                LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
-                item.setMinimumHeight(ui.dp(60)); item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-                item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-                LinearLayout words = column();
-                words.addView(ui.text(entry.label(), 14, false));
-                words.addView(ui.caption(entry.groupLabel().toString()));
-                LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
-                item.addView(words, space);
-                // A check marks a chosen shortcut; a switch marks one that toggles directly.
-                if (selected || entry.directToggle()) {
-                    GlyphView kind = new GlyphView(selected ? "check" : "toggle", selected ? ui.accent : ui.muted);
-                    LinearLayout.LayoutParams kindSize = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
-                    kindSize.setMarginStart(ui.dp(8));
-                    item.addView(kind, kindSize);
+            if (query.isEmpty()) {
+                for (ShortcutPicker.Section section : sections) {
+                    PickerSection view = new PickerSection(section, open, choices);
+                    // A row the scooter can't use keeps its category as a caption; its section's name says why.
+                    for (QuickAccessActions.Entry entry : section.entries)
+                        view.body.addView(quickChoice(widget, index, current, entry,
+                                ShortcutPicker.unavailableSection(section.id) ? entry.groupLabel() : null, null),
+                                new LinearLayout.LayoutParams(-1, -2));
+                    view.place(open.contains(section.id), false);
+                    shown.add(view);
+                    choices.addView(view.block, new LinearLayout.LayoutParams(-1, -2));
                 }
-                item.setTag("quick-choice:" + entry.id);
-                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label, entry.group)
-                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label, entry.group) : T.dashboardShortcut(entry.label, entry.group));
-                item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || current);
-                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), entry.groupLabel())
-                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), entry.groupLabel()) : T.dashboardShortcut(entry.label(), entry.groupLabel()));
-                item.setAlpha(item.isEnabled() ? 1 : .4f);
-                item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
-                item.setOnClickListener(v -> {
-                    if (selected && !current) return;
-                    if (index < 0) {
-                        if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
-                        widget.quickActions.add(entry.id);
-                    } else widget.quickActions.set(index, entry.id);
-                    saveQuickActions(widget);
-                });
-                choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
+            } else {
+                // The English name and group still match, beside the shown ones.
+                for (QuickAccessActions.Entry entry : ShortcutPicker.matches(sections, entry ->
+                        SearchFold.holds(entry.label, entry.group, query)
+                                || SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query))) {
+                    // Its category always (Experimental controls included), and why the scooter can't use it below that.
+                    CapabilityResolver.Reason reason = unavailable.get(entry.id);
+                    choices.addView(quickChoice(widget, index, current, entry, entry.groupLabel(),
+                            reason == null ? null : CapabilityResolver.message(reason)), new LinearLayout.LayoutParams(-1, -2));
+                }
+                if (choices.getChildCount() == 0) {
+                    TextView none = ui.caption(T.dashboardNoMatchingSettings());
+                    none.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), ui.dp(12));
+                    choices.addView(none);
+                }
             }
-            if (choices.getChildCount() == 0) choices.addView(ui.caption(T.dashboardNoMatchingSettings()));
         };
         search.addTextChangedListener(new android.text.TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) { filter.run(); }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filter.run();
+                if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, 0);
+            }
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        showSheet(T.dashboardChooseShortcut(), content, null, T.dashboardCloseShortcutPicker(), null);
+        showSheet(T.dashboardChooseShortcut(), header, choices, null, T.dashboardCloseShortcutPicker(), null);
         if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
+        pickerDialog = dialog;
+        pickerState = () -> new PickerMemo(profileId, widget.id, index, current, search.getText().toString(), open,
+                choices.getParent() instanceof View ? ((View) choices.getParent()).getScrollY() : 0);
+        if (memo != null && memo.scrollY > 0)
+            Motion.beforeNextDraw(choices, () -> { if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, memo.scrollY); }, null);
+    }
+
+    /** One open picker's state (see pickerMemo). */
+    private static final class PickerMemo {
+        final String profileId, widgetId, current, query;
+        final int index, scrollY;
+        final Set<String> open;
+        PickerMemo(String profileId, String widgetId, int index, String current, String query, Set<String> open, int scrollY) {
+            this.profileId = profileId; this.widgetId = widgetId; this.index = index; this.current = current;
+            this.query = query; this.open = new HashSet<>(open); this.scrollY = scrollY;
+        }
+    }
+
+    /** close(): keeps the picker's state when it is the open sheet, for a Home made in this same step only. */
+    private void rememberPicker() {
+        PickerMemo memo = dialog != null && dialog == pickerDialog && dialog.isShowing() && pickerState != null ? pickerState.get() : null;
+        pickerDialog = null; pickerState = null;
+        pickerMemo = memo;
+        if (memo != null) new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> { if (pickerMemo == memo) pickerMemo = null; });
+    }
+
+    /** Reopens a remembered picker when its widget, and the shortcut it was replacing, are still there. */
+    private void reopenPicker(PickerMemo memo) {
+        for (DashboardConfig.Widget widget : config.widgets) {
+            if (!widget.id.equals(memo.widgetId)) continue;
+            boolean same = memo.index < 0 ? widget.quickActions.size() < DashboardConfig.maximumShortcuts(widget.type)
+                    : memo.index < widget.quickActions.size() && widget.quickActions.get(memo.index).equals(memo.current);
+            if (same) chooseQuickAction(widget, memo.index, memo);
+            return;
+        }
+    }
+
+    /**
+     * One choice: its icon, name, an optional caption (null inside its own section), why the scooter can't use it (a
+     * search match only; null otherwise) and the chosen or toggle marker.
+     */
+    private View quickChoice(DashboardConfig.Widget widget, int index, String current, QuickAccessActions.Entry entry,
+            CharSequence caption, CharSequence reason) {
+        boolean selected = widget.quickActions.contains(entry.id);
+        boolean replacing = entry.id.equals(current);
+        CharSequence group = caption == null ? entry.groupLabel() : caption;
+        LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
+        item.setMinimumHeight(ui.dp(caption == null ? 52 : 60));
+        item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+        item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+        LinearLayout words = column();
+        words.addView(ui.text(entry.label(), 14, false));
+        if (caption != null) words.addView(ui.caption(caption.toString()));
+        if (reason != null) { TextView why = ui.caption(reason.toString()); why.setTag("quick-choice-reason"); words.addView(why); }
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
+        item.addView(words, space);
+        // A check marks a chosen shortcut; a switch marks one that toggles directly.
+        if (selected || entry.directToggle()) {
+            GlyphView kind = new GlyphView(selected ? "check" : "toggle", selected ? ui.accent : ui.muted);
+            LinearLayout.LayoutParams kindSize = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+            kindSize.setMarginStart(ui.dp(8));
+            item.addView(kind, kindSize);
+        }
+        item.setTag("quick-choice:" + entry.id);
+        item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || replacing);
+        // The reason is spoken as the row's state from Android 11; before that it takes the group's place, as it did.
+        boolean stated = reason != null && android.os.Build.VERSION.SDK_INT >= 30;
+        if (reason != null && !stated) group = reason;
+        item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), group)
+                : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), group) : T.dashboardShortcut(entry.label(), group));
+        if (stated) item.setStateDescription(reason);
+        item.setAlpha(item.isEnabled() ? 1 : .4f);
+        item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
+        item.setOnClickListener(v -> {
+            if (selected && !replacing) return;
+            if (index < 0) {
+                if (widget.quickActions.size() >= DashboardConfig.maximumShortcuts(widget.type)) return;
+                widget.quickActions.add(entry.id);
+            } else widget.quickActions.set(index, entry.id);
+            saveQuickActions(widget);
+        });
+        return item;
+    }
+
+    /**
+     * A collapsible section of the shortcut picker: a header (name, count, a chevron that turns) over its rows. It
+     * opens and closes by animating its rows' height (Motion.CHANGE_MS, instant with animations off); opening one low
+     * on the sheet scrolls just enough to show its first rows, never past its header. The sheet keeps its height.
+     */
+    private final class PickerSection {
+        final ShortcutPicker.Section section;
+        final Set<String> open;
+        final LinearLayout block, head, body;
+        final View chevron;
+        android.animation.ValueAnimator animator;
+        boolean expanded;
+
+        PickerSection(ShortcutPicker.Section section, Set<String> open, ViewGroup list) {
+            this.section = section; this.open = open;
+            block = column(); block.setTag("quick-section:" + section.id);
+            if (list.getChildCount() > 0) {
+                View rule = new View(host.activity());
+                rule.setBackgroundColor(ui.outline);
+                block.addView(rule, new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(.75f))));
+            }
+            head = row(); head.setGravity(Gravity.CENTER_VERTICAL); head.setTag("quick-section-header:" + section.id);
+            head.setMinimumHeight(ui.dp(56)); head.setPadding(ui.dp(4), ui.dp(10), ui.dp(2), ui.dp(10));
+            head.setClickable(true); head.setFocusable(true);
+            head.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
+            TextView name = ui.text(sectionName(section), 15, true);
+            name.setTag("quick-section-name:" + section.id);
+            name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+            name.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+            head.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView count = ui.text(Fmt.integer(section.entries.size()), 12, false);
+            count.setTag("quick-section-count:" + section.id);
+            count.setTypeface(ui.medium()); count.setTextColor(ui.muted); count.setGravity(Gravity.CENTER);
+            count.setMinWidth(ui.dp(26)); count.setPadding(ui.dp(8), ui.dp(3), ui.dp(8), ui.dp(3));
+            count.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 10, 0));
+            LinearLayout.LayoutParams countSpace = new LinearLayout.LayoutParams(-2, -2); countSpace.setMarginStart(ui.dp(10));
+            head.addView(count, countSpace);
+            chevron = ui.icon("chevron", 16, ui.muted);
+            chevron.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(40), ui.dp(24));
+            head.addView(chevron, chevronSize);
+            if (android.os.Build.VERSION.SDK_INT >= 28) head.setAccessibilityHeading(true);
+            head.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override public void onInitializeAccessibilityNodeInfo(View v, android.view.accessibility.AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(v, info);
+                    info.addAction(expanded ? android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE
+                            : android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND);
+                    if (android.os.Build.VERSION.SDK_INT >= 36)
+                        info.setExpandedState(expanded ? android.view.accessibility.AccessibilityNodeInfo.EXPANDED_STATE_FULL
+                                : android.view.accessibility.AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED);
+                }
+                @Override public boolean performAccessibilityAction(View v, int action, android.os.Bundle arguments) {
+                    if (action == android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND.getId() && !expanded
+                            || action == android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE.getId() && expanded) {
+                        toggle(); return true;
+                    }
+                    return super.performAccessibilityAction(v, action, arguments);
+                }
+            });
+            head.setOnClickListener(v -> toggle());
+            block.addView(head, new LinearLayout.LayoutParams(-1, -2));
+            body = column(); body.setTag("quick-section-rows:" + section.id);
+            body.setPadding(0, 0, 0, ui.dp(6));
+            block.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        void toggle() {
+            place(!expanded, true);
+            if (expanded) open.add(section.id); else open.remove(section.id);
+        }
+
+        /** Shows the section open or closed; animated only when asked, laid out, and Android animations are on. */
+        void place(boolean next, boolean animate) {
+            stop();
+            expanded = next;
+            float turned = next ? -90 : 90;
+            ViewGroup.LayoutParams size = body.getLayoutParams();
+            int width = body.getWidth() > 0 ? body.getWidth() : block.getWidth();
+            if (!animate || !Ui.motionEnabled() || !block.isLaidOut() || width <= 0) {
+                size.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                body.setVisibility(next ? View.VISIBLE : View.GONE); body.setAlpha(1); chevron.setRotation(turned);
+                body.requestLayout();
+                if (animate && next) Motion.beforeNextDraw(block, () -> reveal(body.getHeight()), null);
+                announceState();
+                return;
+            }
+            int from = body.getVisibility() == View.VISIBLE ? body.getHeight() : 0;
+            body.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int to = next ? body.getMeasuredHeight() : 0;
+            float fromTurn = chevron.getRotation(), fromAlpha = body.getVisibility() == View.VISIBLE ? body.getAlpha() : 0;
+            body.setVisibility(View.VISIBLE);
+            size.height = from; body.requestLayout();
+            android.animation.ValueAnimator run = android.animation.ValueAnimator.ofFloat(0f, 1f);
+            run.setDuration(Motion.CHANGE_MS);
+            run.setInterpolator(Motion.STANDARD);
+            run.addUpdateListener(a -> {
+                float t = a.getAnimatedFraction(), eased = (float) a.getAnimatedValue();
+                size.height = Math.round(from + (to - from) * eased); body.requestLayout();
+                // Rows fade in over the opening and out over the first half of the closing.
+                body.setAlpha(next ? fromAlpha + (1 - fromAlpha) * Math.min(1f, t * 1.4f) : fromAlpha * Math.max(0f, 1 - t * 2));
+                chevron.setRotation(fromTurn + (turned - fromTurn) * eased);
+                if (next) reveal(size.height);
+            });
+            run.addListener(new android.animation.AnimatorListenerAdapter() {
+                boolean cancelled;
+                @Override public void onAnimationCancel(android.animation.Animator a) { cancelled = true; }
+                @Override public void onAnimationEnd(android.animation.Animator a) {
+                    if (animator == run) animator = null;
+                    if (cancelled) return;
+                    settle();
+                    // Each frame's reveal ran before that frame's layout, so the scroll range lagged a frame; reveal once
+                    // more on the settled height (a slow device's last frame can be tens of pixels).
+                    if (next) Motion.beforeNextDraw(block, () -> reveal(body.getHeight()), null);
+                }
+            });
+            animator = run;
+            run.start();
+            announceState();
+        }
+
+        /** Ends any opening or closing at once on the chosen state: a settled section is wholly open or wholly closed. */
+        void stop() {
+            android.animation.ValueAnimator running = animator;
+            animator = null;
+            if (running != null) { running.cancel(); settle(); }
+        }
+
+        private void settle() {
+            body.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            body.setVisibility(expanded ? View.VISIBLE : View.GONE);
+            body.setAlpha(1); chevron.setRotation(expanded ? -90 : 90);
+            body.requestLayout();
+        }
+
+        /** Scrolls the sheet so the header and up to its first three rows show, without moving the header above the top. */
+        private void reveal(int bodyHeight) {
+            if (!(block.getParent() instanceof View) || !(((View) block.getParent()).getParent() instanceof ScrollView)) return;
+            View list = (View) block.getParent();
+            ScrollView scroll = (ScrollView) list.getParent();
+            int top = list.getTop() + block.getTop() + head.getTop();
+            int goal = Math.min(bodyHeight, ui.dp(52) * 3 + ui.dp(6));
+            int viewport = scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom();
+            int want = Math.min(top, top + head.getHeight() + goal - viewport);
+            if (want > scroll.getScrollY()) scroll.scrollTo(0, want);
+        }
+
+        /** The header's node changed state (its action, and its expanded state from Android 16): tell an accessibility service. */
+        private void announceState() {
+            android.view.accessibility.AccessibilityManager manager = (android.view.accessibility.AccessibilityManager)
+                    host.activity().getSystemService(Context.ACCESSIBILITY_SERVICE);
+            if (!head.isAttachedToWindow() || manager == null || !manager.isEnabled()) return;
+            android.view.accessibility.AccessibilityEvent event = android.view.accessibility.AccessibilityEvent.obtain(
+                    android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED);
+            event.setContentChangeTypes(android.os.Build.VERSION.SDK_INT >= 36
+                    ? android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_EXPANDED
+                    : android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED);
+            head.sendAccessibilityEventUnchecked(event);
+        }
+    }
+
+    /**
+     * A section's shown name: its catalog group's (Ride, Battery, Pages, Menus, Experimental), the on/off control's
+     * name for the line and star lights (Line lights, Star lights), and the resolver's message for a reason the scooter
+     * can't use what a last section holds ("Not on this model", "Not mapped for this model", ...).
+     */
+    private static CharSequence sectionName(ShortcutPicker.Section section) {
+        CapabilityResolver.Reason reason = ShortcutPicker.reasonOf(section.id);
+        if (reason != null) return CapabilityResolver.message(reason);
+        switch (section.id) {
+            case ShortcutPicker.LINE_LIGHTS: return ScooterCommands.find("line_light").label();
+            case ShortcutPicker.STAR_LIGHTS: return ScooterCommands.find("star_light").label();
+            default: return section.entries.get(0).groupLabel();
+        }
     }
 
     private void duplicateWidget(DashboardConfig.Widget widget) {
@@ -6348,7 +6647,7 @@ public final class DashboardScreen implements AppScreen {
         if (widget.advertisedWh > 0) return widget.advertisedWh;
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
         // NAVEE US UT5 MAX specification: 46.8 V nominal × 15.3 Ah.
-        return ModelRegistry.ratedWh(profile == null ? null : profile.savedDescriptor());
+        return ModelRegistry.ratedWh(service == null ? null : service.modelDescriptor(profile));
     }
 
     private String ratingLabel(DashboardConfig.Widget widget) {
@@ -6362,7 +6661,7 @@ public final class DashboardScreen implements AppScreen {
         dismiss();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
         // NAVEE US UT5 MAX specification: 46.8 V nominal × 15.3 Ah (see rating()).
-        boolean modelKnown = ModelRegistry.ratedWh(profile == null ? null : profile.savedDescriptor()) != null;
+        boolean modelKnown = ModelRegistry.ratedWh(service == null ? null : service.modelDescriptor(profile)) != null;
         LinearLayout content = column();
         content.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         LinearLayout field = row();
@@ -7382,6 +7681,7 @@ public final class DashboardScreen implements AppScreen {
         stopEditTransition();
         editHistory.clear();
         for (Tile tile : tiles) tile.active = false;
+        rememberPicker();
         dismiss();
         if (grid != null) {
             grid.finishGesture(false);
