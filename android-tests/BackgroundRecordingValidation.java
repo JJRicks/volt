@@ -100,8 +100,9 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         prefs().edit().putBoolean(AUTO_RECORD, true).putString(NOTICE, "due").commit();
         main(() -> invoke(activity, "select", new Class[]{String.class}, "home")); settle();
         await(() -> showing() != null, "The What's new dialog shows on Home");
+        takenDownByVolt();
         AlertDialog dialog = showing(); View window = dialog.getWindow().getDecorView();
-        check("done".equals(prefs().getString(NOTICE, null)), "Marked done as it shows");
+        check("due".equals(prefs().getString(NOTICE, null)), "Still due while open: only the person closing it ends it");
         String version = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName;
         TextView title = text(window, "What's new in Volt " + version), message = text(window, MESSAGE);
         View row = window.findViewWithTag("whats-new-auto-record-background");
@@ -113,6 +114,7 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         screenshot("whats-new");
         main(row::performClick); settle();
         check(toggle.isChecked() && prefs().getBoolean(BACKGROUND, false), "The dialog's switch stores Start recording in the background");
+        check("done".equals(prefs().getString(NOTICE, null)), "Changing the switch in it ends the note");
         screenshot("whats-new-on");
         main(ok::performClick); settle();
         await(() -> showing() == null, "OK closes it");
@@ -121,6 +123,26 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         openApp();
         Switch more = find(activity.getWindow().getDecorView().findViewWithTag("preference-auto-record-background"), Switch.class);
         check(more.isChecked() && more.isEnabled(), "App preferences shows the switch as the dialog left it");
+    }
+    /**
+     * The order a review named: the note is open on Home when the service binds again (its listener runs, then rebuild()) or
+     * a rebuild runs. Volt takes the dialog down; the note stays due and comes back on the next clear screen, one copy.
+     */
+    private void takenDownByVolt() throws Exception {
+        AlertDialog first = showing();
+        main(() -> { IBinder binder = activity.service().onBind(new Intent(getTargetContext(), ScooterService.class));
+            ((ServiceConnection) field(activity, "serviceConnection")).onServiceConnected(new ComponentName(getTargetContext(), ScooterService.class), binder); });
+        settle();
+        check("due".equals(prefs().getString(NOTICE, null)), "Service bound again while the note was open: still due");
+        await(() -> showing() != null, "The note is still there or back after the service bound again");
+        check(!first.isShowing() || showing() == first, "One copy after the bind");
+        AlertDialog second = showing();
+        main(() -> invoke(activity, "rebuild", new Class[0]));
+        settle();
+        check("due".equals(prefs().getString(NOTICE, null)), "A rebuild took it down: still due");
+        await(() -> showing() != null, "The note comes back on the next clear screen after a rebuild");
+        check(!second.isShowing() || showing() == second, "One copy after the rebuild");
+        screenshot("whats-new-back");
     }
     private AlertDialog showing() {
         AtomicReference<AlertDialog> found = new AtomicReference<>();
