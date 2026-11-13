@@ -12,9 +12,10 @@ import java.util.function.Predicate;
  * <p>Clean stores its four in {@code home_quick_v1_<profile id>} (a comma-joined list of ids, a scooter
  * preference) and never reads or writes the widget dashboard. Besides every Quick access catalog id, Clean
  * offers three ids of its own, {@link #RIDING} (open riding mode), {@link #RECORD} (start or stop recording)
- * and {@link #CHARGE_ALERTS} (the Battery alerts sheet). They are deliberately kept out of QuickAccessActions'
- * catalog: a Widgets dashboard, a saved slot or a dashboard transfer that held one would be refused by an older
- * Volt ("Invalid shortcut").
+ * and {@link #CHARGE_ALERTS} (the Battery alerts sheet). Riding and Record are deliberately kept out of
+ * QuickAccessActions' catalog: a Widgets dashboard, a saved slot or a dashboard transfer that held one would be
+ * refused by an older Volt ("Invalid shortcut"). Battery alerts is in that catalog too, with the same id: the owner
+ * accepted that cost on Nov 12 2026 (#383, issuecomment-6845477304; docs/development-notes.md).
  *
  * <p>The defaults follow what the connected scooter supports (owner's answer 11 on #383): Ride, Record ride, then
  * Charge done by where scheduled charging exists, else charge alerts where the model has them, then one control
@@ -27,7 +28,7 @@ final class HomeQuickActions {
     static final String RIDING = "riding";
     /** Starts or stops recording a ride (RideRecordingApp's one toggle). Clean only. */
     static final String RECORD = "record";
-    /** Opens the Battery alerts sheet (MainActivity.showChargeAlerts). Clean only, and only where alerts are offered. */
+    /** Opens the Battery alerts sheet (MainActivity.showChargeAlerts); a Widgets shortcut too, with the same id. Only where alerts are offered. */
     static final String CHARGE_ALERTS = QuickAccessActions.CHARGE_ALERTS_ID;
     /** Ui icon keys for the Clean-only actions; RIDE shows the Widgets header RIDE pill's speedometer. */
     static final String ICON_RIDING = "speed", ICON_RECORD = "record", ICON_CHARGE_ALERTS = "bolt";
@@ -93,7 +94,7 @@ final class HomeQuickActions {
      */
     static boolean startsRide(String id, boolean recording) { return !recording && RECORD.equals(id); }
 
-    /** Whether an id is one of Clean's own, which Widgets never stores. */
+    /** Whether an id is one of Clean's own, named by HubText; Widgets never stores Riding or Record. */
     static boolean cleanOnly(String id) { return RIDING.equals(id) || RECORD.equals(id) || CHARGE_ALERTS.equals(id); }
 
     /**
