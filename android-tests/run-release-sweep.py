@@ -163,6 +163,8 @@ STEPS += [
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
+    inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     # The charging view's one time tile; its restart mode needs the same install, so it runs by hand after this one.
@@ -190,6 +192,9 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# Developer simulator: UT5 MAX, GT3 Max and GT5 Max EU in Parked, Riding and Charging, then every store compared (phone and wide, dark and light).
+STEPS += [inst(f'simulator-scenes-{size.split("x")[0]}-{theme}', T + 'SimulatorScenesValidation', '-e', 'theme', theme, size=size)
+          for size in (PHONE[0], WIDE[0]) for theme in ('dark', 'light')]
 # Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
 # and German and European Portuguese (the longest names) on that tightest case.
 PHONE_LARGE = ('344x882', 'dark', '1.4')
@@ -202,6 +207,13 @@ STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOffline
           for case in (PHONE, WIDE)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
+# GPS accuracy: the riding reading in every state (no location permission at first; fixes from a GPS test provider) and the
+# ride graph's line, in English, German and both Portuguese. The translated runs are report only, as the other translated
+# steps are, so they stay out of the English text census.
+STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'riding',
+               *(('-e', 'locale', tag) if tag else ()), grant=NEARBY, report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
+STEPS += [inst('gps-accuracy-graph' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'graph',
+               *(('-e', 'locale', tag) if tag else ()), report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]

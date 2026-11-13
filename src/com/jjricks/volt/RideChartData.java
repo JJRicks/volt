@@ -255,12 +255,11 @@ public final class RideChartData {
         }
         return Collections.unmodifiableList(result);
     }
-    /**
-     * The lines Ride details' Ride readings graph offers: build()'s eight. The GPS accuracy line (gpsAccuracy) joins
-     * them in the pull request that adds its legend name.
-     */
+    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy (off unless chosen). */
     public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
-        return build(scooter, phone, miles, fullDetail, inferRegen);
+        List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
+        lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
+        return Collections.unmodifiableList(lines);
     }
     /**
      * The GPS accuracy line: each fix's reported accuracy (metres, or feet for miles), on the scooter's timeline like
