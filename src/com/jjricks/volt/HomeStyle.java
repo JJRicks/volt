@@ -205,6 +205,33 @@ final class HomeStyle {
         return offer || backgroundNotice || hasNotes;
     }
 
+    /**
+     * Whether the What's new sheet shows, once {@link #showWhatsNew} says it may (the contributor's decisions on #383:
+     * a screen introducing Clean on the first launch after the update, asking whether to switch, never to someone who
+     * already chose a style). An owner who has not chosen sees it with the offer, the notice when it applies and this
+     * version's notes; an owner who already chose sees it only for the background-recording notice (owner's answer on
+     * #403), which must not be missed, never for the notes alone.
+     */
+    static boolean whatsNewShows(boolean chosen, boolean offer, boolean backgroundNotice, boolean hasNotes) {
+        if (chosen) return backgroundNotice;
+        return whatsNewHasContent(offer, backgroundNotice, hasNotes);
+    }
+
+    /** The narrowest half (dp) the style picker's cards take side by side: the drawing, then the name and radio. */
+    static final int PICKER_HALF_DP = 128;
+    /** The page's or sheet's side gutters and the gap between the two cards (dp). */
+    static final int PICKER_CHROME_DP = 42;
+
+    /**
+     * Whether the style picker's two cards sit side by side, as the mock-up draws them on a 344 dp phone: while each
+     * half of the window's width less the gutters is at least {@link #PICKER_HALF_DP} dp, and the text is at most 1.5
+     * times, else stacked (each card a row, its drawing at the left).
+     */
+    static boolean pickerSideBySide(int screenWidthDp, float textScale) {
+        float scale = Float.isNaN(textScale) ? 1f : textScale;
+        return (screenWidthDp - PICKER_CHROME_DP) / 2f >= PICKER_HALF_DP && scale <= 1.5f;
+    }
+
     /** The What's new sheet's sections, by {@link #whatsNewSections}. */
     static final String SECTION_NOTICE = "notice", SECTION_OFFER = "offer", SECTION_NOTES = "notes";
 

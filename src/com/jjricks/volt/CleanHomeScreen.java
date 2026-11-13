@@ -367,46 +367,22 @@ final class CleanHomeScreen implements AppScreen {
         if (service != null && service.profiles.active() != null) {
             TextView label = ui.sectionLabel(HubText.editQuickActions().render());
             content.addView(label);
-            LinearLayout card = ui.groupCard();
-            for (int i = 0; i < quickIds.size(); i++) {
-                if (i > 0) ui.divider(card);
-                card.addView(slot(i));
-            }
+            LinearLayout card = HomeQuickEditor.slots(host, quickIds, this::changeSlot);
             content.addView(card, new LinearLayout.LayoutParams(-1, -2));
         }
         editSheet = host.showSheet(content);
     }
 
-    /** One of the four: its icon and name; a tap opens the picker for that position. */
-    private View slot(int index) {
-        String id = quickIds.get(index);
-        QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        CharSequence label = entry == null ? id : entry.label().render();
-        LinearLayout line = row();
-        line.setTag(TAG_SLOT + (index + 1));
-        line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : entry.icon, 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-        TextView name = ui.text(label, 15, false);
-        name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);
-        nameSize.setMarginStart(ui.dp(12));
-        line.addView(name, nameSize);
-        line.addView(ui.icon("chevron", 15, ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
-        line.setContentDescription(HubText.editQuickSlot(index + 1, label).render());
-        line.setClickable(true);
-        line.setFocusable(true);
-        line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
-        line.setOnClickListener(v -> parts.chooseQuickAction(quickIds, index, picked -> {
+    /** A slot of the Edit sheet was tapped (HomeQuickEditor.slot): the picker for that position. */
+    private void changeSlot(int index) {
+        parts.chooseQuickAction(quickIds, index, picked -> {
             ArrayList<String> next = new ArrayList<>(quickIds);
             next.set(index, picked);
             saveQuick(next);
             if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
             // The new four show on the rebuilt Home.
             host.rebuild();
-        }));
-        return line;
+        });
     }
 
     // ===== Sizes and small views =====

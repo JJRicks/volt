@@ -263,6 +263,38 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /**
+     * Clean Home's quick-action picker on its own (Settings › Home style's Quick actions row), from a parts-only
+     * instance like Clean Home's: the same picker Clean's Edit sheet opens (CleanParts.chooseQuickAction).
+     */
+    static QuickChooser quickChooser(ScreenHost host, Actions actions) {
+        ScooterService service = host.service();
+        ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
+        return new DashboardScreen(host, actions, profile).new QuickChooser();
+    }
+
+    /** The shortcut picker over Clean's own actions and the catalog, for a screen other than Clean Home. */
+    final class QuickChooser {
+        /** The scooter whose four it picks for; another one being active means the page rebuilds. */
+        String profileId() { return profileId; }
+
+        /** Opens the picker for position index of chosen; picked gets the id tapped (the picker closes first). */
+        void choose(List<String> chosen, int index, java.util.function.Consumer<String> picked) {
+            if (closed) return;
+            DashboardScreen.this.chooseQuickAction(chosen, index,
+                    HomeQuickActions.ownEntries(service != null && service.chargeAlertsOffered()), id -> {
+                dismiss();
+                picked.accept(id);
+            }, null, null);
+        }
+
+        void close() {
+            closed = true;
+            chargingHero.stopReveal();
+            dismiss();
+        }
+    }
+
+    /**
      * Usable ride energy for Battery & charging › Estimates & charger (hub layout plan 1.5's PANEL, deferred there
      * from part 4), from a parts-only instance like Clean Home's: one transient capacity widget, never added to a
      * dashboard. The widget dashboard's own Usable ride energy widget stays as it is.

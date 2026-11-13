@@ -657,7 +657,7 @@ final class QuickAccessGrid extends ViewGroup {
      * Live Stats already gives them (StatsLabels.row: "Cruise", "Traction", "Recovery") until part 10 adds Clean's own;
      * else the control's short rung.
      */
-    private static String roundName(QuickAccessActions.Entry entry) {
+    static String roundName(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
         if (own != null) return own.render();
         if (ROUND_STATS_NAMES.contains(entry.featureKey)) return StatsLabels.row(entry.featureKey);

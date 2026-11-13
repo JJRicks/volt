@@ -8,6 +8,7 @@ public final class HomeStyleTest {
         stored();
         seed();
         whatsNew();
+        picker();
         setup();
         keys();
         System.out.println("HomeStyle: " + checks + " checks passed");
@@ -110,8 +111,8 @@ public final class HomeStyleTest {
         require(!HomeStyle.showWhatsNew(u, false, false, true, true, true), "Not in riding mode");
         require(!HomeStyle.showWhatsNew(u, false, false, false, false, true), "Only on Home");
         require(!HomeStyle.showWhatsNew(u, false, false, false, true, false), "Only while resumed");
-        // Choosing a style first (settings, or a restore that brought a choice) does not skip the sheet: it carries the
-        // changelog and one-time notices. The choice only hides the offer to switch.
+        // Choosing a style first (settings, or a restore that brought a choice) hides the offer to switch; the sheet then
+        // shows only for the background-recording notice (whatsNewShows, below).
         require(HomeStyle.offerSwitch(false, null) && HomeStyle.offerSwitch(false, HomeStyle.WIDGETS) && HomeStyle.offerSwitch(false, "bogus"),
                 "An owner who never chose, on Widgets, is offered Clean");
         require(!HomeStyle.offerSwitch(true, HomeStyle.WIDGETS) && !HomeStyle.offerSwitch(true, null), "An owner who chose is not offered a switch");
@@ -121,13 +122,36 @@ public final class HomeStyleTest {
         require(!HomeStyle.whatsNewBackgroundNotice(u, false), "One who never used it does not");
         require(!HomeStyle.whatsNewBackgroundNotice(i, true), "A fresh install never does");
         require(!HomeStyle.whatsNewBackgroundNotice(null, true), "nor one the seed never saw");
-        // PR 9's sheet: an updating owner who chose a style first still gets it once, without the offer.
+        // PR 9's sheet: an updating owner who chose a style first may get it once (for the notice), never with the offer.
         require(HomeStyle.showWhatsNew(u, false, false, false, true, true) && !HomeStyle.offerSwitch(true, HomeStyle.CLEAN),
-                "An updating owner who already chose Clean sees the sheet, without the offer");
+                "An updating owner who already chose Clean is not offered a switch");
         require(HomeStyle.whatsNewHasContent(true, false, false), "The offer alone is worth a sheet");
         require(HomeStyle.whatsNewHasContent(false, true, false), "So is the background notice alone (a chosen owner, no notes)");
         require(HomeStyle.whatsNewHasContent(false, false, true), "So are this version's notes alone");
         require(!HomeStyle.whatsNewHasContent(false, false, false), "Nothing to show: no empty sheet");
+        // The contributor's decisions on #383: the sheet introduces Clean to updating owners and asks whether to
+        // switch; it never shows to someone who already chose a style, except for the background-recording notice.
+        require(HomeStyle.whatsNewShows(false, true, false, true), "An updating owner who never chose: the offer and the notes");
+        require(HomeStyle.whatsNewShows(false, true, true, true), "with the notice when Record rides automatically was on");
+        require(HomeStyle.whatsNewShows(false, true, false, false), "The offer alone (an APK without notes) is still the introduction");
+        require(!HomeStyle.whatsNewShows(true, false, false, true), "A chosen style: never for the notes alone");
+        require(!HomeStyle.whatsNewShows(true, false, false, false), "A chosen style and nothing else: nothing");
+        require(HomeStyle.whatsNewShows(true, false, true, true) && HomeStyle.whatsNewShows(true, false, true, false),
+                "A chosen style still gets the background-recording notice once");
+        require(!HomeStyle.whatsNewShows(false, false, false, false), "Never an empty sheet");
+        // Dismissing keeps Widgets: closing records nothing but the sheet as shown, so the style stays unchosen Widgets.
+        require(HomeStyle.of(null).equals(HomeStyle.WIDGETS) && HomeStyle.offerSwitch(false, null), "Kept Widgets after a dismiss");
+    }
+
+    /** The style picker's cards side by side as the mock-up draws them at 344 dp, stacked only where a half is too narrow. */
+    private static void picker() {
+        require(HomeStyle.pickerSideBySide(344, 1f), "344x882 dp at 1x: side by side, as the mock-up");
+        require(HomeStyle.pickerSideBySide(344, 1.4f), "344x882 dp at 1.4x: still side by side (each half about 151 dp)");
+        require(HomeStyle.pickerSideBySide(725, 1f) && HomeStyle.pickerSideBySide(725, 1.4f), "725x604 dp at 1x and 1.4x: side by side");
+        require(HomeStyle.pickerSideBySide(412, 1f), "412 dp: side by side");
+        require(!HomeStyle.pickerSideBySide(280, 1f), "A 280 dp window: stacked");
+        require(!HomeStyle.pickerSideBySide(344, 2f), "Very large text: stacked");
+        require(HomeStyle.pickerSideBySide(344, Float.NaN), "An unreadable scale counts as 1x");
     }
 
     /** Setup's last step (PR 9): what it preselects, and what a skipped setup leaves stored. */

@@ -602,7 +602,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private AppScreen createScreen(String page,HubNav.Args args){
         // Settings › Home style; while the tab bar remains it opens on the Settings tab.
-        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this);
+        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         switch(HubPages.tabOf(page)){
             // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
             case HubPages.HOME:return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
