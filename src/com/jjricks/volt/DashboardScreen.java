@@ -2694,11 +2694,13 @@ public final class DashboardScreen implements AppScreen {
 
             /**
              * Clean: the mock-up's red glow, a wide soft ellipse under the scooter's wheels (about 286 x 60 dp on a 344 dp
-             * phone), centred under the photo; it breathes with {@link #glow} while charging is on screen.
+             * phone, at most 1.7 times the photo's side on a wide window), centred under the photo; it breathes with
+             * {@link #glow} while charging is on screen.
              */
             private void drawCleanGlow(Canvas canvas, float w) {
                 float cx = w / 2, floor = photo.getBottom() - photoSide * .04f;
-                float rx = w * .46f;
+                // As wide as the mock-up's on a phone (0.46 of the width), never much wider than the scooter itself.
+                float rx = Math.min(w * .46f, photoSide * .85f);
                 if (rx <= 0) return;
                 float ry = Math.max(ui.dp(10), Math.min(ui.dp(30), photoSide * .2f));
                 int color = ui.accent;
