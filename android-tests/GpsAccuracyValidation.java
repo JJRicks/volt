@@ -76,22 +76,37 @@ public final class GpsAccuracyValidation extends Instrumentation {
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
 
+    /** The preference files the fixture writes: settings, the synthetic scooter (profiles, and scooter for its legacy copy) and setup. */
+    private static final String[] FIXTURE_PREFS = {"app_settings", "profiles", "scooter", OnboardingScreen.PREFS};
+    /** The app_settings keys the fixture writes (riding layouts too, by RIDING_LAYOUT's prefix). */
+    private static final String[] FIXTURE_SETTINGS = {"auto_connect", "background_connection", "developer_options", "phone_gps",
+            "phone_motion", "units", "theme", "text_scale", "ride_chart_series"};
+    private static final String RIDING_LAYOUT = "riding_layout_v1_";
+    /** What this run changed, so cleanup undoes that and nothing else. */
+    private boolean immersiveSet, resized, localeSet, mockAllowed;
+    private String mockPrevious = "default";
+
     @Override public void onStart() {
         Bundle result = new Bundle();
         String part = args.getString("part", "riding");
         locale = args.getString("locale", "");
+        // The preference files as they were before this run: restored after an admitted run, and compared after a refused one.
+        java.util.Map<String, java.util.Map<String, ?>> before = snapshot();
+        boolean admitted = false;
         try {
-            String hw = Build.HARDWARE.toLowerCase(Locale.ROOT);
-            require(hw.contains("ranchu") || hw.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "emulator only");
-            require(prefs("profiles").getAll().isEmpty() && prefs("scooter").getAll().isEmpty(), "Refusing existing profiles; use a fresh install");
             require(part.equals("riding") || part.equals("graph"), "Use -e part riding or graph");
+            guard();
+            admitted = true;
             evidence = new File(getTargetContext().getExternalFilesDir(null), "gps-accuracy-" + part + (locale.isEmpty() ? "" : "-" + locale));
             require(evidence.isDirectory() || evidence.mkdirs(), "evidence folder");
             immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
+            immersiveSet = true;
             shell("settings put secure immersive_mode_confirmations confirmed");
+            resized = true;
             shell("wm density 480");
             size(344, 882);
             if (!locale.isEmpty()) {
+                localeSet = true;
                 getTargetContext().getSystemService(LocaleManager.class).setApplicationLocales(LocaleList.forLanguageTags(locale));
                 SystemClock.sleep(500);
             }
@@ -116,10 +131,54 @@ public final class GpsAccuracyValidation extends Instrumentation {
             try { if (evidence != null) shot("failure"); } catch (Throwable ignored) { }
         } finally {
             result.putInt("assertions", assertions);
-            try { java.nio.file.Files.write(new File(evidence, "notes.txt").toPath(), notes); } catch (Exception ignored) { }
-            cleanup();
+            if (evidence != null) try { java.nio.file.Files.write(new File(evidence, "notes.txt").toPath(), notes); } catch (Exception ignored) { }
+            if (admitted) cleanup(before);
+            else {
+                // A refused run changed nothing, so it undoes nothing: it checks that about itself.
+                boolean untouched = before.equals(snapshot());
+                result.putString("preferences", untouched ? "untouched" : "CHANGED");
+                if (!untouched) result.putString("error", result.getString("error", "") + "\nA refused run changed the preferences.");
+            }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
+    }
+
+    /**
+     * Runs only on an emulator with nothing the fixture would replace: no scooter (profiles, the legacy scooter file), no
+     * setup state, and none of the settings the fixture writes. A refused run touches nothing.
+     */
+    private void guard() {
+        String hw = Build.HARDWARE.toLowerCase(Locale.ROOT);
+        require(hw.contains("ranchu") || hw.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "emulator only");
+        require(prefs("profiles").getAll().isEmpty() && prefs("scooter").getAll().isEmpty(), "Refusing existing profiles; use a fresh install");
+        require(prefs(OnboardingScreen.PREFS).getAll().isEmpty(), "Refusing an existing setup state; use a fresh install");
+        List<String> found = new ArrayList<>();
+        for (String key : prefs("app_settings").getAll().keySet())
+            if (Arrays.asList(FIXTURE_SETTINGS).contains(key) || key.startsWith(RIDING_LAYOUT)) found.add(key);
+        require(found.isEmpty(), "Refusing existing settings " + found + "; use a fresh install");
+    }
+
+    private java.util.Map<String, java.util.Map<String, ?>> snapshot() {
+        java.util.Map<String, java.util.Map<String, ?>> out = new java.util.LinkedHashMap<>();
+        for (String name : FIXTURE_PREFS) out.put(name, new java.util.HashMap<>(prefs(name).getAll()));
+        return out;
+    }
+
+    /** Puts a preference file back as it was before this run (the app's own startup keys stay; the fixture's go). */
+    @SuppressWarnings("unchecked")
+    private void restore(String name, java.util.Map<String, ?> was) {
+        SharedPreferences.Editor edit = prefs(name).edit().clear();
+        for (java.util.Map.Entry<String, ?> entry : was.entrySet()) {
+            Object v = entry.getValue();
+            String k = entry.getKey();
+            if (v instanceof Boolean) edit.putBoolean(k, (Boolean) v);
+            else if (v instanceof Float) edit.putFloat(k, (Float) v);
+            else if (v instanceof Integer) edit.putInt(k, (Integer) v);
+            else if (v instanceof Long) edit.putLong(k, (Long) v);
+            else if (v instanceof String) edit.putString(k, (String) v);
+            else if (v instanceof java.util.Set) edit.putStringSet(k, (java.util.Set<String>) v);
+        }
+        edit.commit();
     }
 
     // ---- Riding mode ------------------------------------------------------------------------------------------------
@@ -531,16 +590,45 @@ public final class GpsAccuracyValidation extends Instrumentation {
     }
 
     /** No synthetic coordinate appears in any text or spoken description on screen. */
-    private void noPosition(String label) {
+    private void noPosition(String label) { noPosition(label, false); }
+
+    /**
+     * No coordinate in any window the screen shows (the Activity's, and each open dialog's: at phone width ride details
+     * open in one), in shown text, content descriptions or a view's accessibility text. With chart, the ride chart must be
+     * in one of the windows walked.
+     */
+    private void noPosition(String label, boolean chart) {
         main(() -> {
             List<String> all = new ArrayList<>();
-            words(activity.getWindow().getDecorView(), all);
+            boolean chartSeen = false;
+            for (View window : windows()) {
+                words(window, all);
+                if (find(window, RideChartView.class) != null) chartSeen = true;
+            }
+            if (chart) require(chartSeen, label + ": the chart is in no window checked for coordinates");
             for (String s : all) for (String leak : LEAKS) require(!s.contains(leak), label + ": a coordinate shows: " + s);
         });
         assertions++;
     }
 
+    /** The Activity's window, then each dialog the current screen has open. */
+    private List<View> windows() {
+        List<View> out = new ArrayList<>();
+        out.add(activity.getWindow().getDecorView());
+        Object screen = field(activity, "screen");
+        List<?> dialogs;
+        try { dialogs = (List<?>) field(screen, "dialogs"); } catch (IllegalStateException none) { dialogs = new ArrayList<>(); }
+        for (Object dialog : dialogs) {
+            android.view.Window window = ((android.app.Dialog) dialog).getWindow();
+            if (window != null) out.add(window.getDecorView());
+        }
+        return out;
+    }
+
     private void startTestProvider() throws Exception {
+        String mockWas = shell("appops get " + PKG + " android:mock_location");
+        mockPrevious = mockWas.contains(": allow") ? "allow" : mockWas.contains(": ignore") ? "ignore" : mockWas.contains(": deny") ? "deny" : "default";
+        mockAllowed = true;
         shell("appops set " + PKG + " android:mock_location allow");
         LocationManager lm = getTargetContext().getSystemService(LocationManager.class);
         try { lm.removeTestProvider(LocationManager.GPS_PROVIDER); } catch (IllegalArgumentException ignored) { }
@@ -866,7 +954,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
             if (p != null) p.requestRectangleOnScreen(new Rect(0, 0, p.getWidth(), Math.min(p.getHeight(), activity.getWindow().getDecorView().getHeight())), true);
         });
         settle();
-        noPosition(name);
+        noPosition(name, true);
         shot(name);
     }
 
@@ -878,7 +966,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
 
     // ---- Shared -----------------------------------------------------------------------------------------------------
 
-    private void cleanup() {
+    /** Undoes what this admitted run did, and only that: its rides, its device settings, and the preference files as they were. */
+    private void cleanup(java.util.Map<String, java.util.Map<String, ?>> before) {
         try {
             if (activity != null) {
                 ScooterService service = activity.service();
@@ -901,14 +990,14 @@ public final class GpsAccuracyValidation extends Instrumentation {
         try {
             if (testProvider) getTargetContext().getSystemService(LocationManager.class).removeTestProvider(LocationManager.GPS_PROVIDER);
         } catch (Throwable ignored) { }
+        try { if (mockAllowed) shell("appops set " + PKG + " android:mock_location " + mockPrevious); } catch (Throwable ignored) { }
+        try { if (localeSet) getTargetContext().getSystemService(LocaleManager.class).setApplicationLocales(LocaleList.getEmptyLocaleList()); } catch (Throwable ignored) { }
+        try { if (resized) { shell("wm size reset"); shell("wm density reset"); } } catch (Throwable ignored) { }
         try {
-            shell("appops set " + PKG + " android:mock_location default");
-            if (!locale.isEmpty()) getTargetContext().getSystemService(LocaleManager.class).setApplicationLocales(LocaleList.getEmptyLocaleList());
-            shell("wm size reset"); shell("wm density reset");
-            shell(immersivePrevious == null || immersivePrevious.isEmpty() || immersivePrevious.equals("null")
+            if (immersiveSet) shell(immersivePrevious == null || immersivePrevious.isEmpty() || immersivePrevious.equals("null")
                     ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
-            for (String name : new String[]{"app_settings", "profiles", "scooter"}) prefs(name).edit().clear().commit();
         } catch (Throwable ignored) { }
+        for (String name : FIXTURE_PREFS) try { restore(name, before.get(name)); } catch (Throwable ignored) { }
     }
 
     private void size(int w, int h) throws Exception { shell("wm size " + (w * 3) + "x" + (h * 3)); }
@@ -933,6 +1022,12 @@ public final class GpsAccuracyValidation extends Instrumentation {
         if (!view.isShown()) return;
         if (view instanceof TextView && ((TextView) view).length() > 0) out.add(((TextView) view).getText().toString());
         if (view.getContentDescription() != null) out.add(view.getContentDescription().toString());
+        if (!(view instanceof TextView) && !(view instanceof ViewGroup)) {
+            // A drawn view (the chart) says what it shows through its accessibility node.
+            android.view.accessibility.AccessibilityNodeInfo info = view.createAccessibilityNodeInfo();
+            if (info.getText() != null) out.add(info.getText().toString());
+            if (info.getContentDescription() != null) out.add(info.getContentDescription().toString());
+        }
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) words(((ViewGroup) view).getChildAt(i), out);
     }
 
