@@ -1762,11 +1762,35 @@ public final class DashboardScreen implements AppScreen {
         /** The reading the user has chosen (or the only one), which the tile shows at rest. */
         int chosen() { return two ? state.target : FULL; }
 
-        /** Two readings make one switchable control for TalkBack; one reading reads as the single tile did. */
+        /**
+         * Two readings make one switchable control for TalkBack; one reading reads as the single tile did. The state
+         * names the other time (its name only: a state that changed with every estimate would be read out each time).
+         */
         private void describe() {
             String text = spoken[chosen()];
             setTooltipText(text);
             setContentDescription(two ? text : null);
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                CharSequence other = captions[ChargeTimeReadings.other(chosen())].getContentDescription();
+                setStateDescription(two && other != null ? T.dashboardChargeTimeOther(other.toString()) : null);
+            }
+        }
+
+        /** The switch, named: double-tap says "Switch time", and the same is in the actions menu. */
+        @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            if (!switchable()) return;
+            String name = T.dashboardChargeTimeSwitch();
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                    android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, name));
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(R.id.charge_time_switch, name));
+        }
+
+        @Override public boolean performAccessibilityAction(int action, android.os.Bundle arguments) {
+            if (action != R.id.charge_time_switch) return super.performAccessibilityAction(action, arguments);
+            if (!switchable()) return false;
+            tapSwitch();
+            return true;
         }
 
         private void setTwo(boolean next) {

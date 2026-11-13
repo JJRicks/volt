@@ -4,4 +4,5 @@
     <item name="reorder_move_up" type="id" />
     <item name="reorder_move_down" type="id" />
     <item name="menu_hide" type="id" />
+    <item name="charge_time_switch" type="id" />
 </resources>
