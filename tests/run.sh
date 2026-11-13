@@ -55,6 +55,7 @@ sources+=("$APP_DIR/src/com/jjricks/volt/GpsAccuracy.java" "$TEST_DIR/GpsAccurac
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -152,6 +153,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
