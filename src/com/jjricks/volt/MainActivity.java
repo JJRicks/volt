@@ -184,6 +184,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void onServiceConnected(ComponentName name,IBinder binder){
             if(destroyed || enteringMaintenance || startupRedirect)return;
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
+            releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
             // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
@@ -332,8 +333,34 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
+        if(isChangingConfigurations()&&bound&&scooterService!=null&&scooterService.simulating())holdServiceAcrossRecreation();
+        else if(!isChangingConfigurations())releaseRecreationHold(getApplicationContext());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
+    }
+    /**
+     * The developer simulator lives only in ScooterService, which ten seconds after Volt leaves the screen stops being a
+     * started service (its usual idle stop): from then on this activity's binding alone keeps it. A recreation (dark
+     * mode, text size, also one Android defers until Volt is shown again) unbinds the old activity before the new one
+     * binds, so across that gap the application holds a binding of its own, released once the new activity connects.
+     */
+    private static ServiceConnection recreationHold;
+    private void holdServiceAcrossRecreation(){
+        if(recreationHold!=null)return;
+        Context app=getApplicationContext();
+        ServiceConnection hold=new ServiceConnection(){
+            @Override public void onServiceConnected(ComponentName name,IBinder binder){}
+            @Override public void onServiceDisconnected(ComponentName name){}
+        };
+        recreationHold=hold;
+        boolean held;
+        try{held=app.bindService(new Intent(app,ScooterService.class),hold,Context.BIND_AUTO_CREATE);}catch(RuntimeException unavailable){held=false;}
+        if(!held)releaseRecreationHold(app);
+    }
+    private static void releaseRecreationHold(Context app){
+        ServiceConnection hold=recreationHold;if(hold==null)return;
+        recreationHold=null;
+        try{app.unbindService(hold);}catch(IllegalArgumentException notBound){}
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
@@ -441,10 +468,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
         if (chargeLiveSheet != null) chargeLiveSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
-        boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
         // Riding mode always keeps the screen on: it's a handlebar display (riding-mode plan).
-        awake|=resumed&&riding!=null&&screen instanceof RidingScreen;
-        if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        boolean awake=KeepScreenOn.wanted(resumed,preferences.getBoolean("keep_screen_awake",true),scooterService!=null&&scooterService.isRecording(),riding!=null&&screen instanceof RidingScreen);
+        // Only a change: every flags call makes Android lay the window out again, even when the flag is already as asked.
+        int change=KeepScreenOn.change(awake,getWindow().getAttributes().flags);
+        if(change>0)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else if(change<0)getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
     /** Rebuild under a crossfade from the current window; a direction (tab order) brings the new page in from that side. */
     private void transitionRebuild(int direction){
