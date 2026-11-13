@@ -762,8 +762,10 @@ public final class DashboardScreen implements AppScreen {
     /** Home status line: Connected · drive mode, Connecting… or Disconnected · last seen. */
     private void refreshHeader(
             ScooterProfiles.Profile profile, Map<String, TelemetryHistory.Reading> readings) {
-        profileName.setText(profile == null ? T.dashboardYourScooter() : profile.name);
         BleController ble = service == null ? null : service.ble;
+        // While simulating, the simulated model's name (display only; the profile's stored name is untouched).
+        String simulated = ble == null ? null : ble.simulationName();
+        profileName.setText(simulated != null ? simulated : profile == null ? T.dashboardYourScooter() : profile.name);
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean connecting =
@@ -904,7 +906,7 @@ public final class DashboardScreen implements AppScreen {
         if (r == null || r.value == null) return "—";
         if (r.key.equals("driving_mode") && r.number != null) {
             ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()), r.number);
+            return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(service == null ? null : service.modelDescriptor(profile)), r.number);
         }
         if (r.number != null) {
             if (DisplayTemperature.isTemperature(r.key))
@@ -1078,10 +1080,10 @@ public final class DashboardScreen implements AppScreen {
                 ScooterReadingLabels.compact(key, normal), glyphDrawable(readingIcon(key), ui.muted, 18));
     }
 
-    /** The active scooter's saved model, which decides its photo independent of live readings. */
+    /** The active scooter's saved model (the simulated one while simulating), which decides its photo independent of live readings. */
     private DeviceDescriptor activeModel() {
         ScooterProfiles.Profile p = service == null ? null : service.profiles.active();
-        return p == null ? null : p.savedDescriptor();
+        return service == null ? null : service.modelDescriptor(p);
     }
 
     private String duration(Double minutes) {
@@ -6645,7 +6647,7 @@ public final class DashboardScreen implements AppScreen {
         if (widget.advertisedWh > 0) return widget.advertisedWh;
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
         // NAVEE US UT5 MAX specification: 46.8 V nominal × 15.3 Ah.
-        return ModelRegistry.ratedWh(profile == null ? null : profile.savedDescriptor());
+        return ModelRegistry.ratedWh(service == null ? null : service.modelDescriptor(profile));
     }
 
     private String ratingLabel(DashboardConfig.Widget widget) {
@@ -6659,7 +6661,7 @@ public final class DashboardScreen implements AppScreen {
         dismiss();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
         // NAVEE US UT5 MAX specification: 46.8 V nominal × 15.3 Ah (see rating()).
-        boolean modelKnown = ModelRegistry.ratedWh(profile == null ? null : profile.savedDescriptor()) != null;
+        boolean modelKnown = ModelRegistry.ratedWh(service == null ? null : service.modelDescriptor(profile)) != null;
         LinearLayout content = column();
         content.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         LinearLayout field = row();

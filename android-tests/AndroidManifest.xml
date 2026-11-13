@@ -57,6 +57,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.CompatControlsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated OEM control families validation" />
   <instrumentation android:name="com.jjricks.volt.tests.MaintenanceOfflineValidation" android:targetPackage="com.jjricks.volt" android:label="Maintenance reminders added with no connection" />
   <instrumentation android:name="com.jjricks.volt.tests.ScooterMenuEditValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated Scooter menu editor validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.SimulatorScenesValidation" android:targetPackage="com.jjricks.volt" android:label="Developer simulator: three models in Parked, Riding and Charging, then the real state back" />
   <instrumentation android:name="com.jjricks.volt.tests.Ut5SimulationScreens" android:targetPackage="com.jjricks.volt" android:label="Isolated UT5 MAX simulator screen capture" />
   <instrumentation android:name="com.jjricks.volt.GuidedTestValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator guided setting test validation (synthetic link)" />
   <instrumentation android:name="com.jjricks.volt.tests.FirstConnectionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated first-connection failure validation" />

@@ -142,8 +142,6 @@ public final class MoreScreen implements AppScreen {
     private Row nearbyRow, locationRow, notificationRow;
     private Row developerIndexRow, simulationRow, simulationModelRow, liveUpdateRow;
     /** Developer simulator models: "" is the UT5 MAX simulator; the others are synthetic advertised IDs. */
-    private static final String[] SIMULATION_MODELS = {"", "24431", "39991"};
-    private static final String[] SIMULATION_MODEL_NAMES = {"UT5 MAX", "Mapped model (synthetic 24431)", "Unknown model (synthetic 39991)"};
     private TextView simulationStatus, chargeCaptureStatus, chargeCurveValue, chargeCurveScope;
     private LinearLayout chargeCurve;
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
@@ -2707,14 +2705,29 @@ public final class MoreScreen implements AppScreen {
     private void chooseSimulationModel() {
         ScooterService s = service();
         if (closed || s == null) return;
-        int selected = Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
+        // Every model Volt names (SimulatorModels: the registry's list, a region where its controls differ by region).
+        java.util.List<SimulatorModels.Entry> models = SimulatorModels.entries();
+        int selected = Math.max(0, models.indexOf(SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
+        String[] names = new String[models.size()];
+        for (int i = 0; i < names.length; i++) names[i] = models.get(i).label();
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulatedModel())
-                .setSingleChoiceItems(SIMULATION_MODEL_NAMES, selected, (d, which) -> {
+                .setSingleChoiceItems(names, selected, (d, which) -> {
                     ScooterService current = service();
                     if (closed || current == null) return;
-                    current.ble.setSimulationModel(SIMULATION_MODELS[which]); d.dismiss();
+                    SimulatorModels.Entry chosen = models.get(which);
+                    current.ble.setSimulationModel(chosen.pid, chosen.region); d.dismiss();
                     refreshSimulation(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
+    }
+
+    /** Developer options' Scene and Drive mode rows' view tags (the rows and their text arrive with the catalog PR). */
+    static final String SIMULATION_SCENE_TAG = "developer-simulation-scene", SIMULATION_DRIVE_MODE_TAG = "developer-simulation-drive-mode";
+
+    /** One more simulator row under Simulated model: the scooter icon, a title, no value yet, and its view tag. */
+    private Row simulatorRow(LinearLayout group, String title, String tag, Runnable open) {
+        Row row = row(group, "scooter", title, null, open);
+        row.view.setTag(tag);
+        return row;
     }
 
     /** Developer options' simulation rows and the simulating note on More's menu. */
@@ -2728,8 +2741,8 @@ public final class MoreScreen implements AppScreen {
         if (simulationRow != null) {
             refreshSwitch(simulationRow, simulating, s != null);
             simulationStatus.setVisibility(simulating ? View.VISIBLE : View.GONE);
-            int model = s == null ? 0 : Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
-            simulationModelRow.value(model == 0 ? "UT5 MAX" : model == 1 ? "Mapped" : "Unknown");
+            simulationModelRow.value(SimulatorModels.shortLabel(s == null ? SimulatorModels.entries().get(0)
+                    : SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
             simulationModelRow.enabled(s != null);
         }
     }
@@ -2879,7 +2892,7 @@ public final class MoreScreen implements AppScreen {
     // ---- Refresh ------------------------------------------------------------------------
 
     private void refreshProfiles(ScooterService s, ScooterProfiles.Profile p) {
-        DeviceDescriptor saved = p == null ? null : p.savedDescriptor();
+        DeviceDescriptor saved = s.modelDescriptor(p);
         boolean photo = ScooterPhotos.show(indexPhoto, saved, 4);
         indexPhoto.setVisibility(photo ? View.VISIBLE : View.GONE);
         indexPhotoFallback.setVisibility(photo ? View.GONE : View.VISIBLE);
@@ -2888,6 +2901,9 @@ public final class MoreScreen implements AppScreen {
         String link = s.ble.ready() ? T.moreLinkConnected()
                 : state == BleController.State.DISCONNECTED ? T.moreLinkDisconnected() : T.moreLinkConnecting();
         String name = p == null ? T.moreIndexNoScooter() : p.displayName();
+        // While simulating, the simulated model's name, beside its photo (display only; the stored name is untouched).
+        String simulated = s.ble.simulationName();
+        if (simulated != null) name = simulated;
         String status = p == null ? T.moreIndexAdd() : T.moreIndexStatus(role, link);
         indexProfileName.setText(name); indexProfileState.setText(status);
         indexProfileCard.setContentDescription(T.moreIndexDescription(name, status));
