@@ -160,6 +160,22 @@ public final class SimulatorScenesTest {
         kept.set("maximum_speed", 45, ScooterSimulation.offeredVariant("maximum_speed", gt5.descriptor()));
         kept.setModel(""); kept.conform(SimulatorModels.find("", null).descriptor());
         check(kept.featureValue("maximum_speed") == 40, "the GT5 Max's 45 km/h becomes the UT5 MAX's 40: " + kept.featureValue("maximum_speed"));
+        // Review round 3 (P3): a value only Experimental controls offer is kept when the same entry is picked again.
+        // UT5 MAX (EU): kick-start's own row offers 3-5 km/h; Experimental controls also try 0.
+        SimulatorModels.Entry eu = SimulatorModels.find("", "EU");
+        FeatureVariant euRow = ScooterSimulation.ordinaryVariant("start_speed", eu.descriptor()), euTry = ScooterSimulation.tryVariant("start_speed", eu.descriptor());
+        check(euRow != null && !euRow.allows(0) && euTry != null && euTry.allows(0), "UT5 MAX (EU): kick-start 0 only through Experimental controls");
+        ScooterSimulation tried = simulation(eu);
+        tried.set("start_speed", 0, euTry);
+        check(tried.featureValue("start_speed") == 0, "Experimental controls set kick-start 0");
+        tried.conform(eu.descriptor());
+        check(tried.featureValue("start_speed") == 0, "picking UT5 MAX (EU) again keeps the experimental 0 km/h: " + tried.featureValue("start_speed"));
+        tried.conform(SimulatorModels.find("", null).descriptor());
+        check(tried.featureValue("start_speed") == 0, "and so does UT5 MAX (US), whose own row offers 0");
+        // A value neither variant offers still moves to the ordinary row's nearest choice.
+        tried.setUnoffered("start_speed", 9);
+        tried.conform(eu.descriptor());
+        check(tried.featureValue("start_speed") == 5, "kick-start 9 on UT5 MAX (EU) becomes its nearest choice, 5: " + tried.featureValue("start_speed"));
         // A validation can still set an unoffered value on purpose (Home's unreadable dash).
         kept.setUnoffered("maximum_speed", 51);
         check(kept.featureValue("maximum_speed") == 51, "setUnoffered sets the value as given");
@@ -174,14 +190,16 @@ public final class SimulatorScenesTest {
         DeviceDescriptor d = e.descriptor();
         int checked = 0;
         for (Map.Entry<String, Integer> f : s.features().entrySet()) {
-            FeatureVariant v = ScooterSimulation.offeredVariant(f.getKey(), d);
+            FeatureVariant v = ScooterSimulation.offeredVariant(f.getKey(), d), tried = ScooterSimulation.tryVariant(f.getKey(), d);
             if (v == null) continue;
             checked++;
-            check(f.getValue() != null && v.allows(f.getValue()), where + ": " + f.getKey() + " = " + f.getValue() + " is outside " + v.id);
+            // Inside the ordinary variant, or (review round 3) inside the Experimental controls try's.
+            FeatureVariant holds = f.getValue() != null && v.allows(f.getValue()) ? v : f.getValue() != null && tried != null && tried.allows(f.getValue()) ? tried : null;
+            check(holds != null, where + ": " + f.getKey() + " = " + f.getValue() + " is outside " + v.id);
             for (CapabilityResolver.Decision shown : new CapabilityResolver.Decision[]{
                     CapabilityResolver.decide(f.getKey(), d, StatusFields.NONE, simulationRuntime()),
                     CapabilityResolver.decideTry(f.getKey(), d, StatusFields.NONE, simulationRuntime())}) {
-                if (shown.support != CapabilityResolver.Support.KNOWN_ENCODING || shown.variant != v || shown.values().length == 0) continue;
+                if (shown.support != CapabilityResolver.Support.KNOWN_ENCODING || shown.variant != holds || shown.values().length == 0) continue;
                 boolean listed = false;
                 for (int c : shown.values()) listed |= c == f.getValue();
                 check(listed, where + ": " + f.getKey() + " = " + f.getValue() + " is not among the screen's choices " + Arrays.toString(shown.values()));
@@ -323,7 +341,20 @@ public final class SimulatorScenesTest {
         ScooterSimulation stock = simulation(SimulatorModels.find("", null));
         stock.setScene(ScooterSimulation.Scene.CHARGING); stock.tick(t = new Telemetry(), 1000);
         check(Math.abs(stock.chargeAmps() - 2.3) < 1e-9, "UT5 MAX stock charger: about 2.3 A");
+        // Review round 3: Automatic finds the charger the Charging scene has plugged in (charger detection never runs while
+        // simulating), only while charging, and only on a model whose chargers Volt tells apart.
+        ScooterSimulation plugged = simulation(SimulatorModels.find("", null));
+        check(plugged.detectedFastCharger() == null, "Parked: nothing for Automatic to find");
+        plugged.setScene(ScooterSimulation.Scene.CHARGING);
+        check(Boolean.FALSE.equals(plugged.detectedFastCharger()), "UT5 MAX charging on the stock charger: Automatic finds Stock");
+        plugged.setFastCharger(true);
+        check(Boolean.TRUE.equals(plugged.detectedFastCharger()), "on the high-speed charger: Automatic finds High-speed");
+        plugged.setScene(ScooterSimulation.Scene.RIDING);
+        check(plugged.detectedFastCharger() == null, "unplugged: nothing again");
         ScooterSimulation gt3 = simulation(SimulatorModels.find("24182", "US"));
+        gt3.setScene(ScooterSimulation.Scene.CHARGING); gt3.setFastCharger(true);
+        check(gt3.detectedFastCharger() == null, "a model with one charger family: Automatic finds nothing, as on a real one");
+        gt3.setScene(ScooterSimulation.Scene.PARKED);
         gt3.set("charge_limit", 80);
         gt3.setFastCharger(true);
         check(!gt3.fastCharger(), "a model without the UT5 MAX references has one charger");
@@ -471,14 +502,46 @@ public final class SimulatorScenesTest {
         check(!AutoStartPolicy.moving(true, 0, 1000, 1000), "the simulator's raw speed is a standstill");
     }
 
-    /** RangeFollowPolicy's per-profile memory: ScooterService resets it on every simulation toggle. */
+    /**
+     * RangeFollowPolicy's per-profile memory (review round 3): the simulator's attempts are kept under their own key and a
+     * simulation toggle forgets only those, so a real scooter's rejected or unconfirmed attempt is never repeated after
+     * simulation ends, and neither side's attempt carries into the other.
+     */
     private static void rangeFollowForgetsAcrossToggles() {
-        RangeFollowPolicy policy = new RangeFollowPolicy();
         int[] offered = {2, 3, 4};
-        Integer first = policy.next("p1", 2538, 3.0, offered, 2, true, true, false, true, true);
-        check(first != null, "the real side tried a range mode");
-        check(policy.next("p1", 2538, 3.0, offered, 2, true, true, false, true, true) == null, "once per mode");
-        policy.reset();
-        check(policy.next("p1", 2538, 3.0, offered, 2, true, true, false, true, true) != null, "after a toggle the other side starts fresh");
+        String real = "p1", simulated = RangeFollowPolicy.simulationKey(real);
+        check(!simulated.equals(real), "the simulator's attempts have a key of their own");
+        RangeFollowPolicy policy = new RangeFollowPolicy();
+        check(follow(policy, real) != null, "the real scooter tried a range mode (rejected or never confirmed)");
+        check(follow(policy, real) == null, "once per mode");
+        policy.forgetSimulation(); // simulation on
+        check(follow(policy, simulated) != null, "the real scooter's attempt doesn't carry into the simulation");
+        check(follow(policy, simulated) == null, "the simulator tries once too");
+        policy.forgetSimulation(); // simulation off
+        for (int reconnect = 0; reconnect < 3; reconnect++)
+            check(follow(policy, real) == null, "the real scooter's attempt survives simulation on and off: no repeated write");
+        policy.forgetSimulation(); // on again
+        check(follow(policy, simulated) != null, "the last simulation's attempt is forgotten by the toggle");
+        // The other direction: an attempt made only while simulating never holds back the real scooter's first one.
+        RangeFollowPolicy fresh = new RangeFollowPolicy();
+        check(follow(fresh, simulated) != null, "the simulator tried first");
+        fresh.forgetSimulation();
+        check(follow(fresh, real) != null, "the simulator's attempt doesn't carry into the real scooter");
+        // ScooterService wiring: the toggle forgets the simulator's attempts only, and simulated attempts use their key.
+        String service = source("src/com/jjricks/volt/ScooterService.java");
+        String toggle = service.substring(service.indexOf("public boolean setSimulation(boolean enabled)"), service.indexOf("public boolean isChargeRecording()"));
+        check(toggle.contains("rangeFollowPolicy.forgetSimulation();") && !toggle.contains("rangeFollowPolicy.reset()"),
+                "setSimulation forgets only the simulator's range-following attempts");
+        String follow = service.substring(service.indexOf("private void followRangeMode()"));
+        follow = follow.substring(0, follow.indexOf("\n    }\n"));
+        check(follow.contains("simulating() ? RangeFollowPolicy.simulationKey(profile.id) : profile.id"),
+                "followRangeMode keeps simulated attempts under the simulator's key");
+    }
+    private static Integer follow(RangeFollowPolicy policy, String key) {
+        return policy.next(key, 2538, 3.0, new int[]{2, 3, 4}, 2, true, true, false, true, true);
+    }
+    private static String source(String path) {
+        try { return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("read " + path, e); }
     }
 }

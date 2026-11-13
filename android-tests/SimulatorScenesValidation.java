@@ -147,12 +147,29 @@ public final class SimulatorScenesValidation extends Instrumentation {
                         require(model[0].equals("24182") ? amps > 0 : amps < 0, label + ": the model's current sign while charging, " + amps);
                         require(model[0].isEmpty() == (number(service, "charge_limit_percent") != null), label + ": a charge limit reading only on the UT5 MAX");
                         require(!service.chargeAlertWatching() && !service.chargeAlarmPlaying(), label + ": simulated charge alerts never watch or ring");
-                        // Charge done by follows the simulated model's charge reference: a real UT5 MAX on the Automatic charger
-                        // doesn't hold another simulated model to charger detection, which never runs while simulating.
-                        if (!model[0].isEmpty()) {
-                            Object context = call(service, "chargeScheduleContext", new Class<?>[0]);
-                            require(field(context, "estimateUnavailableReason") == null, label + ": Charge done by waits for charger detection: " + field(context, "estimateUnavailableReason"));
+                        // Charge done by follows the simulated model's charge reference and never waits for charger detection,
+                        // which doesn't run while simulating (review rounds 2 and 3): on the UT5 MAX, Automatic finds the charger
+                        // the scene has plugged in. The three charger choices; the saved choice goes back to Automatic after.
+                        for (ChargeSessionStore.Charger choice : model[0].isEmpty()
+                                ? new ChargeSessionStore.Charger[]{null, ChargeSessionStore.Charger.STOCK, ChargeSessionStore.Charger.HIGH_SPEED}
+                                : new ChargeSessionStore.Charger[]{null}) {
+                            String which = label + " (" + (choice == null ? "Automatic" : choice.name()) + ")";
+                            main(() -> require(service.setChargeCharger(choice), which + ": charger choice")); settle();
+                            main(() -> {
+                                Object context = call(service, "chargeScheduleContext", new Class<?>[0]);
+                                require(field(context, "estimateUnavailableReason") == null, which + ": Charge done by waits for charger detection: " + field(context, "estimateUnavailableReason"));
+                                ChargeSessionStore.Charger effective = service.effectiveChargeCharger();
+                                if (model[0].isEmpty()) {
+                                    ChargeSessionStore.Charger plugged = choice == ChargeSessionStore.Charger.HIGH_SPEED ? choice : ChargeSessionStore.Charger.STOCK;
+                                    require(effective == plugged, which + ": the charger in effect is the plugged-in " + plugged + ": " + effective);
+                                    require(service.chargerBasis() == (choice == null ? ScooterService.ChargerBasis.DETECTED : ScooterService.ChargerBasis.MANUAL), which + ": basis " + service.chargerBasis());
+                                } else require(choice != null || effective == null, which + ": a model with one charger family stays Automatic: " + effective);
+                                ChargeSessionStore.Estimate shown = (ChargeSessionStore.Estimate) call(service, "chargeRecordingEstimate", new Class<?>[0]);
+                                note(which + ": charger " + effective + " (" + service.chargerBasis() + "); estimate to full " + shown.remainingMinutesToFull + " min (" + shown.fullSource
+                                        + "), to limit " + shown.remainingMinutesToLimit + " min (" + shown.limitSource + "); Charge done by estimate " + field(context, "estimateMinutes") + " min");
+                            });
                         }
+                        main(() -> require(service.setChargeCharger(null), label + ": charger back to Automatic")); settle();
                     }
                     for (String page : new String[]{"home", "scooter", "battery", "battery.estimates", "data"}) {
                         go(page); capture(label + "-" + page.replace('.', '-'));
