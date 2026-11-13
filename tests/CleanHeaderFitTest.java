@@ -46,9 +46,8 @@ public final class CleanHeaderFitTest {
         if (window == 344) require(room == 160, at + ": the name has 160 dp beside the three buttons, " + room);
         CleanHeaderFit.Width w = width(text, wider);
         float status = lineDp(12.5f * text, 1);
-        // The status line's tap target: its whole band, which the name row does not overlap.
-        require(CleanHeaderFit.statusBandDp(status) >= CleanHeaderFit.TARGET_DP, at + ": the status line keeps a 48 dp target");
-        require(CleanHeaderFit.statusBandDp(status) >= status + CleanHeaderFit.STATUS_UNDER_DP, at + ": the status line fits its band");
+        // The status line's tap target: its text and its padding, which overlaps the space above and the name row's top.
+        require(CleanHeaderFit.statusTargetDp(status) >= CleanHeaderFit.TARGET_DP, at + ": the status line keeps a 48 dp target");
         for (String name : new String[]{"Your scooter", "Midnight Runner", "Segway Ninebot Max G2", "Max", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
             CleanHeaderFit.Name fit = CleanHeaderFit.name(name, room, w);
             require(fit.lines >= 1 && fit.lines <= 2, at + ": " + name + " takes one or two lines: " + fit);
@@ -56,9 +55,9 @@ public final class CleanHeaderFitTest {
             float nameDp = lineDp(CleanHeaderFit.NAME_SP * text * fit.scale, fit.lines);
             require(CleanHeaderFit.nameRowDp(nameDp) >= CleanHeaderFit.TARGET_DP, at + ": " + name + " keeps a 48 dp target");
             float header = CleanHeaderFit.heightDp(status, nameDp);
-            require(header >= 2 * CleanHeaderFit.TARGET_DP, at + ": two 48 dp targets stacked");
-            if (fit.lines == 1) require(header <= 100, at + ": " + name + " on one line: the header is at most 100 dp, " + header);
-            else require(header <= 140, at + ": " + name + " on two lines: the header is at most 140 dp, " + header);
+            require(header >= CleanHeaderFit.TARGET_DP + status, at + ": the name row's 48 dp and the status line");
+            if (fit.lines == 1) require(header <= (text == 1 ? 80 : 90), at + ": " + name + " on one line: the header is about the mock-up's height, " + header);
+            else require(header <= 120, at + ": " + name + " on two lines: the header is at most 120 dp, " + header);
             if (!fit.clipped) require(CleanHeaderFit.fits(name, room / fit.scale, fit.lines, w), at + ": " + name + " fits as fitted: " + fit);
         }
         // A usual name stays on one line beside the buttons: the default and a 15-letter name at 1x, the default at 1.4x.
@@ -72,7 +71,8 @@ public final class CleanHeaderFitTest {
             require(midnight.scale < 1, at + ": Midnight Runner a little smaller rather than wrapped: " + midnight);
             CleanHeaderFit.Name long_ = CleanHeaderFit.name("Segway Ninebot Max G2", room, w);
             require(long_.lines == 2 && !long_.clipped, at + ": a long name takes two whole lines: " + long_);
-            require(CleanHeaderFit.heightDp(lineDp(12.5f, 1), lineDp(23, 1)) == 100, at + ": one-line header is 100 dp");
+            float one = CleanHeaderFit.heightDp(lineDp(12.5f, 1), lineDp(23, 1));
+            require(one >= 76 && one <= 80, at + ": one-line header is about 77 dp (the mock-up: 67 dp from the status bar to the card), " + one);
         }
         if (window == 725) {
             require(CleanHeaderFit.name("Segway Ninebot Max G2", room, w).lines == 1, at + ": a long name on one line on a wide window");
@@ -95,11 +95,12 @@ public final class CleanHeaderFitTest {
         require(CleanHeaderFit.nameRoomDp(100) == 0, "no room is no room");
     }
 
-    /** The header's targets: 48 dp bands, 48 dp buttons around a 40 dp disc. */
+    /** The header's targets: a 48 dp name row and status target, 48 dp buttons around a 40 dp disc. */
     private static void targets() {
         require(CleanHeaderFit.TARGET_DP >= 48, "targets are at least 48 dp (docs/development-notes.md)");
         require(CleanHeaderFit.DISC_DP <= CleanHeaderFit.TARGET_DP && CleanHeaderFit.DISC_DP >= 36, "a disc inside its target");
-        require(CleanHeaderFit.statusBandDp(80) == 84, "a tall status line grows its band");
+        require(CleanHeaderFit.statusTargetDp(80) == 80 + 2 * CleanHeaderFit.STATUS_PAD_DP, "a tall status line keeps its padding");
+        require(CleanHeaderFit.statusTargetDp(12.5f * 1.327f) >= 48, "the 12.5 sp status line has a 48 dp target");
         require(CleanHeaderFit.nameRowDp(10) == 48, "a short name keeps a full target");
     }
 

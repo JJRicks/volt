@@ -5,10 +5,13 @@ package com.jjricks.volt;
  * Edit, search and Settings beside it, level with the name, as the mock-up draws it. Pure Java, so the JVM suite checks
  * it at the sizes the maintainers check (tests/CleanHeaderFitTest).
  *
- * <p>Both lines are tap targets (the status line opens the connection details, the name switches scooter), so each
- * keeps a full {@link #TARGET_DP} dp band, and the three buttons keep 48 dp targets around a {@link #DISC_DP} dp disc.
- * That is what sets the header's height: two 48 dp targets stacked, not the text. The status line sits at the bottom
- * of its band, near the name.
+ * <p>Both lines are tap targets (the status line opens the connection details, the name switches scooter), and the
+ * three buttons keep 48 dp targets around a {@link #DISC_DP} dp disc. The name row is a full {@link #TARGET_DP} dp
+ * band. The status line gets its target the way the widget dashboard's header gives it one: {@link #STATUS_PAD_DP} dp
+ * of padding above and below its text, taken back by margins of the same size, so the target overlaps the space
+ * above the header and the top of the name row instead of adding a band of its own. The header is then about the
+ * mock-up's height (two text lines, the checklist's 45 to 60 dp plus the 48 dp name row's own space), not two 48 dp
+ * bands stacked.
  *
  * <p>The name shares its row with the three buttons, so it takes, in this order, the first that fits: one line at full
  * size, one line smaller (down to {@link #MIN_NAME_SP} sp of {@link #NAME_SP}), two lines of whole words at full size,
@@ -20,8 +23,11 @@ final class CleanHeaderFit {
     static final int TARGET_DP = 48, DISC_DP = 40;
     /** Three buttons beside the name (Edit, search, Settings), and the space before the first. */
     static final int BUTTONS = 3, BUTTON_GAP_DP = 4;
-    /** Space under the status line's text in its band, and under the header (above the top area). */
-    static final int STATUS_UNDER_DP = 4, BOTTOM_DP = 4;
+    /**
+     * The status line's padding above and below its text (taken back by margins, as on the widget dashboard), the
+     * space above it (the header's top padding) and under the header (above the top area).
+     */
+    static final int STATUS_PAD_DP = 16, TOP_DP = 8, BOTTOM_DP = 4;
     /** The name's text size and the smallest it gets before it wraps (sp, before the text scale). */
     static final float NAME_SP = 23, MIN_NAME_SP = 16;
     private static final float SCALE_STEP = .05f;
@@ -68,9 +74,9 @@ final class CleanHeaderFit {
         return new Name(2, Math.round(minScale() * 100) / 100f, true);
     }
 
-    /** The status line's band (dp) for a line {@code statusLineDp} tall: a full target, or the line and the space under it. */
-    static float statusBandDp(float statusLineDp) {
-        return Math.max(TARGET_DP, statusLineDp + STATUS_UNDER_DP);
+    /** The status line's touch target (dp) for a line {@code statusLineDp} tall: the line and its padding. */
+    static float statusTargetDp(float statusLineDp) {
+        return statusLineDp + 2 * STATUS_PAD_DP;
     }
 
     /** The name row's height (dp) for a name {@code nameDp} tall (all its lines): a full target or the name. */
@@ -78,9 +84,9 @@ final class CleanHeaderFit {
         return Math.max(TARGET_DP, nameDp);
     }
 
-    /** The header's height (dp): the status band, the name row and the space under it. */
+    /** The header's height (dp): the space above, the status line's text, the name row and the space under it. */
     static float heightDp(float statusLineDp, float nameDp) {
-        return statusBandDp(statusLineDp) + nameRowDp(nameDp) + BOTTOM_DP;
+        return TOP_DP + statusLineDp + nameRowDp(nameDp) + BOTTOM_DP;
     }
 
     /** Whether {@code text} breaks into at most {@code lines} lines of whole words, each within {@code room}. */
