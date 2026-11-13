@@ -23,7 +23,7 @@ final class DiagnosticsSettings {
             "auto_record_rides", "auto_record_background", "riding_auto_open",
             "ride_auto_stop", "phone_gps", "phone_motion", "ride_auto_export_json",
             // Charging
-            "charge_live_enabled", "charge_live_lock_detail",
+            "charge_live_enabled", "charge_live_lock_detail", "charge_auto_record",
             // Look and units
             "home_style", "home_style_chosen", "home_moment_charging", "home_moment_ride", "units", "temperature_unit",
             "time_format", "theme", "text_scale", "stats_density", "dashboard_columns", "app_language",
