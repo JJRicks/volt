@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.ChargeAlertPolicy;
+import com.jjricks.volt.ChargeSessionStore;
+import com.jjricks.volt.RideStore;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ModelRegistry;
 import com.jjricks.volt.OnboardingScreen;
@@ -40,7 +42,8 @@ import com.jjricks.volt.TelemetryHistory;
  * Fresh disposable emulator only. The developer simulator's three models (UT5 MAX, GT3 Max with no charge limit and an
  * unsigned current, GT5 Max EU whose controls differ by region) in each scene (Parked, Riding, Charging): Home, the
  * Scooter index, the Battery page and its estimates, Live Stats and riding mode (opened by hand) each captured, with
- * auto-record and auto riding mode on to show a simulated ride starts neither. Then simulation ends and every private
+ * auto-record and auto riding mode on to show a simulated ride starts neither. The real side holds a history point, a
+ * recorded ride and a charge recording beforehand. Then simulation ends and every private
  * store is compared with its state before: databases, files and no_backup byte for byte, preferences key by key, the
  * command log's new records (simulated sessions only), and no notification raised meanwhile.
  */
@@ -80,6 +83,9 @@ public final class SimulatorScenesValidation extends Instrumentation {
                 id[0] = saved.id;
                 OnboardingScreen.markDone(getTargetContext());
             });
+            // A real recorded ride and charge recording, so both stores hold content the simulator must leave byte for byte.
+            seedRide(id[0], System.currentTimeMillis() - 2 * 86400000L);
+            seedCharge(id[0], System.currentTimeMillis() - 86400000L);
             activity = (MainActivity)startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, "App did not launch", 8000); settle();
             ScooterService service = activity.service();
@@ -98,6 +104,11 @@ public final class SimulatorScenesValidation extends Instrumentation {
             int commandsBefore = commands().size();
             List<String> noticesBefore = notices();
             note("before: " + filesBefore.size() + " files; " + filesBefore.keySet());
+            for (String store : new String[]{"databases/telemetry-history.db", "files/rides/", "files/charge-recordings/"}) {
+                boolean held = false;
+                for (String name : filesBefore.keySet()) held |= store.endsWith("/") ? name.startsWith(store) : name.equals(store);
+                require(held, "The real " + store + " store holds the fixture before simulation: " + filesBefore.keySet());
+            }
 
             main(() -> require(service.setSimulation(true), "Simulation did not start")); settle();
             for (String[] model : MODELS) {
@@ -234,6 +245,28 @@ public final class SimulatorScenesValidation extends Instrumentation {
             out.put(name, child.length() + ":" + hex.substring(0, 16));
         }
     }
+    /** A short finished ride in the real ride store (as BackupScenarioValidation writes one). */
+    private void seedRide(String profile, long wall) throws Exception {
+        RideStore store = new RideStore(new File(getTargetContext().getFilesDir(), "rides")); long mono = 100000;
+        store.start(profile, "Fixture ride", wall, mono);
+        for (int i = 0; i < 3; i++) {
+            long at = mono + i * 2000; Map<String, RideStore.Sample> samples = new LinkedHashMap<>();
+            samples.put("battery_percent", new RideStore.Sample(80d - i, at)); samples.put("speed_kmh", new RideStore.Sample(18d, at));
+            samples.put("odometer_km", new RideStore.Sample(1234 + i * .01, at)); store.sample(wall + i * 2000, at, samples);
+        }
+        store.stop(wall + 6000, mono + 6000);
+    }
+    /** A short stopped charge in the real charge-recording store. */
+    private void seedCharge(String profile, long wall) throws Exception {
+        ChargeSessionStore store = new ChargeSessionStore(new File(getTargetContext().getFilesDir(), "charge-recordings")); long mono = 100000;
+        store.start(profile, ChargeSessionStore.Charger.STOCK, wall, mono);
+        for (int i = 0; i < 3; i++) {
+            long at = mono + i * 10000;
+            require(store.sample(new ChargeSessionStore.Frame(wall + i * 10000, at, chargeValue(1d, at), chargeValue(50d + i, at), chargeValue(52d, at), chargeValue(-2d, at), chargeValue(23d, at))), "Write charge reading");
+        }
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+    }
+    private static ChargeSessionStore.Value chargeValue(double n, long at) { return new ChargeSessionStore.Value(n, at, 0x72); }
     private Map<String, Map<String, String>> preferences() {
         TreeMap<String, Map<String, String>> out = new TreeMap<>();
         File[] files = new File(getTargetContext().getDataDir(), "shared_prefs").listFiles();
