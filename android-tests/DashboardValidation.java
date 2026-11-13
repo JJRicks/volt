@@ -136,8 +136,14 @@ public final class DashboardValidation extends Instrumentation {
             assertCachedReadings();
             verifyCompactConnection();
             verifyDisconnectedScooterPhoto();
-            clickDescription("Scooter"); clickText(root(), "Scooter name");
-            AlertDialog rename = (AlertDialog)field(activity, "controlDialog");
+            // The Scooter tab's "Scooter name" row was retired from the Scooter pages by the Hub layout (#385); the name
+            // is edited in More › My scooters (and Home's edit mode, below), so rename there and check Home follows.
+            clickDescription("More"); clickText(root(), "My scooters");
+            String activeId = new ScooterProfiles(getTargetContext()).active().id;
+            View[] edit = {null}; main(() -> edit[0] = root().findViewWithTag("scooter-edit-" + activeId));
+            require(edit[0] != null && edit[0].isShown(), "My scooters has no Edit for the current scooter");
+            click(edit[0]);
+            AlertDialog rename = lastMoreDialog();
             main(() -> first(rename.getWindow().getDecorView(), EditText.class).setText(RENAMED));
             click(rename.getButton(AlertDialog.BUTTON_POSITIVE));
             main(() -> require(RENAMED.equals(new ScooterProfiles(getTargetContext()).active().name), "Scooter name was not saved"));
@@ -2204,6 +2210,12 @@ public final class DashboardValidation extends Instrumentation {
     }
     private void reveal(View view) { main(() -> view.requestRectangleOnScreen(new Rect(0, 0, view.getWidth(), view.getHeight()), true)); waitForIdleSync(); }
     private View root() { return (View)field(activity, "root"); }
+    /** The newest dialog More's screen opened (MoreScreen keeps them in "dialogs"). */
+    private AlertDialog lastMoreDialog() {
+        AlertDialog[] found = {null};
+        main(() -> { List<?> list = (List<?>)field(HubTestPages.part(activity, "MoreScreen"), "dialogs"); require(!list.isEmpty(), "More opened no dialog"); found[0] = (AlertDialog)list.get(list.size() - 1); });
+        return found[0];
+    }
     private SharedPreferences settings() { return getTargetContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE); }
     private void screenshot(String name) throws Exception {
         waitForIdleSync(); SystemClock.sleep(120); Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");

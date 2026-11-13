@@ -23,6 +23,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
+import com.jjricks.volt.tests.HubTestPages;
 
 /**
  * Disposable emulator only: auto-record and auto ride mode through the real service, activity and
@@ -247,8 +248,8 @@ public final class AutoStartValidation extends Instrumentation {
         prefs().edit().putBoolean("phone_gps", true).commit();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
         reconnect(); stopped(); settle();
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "App")); settle();
+        // Record rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
 
         // A switch restored from a backup: nobody tapped it, so nothing prompts, even while the scooter moves.
         enable(AutoStartPolicy.AUTO_RECORD_KEY, true); settle();
@@ -524,25 +525,45 @@ public final class AutoStartValidation extends Instrumentation {
         goHome(); returnToVolt(); SystemClock.sleep(2500); waitForIdleSync();
         require(!promptShown(), where + ": asked only once, across leaving and coming back");
     }
+    /**
+     * The phone sensors: Ride › Recording settings' card since the Hub layout (#389) replaced the Rides tab's Phone
+     * sensors sheet, which nothing opens any more. Opened over Ride, so Back (closeSheet) returns there.
+     */
     private void openSensors() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "rides")); settle();
-        main(() -> invoke(field(activity, "screen"), "phoneOptions", new Class<?>[0])); settle();
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
+        main(() -> require("ride.recording".equals(HubTestPages.current(activity)), "Recording settings did not open"));
     }
+    /** Back from the phone sensors (their page now, a sheet before #389). */
     private void closeSheet() {
         getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
         await(() -> resumed() && focused(), "Sheet closed");
     }
+    /**
+     * The GPS route switch, matched on its whole label: findAccessibilityNodeInfosByText matches substrings, and
+     * Recording settings also carries "Start recording in the background", whose caption ends "…has no GPS route."
+     */
     private void tapGpsRoute() {
         long end = SystemClock.uptimeMillis() + 8000;
+        int seen = 0;
         while (SystemClock.uptimeMillis() < end) {
             AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow();
             if (root != null) {
-                List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText("GPS route");
-                for (AccessibilityNodeInfo node : nodes) { AccessibilityNodeInfo n = node; while (n != null && !n.isClickable()) n = n.getParent(); if (n != null) { n.performAction(AccessibilityNodeInfo.ACTION_CLICK); return; } }
+                List<AccessibilityNodeInfo> labels = new ArrayList<>();
+                for (AccessibilityNodeInfo node : root.findAccessibilityNodeInfosByText("GPS route")) {
+                    if (node.getText() != null && "GPS route".contentEquals(node.getText())) labels.add(node);
+                }
+                seen = labels.size();
+                if (seen == 1) {
+                    AccessibilityNodeInfo n = labels.get(0); while (n != null && !n.isClickable()) n = n.getParent();
+                    require(n != null, "GPS route row is not clickable");
+                    require(n.performAction(AccessibilityNodeInfo.ACTION_CLICK), "GPS route row refused the click");
+                    return;
+                }
             }
             SystemClock.sleep(100);
         }
-        throw new AssertionError("GPS route row not found");
+        throw new AssertionError("GPS route row not found (" + seen + " rows labelled exactly GPS route)");
     }
 
     private boolean focused() { return onMain(() -> activity.hasWindowFocus()); }
@@ -596,13 +617,18 @@ public final class AutoStartValidation extends Instrumentation {
         enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
     }
 
+    /**
+     * Both switches, each on its page since the Hub layout (#389) moved them out of More › App preferences: Record rides
+     * automatically on Ride › Recording settings, Open automatically on Ride › Riding mode settings.
+     */
     private void settingsRows() throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "App")); settle();
-        for (String label : new String[]{"Record rides automatically", "Open automatically"}) {
+        for (String[] row : new String[][]{{"Record rides automatically", "ride.recording"}, {"Open automatically", "ride.riding"}}) {
+            String label = row[0];
+            HubTestPages.reach(this, activity, row[1]); settle();
             final View[] found = {null};
             main(() -> found[0] = find(activity.getWindow().getDecorView(), label));
             require(found[0] != null, label + " row shown");
+            main(() -> HubTestPages.requireShown(activity, found[0], label + " on " + row[1]));
             main(() -> found[0].requestRectangleOnScreen(new Rect(0, -200, found[0].getWidth(), found[0].getHeight() + 300), true)); settle();
             shot("settings-" + label.split(" ")[0].toLowerCase(Locale.ROOT));
         }
