@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Volt does less while nothing changes.** The connection notification is posted again only when something in it changes, such as the battery level, instead of every few seconds while Volt is on screen and every 15 seconds while it's away; an unchanged one is refreshed about once every 40 seconds so its time still reads **now**. Keeping the screen awake no longer makes Android lay out Volt's window again every second. With the developer simulator on, Volt no longer keeps running in the background after you leave it: about 10 seconds after you leave, the simulation stays only while Volt's screen is still open in the background, and it ends if Android closes that screen.
 - **OpenStreetMap is now the default basemap**, instead of USGS Topo, which covers only the United States and left ride maps elsewhere empty with **Map tiles unavailable (HTTP 404)**. The basemap still starts off, and the one-time explanation before the first map tiles now names the provider you'll get. If you already turned the basemap on with USGS Topo as the default, you keep USGS Topo, and a provider you chose yourself never changes, also after restoring a backup. The first time you then open a map of a ride outside the United States, Volt asks once whether to **Switch** to OpenStreetMap or **Keep USGS**. In **Map settings**, OpenStreetMap now comes first.
 
 ## 1.13.1 — 2026-11-11
