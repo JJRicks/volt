@@ -582,9 +582,8 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         if (v != crc.getValue()) throw new IOException("Corrupt charge evidence");
         Book b = new Book();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(all, 0, all.length - CRC_BYTES))) {
-            if (in.readInt() != MAGIC) throw new IOException("Unknown charge evidence");
-            int version = in.readInt();
-            if (version != VERSION && version != VERSION_1) throw new IOException("Unknown charge evidence");
+            int magic = in.readInt(), version = in.readInt();
+            if (magic != MAGIC || version != VERSION && version != VERSION_1) throw new IOException("Unknown charge evidence");
             List<long[]> intentions;
             if (version == VERSION_1) {
                 // No record of when its at-moment values were read: they become unknown rather than a guess.
