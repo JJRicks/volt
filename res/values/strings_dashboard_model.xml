@@ -91,6 +91,8 @@
     <!-- Picks the time of day by which the battery should be charged. -->
     <string name="dashboard_model_qa_charge_done_time" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short" volt:safety="charge">Charge done by time</string>
     <string name="dashboard_model_qa_charge_done_time_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by time</string>
+    <string name="dashboard_model_qa_charge_alerts" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short" volt:safety="alarm">Battery alerts</string>
+    <string name="dashboard_model_qa_charge_alerts_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="alarm">Battery alerts</string>
 
     <!-- Shortcut groups, the caption under a name in the shortcut picker (Entry.groupLabel()). -->
     <!-- Shortcuts that open a menu. -->
