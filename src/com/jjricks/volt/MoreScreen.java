@@ -2853,10 +2853,12 @@ public final class MoreScreen implements AppScreen {
     private void refreshChargerLink(ScooterService s) {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
-        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+        boolean locked = s != null && !s.chargerChoosable();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED || basis == ScooterService.ChargerBasis.RECORDING && !locked;
         chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
-        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING && locked, detected, locked);
         chargerDetail.setText(detail == null ? "" : detail.render());
         chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
