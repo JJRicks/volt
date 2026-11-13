@@ -28,7 +28,7 @@ Stable IDs go in the manifest. Labels are UI copy.
 | `rides` | Rides | `files/rides/<uuid>.csv`, `files/phone-rides/<uuid>-{phone,motion}.csv` as one group per ride; `ride_comparison`, `ride_selected` | START record profile |
 | `charges` | Charges | `files/charge-recordings/<uuid>.{csv,active}` (complete, interrupted and estimate samples) | journal header profile |
 | `history` | Readings history | `databases/telemetry-history.db`: last-seen readings, detail, minute/daily rollups | `profiles.name` rows |
-| `scooter-preferences` | Scooter preferences | `range_source_<pid>`, `range_follow_mode_<pid>`, `charge_charger_<pid>`, `charge_alerts_<pid>`, `control_evidence.<pid>` | per scooter |
+| `scooter-preferences` | Scooter preferences | `range_source_<pid>`, `range_follow_mode_<pid>`, `charge_charger_<pid>`, `charge_alerts_<pid>`, `charge_time_reading_<pid>`, `control_evidence.<pid>` | per scooter |
 
 `control_evidence` is a dormant cache, unused since 1.1.0. It is restored as data only and never authorizes a control: controls still require fresh authenticated state. Scooter preferences restore app-side choices only. They never push settings to the scooter.
 
@@ -116,7 +116,7 @@ The new code no longer writes `.voltrides` files or full v1 backups. Dashboard J
 | Rides | Add-only by UUID, as RideArchive today. Identical groups are skipped. A differing or partial local group is kept and counted as a conflict. No new UUID is ever synthesized. Hardening: a ride whose mapped profile and START wall and monotonic clocks equal an existing ride with another UUID also counts as a conflict. Orphan phone sidecars are skipped and counted. `ride_comparison` and `ride_selected` stay local. |
 | Charges | Same as rides by UUID. `<uuid>.active` and `<uuid>.csv` are the same identity. Journals are validated by `ChargeSessionStore` parsing, which v1 did not do. An imported `.active` becomes interrupted at the next startup, which is existing behaviour. |
 | Readings history | Merge the database by mapped profile. Rows are unioned on the existing UNIQUE keys (`detail(pid,kid,wall)`, `minute`/`daily(pid,kid,bucket)`), and this phone's row wins on collision. `latest` keeps this phone's snapshot; otherwise the newest backup snapshot is used. Profile and key IDs are remapped by name. The result must pass `integrity_check` and the schema check, and stay within the history size limit (decision 6). |
-| Scooter preferences | For each mapped scooter, replace its `range_source_`, `range_follow_mode_`, `charge_charger_`, `charge_alerts_` and `control_evidence` entries. |
+| Scooter preferences | For each mapped scooter, replace its `range_source_`, `range_follow_mode_`, `charge_charger_`, `charge_alerts_`, `charge_time_reading_` and `control_evidence` entries. |
 
 ### Profile resolution (dependencies)
 
@@ -272,7 +272,7 @@ Recorded answers to the open questions of the first draft:
 2. Rides → **Ride backups** stays as a shortcut into Back up & restore with Rides preselected.
 3. `.voltrides` export is retired: new ride backups are always encrypted `.voltbackup` v2 files. `.voltrides` import stays.
 4. `text_scale`, `background_connection`, `keep_screen_awake` and `poll_interval_ms` stay in App preferences; there is no separate "This phone" group.
-5. `map_basemap_enabled` and `map_basemap_explained` restore as the user's recorded choice. The preview shows "Online map: on" whenever the restored result has it on.
+5. `map_basemap_enabled`, `map_basemap_explained` and `map_usgs_switch_answered` restore as the user's recorded choice; an absent provider restores as absent, so an older backup taken under the USGS default keeps USGS when its basemap was on or explained (`MapDefault`). The preview shows "Online map: on" whenever the restored result has it on.
 6. A merged history that would exceed the 24 MiB limit is pruned with TelemetryHistory's own retention rules (`applyRetention`) before it replaces history; if it is still too large the restore stops before any change.
 7. No per-scooter export filter.
 8. **Superseded by the backup discovery follow-up:** the plaintext owner-only export is retired from profile and onboarding screens. Both now use the unified encrypted backup. Legacy owner-file import remains supported.

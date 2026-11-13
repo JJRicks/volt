@@ -142,7 +142,7 @@ public final class ScooterService extends Service {
                 }
                 if (key == null) return;
                 if (key.equals(ChargeAutoRecordPolicy.KEY)) {
-                    // Record charges automatically: battery reads out of sight follow the switch (observeAutoCharge).
+                    // Record charges automatically: turning it on looks at once (observeAutoCharge), so a charge already under way starts.
                     Runnable look = () -> { if (!destroyed) changed(); };
                     if (Looper.myLooper() == Looper.getMainLooper()) look.run();
                     else handler.post(look);
@@ -518,8 +518,6 @@ public final class ScooterService extends Service {
     private void observeAutoCharge(long mono){
         if(destroyed||chargeStore==null||dataMaintenance)return;
         boolean enabled=autoChargeEnabled();
-        // Out of sight the status poll reads no battery, so a charge that starts there would go unseen.
-        ble.readBatteryOutOfSight(enabled);
         if(autoChargeBusy)return;autoChargeBusy=true;
         try{
             ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
@@ -550,6 +548,12 @@ public final class ScooterService extends Service {
             if(!startChargeRecording(label.charger,label.source)&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
+    /**
+     * The last charge status as its message (a Msg), not rendered: what a finished export just set when it failed ("Charge
+     * recordings could not be exported", or "No saved charge recordings for this scooter"). Email to Volt holds it in
+     * ChargeSend.MAILBOX until a screen shows it, so it renders then, in the language current then (#419 review, P3 1).
+     */
+    public CharSequence chargeStatusMessage(){return chargeStatus;}
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
@@ -600,7 +604,14 @@ public final class ScooterService extends Service {
     /** The profile is captured before work starts so changing screens cannot export a different scooter. */
     /** "Charge recordings could not be exported": the export failed, or Email to Volt couldn't prepare its attachment. */
     static CharSequence chargeExportFailed(){return M.serviceChargeExportFailed();}
-    public boolean exportChargeRecordings(Consumer<File> completion){
+    public boolean exportChargeRecordings(Consumer<File> completion){return exportChargeRecordings(false,completion);}
+    /**
+     * attachment: Email to Volt's export, which ends ready to attach (ChargeSend.prepare: over 25 MB, gzip-compressed).
+     * That compression is part of the export (#412 review, P3 1 and 2): it runs here on the worker, under chargeExporting,
+     * so the row stays busy, a second tap stays quiet, and the completion (the mailbox's hand-over, which survives an
+     * activity recreation) gets only a final file; the activity then just moves it into place.
+     */
+    public boolean exportChargeRecordings(boolean attachment,Consumer<File> completion){
         if(destroyed||chargeStore==null||isChargeRecording()||chargeExporting||activeProfileId().isEmpty())return false;
         final String profile=activeProfileId();chargeExporting=true;
         chargeWorker.execute(()->{
@@ -608,6 +619,8 @@ public final class ScooterService extends Service {
             try{
                 File directory=new File(getCacheDir(),"charge-exports");
                 if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException();
+                // No export runs but this one: what an interrupted compression left goes now; finished ones keep their day.
+                ChargeSend.clearLeftovers(directory);
                 File[] old=directory.listFiles();long cutoff=System.currentTimeMillis()-24*60*60*1000L;
                 if(old!=null)for(File entry:old)if(entry.lastModified()<cutoff)entry.delete();
                 output=File.createTempFile("charges-",".json",directory);
@@ -616,6 +629,7 @@ public final class ScooterService extends Service {
                     count=chargeStore.exportJson(profile,writer);
                 }
                 if(count==0){output.delete();output=null;error=M.serviceChargeExportEmpty();}
+                else if(attachment)output=ChargeSend.prepare(output);
             }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=chargeExportFailed();}
             final File result=output;final CharSequence message=error;
             handler.post(()->{chargeExporting=false;if(destroyed){if(result!=null)result.delete();return;}
@@ -796,6 +810,8 @@ public final class ScooterService extends Service {
             public ChargeScheduleController.Context context(){return chargeScheduleContext();}
             public void clock(Consumer<Boolean> completion){ble.syncClock(completion);}
             public void time(long wallMs,int offsetSeconds,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion);}
+            // sent runs when the frame really goes out: a time write refused at the gate (a status from before a sleep, say) leaves no marker.
+            @Override public void time(long wallMs,int offsetSeconds,Runnable sent,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion,sent);}
             public void enabled(boolean enabled,Consumer<Boolean> completion){ble.setChargeSchedule(enabled,completion);}
         });
         return chargeScheduleController;
@@ -859,7 +875,8 @@ public final class ScooterService extends Service {
     /** Start of today's buffered plan; null when it would charge now or has no estimate. */
     private Long bufferedChargeStart(int minute){
         ChargeScheduleController.Context c=chargeScheduleContext();
-        if(!c.ready||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
+        // A plan computed from live readings (the estimate is fresh-only): the live connection is enough; arming asks ready.
+        if(!c.linked||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
         try{ChargeScheduleController.Plan plan=ChargeScheduleController.plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);return plan.startNow?null:plan.startWallMs;}
         catch(IllegalArgumentException outside){return null;}
     }
@@ -890,7 +907,7 @@ public final class ScooterService extends Service {
         ChargeScheduleController.Context c=chargeScheduleContext();
         ChargeProgressTracker.Progress progress=chargeProgress.progress(chargeMeasure.profile(),mono);
         boolean known=progress!=null&&(progress.startObserved||progress.ageInferred)&&chargeSchedule().doneByBlockedReason==null;
-        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.ready,c.charging,known);
+        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.linked,c.ready,c.charging,known);
         if(decision.step==ChargeMeasureWindow.Step.ARM)armMeasured(decision.measured);
         else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);
     }
@@ -1155,9 +1172,10 @@ public final class ScooterService extends Service {
             else if(m.key.equals("charge_limit_percent"))limit=m;
         }
         long now=SystemClock.elapsedRealtime();
-        Double charging=liveReading(state,now),percent=liveReading(soc,now);
-        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one.
-        Double target=limit==null||limit.numericValue==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limit.numericValue;
+        Double charging=liveReading(state,now),percent=liveReading(soc,now),limitNow=liveReading(limit,now);
+        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one. The limit is
+        // taken only while live, as the other two (#418): the link outlives a sleep, and the limit may have changed in it.
+        Double target=limitNow==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limitNow;
         Boolean on=charging==null||charging!=0&&charging!=1?null:charging==1;
         Integer pct=percent==null||percent<0||percent>100?null:(int)Math.round(percent);
         Integer cap=target==null||target<1||target>100?null:(int)Math.round(target);
@@ -1696,9 +1714,11 @@ public final class ScooterService extends Service {
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
     /**
-     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
-     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
-     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     * Two answers (#418). linked: the same live connection, BleController.linked(), which outlives a stale status (out of
+     * sight between 15 s polls, after a sleep, the first seconds back in sight); the controller uses it only to keep work
+     * in flight going and to look at readings, each of which carries its own freshness. ready: the scooter can take a write
+     * now, BleController.ready(), the write gate's own rule (CapabilityResolver, which also fills toggleReason and
+     * timeReason below); the controller uses it for every choice to send and every blocked reason.
      */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
@@ -1706,15 +1726,17 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        boolean same=!destroyed&&!dataMaintenance&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
+        c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
         // English ids, whatever the shown language: the controller keeps them in its saved status and its other text is English too (plan R2).
         c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
-        if(!c.ready)return c;
-        c.enabled=ble.featureValue("timed_charging");
+        if(!c.linked)return c;
+        // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
+        c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
         for(Telemetry.Metric metric:ble.telemetry.metrics())readings.put(metric.key,metric);
@@ -1724,6 +1746,10 @@ public final class ScooterService extends Service {
         c.sampleMs=charging==null?0:charging.updatedMs;
         c.soc=freshScheduleNumber(readings.get("battery_percent"),mono);
         c.target=freshScheduleNumber(readings.get("charge_limit_percent"),mono);
+        // Settings live (#418): the status, and the limit reading itself, unless this connection has reported no limit (the
+        // readings are cleared at each connect). A recent status that did not carry the limit never vouches for it.
+        Telemetry.Metric limit=readings.get("charge_limit_percent");
+        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)&&(c.target!=null||limit==null||limit.updatedMs<=0);
         Double raw=freshScheduleNumber(readings.get("scheduled_charge_time_raw"),mono);
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){
@@ -1939,7 +1965,8 @@ public final class ScooterService extends Service {
     /** Fresh motion from the real scooter: never a simulated, stale or absent reading. */
     private boolean autoStartMoving(long mono){return !simulating()&&AutoStartPolicy.moving(ble.connected(),ble.speedRaw(),ble.motionSampleMs(),mono);}
     /**
-     * Auto-record, on every Bluetooth change and service tick, in the background too. It starts a ride as startRide does
+     * Auto-record, on every Bluetooth change and service tick, in the background too (where it starts a ride only with
+     * the background switch on; AutoStartPolicy.recordsNow). It starts a ride as startRide does
      * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
      */
     private void observeAutoStart(long mono){
@@ -1949,7 +1976,8 @@ public final class ScooterService extends Service {
         // linked(), not ready(): out of sight the status poll runs every 15 s, so a healthy authenticated link is past
         // ready()'s 7 s window for half of each cycle. The speed sample's own freshness is checked by autoStartMoving.
         boolean canStart=ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
-        if(!autoStart.shouldRecord(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
+        boolean enabled=AutoStartPolicy.recordsNow(settings.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY,false),settings.getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY,false),visible);
+        if(!autoStart.shouldRecord(enabled,autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
         try{
             beginRide(RidesScreen.defaultRideName(this));
             // Any action but a stop re-evaluates START_STICKY, like the rider's start.
@@ -2932,10 +2960,15 @@ public final class ScooterService extends Service {
         liveUpdateBuilt(notice);
         return notice;
     }
-    /** "UT5 MAX · 82%": the connected notification names the scooter and its charge. */
+    /**
+     * "UT5 MAX · 82%": the connected notification names the scooter and its charge, the charge only while that reading is
+     * live by its own rule (BleController.liveNumber). Out of sight the battery is read with every 15 s status poll, so
+     * the level stays current (owner, 2026-11-12); the link can outlive a sleep, and a read the scooter ignores is
+     * suppressed (ReadPolicy), so an older level would read as current: then the notice names the scooter alone.
+     */
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
-        Double battery = ble.telemetry.number("battery_percent");
+        Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
     }

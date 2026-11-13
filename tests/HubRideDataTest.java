@@ -23,6 +23,12 @@ public final class HubRideDataTest {
         check(recording.contains("\"ride_auto_stop\", true)"), "End rides automatically: same key, on by default");
         check(recording.contains("AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation)"),
                 "Record rides automatically: same key, off by default, the location offer before it turns on");
+        check(recording.contains("HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render()")
+                && recording.contains("getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)")
+                && recording.contains("putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled)"),
+                "Start recording in the background: its own switch, off by default, with the no-GPS-route note under it (part 5b)");
+        check(recording.indexOf("AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation)") < recording.indexOf("HubText.recordInBackground()"),
+                "the background switch follows Record rides automatically");
         check(recording.contains("ACTION_APPLICATION_DETAILS_SETTINGS"), "Battery use opens Android's page for Volt");
         check(recording.contains("this::mapSettings"), "Map settings");
         check(recording.contains("autoSaveGroup();"), "Ride auto-save");
@@ -59,6 +65,34 @@ public final class HubRideDataTest {
         // The card on Recording settings and the Phone sensors sheet (kept for validations) share those switches.
         check(body(rides, "private LinearLayout phoneSensorsCard()").contains("phoneSensors(content, false)"), "the Recording settings card shows the phone sensors");
         check(body(rides, "private void phoneOptions(Runnable dismissed)").contains("phoneSensors(content, true)"), "the Phone sensors sheet shows the same switches");
+        // The Next ride tag beside the Phone sensors heading drops to its own line when the two don't fit side by side, never
+        // cut mid-word (council review of #389, finding 3: "Próxi" in pt-PT at 1.4x text).
+        check(sensors.contains("new HeadingTag(ui.sectionLabel(title), chip)"), "the card's heading and tag share a HeadingTag");
+        String headingTag = body(rides, "private final class HeadingTag extends ViewGroup");
+        check(headingTag.contains("below = heading.getMeasuredWidth() + gap() + tag.getMeasuredWidth() > available")
+                && headingTag.contains("top + heading.getMeasuredHeight()"), "HeadingTag puts the tag under the heading when they don't fit");
+
+        // Live Stats' Data & history link shows the stored history's size as its value, as More's Data row did, kept
+        // current by the history's storage refresh (council review of #389, finding 4). StatsScreen sits beside MoreScreen.
+        String stats = read(Paths.get(args[0]).resolveSibling("StatsScreen.java").toString());
+        check(stats.contains("HubText.title(HubPages.DATA_STORAGE), () -> storedSize,"), "the Data & history link has the stored size as its value");
+        String storedSize = body(stats, "private void refreshStoredSize()");
+        check(storedSize.contains("history.storage(") && storedSize.contains("storedSize = MoreScreen.mib(storage.bytes); storageLink.refresh();"),
+                "the value comes from the storage refresh, in Data & history's MiB form");
+        check(body(stats, "@Override public void refresh()").contains("refreshStoredSize();"), "Live Stats' refresh keeps it current");
+        check(more.contains("static String mib(long bytes) { return bytes <= 0 ? \"\" :"), "nothing stored: no value, as More's row had");
+
+        // One home per setting in the Hub (the owner's "one home" answer): Record rides automatically on Ride › Recording
+        // settings, not again on Ride › Riding mode (riding mode's own tune menu keeps it); Ride backups on the Ride page,
+        // not again on All rides & compare. Council review of #389, the duplicates question.
+        String hubRiding = read(Paths.get(args[0]).resolveSibling("HubRidingSettings.java").toString());
+        check(hubRiding.contains("() -> true).withoutAutoRecord();"), "Ride › Riding mode leaves Record rides automatically out");
+        String riding = read(Paths.get(args[0]).resolveSibling("RidingScreen.java").toString());
+        check(riding.contains("new MoreScreen.RidingSettingsMenu(") && !riding.contains("withoutAutoRecord"), "riding mode's tune menu keeps it");
+        check(body(more, "void fill(LinearLayout body)").contains("if (autoRecord) content.addView(toggle(autoRecordTitle()"),
+                "the shared menu shows it unless told not to");
+        check(count(rides, "M.ridesBackups()") == 1 && rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(\"download\", M.ridesBackups()"),
+                "Ride backups only on the Ride page");
 
         System.out.println("HubRideData: " + checks + " checks passed");
     }

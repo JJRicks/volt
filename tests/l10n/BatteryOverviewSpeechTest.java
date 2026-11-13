@@ -38,6 +38,7 @@ public final class BatteryOverviewSpeechTest {
             Locale.setDefault(Locale.US);
             T.install(null);
             english();
+            hubBatterySummary();
             T.install(VALUE_ALONE);
             valueAlone();
         } finally {
@@ -65,6 +66,36 @@ public final class BatteryOverviewSpeechTest {
                 "the card's description, level not reported");
         String spoken = BatteryOverviewSpeech.line(false, distance);
         check(spoken.indexOf("about") == spoken.lastIndexOf("about"), "the range's own wording is not doubled: " + spoken);
+    }
+
+    /**
+     * Battery & charging's summary card (HubBatterySummary) speaks a last-seen level in Home's card's words, with the
+     * range passed as Home's card passes it: wrapped in "about" (DashboardScreen.aboutRange, the form rangeText gives),
+     * so the spoken line says the estimate the drawn line shows. Council review of #389, finding 2.
+     */
+    private static void hubBatterySummary() {
+        String drawn = HubText.batteryLevelRange("62%", "40 mi").render();
+        equal("62% · about 40 mi left", drawn, "the card's drawn line");
+        String said = BatteryOverviewSpeech.line(false, T.dashboardAbout("40 mi"));
+        equal("Battery 62 percent, about 40 mi of range left, last seen 7:02 AM",
+                M.dashboardOverviewPercentLineSeenCount(62, "62", said, "7:02 AM"), "the card's spoken line, last seen");
+        String card = read("src/com/jjricks/volt/HubBatterySummary.java").replaceAll("\\s+", " ");
+        check(card.contains("BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range))"),
+                "HubBatterySummary passes the range wrapped in \"about\", as Home's card does");
+        check(!card.contains("BatteryOverviewSpeech.line(false, range.toString())"), "never the bare range");
+        String home = read("src/com/jjricks/volt/DashboardScreen.java").replaceAll("\\s+", " ");
+        check(home.contains("static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }"),
+                "DashboardScreen.aboutRange is the dashboard_about form");
+        check(home.contains("return aboutRange(format(r));") && home.contains("return aboutRange((units.equals(\"km\")"),
+                "Home's card's rangeText goes through the same aboutRange");
+    }
+
+    private static String read(String path) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new AssertionError("could not read " + path + ": " + e);
+        }
     }
 
     private static void valueAlone() {

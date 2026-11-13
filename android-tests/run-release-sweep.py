@@ -166,6 +166,10 @@ STEPS += [
     inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
+    # The charging view's one time tile; its restart mode needs the same install, so it runs by hand after this one.
+    inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
+    inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),

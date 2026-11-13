@@ -1,0 +1,4 @@
+# The OpenStreetMap default, the USGS pin for basemaps approved under the old default, and the one-time
+# offer to leave USGS (MapDefault). The backup classes and BackupTestStore are compiled by tests/run.sh.
+src/com/jjricks/volt/MapDefault.java
+tests/l10n/MapDefaultTest.java
