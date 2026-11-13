@@ -23,7 +23,8 @@ import java.util.Locale;
  * live one-line summary, and opens the subject's own page (ScreenHost.open with its HubPages id: the pages parts 3-5
  * built, pushed on Home's page stack). Service carries an orange dot while a maintenance check is due. A
  * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary (the rules
- * in HubSummaries); Ride's and Data's lines are this list's own. Words from HubText.
+ * in HubSummaries); Ride's and Data's lines are this list's own (Ride shows the running recording while a ride
+ * records, HubSummaries.rideLine). Words from HubText.
  */
 final class CleanSubjects {
     /** View tag of a subject's row: "home-subject-" and its page id. */
@@ -47,6 +48,8 @@ final class CleanSubjects {
     private boolean ridesKnown;
     private RideStore.Summary lastRide;
     private long rideAt = Long.MIN_VALUE;
+    /** A ride was recording at the last refresh: when it ends, the rides are looked at again at once. */
+    private boolean wasRecording;
     private static final long RIDE_EVERY_MS = 30_000;
 
     CleanSubjects(ScreenHost host) { this(host, null); }
@@ -160,8 +163,13 @@ final class CleanSubjects {
         if (subject.equals(HubPages.DATA)) return HubText.dataSummary().render();
         if (service == null) return null;
         if (subject.equals(HubPages.RIDE)) {
+            // The rule is HubSummaries': the running recording while a ride records, else the newest finished ride.
+            boolean recording = service.isRecording();
+            boolean ended = wasRecording && !recording;
+            wasRecording = recording;
             long now = android.os.SystemClock.elapsedRealtime();
-            if (!ridesKnown || now - rideAt >= RIDE_EVERY_MS) { scanRides(service); rideAt = now; }
+            if (HubSummaries.rescanRides(recording, ended, ridesKnown, now - rideAt, RIDE_EVERY_MS)) { scanRides(service); rideAt = now; }
+            if (HubSummaries.rideLine(recording) == HubSummaries.RideLine.RECORDING) return recording(service);
             return ride();
         }
         // The scooter subjects: the same lines and the same rules as the Scooter tab's index (HubSubjects, HubSummaries).
@@ -179,6 +187,19 @@ final class CleanSubjects {
         if (rides == null) return;
         for (RideStore.Summary ride : rides)
             if (!ride.active && (lastRide == null || ride.shownEndWallMs > lastRide.shownEndWallMs)) lastRide = ride;
+    }
+
+    /**
+     * Ride's line while a ride records: "Recording · 12:40", its time so far as the widget dashboard's recorder card
+     * shows it (0:00 until the recorder has its first summary).
+     */
+    private static CharSequence recording(ScooterService service) {
+        RideStore.Summary summary = service.rides == null ? null : service.rides.activeSummary();
+        long seconds = summary == null ? 0 : Math.max(0, summary.elapsedMs / 1000);
+        String clock = seconds >= 3600
+                ? String.format(Fmt.locale(Locale.US), "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+                : String.format(Fmt.locale(Locale.US), "%d:%02d", seconds / 60, seconds % 60);
+        return HubText.rideRecording(clock).render();
     }
 
     /** Ride's line from the last scan, written now. */

@@ -86,6 +86,13 @@ final class HomeQuickActions {
      */
     static boolean endsRide(String id, boolean recording) { return recording && RECORD.equals(id); }
 
+    /**
+     * Whether activating this action now starts a recording: Record with no ride recording. Its spoken description
+     * then says so in the widget dashboard's recorder words ("Start recording"), not as a shortcut that opens
+     * something (council review 5886249378).
+     */
+    static boolean startsRide(String id, boolean recording) { return !recording && RECORD.equals(id); }
+
     /** Whether an id is one of Clean's own, which Widgets never stores. */
     static boolean cleanOnly(String id) { return RIDING.equals(id) || RECORD.equals(id) || CHARGE_ALERTS.equals(id); }
 

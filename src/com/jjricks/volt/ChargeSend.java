@@ -71,24 +71,44 @@ final class ChargeSend {
         final File file;
         final String model;
         /**
-         * Null for a finished export; else why preparing the attachment failed (the service's status text, as "Charge
-         * recordings could not be exported"), and file is null. A failure goes through the mailbox as the file would, so
-         * the page showing Volt when the export ends, a recreated one too, toasts it exactly once (#412 round-2 review,
-         * P3 1); then it is consumed, as a delivered file is, and never emails.
+         * Null unless it failed; else why (the service's status, as "Charge recordings could not be exported"), and file
+         * is null. A failure goes through the mailbox as the file would, so the page showing Volt when the export ends, a
+         * recreated one too, toasts it exactly once (#412 round-2 review, P3 1); then it is consumed, as a delivered file
+         * is, and never emails. It is held as the message (a Msg), never as text rendered when it failed, and rendered only
+         * when the toast shows, so a language change while the mailbox holds it can't leave it in the old language (#419
+         * review, P3 1; docs/localization-for-contributors.md, rule 2).
          */
-        final String failure;
+        final CharSequence failure;
+        /**
+         * Null unless the export was already moved into place as the email's attachment (DiagnosticsProvider.adopt);
+         * else that attachment's content URI, and snapshot its file in cache/diagnostics. The activity that adopted it
+         * hands it back through the mailbox, so the activity showing Volt when the attachment is ready opens the email,
+         * a recreated one too, exactly once (#419 review, the emulator's lost email).
+         */
+        final String attachment;
+        final File snapshot;
 
-        Export(File file, String model) { this(file, model, null); }
+        Export(File file, String model) { this(file, model, null, null, null); }
 
-        private Export(File file, String model, String failure) { this.file = file; this.model = model == null ? "" : model; this.failure = failure; }
+        private Export(File file, String model, CharSequence failure, String attachment, File snapshot) {
+            this.file = file; this.model = model == null ? "" : model; this.failure = failure; this.attachment = attachment; this.snapshot = snapshot;
+        }
 
-        /** The export failed with this text to toast (empty: the host's own "could not be exported"). */
-        static Export failed(String message) { return new Export(null, "", message == null ? "" : message); }
+        /** The export failed with this message to toast (empty: the host's own "could not be exported"). */
+        static Export failed(CharSequence message) { return new Export(null, "", message == null ? "" : message, null, null); }
+
+        /** The export, now the email's attachment at this content URI (its file: snapshot), still to be emailed. */
+        static Export attached(String uri, File snapshot, String model) { return new Export(null, model, null, uri, snapshot); }
 
         boolean failed() { return failure != null; }
 
-        /** Drops it unshown: a file is deleted, a failure just goes. */
-        void discard() { if (file != null) file.delete(); }
+        boolean attached() { return attachment != null; }
+
+        /** Drops it unshown: a file (or an attachment's snapshot) is deleted, a failure just goes. */
+        void discard() {
+            if (file != null) file.delete();
+            if (snapshot != null) snapshot.delete();
+        }
     }
 
     /**
@@ -121,14 +141,15 @@ final class ChargeSend {
         }
 
         /**
-         * A finished export, or a failed one ({@link Export#failed}): to the activity, else held (one at a time; an older
-         * one is dropped, its file deleted), else dropped. Whatever is handed to an activity is gone from here.
+         * A finished export, a failed one ({@link Export#failed}) or one made the email's attachment ({@link
+         * Export#attached}): to the activity, else held (one at a time; an older one is dropped, its file deleted), else
+         * dropped. Whatever is handed to an activity is gone from here.
          */
         synchronized void deliver(Export export, long nowMs) {
-            if (export == null || (export.file == null && !export.failed())) return;
+            if (export == null || (export.file == null && !export.failed() && !export.attached())) return;
             if (receiver != null) { receiver.accept(export); return; }
             if (!accepting) { export.discard(); return; }
-            if (held != null && (held.file == null || !held.file.equals(export.file))) held.discard();
+            if (held != null && held != export && (held.file == null || !held.file.equals(export.file))) held.discard();
             held = export; heldAt = nowMs;
         }
     }
