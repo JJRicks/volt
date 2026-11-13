@@ -62,8 +62,30 @@ public final class BackgroundRecordingTextTest {
                 "the dialog: title with the version, message, the switch, OK");
         check(notice.contains("AutoStartPolicy.showsBackgroundNotice(now,clear)") && notice.contains("AutoStartPolicy.screenClear("),
                 "shown only when due and on a clear screen");
-        check(notice.indexOf("putString(AutoStartPolicy.BACKGROUND_NOTICE_KEY,now)") < notice.indexOf("dialog.show()"),
-                "marked done before it shows, so it shows once");
+        check(!notice.contains("now=AutoStartPolicy.NOTICE_DONE"), "opening the note does not mark it done");
+        check(notice.contains("if(backgroundNotice!=null&&backgroundNotice.isShowing())return;"), "one copy at a time");
+        check(notice.contains("setPositiveButton(T.commonOk(),(d,which)->closeBackgroundNotice(true,false))")
+                        && notice.contains("setOnCancelListener(d->closeBackgroundNotice(true,false))")
+                        && notice.contains("closeBackgroundNotice(false,true);"),
+                "OK, back or a tap outside, or the switch in it, end the note");
+        check(notice.contains("setOnDismissListener(d->{if(backgroundNotice==dialog)backgroundNotice=null;});"),
+                "a dismissal by Volt (rebuild, activity gone) only forgets the dialog, so the note stays due");
+
+        // Who ends a due note (AutoStartPolicy.backgroundNoticeClosed).
+        String due = AutoStartPolicy.NOTICE_DUE, done = AutoStartPolicy.NOTICE_DONE;
+        equal(done, AutoStartPolicy.backgroundNoticeClosed(due, true, false), "closed by the person: done");
+        equal(done, AutoStartPolicy.backgroundNoticeClosed(due, false, true), "the switch in it changed: done");
+        equal(done, AutoStartPolicy.backgroundNoticeClosed(due, true, true), "both: done");
+        equal(due, AutoStartPolicy.backgroundNoticeClosed(due, false, false), "taken down by Volt: still due");
+        equal(done, AutoStartPolicy.backgroundNoticeClosed(done, false, false), "done stays done");
+        check(AutoStartPolicy.backgroundNoticeClosed(null, true, true) == null, "no note state: none written");
+        // The order the review named: due, opened on a clear screen, Volt takes it down, then the next clear screen.
+        String state = due;
+        check(AutoStartPolicy.showsBackgroundNotice(AutoStartPolicy.backgroundNoticeNow(state, true, false), true), "shows when due on a clear screen");
+        state = AutoStartPolicy.backgroundNoticeClosed(state, false, false);
+        check(AutoStartPolicy.showsBackgroundNotice(AutoStartPolicy.backgroundNoticeNow(state, true, false), true), "after a rebuild took it down it shows again");
+        state = AutoStartPolicy.backgroundNoticeClosed(state, true, false);
+        check(!AutoStartPolicy.showsBackgroundNotice(AutoStartPolicy.backgroundNoticeNow(state, true, false), true), "after the person closed it, never again");
         System.out.println("BackgroundRecordingTextTest: " + checks + " checks passed (background switch text, place and What's new note)");
     }
 
