@@ -1106,6 +1106,12 @@ public final class DashboardScreen implements AppScreen {
      */
     static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }
 
+    /**
+     * The battery overview card's drawn range line, "about 31 mi left" from {@link #aboutRange}'s figure. Battery &
+     * charging's summary card draws its range line with it too.
+     */
+    static String rangeLeft(CharSequence distance) { return T.dashboardRangeLeft(distance); }
+
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
             return DisplayTemperature.fromCelsius(value, temperatureUnit());
@@ -2627,24 +2633,11 @@ public final class DashboardScreen implements AppScreen {
 
             /**
              * A full rounded track along the bottom, red to the charge, with a light tick at the limit. Clean's
-             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too.
+             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too, and
+             * Battery & charging's summary card draws the same track (ChargeTrack).
              */
             private void drawTrack(Canvas canvas, float w, float h) {
-                float thick = ui.dp(8), r = thick / 2, top = h - thick;
-                paint.setShader(null);
-                paint.setAlpha(255);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(ui.raised);
-                canvas.drawRoundRect(0, top, w, h, r, r, paint);
-                if (!Double.isNaN(level) && level > 0) {
-                    paint.setColor(ui.accent);
-                    canvas.drawRoundRect(0, top, Math.max(thick, w * (float) (level / 100)), h, r, r, paint);
-                }
-                if (limit < 100) {
-                    float x = w * (float) (limit / 100);
-                    paint.setColor(Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
-                    canvas.drawRect(x - ui.dp(1), top - ui.dp(3), x + ui.dp(1), h, paint);
-                }
+                ChargeTrack.draw(canvas, paint, ui, w, h, level, limit, ui.accent, Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
             }
         }
     }
@@ -3864,7 +3857,7 @@ public final class DashboardScreen implements AppScreen {
                 if (!shown.toString().contentEquals(percent.getText())) percent.setText(shown);
                 percent.setTextColor(live ? ui.text : ui.muted);
                 String distance = rangeText(values.get("remaining_range_km"));
-                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : T.dashboardRangeLeft(distance);
+                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : rangeLeft(distance);
                 if (!line.contentEquals(range.getText())) range.setText(line);
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
