@@ -2725,9 +2725,9 @@ public final class DashboardScreen implements AppScreen {
                 if (clean && child == percent && percent.getVisibility() == View.VISIBLE && photo.getVisibility() == View.VISIBLE
                         && percent.getWidth() > 0) {
                     float cx = (percent.getLeft() + percent.getRight()) / 2f, cy = (percent.getTop() + percent.getBottom()) / 2f;
-                    float rx = percent.getWidth() * .8f, ry = percent.getHeight() * .62f;
+                    float rx = percent.getWidth() * .85f, ry = percent.getHeight() * .7f;
                     if (fadeShader == null || rx != fadeRadius) {
-                        fadeShader = new RadialGradient(0, 0, rx, new int[] {Ui.withAlpha(ui.bg, 200), Ui.withAlpha(ui.bg, 120), Ui.withAlpha(ui.bg, 0)},
+                        fadeShader = new RadialGradient(0, 0, rx, new int[] {Ui.withAlpha(ui.bg, 225), Ui.withAlpha(ui.bg, 160), Ui.withAlpha(ui.bg, 0)},
                                 new float[] {0, .55f, 1}, Shader.TileMode.CLAMP);
                         fadeRadius = rx;
                     }

@@ -478,6 +478,10 @@ final class QuickAccessGrid extends ViewGroup {
                 if (Math.abs(label.getTextSize() - android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
                         size, getResources().getDisplayMetrics())) > .5f) label.setTextSize(size);
                 if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
+                // A smaller name keeps the line height of its full size, centred in it, so the four names share a line.
+                android.graphics.Paint.FontMetricsInt line = fullSize(label, QuickActionLayout.NAME_SP).getFontMetricsInt();
+                int box = name.scale < 1 ? line.descent - line.ascent : 0;
+                if (label.getMinHeight() != box) label.setMinHeight(box);
             }
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
