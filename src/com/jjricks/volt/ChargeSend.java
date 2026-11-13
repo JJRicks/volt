@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.zip.GZIPOutputStream;
 
@@ -68,8 +70,25 @@ final class ChargeSend {
     static final class Export {
         final File file;
         final String model;
+        /**
+         * Null for a finished export; else why preparing the attachment failed (the service's status text, as "Charge
+         * recordings could not be exported"), and file is null. A failure goes through the mailbox as the file would, so
+         * the page showing Volt when the export ends, a recreated one too, toasts it exactly once (#412 round-2 review,
+         * P3 1); then it is consumed, as a delivered file is, and never emails.
+         */
+        final String failure;
 
-        Export(File file, String model) { this.file = file; this.model = model == null ? "" : model; }
+        Export(File file, String model) { this(file, model, null); }
+
+        private Export(File file, String model, String failure) { this.file = file; this.model = model == null ? "" : model; this.failure = failure; }
+
+        /** The export failed with this text to toast (empty: the host's own "could not be exported"). */
+        static Export failed(String message) { return new Export(null, "", message == null ? "" : message); }
+
+        boolean failed() { return failure != null; }
+
+        /** Drops it unshown: a file is deleted, a failure just goes. */
+        void discard() { if (file != null) file.delete(); }
     }
 
     /**
@@ -91,22 +110,25 @@ final class ChargeSend {
             this.receiver = receiver; accepting = true;
             Export waiting = held; held = null;
             if (waiting == null) return;
-            if (nowMs - heldAt >= 0 && nowMs - heldAt < HOLD_MS) receiver.accept(waiting); else waiting.file.delete();
+            if (nowMs - heldAt >= 0 && nowMs - heldAt < HOLD_MS) receiver.accept(waiting); else waiting.discard();
         }
 
         /** The activity is going: recreating keeps a file arriving meanwhile for the next one; closing drops it. */
         synchronized void unregister(Consumer<Export> receiver, boolean recreating) {
             if (this.receiver != receiver) return;
             this.receiver = null; accepting = recreating;
-            if (!recreating && held != null) { held.file.delete(); held = null; }
+            if (!recreating && held != null) { held.discard(); held = null; }
         }
 
-        /** A finished export: to the activity, else held (one at a time; an older one is deleted), else deleted. */
+        /**
+         * A finished export, or a failed one ({@link Export#failed}): to the activity, else held (one at a time; an older
+         * one is dropped, its file deleted), else dropped. Whatever is handed to an activity is gone from here.
+         */
         synchronized void deliver(Export export, long nowMs) {
-            if (export == null || export.file == null) return;
+            if (export == null || (export.file == null && !export.failed())) return;
             if (receiver != null) { receiver.accept(export); return; }
-            if (!accepting) { export.file.delete(); return; }
-            if (held != null && !held.file.equals(export.file)) held.file.delete();
+            if (!accepting) { export.discard(); return; }
+            if (held != null && (held.file == null || !held.file.equals(export.file))) held.discard();
             held = export; heldAt = nowMs;
         }
     }
@@ -178,6 +200,38 @@ final class ChargeSend {
         }
         java.nio.file.Files.deleteIfExists(source.toPath());
         return zipped;
+    }
+
+    /**
+     * The leftovers of an interrupted compression in cache/charge-exports (#412 round-2 review, the emulator's note): a
+     * process killed while prepare() compresses an export leaves "<name>.gz.tmp" and the uncompressed "<name>"; killed
+     * between its rename and its delete, "<name>" beside the finished "<name>.gz". Given every name in that folder, and
+     * asked only while no export runs (ScooterService checks at the start of the next one, under its exporting flag),
+     * a file is a leftover when it is
+     * <ul>
+     * <li>any "*.tmp": in that folder only prepare() makes them, and only inside an export (the activity's
+     * DiagnosticsProvider.adopt gets a file the export already made ready, so its prepare() makes nothing there); or</li>
+     * <li>a "*.json" with its own "<name>.gz.tmp" or "<name>.gz" beside it: the uncompressed export whose compression
+     * was cut off (a finished compression deletes it before the export ends).</li>
+     * </ul>
+     * Nothing else is: a finished export (a "*.json" alone, which Export charge recordings may still be saving or the
+     * mailbox holding for an email, or a "*.json.gz") stays for the one-day window, so nothing still reading it loses
+     * it early.
+     */
+    static boolean leftover(String name, Set<String> names) {
+        if (name.endsWith(".tmp")) return true;
+        return name.endsWith(".json") && (names.contains(name + ".gz.tmp") || names.contains(name + ".gz"));
+    }
+
+    /** Deletes the leftovers ({@link #leftover}) in this folder of exports, and returns how many went. */
+    static int clearLeftovers(File directory) {
+        File[] files = directory.listFiles();
+        if (files == null) return 0;
+        Set<String> names = new HashSet<>();
+        for (File f : files) names.add(f.getName());
+        int cleared = 0;
+        for (File f : files) if (f.isFile() && leftover(f.getName(), names) && f.delete()) cleared++;
+        return cleared;
     }
 
     /**
