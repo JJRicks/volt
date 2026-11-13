@@ -340,40 +340,6 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         for (File file : saved()) file.delete();
     }
 
-    /** Terra's second review of #415: a guessed label reads as a guess in the saved list and its detail; a manual one does not. */
-    private void savedListMarksGuess() throws Exception {
-        unplugAndSettle();
-        for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
-            public boolean keep(long ranMs, double gainedPoints) { return true; }
-            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
-        });
-        String guessed = fixture(fixtures, 1, true).replace(".csv", ""), manual = fixture(fixtures, 2, false).replace(".csv", "");
-        require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manual) == null, "Fixtures: " + guessed + " " + manual);
-        ensureFront();
-        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, HubPages.HOME); for (String step : HubPages.path(HubPages.BATTERY_HISTORY)) if (!step.equals(HubPages.HOME)) activity.open(step); });
-        settle();
-        main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
-        await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manual) != null), 10 * S, "The saved list did not show both recordings");
-        String marked = T.serviceChargeChargerGuessed("");
-        String guessRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + guessed).getContentDescription()));
-        String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manual).getContentDescription()));
-        require(guessRow.contains(marked), "The saved list showed a guessed charger as known: " + guessRow);
-        require(!manualRow.contains(marked), "The saved list marked a recording you labelled as guessed: " + manualRow);
-        main(() -> historyView("charge-history-session:" + guessed).performClick()); settle();
-        await(() -> onMain(() -> historyView("charge-history-detail") != null), 5 * S, "The guessed recording's detail did not open");
-        String detail = onMainText(() -> String.valueOf(((TextView) ((ViewGroup) historyView("charge-history-detail")).getChildAt(1)).getText()));
-        require(detail.endsWith(marked), "The detail showed a guessed charger as known: " + detail);
-        log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
-        main(() -> invoke(viewer(), "close", new Class<?>[0]));
-        for (File file : saved()) file.delete();
-    }
-    private Object viewer() { return field(field(activity, "screen"), "chargeHistoryDialog"); }
-    private View historyView(String tag) {
-        Object viewer = viewer(); android.app.Dialog dialog = viewer == null ? null : (android.app.Dialog) field(viewer, "dialog");
-        return dialog == null || dialog.getWindow() == null ? null : dialog.getWindow().getDecorView().findViewWithTag(tag);
-    }
-
     private String fixture(ChargeSessionStore store, int index, boolean automatic) throws IOException {
         long wall = System.currentTimeMillis() - (100 - index) * 3_600_000L, mono = 1_000_000L + index;
         if (automatic) store.startAutomatic(profile.id, ChargeSessionStore.Charger.STOCK, ChargeSessionStore.LabelSource.GUESS, wall, mono);
@@ -667,6 +633,39 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         return "answered " + field(policy, "answered") + ", suppressed " + field(policy, "suppressed") + ", legacy " + field(policy, "legacy");
     }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
+    /** Terra's second review of #415: a guessed label reads as a guess in the saved list and its detail; a manual one does not. */
+    private void savedListMarksGuess() throws Exception {
+        unplugAndSettle();
+        for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
+            public boolean keep(long ranMs, double gainedPoints) { return true; }
+            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
+        });
+        String guessed = fixture(fixtures, 1, true).replace(".csv", ""), manual = fixture(fixtures, 2, false).replace(".csv", "");
+        require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manual) == null, "Fixtures: " + guessed + " " + manual);
+        ensureFront();
+        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, HubPages.HOME); for (String step : HubPages.path(HubPages.BATTERY_HISTORY)) if (!step.equals(HubPages.HOME)) activity.open(step); });
+        settle();
+        main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
+        await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manual) != null), 10 * S, "The saved list did not show both recordings");
+        String marked = T.serviceChargeChargerGuessed("");
+        String guessRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + guessed).getContentDescription()));
+        String manualRow = onMainText(() -> String.valueOf(historyView("charge-history-session:" + manual).getContentDescription()));
+        require(guessRow.contains(marked), "The saved list showed a guessed charger as known: " + guessRow);
+        require(!manualRow.contains(marked), "The saved list marked a recording you labelled as guessed: " + manualRow);
+        main(() -> historyView("charge-history-session:" + guessed).performClick()); settle();
+        await(() -> onMain(() -> historyView("charge-history-detail") != null), 5 * S, "The guessed recording's detail did not open");
+        String detail = onMainText(() -> String.valueOf(((TextView) ((ViewGroup) historyView("charge-history-detail")).getChildAt(1)).getText()));
+        require(detail.endsWith(marked), "The detail showed a guessed charger as known: " + detail);
+        log("saved list: guessed row \"" + guessRow + "\"; manual row \"" + manualRow + "\"; detail \"" + detail + "\"");
+        main(() -> invoke(viewer(), "close", new Class<?>[0]));
+        for (File file : saved()) file.delete();
+    }
+    private Object viewer() { return field(field(activity, "screen"), "chargeHistoryDialog"); }
+    private View historyView(String tag) {
+        Object viewer = viewer(); android.app.Dialog dialog = viewer == null ? null : (android.app.Dialog) field(viewer, "dialog");
+        return dialog == null || dialog.getWindow() == null ? null : dialog.getWindow().getDecorView().findViewWithTag(tag);
+    }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }
     private static Object field(Object object, String name) { try { return reflected(object, name).get(object); } catch (Exception error) { throw new IllegalStateException(error); } }
     private static void set(Object object, String name, Object value) { try { reflected(object, name).set(object, value); } catch (Exception error) { throw new IllegalStateException(error); } }
