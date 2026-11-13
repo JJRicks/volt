@@ -752,6 +752,8 @@ final class RidingScreen implements AppScreen {
             session.values.setLinkGeneration(ble.connectionGeneration(), ble.connectionStartMs());
             Double charging = ble.telemetry.number("charging_state");
             ble.telemetry.followSpeed(session.speed());
+            // Simulated readings never change the real scooter's saved scale (RidingValues.followSimulation).
+            session.values.followSimulation(service.simulating(), config::powerScale);
             session.feed(ble.telemetry.metrics(), now, charging != null && charging > 0, units, layout.on(RidingLayout.TENTHS));
             if (session.values.takeScaleChanged()) config.save(session.values.scale());
         }
