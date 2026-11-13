@@ -55,6 +55,8 @@ public final class DashboardScreen implements AppScreen {
          * accepted(true) once the scooter was sent the change; false when refused or cancelled (said in its words).
          */
         default void chargeLimitDrag(int value, java.util.function.Consumer<Boolean> accepted) { accepted.accept(false); }
+        /** The charging bar's words (ChargeBar.Words); null leaves the bar without a mark. */
+        default ChargeBar.Words chargeBarWords() { return null; }
     }
 
     private final ScreenHost host;
@@ -2370,6 +2372,7 @@ public final class DashboardScreen implements AppScreen {
                 @Override public boolean inert() { return editing || closed || reveal != null; }
                 @Override public void chargeLimit(int value, java.util.function.Consumer<Boolean> accepted) { actions.chargeLimitDrag(value, accepted); }
                 @Override public void toast(String text) { host.toast(text); }
+                @Override public ChargeBar.Words words() { return actions.chargeBarWords(); }
             };
         }
 

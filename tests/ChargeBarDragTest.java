@@ -218,21 +218,19 @@ public final class ChargeBarDragTest {
         require(c.pending() && c.shown() == 90, "asked: the mark stays where it was released, pending");
         c.report(85);
         require(c.shown() == 90, "an old report while asking doesn't pull the mark back");
-        require(c.resolve(false, 85, null) == ChargeBarDrag.Commit.NO_CHANGE && c.pending(), "nothing resolves before the write is accepted");
+        require(c.resolve(false, 85) == ChargeBarDrag.Commit.NO_CHANGE && c.pending(), "nothing resolves before the write is accepted");
         c.refused();
         require(!c.pending() && c.shown() == 85, "refused or cancelled at the caution: back to the report");
         c.ask(90); c.accepted();
         require(c.phase == ChargeBarDrag.Commit.IN_FLIGHT && c.pending(), "accepted: in flight");
-        require(c.resolve(true, 85, null) == ChargeBarDrag.Commit.WAITING && c.shown() == 90, "while in flight it waits");
-        require(c.resolve(false, 90, "Setting confirmed") == ChargeBarDrag.Commit.KEPT && !c.pending() && c.shown() == 90, "kept");
+        require(c.resolve(true, 85) == ChargeBarDrag.Commit.WAITING && c.shown() == 90, "while in flight it waits");
+        require(c.resolve(false, 90) == ChargeBarDrag.Commit.KEPT && !c.pending() && c.shown() == 90, "kept");
         c.ask(80); c.accepted();
-        require(c.resolve(false, 90, "Rejected by scooter") == ChargeBarDrag.Commit.REJECTED && c.shown() == 90, "rejected: back to what the scooter says");
+        require(c.resolve(false, 90) == ChargeBarDrag.Commit.FAILED && c.shown() == 90, "rejected or timed out: failed, back to what the scooter says");
         c.ask(95); c.accepted();
-        require(c.resolve(false, 90, "Timed out") == ChargeBarDrag.Commit.NOT_CONFIRMED && c.shown() == 90, "timed out: not confirmed, back");
-        c.ask(95); c.accepted();
-        require(c.resolve(false, null, null) == ChargeBarDrag.Commit.NOT_CONFIRMED && c.shown() == 90, "no readback: not confirmed, the last report stays");
+        require(c.resolve(false, null) == ChargeBarDrag.Commit.FAILED && c.shown() == 90, "no readback: failed, the last report stays");
         c.ask(80); c.accepted();
-        require(c.resolve(false, 85, "Setting confirmed") == ChargeBarDrag.Commit.NOT_CONFIRMED && c.shown() == 85, "a different readback is shown, not confirmed");
+        require(c.resolve(false, 85) == ChargeBarDrag.Commit.FAILED && c.shown() == 85, "a different readback is shown, failed");
         c.accepted();
         require(c.phase == ChargeBarDrag.Commit.REST, "accepting with nothing asked does nothing");
     }

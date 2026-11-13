@@ -21,8 +21,8 @@ import java.util.Arrays;
  *       before it moves up or down past it; up or down first, the page keeps it.</li>
  *   <li>The value is committed on the lift, once, and only when it changed. A cancel commits nothing.</li>
  *   <li>A released limit waits for the Charge limit control's write the way its choice sheet does: while the write is
- *       in flight the mark is pending and takes no drag; then the scooter's readback decides (kept, or "Not
- *       confirmed" / "Rejected", and the mark springs back to what the scooter reports).</li>
+ *       in flight the mark is pending and takes no drag; then the scooter's readback decides (kept, or failed: the
+ *       sheet's failure words, and the mark springs back to what the scooter reports).</li>
  * </ul>
  */
 final class ChargeBarDrag {
@@ -92,7 +92,7 @@ final class ChargeBarDrag {
 
     /** The allowed value nearest a percentage; halfway between two, the lower. Allowed must be ascending. */
     static int snap(double percent, int[] allowed) {
-        if (allowed.length == 0) throw new IllegalArgumentException("no values");
+        if (allowed.length == 0) throw new IllegalArgumentException();
         int best = allowed[0];
         for (int v : allowed) if (Math.abs(v - percent) < Math.abs(best - percent)) best = v;
         return best;
@@ -231,7 +231,7 @@ final class ChargeBarDrag {
     static final class Commit {
         static final int REST = 0, ASKING = 1, IN_FLIGHT = 2;
         /** What resolve found. */
-        static final int NO_CHANGE = 0, WAITING = 1, KEPT = 2, NOT_CONFIRMED = 3, REJECTED = 4;
+        static final int NO_CHANGE = 0, WAITING = 1, KEPT = 2, FAILED = 3;
         int phase = REST;
         Integer confirmed, target;
 
@@ -250,17 +250,17 @@ final class ChargeBarDrag {
 
         /**
          * The choice sheet's rule (MainActivity.ChoiceSheet.refresh): while the control's write is in flight, wait;
-         * once it is not, the scooter's readback decides. Kept when it reads back the target; otherwise "Rejected" when
-         * the command result says so, else "Not confirmed", and the mark goes back to what the scooter reports.
+         * once it is not, the scooter's readback decides. Kept when it reads back the target; otherwise failed (the
+         * command result picks the sheet's words) and the mark goes back to what the scooter reports.
          */
-        int resolve(boolean inFlight, Integer actual, String feedback) {
+        int resolve(boolean inFlight, Integer actual) {
             if (phase != IN_FLIGHT) return NO_CHANGE;
             if (inFlight) return WAITING;
             int wanted = target;
             phase = REST; target = null;
             if (actual != null && actual == wanted) { confirmed = actual; return KEPT; }
             if (actual != null) confirmed = actual;
-            return feedback != null && feedback.startsWith("Rejected") ? REJECTED : NOT_CONFIRMED;
+            return FAILED;
         }
     }
 }

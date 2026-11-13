@@ -43,6 +43,26 @@ final class ChargeBar extends View {
         /** The Charge limit control's write (MainActivity): accepted(true) once the scooter was sent the change. */
         void chargeLimit(int value, Consumer<Boolean> accepted);
         void toast(String text);
+        /** The bar's words (MainActivity's, from the controls it stands for); null: no mark. */
+        Words words();
+    }
+
+    /**
+     * Every word the bar shows or speaks comes from the control it stands for, so the bar adds no text of its own:
+     * Quick access's and the rows' refusals, the choice sheet's failure chips, the rows' names and spoken notes.
+     */
+    interface Words {
+        /** A gate in Quick access's or the Charge limit row's words; null for a gate the resolver explains (limitMessage). */
+        String refusal(ChargeBarDrag.Gate gate);
+        /** A write that did not hold: "Rejected" or "Not confirmed", as the choice sheet picks them from the result. */
+        String failure(String evidence);
+        /** "Charge limit" (the row's short label) or "Charge alert" (the alert row's). */
+        String name(boolean alert);
+        /** The row's spoken notes: a write in flight, and "unconfirmed here". */
+        String confirming();
+        String unconfirmed();
+        /** The row's spoken name, value and note, for TalkBack before Android 11. */
+        String spoken(String name, String value, String note);
     }
 
     private final Ui ui;
@@ -55,6 +75,7 @@ final class ChargeBar extends View {
     final RectF markBox = new RectF(), labelBox = new RectF();
     private final ChargeBarDrag.Gesture gesture = new ChargeBarDrag.Gesture();
     private final ChargeBarDrag.Commit commit = new ChargeBarDrag.Commit();
+    private Words words;
 
     int kind = ChargeBarDrag.NONE;
     int[] allowed = ChargeBarDrag.NO_VALUES;
@@ -108,7 +129,8 @@ final class ChargeBar extends View {
         int next = ChargeBarDrag.NONE; int[] values = ChargeBarDrag.NO_VALUES; Integer value = null;
         ChargeBarDrag.Gate nextGate = ChargeBarDrag.Gate.OK; String why = null; boolean other = false, kept = false;
         ChargeAlertPolicy.Settings alerts = null;
-        if (service != null) {
+        words = host.words();
+        if (service != null && words != null) {
             CapabilityResolver.Decision d = service.ble.decision(KEY);
             boolean control = d.support == CapabilityResolver.Support.KNOWN_ENCODING && !d.experimental();
             // The control's own reading wins (it is what a write changes); the charging estimate's target otherwise.
@@ -121,7 +143,7 @@ final class ChargeBar extends View {
                 values = ChargeBarDrag.limitValues(state.choices);
                 value = (int) Math.round(limit);
                 nextGate = ChargeBarDrag.limitGate(state, null);
-                why = limitMessage(nextGate, service);
+                why = limitMessage(nextGate, service, words);
                 other = KEY.equals(service.ble.pending());
                 kept = ModelRegistry.unconfirmed(service.ble.descriptor(), KEY);
             } else if (next == ChargeBarDrag.ALERT) {
@@ -166,19 +188,14 @@ final class ChargeBar extends View {
     }
 
     /** A gate in the words its control uses (Quick access's toasts, the resolver's reason, the row's and sheet's). */
-    static String limitMessage(ChargeBarDrag.Gate gate, ScooterService service) {
+    static String limitMessage(ChargeBarDrag.Gate gate, ScooterService service, Words words) {
         switch (gate) {
-            case NO_SERVICE: return T.mainQuickConnectFirst();
+            case OK: case NOT_OFFERED: case SAME: return null;
             case UNMAPPED: case LAB: case RULE: case GATED: {
                 CharSequence reason = service == null ? null : service.ble.decision(KEY).reasonMessage();
                 return reason == null || reason.length() == 0 ? null : reason.toString();
             }
-            case NOT_CONNECTED: return T.mainQuickConnectChange();
-            case BUSY: return T.mainQuickWaitChange();
-            case NOT_FRESH: return T.mainQuickNoFresh();
-            case PARKED: return T.mainRowStopToChange();
-            case NO_CHOICES: return T.mainEditNotOnFirmware();
-            default: return null;
+            default: return words == null ? null : words.refusal(gate);
         }
     }
 
@@ -186,9 +203,9 @@ final class ChargeBar extends View {
     private void resolve(ScooterService service) {
         if (service == null) { commit.refused(); return; }
         BleController ble = service.ble;
-        int outcome = commit.resolve(KEY.equals(ble.pending()), ble.featureValue(KEY), ble.commandResults().get(KEY));
-        if (outcome == ChargeBarDrag.Commit.NOT_CONFIRMED || outcome == ChargeBarDrag.Commit.REJECTED) {
-            host.toast((outcome == ChargeBarDrag.Commit.REJECTED ? M.mainChipRejected() : M.mainChipNotConfirmed()).render());
+        int outcome = commit.resolve(KEY.equals(ble.pending()), ble.featureValue(KEY));
+        if (outcome == ChargeBarDrag.Commit.FAILED) {
+            if (words != null) host.toast(words.failure(ble.commandResults().get(KEY)));
             Haptics.reject(this);
         }
     }
@@ -279,10 +296,10 @@ final class ChargeBar extends View {
 
     /** "85%" for a limit; the alert sheet's own words for an alert level ("80%", or "Full" at 100). */
     String valueText(int value) {
-        return kind == ChargeBarDrag.ALERT ? ChargeAlertPolicy.levelText(value) : T.fmtPercent(Fmt.integer(value));
+        return kind == ChargeBarDrag.ALERT ? ChargeAlertPolicy.levelText(value) : Fmt.percent(Fmt.integerNumber(value)).toString();
     }
 
-    String name() { return kind == ChargeBarDrag.ALERT ? M.mainAlertCharge().render() : T.mainShortChargeLimit(); }
+    String name() { return words == null ? "" : words.name(kind == ChargeBarDrag.ALERT); }
 
     // ---- Motion ---------------------------------------------------------------------------------------------------
 
@@ -401,7 +418,7 @@ final class ChargeBar extends View {
     private void refusedDrag() {
         if (said) return;
         said = true;
-        String why = commit.pending() || otherPending ? T.mainQuickWaitChange() : blocked;
+        String why = commit.pending() || otherPending ? limitMessage(ChargeBarDrag.Gate.BUSY, null, words) : blocked;
         if (why != null) host.toast(why);
         Haptics.reject(this);
     }
@@ -499,18 +516,17 @@ final class ChargeBar extends View {
         int importance = mark ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_NO;
         if (getImportantForAccessibility() != importance) setImportantForAccessibility(importance);
         if (isFocusable() != mark) setFocusable(mark);
-        if (!mark) { if (getContentDescription() != null) setContentDescription(null); return; }
+        if (!mark || words == null) { if (getContentDescription() != null) setContentDescription(null); return; }
         Integer at = commit.shown();
         String value = valueText(at == null ? Math.round(drawn) : at);
-        String note = commit.pending() || otherPending ? T.mainRowConfirmingPart()
-                : unconfirmed ? T.mainRowStateNote(T.mainRowUnconfirmed()) : "";
+        String note = commit.pending() || otherPending ? words.confirming() : unconfirmed ? words.unconfirmed() : "";
         if (Build.VERSION.SDK_INT >= 30) {
             String state = value + note;
             if (!state.contentEquals(String.valueOf(getStateDescription()))) setStateDescription(state);
             String named = name();
             if (!named.contentEquals(String.valueOf(getContentDescription()))) setContentDescription(named);
         } else {
-            String spoken = T.mainLabelValueState(name(), value, note);
+            String spoken = words.spoken(name(), value, note);
             if (!spoken.contentEquals(String.valueOf(getContentDescription()))) setContentDescription(spoken);
         }
     }

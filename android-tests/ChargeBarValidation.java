@@ -149,11 +149,10 @@ public final class ChargeBarValidation extends Instrumentation {
         require(layouts[0] == 0, "The drag ran " + layouts[0] + " layout passes");
         f.up();
         await(() -> !bar().writePending() && service.ble.featureValue("charge_limit") == 95, "The release did not set 95");
+        // A slow machine may still be easing the bar back: wait for rest rather than a fixed time.
+        await(() -> bar().lift == 0f && bar().drawn == 95f && bar().labelBox.isEmpty(), "The bar did not come to rest on 95");
         SystemClock.sleep(300); settle();
-        main(() -> {
-            require(writes.equals(Collections.singletonList(95)), "The release wrote " + writes + ", not 95 once");
-            require(bar().lift == 0f && bar().drawn == 95f && bar().labelBox.isEmpty(), "The bar did not come to rest on 95");
-        });
+        main(() -> require(writes.equals(Collections.singletonList(95)), "The release wrote " + writes + ", not 95 once"));
         checks.add("A real drag: thickens, follows in steps (85 to 95), shows the value, no layout pass, nothing written until the lift; the lift writes 95 once");
     }
 
@@ -462,6 +461,7 @@ public final class ChargeBarValidation extends Instrumentation {
             else accepted.accept(false);
         }
         @Override public void toast(String text) { toasts.add(text); real.toast(text); }
+        @Override public ChargeBar.Words words() { return real.words(); }
     }
     @SuppressWarnings("unchecked")
     private void putResult(String result) {
@@ -531,9 +531,12 @@ public final class ChargeBarValidation extends Instrumentation {
         main(() -> {
             View view = bar(); android.widget.ScrollView parent = scroller();
             Rect r = new Rect(); view.getDrawingRect(r); parent.offsetDescendantRectToMyCoords(view, r);
-            int top = parent.getScrollY(), bottom = top + parent.getHeight();
+            // Home's floating navigation covers the scroller's bottom padding: the bar counts as reachable only above
+            // it (the 725 dp, 1.4x run once pressed the navigation instead), and is otherwise scrolled to the middle.
+            int seen = parent.getHeight() - parent.getPaddingBottom();
+            int top = parent.getScrollY() + parent.getPaddingTop(), bottom = parent.getScrollY() + seen;
             if (r.top >= top && r.bottom <= bottom) return;
-            parent.scrollTo(0, Math.max(0, r.bottom - parent.getHeight() + activity.ui().dp(24)));
+            parent.scrollTo(0, Math.max(0, r.centerY() - seen / 2));
         });
         settle();
     }
