@@ -335,6 +335,22 @@ class ProveEnglishRuleTest(unittest.TestCase):
         self.assertNotIn("--base", listed)
         self.assertIn('--base "$BASE" --tight', rest, "a batch or an English change may only shrink")
 
+    def test_g5_follows_ci_gates_for_each_kind(self):
+        """ci_gates.plan adds G5 for every kind but an ordinary change; the proof does the same."""
+        self.assertNotIn("G5 characterization first",
+                         [s[0] for s in ci_gates.plan("ordinary", "origin/main", "HEAD", "abc", "/repo")])
+        for kind in ("batch", "english-change"):
+            self.assertIn("G5 characterization first",
+                          [s[0] for s in ci_gates.plan(kind, "origin/main", "HEAD", "abc", "/repo")])
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "prove-english.sh"), encoding="utf-8") as handle:
+            script = handle.read()
+        ordinary = script.index('if [[ "$KIND" == ordinary ]]; then\n    record "G5 characterization first" "not applied"')
+        branch = script[ordinary:script.index("\nfi\n", ordinary)]
+        listed, rest = branch.split("else\n")
+        self.assertNotIn("char_first.py", listed)
+        self.assertIn("char_first.py", rest)
+
 
 class ProveEnglishKindsTest(unittest.TestCase):
     """prove-english.sh itself, on a throwaway repository: the tools are this checkout's, the unit tests and
@@ -536,6 +552,47 @@ done
         self.assertIn("batch change", report)
         self.assertEqual(code, 1, everything)
         self.assertRegex(report, self.UNLISTED, everything)
+
+    G5_ROW = r"\| G5 characterization first \| ([^|]+) \|"
+
+    def characterize_with_code(self):
+        """One commit that changes a characterization test and src/ together: G5's rule 2 fails it."""
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.change_a_literal()
+        self.repo.commit("a test and the code it covers, together")
+
+    def test_an_ordinary_change_is_not_held_to_g5(self):
+        """As ci_gates.plan: G5 binds batches and English changes; an ordinary change may edit a
+        characterization test with the code, so G5 reads "not applied" (never PASS) and nothing runs at a
+        first commit."""
+        self.repo.write("tests/run.sh", self.LIST_ONLY_RUNNER)
+        self.base = self.repo.commit("a list-only test runner")
+        self.characterize_with_code()
+        for run_tests in (False, True):
+            code, _, report, everything = self.prove(run_tests=run_tests)
+            self.assertIn("ordinary change", report)
+            self.assertEqual(code, 0, everything)
+            self.assertEqual(re.search(self.G5_ROW, report).group(1).strip(), "not applied", everything)
+            self.assertNotIn("G5 tests pass at the first commit", report, everything)
+            self.assertIn("G1 and G5 were not applied", report)
+
+    def test_the_same_commits_in_a_batch_fail_g5(self):
+        self.characterize_with_code()
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("now a batch")
+        code, _, report, everything = self.prove()
+        self.assertIn("batch change", report)
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(re.search(self.G5_ROW, report).group(1).strip(), "FAIL", everything)
+
+    def test_a_kind_ci_gates_could_not_tell_is_held_to_g5(self):
+        self.repo.write("tools/l10n/ci_gates.py", "import sys\nsys.exit(3)\n")
+        self.base = self.repo.commit("ci_gates cannot run")
+        self.characterize_with_code()
+        code, _, report, everything = self.prove()
+        self.assertIn("unknown change", report)
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(re.search(self.G5_ROW, report).group(1).strip(), "FAIL", everything)
 
     def test_a_batch_that_keeps_its_literals_gets_a_real_g1_pass(self):
         self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
