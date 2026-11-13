@@ -17,10 +17,15 @@ public final class QuickAccessActions {
         /** label and group stay the English (search, older screens); label(), shortLabel() and groupLabel() are shown. */
         public final String id, label, icon, group, featureKey;
         private final Msg labelMsg, groupMsg;
+        /** A short rung of its own (an entry outside the catalog, see {@link #local}); null for catalog entries. */
+        private final Msg shortMsg;
         private Entry(String id, Msg label, String icon, Msg group, String featureKey) {
+            this(id, label, null, icon, group, featureKey);
+        }
+        private Entry(String id, Msg label, Msg shortLabel, String icon, Msg group, String featureKey) {
             this.id = id; this.labelMsg = label; this.label = label.english(); this.icon = icon;
             this.groupMsg = group; this.group = group.english();
-            this.featureKey = featureKey;
+            this.featureKey = featureKey; this.shortMsg = shortLabel;
         }
         /** The full name in the current language: Quick access buttons, tooltips, screen readers, the picker. */
         public Msg label() { return labelMsg; }
@@ -31,6 +36,7 @@ public final class QuickAccessActions {
          * shortcut has none of its own and shows the control's name. In English both rungs are the same text.
          */
         public Msg shortLabel() {
+            if (shortMsg != null) return shortMsg;
             switch (labelMsg.id()) {
                 case T.DASHBOARD_MODEL_QA_LIGHTS: return M.dashboardModelQaLightsShort();
                 case T.DASHBOARD_MODEL_QA_SETTINGS: return M.dashboardModelQaSettingsShort();
@@ -113,6 +119,13 @@ public final class QuickAccessActions {
         return Collections.unmodifiableList(new ArrayList<>(ENTRIES.values()));
     }
     public static Entry find(String id) { return ENTRIES.get(id); }
+    /**
+     * An entry that is not in the catalog, for a screen's own actions (Clean Home's Ride and Record, HomeQuickActions):
+     * find() and catalog() never return it, so no dashboard, saved slot or transfer can hold its id.
+     */
+    static Entry local(String id, Msg label, Msg shortLabel, String icon, Msg group) {
+        return new Entry(id, label, shortLabel, icon, group, null);
+    }
     public static List<String> defaultIds() {
         return Arrays.asList("lights", "controls", "stats", "rides");
     }

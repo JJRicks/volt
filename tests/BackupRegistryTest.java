@@ -85,6 +85,7 @@ public final class BackupRegistryTest {
         check(BackupRegistry.SCOOTER_PREFERENCES.equals(BackupRegistry.category("control_evidence","p")),"control evidence travels with Scooter preferences");
         check(BackupRegistry.RIDES.equals(BackupRegistry.root("files/rides"))&&BackupRegistry.HISTORY.equals(BackupRegistry.root("databases/telemetry-history.db"))&&BackupRegistry.root("files/pending-export-123")==null&&BackupRegistry.root("cache/map-tiles")==null,"storage roots are classified");
         check(BackupRegistry.root("no_backup/compat-tests")==null&&BackupRegistry.root("no_backup/compat-tests.tmp")==null,"guided-test records stay device-local (D4)");
+        check(BackupRegistry.root("no_backup/charge-evidence")==null&&BackupRegistry.root("no_backup/charge-evidence/0b0c5e9e-2d1f-4c3a-9a51-7f5b2e8d1c00.tmp")==null&&BackupRegistry.root("no_backup/command-events")==null,"report diagnostics stay device-local, never in a backup");
         checks++;try{BackupRegistry.root("files/surprise");throw new AssertionError("unclassified root accepted");}catch(IllegalArgumentException expected){}
     }
 

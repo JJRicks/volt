@@ -1135,6 +1135,12 @@ public final class Ui {
                 // Recording time: the record mark, a ring around a solid dot.
                 canvas.drawCircle(12, 12, 8.5f, paint);
                 paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 4.5f, paint);
+            } else if (key.equals("gps_accuracy")) {
+                // GPS accuracy: a location crosshair, the fix as a dot inside the ring of how far off it may be.
+                canvas.drawCircle(12, 12, 6.5f, paint);
+                p.moveTo(12, 2); p.lineTo(12, 5.5f); p.moveTo(12, 18.5f); p.lineTo(12, 22);
+                p.moveTo(2, 12); p.lineTo(5.5f, 12); p.moveTo(18.5f, 12); p.lineTo(22, 12); canvas.drawPath(p, paint);
+                paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 2.2f, paint);
             } else if (key.equals("appearance")) {
                 canvas.drawCircle(12, 12, 8, paint); paint.setStyle(Paint.Style.FILL);
                 canvas.drawArc(new RectF(4, 4, 20, 20), 90, 180, true, paint);
