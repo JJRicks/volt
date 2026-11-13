@@ -2764,12 +2764,28 @@ public final class DashboardScreen implements AppScreen {
                         && percent.getWidth() > 0) {
                     float cx = (percent.getLeft() + percent.getRight()) / 2f, cy = (percent.getTop() + percent.getBottom()) / 2f;
                     float rx = percent.getWidth() * .85f, ry = percent.getHeight() * .7f;
+                    float baseline = Float.NaN;
+                    if (!ui.dark && percent.getLayout() != null) {
+                        // Light: a pale fade over the dark photo washes the whole scooter out, so it stays on the
+                        // digits' own box (cap height above the baseline, the text's width) and stops at the baseline:
+                        // the deck and wheels under the number stay solid, as the dark theme's photo does.
+                        android.graphics.Rect digits = new android.graphics.Rect();
+                        percent.getPaint().getTextBounds("8", 0, 1, digits);
+                        baseline = percent.getTop() + percent.getTotalPaddingTop() + percent.getLayout().getLineBaseline(0);
+                        float cap = Math.max(1, -digits.top);
+                        cy = baseline - cap / 2f;
+                        rx = Math.max(1, percent.getLayout().getLineWidth(0) * .62f);
+                        ry = cap * .7f;
+                    }
                     if (fadeShader == null || rx != fadeRadius) {
-                        fadeShader = new RadialGradient(0, 0, rx, new int[] {Ui.withAlpha(ui.bg, 225), Ui.withAlpha(ui.bg, 160), Ui.withAlpha(ui.bg, 0)},
-                                new float[] {0, .55f, 1}, Shader.TileMode.CLAMP);
+                        int[] colors = ui.dark
+                                ? new int[] {Ui.withAlpha(ui.bg, 225), Ui.withAlpha(ui.bg, 160), Ui.withAlpha(ui.bg, 0)}
+                                : new int[] {Ui.withAlpha(ui.bg, 190), Ui.withAlpha(ui.bg, 110), Ui.withAlpha(ui.bg, 0)};
+                        fadeShader = new RadialGradient(0, 0, rx, colors, new float[] {0, .55f, 1}, Shader.TileMode.CLAMP);
                         fadeRadius = rx;
                     }
                     canvas.save();
+                    if (!Float.isNaN(baseline)) canvas.clipRect(0, 0, getWidth(), baseline);
                     canvas.translate(cx, cy);
                     canvas.scale(1, ry / rx);
                     paint.setStyle(Paint.Style.FILL);
