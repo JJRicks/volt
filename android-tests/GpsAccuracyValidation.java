@@ -876,7 +876,12 @@ public final class GpsAccuracyValidation extends Instrumentation {
         main(() -> call(activity, "select", new Class<?>[]{String.class}, "rides"));
         settle();
         SystemClock.sleep(2500); // the Rides list loads off the main thread
-        main(() -> call(field(activity, "screen"), "openRide", new Class<?>[]{String.class}, id));
+        // Volt 1.13's Rides screen has no openRide (the Hub added it on main): select the ride in the wide panes, else
+        // open its details page, which is what openRide does there.
+        main(() -> {
+            Object rides = field(activity, "screen");
+            call(rides, Boolean.TRUE.equals(field(rides, "wide")) ? "selectRide" : "showDetails", new Class<?>[]{String.class}, id);
+        });
         settle();
         // The chart draws the scooter's lines first; the phone journal (and so GPS accuracy) arrives after it loads.
         boolean journal = !id.equals(none);

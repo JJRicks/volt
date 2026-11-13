@@ -54,7 +54,13 @@ public final class RidesAnalysisValidation extends Instrumentation {
             verifyBasemapControls(root);
             Object panel = ancestor(find(root, RideChartView.class), "ChartPanel");
             Set<?> selected = (Set<?>) field(panel, "chosen"); check(selected.size() == 2 && selected.contains("power_w") && selected.contains("speed_kmh"), "Power and speed selected by default");
-            List<?> data = (List<?>)field(panel, "data"); check(data.size() == 8, "Eight graph series");
+            // The lines the graph offers come from the app (RideChartData.forRide): build()'s readings in KEYS order, then
+            // GPS accuracy (#427/#428), off unless chosen. Counted from there, so a new line can't strand a fixed number here.
+            List<?> data = (List<?>)field(panel, "data"); List<String> offered = new ArrayList<>();
+            for (Object series : data) offered.add(((RideChartData.Series)series).key);
+            List<String> expected = new ArrayList<>(Arrays.asList(RideChartData.KEYS)); expected.add(GpsAccuracy.KEY);
+            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy: " + offered);
+            check(!selected.contains(GpsAccuracy.KEY), "GPS accuracy stays off until chosen");
             main(() -> { View inline = find(root, RideChartView.class); inline.requestRectangleOnScreen(new android.graphics.Rect(0,0,inline.getWidth(),inline.getHeight()+activity.ui().dp(90)),true); }); settle();
             main(() -> verifyInspection((RideChartView)find(root, RideChartView.class))); settle(); screenshot("inline-inspection");
             main(() -> {
@@ -84,8 +90,9 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(chart::reset); check(Math.abs((double)field(chart, "to") - (double)field(chart, "duration")) < .01, "Fit time restores all samples");
             main(() -> { Object expanded = ancestor(chart, "ChartPanel"); ViewGroup choices = (ViewGroup)field(expanded, "choices");
                 for(int i=0;i<choices.getChildCount();i++){CheckBox box=(CheckBox)choices.getChildAt(i); if(!box.isChecked())box.performClick();}
-                check(((List<?>)field(chart,"series")).size()==8,"Every series can be overlaid together");
-                ((CheckBox)choices.getChildAt(4)).performClick(); check(((List<?>)field(chart,"series")).size()==7,"Hiding a series removes its Y axis");
+                int offeredCount=((List<?>)field(expanded,"data")).size();
+                check(choices.getChildCount()==offeredCount&&((List<?>)field(chart,"series")).size()==offeredCount,"Every series can be overlaid together");
+                ((CheckBox)choices.getChildAt(4)).performClick(); check(((List<?>)field(chart,"series")).size()==offeredCount-1,"Hiding a series removes its Y axis");
             });
             main(() -> ((AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1)).dismiss()); settle();
             main(() -> {
