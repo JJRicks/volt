@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
@@ -51,7 +52,7 @@ import com.jjricks.volt.ScooterService;
  *
  * -e walk scooter: the states the page walk never reaches, since it has no scooter and records no ride.
  * A synthetic profile with seeded maintenance reminders (written straight to app_settings, never the
- * simulator's in-memory document): the Scooter tab's Reminders row ("1 due", then "5 reminders") and the
+ * simulator's in-memory document): Scooter › Service's Maintenance row ("1 due", then "5 reminders") and the
  * Maintenance page with a DUE, SOON, SNOOZED, OK and waiting reminder. Then, on the developer simulator
  * (ModelHomeValidation's way), Home with every Quick access shortcut and Setting tile in batches of 8
  * (each batch as one Quick access widget and four two-tile Setting tiles widgets, as Home's default). Then riding mode: connected,
@@ -186,8 +187,8 @@ public final class LocaleValidation extends Instrumentation {
     // ---- -e walk scooter -----------------------------------------------------------------------
 
     private static final long DAY = 86_400_000L;
-    /** MaintenanceStore.PREFIX and MaintenanceScreen.ROW (package-private in the app). */
-    private static final String MAINTENANCE_PREFIX = "maintenance_v1_", MAINTENANCE_ROW = "maintenance_reminders";
+    /** MaintenanceStore.PREFIX (package-private in the app) and the tag of Service's Maintenance row (HubListScreen.tag). */
+    private static final String MAINTENANCE_PREFIX = "maintenance_v1_", MAINTENANCE_ROW = "hub-row-" + HubPages.SERVICE_MAINTENANCE;
     /** RecordingPill.ALTERNATE_MS: an alternating recording pill shows the time, then the link problem, this long each. */
     private static final long PILL_HALF_MS = 3000;
 
@@ -226,28 +227,33 @@ public final class LocaleValidation extends Instrumentation {
                 + ",\"snoozeUntil\":" + snooze + ",\"events\":[" + events + "]}";
     }
 
-    /** The Scooter tab's Reminders row with a check due and without, then the Maintenance page. No simulator: it keeps its own document. */
+    /**
+     * Scooter › Service's Maintenance row with a check due and without, then the Maintenance page. No simulator: it keeps
+     * its own document. The row was the Scooter tab's Reminders row until the Hub layout (#385) gave maintenance a page
+     * under Service.
+     */
     private void walkMaintenance() throws Exception {
-        select("controls");
+        servicePage();
         showRow(); check("scooter-maintenance-due");
         require(settings().edit().putString(MAINTENANCE_PREFIX + profileId, maintenanceDocument(false)).commit(), "Maintenance fixture failed");
-        main(() -> activity.rebuild()); settle(); select("controls");
+        main(() -> activity.rebuild()); settle(); servicePage();
         showRow(); check("scooter-maintenance-count");
         require(settings().edit().putString(MAINTENANCE_PREFIX + profileId, maintenanceDocument(true)).commit(), "Maintenance fixture failed");
-        main(() -> activity.rebuild()); settle(); select("controls");
-        // The Reminders row's own action (ControlsScreen.showMaintenance), as a tap would run it.
-        main(() -> invoke(field(activity, "screen"), "showMaintenance", new Class<?>[0]));
-        await(() -> field(field(activity, "screen"), "maintenance") != null, "The Maintenance page did not open"); settle();
+        main(() -> activity.rebuild()); settle(); servicePage();
+        // The Maintenance row's own action, as a tap would run it.
+        main(() -> require(activity.getWindow().getDecorView().findViewWithTag(MAINTENANCE_ROW).performClick(), "The Maintenance row did not act"));
+        await(() -> HubPages.SERVICE_MAINTENANCE.equals(HubTestPages.current(activity)), "The Maintenance page did not open"); settle();
         check("maintenance-page");
-        main(() -> invoke(field(activity, "screen"), "closeMaintenance", new Class<?>[0]));
-        await(() -> field(field(activity, "screen"), "maintenance") == null, "The Maintenance page did not close"); settle();
+        main(() -> invoke(activity, "navigateBack", new Class<?>[0]));
+        await(() -> HubPages.SERVICE.equals(HubTestPages.current(activity)), "The Maintenance page did not close"); settle();
     }
+    private void servicePage() { HubTestPages.reach(this, activity, HubPages.SERVICE); settle(); }
 
-    /** Scrolls the Scooter tab so the Reminders row sits in the upper third, clear of the bottom bar, for the screenshot. */
+    /** Scrolls Service so the Maintenance row sits in the upper third, clear of the bottom bar, for the screenshot. */
     private void showRow() {
         main(() -> {
             View row = activity.getWindow().getDecorView().findViewWithTag(MAINTENANCE_ROW);
-            require(row != null && row.isShown(), "The Scooter tab has no Reminders row");
+            require(row != null && row.isShown(), "Scooter › Service has no Maintenance row");
             View scroll = row;
             while (scroll != null && !(scroll instanceof android.widget.ScrollView)) scroll = scroll.getParent() instanceof View ? (View) scroll.getParent() : null;
             if (scroll == null) return;
