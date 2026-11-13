@@ -291,6 +291,12 @@ public final class Telemetry {
             if (code == 2.0) return "DRIVE";
             if (code == 3.0 || code == 5.0) return "SPORT";
         }
+        // ST3 Pro owner's answer (November 2026): exactly 11 Walk, 2 Drive (D on its display), 3 Sport; 5 and others stay raw.
+        if (productId == 23452) {
+            if (code == 11.0) return "WALK";
+            if (code == 2.0) return "DRIVE";
+            if (code == 3.0) return "SPORT";
+        }
         String value = code == Math.rint(code) ? String.format(Locale.US, "%.0f", code)
                 : Double.toString(code);
         return value + " (raw)";
