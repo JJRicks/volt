@@ -3323,8 +3323,13 @@ public final class MainActivity extends Activity implements ScreenHost {
      * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
      * prepared, or no email app can take it.
      */
-    /** ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export. */
-    private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{if(destroyed)export.file.delete();else emailChargeRecordings(export.file,export.model);};
+    /**
+     * ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export, or toasts a failed one
+     * ("Charge recordings could not be exported", or the service's other status text), once (#412 round-2 review).
+     */
+    private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{
+        if(export.failed()){if(!destroyed)toast(export.failure.isEmpty()?ScooterService.chargeExportFailed():export.failure);}
+        else if(destroyed)export.discard();else emailChargeRecordings(export.file,export.model);};
     @Override public void emailChargeRecordings(File recordings,String model){
         String version=AppVersion.name(this);
         String subject=IssueReport.chargeRecordingsSubject(version,model);
