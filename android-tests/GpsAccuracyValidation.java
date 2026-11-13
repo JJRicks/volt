@@ -379,8 +379,11 @@ public final class GpsAccuracyValidation extends Instrumentation {
                     note(at + ": Not recording '" + before + "', then " + text + " '" + during + "' (fresh '" + fresh + "'), then '" + after + "'");
                 }
             }
-            // At 344 dp and 1x "Not recording" steps down to the dash and the shorter state fits: the case Terra found.
-            require(exercised > 0, label + ": no size showed the dash for Not recording and the words for " + text);
+            // In English at 344 dp and 1x, "Not recording" steps down to the dash and "Off" fits: the case Terra found, so
+            // this run proves it. Other states and languages are held to matching a fresh screen above.
+            boolean english = "en".equals(activity.getResources().getConfiguration().getLocales().get(0).getLanguage());
+            if (english && state == GpsAccuracy.State.OFF) require(exercised > 0, label + ": no size showed the dash for Not recording and the words for " + text);
+            note(label + ": dash then words at " + exercised + " of 4 sizes");
         } finally {
             size(344, 882);
             prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
