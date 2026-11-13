@@ -645,7 +645,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         String manualId = fixture(fixtures, 2, false).replace(".csv", "");
         require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);
         ensureFront();
-        HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
         settle();
         main(() -> { View row = activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No charge history row"); row.performClick(); });
         await(() -> onMain(() -> historyView("charge-history-session:" + guessed) != null && historyView("charge-history-session:" + manualId) != null), 10 * S, "The saved list did not show both recordings");
