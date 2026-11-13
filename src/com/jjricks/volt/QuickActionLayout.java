@@ -9,8 +9,9 @@ package com.jjricks.volt;
  *
  * <p>The circle does not grow with large text: only the name under it does. The name is the action's short form
  * (QuickAccessGrid picks it); where even that is wider than its column, it gets a little smaller, down to
- * {@link #MIN_SCALE} of its size, and only then ends in an ellipsis on its one line (its spoken name stays whole).
- * Widths are measured at the full size, in the same unit as {@code room}.
+ * {@link #MIN_SCALE} of its size, when that keeps it whole. A name too wide even then stays at the row's size and ends
+ * in an ellipsis on its one line (a smaller cut name says no more, and would be the only small one in the row); its
+ * spoken name stays whole. Widths are measured at the full size, in the same unit as {@code room}.
  */
 final class QuickActionLayout {
     /** The plan's circle (54 dp), and the smallest a circle gets on a narrow column. */
@@ -67,7 +68,7 @@ final class QuickActionLayout {
     /** The room for the name in a column this wide (dp): the column less its side padding. */
     static float room(float column) { return Math.max(0, column - 2 * SIDE_DP); }
 
-    /** The short name on one line: at full size, else a little smaller, else at the smallest size with an ellipsis. */
+    /** The short name on one line: at full size, else a little smaller while that keeps it whole, else at full size with an ellipsis. */
     static Name name(String name, float room, Width width) {
         if (name == null || name.isEmpty()) return new Name(null, 1, false);
         float wide = width.of(name);
@@ -76,6 +77,6 @@ final class QuickActionLayout {
             float scale = Math.round((1 - step * SCALE_STEP) * 100) / 100f;
             if (wide * scale <= room) return new Name(name, scale, false);
         }
-        return new Name(name, MIN_SCALE, true);
+        return new Name(name, 1, true);
     }
 }

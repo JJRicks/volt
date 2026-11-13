@@ -55,6 +55,7 @@ public final class QuickActionLayoutTest {
             if (wider == 1) require(!fit.clipped && (text > 1 || fit.scale == 1),
                     at + ": " + name + " whole on one line" + (text > 1 ? "" : ", at its size") + ": " + fit);
             if (wider == 1 && !fit.clipped) require(names.of(name) * fit.scale <= room, at + ": " + name + " fits its column: " + fit);
+            if (fit.clipped) require(fit.scale == 1, at + ": " + name + " cut only at the row's size, never smaller: " + fit);
             System.out.println("  " + at + ": " + name + " -> " + fit);
         }
         // The four names the mock-up shows, and the defaults' short names, whole at full size on a 344 dp phone at 1x.
@@ -65,9 +66,11 @@ public final class QuickActionLayoutTest {
         QuickActionLayout.Name done = QuickActionLayout.name("Charge done by", room, names);
         if (window == 344 && text == 1 && wider == 1)
             require(!done.clipped && done.scale < 1 && done.scale >= QuickActionLayout.MIN_SCALE, at + ": Charge done by, smaller, on one line: " + done);
+        // Where it cannot be whole even at the least size, it keeps the row's size (cut, until part 10's "Done by").
+        require(done.clipped ? done.scale == 1 : done.scale >= QuickActionLayout.MIN_SCALE, at + ": Charge done by, whole or at the row's size: " + done);
     }
 
-    /** Full size when it fits; smaller (never below the least share) before an ellipsis. */
+    /** Full size when it fits; smaller (never below the least share) while that keeps it whole; else an ellipsis at full size. */
     private static void order() {
         QuickActionLayout.Width w = text -> text.length() * 10f;
         QuickActionLayout.Name name = QuickActionLayout.name("Abcdef", 60, w);
@@ -76,7 +79,7 @@ public final class QuickActionLayoutTest {
         require(name.scale < 1 && name.scale >= QuickActionLayout.MIN_SCALE && !name.clipped && 70 * name.scale <= 60,
                 "a little smaller when it is a little too wide: " + name);
         name = QuickActionLayout.name("Abcdefghijkl", 60, w);
-        require(name.clipped && name.scale == QuickActionLayout.MIN_SCALE, "failing that, an ellipsis at the least size: " + name);
+        require(name.clipped && name.scale == 1, "failing that, an ellipsis at the row's size (a smaller cut name says no more): " + name);
         require(QuickActionLayout.name("", 60, w).text == null && QuickActionLayout.name(null, 60, w).text == null, "no name, nothing");
         // Each step is the largest that fits.
         for (int length = 6; length <= 8; length++) {
