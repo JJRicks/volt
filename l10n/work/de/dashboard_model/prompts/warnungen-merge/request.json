@@ -1,0 +1,127 @@
+{
+ "key": "dashboard_model_qa_charge_alerts_short",
+ "english": "Alerts",
+ "kind": "string",
+ "safety": [
+  "alarm"
+ ],
+ "source_sha1": "7463b09504a12e15a09561e3e0add16f6cbf5c02",
+ "reason": "merge or fallback after the Quick access room widened",
+ "verdicts": [
+  "merge",
+  "fallback"
+ ],
+ "entry": {
+  "key": "dashboard_model_qa_charge_alerts_short",
+  "kind": "string",
+  "english": "Alerts",
+  "source_sha1": "7463b09504a12e15a09561e3e0add16f6cbf5c02",
+  "formatted": true,
+  "placeholders": {},
+  "screen": "Home Setting tiles",
+  "purpose": "shortcut name",
+  "max": "90dp@12.5sp",
+  "ladder": "short",
+  "ladder_group": [
+   "dashboard_model_qa_charge_alerts",
+   "dashboard_model_qa_charge_alerts_short"
+  ],
+  "overflow": null,
+  "safety": [
+   "alarm"
+  ],
+  "dnt": [],
+  "note": "Battery alerts' shorter whole-word name, for a Setting tile too narrow for the full name (three in a row on a narrow phone).",
+  "english_width_dp": 34.48,
+  "budget_dp": 90.0,
+  "budget_sp": 12.5,
+  "budget_lines": 1,
+  "glossary": [],
+  "neighbours": [
+   {
+    "key": "dashboard_model_qa_charge_done_time_short",
+    "english": "Charge done by time"
+   },
+   {
+    "key": "dashboard_model_qa_charge_alerts",
+    "english": "Battery alerts"
+   },
+   {
+    "key": "dashboard_model_qa_group_menus",
+    "english": "Menus"
+   },
+   {
+    "key": "dashboard_model_qa_group_pages",
+    "english": "Pages"
+   }
+  ],
+  "current": null,
+  "status": "new"
+ },
+ "stuck": {
+  "full": "dashboard_model_qa_charge_alerts",
+  "full_english": "Battery alerts",
+  "full_text": [
+   "Akkuwarnungen"
+  ],
+  "full_entry": {
+   "key": "dashboard_model_qa_charge_alerts",
+   "kind": "string",
+   "english": "Battery alerts",
+   "source_sha1": "a3e5ebbd7d27387561d5b73e97446892da8aee4e",
+   "formatted": true,
+   "placeholders": {},
+   "screen": "Home Quick access, shortcut picker",
+   "purpose": "shortcut name",
+   "max": "66dp@12sp*2",
+   "ladder": "full",
+   "ladder_group": [
+    "dashboard_model_qa_charge_alerts",
+    "dashboard_model_qa_charge_alerts_short"
+   ],
+   "overflow": "short",
+   "safety": [
+    "alarm"
+   ],
+   "dnt": [],
+   "note": null,
+   "english_width_dp": 42.2,
+   "budget_dp": 66.0,
+   "budget_sp": 12.0,
+   "budget_lines": 2,
+   "glossary": [
+    {
+     "id": "battery-alerts",
+     "term": "Battery alerts",
+     "definition": "Alerts on models without a charge limit.",
+     "dnt": false,
+     "safety": "alarm",
+     "target": [
+      "Akkuwarnungen",
+      "Akkuwarnung"
+     ]
+    }
+   ],
+   "neighbours": [
+    {
+     "key": "dashboard_model_qa_charge_done_time",
+     "english": "Charge done by time"
+    },
+    {
+     "key": "dashboard_model_qa_charge_done_time_short",
+     "english": "Charge done by time"
+    },
+    {
+     "key": "dashboard_model_qa_charge_alerts_short",
+     "english": "Alerts"
+    },
+    {
+     "key": "dashboard_model_qa_group_menus",
+     "english": "Menus"
+    }
+   ],
+   "current": null,
+   "status": "new"
+  }
+ }
+}
