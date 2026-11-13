@@ -435,14 +435,17 @@ public final class SimulatorScenesValidation extends Instrumentation {
         require(service.ble.simulationDriveMode() == before && back.equals(rowValue("simulationDriveModeRow")), "The Drive mode row chose " + back + " back");
         main(() -> activity.openRiding());
         await(() -> field(activity, "riding") != null, "rows: riding mode did not open on Riding", 8000); settle();
-        Object speed = call(field(activity, "riding"), "speed", new Class<?>[0]);
-        await(() -> { Double max = (Double)call(speed, "maxKmh", new Class<?>[0]), avg = (Double)call(speed, "averageKmh", new Class<?>[0]);
-            return max != null && max > 5 && avg != null && avg > 1; }, "rows: riding mode's Max and Avg did not move in the Riding scene", 20000);
+        Object speed = field(field(activity, "riding"), "speed");
+        await(() -> topKmh(speed) > 5 && averageKmh(speed) > 1, "rows: riding mode's Max and Avg did not move in the Riding scene", 20000);
         capture("rows-riding-mode");
-        note("rows: Scene " + chosen + "; Drive mode " + other + " then " + back + "; riding mode's Max " + call(speed, "maxKmh", new Class<?>[0]) + " km/h, Avg " + call(speed, "averageKmh", new Class<?>[0]) + " km/h");
+        note("rows: Scene " + chosen + "; Drive mode " + other + " then " + back + "; riding mode's Max " + topKmh(speed) + " km/h, Avg " + averageKmh(speed) + " km/h");
         main(() -> activity.onBackPressed());
         await(() -> field(activity, "riding") == null, "rows: Back did not close riding mode", 8000); settle();
     }
+    /** Riding mode's Max (RidingSpeed.maxKmh), read from its fields: 0 before a reading. */
+    private static double topKmh(Object speed) { return (Double)field(speed, "topKmh"); }
+    /** Riding mode's Avg (RidingSpeed.averageKmh) over its moving time: 0 before it has moved. */
+    private static double averageKmh(Object speed) { double ms = (Double)field(speed, "movingMs"); return ms > 0 ? (Double)field(speed, "movingKmhMs") / ms : 0; }
     private static int indexOf(int[] values, int value) { for (int i = 0; i < values.length; i++) if (values[i] == value) return i; return -1; }
     /** Taps a Developer options simulator row (a MoreScreen Row field) and picks its dialog's choice at a position; the choice's text. */
     private String pickRow(String row, int position) {
