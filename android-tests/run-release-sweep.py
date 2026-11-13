@@ -194,6 +194,8 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
+STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
 # Maintenance reminders added with no connection (never-read and stale scooters, a restart), phone and wide.
 STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
           for case in (PHONE, WIDE)]
