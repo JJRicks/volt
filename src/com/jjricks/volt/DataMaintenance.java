@@ -42,5 +42,8 @@ public final class DataMaintenance {
             recovered = true;
         }
         catch (Exception error) { throw new IOException("An interrupted restore needs recovery.", error); }
+        // The app-start seed waited for this (HomeStylePrefs.seed): decide the Home style from the recovered data.
+        try { HomeStylePrefs.seed(context, context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)); }
+        catch (RuntimeException ignored) { /* The next app start tries again. */ }
     }
 }

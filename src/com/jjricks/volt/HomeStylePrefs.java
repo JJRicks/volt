@@ -42,20 +42,28 @@ final class HomeStylePrefs {
     }
 
     /**
-     * At each app start, when no style is stored (HomeStyle.reseed): a stored origin is kept and only gives the
-     * style back; otherwise an earlier owner records Widgets and its origin together in one commit, and a clean
-     * new installation writes nothing, so fresh app data stays empty. A failure to read the package times counts
-     * as an update (Widgets), the choice that keeps saved layouts on screen.
+     * At each app start (VoltApp) and again when an interrupted restore has been recovered (DataMaintenance):
+     * decides from settled data only, so it does nothing while a restore still waits for recovery. While no style
+     * is stored: a stored origin is kept and only gives the style back; otherwise an earlier owner records Widgets
+     * and its origin together in one commit, and a clean new installation, or one whose first-run setup is still
+     * under way, writes nothing (HomeStyle.reseed). While a style is stored but no origin (a restore, which never
+     * carries it): an earlier owner's origin is added, and the style is left as stored (HomeStyle.backfillOrigin).
+     * A failure to read the package times counts as an update (Widgets), the choice that keeps saved layouts on screen.
      */
     static void seed(Context context, SharedPreferences app) {
-        if (app.contains(HomeStyle.KEY)) return;
         Map<String, ?> all = app.getAll();
         Object storedOrigin = all.get(HomeStyle.ORIGIN_KEY);
         String origin = storedOrigin instanceof String ? (String) storedOrigin : null;
+        boolean styleStored = all.containsKey(HomeStyle.KEY);
+        boolean originKnown = HomeStyle.ORIGIN_INSTALL.equals(origin) || HomeStyle.ORIGIN_UPDATE.equals(origin);
+        if (styleStored && originKnown) return;
+        // A half-applied restore must not decide this installation's history: its rollback would leave the decision.
+        if (!DataMaintenance.readyForStartup(context)) return;
         boolean hasDashboard = false;
         for (String key : all.keySet()) if (HomeStyle.dashboardKey(key)) { hasDashboard = true; break; }
         boolean hasLastPage = all.containsKey(MaintenanceScreen.LAST_PAGE);
-        boolean onboardingDone = context.getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE).getBoolean(OnboardingScreen.KEY_DONE, false);
+        boolean setupFinished = OnboardingScreen.finishedOnce(context);
+        boolean setupPending = OnboardingScreen.firstRunPending(context);
         String items = context.getSharedPreferences("profiles", Context.MODE_PRIVATE).getString("items", "");
         boolean hasProfile = (items != null && items.contains("\"id\""))
                 || !context.getSharedPreferences("scooter", Context.MODE_PRIVATE).getAll().isEmpty();
@@ -66,7 +74,12 @@ final class HomeStylePrefs {
         } catch (Exception ignored) {
             // Unknown history: first != last, so the seed treats it as an update.
         }
-        String[] seed = HomeStyle.reseed(origin, onboardingDone, hasProfile, hasLastPage, hasDashboard, first, last);
+        if (styleStored) {
+            String backfill = HomeStyle.backfillOrigin(origin, setupFinished, setupPending, hasProfile, hasLastPage, hasDashboard, first, last);
+            if (backfill != null) app.edit().putString(HomeStyle.ORIGIN_KEY, backfill).commit();
+            return;
+        }
+        String[] seed = HomeStyle.reseed(origin, setupFinished, setupPending, hasProfile, hasLastPage, hasDashboard, first, last);
         if (seed == null) return;
         SharedPreferences.Editor edit = app.edit().putString(HomeStyle.KEY, seed[0]);
         if (!seed[1].equals(origin)) edit.putString(HomeStyle.ORIGIN_KEY, seed[1]);

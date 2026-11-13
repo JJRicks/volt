@@ -24,32 +24,62 @@ public final class HomeStyleTest {
 
     private static void seed() {
         long t = 1_700_000_000_000L;
-        require(HomeStyle.initial(false, false, false, false, t, t).equals(HomeStyle.CLEAN), "A fresh install starts on Clean");
-        require(HomeStyle.origin(false, false, false, false, t, t).equals(HomeStyle.ORIGIN_INSTALL), "and records install");
-        boolean[][] signals = {{true, false, false, false}, {false, true, false, false}, {false, false, true, false}, {false, false, false, true}};
+        // Arguments: setupFinished, setupPending, hasProfile, hasLastPage, hasDashboard, firstInstallTime, lastUpdateTime.
+        require(HomeStyle.initial(false, true, false, false, false, t, t).equals(HomeStyle.CLEAN), "A fresh install starts on Clean");
+        require(HomeStyle.origin(false, true, false, false, false, t, t).equals(HomeStyle.ORIGIN_INSTALL), "and records install");
+        require(HomeStyle.initial(true, false, false, false, false, t, t).equals(HomeStyle.WIDGETS)
+                && HomeStyle.origin(true, false, false, false, false, t, t).equals(HomeStyle.ORIGIN_UPDATE), "Setup finished (or re-run after finishing) keeps Widgets");
+        boolean[][] signals = {{true, false, false}, {false, true, false}, {false, false, true}};
         for (boolean[] s : signals) {
-            require(HomeStyle.initial(s[0], s[1], s[2], s[3], t, t).equals(HomeStyle.WIDGETS), "Any earlier-owner signal keeps Widgets");
-            require(HomeStyle.origin(s[0], s[1], s[2], s[3], t, t).equals(HomeStyle.ORIGIN_UPDATE), "and records update");
+            require(HomeStyle.initial(false, false, s[0], s[1], s[2], t, t).equals(HomeStyle.WIDGETS), "Once setup is not under way, any earlier-owner signal keeps Widgets");
+            require(HomeStyle.origin(false, false, s[0], s[1], s[2], t, t).equals(HomeStyle.ORIGIN_UPDATE), "and records update");
+            require(HomeStyle.initial(false, true, s[0], s[1], s[2], t, t).equals(HomeStyle.CLEAN)
+                    && HomeStyle.origin(false, true, s[0], s[1], s[2], t, t).equals(HomeStyle.ORIGIN_INSTALL),
+                    "A fresh install's own setup writes (profile, last page, dashboard) are not an earlier owner while setup is under way");
+            require(HomeStyle.initial(false, true, s[0], s[1], s[2], t, t + 1).equals(HomeStyle.WIDGETS),
+                    "An updated installation counts whatever its setup state");
         }
-        require(HomeStyle.initial(false, false, false, false, t, t + 1).equals(HomeStyle.WIDGETS)
-                && HomeStyle.origin(false, false, false, false, t, t + 1).equals(HomeStyle.ORIGIN_UPDATE), "An updated installation keeps Widgets");
-        require(HomeStyle.initial(false, false, false, false, 0, 1).equals(HomeStyle.WIDGETS), "Unknown package times (the seed's fallback) keep Widgets");
+        require(HomeStyle.initial(false, false, false, false, false, t, t + 1).equals(HomeStyle.WIDGETS)
+                && HomeStyle.origin(false, false, false, false, false, t, t + 1).equals(HomeStyle.ORIGIN_UPDATE), "An updated installation keeps Widgets");
+        require(HomeStyle.initial(false, true, false, false, false, 0, 1).equals(HomeStyle.WIDGETS), "Unknown package times (the seed's fallback) keep Widgets, even mid-setup");
         // What the app-start seed writes while no style is stored.
-        require(HomeStyle.reseed(null, false, false, false, false, t, t) == null, "A clean new install writes nothing: fresh app data stays empty");
+        require(HomeStyle.reseed(null, false, true, false, false, false, t, t) == null, "A clean new install writes nothing: fresh app data stays empty");
+        require(HomeStyle.reseed(null, false, true, true, true, true, t, t) == null,
+                "Setup interrupted after storing the profile (and a page, a dashboard) writes nothing: the decision waits for setup to end");
+        String[] finished = HomeStyle.reseed(null, true, false, true, false, false, t, t);
+        require(finished != null && finished[0].equals(HomeStyle.WIDGETS) && finished[1].equals(HomeStyle.ORIGIN_UPDATE),
+                "Setup finished or skipped before the Home style choice exists: an existing owner of the widgets Home (by design)");
         for (boolean[] s : signals) {
-            String[] w = HomeStyle.reseed(null, s[0], s[1], s[2], s[3], t, t);
+            String[] w = HomeStyle.reseed(null, false, false, s[0], s[1], s[2], t, t);
             require(w != null && w[0].equals(HomeStyle.WIDGETS) && w[1].equals(HomeStyle.ORIGIN_UPDATE), "An earlier owner records Widgets and update together");
+            String[] u = HomeStyle.reseed(null, false, true, s[0], s[1], s[2], t, t + 1);
+            require(u != null && u[0].equals(HomeStyle.WIDGETS) && u[1].equals(HomeStyle.ORIGIN_UPDATE), "An update whose setup is still open is an update");
         }
-        String[] updated = HomeStyle.reseed(null, false, false, false, false, t, t + 1);
+        String[] updated = HomeStyle.reseed(null, false, true, false, false, false, t, t + 1);
         require(updated != null && updated[0].equals(HomeStyle.WIDGETS) && updated[1].equals(HomeStyle.ORIGIN_UPDATE), "An updated installation records Widgets and update");
-        String[] restored = HomeStyle.reseed(HomeStyle.ORIGIN_INSTALL, true, true, false, true, t, t);
+        String[] unknown = HomeStyle.reseed(null, false, true, false, false, false, 0, 1);
+        require(unknown != null && unknown[1].equals(HomeStyle.ORIGIN_UPDATE), "Package times unreadable: update");
+        String[] restored = HomeStyle.reseed(HomeStyle.ORIGIN_INSTALL, true, false, true, false, true, t, t);
         require(restored != null && restored[0].equals(HomeStyle.CLEAN) && restored[1].equals(HomeStyle.ORIGIN_INSTALL),
-                "origin=install, style dropped by a pre-Hub restore, profile present: Clean, origin stays install");
-        require(!HomeStyle.showWhatsNew(restored[1], false, false, false, false, true, true), "and that restore shows no What's new");
-        String[] kept = HomeStyle.reseed(HomeStyle.ORIGIN_UPDATE, false, false, false, false, t, t);
+                "origin=install, style gone, profile present: Clean, origin stays install");
+        require(!HomeStyle.showWhatsNew(restored[1], false, false, false, true, true), "and that installation shows no What's new");
+        String[] kept = HomeStyle.reseed(HomeStyle.ORIGIN_UPDATE, false, true, false, false, false, t, t);
         require(kept != null && kept[0].equals(HomeStyle.WIDGETS) && kept[1].equals(HomeStyle.ORIGIN_UPDATE), "A stored update origin is never re-decided");
-        String[] odd = HomeStyle.reseed("bogus", false, false, false, false, t, t);
+        String[] odd = HomeStyle.reseed("bogus", false, true, false, false, false, t, t);
         require(odd == null, "An unknown stored origin counts as none");
+        // A style stored without an origin (a restore never carries the origin; an earlier build of this series).
+        require(HomeStyle.ORIGIN_UPDATE.equals(HomeStyle.backfillOrigin(null, true, false, true, false, true, t, t)),
+                "A restored style on a phone whose setup the restore finished gets origin update, so What's new can show");
+        for (boolean[] s : signals)
+            require(HomeStyle.ORIGIN_UPDATE.equals(HomeStyle.backfillOrigin(null, false, false, s[0], s[1], s[2], t, t)), "The same signals as the seed");
+        require(HomeStyle.ORIGIN_UPDATE.equals(HomeStyle.backfillOrigin(null, false, true, false, false, false, t, t + 1)), "An updated installation: update");
+        require(HomeStyle.ORIGIN_UPDATE.equals(HomeStyle.backfillOrigin(null, false, true, false, false, false, 0, 1)), "Package times unreadable: update");
+        require(HomeStyle.backfillOrigin(null, false, true, true, true, true, t, t) == null,
+                "A style restored mid-setup on a fresh install: nothing yet (never install from the seed)");
+        require(HomeStyle.backfillOrigin(null, false, true, false, false, false, t, t) == null, "No signal: nothing");
+        require(HomeStyle.backfillOrigin(HomeStyle.ORIGIN_INSTALL, true, false, true, true, true, 0, 1) == null
+                && HomeStyle.backfillOrigin(HomeStyle.ORIGIN_UPDATE, false, true, false, false, false, t, t) == null, "A stored origin is never rewritten");
+        require(HomeStyle.ORIGIN_UPDATE.equals(HomeStyle.backfillOrigin("bogus", true, false, false, false, false, t, t)), "An unknown stored origin counts as none here too");
         require(HomeStyle.pickedOrigin(null).equals(HomeStyle.ORIGIN_INSTALL), "A pick on an installation the seed left alone records install");
         require(HomeStyle.pickedOrigin(HomeStyle.ORIGIN_UPDATE).equals(HomeStyle.ORIGIN_UPDATE)
                 && HomeStyle.pickedOrigin(HomeStyle.ORIGIN_INSTALL).equals(HomeStyle.ORIGIN_INSTALL), "A pick never rewrites a stored origin");
@@ -60,15 +90,20 @@ public final class HomeStyleTest {
 
     private static void whatsNew() {
         String u = HomeStyle.ORIGIN_UPDATE, i = HomeStyle.ORIGIN_INSTALL;
-        require(HomeStyle.showWhatsNew(u, false, false, false, false, true, true), "An update that never chose sees it once");
-        require(!HomeStyle.showWhatsNew(i, false, false, false, false, true, true), "A fresh install never sees it");
-        require(!HomeStyle.showWhatsNew(null, false, false, false, false, true, true), "No origin (seed never ran) never sees it");
-        require(!HomeStyle.showWhatsNew(u, true, false, false, false, true, true), "An owner who chose (or restored a choice) never sees it");
-        require(!HomeStyle.showWhatsNew(u, false, true, false, false, true, true), "Shown once means never again");
-        require(!HomeStyle.showWhatsNew(u, false, false, true, false, true, true), "Not during setup");
-        require(!HomeStyle.showWhatsNew(u, false, false, false, true, true, true), "Not in riding mode");
-        require(!HomeStyle.showWhatsNew(u, false, false, false, false, false, true), "Only on Home");
-        require(!HomeStyle.showWhatsNew(u, false, false, false, false, true, false), "Only while resumed");
+        require(HomeStyle.showWhatsNew(u, false, false, false, true, true), "An update sees it once");
+        require(!HomeStyle.showWhatsNew(i, false, false, false, true, true), "A fresh install never sees it");
+        require(!HomeStyle.showWhatsNew(null, false, false, false, true, true), "No origin (seed never ran) never sees it");
+        require(!HomeStyle.showWhatsNew(u, true, false, false, true, true), "Shown once means never again");
+        require(!HomeStyle.showWhatsNew(u, false, true, false, true, true), "Not during setup");
+        require(!HomeStyle.showWhatsNew(u, false, false, true, true, true), "Not in riding mode");
+        require(!HomeStyle.showWhatsNew(u, false, false, false, false, true), "Only on Home");
+        require(!HomeStyle.showWhatsNew(u, false, false, false, true, false), "Only while resumed");
+        // Choosing a style first (settings, or a restore that brought a choice) does not skip the sheet: it carries the
+        // changelog and one-time notices. The choice only hides the offer to switch.
+        require(HomeStyle.offerSwitch(false, null) && HomeStyle.offerSwitch(false, HomeStyle.WIDGETS) && HomeStyle.offerSwitch(false, "bogus"),
+                "An owner who never chose, on Widgets, is offered Clean");
+        require(!HomeStyle.offerSwitch(true, HomeStyle.WIDGETS) && !HomeStyle.offerSwitch(true, null), "An owner who chose is not offered a switch");
+        require(!HomeStyle.offerSwitch(false, HomeStyle.CLEAN) && !HomeStyle.offerSwitch(true, HomeStyle.CLEAN), "Already on Clean: nothing to switch to");
     }
 
     private static void keys() {
