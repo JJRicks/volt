@@ -580,6 +580,21 @@ the start time and clock Volt sent (none for a change cancelled before it went
 out). Typed numbers only, kept on the phone
 (never backed up) and removed when the scooter is forgotten.
 
+The file also carries, read from the phone only as it is made: Volt's version
+code and install source class; phone state (Android's and Volt's language, text
+scale, dark mode, screen size class, battery optimisation, power saving,
+background restriction and standby bucket, notification channels, Bluetooth,
+location and notification permissions, whether location and Bluetooth are on);
+an allow-list of settings (DiagnosticsSettings: switches, numbers and fixed
+choices; other text shows as "(set)"); ride, phone-ride and charge recording
+counts, sizes and ages, with the newest ride's and charge's length, samples
+and end; a free-space class and whether the last ride write failed; the last
+uncaught crash (CrashRecord: exception classes and Volt's own frames, never a
+message); clock changes in the connection log; and, for the current connection
+(marked when simulated), each drive mode code with the top speed seen in it and
+whether the current reports a direction (PowerSign). The whole file is refused
+if it holds anything shaped like a MAC, email, coordinate or storage path.
+
 No decoded per-cell voltages, cell balance, motor/controller temperature,
 torque, direct per-trip Wh or exact remaining pack Wh were found. Unknown fields
 retain honest raw labels; firmware faults are not silently cleared.
@@ -957,9 +972,12 @@ readings vertically on the right, defaulting to odometer and drive mode. Reporte
 available in Stats and as custom readings. The old four-reading default migrates
 once to the two-reading list, preserving saved card positions/sizes and other
 custom lists. New scooter cards use four rows and may shrink to three.
-On PID 2538, owner-observed driving-mode
-codes 11, 2 and 3 display as WALK, ECO and SPORT. Unconfirmed codes and other
-models remain raw. Raw diagnostics and ride exports are unchanged; displayed
+On PID 2538 (UT5 MAX), owner-observed driving-mode codes 11, 2 and 3 display
+as WALK, ECO and SPORT. From owners' answers, the GT5 Max (25462), XT5 Pro
+(24162) and GT3 Max (24182) show 11, 2 and 3 as WALK, DRIVE and SPORT (the GT5
+Max owner's 5 also as SPORT), as the N65i (22131) is assumed to until an owner
+reports otherwise; the ST3 Pro (23452) shows exactly 11, 2 and 3 as WALK, DRIVE
+and SPORT, with 5 raw. Unconfirmed codes and other models remain raw. Raw diagnostics and ride exports are unchanged; displayed
 lifetime counters do not become current-ride totals or capacity measurements.
 Live SPORT uses pale blue on dark backgrounds and a darker readable blue on
 light backgrounds. ECO is green; WALK uses a green pedestrian icon. Stale modes
@@ -1133,10 +1151,40 @@ options no longer has a charger selector. Email to Volt on the same page attache
 this scooter's recordings to an email to Volt's report address, which helps tune
 charging time estimates for that model. The attachment is
 volt-charge-recordings.json (gzip-compressed as volt-charge-recordings.json.gz
-when over 25 MB). There is no automatic charger detection. Bounded
+when over 25 MB). A manual recording's charger label is the one chosen; Volt's
+charger detection (a hint from charging power) only guides estimates, and labels
+an automatic recording only when no charger is chosen (below). Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
+
+Record charges automatically (beside Record this charge, off by default, an App
+preferences setting) starts a charge recording without a prompt whenever Volt is
+connected to the selected scooter, on screen or in the background, and it reports
+charging, if a manual start would be allowed then; never in simulation. It never
+connects or turns on another setting, so a charge that starts while Volt isn't
+connected, or with notifications off, is missed; connecting mid-charge records the
+rest. The label is the chosen charger, else Volt's detection, else a best guess (the
+charger with more qualified recordings, stock on a tie); a detected or guessed label
+follows detection to the other charger. Only a chosen or detected label is the
+charger in effect (estimates, Charge done by); a recording that ends with a guess
+is listed but teaches no curve. It waits while a guided setting test runs or has
+a write-back outstanding, or a compatibility check runs, and starts after. It ends at once above about 3 mph (4.8 km/h,
+so Record rides automatically can start the ride in the same moment), two minutes
+after charging stops unless Volt's schedule holds the current off, or when a ride is
+started by hand. One under 10 minutes or 5 percentage points is not kept, and the
+page keeps saying so after the unplug until a newer status replaces it. At the
+20-recording limit a kept one replaces only the oldest automatic recording, never a
+manual one, and only once kept; the 20 are shared by all scooters, and with all 20
+manual it does not start and the page says so; clearing any scooter's recordings,
+or turning the switch on again, tries the charge under way once more. A hand stop holds that scooter until it stops
+charging and starts again (a pause Volt's own schedule holds is not a stop),
+across reconnects: an automatic recording's, and a manual one's while the switch
+is on. Once running it records out of sight whatever Stay connected in background
+says, as any charge recording; it never opens or keeps a connection itself. It
+decides only on live readings (charging state at most 5 s old, speed at most 3 s),
+never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically and
+label_source. Manual recordings are unchanged.
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate

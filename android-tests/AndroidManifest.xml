@@ -32,10 +32,12 @@
   <instrumentation android:name="com.jjricks.volt.ChargeScheduleWireValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated schedule command callback validation" />
   <instrumentation android:name="com.jjricks.volt.ChargeEvidenceValidation" android:targetPackage="com.jjricks.volt" android:label="Report diagnostics charge evidence: the seven questions and a worst-case Preview" />
   <instrumentation android:name="com.jjricks.volt.ChargeLiveUnplugValidation" android:targetPackage="com.jjricks.volt" android:label="Live charging card out of sight, in-process fake scooter" />
+  <instrumentation android:name="com.jjricks.volt.ChargeAutoRecordValidation" android:targetPackage="com.jjricks.volt" android:label="Record charges automatically, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.IdleEfficiencyValidation" android:targetPackage="com.jjricks.volt" android:label="Idle notice posts, window flag and simulator stop, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeScheduleValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge scheduling UI validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeAlertValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated battery alert rows, sheet and delivery validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeTileValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time tile validation" />
+  <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ShortcutPickerValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shortcut picker and Charge alerts shortcut validation" />
   <instrumentation android:name="com.jjricks.volt.tests.QuickHapticsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Quick access haptics validation" />

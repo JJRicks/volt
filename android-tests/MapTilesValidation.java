@@ -86,6 +86,16 @@ public final class MapTilesValidation extends Instrumentation {
                 && preferences.getBoolean("map_usgs_switch_answered", false), "Keep answer not saved as a USGS choice");
         MapPreferences.answerUsgsSwitch(preferences, true);
         require(MapSource.load(preferences).url.equals(MapSource.USGS_URL), "A later answer overwrote the saved one");
+        // An answer given after the person chose a provider themselves (question still open) saves nothing.
+        preferences.edit().remove("map_usgs_switch_answered").commit();
+        MapSource.OSM.save(preferences); preferences.edit().commit();
+        MapPreferences.answerUsgsSwitch(preferences, false); preferences.edit().commit();
+        require(MapSource.load(preferences).url.equals(MapSource.OSM_URL) && !preferences.contains("map_usgs_switch_answered"),
+                "Keep USGS overwrote an own OpenStreetMap choice");
+        MapSource.USGS.save(preferences); preferences.edit().commit();
+        MapPreferences.answerUsgsSwitch(preferences, true); preferences.edit().commit();
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL) && !preferences.contains("map_usgs_switch_answered"),
+                "Switch overwrote an own USGS choice");
         preferences.edit().remove("map_basemap_enabled").remove("map_basemap_explained").remove("map_usgs_switch_answered").commit();
         // The old-default pin written down once (MapSource.keepPin): on, never explained, no provider.
         preferences.edit().remove("map_tile_url").putBoolean("map_basemap_enabled", true).commit();

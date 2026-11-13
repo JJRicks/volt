@@ -128,6 +128,8 @@ public final class ModelRegistry {
         Known(String name,String photo,String... features){this.name=name;this.photo=photo;this.features=new HashSet<>(java.util.Arrays.asList(features));}
     }
     private static final Map<String,Known> KNOWN=new LinkedHashMap<>();
+    /** The known models' names (UT5 MAX and each KNOWN line), for the report diagnostics file's name check: a scooter named after its model is not a leak. */
+    static java.util.List<String> knownNames(){java.util.List<String> names=new java.util.ArrayList<>();names.add("UT5 MAX");for(Known k:KNOWN.values())names.add(k.name);return names;}
     static{
         KNOWN.put("22131",new Known("N65i","n65i","lock","display_units","headlight","auto_sensor"));
         KNOWN.put("23452",new Known("ST3 Pro","st3pro","display_units","turn_sound","range_algorithm","traction_control"));
@@ -992,6 +994,16 @@ public final class ModelRegistry {
         // Its own table, without the GT5 Max owner's Sport 5: on this model 5 is also its Turbo acceleration value.
         if("23452".equals(pid))return 23452;
         return "25462".equals(pid)||"22131".equals(pid)||"24162".equals(pid)||"24182".equals(pid)?25462:0;
+    }
+    /**
+     * True when the settings read's byte 1 (0x70) is not this model's drive mode: the models OEM 2.1.9 offers an Eco/Turbo
+     * acceleration setting for (ACCELERATION prefixes, groups D and O), where the byte is that setting (Eco 3, Turbo 5),
+     * and the GT3 Max (24182), whose owner's byte 1 stayed at 3 whatever the mode (no acceleration setting is known for
+     * it). The official app shows the drive mode only from the home report (0x90), so Telemetry does not take the mode
+     * from that byte on these. The UT5 MAX, and every other model, keep it as the mode until the first home report.
+     */
+    public static boolean settingsByteIsAcceleration(DeviceDescriptor d){
+        return d!=null&&!ut5Max(d)&&(any(d,ACCELERATION)||any(d,D)||any(d,O)||"24182".equals(d.rulePid()));
     }
     public static int rangeFollowProduct(DeviceDescriptor d){return ut5Max(d)?2538:0;}
     public static String modelName(DeviceDescriptor d){if(ut5Max(d))return "UT5 MAX";Known t=known(d);return t!=null?t.name:ownerModel(d);}

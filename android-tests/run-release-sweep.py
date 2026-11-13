@@ -154,6 +154,9 @@ for case in SIZES:
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
                    '-e', 'layout', LAYOUT[case], size=size)]
+    # The Record charges automatically switch beside the recording controls, off and on.
+    STEPS += [inst(f'charge-auto-record-page-{w}', PKG + '.ChargeAutoRecordValidation', '-e', 'mode', 'page', '-e', 'theme', theme,
+                   '-e', 'text_scale', text, size=size, hidden_api=True)]
     if case is not WIDE_LARGE:
         STEPS += [inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
                   inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
@@ -168,6 +171,8 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
+    inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
@@ -176,6 +181,12 @@ STEPS += [
     inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
+    # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
+    inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
+    inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
+    inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
@@ -197,6 +208,8 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
+STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
 # Developer simulator: UT5 MAX, GT3 Max and GT5 Max EU in Parked, Riding and Charging, then every store compared (phone and wide, dark and light).
 STEPS += [inst(f'simulator-scenes-{size.split("x")[0]}-{theme}', T + 'SimulatorScenesValidation', '-e', 'theme', theme, size=size)
           for size in (PHONE[0], WIDE[0]) for theme in ('dark', 'light')]
