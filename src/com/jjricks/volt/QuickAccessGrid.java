@@ -70,6 +70,10 @@ final class QuickAccessGrid extends ViewGroup {
             // model with a built-in charge limit has none (the tile stays, muted, as an unmapped control's does).
             boolean alerts = QuickAccessActions.CHARGE_ALERTS_ID.equals(cell.entry.id);
             boolean alertsMissing = alerts && (service == null || !service.chargeAlertsOffered());
+            // Why, as the tap says it (ChargeAlertPolicy.missing): "Identify model first" on a scooter not yet identified,
+            // "not on this model" only for a model with its own charge limit.
+            CapabilityResolver.Reason alertsReason = !alertsMissing ? null
+                    : service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
             boolean featureLive = feature != null && live && (feature.type == ScooterCommands.Type.TIME
                     ? service.readingFresh("scheduled_charge_time_raw") : service.featureFresh(feature.key));
             Integer value = feature == null || feature.sensitive ? null : values.get(feature.key);
@@ -124,8 +128,12 @@ final class QuickAccessGrid extends ViewGroup {
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             if (alerts) {
-                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, service == null ? null : service.chargeAlerts());
-                state = level == null ? NO_VALUE : level == 0 ? off : ChargeAlertPolicy.levelText(level);
+                ChargeAlertPolicy.Settings alertSettings = service == null ? null : service.chargeAlerts();
+                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
+                // The tile reflects both alerts: the charge alert's level while it is on, else the low alert's ("Low 20%").
+                Integer low = ChargeAlertPolicy.shortcutLow(!alertsMissing, alertSettings);
+                state = level == null ? NO_VALUE : low != null ? T.dashboardModelTileLowAt(T.fmtPercent(Fmt.integer(low)))
+                        : level == 0 ? off : ChargeAlertPolicy.levelText(level);
                 featureLive = level != null;
             }
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
@@ -178,7 +186,9 @@ final class QuickAccessGrid extends ViewGroup {
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
-                    + (unmapped || alertsMissing ? (unmapped && decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                            : alertsMissing ? (alertsReason == null || alertsReason == CapabilityResolver.Reason.MODEL_EXCLUDED ? T.dashboardModelTileDescModel()
+                                    : T.dashboardModelTileDescPart(CapabilityResolver.message(alertsReason)))
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());

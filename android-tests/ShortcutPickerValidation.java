@@ -120,6 +120,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
                 verifyTurn();
                 verifyUnavailable(alerts);
                 if (alerts) verifyChargeAlerts();
+                if (alerts) verifyAlertFollowUps();
                 else checks.add("This catalog has no Charge alerts shortcut yet: its checks wait for the catalog change");
                 verifyMaximums();
             }
@@ -513,6 +514,88 @@ public final class ShortcutPickerValidation extends Instrumentation {
         choose(gt3);
         checks.add("Charge alerts: Off, then 70% as saved; the tile opens the sheet; another scooter closes it; on the UT5 MAX the tile is muted with — and "
                 + "Not on this model, opens nothing, and the picker puts it last; a simulated model without a limit offers it");
+    }
+
+    /**
+     * #437's review, on the release branch: the tile reflects both alerts (Low 20% while only the low alert is on), a
+     * Setting tile too narrow for Battery alerts says Alerts (three in a row), and a scooter not yet identified is said
+     * to need identifying, as its tap says, never "not on this model".
+     */
+    private void verifyAlertFollowUps() throws Exception {
+        choose(gt3);
+        main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF.low(true, 20)), "Could not save the low alert alone"));
+        await(() -> texts(tile(ALERTS)).contains("Low 20%") && tile(ALERTS).getAlpha() == 1f, "Only the low alert on: the tile does not read Low 20%");
+        main(() -> require(String.valueOf(tile(ALERTS).getContentDescription()).contains("Low 20%") && !texts(tile(ALERTS)).contains("Off"),
+                "Only the low alert on: the tile is not spoken as Low 20%: " + texts(tile(ALERTS))));
+        shot("alerts-tile-low-only");
+        main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF.charge(true, 90).low(true, 20)), "Could not save both alerts"));
+        await(() -> texts(tile(ALERTS)).contains("90%") && !texts(tile(ALERTS)).contains("Low 20%"), "Both alerts on: the tile does not read the charge alert's 90%");
+        main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF), "Could not clear alerts"));
+        await(() -> texts(tile(ALERTS)).contains("Off"), "Neither alert on: the tile does not read Off");
+
+        // Three Setting tiles in a row: the label is a whole rung (Alerts) or hidden, never a word cut short.
+        main(() -> {
+            DashboardConfig config = new DashboardConfig(settings(), gt3);
+            for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) {
+                w.quickActions.clear(); w.quickActions.addAll(Arrays.asList(ALERTS, "feature:headlight", "charge_done_by"));
+            }
+            config.save();
+        });
+        choose(gt3); home();
+        main(() -> {
+            View cell = tile(ALERTS);
+            List<String> problems = new ArrayList<>();
+            for (TextView text : textViews(cell)) if (text.isShown() && text.length() > 0) {
+                TextFit.collectNarrowTextProblems(text, "alerts tile " + text.getText(), problems);
+                android.text.Layout layout = text.getLayout();
+                if (layout != null) for (int line = 0; line < layout.getLineCount(); line++) if (layout.getEllipsisCount(line) != 0) problems.add("ellipsized: " + text.getText());
+                require(!text.getText().toString().equals("Battery alerts"), "A Setting tile shows the full name instead of its short rung");
+            }
+            require(problems.isEmpty(), "The Battery alerts tile's text does not fit: " + problems);
+            require(String.valueOf(cell.getContentDescription()).startsWith("Battery alerts"), "The tile is not spoken by its full name: " + cell.getContentDescription());
+            nodes.add("alerts tile, three in a row: shown=" + texts(cell));
+        });
+        shot("alerts-tiles-three");
+        main(() -> {
+            DashboardConfig config = new DashboardConfig(settings(), gt3);
+            for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) {
+                w.quickActions.clear(); w.quickActions.addAll(Arrays.asList(ALERTS, "feature:headlight"));
+            }
+            config.save();
+        });
+
+        // A scooter Volt has not identified: the reason is the tap's (Identify model first), not the model's.
+        AtomicReference<String> fresh = new AtomicReference<>();
+        main(() -> {
+            ScooterProfiles.Profile c = service.profiles.create("Synthetic new scooter", "000000000002", 0); fresh.set(c.id);
+            DashboardConfig config = new DashboardConfig(settings(), c.id);
+            config.widgets.clear();
+            DashboardConfig.Widget tiles = new DashboardConfig.Widget("shortcuts");
+            tiles.quickActions.clear(); tiles.quickActions.addAll(Arrays.asList(ALERTS, "feature:headlight"));
+            for (int columns = 1; columns <= DashboardConfig.MAX_COLUMNS; columns++)
+                tiles.layouts.put(columns, new DashboardLayout.Cell(tiles.id, 0, 0, columns, tiles.defaultHeight()));
+            config.widgets.add(tiles); config.save();
+        });
+        choose(fresh.get()); home();
+        main(() -> {
+            require(!service.chargeAlertsOffered() && service.chargeAlertsMissing() == CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED,
+                    "The new scooter is not waiting to be identified: " + service.chargeAlertsMissing());
+            String said = String.valueOf(tile(ALERTS).getContentDescription());
+            require(said.contains(T.controlsReasonIdentifyModel()) && !said.contains(T.dashboardModelTileDescModel()),
+                    "A scooter not yet identified is not spoken as needing identifying: " + said);
+            require(texts(tile(ALERTS)).contains("—"), "The unidentified scooter's tile looks usable: " + texts(tile(ALERTS)));
+            nodes.add("alerts tile, scooter not identified: said=\"" + said + "\"");
+        });
+        shot("alerts-tile-unidentified");
+        tap(tile(ALERTS));
+        SystemClock.sleep(500);
+        main(() -> require(alertSheet() == null, "The unidentified scooter's tile opened a sheet"));
+        choose(gt3);
+        main(() -> service.profiles.remove(fresh.get()));
+        choose(gt3); home();
+        checks.add("Battery alerts follow-ups: Low 20% (shown and spoken) with only the low alert on, 90% with both, Off with neither; three Setting tiles "
+                + "in a row show Alerts or no label, never a cut word, and speak Battery alerts; a scooter not yet identified is spoken with "
+                + "Identify model first, not Not on this model, and its tap opens nothing");
     }
 
     private void verifyMaximums() throws Exception {

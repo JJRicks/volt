@@ -92,7 +92,8 @@
     <string name="dashboard_model_qa_charge_done_time" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short" volt:safety="charge">Charge done by time</string>
     <string name="dashboard_model_qa_charge_done_time_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by time</string>
     <string name="dashboard_model_qa_charge_alerts" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp*2" volt:overflow="short" volt:safety="alarm">Battery alerts</string>
-    <string name="dashboard_model_qa_charge_alerts_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="alarm">Battery alerts</string>
+    <!-- Battery alerts' shorter whole-word name, for a Setting tile too narrow for the full name (three in a row on a narrow phone). -->
+    <string name="dashboard_model_qa_charge_alerts_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="alarm">Alerts</string>
 
     <!-- Shortcut groups, the caption under a name in the shortcut picker (Entry.groupLabel()). -->
     <!-- Shortcuts that open a menu. -->
@@ -121,6 +122,8 @@
     <string name="dashboard_model_tile_measuring" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">Measuring</string>
     <!-- The charge plan is on; %1$s is the time of day the battery should be charged by (7:30 AM). -->
     <string name="dashboard_model_tile_on_at" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">On • %1$s</string>
+    <!-- The Battery alerts tile while only the low-battery alert is on; %1$s is the level it warns at (20%). -->
+    <string name="dashboard_model_tile_low_at" volt:screen="Home Setting tiles (Battery alerts)" volt:purpose="value" volt:safety="alarm">Low %1$s</string>
     <!-- No start time is set for the scooter's own timed charging. -->
     <string name="dashboard_model_tile_not_scheduled" volt:screen="Home Setting tiles (charge start)" volt:purpose="value" volt:safety="charge">Not scheduled</string>
     <!-- Added after "On" when the scooter's timed charging has a start time; %1$s is that time (7:30 AM). -->
