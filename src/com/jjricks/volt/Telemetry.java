@@ -40,6 +40,9 @@ public final class Telemetry {
         }
     }
 
+    /** This connection's drive modes and current direction, for the report diagnostics file only (memory, cleared with the readings). */
+    final DiagnosticsTally tally = new DiagnosticsTally();
+
     private static final String RAW_SUFFIX = " (raw)";
 
     // Groups: English ids that reports, history and Live Stats' section state keep. ScooterReadingLabels.group()
@@ -84,6 +87,16 @@ public final class Telemetry {
     static final String SUFFIX_RANGE = " km (estimate)";
     static final String SUFFIX_CHARGES = " charges";
     static final String SUFFIX_PERCENT = " %";
+    /**
+     * Every fixed text a reading's value or group can hold, for the report diagnostics file's name check
+     * (DiagnosticsBundle.json): a scooter named with one of these words is not a leak when a reading shows it.
+     */
+    static final List<String> FIXED_TEXT = Collections.unmodifiableList(java.util.Arrays.asList(
+            GROUP_BATTERY, GROUP_RIDE, GROUP_SETTINGS, GROUP_DEVICE, GROUP_DIAGNOSTICS,
+            IMPERIAL, METRIC, NO_WARNING, WARNING_PREFIX, BATTERY_NORMAL, BATTERY_ABNORMAL_PREFIX, UNLOCKED, LOCKED,
+            NO_TRIPS, EMPTY_RESPONSE, MISSING_STATUS, EMPTY_SERIAL, UNKNOWN_FORMAT, UNKNOWN_FORMAT_RECORDS, RAW_SUFFIX,
+            SUFFIX_RANGE, SUFFIX_CHARGES, "OK; data bytes", "Scooter returned status", "incomplete history record", "invalid",
+            "Year, month, day"));
     private static final int[] READ_COMMANDS = {
         0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x79, 0x7b, 0x90, 0x91, 0x92
     };
@@ -392,6 +405,7 @@ public final class Telemetry {
         voltageBatch = currentBatch = -1;
         currentSignState = temperatureSignState = null;
         speedPeaks.clear();
+        tally.clear();
         if (speedFollower != null) speedFollower.connectionReset();
     }
 
@@ -685,6 +699,7 @@ public final class Telemetry {
         if (previous == null || previous.updatedMs > time) return;
         if (numeric != null && key.equals("speed_kmh")) noteSpeedPeak(numeric, time);
         readings.put(key, new Metric(previous.group, key, previous.label, value, numeric, cmd, time));
+        tally.note(key, numeric, cmd, time);
         if (speedFollower != null && numeric != null && key.equals(RidingValues.SPEED_KEY)) speedFollower.accept(numeric, time);
     }
 

@@ -2532,7 +2532,8 @@ public final class MoreScreen implements AppScreen {
         ScooterService current=service();
         ChargeSessionStore.Charger chosen=current==null?null:current.chargeCharger();
         chargeChargerSelector=new SegmentedSelector(ui,T.moreDevCharger(),new String[]{T.moreDevAuto(),T.moreDevStock(),T.moreDevHighSpeed()},choice->{
-            ScooterService s=service();if(s==null||s.isChargeRecording())return;
+            // Open with no recording, or during an automatic one whose label the owner did not choose (#415).
+            ScooterService s=service();if(s==null||!s.chargerChoosable())return;
             s.setChargeCharger(choice==0?null:choice==1?ChargeSessionStore.Charger.STOCK:ChargeSessionStore.Charger.HIGH_SPEED);
             refreshDeveloper();
         });
@@ -2639,8 +2640,9 @@ public final class MoreScreen implements AppScreen {
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
-            chargeChargerSelector.setAlpha(capturing?.5f:1f);
-            setChildrenEnabled(chargeChargerSelector,!capturing);
+            boolean choosable=s!=null&&s.chargerChoosable();
+            chargeChargerSelector.setAlpha(choosable?1f:.5f);
+            setChildrenEnabled(chargeChargerSelector,choosable);
         }
     }
 

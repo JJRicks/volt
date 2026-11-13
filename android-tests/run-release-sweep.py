@@ -77,7 +77,8 @@ def size_name(size_case):
 
 # Registered but deliberately not run here, with the reason; everything else must have a step.
 EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan',
-            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator'}
+            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator',
+            'BackgroundRecordingValidation': 'checks the switch row and What\'s new note that the text pull request adds; its steps are registered there'}
 # Modes not run on their own because a step's mode already runs every check they make.
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
@@ -154,6 +155,9 @@ for case in SIZES:
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
                    '-e', 'layout', LAYOUT[case], size=size)]
+    # The Record charges automatically switch beside the recording controls, off and on.
+    STEPS += [inst(f'charge-auto-record-page-{w}', PKG + '.ChargeAutoRecordValidation', '-e', 'mode', 'page', '-e', 'theme', theme,
+                   '-e', 'text_scale', text, size=size, hidden_api=True)]
     if case is not WIDE_LARGE:
         STEPS += [inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
                   inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
@@ -168,6 +172,8 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
+    inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
@@ -176,6 +182,12 @@ STEPS += [
     inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
+    # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
+    inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
+    inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
+    inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
@@ -189,7 +201,7 @@ STEPS += [
     # a step's fresh install can't do (order in its class comment).
     inst('auto-start', PKG + '.AutoStartValidation', grant=NEARBY, hidden_api=True),
     *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
-      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline')],
+      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline', 'background-switch')],
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
@@ -197,6 +209,8 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
+STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
 # Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
 # and German and European Portuguese (the longest names) on that tightest case.
 PHONE_LARGE = ('344x882', 'dark', '1.4')
