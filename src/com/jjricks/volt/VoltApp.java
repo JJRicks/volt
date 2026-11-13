@@ -14,6 +14,9 @@ import android.content.res.Configuration;
  * The Shizuku shell process (OwnerCaptureUserService) never creates this class and never uses T.
  */
 public final class VoltApp extends Application {
+    /** The last crash's record in no-backup storage (CrashRecord; BackupRegistry.ROOTS lists it as device diagnostics). */
+    static final String CRASH_FILE = "last-crash";
+
     @Override protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         AppLanguage.install(this);
@@ -21,6 +24,9 @@ public final class VoltApp extends Application {
 
     @Override public void onCreate() {
         super.onCreate();
+        // The last uncaught crash, for Report an issue's diagnostics file only (CrashRecord): nothing is read or written
+        // until a crash, and then only the exception's class and Volt's own frames, never its message.
+        try { CrashRecord.install(new java.io.File(getNoBackupFilesDir(), CRASH_FILE), AppVersion.name(this)); } catch (RuntimeException unavailable) { }
         AppLanguage.migrate(this);
         // Ride auto-save's retired Route CSV switch becomes the one switch before anything reads or backs it up.
         RideAutoExportFolder.migrate(getSharedPreferences("app_settings", MODE_PRIVATE));

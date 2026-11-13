@@ -82,8 +82,11 @@ for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransac
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
 # Report diagnostics' charging evidence (fuller diagnostics, part 1); uses the compat suites' CommandLog.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeEvidenceTest.java")
+# Report diagnostics, part 2: the settings allow-list, this connection's drive modes and power sign (Telemetry above
+# feeds them) and the last crash's record (CrashRecord runs with the compat suites).
+sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src/com/jjricks/volt/DiagnosticsTally.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
-COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle ProximityFollowUp)
+COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/FeatureVariant.java" "$APP_DIR/src/com/jjricks/volt/KickStartTry.java" "$TEST_DIR/OemControlsTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerNotes.java" "$TEST_DIR/ExperimentalControlsTest.java")
 # Standard-charger pack model (ut5-stock-pack-v6), its generated parity table and charge-age tracking.
