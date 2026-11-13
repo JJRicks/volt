@@ -130,6 +130,10 @@ public final class GpsAccuracyValidation extends Instrumentation {
     private static final String CHIP = halo("\"chip_1\":\"gps_accuracy\",\"chip_2\":\"trip\",\"chip_3\":\"ride_time\"");
     private static final String TILE = halo("\"tile_1\":\"trip\",\"tile_2\":\"gps_accuracy\"");
     private static final String PLAIN = halo("\"chip_1\":\"trip\",\"chip_2\":\"ride_time\",\"chip_3\":\"clock\"");
+    // The cramped spots (Terra on #428): Trace's column of chips beside the big number (45% of the row), GPS accuracy first
+    // with battery temperature under it, and Focus's bottom row of tiles (60 dp numbers), GPS accuracy in its first tile.
+    private static final String TRACE = "{\"v\":1,\"frame\":\"trace\",\"frames\":{\"trace\":{\"spots\":{\"chip_1\":\"gps_accuracy\",\"chip_2\":\"battery_temperature\"}}}}";
+    private static final String FOCUS = "{\"v\":1,\"frame\":\"focus\",\"frames\":{\"focus\":{\"spots\":{\"tile_2\":\"gps_accuracy\"}}}}";
 
     private void riding() throws Exception {
         ScooterService service = activity.service();
@@ -143,6 +147,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
         // on (or not) exactly as it does with the clock in that chip.
         int plainFlags = layout(PLAIN) & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
         both("not-recording", notRecording, GpsAccuracy.State.NOT_RECORDING);
+        cramped("not-recording", notRecording, GpsAccuracy.State.NOT_RECORDING, 0);
         int chipFlags = layout(CHIP) & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
         require(plainFlags == chipFlags, "the reading changed keep-screen-on: " + plainFlags + " vs " + chipFlags);
         SystemClock.sleep(2500);
@@ -157,6 +162,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
                 "start this part without location permission (the sweep grants Nearby only)");
         record();
         both("off", off, GpsAccuracy.State.OFF);
+        cramped("off", off, GpsAccuracy.State.OFF, 0);
         stopRecording();
 
         // Waiting, then fixes from the test provider.
@@ -167,8 +173,10 @@ public final class GpsAccuracyValidation extends Instrumentation {
         PhoneRideRecorder recorder = (PhoneRideRecorder) field(service, "phoneRecorder");
         await(recorder::locationActive, "GPS was not requested for the recording", 5000);
         both("waiting", waiting, GpsAccuracy.State.WAITING);
+        cramped("waiting", waiting, GpsAccuracy.State.WAITING, 0);
 
         fixState("fix-4m", 4, "13", "ft");
+        cramped("fix", "13", GpsAccuracy.State.FIX, 4);
         fixState("fix-20m", 20, "66", "ft");
         fixState("fix-80m", 80, "262", "ft");
         prefs("app_settings").edit().putString("units", "km").commit();
@@ -185,6 +193,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
         await(() -> service.gpsAccuracy(SystemClock.elapsedRealtime()).state == GpsAccuracy.State.FIX, "fix before the silence", 3000);
         while (SystemClock.elapsedRealtime() - last <= GpsAccuracy.STALE_MS + 300) SystemClock.sleep(100);
         both("no-fix", noFix, GpsAccuracy.State.NO_FIX);
+        cramped("no-fix", noFix, GpsAccuracy.State.NO_FIX, 0);
         // A fix whose own time is already over ten seconds old is never shown as current.
         pushAged(4, 10500);
         SystemClock.sleep(800);
@@ -257,6 +266,99 @@ public final class GpsAccuracyValidation extends Instrumentation {
             noPosition(label + "-" + kind);
             shot(label + "-" + kind);
         }
+    }
+
+    /**
+     * The reading in the cramped spots, at 344 and 412 dp, 1x and 1.4x text. In Trace's column the chip the rider chose
+     * always shows: the state whole, or the no-reading dash where whole it would step aside. In Focus's bottom tile the
+     * state never draws smaller than it does in a chip: below that it shows the dash. Spoken, it is always the whole state.
+     * A live fix (metres > 0) is pushed before each look and always shows its value.
+     */
+    private void cramped(String label, String text, GpsAccuracy.State state, double metres) throws Exception {
+        String dash = str("riding_no_value");
+        int[][] sizes = {{344, 882}, {412, 915}};
+        float[] scales = {1f, 1.4f};
+        try {
+            for (int[] wh : sizes) {
+                size(wh[0], wh[1]);
+                for (float scale : scales) {
+                    prefs("app_settings").edit().putFloat("text_scale", scale).commit();
+                    String at = label + "-" + wh[0] + "-" + (scale == 1f ? "1x" : "1.4x");
+                    for (String frame : new String[]{TRACE, FOCUS}) {
+                        String kind = frame.equals(TRACE) ? "trace" : "focus";
+                        if (metres > 0) push(metres);
+                        layout(frame);
+                        await(() -> Math.abs(activity.getResources().getConfiguration().screenWidthDp - wh[0]) <= 2, at + ": window not resized", 5000);
+                        if (metres > 0) { push(metres); redraw(); }
+                        GpsAccuracy.State now = activity.service().gpsAccuracy(SystemClock.elapsedRealtime()).state;
+                        require(now == state, at + " " + kind + ": reading is " + now + ", wanted " + state);
+                        String shown, spoken;
+                        if (kind.equals("trace")) {
+                            String[] seen = chip(at + "-trace");
+                            shown = seen[0]; spoken = seen[1];
+                            main(() -> {
+                                boolean temperature = false;
+                                for (Object c : (List<?>) field(field(activity, "screen"), "chips"))
+                                    if ("battery_temperature".equals(field(c, "content")) && ((View) c).getVisibility() == View.VISIBLE) temperature = true;
+                                require(temperature, at + ": the temperature chip stepped aside");
+                            });
+                        } else {
+                            String[] drawn = drawnTile(at + "-focus");
+                            shown = drawn[0]; spoken = drawn[1];
+                        }
+                        if (state == GpsAccuracy.State.FIX) {
+                            // A fix's value is short: it never steps down to the dash (text holds its digits here).
+                            require(shown.startsWith("±") && shown.replaceAll("[^0-9]", "").equals(text) && shown.contains("ft"),
+                                    at + " " + kind + ": a live fix shows '" + shown + "', wanted ±" + text + " ft");
+                            require(spoken.contains(shown), at + " " + kind + ": spoken '" + spoken + "' lacks '" + shown + "'");
+                        } else {
+                            require(shown.equals(text) || shown.equals(dash), at + " " + kind + ": shows '" + shown + "', wanted '" + text + "' or the dash");
+                            require(spoken.contains(text), at + " " + kind + ": spoken '" + spoken + "' lacks the whole '" + text + "'");
+                        }
+                        note(at + " " + kind + ": shows '" + shown + "'" + (shown.equals(dash) ? " (stepped down)" : "") + ", spoken '" + spoken + "'");
+                        noPosition(at + "-" + kind);
+                        shot(at + "-" + kind);
+                    }
+                }
+            }
+        } finally {
+            size(344, 882);
+            prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
+        }
+    }
+
+    /**
+     * The GPS accuracy tile in Focus's bottom row as onDraw draws it: its words at the size they fit, or the dash when the
+     * words would draw smaller than its floor (the size the state has in a chip) and than the tile's own largest size.
+     * Checks the words never draw below that floor and the tile is shown.
+     */
+    private String[] drawnTile(String label) {
+        String[] out = new String[2];
+        main(() -> {
+            Object mine = null;
+            for (Object cell : (List<?>) field(field(activity, "screen"), "cells")) if ("gps_accuracy".equals(field(cell, "content"))) mine = cell;
+            require(mine != null && ((View) mine).isShown(), label + ": the GPS accuracy tile is not shown");
+            View number = (View) field(mine, "number");
+            float w = number.getWidth(), h = number.getHeight();
+            require(w > 0 && h > 0, label + ": the tile's number has no room");
+            CharSequence main = (CharSequence) field(number, "main"), mainShort = (CharSequence) field(number, "mainShort");
+            float maxPx = (Float) field(number, "maxPx"), minPx = (Float) field(number, "shortMinPx");
+            Class<?>[] types = {CharSequence.class, float.class, float.class};
+            float size = (Float) call(number, "fitSize", types, main, w, h);
+            CharSequence drawn = main;
+            if (mainShort != null && size < Math.min(maxPx, minPx)) { drawn = mainShort; size = (Float) call(number, "fitSize", types, drawn, w, h); }
+            String prefix = String.valueOf(field(number, "prefix")), fraction = String.valueOf(field(number, "fraction")), suffix = String.valueOf(field(number, "suffix"));
+            out[0] = prefix + drawn + fraction + suffix;
+            out[1] = String.valueOf(((View) mine).getContentDescription());
+            float floorDp = Math.min(maxPx, minPx) / 3f;
+            if (drawn == main && mainShort != null) require(size >= Math.min(maxPx, minPx) - 0.5f, label + ": '" + main + "' draws at " + (size / 3f) + " dp, under its " + floorDp + " dp floor");
+            List<String> fit = new ArrayList<>();
+            texts(activity.getWindow().getDecorView(), fit, label);
+            require(fit.isEmpty(), label + ": " + fit);
+            note(label + ": tile draws '" + out[0] + "' at " + Math.round(size / 3f) + " dp (floor " + Math.round(floorDp) + " dp, largest " + Math.round(maxPx / 3f) + " dp, " + Math.round(w / 3f) + "x" + Math.round(h / 3f) + " dp)");
+        });
+        assertions++;
+        return out;
     }
 
     /** Sets the riding layout and rebuilds riding mode; returns the window's flags. */
