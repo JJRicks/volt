@@ -280,6 +280,10 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(saved().length == 0, "The short recording was kept");
         notSaidSaved();
         log("ride by hand: charge recording ended, ride recording running, held");
+        String duringRide = pageStatus();
+        require(duringRide.equals(T.serviceChargeFinishRide()), "During a ride the page showed the last outcome, not why a recording can't start: " + duringRide);
+        log("page during the ride: \"" + duringRide + "\"");
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.HOME);
         main(() -> service.stopRide());
         unplugAndSettle();
     }
@@ -392,9 +396,11 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         plugIn();
         awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual (clear check)");
         require(onMain(() -> !service.isChargeRecording()), "Recorded with all 20 manual (clear check)");
+        main(() -> { ((Set<String>) field(service, "autoChargeNoRoom")).add("another-scooter"); ((Set<String>) field(service, "autoChargeLatched")).add("another-scooter"); });
         main(() -> require(service.clearChargeRecordings(null), "Clearing was refused"));
         awaitRecording(20 * S, "after clearing made room");
         log("cleared while charging: the charge under way records");
+        require(onMain(() -> !((Set<String>) field(service, "autoChargeLatched")).contains("another-scooter")), "Clearing one scooter's recordings left another scooter refused for lack of the shared room");
         main(() -> service.stopChargeRecording());
         unplugAndSettle();
         for (File file : saved()) file.delete();

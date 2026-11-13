@@ -580,6 +580,21 @@ the start time and clock Volt sent (none for a change cancelled before it went
 out). Typed numbers only, kept on the phone
 (never backed up) and removed when the scooter is forgotten.
 
+The file also carries, read from the phone only as it is made: Volt's version
+code and install source class; phone state (Android's and Volt's language, text
+scale, dark mode, screen size class, battery optimisation, power saving,
+background restriction and standby bucket, notification channels, Bluetooth,
+location and notification permissions, whether location and Bluetooth are on);
+an allow-list of settings (DiagnosticsSettings: switches, numbers and fixed
+choices; other text shows as "(set)"); ride, phone-ride and charge recording
+counts, sizes and ages, with the newest ride's and charge's length, samples
+and end; a free-space class and whether the last ride write failed; the last
+uncaught crash (CrashRecord: exception classes and Volt's own frames, never a
+message); clock changes in the connection log; and, for the current connection
+(marked when simulated), each drive mode code with the top speed seen in it and
+whether the current reports a direction (PowerSign). The whole file is refused
+if it holds anything shaped like a MAC, email, coordinate or storage path.
+
 No decoded per-cell voltages, cell balance, motor/controller temperature,
 torque, direct per-trip Wh or exact remaining pack Wh were found. Unknown fields
 retain honest raw labels; firmware faults are not silently cleared.
@@ -1160,9 +1175,9 @@ after charging stops unless Volt's schedule holds the current off, or when a rid
 started by hand. One under 10 minutes or 5 percentage points is not kept, and the
 page keeps saying so after the unplug until a newer status replaces it. At the
 20-recording limit a kept one replaces only the oldest automatic recording, never a
-manual one, and only once kept; with all 20 manual it does not start and the page
-says so, and clearing that scooter's recordings or turning the switch on again
-tries the charge under way once more. A hand stop holds that scooter until it stops
+manual one, and only once kept; the 20 are shared by all scooters, and with all 20
+manual it does not start and the page says so; clearing any scooter's recordings,
+or turning the switch on again, tries the charge under way once more. A hand stop holds that scooter until it stops
 charging and starts again (a pause Volt's own schedule holds is not a stop),
 across reconnects: an automatic recording's, and a manual one's while the switch
 is on. Once running it records out of sight whatever Stay connected in background
