@@ -2725,17 +2725,23 @@ public final class MoreScreen implements AppScreen {
     /** The simulator's scenes in picker order. */
     private static final ScooterSimulation.Scene[] SIMULATION_SCENES =
             {ScooterSimulation.Scene.PARKED, ScooterSimulation.Scene.RIDING, ScooterSimulation.Scene.CHARGING};
-    /** The simulator's drive mode codes (Walk, the middle mode, Sport), named by the simulated model's own labels. */
-    private static final int[] SIMULATION_DRIVE_MODES =
-            {ScooterSimulation.WALK, ScooterSimulation.LOW_MODE, ScooterSimulation.SPORT};
 
     private static String sceneName(ScooterSimulation.Scene scene) {
         return scene == ScooterSimulation.Scene.RIDING ? T.moreDevSimulationSceneRiding()
                 : scene == ScooterSimulation.Scene.CHARGING ? T.moreDevSimulationSceneCharging() : T.moreDevSimulationSceneParked();
     }
 
+    /**
+     * A drive mode as the simulated model names it; where the model gives two codes one name (the GT5 Max family's Sport,
+     * 3 and 5), the code too, so the choices differ.
+     */
     private static String driveModeName(DeviceDescriptor model, int code) {
-        return Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(model), (double) code);
+        int product = ModelRegistry.driveModeLabelProduct(model);
+        String name = Telemetry.drivingModeLabel(product, (double) code);
+        for (int other : SimulatorModels.driveModes(model))
+            if (other != code && name.equals(Telemetry.drivingModeLabel(product, (double) other)))
+                return T.moreDevSimulationDriveModeCode(name, Fmt.integer(code));
+        return name;
     }
 
     /** Developer options › Scene: Parked, Riding or Charging, at once and only while simulating (nothing is saved). */
@@ -2758,18 +2764,24 @@ public final class MoreScreen implements AppScreen {
     private void chooseSimulationDriveMode() {
         ScooterService s = service();
         if (closed || s == null || !s.simulating()) return;
+        // The simulated model's own named codes (SimulatorModels.driveModes): exactly 11, 2 and 3 on an ST3 Pro, 5 too on a GT5 Max.
         DeviceDescriptor model = s.ble.descriptor();
-        String[] names = new String[SIMULATION_DRIVE_MODES.length];
+        int[] modes = s.ble.simulationDriveModes();
+        String[] names = new String[modes.length];
         int selected = 0;
         for (int i = 0; i < names.length; i++) {
-            names[i] = driveModeName(model, SIMULATION_DRIVE_MODES[i]);
-            if (SIMULATION_DRIVE_MODES[i] == s.ble.simulationDriveMode()) selected = i;
+            names[i] = driveModeName(model, modes[i]);
+            if (modes[i] == s.ble.simulationDriveMode()) selected = i;
         }
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulationDriveMode())
                 .setSingleChoiceItems(names, selected, (d, which) -> {
                     ScooterService current = service();
                     if (closed || current == null || !current.simulating()) return;
-                    current.ble.setSimulationDriveMode(SIMULATION_DRIVE_MODES[which]); d.dismiss();
+                    // The model can't have changed under an open dialog (its picker is a dialog too); refuse a code it no longer offers all the same.
+                    boolean offered = false;
+                    for (int mode : current.ble.simulationDriveModes()) offered |= mode == modes[which];
+                    if (offered) current.ble.setSimulationDriveMode(modes[which]);
+                    d.dismiss();
                     refreshSimulation(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
     }
