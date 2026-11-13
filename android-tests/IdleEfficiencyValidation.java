@@ -182,6 +182,7 @@ public final class IdleEfficiencyValidation extends Instrumentation {
         await(() -> field(activity, "riding") == null && !onMain(this::keepScreenOn), 5000, "Closing riding mode did not release the screen");
         log("riding mode closed: released");
 
+        freshLink();
         main(() -> service.startRide("Synthetic idle ride"));
         await(() -> onMain(() -> service.isRecording()), 8000, "The ride did not start");
         await(() -> onMain(this::keepScreenOn), 5000, "A recording with keep-awake on did not keep the screen on");
@@ -197,6 +198,20 @@ public final class IdleEfficiencyValidation extends Instrumentation {
         log("ride stopped: released");
         await(() -> !onMain(() -> service.phoneSaving()), 15000, "The ride never finished saving");
         require(!onMain(this::keepScreenOn), "Idle again, the screen is not kept on");
+    }
+    /**
+     * startRide needs a fresh status (ble.ready). The synthetic link answers every poll, but a write the stand-in GATT
+     * refused once (a pool emulator whose Bluetooth stack had crashed at boot) left it not ready; that isn't what this
+     * test checks, so the link is attached again, and the timeline says so.
+     */
+    private void freshLink() {
+        main(() -> link.status());
+        long end = SystemClock.uptimeMillis() + 3000;
+        while (SystemClock.uptimeMillis() < end && !onMain(() -> ble.ready())) SystemClock.sleep(50);
+        if (onMain(() -> ble.ready())) return;
+        log("synthetic link not ready (" + field(ble, "state") + "): attached again");
+        main(() -> link.attach());
+        await(() -> onMain(() -> ble.ready()), 10000, "The synthetic link never came back");
     }
     private boolean keepScreenOn() { return (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0; }
     /** Every relayout the activity's window asks the window manager for, counted on its own session. */
