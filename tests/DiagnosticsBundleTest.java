@@ -14,6 +14,9 @@ public final class DiagnosticsBundleTest {
             NAME = CommandLogTest.NAME, PROFILE_NAME = "Joel's commuter", BATTERY_SERIAL = "BT2024ZX99887766";
     private static final String PIN = Integer.toString(CommandLogTest.PIN);
     private static final long WALL = 1792026000000L, NOW = 500000;
+    /** Part 2's private values: a saved profile id, an email, a place, a storage path and a map token. */
+    static final String PROFILE_ID = "prof7c1d2e9a", EMAIL = "joel.rider@example.com", LAT = "43.6150123", LON = "-116.2023456",
+            PATH = "/storage/emulated/0/Download/Joel", TOKEN = "tok_" + CommandLogTest.OWNER_KEY;
 
     public static void main(String[] args) {
         String json = bundle().json(Collections.<String>emptyList());
@@ -26,6 +29,12 @@ public final class DiagnosticsBundleTest {
         evidenceSecrets();
         worstCaseSize();
         previewBlocks();
+        part2Sections(json);
+        settingsAllowList(json);
+        emptySources();
+        tallyAndSign();
+        clockChanges();
+        privateShapes();
         System.out.println("DiagnosticsBundle tests passed: " + checks + " assertions");
     }
 
@@ -65,8 +74,246 @@ public final class DiagnosticsBundleTest {
                 .fields(CapabilityResolverTest.status(CapabilityResolverTest.full(), NOW)).build();
         require(report != null, "fixture report builds");
 
-        return new DiagnosticsBundle("1.7.0", WALL + 10000, false).phone("16", 36, "Google Pixel 9").report(report)
-                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).chargeSchedule(schedule()).evidence(new ChargeEvidence.Snapshot(true, evidence(1)));
+        // This connection's drive modes and power sign (the settings frame above reported one mode too).
+        t.tally.note("driving_mode", 3.0); t.tally.note("speed_kmh", 25.34); t.tally.note("speed_kmh", 18.0);
+        t.tally.note("current_sign_state", 1.0); t.tally.note("current_a", -4.2);
+
+        return new DiagnosticsBundle("1.7.0", WALL + 10000, false).phone("16", 36, "Google Pixel 9")
+                .app(48, "com.android.vending").phoneState(device()).settings(stuffedSettings(), PROFILE_ID).report(report)
+                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).tally(t.tally, false)
+                .chargeSchedule(schedule()).evidence(new ChargeEvidence.Snapshot(true, evidence(1)))
+                .recordings(recordings()).storage(5_000_000_000L, true, false, true)
+                .crash(CrashRecord.decode(CrashRecord.encode(CrashRecordTest.sample(), "1.7.0", WALL))).clockChanges(connections);
+    }
+
+    /** A phone's state; its text fields are checked by shape, so a name in one cannot pass (emptySources checks). */
+    static DiagnosticsBundle.Device device() {
+        DiagnosticsBundle.Device d = new DiagnosticsBundle.Device();
+        d.phoneLocale = "en-US"; d.appLocale = "pt-BR"; d.fontScale = 1.3f; d.uiNightBits = 0x20;
+        d.smallestWidthDp = 411; d.widthDp = 411; d.heightDp = 914; d.densityDpi = 420;
+        d.batteryOptimisationExempt = true; d.powerSave = false; d.backgroundRestricted = false; d.notificationsEnabled = true;
+        d.locationEnabled = true; d.bluetoothEnabled = true; d.standbyBucket = 10;
+        d.channels.put("scooter", 2); d.channels.put("charge_alerts", 4); d.channels.put("maintenance", -1);
+        d.channels.put(NAME, 3); // an id the file does not list never shows
+        d.permissions.put("bluetooth_scan", true); d.permissions.put("bluetooth_connect", true); d.permissions.put("fine_location", false);
+        d.permissions.put(PROFILE_NAME, true);
+        return d;
+    }
+
+    /**
+     * Preferences stuffed with private values: free text, a serial, a MAC and an email in listed keys, and unlisted keys
+     * holding a map token, a ride label, a folder grant, a place and another scooter's settings.
+     */
+    static Map<String, Object> stuffedSettings() {
+        Map<String, Object> p = new HashMap<>();
+        for (String key : DiagnosticsSettings.KEYS) p.put(key, true);
+        p.put("units", "km"); p.put("text_scale", 1.15f); p.put("poll_interval_ms", 1000); p.put("app_language", "pt-BR"); p.put("riding_night_vision", "scheduled");
+        p.put("theme", NAME); p.put("time_format", SERIAL); p.put("temperature_unit", MAC); p.put("home_style", EMAIL); p.put("stats_density", OWNER_KEY + OWNER_KEY);
+        p.put("dashboard_columns", Collections.singleton(NAME));
+        p.remove("charge_live_lock_detail");
+        p.put("charge_alerts_" + PROFILE_ID, "charge=1;at=80;low=0;below=20;notify=1;alarm=0");
+        p.put("charge_charger_" + PROFILE_ID, "HIGH_SPEED"); p.put("range_follow_mode_" + PROFILE_ID, false);
+        p.put("charge_alerts_otherscooter", "charge=1;at=57;low=1;below=13;notify=0;alarm=1");
+        p.put("map_tile_url", "https://tiles.example.com/{z}/{x}/{y}?token=" + TOKEN); p.put("last_ride_label", PROFILE_NAME);
+        p.put("ride_auto_export_folder", "content://com.android.externalstorage.documents/tree/primary%3AJoel");
+        p.put("riding_night_ride_area", LAT + "," + LON); p.put("stats_favourites", new HashSet<>(Collections.singletonList(NAME)));
+        return p;
+    }
+
+    /** Ride, phone-ride and charge folders whose files carry a label, notes, a place, a profile id and a scooter-named file. */
+    static DiagnosticsBundle.Recordings recordings() {
+        try {
+            java.io.File root = java.nio.file.Files.createTempDirectory("diag-recordings").toFile();
+            java.io.File rides = new java.io.File(root, "rides"), phone = new java.io.File(root, "phone-rides"), charges = new java.io.File(root, "charge-recordings");
+            require(phone.mkdirs() && charges.mkdirs(), "fixture folders");
+            RideStore store = new RideStore(rides);
+            store.start(PROFILE_ID, PROFILE_NAME, WALL, 1000, "America/Boise");
+            store.setNotes("Met " + EMAIL + " at " + LAT + "," + LON);
+            store.stop(WALL + 60_000, 61_000, "");
+            store.start(PROFILE_ID, NAME, WALL + 100_000, 101_000, "America/Boise");
+            store.stop(WALL + 700_000, 701_000, RideStore.quietStopReason(8, false));
+            write(new java.io.File(rides, PROFILE_NAME + ".gpx"), LAT + "," + LON);
+            write(new java.io.File(phone, "0b9c1e7e-1d2f-4c3a-9f00-123456789abc-phone.csv"), LAT + "," + LON + "\n");
+            StringBuilder charge = new StringBuilder("charge-v2," + PROFILE_ID + ",STOCK," + WALL + ",5000\n");
+            for (int i = 1; i <= 3; i++) charge.append("s,").append(WALL + i * 60_000L).append(',').append(5000 + i * 60_000L).append(",5").append(i).append(",41.2,2.1,86.5,24,0,8,,,,,,0\n");
+            charge.append("end,COMPLETE\n");
+            write(new java.io.File(charges, "1f6b2a3c-4d5e-4f60-8a71-b2c3d4e5f607.csv"), charge.toString());
+            DiagnosticsBundle.Recordings r = new DiagnosticsBundle.Recordings();
+            r.rideFolder = rides; r.phoneRideFolder = phone; r.chargeFolder = charges; r.rides = store.list(); r.nowWallMs = System.currentTimeMillis();
+            return r;
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
+    }
+    static void write(java.io.File f, String text) throws java.io.IOException { java.nio.file.Files.write(f.toPath(), text.getBytes(StandardCharsets.UTF_8)); }
+
+    /** Part 2's sections, each with its fields. */
+    private static void part2Sections(String json) {
+        for (String expected : new String[]{
+                "\"app\": {", "\"version_code\": 48", "\"install_source\": \"play_store\"",
+                "\"phone_state\": {", "\"phone_locale\": \"en-US\"", "\"app_locale\": \"pt-BR\"", "\"font_scale_percent\": 130", "\"night_mode\": \"yes\"",
+                "\"smallest_width_dp\": 411", "\"width_class\": \"compact\"", "\"battery_optimisation_exempt\": true", "\"background_restricted\": false",
+                "\"standby_bucket\": \"active\"", "\"scooter\": \"low\"", "\"charge_alerts\": \"high\"", "\"maintenance\": \"not_created\"", "\"volt_updates\": null",
+                "\"bluetooth_connect\": true", "\"fine_location\": false", "\"post_notifications\": null", "\"location_enabled\": true",
+                "\"settings\": {", "\"units\": \"km\"", "\"text_scale\": \"1.15\"", "\"poll_interval_ms\": 1000", "\"app_language\": \"pt-BR\"",
+                "\"theme\": \"(set)\"", "\"time_format\": \"(set)\"", "\"temperature_unit\": \"(set)\"", "\"home_style\": \"(set)\"", "\"stats_density\": \"(set)\"",
+                "\"dashboard_columns\": \"(set)\"", "\"charge_live_lock_detail\": null", "\"background_connection\": true",
+                "\"selected_scooter\": {", "\"charge_alerts\": \"charge=1;at=80;low=0;below=20;notify=1;alarm=0\"", "\"charge_charger\": \"HIGH_SPEED\"",
+                "\"range_source\": null", "\"range_follow_mode\": false",
+                "\"power_sign\": {", "\"current_direction_known\": true", "\"basis\": \"sign_state\"",
+                "\"drive_modes\": {", "\"code\": 3", "\"top_speed_kmh\": \"25.3\"", "\"current\": true",
+                "\"recordings\": {", "\"rides\": {", "\"count\": 2", "\"summaries_in_memory\": true", "\"duration_s\": 600", "\"end\": \"auto_quiet_disconnect\"",
+"\"phone_rides\": {", "\"count\": 1", "\"charges\": {", "\"end\": \"complete\"", "\"duration_s\": 180",
+                "\"storage\": {", "\"free_space\": \"under_10_gb\"", "\"ride_last_write_failed\": false",
+                "\"last_crash\": {", "\"exception\": \"java.lang.RuntimeException\"", "\"ScooterService$3.run:1204\"",
+                "\"clock_changes\": {", "\"threshold_ms\": 2000", "\"events_compared\": 2", "\"phone_restarts\": 0"})
+            require(json.contains(expected), "part 2 holds " + expected);
+        // The power sign and drive modes sit next to the readings they come from.
+        int readings = json.indexOf("\"readings\": ["), power = json.indexOf("\"power_sign\": {"), schedule = json.indexOf("\"charge_schedule\": {");
+        require(readings < power && power < schedule, "power_sign follows the readings");
+        require(!json.contains("\"simulated\": true"), "a real connection's sections are not marked simulated");
+    }
+
+    /**
+     * The settings allow-list: every listed key is one Volt stores (BackupRegistry has its rule, and some other source
+     * names it), each shows, and nothing unlisted does.
+     */
+    private static void settingsAllowList(String json) {
+        for (String key : DiagnosticsSettings.KEYS) {
+            require(BackupRegistry.rule("app_settings", key) != null, "a listed setting is one Volt stores: " + key);
+            require(namedElsewhere(key), "a listed setting is still read somewhere: " + key);
+            require(json.contains("\"" + key + "\": "), "a listed setting shows: " + key);
+        }
+        for (String prefix : DiagnosticsSettings.SCOOTER_PREFIXES) {
+            BackupRegistry.Rule rule = BackupRegistry.rule("app_settings", prefix + PROFILE_ID);
+            require(rule != null && rule.perProfile, "a listed scooter setting is stored per scooter: " + prefix);
+            require(namedElsewhere(prefix), "a listed scooter setting is still read somewhere: " + prefix);
+        }
+        for (String unlisted : new String[]{"map_tile_url", "last_ride_label", "ride_auto_export_folder", "riding_night_ride_area", "stats_favourites", "at=57", "charge_alerts_", "tiles.example"})
+            require(!json.contains(unlisted), "an unlisted setting never shows: " + unlisted);
+        require(DiagnosticsSettings.value(Double.NaN).equals(DiagnosticsSettings.SET) && DiagnosticsSettings.value(new Object()).equals(DiagnosticsSettings.SET)
+                && DiagnosticsSettings.value(7L).equals(7L) && DiagnosticsSettings.value("12:30").equals("12:30"), "values by type");
+    }
+    /** Whether a source file other than the allow-list and the backup registry has this key as a literal. */
+    private static boolean namedElsewhere(String key) {
+        java.io.File[] files = new java.io.File("src/com/jjricks/volt").listFiles();
+        require(files != null && files.length > 100, "the tests run from the app folder");
+        for (java.io.File f : files) {
+            String name = f.getName();
+            if (!name.endsWith(".java") || name.equals("DiagnosticsSettings.java") || name.equals("BackupRegistry.java")) continue;
+            try { if (new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).contains("\"" + key + "\"")) return true; }
+            catch (java.io.IOException e) { throw new AssertionError(e); }
+        }
+        return false;
+    }
+
+    /**
+     * An old install, a fresh install, a simulation, no scooter selected and unreadable sources: every new section is
+     * empty or null, nothing throws, and the file is still made.
+     */
+    private static void emptySources() {
+        DiagnosticsBundle.Recordings none = new DiagnosticsBundle.Recordings();
+        String fresh = new DiagnosticsBundle("1.13.1", WALL, false).app(0, null).phoneState(null).settings(null, null).tally(null, false)
+                .recordings(none).storage(null, null, null, null).crash(null).clockChanges(null).json(null);
+        require(fresh != null, "a fresh install's file is made");
+        for (String expected : new String[]{"\"version_code\": null", "\"install_source\": \"none\"", "\"phone_state\": null", "\"selected_scooter\": null",
+                "\"power_sign\": null", "\"drive_modes\": null", "\"rides\": null", "\"charges\": null", "\"free_space\": null", "\"last_crash\": null", "\"events_compared\": 0"})
+            require(fresh.contains(expected), "fresh install: " + expected);
+        // An old install: settings never changed, folders missing, a phone that won't say anything.
+        DiagnosticsBundle.Recordings missing = new DiagnosticsBundle.Recordings();
+        missing.rideFolder = new java.io.File("/nonexistent/rides"); missing.chargeFolder = new java.io.File("/nonexistent/charges");
+        String old = new DiagnosticsBundle("1.13.1", WALL, false).phoneState(new DiagnosticsBundle.Device()).settings(new HashMap<String, Object>(), "")
+                .recordings(missing).json(null);
+        require(old != null && old.contains("\"background_connection\": null") && old.contains("\"selected_scooter\": null") && old.contains("\"rides\": null")
+                && old.contains("\"night_mode\": null") && old.contains("\"width_class\": null"), "an old install: nulls, never a throw");
+        // A simulated connection: its sections say so.
+        DiagnosticsTally simulated = new DiagnosticsTally(); simulated.note("driving_mode", 1.0);
+        String sim = new DiagnosticsBundle("1.13.1", WALL, true).tally(simulated, true).json(null);
+        require(sim.contains("\"drive_modes\": {") && sim.split("\"simulated\": true", -1).length == 4, "the simulator's drive modes and power sign are marked simulated");
+        // Unreadable: a file where a folder should be, a damaged charge recording, a crash file that isn't one.
+        try {
+            java.io.File root = java.nio.file.Files.createTempDirectory("diag-unreadable").toFile();
+            java.io.File notFolder = new java.io.File(root, "rides"); write(notFolder, "x");
+            java.io.File charges = new java.io.File(root, "charges"); require(charges.mkdir(), "fixture");
+            write(new java.io.File(charges, "a.csv"), "garbage\nend,NOT_A_STOP\n");
+            java.io.File crash = new java.io.File(root, "last-crash"); write(crash, "{\"not\": \"ours\"}");
+            DiagnosticsBundle.Recordings bad = new DiagnosticsBundle.Recordings();
+            bad.rideFolder = notFolder; bad.chargeFolder = charges; bad.chargeActive = true; bad.chargeActiveSamples = 12;
+            String unreadable = new DiagnosticsBundle("1.13.1", WALL, false).recordings(bad).crash(CrashRecord.read(crash)).json(null);
+            require(unreadable != null && unreadable.contains("\"rides\": null") && unreadable.contains("\"end\": \"other\"") && unreadable.contains("\"duration_s\": null")
+                    && unreadable.contains("\"recording_samples\": 12") && unreadable.contains("\"last_crash\": null"), "unreadable sources leave their parts empty");
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
+        // Shapes checked: a name in a locale or unknown ids never pass.
+        DiagnosticsBundle.Device odd = new DiagnosticsBundle.Device(); odd.phoneLocale = NAME; odd.appLocale = EMAIL; odd.standbyBucket = 999_999; odd.widthDp = -4;
+        String shaped = new DiagnosticsBundle("1.13.1", WALL, false).phoneState(odd).json(null);
+        require(shaped != null && shaped.contains("\"phone_locale\": null") && shaped.contains("\"app_locale\": null") && shaped.contains("\"standby_bucket\": \"other_999\"")
+                && shaped.contains("\"width_dp\": null"), "text fields by shape");
+        require(DiagnosticsBundle.installSource("com.example.store").equals("other") && DiagnosticsBundle.installSource("com.android.shell").equals("adb")
+                && DiagnosticsBundle.installSource("com.google.android.packageinstaller").equals("package_installer"), "install sources as classes");
+        require(DiagnosticsBundle.freeClass(50L << 20).equals("under_100_mb") && DiagnosticsBundle.freeClass(11L << 30).equals("10_gb_or_more"), "free space classes");
+        for (String reason : new String[]{null, "", "AUTO_PARKED_DISCONNECT", "automatic_no_motion", "SOMETHING_NEW;" + NAME})
+            require(!DiagnosticsBundle.rideEnd(reason).contains("NAME") && DiagnosticsBundle.rideEnd(reason).matches("[a-z_]+"), "ride ends are fixed tokens");
+    }
+
+    /** The drive modes and the power sign, from the readings Telemetry accepts, cleared with them. */
+    private static void tallyAndSign() {
+        DiagnosticsTally t = new DiagnosticsTally();
+        require(t.powerSign().get("current_direction_known") == null && "no_readings".equals(t.powerSign().get("basis")), "nothing read: unknown");
+        t.note("driving_mode", 1.0); t.note("speed_kmh", 20.0); t.note("speed_kmh", 31.26); t.note("driving_mode", 2.0); t.note("speed_kmh", 12.0);
+        t.note("driving_mode", 1.5); t.note("speed_kmh", Double.NaN); t.note("speed_kmh", 999.0); t.note(null, 1.0); t.note("driving_mode", null);
+        List<?> modes = (List<?>) t.driveModes().get("modes");
+        require(modes.size() == 2 && ((Map<?, ?>) modes.get(0)).get("top_speed_kmh").equals("31.3") && ((Map<?, ?>) modes.get(0)).get("speed_readings").equals(2L)
+                && ((Map<?, ?>) modes.get(1)).get("current").equals(true) && ((Map<?, ?>) modes.get(1)).get("top_speed_kmh").equals("12.0"), "each mode's top speed, the current mode marked");
+        for (int i = 0; i < 40; i++) t.note("driving_mode", (double) i);
+        require(((List<?>) t.driveModes().get("modes")).size() == DiagnosticsTally.MAX_MODES && t.driveModes().get("codes_left_out").equals(24L), "codes are capped");
+        t.note("current_sign_state", 254.0); t.note("current_a", 3.0);
+        require(t.powerSign().get("current_direction_known").equals(false) && "unsigned".equals(t.powerSign().get("basis")), "a GT3 Max's 254: unsigned");
+        t.note("current_sign_state", 0.0);
+        require(t.powerSign().get("current_direction_known").equals(true) && "sign_state".equals(t.powerSign().get("basis")), "a 0 or 1: signed");
+        t.note("current_sign_state", 254.0);
+        require(t.powerSign().get("current_direction_known").equals(false) && "sign_state_lost".equals(t.powerSign().get("basis"))
+                && t.powerSign().get("recording_direction_known").equals(true), "a 254 after a 0: unknown live, a recording still counts it signed");
+        t.clear();
+        require(((List<?>) t.driveModes().get("modes")).isEmpty() && "no_readings".equals(t.powerSign().get("basis")), "cleared");
+        DiagnosticsTally ut5 = new DiagnosticsTally(); ut5.note("current_a", -2.0);
+        require("no_sign_state".equals(ut5.powerSign().get("basis")) && ut5.powerSign().get("current_direction_known").equals(true), "no sign state at all (UT5 MAX): signed");
+        // Through Telemetry: an accepted reading feeds it; clear() empties it.
+        Telemetry telemetry = new Telemetry();
+        telemetry.putSimulationSample("driving_mode", "2 (raw)", 2.0, 10); telemetry.putSimulationSample("speed_kmh", "22.0 km/h", 22.0, 11);
+        List<?> fed = (List<?>) telemetry.tally.driveModes().get("modes");
+        require(fed.size() == 1 && ((Map<?, ?>) fed.get(0)).get("top_speed_kmh").equals("22.0"), "Telemetry feeds the tally");
+        telemetry.clear();
+        require(((List<?>) telemetry.tally.driveModes().get("modes")).isEmpty(), "Telemetry.clear() clears it");
+    }
+
+    /** Clock changes: the wall clock moving against the monotonic clock between connection events, and phone restarts. */
+    private static void clockChanges() {
+        List<ConnectionEventLog.Record> r = new ArrayList<>();
+        ConnectionEventLog.Reason a = ConnectionEventLog.Reason.CONNECT_ATTEMPT; ConnectionEventLog.Phase p = ConnectionEventLog.Phase.CONNECTING;
+        r.add(new ConnectionEventLog.Record(WALL, 10_000, a, -1, true, false, p, -1, -1));
+        r.add(new ConnectionEventLog.Record(WALL + 1_500, 11_000, a, -1, true, false, p, -1, -1));       // +500 ms: noise
+        r.add(new ConnectionEventLog.Record(WALL + 3_601_500, 12_000, a, -1, true, false, p, -1, -1));   // clock set an hour ahead
+        r.add(new ConnectionEventLog.Record(WALL + 3_000, 20_000, a, -1, true, false, p, -1, -1));       // set back
+        r.add(new ConnectionEventLog.Record(WALL + 900_000, 5_000, a, -1, true, false, p, -1, -1));      // restarted
+        String json = new DiagnosticsBundle("1.13.1", WALL, false).clockChanges(r).json(null);
+        require(json.contains("\"jump_ms\": 3599000") && json.contains("\"jump_ms\": -3606500") && json.contains("\"phone_restarts\": 1")
+                && json.contains("\"events_compared\": 4") && json.split("\"jump_ms\"", -1).length == 3, "jumps and restarts, noise left out");
+        List<ConnectionEventLog.Record> many = new ArrayList<>();
+        for (int i = 0; i < 200; i++) many.add(new ConnectionEventLog.Record(WALL + i * 10_000L * (i % 2 == 0 ? 1 : 2), 1000 + i, a, -1, true, false, p, -1, -1));
+        String capped = new DiagnosticsBundle("1.13.1", WALL, false).clockChanges(many).json(null);
+        require(capped.split("\"jump_ms\"", -1).length == DiagnosticsBundle.MAX_CLOCK_CHANGES + 1 && capped.contains("\"changes_left_out\": "), "changes are capped");
+    }
+
+    /** The one scan over the whole file: private shapes anywhere withhold it, whatever source they came through. */
+    private static void privateShapes() {
+        for (String bad : new String[]{MAC, "c0-ff-ee-12-34-56", EMAIL, LAT, LON, PATH, "/sdcard/Joel", "content://media/external/file/7", "file:///data/user/0/x"})
+            require(DiagnosticsBundle.privateShape("{\"x\": \"" + bad + "\"}"), "a private shape: " + bad);
+        for (String fine : new String[]{"1.13.1", "12:30", "3.125 A", "0b9c1e7e-1d2f-4c3a-9f00-123456789abc", "OK; 43 data bytes", "-21600", "charge=1;at=80"})
+            require(!DiagnosticsBundle.privateShape(fine), "not a private shape: " + fine);
+        // Planted in a reading (a source whose sanitizer allows the characters), each withholds the whole file.
+        for (String bad : new String[]{MAC, EMAIL, LAT + " deg", "/storage/x"}) {
+            Telemetry t = new Telemetry(); t.putSimulationSample("warning_code", bad, null, 10);
+            require(new DiagnosticsBundle("1.13.1", WALL, false).readings(t.metrics(), 20).json(null) == null, "a private shape in a reading withholds the file: " + bad);
+        }
+        require(!DiagnosticsBundle.privateShape(bundle().json(null)), "the full fixture has no private shape");
     }
 
     private static long[] filled(int columns, long value) { long[] r = new long[columns]; Arrays.fill(r, value); return r; }
@@ -199,7 +446,29 @@ public final class DiagnosticsBundleTest {
             connections.add(new ConnectionEventLog.Record(WALL + i, 9_999_999_999L, ConnectionEventLog.Reason.CHARGE_RECOVERY_CANCELLED, 255, true, true, ConnectionEventLog.Phase.AUTHENTICATING,
                     9_999_999_999L, 9_999_999_999L));
         DiagnosticsBundle worst = bundle().connections(connections, true, true).commands(commands, true, true).evidence(new ChargeEvidence.Snapshot(true, evidence(1)));
+        // Part 2's sections at their own caps: the longest crash record decode accepts, every clock change, every drive
+        // mode, and every listed setting at its longest value.
+        StringBuilder crash = new StringBuilder(CrashRecord.FORMAT + "\nwall=" + WALL + "\nversion=1999.1999.1999-rc.12345678\n");
+        StringBuilder cls = new StringBuilder("C"), method = new StringBuilder("m"), exception = new StringBuilder("e");
+        while (cls.length() < 64) cls.append('c'); while (method.length() < 48) method.append('m'); while (exception.length() < 200) exception.append(exception.length() % 2 == 0 ? "." : "x");
+        for (int e = 0; e <= CrashRecord.MAX_CAUSES; e++) {
+            crash.append("exception=").append(exception).append('\n');
+            for (int f = 0; f < CrashRecord.MAX_FRAMES; f++) crash.append("at=").append(cls).append('.').append(method).append(":-99999\n");
+            crash.append("other=99999\n");
+        }
+        CrashRecord longest = CrashRecord.decode(crash.toString());
+        require(longest != null && longest.chain.size() == CrashRecord.MAX_CAUSES + 1, "fixture: the longest crash record");
+        List<ConnectionEventLog.Record> jumps = new ArrayList<>();
+        for (int i = 0; i < 2 * DiagnosticsBundle.MAX_CLOCK_CHANGES; i++)
+            jumps.add(new ConnectionEventLog.Record(WALL + (i % 2 == 0 ? 0 : 86_400_000_000L), 9_999_999_999L, ConnectionEventLog.Reason.CONNECT_ATTEMPT, -1, true, false, ConnectionEventLog.Phase.CONNECTING, -1, -1));
+        DiagnosticsTally modes = new DiagnosticsTally();
+        for (int i = 0; i < 4 * DiagnosticsTally.MAX_MODES; i++) { modes.note("driving_mode", (double) (255 - i)); modes.note("speed_kmh", 199.99); }
+        Map<String, Object> longSettings = new HashMap<>();
+        for (String key : DiagnosticsSettings.KEYS) longSettings.put(key, "abcdefghij_abcdefghij_abcdefghij".substring(0, 32));
+        for (String prefix : DiagnosticsSettings.SCOOTER_PREFIXES) longSettings.put(prefix + PROFILE_ID, "charge=999999;at=999999;low=999999;below=999999;notify=999999;alarm=999999");
+        worst.crash(longest).clockChanges(jumps).tally(modes, true).settings(longSettings, PROFILE_ID);
         String json = worst.json(Collections.<String>emptyList());
+        require(json.contains("\"changes_left_out\": ") && json.contains("\"codes_left_out\": ") && json.contains(cls + "." + method), "the part 2 sections are at their caps");
         int evidenceOnly = new DiagnosticsBundle("1.13.1", WALL, false).evidence(new ChargeEvidence.Snapshot(true, evidence(1))).json(null).length();
         int commandsOnly = new DiagnosticsBundle("1.13.1", WALL, false).commands(commands, true, true).json(null).length();
         int connectionsOnly = new DiagnosticsBundle("1.13.1", WALL, false).connections(connections, true, true).json(null).length();
@@ -260,7 +529,10 @@ public final class DiagnosticsBundleTest {
         String[] forbidden = {SERIAL, MAC, MAC.replace(":", ""), OWNER_KEY, NAME, PROFILE_NAME, BATTERY_SERIAL, PIN,
                 Protocol.hex(BATTERY_SERIAL.getBytes(StandardCharsets.US_ASCII)), Protocol.hex(SERIAL.getBytes(StandardCharsets.US_ASCII)),
                 Protocol.hex(Protocol.auth(Protocol.fromHex(OWNER_KEY), 1, 0)), Protocol.hex(PIN.getBytes(StandardCharsets.US_ASCII)), "0107030905",
-                "a1b2c3d4e5f60708090a", "scooter_serial", "battery_serial_raw", "fault_history_raw", "raw_diagnostic_payloads"};
+                "a1b2c3d4e5f60708090a", "scooter_serial", "battery_serial_raw", "fault_history_raw", "raw_diagnostic_payloads",
+                // Part 2's sources: a profile id, an email, a place, a storage path, a map token, a folder grant, a ride file
+                // name and the crash's message.
+                PROFILE_ID, EMAIL, LAT, LON, PATH, TOKEN, "tiles.example", "primary%3AJoel", "Joel", ".gpx", "Synthetic", "failed for", "otherscooter"};
         for (String secret : forbidden) require(!upper.contains(secret.toUpperCase(Locale.ROOT)), "never in the bundle: " + secret);
         require(!java.util.regex.Pattern.compile("[0-9A-Fa-f]{12,}").matcher(json.replaceAll("\"[a-z_]*wall_ms\": \\d+", "").replaceAll("\"report_id\": \"[0-9a-f]{16}\"", "")).find(),
                 "no payload-length hex run anywhere");

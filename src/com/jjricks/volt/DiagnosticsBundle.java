@@ -1,5 +1,7 @@
 package com.jjricks.volt;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -279,6 +281,310 @@ final class DiagnosticsBundle {
         tree.put("readings", out);
         return this;
     }
+    // ---- Part 2: app and phone state, settings, recordings, storage, the last crash, clock changes, drive modes and the
+    // power sign. Every section is built inside a guard: a source that fails leaves its section null, never the file.
+
+    /** How Volt was installed, as a class: the installer's package name itself never goes in the file. */
+    static String installSource(String installer) {
+        if (installer == null || installer.isEmpty()) return "none";
+        switch (installer) {
+            case "com.android.vending": return "play_store";
+            case "com.google.android.packageinstaller": case "com.android.packageinstaller": return "package_installer";
+            case "com.android.shell": return "adb";
+            default: return "other";
+        }
+    }
+
+    /** Volt's version code and how it was installed. */
+    DiagnosticsBundle app(long versionCode, String installer) {
+        guard("app", () -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("version_code", versionCode > 0 ? versionCode : null);
+            m.put("install_source", installSource(installer));
+            return m;
+        });
+        return this;
+    }
+
+    /** The phone's state that support needs, as Android reports it when the report is built. A null field: Android did not say. */
+    static final class Device {
+        String phoneLocale, appLocale;
+        Float fontScale;
+        /** Configuration.uiMode's night bits: 0x10 no, 0x20 yes, 0 undefined. */
+        Integer uiNightBits;
+        Integer smallestWidthDp, widthDp, heightDp, densityDpi;
+        Boolean batteryOptimisationExempt, powerSave, backgroundRestricted, notificationsEnabled, locationEnabled, bluetoothEnabled;
+        /** UsageStatsManager's standby bucket (10 active ... 45 restricted). */
+        Integer standbyBucket;
+        /** Importance by channel id (CHANNELS only); -1: not created yet. */
+        final Map<String, Integer> channels = new LinkedHashMap<>();
+        /** Granted by short name (PERMISSIONS only). */
+        final Map<String, Boolean> permissions = new LinkedHashMap<>();
+    }
+    /** Volt's own notification channels, by their fixed ids. */
+    static final List<String> CHANNELS = Collections.unmodifiableList(Arrays.asList("scooter", "charge_alerts", "maintenance", "volt_updates"));
+    /** The permissions the file reports, by short name. */
+    static final List<String> PERMISSIONS = Collections.unmodifiableList(Arrays.asList(
+            "bluetooth_scan", "bluetooth_connect", "fine_location", "coarse_location", "post_notifications"));
+    private static final Pattern LOCALE = Pattern.compile("[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,4}");
+
+    DiagnosticsBundle phoneState(Device d) {
+        guard("phone_state", () -> {
+            if (d == null) return null;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("phone_locale", pattern(d.phoneLocale, LOCALE.pattern(), null));
+            m.put("app_locale", pattern(d.appLocale, LOCALE.pattern(), null));
+            m.put("font_scale_percent", d.fontScale == null || d.fontScale.isNaN() || d.fontScale.isInfinite() ? null : (long) Math.round(d.fontScale * 100));
+            m.put("night_mode", d.uiNightBits == null ? null : d.uiNightBits == 0x20 ? "yes" : d.uiNightBits == 0x10 ? "no" : "undefined");
+            Map<String, Object> screen = new LinkedHashMap<>();
+            screen.put("smallest_width_dp", small(d.smallestWidthDp)); screen.put("width_dp", small(d.widthDp));
+            screen.put("height_dp", small(d.heightDp)); screen.put("density_dpi", small(d.densityDpi));
+            screen.put("width_class", d.widthDp == null || d.widthDp <= 0 ? null : d.widthDp < 600 ? "compact" : d.widthDp < 840 ? "medium" : "expanded");
+            m.put("screen", screen);
+            m.put("battery_optimisation_exempt", d.batteryOptimisationExempt);
+            m.put("power_save", d.powerSave);
+            m.put("background_restricted", d.backgroundRestricted);
+            m.put("standby_bucket", d.standbyBucket == null ? null : bucket(d.standbyBucket));
+            m.put("notifications_enabled", d.notificationsEnabled);
+            Map<String, Object> channels = new LinkedHashMap<>();
+            for (String id : CHANNELS) { Integer v = d.channels.get(id); channels.put(id, v == null ? null : v < 0 ? "not_created" : importance(v)); }
+            m.put("notification_channels", channels);
+            Map<String, Object> permissions = new LinkedHashMap<>();
+            for (String p : PERMISSIONS) permissions.put(p, d.permissions.get(p));
+            m.put("permissions", permissions);
+            m.put("location_enabled", d.locationEnabled);
+            m.put("bluetooth_enabled", d.bluetoothEnabled);
+            return m;
+        });
+        return this;
+    }
+    private static Long small(Integer v) { return v == null || v < 0 || v > 100_000 ? null : (long) v; }
+    private static String bucket(int b) {
+        switch (b) { case 5: return "exempted"; case 10: return "active"; case 20: return "working_set"; case 30: return "frequent";
+            case 40: return "rare"; case 45: return "restricted"; case 50: return "never"; default: return "other_" + Math.max(0, Math.min(999, b)); }
+    }
+    private static String importance(int i) {
+        switch (i) { case 0: return "none"; case 1: return "min"; case 2: return "low"; case 3: return "default"; case 4: return "high"; case 5: return "max";
+            default: return "unspecified"; }
+    }
+
+    /** The allow-listed settings (DiagnosticsSettings); the selected scooter's under their own names, never its id. */
+    DiagnosticsBundle settings(Map<String, ?> stored, String profileId) {
+        guard("settings", () -> DiagnosticsSettings.section(stored, profileId));
+        return this;
+    }
+
+    /** Where the recordings live and what the recorders hold now. Folders and stores may be null (not opened). */
+    static final class Recordings {
+        File rideFolder, phoneRideFolder, chargeFolder;
+        /** RideStore.listCached(): newest first; null when its summaries are not in memory (nothing is read to get them). */
+        List<RideStore.Summary> rides;
+        boolean rideActive, chargeActive;
+        long chargeActiveSamples = -1;
+        long nowWallMs;
+    }
+    private static final Pattern RIDE_JOURNAL = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\\.csv");
+    /** Bytes read from the newest charge recording: its first line and its end, never the whole file. */
+    static final int CHARGE_HEAD_BYTES = 512, CHARGE_TAIL_BYTES = 4096;
+
+    /**
+     * Counts, sizes and ages of the ride and charge recordings, and the newest ride's and charge's length, samples and
+     * end. Never a route, a coordinate, a label, a note, a scooter id or a file name.
+     */
+    DiagnosticsBundle recordings(Recordings r) {
+        guard("recordings", () -> {
+            if (r == null) return null;
+            Map<String, Object> m = new LinkedHashMap<>();
+            Map<String, Object> rides = folder(r.rideFolder, f -> RIDE_JOURNAL.matcher(f.getName()).matches(), r.nowWallMs);
+            if (rides != null) {
+                rides.put("recording_now", r.rideActive);
+                rides.put("summaries_in_memory", r.rides != null);
+                RideStore.Summary last = null;
+                if (r.rides != null) for (RideStore.Summary s : r.rides) if (s != null && !s.active) { last = s; break; }
+                rides.put("last", last == null ? null : lastRide(last));
+            }
+            m.put("rides", rides);
+            m.put("phone_rides", folder(r.phoneRideFolder, f -> f.getName().endsWith("-phone.csv"), r.nowWallMs));
+            Map<String, Object> charges = folder(r.chargeFolder, f -> f.getName().endsWith(".csv") || f.getName().endsWith(".active"), r.nowWallMs);
+            if (charges != null) {
+                charges.put("recording_now", r.chargeActive);
+                if (r.chargeActive && r.chargeActiveSamples >= 0) charges.put("recording_samples", r.chargeActiveSamples);
+                charges.put("last", lastCharge(r.chargeFolder));
+            }
+            m.put("charges", charges);
+            return m;
+        });
+        return this;
+    }
+    /** A folder's matching files: count, bytes, and the newest and oldest file's age; null when it can't be listed. */
+    private static Map<String, Object> folder(File dir, java.util.function.Predicate<File> counted, long now) {
+        if (dir == null) return null;
+        File[] files = dir.listFiles();
+        if (files == null) return null;
+        long count = 0, bytes = 0, all = 0, newest = Long.MIN_VALUE, oldest = Long.MAX_VALUE;
+        for (File f : files) {
+            if (!f.isFile()) continue;
+            long length = Math.max(0, f.length()); all += length;
+            if (!counted.test(f)) continue;
+            count++; bytes += length;
+            long modified = f.lastModified();
+            if (modified > 0) { newest = Math.max(newest, modified); oldest = Math.min(oldest, modified); }
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("count", count); m.put("bytes", bytes); m.put("folder_bytes", all);
+        m.put("newest_age_s", newest == Long.MIN_VALUE ? null : Math.max(0, now - newest) / 1000);
+        m.put("oldest_age_s", oldest == Long.MAX_VALUE ? null : Math.max(0, now - oldest) / 1000);
+        return m;
+    }
+    private static Map<String, Object> lastRide(RideStore.Summary s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("duration_s", Math.max(0, s.elapsedMs) / 1000);
+        m.put("samples", Math.max(0, s.sampleCount));
+        m.put("gaps", Math.max(0, s.gapCount));
+        m.put("clock_discontinuities", Math.max(0, s.clockDiscontinuities));
+        m.put("end", rideEnd(s.stopReason));
+        m.put("recovered", s.recovered);
+        m.put("direction_confirmed", s.directionConfirmed);
+        return m;
+    }
+    /** A ride's end as a fixed token (the summary's stop reason is already the bare token; anything else reads as other). */
+    static String rideEnd(String reason) {
+        if (reason == null) return "recording";
+        if (reason.isEmpty()) return "rider";
+        if (reason.equals(RideStore.STOP_AUTO_NO_MOTION)) return "automatic_no_motion";
+        if (reason.equals(RideStore.STOP_AUTO_PARKED) || reason.startsWith(RideStore.STOP_AUTO_PARKED + ";")) return "auto_parked_disconnect";
+        if (reason.equals(RideStore.STOP_AUTO_QUIET) || reason.startsWith(RideStore.STOP_AUTO_QUIET + ";")) return "auto_quiet_disconnect";
+        return "other";
+    }
+    /** The newest finished charge recording's length and end, from its first line and its last few kilobytes only. */
+    static Map<String, Object> lastCharge(File dir) {
+        File[] files = dir == null ? null : dir.listFiles();
+        if (files == null) return null;
+        File newest = null;
+        for (File f : files) if (f.isFile() && f.getName().endsWith(".csv") && (newest == null || f.lastModified() > newest.lastModified())) newest = f;
+        if (newest == null) return null;
+        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(newest, "r")) {
+            long length = in.length();
+            byte[] head = new byte[(int) Math.min(CHARGE_HEAD_BYTES, length)];
+            in.readFully(head);
+            String first = new String(head, java.nio.charset.StandardCharsets.UTF_8).split("\n", -1)[0];
+            String[] start = first.split(",", -1);
+            long startWall = start.length == 5 && start[3].matches("[0-9]{1,15}") ? Long.parseLong(start[3]) : -1;
+            int tail = (int) Math.min(CHARGE_TAIL_BYTES, length);
+            byte[] end = new byte[tail];
+            in.seek(length - tail); in.readFully(end);
+            String[] lines = new String(end, java.nio.charset.StandardCharsets.UTF_8).split("\n");
+            String stop = null; long lastWall = -1;
+            for (int i = lines.length - 1; i >= 0 && (stop == null || lastWall < 0); i--) {
+                String[] p = lines[i].split(",", -1);
+                if (stop == null && p.length == 2 && p[0].equals("end")) stop = chargeStop(p[1]);
+                else if (lastWall < 0 && p.length > 2 && p[0].equals("s") && p[1].matches("[0-9]{1,15}")) lastWall = Long.parseLong(p[1]);
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("duration_s", startWall > 0 && lastWall >= startWall ? (lastWall - startWall) / 1000 : null);
+            m.put("end", stop == null ? "unknown" : stop);
+            m.put("bytes", length);
+            return m;
+        } catch (IOException | RuntimeException unreadable) { return null; }
+    }
+    private static String chargeStop(String name) {
+        for (ChargeSessionStore.Stop s : ChargeSessionStore.Stop.values()) if (s.name().equals(name)) return lower(s);
+        return "other";
+    }
+
+    /** Free space as a class, and whether the recorders' storage is open and its last write worked. */
+    DiagnosticsBundle storage(Long freeBytes, Boolean rideStoreOpen, Boolean rideWriteFailed, Boolean chargeStoreOpen) {
+        guard("storage", () -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("free_space", freeBytes == null || freeBytes < 0 ? null : freeClass(freeBytes));
+            m.put("ride_store_open", rideStoreOpen);
+            m.put("ride_last_write_failed", rideWriteFailed);
+            m.put("charge_store_open", chargeStoreOpen);
+            return m;
+        });
+        return this;
+    }
+    static String freeClass(long bytes) {
+        long mb = 1024L * 1024;
+        return bytes < 100 * mb ? "under_100_mb" : bytes < 1024 * mb ? "under_1_gb" : bytes < 10 * 1024 * mb ? "under_10_gb" : "10_gb_or_more";
+    }
+
+    /** The last uncaught crash Volt recorded (CrashRecord): classes and Volt's own frames only; null when there is none. */
+    DiagnosticsBundle crash(CrashRecord c) {
+        guard("last_crash", () -> {
+            if (c == null) return null;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("wall_ms", c.wallMs);
+            m.put("app_version", c.appVersion);
+            List<Object> chain = new ArrayList<>();
+            for (CrashRecord.Thrown t : c.chain) {
+                Map<String, Object> e = new LinkedHashMap<>();
+                e.put("exception", t.exception);
+                e.put("volt_frames", new ArrayList<Object>(t.frames));
+                e.put("other_frames", (long) t.otherFrames);
+                chain.add(e);
+            }
+            m.put("chain", chain);
+            return m;
+        });
+        return this;
+    }
+
+    /** A wall clock step against the monotonic clock bigger than this between two connection events is a clock change. */
+    static final long CLOCK_JUMP_MS = 2_000;
+    static final int MAX_CLOCK_CHANGES = 30;
+    /**
+     * Clock changes seen in the connection log: between consecutive events, how far the wall clock moved beyond the
+     * monotonic clock (a time zone change does not move it; setting the clock or a network time fix does), and phone
+     * restarts (the monotonic clock going back). Explains timestamps that look out of order.
+     */
+    DiagnosticsBundle clockChanges(List<ConnectionEventLog.Record> records) {
+        guard("clock_changes", () -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("threshold_ms", CLOCK_JUMP_MS);
+            List<Object> changes = new ArrayList<>();
+            long restarts = 0, compared = 0, left = 0;
+            ConnectionEventLog.Record previous = null;
+            if (records != null) for (ConnectionEventLog.Record r : records) {
+                if (r == null) continue;
+                if (previous != null) {
+                    compared++;
+                    if (r.elapsedMs < previous.elapsedMs) restarts++;
+                    else {
+                        long jump = (r.wallMs - previous.wallMs) - (r.elapsedMs - previous.elapsedMs);
+                        if (Math.abs(jump) > CLOCK_JUMP_MS) {
+                            if (changes.size() < MAX_CLOCK_CHANGES) {
+                                Map<String, Object> c = new LinkedHashMap<>();
+                                c.put("wall_ms", r.wallMs); c.put("jump_ms", jump); changes.add(c);
+                            } else left++;
+                        }
+                    }
+                }
+                previous = r;
+            }
+            m.put("events_compared", compared);
+            m.put("changes", changes);
+            if (left > 0) m.put("changes_left_out", left);
+            m.put("phone_restarts", restarts);
+            return m;
+        });
+        return this;
+    }
+
+    /** This connection's drive modes and the current's direction (DiagnosticsTally), marked when they came from the simulator. */
+    DiagnosticsBundle tally(DiagnosticsTally t, boolean simulated) {
+        guard("power_sign", () -> { if (t == null) return null; Map<String, Object> m = t.powerSign(); m.put("simulated", simulated); return m; });
+        guard("drive_modes", () -> { if (t == null) return null; Map<String, Object> m = t.driveModes(); m.put("simulated", simulated); return m; });
+        return this;
+    }
+
+    /** Puts a section, or null when building it failed: one bad source never costs the file. */
+    private void guard(String section, java.util.function.Supplier<Object> build) {
+        Object value;
+        try { value = build.get(); } catch (RuntimeException failed) { value = null; }
+        tree.put(section, value);
+    }
+
     // Telemetry formats battery temperature with a degree sign. Allow only that typed numeric
     // value, not arbitrary Unicode in diagnostic strings or other fields.
     static boolean reading(String key, String value) {
@@ -293,10 +599,11 @@ final class DiagnosticsBundle {
 
     /**
      * The file, or null when it would contain any of these private values (saved serials, MACs with and without
-     * separators, owner keys, chosen names). A null means the email goes without it.
+     * separators, owner keys, chosen names) or any private shape (PRIVATE_SHAPES). A null means the email goes without it.
      */
     String json(Collection<String> secrets) {
         String json = capped();
+        if (privateShape(json)) return null;
         if (secrets != null) {
             String upper = json.toUpperCase(Locale.ROOT);
             for (String secret : secrets) {
@@ -307,6 +614,18 @@ final class DiagnosticsBundle {
         }
         return json;
     }
+
+    /**
+     * Shapes no part of the file may have, whatever its source: a Bluetooth address, an email address, a coordinate
+     * (a number with five or more decimals; readings carry at most three), or a path into shared storage or a content
+     * URI (folder and file names there can carry a person's or scooter's name). One scan over the whole file.
+     */
+    private static final Pattern PRIVATE_SHAPES = Pattern.compile(
+            "(?i)(?<![0-9a-f])[0-9a-f]{2}([:-])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}(?![0-9a-f])"
+            + "|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}"
+            + "|[0-9]\\.[0-9]{5,}"
+            + "|/storage/|/sdcard|/mnt/|/data/user/|/data/data/|content://|file://");
+    static boolean privateShape(String file) { return file != null && PRIVATE_SHAPES.matcher(file).find(); }
 
     /** The file's size target in the worst case the logs' own caps allow, and the hard cap enforced here. */
     static final int TARGET_BYTES = 512 * 1024, MAX_BYTES = 640 * 1024;

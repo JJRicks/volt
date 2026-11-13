@@ -40,6 +40,9 @@ public final class Telemetry {
         }
     }
 
+    /** This connection's drive modes and current direction, for the report diagnostics file only (memory, cleared with the readings). */
+    final DiagnosticsTally tally = new DiagnosticsTally();
+
     private static final String RAW_SUFFIX = " (raw)";
 
     // Groups: English ids that reports, history and Live Stats' section state keep. ScooterReadingLabels.group()
@@ -383,6 +386,7 @@ public final class Telemetry {
         voltageBatch = currentBatch = -1;
         currentSignState = temperatureSignState = null;
         speedPeaks.clear();
+        tally.clear();
         if (speedFollower != null) speedFollower.connectionReset();
     }
 
@@ -676,6 +680,7 @@ public final class Telemetry {
         if (previous == null || previous.updatedMs > time) return;
         if (numeric != null && key.equals("speed_kmh")) noteSpeedPeak(numeric, time);
         readings.put(key, new Metric(previous.group, key, previous.label, value, numeric, cmd, time));
+        tally.note(key, numeric);
         if (speedFollower != null && numeric != null && key.equals(RidingValues.SPEED_KEY)) speedFollower.accept(numeric, time);
     }
 

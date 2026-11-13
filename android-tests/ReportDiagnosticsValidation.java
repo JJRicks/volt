@@ -142,6 +142,14 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
                 && file.contains("\"key\": \"logo_light\"") && file.contains("\"outcome\": \"refused\"") && file.contains("\"type\": \"session\"")
                 && file.contains("\"simulated\": true") && file.contains("\"reason\": \"CONNECT_TIMEOUT\"") && file.contains("\"readings\": [")
                 && file.contains("\"model\": \"" + Build.MANUFACTURER + " " + Build.MODEL + "\""), "The file lacks the logs, readings or phone");
+        // Part 2, read from this phone: app and phone state, the allow-listed settings, the simulated connection's
+        // power sign and drive modes (marked simulated), recordings, storage, the last crash (none here) and clock changes.
+        for (String section : new String[]{"\"app\": {", "\"install_source\": \"", "\"phone_state\": {", "\"notification_channels\": {", "\"permissions\": {",
+                "\"settings\": {", "\"background_connection\": ", "\"power_sign\": {", "\"drive_modes\": {", "\"recordings\": {", "\"rides\": ",
+                "\"storage\": {", "\"free_space\": \"", "\"last_crash\": ", "\"clock_changes\": {"})
+            require(file.contains(section), "The file lacks " + section);
+        require(file.indexOf("\"power_sign\": {") > file.indexOf("\"readings\": [") && file.substring(file.indexOf("\"power_sign\": {")).contains("\"simulated\": true"),
+                "The simulated connection's power sign is not marked simulated");
         noSecrets(file, "Report an issue's file");
         firstUri = attachedUri; firstFile = file;
         require(!sheetShowing() && settings().getAll().get("report_diagnostics") == null, "Open email did not close the sheet, or stored a choice nobody made");
