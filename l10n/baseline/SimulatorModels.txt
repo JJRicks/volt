@@ -1,0 +1,5 @@
+# Hard-coded English in src/com/jjricks/volt/SimulatorModels.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Mapped model (synthetic 24431)"
+multiword	"UT5 MAX"
+multiword	"Unknown model (synthetic 39991)"
