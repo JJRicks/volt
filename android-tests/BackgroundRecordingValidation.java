@@ -69,7 +69,9 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         View root = activity.getWindow().getDecorView();
         View row = root.findViewWithTag("preference-auto-record-background"); check(row != null, "Start recording in the background row present");
         ViewGroup group = (ViewGroup) row.getParent(); int at = group.indexOfChild(row);
-        check(at > 0 && text(group.getChildAt(at - 1), PARENT) != null, "Directly under Record rides automatically");
+        View previous = null; // the row above, past the divider between rows
+        for (int i = at - 1; i >= 0 && previous == null; i--) if (find(group.getChildAt(i), TextView.class) != null) previous = group.getChildAt(i);
+        check(previous != null && text(previous, PARENT) != null, "Directly under Record rides automatically");
         check(text(root, "Connection & recording") != null, "In the Connection & recording group");
         TextView title = text(row, TITLE), caption = text(row, CAPTION); Switch toggle = find(row, Switch.class);
         check(title != null && caption != null && toggle != null, "Title, caption (a locked screen counts as background) and switch");
