@@ -63,6 +63,8 @@ for name in HomeStyle TopArea HomeMoment HomeQuickActions; do sources+=("$APP_DI
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
 # Clean Home's round quick actions: columns, circle, names and values (owner's decision on #383, part 8b).
 sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/QuickActionLayoutTest.java")
+# Clean Home's header: two 48 dp targets, the name smaller before it wraps (part 8b review).
+sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -173,6 +175,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
