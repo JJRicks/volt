@@ -41,16 +41,41 @@ final class MapSource {
                 settings.getBoolean(MapDefault.ENABLED_KEY, false), settings.getBoolean(MapDefault.EXPLAINED_KEY, false));
     }
 
+    /**
+     * Writes the old-default pin down once: while pinnedToUsgs holds, saves USGS as the provider, marked as the
+     * old default (MapDefault.USGS_BY_DEFAULT_KEY), so the pin no longer depends on the basemap being on or
+     * explained. Called wherever a map control is built and before the basemap is turned off. True when it wrote.
+     */
+    static boolean keepPin(SharedPreferences settings) {
+        if (!pinnedToUsgs(settings)) return false;
+        SharedPreferences.Editor pin = settings.edit();
+        USGS.put(pin);
+        pin.putBoolean(MapDefault.USGS_BY_DEFAULT_KEY, true);
+        pin.apply();
+        return true;
+    }
+
+    /** True when the provider is USGS by the old default, written down or not (MapDefault.usgsByDefault). */
+    static boolean usgsByDefault(SharedPreferences settings) {
+        return MapDefault.usgsByDefault(settings.contains(MapDefault.URL_KEY), USGS_URL.equals(settings.getString(MapDefault.URL_KEY, null)),
+                settings.getBoolean(MapDefault.USGS_BY_DEFAULT_KEY, false), settings.getBoolean(MapDefault.ENABLED_KEY, false),
+                settings.getBoolean(MapDefault.EXPLAINED_KEY, false));
+    }
+
     void save(SharedPreferences settings) {
         SharedPreferences.Editor edit = settings.edit();
         put(edit);
         edit.apply();
     }
 
-    /** Adds this provider to an edit, so it can be saved in the same commit as other map settings. */
+    /**
+     * Adds this provider to an edit, so it can be saved in the same commit as other map settings. A provider
+     * saved this way is the person's own choice, so it clears the old-default mark (keepPin sets it after).
+     */
     void put(SharedPreferences.Editor edit) {
         edit.putString("map_tile_url", url).putString("map_tile_attribution", attribution)
                 .putString("map_tile_attribution_url", attributionUrl);
+        edit.remove(MapDefault.USGS_BY_DEFAULT_KEY);
     }
 
     /**

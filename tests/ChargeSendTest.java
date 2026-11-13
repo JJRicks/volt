@@ -41,6 +41,8 @@ public final class ChargeSendTest {
         compression();
         prepareSmall();
         failureHandover();
+        heldMessage();
+        attachedHandover();
         leftovers();
         System.out.println("ChargeSend: " + checks + " checks passed");
     }
@@ -259,7 +261,7 @@ public final class ChargeSendTest {
             ChargeSend.Export failure = ChargeSend.Export.failed(failed);
             require(failure.failed() && failure.file == null && failed.equals(failure.failure) && failure.model.isEmpty()
                     && !new ChargeSend.Export(file(dir, "ok"), "M").failed(), "A failure carries its text and no file; a file export is no failure");
-            require(ChargeSend.Export.failed(null).failed() && ChargeSend.Export.failed(null).failure.isEmpty(), "A failure without text is still one");
+            require(ChargeSend.Export.failed(null).failed() && ChargeSend.Export.failed(null).failure.length() == 0, "A failure without text is still one");
             // The activity that started it still shows Volt: it gets the failure, once.
             ChargeSend.Mailbox box = new ChargeSend.Mailbox();
             box.register(old, 0);
@@ -302,6 +304,105 @@ public final class ChargeSendTest {
             require(b.exists() && next.size() == 1 && next.get(0).file == b && !next.get(0).failed(), "A newer file replaces a held failure");
             // Exactly one hand-over per export: a file or a failure, never both.
             require(got.stream().noneMatch(x -> x.failed() && x.file != null), "A failure never carries a file to email");
+            for (File f : dir.listFiles()) f.delete();
+            require(dir.delete(), "Cleaned up");
+        } catch (IOException e) { throw new AssertionError(e); }
+    }
+
+    /**
+     * #419 review, P3 1: a failure is held as its message, not as text rendered when it failed, so the toast shown after
+     * a language change while the mailbox held it is in the language current then (localization guide, rule 2).
+     */
+    private static void heldMessage() {
+        // Stands in for a Msg: the same message, read in whichever language is current when it is read.
+        String[] language = {"en"};
+        CharSequence failed = new CharSequence() {
+            private String text() { return language[0].equals("en") ? "Charge recordings could not be exported" : "Les enregistrements de charge n'ont pas pu etre exportes"; }
+            @Override public int length() { return text().length(); }
+            @Override public char charAt(int index) { return text().charAt(index); }
+            @Override public CharSequence subSequence(int start, int end) { return text().subSequence(start, end); }
+            @Override public String toString() { return text(); }
+        };
+        ChargeSend.Export failure = ChargeSend.Export.failed(failed);
+        require(failure.failure == failed, "A failure keeps the message itself, not its text");
+        ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+        List<ChargeSend.Export> got = new ArrayList<>();
+        Consumer<ChargeSend.Export> old = got::add, recreated = got::add;
+        box.register(old, 0);
+        box.unregister(old, true);
+        box.deliver(failure, 1_000);
+        // The language changes while the mailbox holds it; the new activity renders it only now.
+        language[0] = "fr";
+        box.register(recreated, 2_000);
+        require(got.size() == 1 && got.get(0).failure == failed, "Held as the message, delivered once");
+        require(got.get(0).failure.toString().startsWith("Les enregistrements"), "Rendered when shown, in the language current then");
+        String empty = "No saved charge recordings for this scooter";
+        require(ChargeSend.Export.failed(empty).failure == empty && ChargeSend.Export.failed("").failure.length() == 0,
+                "Any message is held as given; an empty one still means the host's own text");
+    }
+
+    /**
+     * #419 review (emulator): a recreation just after the tap lost the email, because the activity that moved the export
+     * into place dropped the attachment once it was destroyed. The attachment goes back through the mailbox, so the
+     * activity showing Volt when it is ready opens the email, exactly once.
+     */
+    private static void attachedHandover() {
+        try {
+            File dir = Files.createTempDirectory("charge-attached").toFile();
+            File snapshot = file(dir, "0123.volt-charge-recordings.json");
+            String uri = "content://com.jjricks.volt.diagnostics/0123/volt-charge-recordings.json";
+            ChargeSend.Export ready = ChargeSend.Export.attached(uri, snapshot, "Model: Navee N65");
+            require(ready.attached() && !ready.failed() && ready.file == null && uri.equals(ready.attachment) && ready.snapshot == snapshot
+                    && ready.model.equals("Model: Navee N65"), "An attachment carries its URI, its snapshot and the model, no export file");
+            require(!new ChargeSend.Export(snapshot, "M").attached() && !ChargeSend.Export.failed("x").attached()
+                    && ChargeSend.Export.attached(uri, null, null).model.isEmpty(), "Only an adopted export is an attachment; no model is empty");
+            // The whole flow: the tap's export reaches the activity A, which moves it into place; A is recreated meanwhile.
+            ChargeSend.Mailbox box = new ChargeSend.Mailbox();
+            List<ChargeSend.Export> a = new ArrayList<>(), b = new ArrayList<>(), c = new ArrayList<>();
+            Consumer<ChargeSend.Export> first = a::add, second = b::add, third = c::add;
+            box.register(first, 0);
+            File export = file(dir, "charges-1.json");
+            box.deliver(new ChargeSend.Export(export, "Model: Navee N65"), 100);
+            require(a.size() == 1 && a.get(0).file == export && !a.get(0).attached(), "A gets the finished file to move into place");
+            box.unregister(first, true);
+            box.deliver(ready, 300);
+            require(a.size() == 1 && snapshot.exists(), "Ready after A went: held, its snapshot kept");
+            box.register(second, 1_000);
+            require(b.size() == 1 && b.get(0) == ready && a.size() == 1, "The recreated activity B opens the email");
+            box.unregister(second, true);
+            box.register(third, 2_000);
+            require(c.isEmpty(), "Exactly once: a later recreation opens nothing");
+            // Ready while the activity shows Volt: straight to it, once.
+            box.deliver(ChargeSend.Export.attached(uri, snapshot, "M"), 2_100);
+            require(c.size() == 1 && c.get(0).attached(), "Delivered at once when an activity shows Volt");
+            // Delivered twice while held: kept, not deleted by itself.
+            ChargeSend.Mailbox twice = new ChargeSend.Mailbox();
+            twice.deliver(ready, 0); twice.deliver(ready, 1);
+            List<ChargeSend.Export> once = new ArrayList<>();
+            twice.register(once::add, 2);
+            require(snapshot.exists() && once.size() == 1 && once.get(0) == ready, "The same attachment held twice is still one");
+            // Held too long, or the app closed for good: its snapshot is deleted and no email ever opens.
+            ChargeSend.Mailbox stale = new ChargeSend.Mailbox();
+            stale.deliver(ready, 0);
+            List<ChargeSend.Export> late = new ArrayList<>();
+            stale.register(late::add, ChargeSend.Mailbox.HOLD_MS);
+            require(late.isEmpty() && !snapshot.exists(), "A stale attachment is dropped with its snapshot");
+            ChargeSend.Mailbox closed = new ChargeSend.Mailbox();
+            Consumer<ChargeSend.Export> gone = late::add;
+            closed.register(gone, 0);
+            closed.unregister(gone, false);
+            File after = file(dir, "89ab.volt-charge-recordings.json");
+            closed.deliver(ChargeSend.Export.attached(uri, after, "M"), 2);
+            closed.register(gone, 3);
+            require(late.isEmpty() && !after.exists(), "After the app closed, an attachment is never emailed later");
+            // An attachment that couldn't be prepared comes back as a failure, never as an email.
+            File older = file(dir, "cdef.volt-charge-recordings.json");
+            ChargeSend.Mailbox fails = new ChargeSend.Mailbox();
+            fails.deliver(ChargeSend.Export.attached(uri, older, "M"), 0);
+            fails.deliver(ChargeSend.Export.failed("Charge recordings could not be exported"), 1);
+            List<ChargeSend.Export> shown = new ArrayList<>();
+            fails.register(shown::add, 2);
+            require(!older.exists() && shown.size() == 1 && shown.get(0).failed() && !shown.get(0).attached(), "One held at a time: the newer wins");
             for (File f : dir.listFiles()) f.delete();
             require(dir.delete(), "Cleaned up");
         } catch (IOException e) { throw new AssertionError(e); }
