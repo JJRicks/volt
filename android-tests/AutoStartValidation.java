@@ -539,17 +539,31 @@ public final class AutoStartValidation extends Instrumentation {
         getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
         await(() -> resumed() && focused(), "Sheet closed");
     }
+    /**
+     * The GPS route switch, matched on its whole label: findAccessibilityNodeInfosByText matches substrings, and
+     * Recording settings also carries "Start recording in the background", whose caption ends "…has no GPS route."
+     */
     private void tapGpsRoute() {
         long end = SystemClock.uptimeMillis() + 8000;
+        int seen = 0;
         while (SystemClock.uptimeMillis() < end) {
             AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow();
             if (root != null) {
-                List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText("GPS route");
-                for (AccessibilityNodeInfo node : nodes) { AccessibilityNodeInfo n = node; while (n != null && !n.isClickable()) n = n.getParent(); if (n != null) { n.performAction(AccessibilityNodeInfo.ACTION_CLICK); return; } }
+                List<AccessibilityNodeInfo> labels = new ArrayList<>();
+                for (AccessibilityNodeInfo node : root.findAccessibilityNodeInfosByText("GPS route")) {
+                    if (node.getText() != null && "GPS route".contentEquals(node.getText())) labels.add(node);
+                }
+                seen = labels.size();
+                if (seen == 1) {
+                    AccessibilityNodeInfo n = labels.get(0); while (n != null && !n.isClickable()) n = n.getParent();
+                    require(n != null, "GPS route row is not clickable");
+                    require(n.performAction(AccessibilityNodeInfo.ACTION_CLICK), "GPS route row refused the click");
+                    return;
+                }
             }
             SystemClock.sleep(100);
         }
-        throw new AssertionError("GPS route row not found");
+        throw new AssertionError("GPS route row not found (" + seen + " rows labelled exactly GPS route)");
     }
 
     private boolean focused() { return onMain(() -> activity.hasWindowFocus()); }
