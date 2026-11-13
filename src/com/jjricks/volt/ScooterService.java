@@ -2789,8 +2789,8 @@ public final class ScooterService extends Service {
         Notification notice = notification();
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
-        noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
+        noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
         notices.posted(71, SystemClock.elapsedRealtime());
@@ -2929,9 +2929,10 @@ public final class ScooterService extends Service {
             // The connection notice is rebuilt on every tick and change; it posts only when it differs from what shows (NoticeRepeat).
             Object key=id==71?noticeKey(notice):null;
             long now=SystemClock.elapsedRealtime();
-            if(key!=null&&!noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing))sent=false;
-            else{getSystemService(NotificationManager.class).notify(id,notice);if(key!=null)noticeRepeat.posted(key,now);}
-            if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());}}
+            sent=key==null||noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing);
+            // A skipped notice is the one showing, so the live card's baseline is what it carries either way.
+            if(sent)getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());
+            if(sent&&key!=null)noticeRepeat.posted(key,now);}}
         catch(RuntimeException unavailable){}
         if(id==71&&sent)liveUpdatePosted();
     }
