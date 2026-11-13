@@ -3544,11 +3544,23 @@ public final class MainActivity extends Activity implements ScreenHost {
         int bytes=bundle.getBytes(StandardCharsets.UTF_8).length;
         String size=bytes<1024?T.mainReportSizeBytes(bytes,bytes):T.mainReportSizeKb(Fmt.decimal(Locale.ROOT, bytes / 1024.0, 1));
         LinearLayout content=sheetContent(T.mainReportDiagnosticsTitle(),T.mainReportPreviewBody(DiagnosticsProvider.NAME,size),()->{if(self[0]!=null)self[0].dismiss();});
-        ScrollView scroll=new ScrollView(this);scroll.setTag("diagnostics-preview-scroll");scroll.setBackground(design.shape(design.surface,16,0));
-        TextView text=design.text(bundle,12,false);text.setTypeface(android.graphics.Typeface.MONOSPACE);text.setTextIsSelectable(true);
-        text.setPadding(design.dp(12),design.dp(12),design.dp(12),design.dp(12));text.setTag("diagnostics-preview-text");
-        scroll.addView(text,new ScrollView.LayoutParams(-1,-2));
-        content.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        // A recycled list of 40-line blocks (DiagnosticsBundle.previewBlocks): only the blocks on screen are laid out, so a
+        // worst-case file opens without stalling. Joined with line breaks, the blocks are the exact file.
+        final java.util.List<String> blocks=DiagnosticsBundle.previewBlocks(bundle);
+        android.widget.ListView list=new android.widget.ListView(this);list.setTag("diagnostics-preview-list");list.setBackground(design.shape(design.surface,16,0));
+        list.setDivider(null);list.setDividerHeight(0);list.setSelector(new android.graphics.drawable.ColorDrawable(0));list.setItemsCanFocus(true);
+        list.setPadding(design.dp(12),design.dp(12),design.dp(12),design.dp(12));list.setClipToPadding(false);list.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+        list.setAdapter(new android.widget.BaseAdapter(){
+            @Override public int getCount(){return blocks.size();}
+            @Override public Object getItem(int position){return blocks.get(position);}
+            @Override public long getItemId(int position){return position;}
+            @Override public View getView(int position,View recycled,android.view.ViewGroup parent){
+                TextView block=recycled instanceof TextView?(TextView)recycled:design.text("",12,false);
+                if(recycled==null){block.setTypeface(android.graphics.Typeface.MONOSPACE);block.setTextIsSelectable(true);block.setTag("diagnostics-preview-block");}
+                block.setText(blocks.get(position));return block;
+            }
+        });
+        content.addView(list,new LinearLayout.LayoutParams(-1,0,1));
         Dialog dialog=showTallSheet(content);self[0]=dialog;diagnosticsPreview=dialog;
         dialog.setOnDismissListener(d->{if(diagnosticsPreview==dialog)diagnosticsPreview=null;});
     }
