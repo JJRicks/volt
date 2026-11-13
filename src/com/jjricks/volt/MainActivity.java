@@ -215,7 +215,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
         setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
         super.onCreate(saved);
-        if(Build.VERSION.SDK_INT>=33){systemBack=this::navigateBack;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
+        if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
         String stagedExport=documents.getString("path",null);
         if(stagedExport!=null&&!documents.getBoolean("ready",false)&&!preparingExports.contains(stagedExport)){
@@ -310,7 +310,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onPause(){
         connectionHaptics.cancel();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
-        markAway();
+        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
+        long now=SystemClock.elapsedRealtime();
+        if(HubNav.awayClockStarts(focusLostAt,launchedAt,now))markAway();
+        launchedAt=-1;
         if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
@@ -342,18 +345,26 @@ public final class MainActivity extends Activity implements ScreenHost {
             ((DashboardScreen) screen).onUserTouch();
         return super.dispatchTouchEvent(event);
     }
-    @Override public void onBackPressed(){navigateBack();}
-    private void navigateBack(){
+    @Override public void onBackPressed(){navigateBack(false);}
+    /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
+    private void navigateBack(boolean link){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
-        if(screen!=null&&screen.back())return;
+        if(screen!=null&&!(link&&nav.size()>1&&HubNav.linkSkipsPageBack(selectedPage))&&screen.back())return;
         if(nav.size()>1){goBack();return;}
         finish();
     }
     @Override public void onConfigurationChanged(Configuration next){super.onConfigurationChanged(next);rebuild();fitTallSheet();}
+    /** When Volt's window last lost focus to a dialog or another window (elapsed realtime; -1 while focused), and when Volt last started an activity (-1 for none): HubNav.awayClockStarts. */
+    private long focusLostAt=-1,launchedAt=-1;
+    @Override public void startActivityForResult(Intent intent,int requestCode,Bundle options){
+        launchedAt=SystemClock.elapsedRealtime();
+        super.startActivityForResult(intent,requestCode,options);
+    }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
+        focusLostAt=focused?-1:SystemClock.elapsedRealtime();
         // Returning to the app (or dismissing a dialog) is not a new scooter connection.
         observeConnectionFeedback(true);
     }
@@ -1141,7 +1152,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         backRow.addView(design.icon("back",16,design.accent),new LinearLayout.LayoutParams(design.dp(16),design.dp(16)));
         TextView backText=design.text(name,13.5f,false);backText.setTypeface(design.medium());backText.setTextColor(design.accent);backText.setPadding(design.dp(4),0,design.dp(10),0);backRow.addView(backText);
         backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(HubText.backTo(name));backRow.setBackground(rowRipple());
-        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack());
+        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack(true));
         return backRow;
     }
     /**
