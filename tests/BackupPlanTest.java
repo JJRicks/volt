@@ -29,7 +29,8 @@ public final class BackupPlanTest {
             chargeLimit(root);
             noScooterLayout(root, source);
             modelEvidence(root);
-            System.out.println("BackupPlanTest: " + checks + " checks passed (profile resolution, merge rules, UUID and clock duplicates, shared destinations, fresh install, charge limit, no-scooter layout, model evidence fields)");
+            homeStyle(root, source);
+            System.out.println("BackupPlanTest: " + checks + " checks passed (profile resolution, merge rules, UUID and clock duplicates, shared destinations, fresh install, charge limit, no-scooter layout, model evidence fields, Home style)");
         } finally { AppDataArchive.deleteTree(root); }
     }
 
@@ -252,6 +253,39 @@ public final class BackupPlanTest {
         Map<String, Object> app = phone.preferences().get("app_settings");
         check(app.get("dashboard_v1_" + C).equals(before.get("app_settings").get("dashboard_v1_" + C)) && app.get("range_source_" + C).equals("scooter"), "a shared destination's dashboard and preferences stay");
         check(BackupTestStore.rows(phone.database()).contains(C + ",battery,1,80"), "both sources' history joins the shared scooter");
+    }
+
+    /** Home style (HomeStyle): a backup without home_style (made before Home styles) leaves this phone's style and
+     * choice, by Replace everything and by App preferences alone; one that has them applies them; the origin stays. */
+    private static void homeStyle(File root, BackupTestStore source) throws Exception {
+        check(!source.preferences().get("app_settings").containsKey(HomeStyle.KEY), "the rich fixture is a backup made before Home styles");
+        byte[] preHub = source.export(BackupTestStore.all());
+        for (boolean replace : new boolean[]{true, false}) {
+            BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-style-" + replace));
+            phone.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN); phone.put("app_settings", HomeStyle.CHOSEN_KEY, true);
+            phone.put("app_settings", HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL);
+            phone.restore(preHub, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+            Map<String, Object> app = phone.preferences().get("app_settings");
+            String how = replace ? "Replace everything" : "App preferences";
+            check(HomeStyle.CLEAN.equals(app.get(HomeStyle.KEY)) && Boolean.TRUE.equals(app.get(HomeStyle.CHOSEN_KEY)), how + " from a pre-Hub backup keeps this phone's style and choice: " + app);
+            check(HomeStyle.ORIGIN_INSTALL.equals(app.get(HomeStyle.ORIGIN_KEY)), how + " keeps this phone's origin");
+            check("light".equals(app.get("theme")), how + " still restores the backup's other preferences");
+        }
+        BackupTestStore bare = BackupArchiveTest.phone(new File(root, "home-style-none"));
+        bare.restore(preHub, BackupTestStore.all(), true, null);
+        check(!bare.preferences().get("app_settings").containsKey(HomeStyle.KEY) && !bare.preferences().get("app_settings").containsKey(HomeStyle.CHOSEN_KEY),
+                "a phone without a style gets none from a pre-Hub backup (absent reads as Widgets)");
+        BackupTestStore withStyle = BackupTestStore.rich(new File(root, "home-style-source"));
+        withStyle.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS);
+        byte[] hub = withStyle.export(BackupTestStore.all());
+        for (boolean replace : new boolean[]{true, false}) {
+            BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-style-applied-" + replace));
+            phone.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN); phone.put("app_settings", HomeStyle.CHOSEN_KEY, true);
+            phone.restore(hub, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+            Map<String, Object> app = phone.preferences().get("app_settings");
+            check(HomeStyle.WIDGETS.equals(app.get(HomeStyle.KEY)) && !app.containsKey(HomeStyle.CHOSEN_KEY),
+                    "a backup that has a style applies it, with its own choice flag (absent here): " + app);
+        }
     }
 
     private static void freshInstall(File root, BackupTestStore source) throws Exception {

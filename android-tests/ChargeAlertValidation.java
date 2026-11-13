@@ -126,8 +126,9 @@ public final class ChargeAlertValidation extends Instrumentation {
     }
 
     /**
-     * Charging hero, on synthetic readings with the service's own updates unhooked: two times with an alert ahead of the
-     * battery, only the time to full otherwise, and nothing for a model with a charge limit even with an alert saved for it.
+     * Charging hero, on synthetic readings with the service's own updates unhooked: the one time tile holds the alert's
+     * time and the time to full with an alert ahead of the battery, only the time to full otherwise; a model with a
+     * charge limit counts down to its own limit, never to an alert saved for it. ChargeTimeTileValidation covers switching.
      */
     private void verifyHero() throws Exception {
         choose(gt3);
@@ -140,23 +141,23 @@ public final class ChargeAlertValidation extends Instrumentation {
         main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
         hero(50, null);
         main(() -> {
-            View alert = heroCell("alertCell"), time = heroCell("timeCell");
-            require(alert.isShown() && time.isShown(), "The hero does not show both times");
-            require(String.valueOf(heroLabel("alertCell").getContentDescription()).contains("70"), "Alert time is named: " + heroLabel("alertCell").getContentDescription());
-            require(!String.valueOf(heroValue("alertCell").getText()).equals("—") && String.valueOf(heroValue("timeCell").getText()).length() > 0, "The alert time has no value");
-            require(alert.getParent() == time.getParent() && heroCell("powerCell").getParent() != time.getParent(), "The two times are not side by side under power");
+            View time = heroCell("timeTile");
+            require(time.isShown() && twoTimes(), "The hero does not hold both times");
+            require(String.valueOf(heroLabel(0).getContentDescription()).contains("70"), "Alert time is named: " + heroLabel(0).getContentDescription());
+            require(!String.valueOf(heroValue(0).getText()).equals("—") && String.valueOf(heroValue(1).getText()).length() > 0, "The alert time has no value");
+            require(heroCell("powerCell").getParent() == time.getParent(), "The time tile is not beside power");
             require(service.chargingEstimate(service.displayReadings()).targetPercent == null, "The alert leaked into the main estimate");
             assertFits();
         });
         heroShot("two-times");
         hero(70, null);
-        main(() -> require(!heroCell("alertCell").isShown() && heroCell("timeCell").isShown(), "An alert just reached still shows its time"));
+        main(() -> require(!twoTimes() && heroCell("timeTile").isShown(), "An alert just reached still shows its time"));
         heroShot("alert-reached");
         hero(85, null);
-        main(() -> require(!heroCell("alertCell").isShown(), "An alert already passed still shows its time"));
+        main(() -> require(!twoTimes(), "An alert already passed still shows its time"));
         main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
         hero(50, null);
-        main(() -> require(!heroCell("alertCell").isShown() && heroCell("timeCell").isShown() && heroCell("powerCell").getParent() == heroCell("timeCell").getParent(),
+        main(() -> require(!twoTimes() && heroCell("timeTile").isShown() && heroCell("powerCell").getParent() == heroCell("timeTile").getParent(),
                 "With the alert off the hero is not back to power beside time to full"));
         heroShot("alert-off");
         main(() -> require(service.setChargeAlerts(alert70), "Could not restore the alert"));
@@ -165,8 +166,9 @@ public final class ChargeAlertValidation extends Instrumentation {
         main(() -> { require(settings().edit().putString("charge_alerts_" + ut5, alert70.encode()).commit(), "Could not seed the saved alert"); reset(); });
         hero(50, 80d);
         main(() -> {
-            require(!service.chargeAlertsOffered() && service.chargeAlertEstimate(heroValues) == null && !heroCell("alertCell").isShown(), "A charge limit model got an alert time");
-            require(String.valueOf(heroLabel("timeCell").getContentDescription()).contains("80"), "The charge limit's time changed: " + heroLabel("timeCell").getContentDescription());
+            require(!service.chargeAlertsOffered() && service.chargeAlertEstimate(heroValues) == null, "A charge limit model got an alert time");
+            require(String.valueOf(heroLabel(0).getContentDescription()).contains("80") && !String.valueOf(heroLabel(0).getContentDescription()).contains("70"),
+                    "The charge limit's time changed: " + heroLabel(0).getContentDescription());
             assertFits();
         });
         heroShot("native-limit");
@@ -189,8 +191,10 @@ public final class ChargeAlertValidation extends Instrumentation {
         if (!"powerCell".equals(name)) return (View) field(hero, name);
         return ((View) ((TextView) field(hero, "power")).getParent());
     }
-    private TextView heroLabel(String name) { return (TextView) field(heroCell(name), "label"); }
-    private TextView heroValue(String name) { return (TextView) field(heroCell(name), "value"); }
+    /** The time tile's readings: 0 the limit (or alert), 1 the time to 100%. */
+    private TextView heroLabel(int reading) { return ((TextView[]) field(heroCell("timeTile"), "captions"))[reading]; }
+    private TextView heroValue(int reading) { return ((TextView[]) field(heroCell("timeTile"), "values"))[reading]; }
+    private boolean twoTimes() { return Boolean.TRUE.equals(field(heroCell("timeTile"), "two")); }
     /** Every shown label and value in the hero's tiles is whole: no clipping, no broken word, no shrink below the readable floor. */
     private void assertFits() {
         ArrayList<String> problems = new ArrayList<>();

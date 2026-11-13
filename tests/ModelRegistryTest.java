@@ -133,6 +133,16 @@ public final class ModelRegistryTest {
         check(tcsSibling.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcsSibling.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&tcsSibling.variant==tcs.variant,
             "A sibling ID has the same OEM-mapped row, not verified");
         check(ModelRegistry.reported(st3)&&ReportInvite.model(st3).isEmpty(),"A US owner's report confirmed the ST3 Pro: it is reported and no longer offered");
+        // Its owner answered the drive modes (Walk 11, Drive 2, Sport 3): a table of its own, on the exact ID only, without
+        // the GT5 Max owner's Sport 5 (5 is also this model's Turbo acceleration value).
+        int st3Modes=ModelRegistry.driveModeLabelProduct(st3);
+        check(st3Modes==23452&&"WALK".equals(Telemetry.drivingModeLabel(st3Modes,11.0))&&"DRIVE".equals(Telemetry.drivingModeLabel(st3Modes,2.0))
+            &&"SPORT".equals(Telemetry.drivingModeLabel(st3Modes,3.0))&&"4 (raw)".equals(Telemetry.drivingModeLabel(st3Modes,4.0))
+            &&"5 (raw)".equals(Telemetry.drivingModeLabel(st3Modes,5.0)),
+            "ST3 Pro drive modes read WALK, DRIVE and SPORT from its owner's answer; 4, 5 and other codes stay raw");
+        check(ModelRegistry.driveModeLabelProduct(sibling)==0&&ModelRegistry.driveModeLabelProduct(sibling.withOwnerModel("ST3 Pro"))==0
+            &&"11 (raw)".equals(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(sibling),11.0)),
+            "An ST3 Pro sibling ID keeps raw drive-mode codes, even with an owner's ST3 Pro answer");
         // The GT5 Max: named from an owner's report (25462, EU), so it is reported and no longer offered the report.
         DeviceDescriptor gt5=advertised("25462"),gt5Sibling=advertised("25461");
         check(layer(gt5)==ModelRegistry.Layer.OEM_GROUP&&ModelRegistry.modelName(gt5).equals("GT5 Max")&&ModelRegistry.modelLine(gt5).equals("GT5 Max")
@@ -147,8 +157,8 @@ public final class ModelRegistryTest {
         check(cruise.support==CapabilityResolver.Support.KNOWN_ENCODING&&cruise.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED
             &&cruise.variant==siblingCruise.variant&&siblingCruise.evidence==CapabilityResolver.Evidence.OEM_MAPPED,"GT5 Max cruise control is verified, on the same variant; its sibling's stays OEM-mapped");
         check(ModelRegistry.reported(gt5)&&ReportInvite.model(gt5).isEmpty()&&!ReportInvite.model(gt5Sibling).isEmpty(),"The GT5 Max is reported; its unreported siblings are still offered");
-        check(ModelRegistry.driveModeLabelProduct(gt5)==25462&&ModelRegistry.driveModeLabelProduct(gt5Sibling)==0&&ModelRegistry.driveModeLabelProduct(advertised("23452"))==0,
-            "Only the GT5 Max's reported drive-mode codes get names");
+        check(ModelRegistry.driveModeLabelProduct(gt5)==25462&&ModelRegistry.driveModeLabelProduct(gt5Sibling)==0,
+            "The GT5 Max's reported drive-mode codes get names; its unreported sibling's stay raw");
         check(ModelRegistry.driveModeLabelProduct(advertised("22131"))==25462&&ModelRegistry.driveModeLabelProduct(advertised("22132"))==0
             &&ModelRegistry.driveModeLabelProduct(advertised("22131").withOwnerModel("GT5 Max"))==25462&&ModelRegistry.driveModeLabelProduct(advertised("23451").withOwnerModel("N65i"))==0,
             "The N65i (exact ID) uses the GT5 Max names; an owner's model answer never names modes");
