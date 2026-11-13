@@ -88,6 +88,11 @@ entry charge_done_time icon	clock
 entry charge_done_time group	Battery
 entry charge_done_time featureKey	null
 entry charge_done_time directToggle	false
+entry charge_alerts label	Battery alerts
+entry charge_alerts icon	bolt
+entry charge_alerts group	Battery
+entry charge_alerts featureKey	null
+entry charge_alerts directToggle	false
 entry feature:lock label	Electronic lock
 entry feature:lock icon	lock
 entry feature:lock group	Security
