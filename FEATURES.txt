@@ -1111,7 +1111,9 @@ options no longer has a charger selector. Email to Volt on the same page attache
 this scooter's recordings to an email to Volt's report address, which helps tune
 charging time estimates for that model. The attachment is
 volt-charge-recordings.json (gzip-compressed as volt-charge-recordings.json.gz
-when over 25 MB). There is no automatic charger detection. Bounded
+when over 25 MB). A manual recording's charger label is the one chosen; Volt's
+charger detection (a hint from charging power) only guides estimates, and labels
+an automatic recording only when no charger is chosen (below). Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
@@ -1130,7 +1132,11 @@ after charging stops unless Volt's schedule holds the current off, or when a rid
 started by hand. One under 10 minutes or 5 percentage points is not kept. At the
 20-recording limit it replaces only the oldest automatic recording, never a manual
 one. A hand stop holds that scooter until it stops charging and starts again,
-across reconnects. Exports mark each charge's started_automatically and
+across reconnects: an automatic recording's, and a manual one's while the switch
+is on. Once running it records out of sight whatever Stay connected in background
+says, as any charge recording; it never opens or keeps a connection itself. It
+decides only on live readings (charging state at most 5 s old, speed at most 3 s),
+never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically and
 label_source. Manual recordings are unchanged.
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
