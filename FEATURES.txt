@@ -1246,8 +1246,8 @@ CLEAN HOME
 Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
 Home (the pencil on Clean), or from the Home style row at the top of the Layout
 sheet while editing Widgets. Switching never changes widget layouts or saved
-slots. Clean's four quick actions: RIDE (the red pill into riding mode, the same
-look and word as Widgets' RIDE button), Record ride, Charge done by where the
+slots. Clean's four quick actions are round buttons with the name (and any
+state) under each, red while on: RIDE (into riding mode), Record ride, Charge done by where the
 scooter has scheduled charging, else Battery alerts, then the first offered
 control in this order: cruise control, walk assist, traction control, power
 assist, energy recovery, hill descent control, overspeed control. On a scooter
@@ -1258,7 +1258,8 @@ What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
 charging view shows the charging power beside the same switching time tile as
 Widgets: the time to the charge limit, or to the battery alert's level on a
 scooter without a limit, then the time to 100%. Where the view is too small,
-the photo goes before the readings. The Ride row shows a running recording and
+the photo goes first, then the charge gets smaller and the Charging line goes;
+the readings go last. The Ride row shows a running recording and
 its time while a ride records, else the last ride.
 
 QUICK ACCESS
