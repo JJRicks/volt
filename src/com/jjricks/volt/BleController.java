@@ -110,6 +110,8 @@ public final class BleController {
     public void setSimulationDriveMode(int mode){if(simulation==null)return;simulation.setDriveMode(mode);simulationDriveMode=mode;tickSimulation();changed();}
     /** The charger the Charging scene uses (the owner's charger choice); only the UT5 MAX tells them apart. */
     public void setSimulationFastCharger(boolean fast){if(simulationFastCharger==fast)return;simulationFastCharger=fast;if(simulation!=null){simulation.setFastCharger(fast);tickSimulation();}}
+    /** The charger the Automatic choice finds while simulating (ScooterSimulation.detectedFastCharger), or null. Nothing is saved. */
+    public ChargeSessionStore.Charger simulationDetectedCharger(){Boolean fast=simulation==null?null:simulation.detectedFastCharger();return fast==null?null:fast?ChargeSessionStore.Charger.HIGH_SPEED:ChargeSessionStore.Charger.STOCK;}
     /**
      * The registry's facts for the simulated model and region (SimulatorModels.facts), handed to the simulation, and every
      * simulated setting brought to a value this model and region offer (ScooterSimulation.conform): a GT5 Max never opens

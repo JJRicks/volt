@@ -232,23 +232,35 @@ public final class ScooterSimulation {
 
     /**
      * Brings every simulated setting to a value this model and region offer, as the screens read its choices: the
-     * ordinary rule's variant (CapabilityResolver.decide), else the Experimental controls try rule's. A value still
-     * offered is kept; another becomes the nearest offered value (the lower one on a tie). A control the model doesn't
-     * have keeps its value, which no screen shows. Memory only, like everything here.
+     * ordinary rule's variant (CapabilityResolver.decide) and the Experimental controls try rule's (decideTry). A value
+     * either of them offers is kept (kick-start 0 set through Experimental controls on a UT5 MAX (EU) stays when the
+     * entry is picked again); another becomes the nearest value the ordinary variant offers, else the try's (the lower
+     * one on a tie). A control the model doesn't have keeps its value, which no screen shows. Memory only, like
+     * everything here.
      */
     public void conform(DeviceDescriptor d) {
         for (Map.Entry<String, Integer> entry : features.entrySet()) {
-            FeatureVariant v = offeredVariant(entry.getKey(), d);
-            if (v == null || entry.getValue() != null && v.allows(entry.getValue())) continue;
-            Integer next = nearest(v, entry.getValue());
+            FeatureVariant ordinary = ordinaryVariant(entry.getKey(), d), tried = tryVariant(entry.getKey(), d);
+            FeatureVariant v = ordinary != null ? ordinary : tried;
+            Integer value = entry.getValue();
+            if (v == null || value != null && (ordinary != null && ordinary.allows(value) || tried != null && tried.allows(value))) continue;
+            Integer next = nearest(v, value);
             if (next != null) entry.setValue(next);
         }
     }
     /** The variant whose choices a screen offers for this control on this model, or null where it has none. */
     static FeatureVariant offeredVariant(String key, DeviceDescriptor d) {
+        FeatureVariant ordinary = ordinaryVariant(key, d);
+        return ordinary != null ? ordinary : tryVariant(key, d);
+    }
+    /** The ordinary rule's variant (the control's own row), or null. */
+    static FeatureVariant ordinaryVariant(String key, DeviceDescriptor d) {
         CapabilityResolver.Decision decision = CapabilityResolver.decide(key, d, StatusFields.NONE, null);
-        if (decision.support == CapabilityResolver.Support.KNOWN_ENCODING && decision.variant != null) return decision.variant;
-        decision = CapabilityResolver.decideTry(key, d, StatusFields.NONE, null);
+        return decision.support == CapabilityResolver.Support.KNOWN_ENCODING ? decision.variant : null;
+    }
+    /** The Experimental controls try rule's variant, or null. */
+    static FeatureVariant tryVariant(String key, DeviceDescriptor d) {
+        CapabilityResolver.Decision decision = CapabilityResolver.decideTry(key, d, StatusFields.NONE, null);
         return decision.support == CapabilityResolver.Support.KNOWN_ENCODING ? decision.variant : null;
     }
     /** The offered value nearest to this one (a slider's range clamped and stepped), or null when none is offered. */
@@ -292,6 +304,12 @@ public final class ScooterSimulation {
     /** The charger plugged in for the Charging scene: the high-speed one, or the stock one. Only the UT5 MAX tells them apart. */
     public void setFastCharger(boolean fast) { fastCharger = fast; }
     public boolean fastCharger() { return fastCharger && chargerFamilies; }
+    /**
+     * What the Automatic charger choice finds while simulating, where charger detection never runs: the charger the
+     * Charging scene has plugged in (true for the high-speed one) on a model whose chargers Volt tells apart, else null
+     * (no charge, or a model with one charger family, where real detection finds nothing either).
+     */
+    public Boolean detectedFastCharger() { return charging() && chargerFamilies ? fastCharger() : null; }
     /** The scene's battery level, for tests. */
     double battery() { return battery; }
 

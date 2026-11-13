@@ -394,8 +394,9 @@ public final class ScooterService extends Service {
         invalidateCapacityEstimate();
         resetChargeEstimateContext();
         if(chargeScheduleController!=null)chargeScheduleController.cancel();
-        // Range following remembers what it tried per profile: neither side's attempt carries into the other.
-        rangeFollowPolicy.reset();
+        // Range following remembers what it tried per profile. The simulator's attempts have their own key (followRangeMode)
+        // and are forgotten here; the real scooter's are kept, so neither side's attempt carries into the other.
+        rangeFollowPolicy.forgetSimulation();
         ble.setSimulation(enabled);
         cancelBackgroundDeadline();
         applyWorkPolicy(false);
@@ -425,10 +426,15 @@ public final class ScooterService extends Service {
             default:return null;
         }
     }
-    /** Automatic inference for the active scooter's current charge, already checked for age. */
+    /**
+     * Automatic inference for the active scooter's current charge, already checked for age. While simulating, detection
+     * never runs (updateChargerDetection): Automatic finds the charger the Charging scene has plugged in instead, so a
+     * simulated UT5 MAX's Charge done by and estimates don't wait for it. Nothing is written to the saved choice.
+     */
     private ChargeSessionStore.Charger detectedCharger(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        return destroyed||simulating()||profile==null?null:chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
+        if(destroyed||profile==null)return null;
+        return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
     }
     private int qualifiedSessions(ChargeSessionStore.Charger charger){
         ChargeSessionStore.Curve curve=chargeSnapshot==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
@@ -2227,7 +2233,8 @@ public final class ScooterService extends Service {
         boolean sameProfile = profile != null && bound != null && profile.id.equals(bound.id);
         boolean fresh = sameProfile && mode != null && mode.numericValue != null && mode.updatedMs > 0
                 && now >= mode.updatedMs && now - mode.updatedMs <= 7000 && ble.statusAge() <= 7000;
-        Integer target = rangeFollowPolicy.next(profile == null ? "" : profile.id,
+        String attempts = profile == null ? "" : simulating() ? RangeFollowPolicy.simulationKey(profile.id) : profile.id;
+        Integer target = rangeFollowPolicy.next(attempts,
                 ModelRegistry.rangeFollowProduct(modelDescriptor(profile)), mode == null ? null : mode.numericValue,
                 ble.featureChoices("range_algorithm"), ble.featureValue("range_algorithm"),
                 ble.connected(), ble.ready() && ble.stationary(), ble.pending() != null, fresh, followsRidingMode());
