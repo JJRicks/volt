@@ -525,7 +525,8 @@ public final class GpsAccuracyValidation extends Instrumentation {
         main(() -> service.settings.edit().putStringSet("ride_chart_series", new LinkedHashSet<>(Arrays.asList("power_w", "speed_kmh"))).commit());
         open(full, 344, 882, "dark", 1f);
         AtomicReference<Boolean> kept = new AtomicReference<>();
-        main(() -> kept.set(!toggle(8).isChecked() && toggle(0).isChecked()));
+        CheckBox gpsChip = toggle(8), powerChip = toggle(0);
+        main(() -> kept.set(!gpsChip.isChecked() && powerChip.isChecked()));
         require(kept.get(), "a remembered choice changed");
         note("rides with no journal, no GPS, one fix and two fixes opened");
     }
