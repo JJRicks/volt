@@ -421,7 +421,7 @@
     <string name="main_report_send" volt:screen="Report sheets" volt:purpose="button">Send</string>
     <string name="main_report_email_next" volt:screen="Report sheets" volt:purpose="status">Your email app opens next, so you can read it first.</string>
     <string name="main_report_choose_send" volt:screen="Report sheets" volt:purpose="status">Choose your scooter, or Not sure, then Send.</string>
-    <string name="main_report_diagnostics_note" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="PIN">Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names.</string>
+    <string name="main_report_diagnostics_note" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="PIN">Adds a diagnostics file: app and scooter details, recent connection and control events, and the selected scooter\'s charging and schedule history with times. Never your owner key, PIN, serial, location or names.</string>
     <string name="main_report_email_title" volt:screen="Report sheets" volt:purpose="title" volt:dnt="Volt">Email Volt</string>
     <string name="main_report_preview" volt:screen="Report sheets" volt:purpose="button">Preview</string>
     <string name="main_report_preview_description" volt:screen="Report sheets" volt:purpose="screen reader">Preview the diagnostics file</string>

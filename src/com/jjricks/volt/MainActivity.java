@@ -180,6 +180,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void onServiceConnected(ComponentName name,IBinder binder){
             if(destroyed || enteringMaintenance || startupRedirect)return;
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
+            releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
             if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
@@ -314,8 +315,34 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
+        if(isChangingConfigurations()&&bound&&scooterService!=null&&scooterService.simulating())holdServiceAcrossRecreation();
+        else if(!isChangingConfigurations())releaseRecreationHold(getApplicationContext());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
+    }
+    /**
+     * The developer simulator lives only in ScooterService, which ten seconds after Volt leaves the screen stops being a
+     * started service (its usual idle stop): from then on this activity's binding alone keeps it. A recreation (dark
+     * mode, text size, also one Android defers until Volt is shown again) unbinds the old activity before the new one
+     * binds, so across that gap the application holds a binding of its own, released once the new activity connects.
+     */
+    private static ServiceConnection recreationHold;
+    private void holdServiceAcrossRecreation(){
+        if(recreationHold!=null)return;
+        Context app=getApplicationContext();
+        ServiceConnection hold=new ServiceConnection(){
+            @Override public void onServiceConnected(ComponentName name,IBinder binder){}
+            @Override public void onServiceDisconnected(ComponentName name){}
+        };
+        recreationHold=hold;
+        boolean held;
+        try{held=app.bindService(new Intent(app,ScooterService.class),hold,Context.BIND_AUTO_CREATE);}catch(RuntimeException unavailable){held=false;}
+        if(!held)releaseRecreationHold(app);
+    }
+    private static void releaseRecreationHold(Context app){
+        ServiceConnection hold=recreationHold;if(hold==null)return;
+        recreationHold=null;
+        try{app.unbindService(hold);}catch(IllegalArgumentException notBound){}
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
@@ -422,10 +449,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
         if (chargeLiveSheet != null) chargeLiveSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
-        boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
         // Riding mode always keeps the screen on: it's a handlebar display (riding-mode plan).
-        awake|=resumed&&riding!=null&&screen instanceof RidingScreen;
-        if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        boolean awake=KeepScreenOn.wanted(resumed,preferences.getBoolean("keep_screen_awake",true),scooterService!=null&&scooterService.isRecording(),riding!=null&&screen instanceof RidingScreen);
+        // Only a change: every flags call makes Android lay the window out again, even when the flag is already as asked.
+        int change=KeepScreenOn.change(awake,getWindow().getAttributes().flags);
+        if(change>0)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else if(change<0)getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
     /** Rebuild under a crossfade from the current window; a direction (tab order) brings the new page in from that side. */
     private void transitionRebuild(int direction){
@@ -2215,6 +2243,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("stats") || id.equals("rides")) { select(id); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
+        if (id.equals(QuickAccessActions.CHARGE_ALERTS_ID)) { chargeAlertsShortcut(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
@@ -2579,6 +2608,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             lock.setAlpha(on?1f:0.5f);
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
+    }
+    /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
+    private void chargeAlertsShortcut(){
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
+        closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;
     private void showChargeAlerts(){

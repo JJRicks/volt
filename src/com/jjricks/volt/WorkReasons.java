@@ -32,6 +32,14 @@ public final class WorkReasons {
         return visible || keepsWorking() || backgroundConnection;
     }
     /**
+     * The ten-second stop's question. The developer simulator does no work out of sight (no recording, connection or
+     * hold runs while it's on, and the background connection is the real scooter's), so it keeps the service only
+     * while Volt is on screen; otherwise as above.
+     */
+    public boolean keepsServiceUp(boolean visible, boolean backgroundConnection, boolean simulating) {
+        return simulating ? visible : keepsServiceUp(visible, backgroundConnection);
+    }
+    /**
      * Leaving Volt (or showing it again) arms no ten-second stop. The live hold counts only on leaving. Saving a
      * phone ride was never on this list: the stop itself waits for the save (keepsServiceUp counts it).
      */
