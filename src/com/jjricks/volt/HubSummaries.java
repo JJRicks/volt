@@ -130,4 +130,26 @@ final class HubSummaries {
         if (!on) return Service.OFF;
         return due > 0 ? Service.DUE : soon > 0 ? Service.SOON : Service.CLEAR;
     }
+
+    /**
+     * Ride on Clean Home: RECORDING (the running recording and its time so far) while a ride records, else LAST_RIDE
+     * (the newest finished ride, or no rides yet), so the row never shows the ride before while the Record action
+     * beside it says Recording (council review 5886249378).
+     */
+    enum RideLine { RECORDING, LAST_RIDE }
+
+    static RideLine rideLine(boolean recording) { return recording ? RideLine.RECORDING : RideLine.LAST_RIDE; }
+
+    /**
+     * Whether Clean's Ride row looks at the finished rides again now. Not while a ride records: the row shows the
+     * recording. At once when a recording has just ended, so the ride just saved replaces the one before, and while
+     * nothing is known yet (a ride not yet in memory keeps it unknown); otherwise every everyMs.
+     *
+     * @param ended a recording was running at the row's last refresh and is not now
+     * @param sinceMs time since the last look, ignored when known is false or ended is true
+     */
+    static boolean rescanRides(boolean recording, boolean ended, boolean known, long sinceMs, long everyMs) {
+        if (recording) return false;
+        return ended || !known || sinceMs >= everyMs;
+    }
 }
