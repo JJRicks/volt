@@ -798,12 +798,12 @@ public final class StatsScreen implements AppScreen {
     }
     private boolean isKnownDriveMode(String key) {
         ScooterProfiles.Profile profile = service.profiles.active();
-        return key.equals("driving_mode") && ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor()) != 0;
+        return key.equals("driving_mode") && ModelRegistry.driveModeLabelProduct(service.modelDescriptor(profile)) != 0;
     }
     /** UT5 MAX drive-mode names come only from the registry's UT5 MAX layer. */
     private int driveModeProduct() {
         ScooterProfiles.Profile profile = service.profiles.active();
-        return ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor());
+        return ModelRegistry.driveModeLabelProduct(service.modelDescriptor(profile));
     }
     /**
      * A known drive-mode reading's mode for its colour cue, decoded from its code as display() names it (Telemetry's

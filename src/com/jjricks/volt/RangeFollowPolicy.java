@@ -37,4 +37,12 @@ public final class RangeFollowPolicy {
         return target;
     }
     public void reset() { attempted.clear(); }
+    /** The key the developer simulator's attempts are kept under (ScooterService), apart from the real scooter's own. */
+    public static String simulationKey(String profile) { return SIMULATION + profile; }
+    private static final String SIMULATION = "simulation:";
+    /**
+     * A simulation toggle: forgets the simulator's attempts only. Every real scooter's memory stays, so an attempt the
+     * scooter rejected or never confirmed is still not repeated after simulation ends.
+     */
+    public void forgetSimulation() { attempted.keySet().removeIf(key -> key.startsWith(SIMULATION)); }
 }

@@ -327,9 +327,21 @@ public final class ModelRegistryTest {
             &&ModelRegistry.rule("start_speed",none,null,null).variant.id.equals("start_speed.ut5")&&!ModelRegistry.rule("start_speed",none,null,null).oemNote.isEmpty()
             &&!ModelRegistry.rule("headlight",none,null,null).oemNote.isEmpty()&&ModelRegistry.rule("display_units",none,null,null).oemNote.isEmpty(),
             "No-region UT5 MAX keeps today's controls, with the OEM's strictest notes");
-        for(DeviceDescriptor sim:new DeviceDescriptor[]{DeviceDescriptor.simulated("",0),DeviceDescriptor.simulated("",0,"DE")})
-            check(sim.region==null&&ModelRegistry.rule("maximum_speed",sim,null,null).variant.id.equals("maximum_speed.ut5")
-                &&ModelRegistry.rule("start_speed",sim,null,null).variant.id.equals("start_speed.ut5"),"The UT5 MAX simulator never takes a region: Top speed and 0–5 km/h stay");
+        DeviceDescriptor simNone=DeviceDescriptor.simulated("",0);
+        check(simNone.region==null&&ModelRegistry.rule("maximum_speed",simNone,null,null).variant.id.equals("maximum_speed.ut5")
+            &&ModelRegistry.rule("start_speed",simNone,null,null).variant.id.equals("start_speed.ut5"),"The default UT5 MAX simulator (no region) keeps Top speed and 0–5 km/h");
+        // The UT5 MAX simulator takes a region (Developer options' UT5 MAX (US) and (EU)) and then decides as a real UT5 MAX of that region.
+        for(String area:new String[]{"US","DE","FR","CN"}){
+            DeviceDescriptor sim=DeviceDescriptor.simulated("",0,area),real=serial("Q2538ZZ9"+area+"7777777");
+            for(String f:new String[]{"maximum_speed","start_speed","cruise_control","charge_limit"}){
+                ModelRegistry.Rule s=ModelRegistry.rule(f,sim,null,null),r=ModelRegistry.rule(f,real,null,null);
+                check(area.equals(sim.region)&&s.support==r.support&&s.reason==r.reason&&(s.variant==null?r.variant==null:r.variant!=null&&s.variant.id.equals(r.variant.id)),
+                    "The UT5 MAX simulator in "+area+" decides "+f+" as a real "+area+" UT5 MAX: "+s.reason+" vs "+r.reason);
+            }
+        }
+        check(ModelRegistry.rule("maximum_speed",DeviceDescriptor.simulated("",0,"DE"),null,null).reason==CapabilityResolver.Reason.REGION_RULE
+            &&ModelRegistry.rule("start_speed",DeviceDescriptor.simulated("",0,"DE"),null,null).variant.id.equals("start_speed.ut5_3_5"),
+            "A DE UT5 MAX simulator: no Top speed and 3–5 km/h, as the real one");
         check(ModelRegistry.rule("maximum_speed",serial("Q2538ZZ9us7777777"),null,null).reason==CapabilityResolver.Reason.REGION_RULE,
             "Lowercase us is not the OEM's USA bucket (its area is NA)");
         ModelRegistry.Rule lock=ModelRegistry.rule("lock",advertised("39991"),null,null);

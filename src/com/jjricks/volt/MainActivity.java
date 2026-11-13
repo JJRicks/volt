@@ -1242,6 +1242,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         String scooterName=active==null?T.mainLockYourScooter():active.name;
         pumpLockQueue(ble,ready,shownLock,pending);
         if(active!=null)scooterName=active.shownName();
+        // While simulating, the headers name the simulated model (display only; the profile's stored name is untouched).
+        String simulatedName=ble==null?null:ble.simulationName();if(simulatedName!=null)scooterName=simulatedName;
         for(int lockIndex=dashboardLocks.isEmpty()?-1:0;lockIndex<dashboardLocks.size();lockIndex++){
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
         if(lockTitle!=null){
@@ -1279,13 +1281,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
             String state=ready?T.bleStatusConnected():connecting?T.mainLockConnecting():T.bleStatusDisconnected();
-            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
+            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,simulatedName!=null?simulatedName:active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
         }
         updateConnectionAction(ready,connecting);
-        ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
+        ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
     }
     /**
      * Sends a waiting lock tap once the scooter takes writes, or puts the switch back with the reason. The gate is the
