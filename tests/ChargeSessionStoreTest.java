@@ -306,6 +306,26 @@ public final class ChargeSessionStoreTest {
         String spoken=ChargingEstimate.statusBesideLimit(r,50d);
         check(!spoken.contains("current rate")&&spoken.contains("Personal estimate from 2 qualified charges."),
                 "The 100% reading's status does not claim the current rate gave it: "+spoken);
+        // One definition across the level (review of #445): the larger of the current-rate time to 100% and the learned
+        // rate carried on to 100%, so the reading never steps where the time to the limit passes the current-rate time
+        // to 100% (it read 195 at 61%, 165 at 62%).
+        Double previous=null;boolean limitLonger=false,fullLonger=false;
+        for(int level=41;level<95;level++){
+            ChargingEstimate.Value at=new ChargingEstimate.Value((double)level,true,100);
+            ChargingEstimate.Result e=ChargingEstimate.forScooter(ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),at,ah,new ChargingEstimate.Value(95d,true,100)),at,ah,-1,ChargeSessionStore.Charger.STOCK,c);
+            check(e.learnedToLimit,"Learned to the limit at "+level+"%");
+            double carried=e.remainingMinutesToLimit*(100-level)/(95-level);
+            if(e.remainingMinutesToLimit>e.remainingMinutesToFull)limitLonger=true;else fullLonger=true;
+            Double reading=ChargingEstimate.minutesToFullBesideLimit(e,(double)level);
+            near(Math.max(carried,e.remainingMinutesToFull),reading,"The larger of the two at "+level+"%");
+            check(reading>=e.remainingMinutesToLimit,"Never shorter than the time to the limit at "+level+"%");
+            check(previous==null||(reading<=previous&&previous-reading<=5.5),"No step between "+(level-1)+"% and "+level+"%: "+previous+" then "+reading);
+            boolean named=e.status.contains("Time to 100% uses the current rate.");
+            check(!named||ChargingEstimate.statusBesideLimit(e,(double)level).contains("current rate")==!(carried>e.remainingMinutesToFull),
+                    "The status names the current rate only where it gave the reading, at "+level+"%");
+            previous=reading;
+        }
+        check(limitLonger&&fullLonger,"The walk crosses where the time to the limit and the current-rate time to 100% meet");
         // Without the battery level the learned rate is unknown: the bound is the time to the limit, status unchanged.
         near(225,ChargingEstimate.minutesToFullBesideLimit(r,null),"No battery level: bounded by the time to the limit");
         near(225,ChargingEstimate.minutesToFullBesideLimit(r,95d),"A level at the limit has no rate to it: bounded by the time to the limit");

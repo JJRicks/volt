@@ -296,39 +296,44 @@ public final class ChargingEstimate {
     }
 
     /**
-     * Minutes to 100% for the charging tile's reading beside a scooter's own limit, never shorter than the time to that
-     * limit shown with it. One rule for both of the tile's pairs: the two times are never out of order, and the
-     * estimate's own reading (the one the single tile, the live notification and Charge done by use) never changes,
-     * so the added reading gives way. Beside a limit the estimate's own reading is the time to the limit, which past
-     * charges that stop there can make longer than a current-rate or reference time to 100%. Reaching 100% takes
-     * longer still (owner, Nov 12 2026): where that time to the limit is learned from past charges, the reading is the
-     * time to the limit plus the percent left above it at the rate those charges took from soc (the battery level the
-     * estimate used) to the limit, so 225 minutes from 50% to 95% gives 250 to 100%. That rate is the learned time
-     * itself over the percent it covers: a limit's past charges stop at the limit, so no learned time covers the rest.
-     * Where the time to the limit is not learned, or soc is unknown or not below the limit, the bound is the time to
-     * the limit itself. Beside an alert the estimate's own reading is the time to 100%, so the alert time gives way
-     * instead (minutesToAlert). Without a limit below 100%, or with either time unknown, this is the estimate's own
-     * time to 100%.
+     * Minutes to 100% for the charging tile's reading beside a scooter's own limit. One definition, continuous in the
+     * battery level (review of #445): the larger of the estimate's own time to 100% (current rate or reference) and the
+     * time to the limit carried on to 100%. Carried on means: where the time to the limit is learned from past charges
+     * and soc (the battery level the estimate used) is below the limit, the time to the limit plus the percent left
+     * above it at the rate those charges took from soc to the limit (owner, Nov 12 2026), so 225 minutes from 50% to
+     * 95% gives 250 to 100%. That rate is the learned time itself over the percent it covers: a limit's past charges
+     * stop at the limit, so no learned time covers the rest. Otherwise (not learned, soc unknown or not below the limit)
+     * it is the time to the limit itself. Both sides move smoothly with the level, so their larger one does too: no
+     * step where they cross, and the reading is never shorter than the time to the limit shown beside it. The
+     * estimate's own reading (the one the single tile, the live notification and Charge done by use) never changes.
+     * Beside an alert the estimate's own reading is the time to 100%, so the alert time gives way instead
+     * (minutesToAlert). Without a limit below 100%, or with either time unknown, this is the estimate's own time to
+     * 100%.
      */
     public static Double minutesToFullBesideLimit(Result shown,Double soc) {
         if(shown==null)return null;
-        Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
-        if(full==null||limit==null||target==null||!(target>0&&target<100)||!(limit>full))return full;
-        Double learned=learnedRateToFull(shown,soc);
-        return learned==null?limit:learned;
+        Double full=shown.remainingMinutesToFull,carried=carriedToFull(shown,soc);
+        return carried==null||!(carried>full)?full:carried;
     }
 
     /**
      * The status spoken with minutesToFullBesideLimit's reading: the estimate's own, less what it says of a time to
-     * 100% this reading did not use (the current rate, or a reference covering 100%) when that reading comes from the
-     * rate learned to the limit. Otherwise the estimate's own status, unchanged.
+     * 100% this reading did not use (the current rate, or a reference covering 100%) when the reading is the rate
+     * learned to the limit carried on to 100%. Otherwise the estimate's own status, unchanged.
      */
     public static String statusBesideLimit(Result shown,Double soc) {
         if(shown==null||shown.status==null)return shown==null?null:shown.status;
-        Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
-        if(full==null||limit==null||target==null||!(target>0&&target<100)||!(limit>full)||learnedRateToFull(shown,soc)==null)
-            return shown.status;
+        Double full=shown.remainingMinutesToFull,carried=carriedToFull(shown,soc);
+        if(carried==null||!(carried>full)||learnedRateToFull(shown,soc)==null)return shown.status;
         return shown.status.replace(FULL_AT_CURRENT_RATE,"").replace(REFERENCE_FOR_OTHER,"");
+    }
+
+    /** The time to the limit carried on to 100% (see minutesToFullBesideLimit); null without a limit below 100% or either time. */
+    private static Double carriedToFull(Result shown,Double soc) {
+        Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
+        if(full==null||limit==null||target==null||!(target>0&&target<100))return null;
+        Double learned=learnedRateToFull(shown,soc);
+        return learned==null?limit:learned;
     }
 
     /** The time to the limit learned from past charges, extended to 100% at its own rate; null without one. */
