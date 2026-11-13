@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.13.1 (versionCode 58)
+Current version: 1.13.2 (versionCode 59)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,7 +25,33 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.13.1
+NEW IN 1.13.2
+------------
+- While charging, drag the mark on the Widgets Home's charging bar to change
+  the charge limit, or the charge alert's level on models without one once
+  Charge alert is on (Scooter > Battery & charging): it snaps in the
+  control's steps with a light tick and sets the value when you let go. The
+  charging card has one row, Charging power beside one time tile that
+  switches between the time to the limit or alert and the time to 100% (tap
+  or swipe).
+- Record rides automatically starts in the background only with the new
+  Start recording in the background switch (off by default; Rides >
+  Recording settings). Scooter > Battery & charging > Charge history &
+  recordings has Record charges automatically (off by default).
+- Report diagnostics say more about overnight charging, the phone's state,
+  Volt's settings, recordings and the last crash; never keys, PINs, locations
+  or names.
+- A Battery alerts shortcut for Quick access and Setting tiles, and the
+  shortcut picker in sections. The update check shows release notes with
+  their formatting. GPS accuracy in the ride graph and riding mode.
+- Fixes: steadier background connection, OpenStreetMap as the default
+  basemap, ST3 Pro drive mode names, no wrong drive mode right after
+  connecting, and a notification tap no longer opens a second Volt. In this
+  source, part of this release's new text still shows in English in the
+  beta languages until the next translation update; the published 1.13.2
+  has it all translated. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 1.13.1
 ------------
 - More > Updates' Download button opens the new release's APK in the browser,
   falling back to the release page when GitHub doesn't list the file. Volt
@@ -1304,10 +1330,11 @@ takes the third place; any place still empty goes to Rides and then Settings.
 There is no drive mode action. Edit Home changes any of the four per scooter.
 What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
 charging view shows the charging power beside the same switching time tile as
-Widgets: the time to the charge limit, or to the battery alert's level on a
-scooter without a limit, then the time to 100%. Where the view is too small,
-the photo goes before the readings. The Ride row shows a running recording and
-its time while a ride records, else the last ride.
+Widgets: the time to the charge limit, or to the charge alert's level on a
+scooter without a limit while that alert is on and not yet reached, then the
+time to 100%. Where the view is too small, the photo goes before the
+readings. The Ride row shows a running recording and its time while a ride
+records, else the last ride.
 
 QUICK ACCESS
 
