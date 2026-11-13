@@ -11,6 +11,8 @@ public final class QuickAccessActions {
     public static final int MIN_ITEMS = 2, MAX_ITEMS = 8;
     /** A scooter control's shortcut id is this prefix plus its ScooterCommands.Feature key (data, never shown). */
     public static final String FEATURE_PREFIX = "feature:";
+    /** Charge alerts' shortcut (data, never shown): opens the Battery alerts sheet, offered where ChargeAlertPolicy.offered holds. */
+    public static final String CHARGE_ALERTS_ID = "charge_alerts";
     public static final class Entry {
         /** label and group stay the English (search, older screens); label(), shortLabel() and groupLabel() are shown. */
         public final String id, label, icon, group, featureKey;
