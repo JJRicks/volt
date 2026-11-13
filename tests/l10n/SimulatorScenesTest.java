@@ -152,10 +152,14 @@ public final class SimulatorScenesTest {
         kept.set("maximum_speed", 32);
         kept.setModel(gt5.pid); kept.conform(gt5.descriptor());
         check(kept.featureValue("maximum_speed") == 32, "a Top speed the GT5 Max also offers stays");
-        // And back on the UT5 MAX nothing is put back: 45 is a UT5 MAX choice too.
+        // Back on the UT5 MAX, 32 is one of its choices too and stays; the GT5 Max's 45 isn't, and becomes the nearer
+        // lower choice, 40 (40 and 50 are as near; ties go lower).
+        kept.setModel(""); kept.conform(SimulatorModels.find("", null).descriptor());
+        check(kept.featureValue("maximum_speed") == 32, "returning to the UT5 MAX keeps 32 km/h");
+        kept.setModel(gt5.pid); kept.conform(gt5.descriptor());
         kept.set("maximum_speed", 45, ScooterSimulation.offeredVariant("maximum_speed", gt5.descriptor()));
         kept.setModel(""); kept.conform(SimulatorModels.find("", null).descriptor());
-        check(kept.featureValue("maximum_speed") == 45, "returning to the UT5 MAX keeps 45 km/h");
+        check(kept.featureValue("maximum_speed") == 40, "the GT5 Max's 45 km/h becomes the UT5 MAX's 40: " + kept.featureValue("maximum_speed"));
         // A validation can still set an unoffered value on purpose (Home's unreadable dash).
         kept.setUnoffered("maximum_speed", 51);
         check(kept.featureValue("maximum_speed") == 51, "setUnoffered sets the value as given");
