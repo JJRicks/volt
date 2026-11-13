@@ -32,6 +32,7 @@ public final class CommandLogTest {
         typedPrivacyBoundary();
         mutationOutcomes();
         guidedTryOutcomes();
+        versionTwo();
         System.out.println("CommandLog tests passed: " + checks + " assertions");
     }
 
@@ -111,7 +112,7 @@ public final class CommandLogTest {
                 if (Modifier.isStatic(field.getModifiers())) continue;
                 Class<?> t = field.getType();
                 require(Modifier.isFinal(field.getModifiers()), "immutable after enqueue: " + field.getName());
-                require(t.isPrimitive() || t.isEnum() || t == Integer.class || t == String.class, "no bytes, lists or objects: " + field);
+                require(t.isPrimitive() || t.isEnum() || t == Integer.class || t == Long.class || t == String.class, "no bytes, lists or objects: " + field);
                 if (t == String.class) require(Arrays.asList("appVersion", "modelId", "meter", "controller", "key").contains(field.getName()),
                         "only checked strings: " + field.getName());
             }
@@ -153,6 +154,9 @@ public final class CommandLogTest {
         require(CommandLog.expired(true, true, 1, 1) == CommandLog.Outcome.UNCONFIRMED, "a matching readback finishes earlier, never as other");
         require(CommandLog.closed(false, false) == CommandLog.Outcome.CANCELLED && CommandLog.closed(true, false) == CommandLog.Outcome.INTERRUPTED
                 && CommandLog.closed(true, true) == CommandLog.Outcome.UNCONFIRMED, "a disconnect: cancelled before sending, interrupted, or unconfirmed after the ACK");
+        // Council review of 6c968d5c (finding 2): only a write that went out keeps the time and offset it carried.
+        require(CommandLog.sentTime(true, 1_792_000_000L) == 1_792_000_000L && CommandLog.sentOffset(true, -21600) == -21600, "a sent write keeps its wire time and offset");
+        require(CommandLog.sentTime(false, 1_792_000_000L) == null && CommandLog.sentOffset(false, -21600) == null, "a write cancelled before it was sent has neither");
     }
 
     /** The try journal path: GuidedTest's observer, through CommandLog.fromTest as BleController records it. */
@@ -213,6 +217,57 @@ public final class CommandLogTest {
         return b.toString();
     }
 
+    /**
+     * Version 3 carries what went on the wire for a charge start and a clock sync (local seconds) with the offset sent;
+     * version 1 files still read, and a version 2 file's clock-sync time (UTC seconds then) reads as unknown.
+     */
+    private static void versionTwo() throws Exception {
+        File dir = Files.createTempDirectory("command-log-v2").toFile(), file = new File(dir, "command-events");
+        CommandLog log = CommandLog.openForTest(file, 50, 64 * 1024);
+        log.record(new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null, CommandLog.Outcome.ACK, -1, null, null, 120, 1792000000L, -21600));
+        log.record(new CommandLog.Command(WALL + 1, CommandLog.Kind.SET, MutationGate.Origin.USER, "clock_sync", null, CommandLog.Outcome.ACK, -1, null, null, 90, 1792026000L, 3600));
+        log.flush().get(10, TimeUnit.SECONDS);
+        CommandLog reread = CommandLog.openForTest(file, 50, 64 * 1024); reread.flush().get(10, TimeUnit.SECONDS);
+        List<CommandLog.Record> back = reread.snapshot();
+        CommandLog.Command start = (CommandLog.Command) back.get(0), clock = (CommandLog.Command) back.get(1);
+        require(reread.storageHealthy() && back.size() == 2 && start.time == 1792000000L && start.offset == -21600 && clock.time == 1792026000L && clock.offset == 3600,
+                "version 3 keeps the start and clock sent on the wire, with their offsets");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "headlight", 1, CommandLog.Outcome.ACK, -1, null, null, 1, 5L, 0), "a time on another control");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "charge_start", null, CommandLog.Outcome.ACK, -1, null, null, 1, -5L, 0), "a negative time");
+        rejects(() -> new CommandLog.Command(WALL, CommandLog.Kind.SET, MutationGate.Origin.USER, "clock_sync", null, CommandLog.Outcome.ACK, -1, null, null, 1, 5L, 19 * 3600), "an offset beyond 18 hours");
+        // A version 1 file, as Volt 1.13.1 writes it: a session and a command with no time or offset.
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(buffer)) {
+            out.writeInt(0x56434d44); out.writeInt(1); out.writeInt(2);
+            out.writeLong(WALL); out.writeByte('S'); out.writeUTF("1.13.1"); out.writeUTF("24011"); out.writeUTF(ModelRegistry.Layer.values()[0].name()); out.writeUTF(""); out.writeUTF(""); out.writeBoolean(false);
+            out.writeLong(WALL + 5); out.writeByte('C'); out.writeUTF("SET"); out.writeUTF("USER"); out.writeUTF("charge_start"); out.writeInt(-1); out.writeUTF("ACK"); out.writeInt(-1); out.writeUTF(""); out.writeInt(-1); out.writeLong(300);
+        }
+        byte[] body = buffer.toByteArray(); java.util.zip.CRC32 crc = new java.util.zip.CRC32(); crc.update(body);
+        File old = new File(dir, "v1-events");
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(old))) { out.write(body); out.writeLong(crc.getValue()); }
+        // A version 2 file (development builds of fuller diagnostics): its clock sync held UTC seconds, a second meaning.
+        ByteArrayOutputStream two = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(two)) {
+            out.writeInt(0x56434d44); out.writeInt(2); out.writeInt(2);
+            out.writeLong(WALL); out.writeByte('C'); out.writeUTF("SET"); out.writeUTF("USER"); out.writeUTF("charge_start"); out.writeInt(-1); out.writeUTF("ACK"); out.writeInt(-1); out.writeUTF(""); out.writeInt(-1); out.writeLong(300);
+            out.writeLong(1792000000L); out.writeInt(-21600);
+            out.writeLong(WALL + 5); out.writeByte('C'); out.writeUTF("SET"); out.writeUTF("USER"); out.writeUTF("clock_sync"); out.writeInt(-1); out.writeUTF("ACK"); out.writeInt(-1); out.writeUTF(""); out.writeInt(-1); out.writeLong(90);
+            out.writeLong(1792021600L); out.writeInt(-21600);
+        }
+        byte[] twoBody = two.toByteArray(); java.util.zip.CRC32 twoCrc = new java.util.zip.CRC32(); twoCrc.update(twoBody);
+        File v2File = new File(dir, "v2-events");
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(v2File))) { out.write(twoBody); out.writeLong(twoCrc.getValue()); }
+        CommandLog v2 = CommandLog.openForTest(v2File, 50, 64 * 1024); v2.flush().get(10, TimeUnit.SECONDS);
+        List<CommandLog.Record> second = v2.snapshot();
+        require(v2.loaded() && v2.storageHealthy() && second.size() == 2 && ((CommandLog.Command) second.get(0)).time == 1792000000L
+                && ((CommandLog.Command) second.get(0)).offset == -21600 && ((CommandLog.Command) second.get(1)).time == null && ((CommandLog.Command) second.get(1)).offset == null,
+                "a version 2 log reads: its charge start keeps the wire start, its clock sync's UTC seconds become unknown");
+        CommandLog v1 = CommandLog.openForTest(old, 50, 64 * 1024); v1.flush().get(10, TimeUnit.SECONDS);
+        List<CommandLog.Record> legacy = v1.snapshot();
+        require(v1.loaded() && v1.storageHealthy() && legacy.size() == 2 && legacy.get(0) instanceof CommandLog.Session
+                && ((CommandLog.Command) legacy.get(1)).time == null && ((CommandLog.Command) legacy.get(1)).offset == null && ((CommandLog.Command) legacy.get(1)).elapsedMs == 300,
+                "a version 1 log still reads, with no time or offset");
+    }
     private static void rejects(Runnable build, String what) {
         boolean rejected = false;
         try { build.run(); } catch (IllegalArgumentException expected) { rejected = true; }

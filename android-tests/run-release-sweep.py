@@ -127,6 +127,9 @@ STEPS = [
     runner('compat-owner-profiles', 'run-compat-gating.py', [], '--mode', 'owner-profiles'),
     runner('charge-capture', 'run-charge-capture.py', ['ChargeCaptureValidation']),
     runner('charge-estimates', 'run-charge-capture.py', ['ChargeEstimateValidation'], '--suite', 'estimates'),
+    # ChargeEvidenceValidation's phases across a process end (a test cut off; a scooter selected offline) and an update
+    # (a start armed before it). Here the update is this build standing in for main's (run-charge-evidence.py --previous-app for the real one).
+    runner('charge-evidence-phases', 'run-charge-evidence.py', []),
     runner('battery-widgets', 'run-battery-widgets.py', ['BatteryWidgetValidation']),
     runner('learned-range', 'run-learned-range.py', ['LearnedRangeValidation']),
     runner('ride-auto-stop', 'run-ride-auto-stop.py', ['RideAutoStopValidation']),
@@ -161,6 +164,8 @@ STEPS += [
     inst('dashboard-slots', T + 'DashboardSlotsValidation'),
     inst('capacity-widget', T + 'CapacityWidgetValidation'),
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
+    # Report diagnostics' charge evidence on a fake link through Report an issue, and Preview on a worst-case file at the narrow size.
+    inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
