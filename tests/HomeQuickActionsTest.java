@@ -15,6 +15,7 @@ public final class HomeQuickActionsTest {
         normalize();
         storage();
         entries();
+        alertsInBothCatalogs();
         endsRide();
         System.out.println("HomeQuickActions: " + checks + " checks passed");
     }
@@ -125,7 +126,11 @@ public final class HomeQuickActionsTest {
                 "An owner's stored four are kept as stored, Maximum speed included");
     }
 
-    /** Clean's own as entries outside the catalog (PR 8): shown by Clean's grid and picker; Ride and Record never findable. */
+    /**
+     * Clean's own as entries outside the catalog (PR 8): shown by Clean's grid and picker. Ride and Record are never
+     * findable; Battery alerts keeps Clean's own entry and names whether or not the catalog lists it (a Widgets
+     * shortcut with the same id, owner's decision of Nov 12 2026 on #383).
+     */
     private static void entries() {
         for (String id : Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD, HomeQuickActions.CHARGE_ALERTS)) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
@@ -135,8 +140,9 @@ public final class HomeQuickActionsTest {
             require(entry.icon.equals(id.equals(HomeQuickActions.RIDING) ? HomeQuickActions.ICON_RIDING
                     : id.equals(HomeQuickActions.RECORD) ? HomeQuickActions.ICON_RECORD : HomeQuickActions.ICON_CHARGE_ALERTS), "Its icon: " + id);
             require(!entry.directToggle(), "Not a direct toggle: " + id);
-            // Battery alerts is a Widgets shortcut too (owner's decision of Nov 12 2026 on #383), still named by HubText on Clean.
-            if (id.equals(HomeQuickActions.CHARGE_ALERTS)) { require(QuickAccessActions.find(id) != null && QuickAccessActions.find(id) != entry, "In the catalog too, with Clean's own names: " + id); continue; }
+            require(entry != QuickAccessActions.find(id), "Clean's own entry, not the catalog's: " + id);
+        }
+        for (String id : Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD)) {
             require(QuickAccessActions.find(id) == null, "Still not in the catalog: " + id);
             for (QuickAccessActions.Entry listed : QuickAccessActions.catalog()) require(!listed.id.equals(id), "Not listed in the catalog: " + id);
         }
@@ -150,6 +156,21 @@ public final class HomeQuickActionsTest {
         require(QuickAccessActions.find("lights").shortLabel().id() == M.dashboardModelQaLightsShort().id()
                 && QuickAccessActions.find("rides").shortLabel().id() == M.dashboardModelQaRidesShort().id(), "Catalog short rungs unchanged");
         for (String id : HomeQuickActions.defaults(false, true, offers("cruise_control"))) require(HomeQuickActions.entry(id) != null, "Every default has an entry: " + id);
+    }
+
+    /**
+     * Battery alerts in the Quick access catalog (owner's decision of Nov 12 2026 on #383): the same id as Clean's own,
+     * the catalog's names there (the Widgets shortcut), and still Clean's own entry and HubText names on Clean (#450).
+     */
+    private static void alertsInBothCatalogs() {
+        QuickAccessActions.Entry listed = QuickAccessActions.find(HomeQuickActions.CHARGE_ALERTS);
+        QuickAccessActions.Entry clean = HomeQuickActions.entry(HomeQuickActions.CHARGE_ALERTS);
+        require(listed != null && clean != null && listed != clean, "Clean's Battery alerts is its own entry, beside the catalog's");
+        require(listed.id.equals(clean.id) && listed.icon.equals(clean.icon), "One id and one icon for both Homes");
+        require(listed.label().id() == M.dashboardModelQaChargeAlerts().id()
+                && listed.shortLabel().id() == M.dashboardModelQaChargeAlertsShort().id(), "The catalog's names on Widgets");
+        require(clean.label().id() == M.homeQaChargeAlerts().id() && clean.shortLabel().id() == M.homeQaChargeAlertsShort().id(),
+                "Clean's names on Clean, short rung Alerts");
     }
 
     private static void require(boolean condition, String message) {

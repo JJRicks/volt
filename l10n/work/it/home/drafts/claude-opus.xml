@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="standard">
+    <string name="home_style_title" volt:src="9e26c157d05290d28007fe9b92959be74bfe14df">Stile della Home</string>
+    <string name="home_style_clean" volt:src="8d3e3427255fb57e1c420c6a9f48e93b6fcd1eb4">Essenziale</string>
+    <string name="home_style_clean_sub" volt:src="493aee990876dc8df02037ab861c9a26ae01dd38">Una Home fissa: batteria, blocco, quattro azioni rapide e le sezioni del tuo monopattino.</string>
+    <string name="home_style_widgets" volt:src="2754bccdf4f1ea1243ea54547ec17716efb8b78f">Widget</string>
+    <string name="home_style_widgets_sub" volt:src="5118001af8721ee6083a9f63e706754232cfc9eb">La dashboard che organizzi tu, con i layout salvati.</string>
+    <string name="home_style_keeps_layout" volt:src="453a57d063290f93bef86c2e552d6c1c5753a556">Se cambi stile, il layout dei widget resta invariato.</string>
+    <string name="home_style_clean_preview" volt:src="e5844136c402951d890acbc9f32e148c8926cd69">Immagine della Home «Essenziale»: la scheda della batteria, il blocco, una riga di quattro azioni rapide che inizia con GUIDA e, sotto, le sezioni del tuo monopattino.</string>
+    <string name="home_style_widgets_preview" volt:src="f43687f9fd42957f3c97f527fa8934684d7b45fe">Immagine della Home «Widget»: il pulsante GUIDA in alto, poi la panoramica del monopattino, la barra del blocco, i riquadri di letture e impostazioni e la registrazione della corsa, in una griglia che organizzi tu.</string>
+    <string name="home_moment_charging" volt:src="fcb0c17fdd7a15ad62313e43a9c6f2332090c84c">Mostra automaticamente la ricarica</string>
+    <string name="home_moment_charging_sub" volt:src="7f1f06288f89d7bbc2c7daa04ed9284b7276c668">La Home mostra da sola la carica quando inizia la ricarica.</string>
+    <string name="home_moment_ride" volt:src="9e6efce340de398042f523af7946897522a468a2">Mostra l\'ultima corsa dopo la guida</string>
+    <string name="home_moment_ride_sub" volt:src="4e6fa459651fa69175241b19115b2ec366167d33">Per circa un\'ora dopo una corsa registrata, finché non la chiudi.</string>
+    <string name="home_charging_to_limit" volt:src="5f64d788422a968eb8c5c5ad61364b14835adec7">In carica fino al tuo limite di %1$s</string>
+    <string name="home_just_back_ended_now" volt:src="bf7b9bd0ec766c8fc12d7827ef3a1092e3825224">Corsa appena terminata</string>
+    <plurals name="home_just_back_ended_minutes" volt:src="d7dd68b161b3bc21951794e77b3641066a4948f4">
+        <item quantity="one">Corsa terminata %1$d minuto fa</item>
+        <item quantity="many">Corsa terminata %1$d di minuti fa</item>
+        <item quantity="other">Corsa terminata %1$d minuti fa</item>
+    </plurals>
+    <string name="home_just_back_close" volt:src="567553fa7b34a7ad5e66fcd9901cf9bdf43897ca">Chiudi l\'ultima corsa</string>
+    <string name="home_just_back_description" volt:src="3616aa33e20c6d86692e13d0587660d0ea0baa3c">Ultima corsa, %1$s. Si aprirà la corsa.</string>
+    <string name="home_edit_title" volt:src="b80fb9049090340c6a15ad0d9cdd3b99ead415a5">Modifica la Home</string>
+    <string name="home_edit_quick_actions" volt:src="0adcd3c1e47c1aa9084b5cb61caced1eb534dac8">Azioni rapide</string>
+    <string name="home_edit_quick_slot" volt:src="143ff0cdce5d2071063f982edfe0788cade1632d">Azione rapida %1$d: %2$s. Cambia</string>
+    <string name="home_qa_record" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Registra la corsa</string>
+    <string name="home_qa_record_short" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Registra</string>
+    <string name="home_qa_charge_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Avvisi batteria</string>
+    <string name="home_qa_charge_alerts_short" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Avvisi</string>
+    <string name="home_qa_recording" volt:src="23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28">Registrazione in corso</string>
+    <string name="home_search_description" volt:src="3cd0bd11faa9499cce304127482e557fe0df78ed">Cerca in impostazioni, letture e corse</string>
+    <string name="home_settings_description" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Impostazioni</string>
+    <string name="home_switch_scooter_description" volt:src="4528a1be915f9ab6cee7f6853cc48074ef28bb15">%1$s. Cambia monopattino</string>
+    <string name="home_setup_style_title" volt:src="df88d92279ef4cdc815f7452b8265f938b492104">Scegli la tua Home</string>
+    <string name="home_setup_style_body" volt:src="42828d6410daf773a32fa726587cabd3bf20043e">Puoi cambiare questa scelta in qualsiasi momento in «Impostazioni › Stile della Home».</string>
+    <string name="home_whats_new_title" volt:src="aa559a6ed4d63eafc18f4b5e175d6d6b9540b361">La Home ha un nuovo aspetto</string>
+    <string name="home_whats_new_body" volt:src="63fab5be34af389e05610d9b2d19b9810a2613ab">Prova «Essenziale»: batteria, blocco e le azioni che usi di più in un\'unica schermata fissa. La tua dashboard «Widget» resta com\'è.</string>
+    <string name="home_whats_new_switch" volt:src="befccf56c3a771b960ccd8a3030a45313c0af025">Passa a Essenziale</string>
+    <string name="home_whats_new_keep" volt:src="c9c0bea67b8a906def06fceec8db88b7c71d62de">Mantieni Widget</string>
+    <string name="home_whats_new_later" volt:src="42828d6410daf773a32fa726587cabd3bf20043e">Puoi cambiare questa scelta in qualsiasi momento in «Impostazioni › Stile della Home».</string>
+    <string name="home_whats_new_changes" volt:src="208a8cc3ac7f89c0e6d999fb4717c5cbe8deacfe">Novità di Volt %1$s</string>
+    <string name="home_whats_new_background" volt:src="ed900209d0d0cafb654742f73d68474aa8ea1387">Ora Volt avvia la registrazione in background solo se attivi questa opzione. Una corsa iniziata in background o con lo schermo bloccato non ha un percorso GPS.</string>
+</resources>

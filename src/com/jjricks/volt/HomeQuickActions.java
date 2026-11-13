@@ -56,8 +56,8 @@ final class HomeQuickActions {
     /**
      * The Quick access entry Clean shows for an id: the catalog's, or for Clean's own an entry outside the catalog
      * (QuickAccessActions.local) named by HubText, grouped under Ride (Charge alerts under Battery & charging).
-     * Battery alerts is in the catalog too (the Widgets shortcut, same id), but Clean keeps its own names for it
-     * (HubText's, with the short rung "Alerts"). Null for an id Clean can't show.
+     * Clean's own are checked first, so Battery alerts keeps Clean's names (short rung "Alerts") even where the
+     * catalog lists the same id as a Widgets shortcut. Null for an id Clean can't show.
      */
     static QuickAccessActions.Entry entry(String id) {
         if (!cleanOnly(id)) return QuickAccessActions.find(id);

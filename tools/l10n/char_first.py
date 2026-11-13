@@ -28,9 +28,10 @@ still there byte for byte and in order, with at least one line added, the same a
 head, and a test tests/run.sh runs at head reads it: an active entry of a tests/l10n/*.sources list (read
 as tests/run.sh reads them) under tests/l10n/characterization/ that matches tests/run.sh's own rule for what
 it runs (RUN_PATTERN, pinned to tests/run.sh by test_frozen_and_first.py), declares a main method and names
-the listing's file. Exit 1 and the reason otherwise: a .java test (code, which decides what is checked), a
-new file, a changed, removed or reordered row, or a listing no test that runs reads still gets the
-first-commit run.
+the listing's whole file name (after a quote, a slash or the start of the text, and not followed by more of a
+file name: model-english.tsv is not read by a test of dashboard-model-english.tsv). Exit 1 and the reason
+otherwise: a .java test (code, which decides what is checked), a new file, a changed, removed or reordered
+row, or a listing no test that runs reads still gets the first-commit run.
 """
 
 import argparse
@@ -89,6 +90,12 @@ LISTING_SUFFIX = ".tsv"
 # where * also matches "/"); compiled-only helpers never run. test_frozen_and_first.py fails if run.sh's rule changes.
 RUN_PATTERN = "tests/l10n/*Test.java"
 MAIN = re.compile(r"\bstatic\s+void\s+main\s*\(")
+
+
+def names_file(text, name):
+    """Whether text names the file name whole: after a quote, a slash or the start of the text, and not followed by
+    another file-name character (so "model-english.tsv" is not found in "dashboard-model-english.tsv")."""
+    return re.search(r"""(?:^|["'/])%s(?![\w.-])""" % re.escape(name), text) is not None
 
 
 def _lines(text):
@@ -154,7 +161,7 @@ def listing_additions(base, head, cwd=None):
         if len(new) <= len(old) or not _kept_in_order(old, new):
             return False, "%s changes, removes or reorders a line it had at the merge base" % path
         name = os.path.basename(path)
-        if not any(text and name in text and MAIN.search(text) for text in readers.values()):
+        if not any(text and names_file(text, name) and MAIN.search(text) for text in readers.values()):
             return False, "no characterization test that tests/run.sh runs (%s, listed, with a main method) reads %s" % (
                 RUN_PATTERN, path)
         kept += len(old)
