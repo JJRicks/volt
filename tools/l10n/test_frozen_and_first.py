@@ -407,5 +407,109 @@ class CharacterizationFirstTest(unittest.TestCase):
         self.assertEqual((problems, found), ([], first))
 
 
+class ListingAdditionsTest(unittest.TestCase):
+    """char_first.py --listing-additions (owner-approved Nov 13 2026): only a first commit that adds rows to
+    existing listings, which a listed characterization test reads, skips the first-commit run."""
+
+    LISTING = "tests/l10n/characterization/rides-english.tsv"
+    READER = "tests/l10n/characterization/RidesEnglishTest.java"
+    ROWS = "entry a\tlabel\tA\nentry b\tlabel\tB\nentry c\tlabel\tC\n"
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.addCleanup(self.repo.close)
+        self.repo.write(self.LISTING, self.ROWS)
+        self.repo.write(self.READER, java_class("RidesEnglishTest", '    static final String LISTING = "%s";' % self.LISTING))
+        self.repo.write("tests/l10n/rides.sources", "# the rides listing\n" + self.READER + "  # reads rides-english.tsv\n")
+        self.base = self.repo.commit("base")
+        self.repo.git("checkout", "-q", "-b", "batch")
+
+    def first_commit(self, rows, path=None):
+        self.repo.write(path or self.LISTING, rows)
+        first = self.repo.commit("characterize")
+        self.repo.write("src/com/jjricks/volt/Rides.java", java_class("Rides", ""))
+        return first, self.repo.commit("the change")
+
+    def additions(self):
+        head = self.repo.git("rev-parse", "HEAD")
+        return char_first.listing_additions(self.base, head, cwd=self.repo.root)
+
+    def test_added_rows_only(self):
+        first, _ = self.first_commit("entry a\tlabel\tA\nentry new\tlabel\tNew\nentry b\tlabel\tB\nentry c\tlabel\tC\n"
+                                     "entry z\tlabel\tZ\n")
+        ok, detail = self.additions()
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "the first commit %s only adds rows to %s; existing rows unchanged (3 lines), new rows "
+                                 "(2) are proven at head (G6)" % (first[:12], self.LISTING))
+
+    def test_an_added_row_and_a_changed_row(self):
+        self.first_commit("entry a\tlabel\tA\nentry b\tlabel\tB2\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("changes, removes or reorders a line", detail)
+
+    def test_a_removed_row(self):
+        self.first_commit("entry a\tlabel\tA\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        self.assertFalse(self.additions()[0])
+
+    def test_a_reordered_listing(self):
+        self.first_commit("entry b\tlabel\tB\nentry a\tlabel\tA\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        self.assertFalse(self.additions()[0])
+
+    def test_a_changed_line_ending(self):
+        """Byte for byte: the last row gaining or losing its newline is a change."""
+        self.repo.write(self.LISTING, self.ROWS.rstrip("\n"))
+        self.base = self.repo.commit("no final newline")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew")
+        self.assertFalse(self.additions()[0])
+
+    def test_an_addition_to_a_test_file(self):
+        self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\n")
+        self.first_commit(java_class("RidesEnglishTest", '    static final String LISTING = "%s";\n    int more;'
+                                     % self.LISTING), path=self.READER)
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("not only listings", detail)
+
+    def test_a_new_listing(self):
+        self.first_commit("entry x\tlabel\tX\n", path="tests/l10n/characterization/other-english.tsv")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("is a new file", detail)
+
+    def test_a_listing_no_listed_test_reads(self):
+        """Then nothing would prove the new rows at head, so the first commit still runs."""
+        self.repo.write("tests/l10n/rides.sources", "# " + self.READER + "\n")
+        self.base = self.repo.commit("the reader commented out")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no active characterization test", detail)
+
+    def test_a_listing_changed_after_the_first_commit(self):
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\nentry later\tlabel\tLater\n")
+        self.repo.commit("later")
+        self.assertFalse(self.additions()[0])
+
+    def test_no_characterization_change(self):
+        self.repo.write("src/com/jjricks/volt/Rides.java", java_class("Rides", ""))
+        self.repo.commit("code only")
+        self.assertFalse(self.additions()[0])
+
+    def test_the_command_line(self):
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        cwd = os.getcwd()
+        os.chdir(self.repo.root)
+        try:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = char_first.main(["--base", self.base, "--listing-additions"])
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(code, 0)
+        self.assertIn("existing rows unchanged (3 lines), new rows (1)", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -210,7 +210,7 @@ final class RidingValues {
     private final ArrayDeque<long[]> speedSamples = new ArrayDeque<>(), powerSamples = new ArrayDeque<>();
     private final ArrayDeque<double[]> speedValues = new ArrayDeque<>(), powerValues = new ArrayDeque<>();
     private final PowerScale scale;
-    private boolean scaleChanged;
+    private boolean scaleChanged, simulated;
     /** Whether this scooter's current carries a real sign: the same rule a recording's summary uses. */
     private final PowerSign sign = new PowerSign();
     /**
@@ -483,8 +483,24 @@ final class RidingValues {
     }
 
     PowerScale scale() { return scale; }
-    /** True once since the last call when the scale grew, so its owner saves it. */
-    boolean takeScaleChanged() { boolean changed = scaleChanged; scaleChanged = false; return changed; }
+    /** True once since the last call when the scale grew, so its owner saves it. Never while the readings are simulated. */
+    boolean takeScaleChanged() { boolean changed = scaleChanged && !simulated; scaleChanged = false; return changed; }
+
+    /**
+     * Whether the readings come from the developer simulator; called before each feed. Simulation never changes the
+     * real scooter's saved data: a scale grown by simulated readings shows on this screen but is never saved, and when
+     * simulation starts or ends the scale goes back to the scooter's saved one, so a grown scale is never saved later.
+     *
+     * @param saved the scale saved for this scooter, read only when simulation starts or ends
+     */
+    void followSimulation(boolean simulating, java.util.function.Supplier<PowerScale> saved) {
+        if (simulating == simulated) return;
+        simulated = simulating;
+        PowerScale real = saved.get();
+        scale.drawW = scaleDrawBeforeW = real.drawW;
+        scale.regenW = scaleRegenBeforeW = real.regenW;
+        scaleChanged = false;
+    }
 
     static Band band(double percent) { return percent < BATTERY_RED_BELOW ? Band.RED : percent < BATTERY_AMBER_BELOW ? Band.AMBER : Band.GREEN; }
     /** Battery band, or null before the first reading. */

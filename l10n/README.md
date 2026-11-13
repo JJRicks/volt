@@ -780,7 +780,7 @@ Known limits:
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`) |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`; a first commit that only adds rows to existing `.tsv` listings reads `not run` at the first commit, see G5 below) |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
@@ -851,6 +851,12 @@ exactly the test's path). An English change is the exception: its characterizati
 new English, which the base code does not print yet, so that run is `n/a` there. Its order is still
 checked, each test must still be an active entry at head (with or without `--skip-tests`), and G6
 runs them there.
+A batch whose first commit only adds rows to existing listings (the `.tsv` data files that an unchanged,
+listed characterization test compares with the code's output line for line) skips that run, since a row
+for an entry new in the same pull request cannot pass on the base code: `char_first.py --listing-additions`
+checks that every line the listing had at the merge base is still there byte for byte and in order, and the
+report reads `not run` with the counts (owner-approved Nov 13 2026); a changed, removed or reordered row, a
+new listing or any `.java` change still runs at the first commit.
 
 **G8** is a Python tool run in CI, instead of the plan's `tests/l10n/HardcodedTextLint.java`, so it
 shares the Java lexer with the other gates. It flags any literal with letters inside a platform UI

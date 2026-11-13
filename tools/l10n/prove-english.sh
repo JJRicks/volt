@@ -12,6 +12,9 @@
 #   --skip-build  do not run build.sh here (G3 then reports "not run")
 #   --skip-tests  do not run tests/run.sh (G6 then reports "not run")
 #
+# G5's first-commit run is "not run" when that commit only adds rows to existing characterization listings
+# (char_first.py --listing-additions); the new rows are proven at head (G6).
+#
 # G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census twice
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
 # --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
@@ -24,7 +27,7 @@ TOOLS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$TOOLS_DIR" rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 
-usage() { sed -n '2,19p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,22p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
 [[ $# -ge 1 ]] || usage
 BASE_ARG="$1"; shift
 SAME_APK=0; PSEUDO=0; SKIP_BUILD=0; SKIP_TESTS=0
@@ -162,6 +165,14 @@ if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
     else
         record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order, and each is an active entry of a tests/l10n/*.sources list at head, so G6 runs them there"
     fi
+elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]] && \
+        additions="$(python3 tools/l10n/char_first.py --base "$BASE" --listing-additions 2>/dev/null)"; then
+    # Owner-approved Nov 13 2026: a first commit that only adds rows to existing listings (.tsv data an
+    # unchanged characterization test compares line for line) cannot pass there when a row is for an entry
+    # new in this pull request, by construction. Its existing rows are byte-for-byte and in order what the
+    # merge base had, and main passes them; the new rows run at head in G6. Nothing ran, so never PASS.
+    # Any other first commit (a .java test, a new file, a changed, removed or reordered row) runs below.
+    record "G5 tests pass at the first commit" "not run" "$additions"
 elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     tree="$WORK/first"
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then

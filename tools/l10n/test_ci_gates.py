@@ -594,6 +594,101 @@ done
         self.assertEqual(code, 1, everything)
         self.assertEqual(re.search(self.G5_ROW, report).group(1).strip(), "FAIL", everything)
 
+    LISTING = "tests/l10n/characterization/rides-english.tsv"
+    READER = "tests/l10n/characterization/RidesListingTest.java"
+    PRINTED = "src/rides-printed.txt"
+    ROWS = "entry a\tA\nentry b\tB\nentry c\tC\n"
+    # The listing test as tests/run.sh runs it: the listing must be what the code prints, line for line.
+    LISTING_RUNNER = r"""#!/bin/bash
+cmp -s tests/l10n/characterization/rides-english.tsv src/rides-printed.txt || { echo "RidesListingTest failed"; exit 1; }
+echo "RidesListingTest passed"
+"""
+    FIRST_ROW = r"\| G5 tests pass at the first commit \| ([^|]+) \| ([^|]+) \|"
+
+    def listing_change(self, first_rows, printed_rows, kind="batch", reader=None):
+        """A base whose code prints ROWS and whose listing pins them; a first commit that writes first_rows to
+        the listing (and reader to the listing test); then the change, whose code prints printed_rows."""
+        self.repo.write("tests/run.sh", self.LISTING_RUNNER)
+        self.repo.write(self.LISTING, self.ROWS)
+        self.repo.write(self.PRINTED, self.ROWS)
+        self.repo.write(self.READER, java_class("RidesListingTest", '    String listing = "%s";' % self.LISTING))
+        self.repo.write("tests/l10n/rides.sources", self.READER + "\n")
+        self.base = self.repo.commit("a listing the code prints")
+        self.repo.write(self.LISTING, first_rows)
+        if reader is not None:
+            self.repo.write(self.READER, reader)
+        self.repo.commit("characterize")
+        self.repo.write(self.PRINTED, printed_rows)
+        if kind == "batch":
+            self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        elif kind == "english-change":
+            self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz\t-\ta\tb\towner approved in #999\n")
+        self.repo.commit("the change")
+        return self.prove(run_tests=True)
+
+    def first_row(self, report, everything):
+        match = re.search(self.FIRST_ROW, report)
+        self.assertIsNotNone(match, everything)
+        return match.group(1).strip(), match.group(2).strip()
+
+    def test_a_batch_that_only_adds_listing_rows_is_not_run_at_the_first_commit(self):
+        """Owner-approved Nov 13 2026 (#437): a row for an entry new in the pull request cannot pass on the
+        base code. The report says the run did not happen, never PASS, and G6 proves the rows at head."""
+        rows = self.ROWS + "entry new\tNew\n"
+        code, _, report, everything = self.listing_change(rows, rows)
+        self.assertIn("batch change", report)
+        self.assertEqual(code, 0, everything)
+        result, detail = self.first_row(report, everything)
+        self.assertEqual(result, "not run", everything)
+        self.assertRegex(detail, r"^the first commit [0-9a-f]{12} only adds rows to " + re.escape(self.LISTING) +
+                         r"; existing rows unchanged \(3 lines\), new rows \(1\) are proven at head \(G6\)$")
+        self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| PASS \|", everything)
+        self.assertNotRegex(report, r"\| G5 tests pass at the first commit \| PASS", everything)
+
+    def test_the_new_rows_still_fail_at_head(self):
+        rows = self.ROWS + "entry new\tNew\n"
+        code, _, report, everything = self.listing_change(rows, self.ROWS)
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(self.first_row(report, everything)[0], "not run", everything)
+        self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| FAIL \|", everything)
+
+    def assert_run_at_the_first_commit(self, first_rows):
+        code, _, report, everything = self.listing_change(first_rows, first_rows)
+        self.assertEqual(code, 1, everything)
+        result, detail = self.first_row(report, everything)
+        self.assertEqual(result, "FAIL", everything)
+        self.assertIn("tests/run.sh or golden.sh at", detail)
+
+    def test_an_added_row_with_a_changed_existing_row_runs_at_the_first_commit(self):
+        self.assert_run_at_the_first_commit("entry a\tA\nentry b\tB changed\nentry c\tC\nentry new\tNew\n")
+
+    def test_a_removed_row_runs_at_the_first_commit(self):
+        self.assert_run_at_the_first_commit("entry a\tA\nentry c\tC\n")
+
+    def test_a_reordered_listing_runs_at_the_first_commit(self):
+        self.assert_run_at_the_first_commit("entry b\tB\nentry a\tA\nentry c\tC\n")
+
+    def test_an_addition_beside_a_changed_test_file_runs_at_the_first_commit(self):
+        rows = self.ROWS + "entry new\tNew\n"
+        reader = java_class("RidesListingTest", '    String listing = "%s";\n    int rows;' % self.LISTING)
+        code, _, report, everything = self.listing_change(rows, rows, reader=reader)
+        self.assertEqual(code, 1, everything)
+        self.assertEqual(self.first_row(report, everything)[0], "FAIL", everything)
+
+    def test_an_english_change_that_adds_listing_rows_is_as_before(self):
+        rows = self.ROWS + "entry new\tNew\n"
+        _, _, report, everything = self.listing_change(rows, rows, kind="english-change")
+        self.assertIn("english-change change", report)
+        self.assertEqual(self.first_row(report, everything)[0], "n/a", everything)
+
+    def test_an_ordinary_change_that_adds_listing_rows_is_as_before(self):
+        rows = self.ROWS + "entry new\tNew\n"
+        code, _, report, everything = self.listing_change(rows, rows, kind="ordinary")
+        self.assertIn("ordinary change", report)
+        self.assertEqual(code, 0, everything)
+        self.assertEqual(re.search(self.G5_ROW, report).group(1).strip(), "not applied", everything)
+        self.assertNotIn("G5 tests pass at the first commit", report, everything)
+
     def test_a_batch_that_keeps_its_literals_gets_a_real_g1_pass(self):
         self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
         self.repo.commit("catalog only")
