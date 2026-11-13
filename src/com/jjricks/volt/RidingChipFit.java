@@ -34,12 +34,59 @@ final class RidingChipFit {
     final boolean[] shown;
     /** Each shown chip's name step at that rung, worked out against the chips that show; -1 for the rest. */
     final int[] steps;
+    /** The chips that show their compact form (a GPS state's dash) because in full they would step aside (see {@link #stepping}). */
+    final boolean[] compact;
 
     private RidingChipFit(int count, int rung, boolean[] shown, int[] steps) {
+        this(count, rung, shown, steps, new boolean[shown.length]);
+    }
+
+    private RidingChipFit(int count, int rung, boolean[] shown, int[] steps, boolean[] compact) {
         this.count = count;
         this.rung = rung;
         this.shown = shown;
         this.steps = steps;
+        this.compact = compact;
+    }
+
+    /**
+     * True when a chip showing its compact form must be fitted again because its full value changed. Every GPS
+     * state's compact form is the same dash, so the text on screen does not change and nothing else would measure the
+     * chip again: without this, "Not recording" turning to "Off" would keep the dash although the words now fit.
+     */
+    static boolean refitsCompact(boolean compactShown, String was, String now) {
+        return compactShown && !java.util.Objects.equals(was, now);
+    }
+
+    /**
+     * A row or column in which some chips have a compact form for their value: a GPS accuracy state ("Not
+     * recording") whose mark is the no-reading dash. Every chip first tries as it reads in full, exactly as
+     * {@link #row} or {@link #column} would fit it; a chip with a compact form that would then step aside tries again
+     * in that form, so the reading the rider chose shows as a mark rather than not at all. A chip that shows in full
+     * keeps its full value, and with no chip able to step down the fit is the plain one.
+     *
+     * @param full each chip's widths with its value in full
+     * @param compact each chip's widths with its compact value (read only for chips in canStep)
+     * @param canStep the chips that have a compact form now
+     */
+    static RidingChipFit stepping(String[][] marks, String[] contents, Widths full, final Widths compact, boolean[] canStep,
+                                  boolean stacked, int gap, int room) {
+        RidingChipFit plain = stacked ? column(marks, contents, full, room) : row(marks, contents, full, gap, room);
+        final boolean[] use = new boolean[marks.length];
+        boolean any = false;
+        for (int chip = 0; chip < marks.length; chip++) {
+            use[chip] = canStep != null && canStep[chip] && !plain.shown[chip];
+            any |= use[chip];
+        }
+        if (!any) return plain;
+        final Widths wide = full;
+        Widths mixed = new Widths() {
+            @Override public int at(int chip, int rung, int step) { return use[chip] ? compact.at(chip, rung, step) : wide.at(chip, rung, step); }
+        };
+        RidingChipFit fit = stacked ? column(marks, contents, mixed, room) : row(marks, contents, mixed, gap, room);
+        boolean[] shownCompact = new boolean[marks.length];
+        for (int chip = 0; chip < marks.length; chip++) shownCompact[chip] = use[chip] && fit.shown[chip];
+        return new RidingChipFit(fit.count, fit.rung, fit.shown, fit.steps, shownCompact);
     }
 
     private static boolean[] first(int count, int of) {
