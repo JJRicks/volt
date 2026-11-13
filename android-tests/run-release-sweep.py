@@ -194,6 +194,13 @@ STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOffline
           for case in (PHONE, WIDE)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
+# GPS accuracy: the riding reading in every state (no location permission at first; fixes from a GPS test provider) and the
+# ride graph's line, in English, German and both Portuguese. The translated runs are report only, as the other translated
+# steps are, so they stay out of the English text census.
+STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'riding',
+               *(('-e', 'locale', tag) if tag else ()), grant=NEARBY, report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
+STEPS += [inst('gps-accuracy-graph' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'graph',
+               *(('-e', 'locale', tag) if tag else ()), report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]
