@@ -53,6 +53,8 @@ public final class Ui {
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
     /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
     public final int accentDeep, onAccent, ok, dim;
+    /** The accent for text and line icons on dark cards (the Layout Plan's #FF8A8C); the accent itself on light. */
+    public final int accentText;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -70,6 +72,7 @@ public final class Ui {
         dim = Color.parseColor(dark ? "#878982" : "#7A7C76");
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
+        accentText = dark ? Color.parseColor("#FF8A8C") : accent;
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");

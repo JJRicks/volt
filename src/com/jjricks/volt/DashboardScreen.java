@@ -320,6 +320,10 @@ public final class DashboardScreen implements AppScreen {
             widget.keys.addAll(Arrays.asList("odometer_km", "driving_mode"));
             overview = new Tile(widget);
             overview.setTag("clean-home-overview");
+            // Clean's battery card fills its fixed-height area (readings along the bottom) and draws Sport in the
+            // accent's text colour, as the Layout Plan does; the widget dashboard's card is unchanged.
+            overview.clean = true;
+            if (overview.overview != null) overview.overview.fill = true;
             chargingHero.setTag("clean-home-charging");
         }
 
@@ -2741,6 +2745,8 @@ public final class DashboardScreen implements AppScreen {
         boolean capacityPending, capacitySample, dragging, showsRange;
         /** Usable ride energy outside any dashboard (EnergyPanel): no reference can be stored, so no Set reference pill. */
         boolean panel;
+        /** Clean Home's battery card (CleanParts): Sport in the accent's text colour. */
+        boolean clean;
         View resizeControl;
         QuickAccessGrid quickAccess, settingTiles;
         OverviewCard overview;
@@ -3713,6 +3719,13 @@ public final class DashboardScreen implements AppScreen {
             final ArrayList<LinearLayout> items = new ArrayList<>();
             int budget, readingColumns, fittedWidth = -1, fittedBudget = -1;
             boolean photoAllowed, fittedPhoto, fittedRange, rangeWanted, rangeFits = true;
+            /**
+             * Clean Home's card (CleanParts): it fills its fixed-height area as the Layout Plan's mock-up does, the
+             * readings along the bottom and the spare height spread above the top row, under it and over the readings
+             * (TopArea.parkedGaps), never one blank band. The photo keeps its size and place in the row (owner,
+             * 6848579838 §1). The widget dashboard's card keeps its own height.
+             */
+            boolean fill;
 
             OverviewCard(List<String> keys) {
                 super(host.activity());
@@ -3803,13 +3816,15 @@ public final class DashboardScreen implements AppScreen {
                 // Refit only when the space changes: repeated budget changes would request layout every frame.
                 if (width == fittedWidth && budget == fittedBudget && photoAllowed == fittedPhoto
                         && rangeWanted == fittedRange) {
-                    super.onMeasure(widthSpec, heightSpec);
+                    spread(widthSpec, heightSpec);
                     return;
                 }
                 fittedWidth = width;
                 fittedBudget = budget;
                 fittedPhoto = photoAllowed;
                 fittedRange = rangeWanted;
+                // Fit with no spread gaps: they are what is left over afterwards.
+                margins(new int[3]);
                 arrangeReadings(width);
                 // The photo only takes width the percentage and range can spare.
                 int photoWidth = Math.min(ui.dp(150), Math.round(width * .42f));
@@ -3834,7 +3849,28 @@ public final class DashboardScreen implements AppScreen {
                     }
                 }
                 speak();
+                spread(widthSpec, heightSpec);
+            }
+
+            /** Clean: the spare height under the budget goes to three gaps (TopArea.parkedGaps); otherwise none. */
+            private void spread(int widthSpec, int heightSpec) {
+                int[] gaps = {0, 0, 0};
+                if (fill && budget > 0) {
+                    margins(gaps);
+                    super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    gaps = TopArea.parkedGaps(budget - getMeasuredHeight());
+                }
+                margins(gaps);
                 super.onMeasure(widthSpec, heightSpec);
+            }
+
+            private void margins(int[] gaps) {
+                int[] base = {0, ui.dp(12), ui.dp(12)};
+                View[] views = {top, bar, readingsBox};
+                for (int i = 0; i < 3; i++) {
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) views[i].getLayoutParams();
+                    if (params.topMargin != base[i] + gaps[i]) params.topMargin = base[i] + gaps[i];
+                }
             }
 
             /** Fits the percentage to what the other lines leave; false when it is over budget at its floor. */
@@ -4420,8 +4456,10 @@ public final class DashboardScreen implements AppScreen {
                                     : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
                         ((View) amount.getParent()).setTooltipText(amount.getContentDescription());
-                    if (key.equals("driving_mode"))
+                    if (key.equals("driving_mode")) {
                         ui.styleDriveMode(amount, text.toString(), live);
+                        if (clean && amount.getCurrentTextColor() == ui.accent) amount.setTextColor(ui.accentText);
+                    }
                 }
             }
             TelemetryHistory.Reading selected = values.get(widget.metric);
