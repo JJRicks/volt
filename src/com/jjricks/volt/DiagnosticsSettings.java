@@ -20,10 +20,10 @@ final class DiagnosticsSettings {
             // Connection and background
             "background_connection", "auto_connect", "poll_interval_ms", "history_enabled",
             // Rides
-            "auto_record_rides", "riding_auto_open",
+            "auto_record_rides", "auto_record_background", "riding_auto_open",
             "ride_auto_stop", "phone_gps", "phone_motion", "ride_auto_export_json",
             // Charging
-            "charge_live_enabled", "charge_live_lock_detail",
+            "charge_live_enabled", "charge_live_lock_detail", "charge_auto_record",
             // Look and units
             "units", "temperature_unit",
             "time_format", "theme", "text_scale", "stats_density", "dashboard_columns", "app_language",
