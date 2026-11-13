@@ -728,6 +728,8 @@ public final class ScooterService extends Service {
             public ChargeScheduleController.Context context(){return chargeScheduleContext();}
             public void clock(Consumer<Boolean> completion){ble.syncClock(completion);}
             public void time(long wallMs,int offsetSeconds,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion);}
+            // sent runs when the frame really goes out: a time write refused at the gate (a status from before a sleep, say) leaves no marker.
+            @Override public void time(long wallMs,int offsetSeconds,Runnable sent,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion,sent);}
             public void enabled(boolean enabled,Consumer<Boolean> completion){ble.setChargeSchedule(enabled,completion);}
         });
         return chargeScheduleController;
@@ -2863,10 +2865,14 @@ public final class ScooterService extends Service {
         liveUpdateBuilt(notice);
         return notice;
     }
-    /** "UT5 MAX · 82%": the connected notification names the scooter and its charge. */
+    /**
+     * "UT5 MAX · 82%": the connected notification names the scooter and its charge, the charge only while that reading is
+     * live by its own rule (BleController.liveNumber). Out of sight the battery is read only for a recording or a watch, and
+     * the link can outlive a sleep, so an older level would read as current: then the notice names the scooter alone.
+     */
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
-        Double battery = ble.telemetry.number("battery_percent");
+        Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
     }

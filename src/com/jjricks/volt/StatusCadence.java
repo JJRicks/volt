@@ -54,6 +54,14 @@ public final class StatusCadence {
     }
 
     /**
+     * A reading taken at readMs (elapsed clock; 0 or less: none) is live at nowMono under freshMs (readingFreshMs's answer
+     * for its own rule): for anything that shows the value as current. Elapsed, so a reading from before a sleep is not live.
+     */
+    public static boolean live(long readMs, long nowMono, long freshMs) {
+        return readMs > 0 && nowMono >= readMs && nowMono - readMs <= freshMs;
+    }
+
+    /**
      * The link is up on this cadence. up: everything else ready() requires (work allowed, READY, authenticated,
      * a GATT client and a serial); statusMs: when the last status read arrived, 0 for none.
      */

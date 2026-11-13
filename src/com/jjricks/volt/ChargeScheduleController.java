@@ -28,6 +28,11 @@ public final class ChargeScheduleController {
         Context context();
         void clock(Consumer<Boolean> completion);
         void time(long wallMs, int offsetSeconds, Consumer<Boolean> completion);
+        /**
+         * The same write; sent runs once if and when its frame goes out, before completion, and never for one refused or
+         * dropped unsent. A driver that can't tell runs it first, which keeps the marker saved before the write as before.
+         */
+        default void time(long wallMs, int offsetSeconds, Runnable sent, Consumer<Boolean> completion) { sent.run(); time(wallMs, offsetSeconds, completion); }
         void enabled(boolean enabled, Consumer<Boolean> completion);
     }
     // Why the View's controls are blocked, in English: the View keeps these as ids (it is checked for null and compared
@@ -429,9 +434,10 @@ public final class ChargeScheduleController {
             }
             // A transmitted calculated time may apply despite a lost confirmation.
             // Retain its identity across restart so its later readback cannot replace
-            // the separate manual preference during reconciliation.
-            if(deadlineTarget!=null){State s=state(c);s.calculatedWire=start/1000+offset;save(c,s);}
-            driver.time(start,offset,time->{
+            // the separate manual preference during reconciliation. Marked as it goes out:
+            // a write refused before transmission (a stale status after a sleep) leaves none.
+            Runnable sent=deadlineTarget==null?()->{}:()->{State s=state(c);s.calculatedWire=start/1000+offset;save(c,s);};
+            driver.time(start,offset,sent,time->{
                 if(!valid(c,token,completion))return;
                 if(!time){finishBusy();completion.accept(T.chargingScheduleStartNotConfirmed());return;}
                 // This is a confirmed partial change even if enabling later fails. Keep its time,

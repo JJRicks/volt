@@ -31,6 +31,8 @@ public final class LinkFreshnessTest {
     private static final long S = 1000L, T0 = 1_000_000L, REPLY = 300L, STEP = 50L, WALL0 = 1_792_472_400_000L;
 
     public static void main(String[] args) throws Exception {
+        // Names run only those parts of the sleep audit (to show each one failing against older sources).
+        if (args.length > 0) { for (String a : args) audit(a);System.out.println("LinkFreshnessTest " + Arrays.toString(args) + ": " + checks + " checks passed");return; }
         source();
         rules();
         readingRuleIsExact();
@@ -50,6 +52,7 @@ public final class LinkFreshnessTest {
         scheduleAcrossSleep();
         wakeWindowEdges();
         noRenewal();
+        for (String a : AUDIT) audit(a);
         System.out.println("LinkFreshnessTest: " + checks + " checks passed");
     }
 
@@ -782,5 +785,220 @@ public final class LinkFreshnessTest {
                     && r.failedUp - answeredUp <= StatusCadence.SILENCE_SLOW_MS + every, "lost at the first switch past 35 s of awake silence: " + what + " " + (r.failedUp - answeredUp) + " " + r.log);
             check(ticks == 0, "no poll ever fired in between: " + what);
         }
+    }
+
+    // ---- The sleep audit (the session now outlives a sleep) -----------------------------------------------------
+    //
+    // The rule: silence that judges the link, or a request's own timeout, counts awake time only; anything that shows or
+    // acts on a value judges it by that value's own freshness on the elapsed clock. "Before" below is 5f27730a, which fed
+    // the elapsed clock to ReadPolicy and the compatibility check, showed any stored battery level in the notice, and
+    // saved the calculated-start marker before a time write the gate could still refuse. Run one part with its name as
+    // an argument; sourceAudit pins the BleController and ScooterService lines the parts mirror.
+
+    static final String[] AUDIT = {"sourceAudit", "readsAcrossSleep", "checkAcrossSleep", "noticeBattery", "scheduleMarker"};
+
+    private static void audit(String name) throws Exception {
+        switch (name) {
+            case "sourceAudit": sourceAudit();break;
+            case "readsAcrossSleep": readsAcrossSleep();break;
+            case "checkAcrossSleep": checkAcrossSleep();break;
+            case "noticeBattery": noticeBattery();break;
+            case "scheduleMarker": scheduleMarker();break;
+            default: throw new IllegalArgumentException(name);
+        }
+    }
+
+    private static void sourceAudit() throws Exception {
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        check(ble.contains("private static long awake(){return SystemClock.uptimeMillis();}"), "BleController has the awake clock for request timeouts");
+        check(ble.contains("readPolicy.requested(cmd,awake());") && ble.contains("readPolicy.responded(f.cmd,f.error(),f.data.length-1,awake());")
+                && ble.contains("if(readPolicy!=null)readPolicy.tick(awake());"), "ReadPolicy hears every request, reply and tick on the awake clock");
+        check(!ble.contains("readPolicy.requested(cmd,now())") && !ble.contains("readPolicy.tick(now())") && !ble.contains("f.data.length-1,now())"),
+                "no ReadPolicy or check call is left on the elapsed clock");
+        check(ble.contains("discovery=new DiscoveryCoordinator(awake(),") && ble.contains("owner.transmitted(cmd,awake())")
+                && ble.contains("discovery.onFrame(f.cmd,f.error(),f.data.length-1,awake());") && ble.contains("discovery.onDisconnect(awake());")
+                && ble.contains("discovery.interrupt(awake());") && ble.contains("if(!discovering||session!=generation)return;\n        long t=awake();"),
+                "the compatibility check starts, sends, hears, ticks and ends on the awake clock");
+        check(ble.contains("public Double liveNumber(String key){for(Telemetry.Metric m:telemetry.metrics())if(m.key.equals(key))return StatusCadence.live(m.updatedMs,now(),readingFreshMs(TelemetryHistory.freshnessMs(key)))?m.numericValue:null;return null;}"),
+                "liveNumber: a reading only while live by its own rule, on the elapsed clock");
+        int refused = ble.indexOf("if(result!=0){writing=false;if(mutation!=null&&Arrays.equals(frame,mutation.bytes))mutation.sent=false;");
+        String run = "if(mutation!=null&&Arrays.equals(frame,mutation.bytes)&&mutation.sentHook!=null){Runnable hook=mutation.sentHook;mutation.sentHook=null;hook.run();}";
+        int hook = ble.indexOf(run);
+        check(refused > 0 && hook > refused && ble.indexOf("sentHook.run()") < 0 && ble.indexOf("hook.run()", hook + run.length()) < 0, "the sent hook runs once, only after Bluetooth took the frame");
+        check(ble.contains("mutation.completion=completion;mutation.sentHook=sent;") && ble.contains("begin(request,null,0,ScooterCommands.setChargeStart(seconds,offset),seconds+offset,completion,sent);")
+                && ble.contains("simulation.setChargeStart(seconds,offset);if(sent!=null)sent.run();"), "a charge start write carries its hook; the simulator's write counts as sent");
+        String svc = read("src/com/jjricks/volt/ScooterService.java");
+        check(svc.contains("Double battery = ble.liveNumber(\"battery_percent\");") && !svc.contains("ble.telemetry.number(\"battery_percent\")"),
+                "the connected notice shows the battery only while that reading is live");
+        check(svc.contains("@Override public void time(long wallMs,int offsetSeconds,Runnable sent,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion,sent);}"),
+                "the service passes the hook to the radio");
+    }
+
+    /** ReadPolicy fed the awake clock (now) or the elapsed one (before), with a scooter that answers after REPLY awake ms. */
+    static final class Reads {
+        final Clock clock = new Clock(T0);
+        final boolean before;
+        final ReadPolicy policy = ReadPolicy.forLayer(ModelRegistry.Layer.OEM_GROUP);
+        boolean answering = true;
+        Reads(boolean before) { this.before = before; }
+        long t() { return before ? clock.now : clock.up; }
+        void request(int cmd) {
+            policy.requested(cmd, t());
+            if (answering) clock.post(() -> policy.responded(cmd, 0, 36, t()), REPLY);
+        }
+        void awake(long ms) { clock.runUntil(clock.now + ms); }
+    }
+
+    /**
+     * Finding 1. Volt is glanced at twice (on for 150 ms each time, the phone asleep in between) while a battery read is
+     * on its way: the resume refresh asks again at each wake, which counts whatever is outstanding. Before, each sleep
+     * counted as one 2.5 s silence, so the second wake suppressed 0x72 for the session, though the scooter answered
+     * every read 300 ms after it. Now only awake time counts. A read really ignored for 2.5 s awake twice, even with
+     * sleeps in between, is still suppressed, and stays so when a late answer comes (ReadPolicyTest pins that).
+     */
+    private static void readsAcrossSleep() {
+        for (long sleep : new long[]{5 * S, 10 * 60 * S}) for (boolean before : new boolean[]{false, true}) {
+            Reads r = new Reads(before);
+            r.request(0x72);r.awake(150);
+            r.clock.sleep(sleep);r.request(0x72);r.awake(100);
+            r.clock.sleep(sleep);r.request(0x72);r.awake(5 * S);r.policy.tick(r.t());
+            if (before) { check(!r.policy.allowed(0x72) && r.policy.suppressed().contains(0x72), "5f27730a suppressed an answered battery read after a " + sleep + " sleep");continue; }
+            check(r.policy.allowed(0x72) && r.policy.suppressed().isEmpty() && r.policy.answered(0x72), "answered reads stay allowed across a " + sleep + " sleep");
+        }
+        // Really ignored: 2.6 s awake per request, split by sleeps; the second silence suppresses it.
+        for (long sleep : new long[]{0, 10 * 60 * S}) {
+            Reads r = new Reads(false);r.answering = false;
+            r.request(0x72);r.awake(S);r.clock.sleep(sleep);r.awake(1_600);r.policy.tick(r.t());
+            check(r.policy.allowed(0x72), "one silence is not enough");
+            r.request(0x72);r.awake(2 * S);r.clock.sleep(sleep);r.awake(600);r.request(0x72);
+            check(!r.policy.allowed(0x72), "ignored twice while awake: suppressed (sleep " + sleep + ")");
+            r.policy.responded(0x72, 0, 36, r.t());
+            check(!r.policy.allowed(0x72), "and a late answer does not bring it back this session");
+        }
+    }
+
+    /** One compatibility check, as discoveryTick runs it every 100 ms awake, with a sleep of sleepMs at sleepAt awake ms. */
+    private static List<String> runCheck(boolean before, long sleepAt, long sleepMs) {
+        Clock clock = new Clock(T0);
+        long[] t = new long[1];
+        Runnable stamp = () -> t[0] = before ? clock.now : clock.up;
+        stamp.run();
+        DiscoveryCoordinator d = new DiscoveryCoordinator(t[0]);
+        long startUp = clock.up;boolean slept = sleepAt < 0;
+        for (int i = 0; i < 2000; i++) {
+            stamp.run();
+            Integer cmd = d.nextRead(t[0]);
+            if (cmd != null && d.transmitted(cmd, t[0])) {
+                // Lengths as BleController.simulatedReply; 0x71 and 0x75 stay silent.
+                int c = cmd, length = c == 0x74 ? 17 : c == 0x70 ? 43 : c == 0x73 ? 40 : c == 0x72 ? 36 : c == 0x76 ? 16 : c == 0x7b ? 8 : c == 0x79 ? 2 : -1;
+                if (length >= 0) clock.post(() -> { stamp.run();d.onFrame(c, 0, length, t[0]); }, REPLY);
+            }
+            if (d.finished(t[0])) break;
+            clock.runUntil(clock.now + 100);
+            if (!slept && clock.up - startUp >= sleepAt) { clock.sleep(sleepMs);slept = true; }
+        }
+        List<String> out = new ArrayList<>();
+        for (DiscoveryCoordinator.Read r : d.reads()) {
+            boolean suppress = r.outcome == DiscoveryCoordinator.Outcome.NO_RESPONSE && r.attempts >= DiscoveryCoordinator.maxAttempts(r.cls);
+            out.add(r + " x" + r.attempts + (r.late ? " late" : "") + (suppress ? " suppressed" : ""));
+        }
+        return out;
+    }
+
+    /**
+     * Audit fix. The compatibility check is not stopped by leaving sight, so the phone can sleep during one. Before, the
+     * sleep counted against the read in flight (and the 30 s cap): a 5 s sleep ended a one-try probe as NO_RESPONSE,
+     * which also suppressed that read for the session (BleController.finishDiscovery), and a long sleep ended the whole
+     * check with reads the scooter answers marked NO_RESPONSE or INTERRUPTED. Now a sleep at any point changes nothing.
+     */
+    private static void checkAcrossSleep() {
+        List<String> plain = runCheck(false, -1, 0);
+        check(plain.equals(runCheck(true, -1, 0)), "no sleep: the two clocks agree " + plain);
+        for (String r : plain) check(r.startsWith("0x71") || r.startsWith("0x75") ? r.contains("NO_RESPONSE x1 suppressed") : r.contains("READ_SUPPORTED x1") && !r.contains("late"), "answered once, on time: " + r);
+        int wrong = 0, falseSuppressed = 0;
+        for (long sleepAt = 0; sleepAt <= 12 * S; sleepAt += 100) for (long sleep : new long[]{5 * S, 10 * 60 * S}) {
+            List<String> now = runCheck(false, sleepAt, sleep);
+            check(now.equals(plain), "a " + sleep + " sleep at " + sleepAt + " changes nothing " + now);
+            List<String> old = runCheck(true, sleepAt, sleep);
+            if (!old.equals(plain)) wrong++;
+            for (int i = 0; i < old.size(); i++) if (old.get(i).contains("suppressed") && !plain.get(i).contains("suppressed")) falseSuppressed++;
+        }
+        check(wrong > 50 && falseSuppressed > 0, "5f27730a: a sleep changed the outcome in " + wrong + " runs, suppressing an answered read in " + falseSuppressed);
+    }
+
+    /**
+     * Finding 2. The connected notice, "UT5 MAX · 82%": the battery is read with every in-sight poll and not out of sight
+     * (no recording, no watch). The link outlives a ten-minute sleep; on the wake the notice names the scooter alone until
+     * a fresh reading, by the reading's own rule (20 s out of sight, BleController.liveNumber). Before, the level from
+     * before the sleep was shown as current. Back in sight, the resume refresh's reading brings it back.
+     */
+    private static void noticeBattery() {
+        for (boolean before : new boolean[]{false, true}) {
+            Rig r = new Rig(NEW);long[] battery = new long[1];
+            r.onStatus.add(() -> { if (r.fast()) battery[0] = r.now(); });
+            r.visibility(true, false);r.connect();r.run(T0 + 60 * S);
+            r.visibility(false, false);long left = r.now();
+            java.util.function.BooleanSupplier shown = () -> before || StatusCadence.live(battery[0], r.now(), StatusCadence.readingFreshMs(15 * S, r.chain.fast(), r.chain.fastSinceMs(), r.now()));
+            r.run(left + 17 * S);
+            check(r.linkUp() && shown.getAsBoolean(), "just out of sight: name and battery");
+            r.sleep(10 * 60 * S);r.run(r.now() + S);
+            check(r.linkUp() && !r.failed(), "the link outlived the sleep");
+            if (before) { check(shown.getAsBoolean(), "5f27730a showed a level from before the sleep as current");continue; }
+            check(!shown.getAsBoolean(), "after the sleep: the scooter's name alone");
+            long back = r.now();r.visibility(true, false);r.run(back + S);
+            check(shown.getAsBoolean() && battery[0] > back, "back in sight: the fresh level again");
+        }
+    }
+
+    /** ChargeScheduleController's Done by, with a driver that sends only through BleController's 7 s gate. */
+    static final class Marker implements ChargeScheduleController.Store, ChargeScheduleController.Driver {
+        final Clock clock = new Clock(T0);
+        final Map<String, String> saved = new HashMap<>();
+        final ChargeScheduleController.Context c = new ChargeScheduleController.Context();
+        final ChargeScheduleController controller;
+        final List<String> sent = new ArrayList<>(), results = new ArrayList<>();
+        long statusMs = T0;boolean confirms = true;
+        Consumer<Boolean> pending;
+        Marker() {
+            c.scope = "owner-A";c.ready = true;c.generation = 1;c.now = java.time.Instant.parse("2026-10-20T05:00:00Z").toEpochMilli();c.zone = TimeZone.getTimeZone("America/Boise");
+            c.charging = 1;c.enabled = 0;c.soc = 79d;c.target = 100d;c.estimateMinutes = 90d;c.sampleMs = 100_000;
+            controller = new ChargeScheduleController(this, this);
+        }
+        boolean gate() { return clock.now - statusMs <= 7000; }
+        long marker() { String s = saved.get("owner-A");return s == null ? 0 : ChargeScheduleController.decode(s).calculatedWire; }
+        public String read(String key) { return saved.get(key); }
+        public void write(String key, String value) { saved.put(key, value); }
+        public ChargeScheduleController.Context context() { return c; }
+        public void clock(Consumer<Boolean> done) { if (!gate()) { done.accept(false);return; } sent.add("clock");pending = done; }
+        public void time(long wall, int offset, Consumer<Boolean> done) { time(wall, offset, () -> {}, done); }
+        /** BleController.setChargeStart: refused at the gate before anything goes out, or sent (the hook) and then confirmed or not. */
+        public void time(long wall, int offset, Runnable hook, Consumer<Boolean> done) {
+            if (!gate()) { done.accept(false);return; }
+            sent.add("time");hook.run();pending = done;
+        }
+        public void enabled(boolean on, Consumer<Boolean> done) { if (!gate()) { done.accept(false);return; } sent.add(on ? "on" : "off");pending = done; }
+        void reply(boolean ok) { Consumer<Boolean> done = pending;pending = null;done.accept(ok); }
+    }
+
+    /**
+     * Finding 3. A Done by start is being sent out of sight: the clock write goes on a fresh status, the phone sleeps
+     * before its confirmation, and on the wake (link still up, so the change carries on) the time write meets a status
+     * from before the sleep and is refused before anything is sent. Before, the calculated-start marker was saved first
+     * and stayed for a write that never went out. Now it is saved when the frame is handed to Bluetooth: none for the
+     * refused write; a sent write keeps it even when its confirmation is lost, as ChargeScheduleController requires.
+     */
+    private static void scheduleMarker() {
+        Marker m = new Marker();
+        m.controller.setDoneEnabled(true, m.results::add);
+        check(m.sent.equals(Arrays.asList("clock")), "the clock write went out " + m.sent);
+        m.clock.sleep(10 * 60 * S);m.reply(true);
+        check(m.sent.equals(Arrays.asList("clock")) && m.results.size() == 1 && m.results.get(0) != null, "the time write was refused at the gate " + m.sent + " " + m.results);
+        check(m.marker() == 0, "no marker for a write that never went out (5f27730a kept " + m.marker() + ")");
+        // On a fresh status: the time write goes out and its confirmation is lost.
+        Marker lost = new Marker();
+        lost.controller.setDoneEnabled(true, lost.results::add);lost.reply(true);
+        check(lost.sent.equals(Arrays.asList("clock", "time")) && lost.marker() > 0, "a sent time write is marked " + lost.sent);
+        long marked = lost.marker();lost.reply(false);
+        check(lost.marker() == marked && lost.results.size() == 1 && lost.results.get(0) != null, "and keeps its marker when its confirmation is lost");
     }
 }
