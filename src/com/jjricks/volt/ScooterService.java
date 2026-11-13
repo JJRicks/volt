@@ -75,6 +75,8 @@ public final class ScooterService extends Service {
     private long chargeEndingMono;
     private ChargeRecoveryPolicy chargeRecovery;
     private CharSequence chargeStatus = M.serviceChargeNone();
+    /** The status finishChargeCapture last set; chargeStatusIsOutcome compares by identity, so any newer status ends it. */
+    private CharSequence chargeOutcome;
     private final ExecutorService chargeWorker = Executors.newSingleThreadExecutor(r -> new Thread(r,"charge-curve-analysis"));
     private PhoneRideRecorder phoneRecorder;private boolean phoneLocationForeground;private int phoneSavingCount;private String phoneFinalStatus;
     /** The finished recorder's statusFlags(), beside phoneFinalStatus (its English status). */
@@ -155,7 +157,8 @@ public final class ScooterService extends Service {
                 if (key == null) return;
                 if (key.equals(ChargeAutoRecordPolicy.KEY)) {
                     // Record charges automatically: turning it on looks at once (observeAutoCharge), so a charge already under way starts.
-                    Runnable look = () -> { if (!destroyed) changed(); };
+                    // Turning it on also releases a refusal for lack of room (Terra's review of #416, finding 1): it tries again.
+                    Runnable look = () -> { if (destroyed) return; if (autoChargeEnabled()) releaseAutoChargeNoRoom(null); changed(); };
                     if (Looper.myLooper() == Looper.getMainLooper()) look.run();
                     else handler.post(look);
                     return;
@@ -498,7 +501,8 @@ public final class ScooterService extends Service {
     public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null);}
     /**
      * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start. An
-     * automatic start that finds no room (every saved recording is manual) does not start and changes no status.
+     * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
+     * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
      */
     private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source){
         if(isChargeRecording())return false;
@@ -507,7 +511,8 @@ public final class ScooterService extends Service {
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
             if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
-            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,wall,mono))return false;
+            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,wall,mono)){
+                autoChargeNoRoom.add(activeProfileId());chargeStatus=M.serviceChargeAutoNoRoom();changed();return false;}
             chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
             ble.recordDiagnostic(ConnectionEventLog.Reason.CHARGE_STARTED,-1);
@@ -522,6 +527,12 @@ public final class ScooterService extends Service {
     private boolean autoChargeEnabled(){return settings!=null&&settings.getBoolean(ChargeAutoRecordPolicy.KEY,false);}
     /** Scooters whose automatic start failed (storage, or no room beside manual recordings), until they stop charging. */
     private final Set<String> autoChargeLatched=new HashSet<>();
+    /** The latched scooters whose refusal was for lack of room: released when room appears or the switch is turned on. */
+    private final Set<String> autoChargeNoRoom=new HashSet<>();
+    /** Releases a lack-of-room latch, for one scooter or (null) all, so the next look tries again. */
+    private void releaseAutoChargeNoRoom(String profile){
+        for(String id:new ArrayList<>(autoChargeNoRoom))if(profile==null||profile.equals(id)){autoChargeNoRoom.remove(id);autoChargeLatched.remove(id);}
+    }
     private boolean autoChargeBusy;
     /**
      * A hand stop holds its scooter until it stops charging (ChargeAutoRecordPolicy.holdsAfterHandStop: an automatic
@@ -535,7 +546,7 @@ public final class ScooterService extends Service {
         if(profile!=null&&holds.add(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).commit();
     }
     private void clearAutoChargeHold(String profile){
-        autoChargeLatched.remove(profile);
+        autoChargeLatched.remove(profile);autoChargeNoRoom.remove(profile);
         Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
         if(holds.remove(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).apply();
     }
@@ -598,14 +609,31 @@ public final class ScooterService extends Service {
             if(!startChargeRecording(label.charger,label.source)&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
+    /**
+     * The status is still the outcome of the recording that just ended (saved, not kept, stopped): the page shows it in
+     * place of the reason a new one can't start, until any newer status replaces it (Terra's review of #416, finding 2).
+     */
+    public boolean chargeStatusIsOutcome(){return chargeOutcome!=null&&chargeOutcome==chargeStatus;}
+    /**
+     * The page shows that outcome in place of why a new recording can't start only when the reason follows from the charge
+     * having ended (waiting for charging readings, battery full); any other reason, such as a ride, is shown (Terra's
+     * review of #416 at 39f813dd).
+     */
+    public boolean chargeOutcomeOverReason(){
+        if(!chargeStatusIsOutcome())return false;
+        CharSequence why=chargeCaptureBlocked();
+        return why==null||M.serviceChargeWaitReadings().equals(why)||M.serviceChargeBatteryFull().equals(why);
+    }
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
             return T.serviceChargeReconnecting(Fmt.integer(Math.max(1,(chargeRecovery.remainingMs(SystemClock.elapsedRealtime())+999)/1000)));
-        return (chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
+        String status=(chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
                         :chargeStore.paused()?T.serviceChargeStockSchedulePaused():T.serviceChargeStockSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount())))
                 :(chargeStore.chargerPaused()?T.serviceChargeFastChargerPaused()
                         :chargeStore.paused()?T.serviceChargeFastSchedulePaused():T.serviceChargeFastSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount()))));
+        // A guessed label names a charger nobody chose and detection has not settled: say so.
+        return chargeStore.labelSource()==ChargeSessionStore.LabelSource.GUESS?T.serviceChargeChargerGuessed(status):status;
     }
     /** Qualified sessions behind the curve estimates actually use; 0 while the charger is unknown, -1 while loading. */
     public int qualifiedChargeCurves(){
@@ -628,6 +656,9 @@ public final class ScooterService extends Service {
             try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=M.serviceChargeClearFailed();}
             final CharSequence message=error;final ChargeSessionStore.Snapshot result=snapshot;
             handler.post(()->{if(destroyed)return;chargeModelLoading=false;if(result!=null)chargeSnapshot=result;
+                // Room now: a charge refused for lack of it records after all (Terra's review of #416, finding 1). The
+                // twenty are shared by every scooter, so every scooter's refusal goes (its review at 39f813dd).
+                if(message==null)releaseAutoChargeNoRoom(null);
                 chargeStatus=message==null?M.serviceChargeCleared():message;changed();if(completion!=null)completion.run();});});return true;
     }
     public boolean chargeExporting(){return chargeExporting;}
@@ -762,11 +793,12 @@ public final class ScooterService extends Service {
         ble.recordDiagnostic(reason==ChargeSessionStore.Stop.RECOVERY_TIMEOUT?ConnectionEventLog.Reason.CHARGE_RECOVERY_TIMEOUT
                 :reason==ChargeSessionStore.Stop.IDENTITY_CHANGED||reason==ChargeSessionStore.Stop.PROFILE_CHANGED?ConnectionEventLog.Reason.CHARGE_WRONG_SCOOTER
                 :recovering?ConnectionEventLog.Reason.CHARGE_RECOVERY_CANCELLED:ConnectionEventLog.Reason.CHARGE_STOPPED,-1);
-        // An automatic recording too short to keep is deleted (ChargeAutoRecordPolicy.keep): never "saved" for it.
-        try{boolean kept=chargeStore.stop(reason);chargeStatus=kept&&reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
-                :kept&&reason==ChargeSessionStore.Stop.STOPPED?M.serviceChargeSaved():reason==ChargeSessionStore.Stop.ERROR?M.serviceChargeStorageError()
+        // An automatic recording too short to keep is deleted (ChargeAutoRecordPolicy.keep): "not kept", never "saved".
+        try{boolean kept=chargeStore.stop(reason);chargeStatus=!kept?M.serviceChargeNotKept():reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
+                :reason==ChargeSessionStore.Stop.STOPPED?M.serviceChargeSaved():reason==ChargeSessionStore.Stop.ERROR?M.serviceChargeStorageError()
                 :M.serviceChargeStoppedReason(stopLabel(reason,reason.name().toLowerCase(Locale.ROOT).replace('_',' ')));}
         catch(IOException failure){chargeStatus=M.serviceChargeNotFinalized();}
+        chargeOutcome=chargeStatus;
         // Recovery owns the reconnect attempt. Stop/timeout cancels it even when the UI or
         // ordinary background connection preference would otherwise keep retrying.
         if(recovering)ble.suspend();
