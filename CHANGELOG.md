@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **OpenStreetMap is now the default basemap**, instead of USGS Topo, which covers only the United States and left ride maps elsewhere empty with **Map tiles unavailable (HTTP 404)**. The basemap still starts off, and the one-time explanation before the first map tiles now names the provider you'll get. If you already turned the basemap on with USGS Topo as the default, you keep USGS Topo, and a provider you chose yourself never changes, also after restoring a backup. In **Map settings**, OpenStreetMap now comes first.
+- **OpenStreetMap is now the default basemap**, instead of USGS Topo, which covers only the United States and left ride maps elsewhere empty with **Map tiles unavailable (HTTP 404)**. The basemap still starts off, and the one-time explanation before the first map tiles now names the provider you'll get. If you already turned the basemap on with USGS Topo as the default, you keep USGS Topo, and a provider you chose yourself never changes, also after restoring a backup. The first time you then open a map of a ride outside the United States, Volt asks once whether to **Switch** to OpenStreetMap or **Keep USGS**. In **Map settings**, OpenStreetMap now comes first.
 
 ## 1.13.1 — 2026-11-11
 

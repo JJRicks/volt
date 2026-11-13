@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.view.Gravity;
@@ -9,6 +10,10 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.Consumer;
 
 /** Map privacy/provider preferences shared by App preferences and ride rendering. */
@@ -43,10 +48,13 @@ public final class MapPreferences {
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
             toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(T.mapsBasemap());
             ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
+            // The old-default USGS pin is written down before anything here can turn the basemap off (MapSource.keepPin).
+            MapSource.keepPin(settings);
             refresh();
             toggle.setOnCheckedChangeListener((button, on) -> {
                 if (updating) return;
                 if (!on) {
+                    MapSource.keepPin(settings);
                     settings.edit().putBoolean("map_basemap_enabled", false).apply();
                     refresh();
                 } else if (settings.getBoolean("map_basemap_explained", false)) {
@@ -157,6 +165,7 @@ public final class MapPreferences {
             addView(selector, selectorParams);
             edit = ui.secondaryButton(T.mapsEditCustom(), () -> custom(host, this::customClosed));
             addView(edit);
+            MapSource.keepPin(settings);
             refresh();
         }
 
@@ -178,6 +187,7 @@ public final class MapPreferences {
         }
 
         private void chose(int choice) {
+            if (choice == 0) MapSource.keepPin(settings);
             if (choice == 0) { settings.edit().putBoolean("map_basemap_enabled", false).apply(); refresh(); return; }
             if (choice == 3 && !customSaved()) { custom(host, this::customClosed); return; }
             if (choice == 1) MapSource.OSM.save(settings);
@@ -212,12 +222,96 @@ public final class MapPreferences {
     /**
      * Saves the answer to the one-time offer to leave USGS (MapDefault.offersSwitch) as the person's own
      * choice, in one commit with the mark that it was answered, so it is never asked again, also after a
-     * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS.
+     * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS. An answer
+     * already saved stays: a later one changes nothing.
      */
     static void answerUsgsSwitch(SharedPreferences settings, boolean switchToOsm) {
+        if (settings.getBoolean(MapDefault.SWITCH_ANSWERED_KEY, false)) return;
         SharedPreferences.Editor answer = settings.edit().putBoolean(MapDefault.SWITCH_ANSWERED_KEY, true);
         (switchToOsm ? MapSource.OSM : MapSource.USGS).put(answer);
         answer.apply();
+    }
+
+    /** The open offer to leave USGS, at most one per activity, and the maps that asked for it (OneQuestion). */
+    private static final OneQuestion<AlertDialog> SWITCH_QUESTION = new OneQuestion<>();
+    /** Each asking map's watch on its window, so the offer closes quietly once every asking map has left. */
+    private static final Map<View, View.OnAttachStateChangeListener> SWITCH_ASKERS = new WeakHashMap<>();
+
+    /**
+     * Asks once whether someone on USGS by the old default (MapSource.usgsByDefault) wants OpenStreetMap, when
+     * the basemap shows a ride lying wholly outside USGS coverage (MapDefault.asksToLeaveUsgs). map is the map
+     * that asks: the offer is checked again when it would show, once map is in its window, and it lives only as
+     * long as some asking map stays there. Switch or Keep USGS, or Back on the offer itself, is saved as the
+     * person's own choice, and only the first answer counts (OneQuestion, answerUsgsSwitch); open maps follow
+     * through RidesScreen.mapPanel's provider listener. Closed with its screen, it records nothing and asks again.
+     */
+    static void offerOsmSwitch(ScreenHost host, View map, List<PhoneRideStore.Point> points) {
+        SharedPreferences settings = host.service().settings;
+        double[] latitudes = new double[points.size()], longitudes = new double[points.size()];
+        for (int i = 0; i < points.size(); i++) { latitudes[i] = points.get(i).latitude; longitudes[i] = points.get(i).longitude; }
+        // A view's post waits until it is in a window, and never runs if it never gets there.
+        map.post(() -> {
+            Activity activity = host.activity();
+            if (activity.isFinishing() || activity.isDestroyed() || !map.isAttachedToWindow()) return;
+            AlertDialog open = SWITCH_QUESTION.current(activity);
+            if (open != null && !open.isShowing()) { SWITCH_QUESTION.closed(open); open = null; }
+            if (open != null) { SWITCH_QUESTION.join(activity, map); watchSwitchAsker(map); return; }
+            if (!MapDefault.asksToLeaveUsgs(MapSource.usgsByDefault(settings), enabled(settings),
+                    settings.getBoolean(MapDefault.SWITCH_ANSWERED_KEY, false), MapDefault.anyInUsgsArea(latitudes, longitudes))) return;
+            Ui ui = host.ui();
+            LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
+            body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
+            body.addView(ui.text(T.mapsSwitchOsmTitle(), 21, true));
+            TextView message = ui.text(T.mapsSwitchOsmMessage(), 15, false);
+            message.setPadding(0, ui.dp(12), 0, 0); body.addView(message);
+            ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll)
+                    .setNegativeButton(T.mapsSwitchOsmKeep(), (d, which) -> answerSwitchQuestion((AlertDialog) d, settings, false))
+                    .setPositiveButton(T.mapsSwitchOsmSwitch(), (d, which) -> answerSwitchQuestion((AlertDialog) d, settings, true)).create();
+            // Back answers Keep USGS; a stray tap beside the dialog answers nothing. Volt itself only ever
+            // dismisses it (closeSwitchQuestion), which never calls this.
+            dialog.setOnCancelListener(d -> answerSwitchQuestion(dialog, settings, false));
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.setOnDismissListener(d -> switchQuestionClosed(dialog));
+            dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline));
+            closeSwitchQuestion(SWITCH_QUESTION.opened(activity, map, dialog));
+            watchSwitchAsker(map);
+            Motion.present(dialog, Motion.DIALOG); dialog.show();
+            for (int which : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE}) {
+                dialog.getButton(which).setTextColor(ui.accent);
+                dialog.getButton(which).setTypeface(ui.semibold());
+            }
+        });
+    }
+
+    /** An answer on question: saved only when it is the first (OneQuestion.answer); every other open copy closes quietly. */
+    private static void answerSwitchQuestion(AlertDialog question, SharedPreferences settings, boolean switchToOsm) {
+        List<AlertDialog> others = new ArrayList<>();
+        if (SWITCH_QUESTION.answer(question, others)) answerUsgsSwitch(settings, switchToOsm);
+        for (AlertDialog other : others) closeSwitchQuestion(other);
+    }
+
+    private static void switchQuestionClosed(AlertDialog question) { SWITCH_QUESTION.closed(question); }
+
+    /** Closes the offer without an answer (dismiss, never cancel), so it is asked again the next time it applies. */
+    private static void closeSwitchQuestion(AlertDialog question) {
+        if (question == null) return;
+        SWITCH_QUESTION.closed(question);
+        // The window may already be gone with a destroyed activity; then there is nothing left to close.
+        try { if (question.isShowing()) question.dismiss(); } catch (RuntimeException gone) { }
+    }
+
+    /** Once map leaves its window, it no longer asks; the offer closes quietly when no asking map is left. */
+    private static void watchSwitchAsker(View map) {
+        if (SWITCH_ASKERS.containsKey(map)) return;
+        View.OnAttachStateChangeListener watch = new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { }
+            @Override public void onViewDetachedFromWindow(View view) {
+                view.removeOnAttachStateChangeListener(this); SWITCH_ASKERS.remove(view);
+                closeSwitchQuestion(SWITCH_QUESTION.left(view));
+            }
+        };
+        SWITCH_ASKERS.put(map, watch); map.addOnAttachStateChangeListener(watch);
     }
 
     public static AlertDialog show(ScreenHost host) {
