@@ -394,6 +394,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
     private void rideAwayOutOfSight() {
         main(() -> settings().edit().putBoolean("background_connection", false).putBoolean(ScooterService.CHARGE_LIVE_ENABLED, false)
                 .putBoolean("auto_record_rides", true).putBoolean("auto_record_background", true).commit());
+        // Earlier steps stopped rides by hand, which holds Record rides automatically until the next connection
+        // (AutoStartPolicy.riderStoppedRecording). The fixture keeps one link throughout, so clear it as a reconnect would.
+        main(() -> set(field(service, "autoStart"), "recordHeld", false));
         ensureFront();
         plugIn();
         awaitRecording(10 * S, "before riding away out of sight");
