@@ -556,6 +556,39 @@ public final class ShortcutPickerValidation extends Instrumentation {
             nodes.add("alerts tile, three in a row: shown=" + texts(cell));
         });
         shot("alerts-tiles-three");
+
+        // Four Setting tiles in one row, only the low alert on: "Low 20%" where it fits, else the shorter whole value
+        // "On", never an ellipsis. The value changes from Off with nothing else moving, so this also needs the tile to
+        // be measured again on a value change (#465 review).
+        main(() -> {
+            DashboardConfig config = new DashboardConfig(settings(), gt3);
+            for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) {
+                w.quickActions.clear(); w.quickActions.addAll(Arrays.asList(ALERTS, "feature:headlight", "charge_done_by", "feature:cruise_control"));
+            }
+            config.save();
+        });
+        choose(gt3); home();
+        await(() -> texts(tile(ALERTS)).contains("Off"), "Four tiles: the alerts tile does not read Off before the change");
+        main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF.low(true, 20)), "Could not save the low alert alone (four tiles)"));
+        await(() -> String.valueOf(tile(ALERTS).getContentDescription()).contains("Low 20%"), "Four tiles: the tile is not spoken as Low 20%");
+        settle();
+        main(() -> {
+            View cell = tile(ALERTS);
+            TextView value = (TextView) field(cell, "value");
+            String shown = value.getText().toString();
+            require(value.isShown() && (shown.equals("Low 20%") || shown.equals("On")), "Four tiles: the value is not a whole value: \"" + shown + "\"");
+            android.text.Layout layout = value.getLayout();
+            require(layout != null && layout.getLineCount() == 1 && layout.getEllipsisCount(0) == 0, "Four tiles: the value is ellipsized: \"" + shown + "\"");
+            float room = value.getWidth() - value.getTotalPaddingLeft() - value.getTotalPaddingRight();
+            require(value.getPaint().measureText(shown) <= room + 1, "Four tiles: \"" + shown + "\" needs " + value.getPaint().measureText(shown) + " px of " + room);
+            List<String> problems = new ArrayList<>();
+            TextFit.collectNarrowTextProblems(value, "alerts value " + shown, problems);
+            require(problems.isEmpty(), "Four tiles: the value does not fit: " + problems);
+            nodes.add("alerts tile, four in a row, low alert only: shown=\"" + shown + "\" at " + value.getTextSize() + " px, said=\"" + cell.getContentDescription() + "\"");
+        });
+        shot("alerts-tiles-four-low");
+        main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF), "Could not clear alerts (four tiles)"));
+        await(() -> texts(tile(ALERTS)).contains("Off"), "Four tiles: the tile does not read Off again");
         main(() -> {
             DashboardConfig config = new DashboardConfig(settings(), gt3);
             for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) {
@@ -596,6 +629,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
         checks.add("Battery alerts follow-ups: Low 20% (shown and spoken) with only the low alert on, 90% with both, Off with neither; three Setting tiles "
                 + "in a row show Alerts or no label, never a cut word, and speak Battery alerts; a scooter not yet identified is spoken with "
                 + "Identify model first, not Not on this model, and its tap opens nothing");
+        checks.add("Battery alerts, four Setting tiles in one row with only the low alert on: Low 20% where it fits, else On, never an ellipsis; spoken Low 20%");
     }
 
     private void verifyMaximums() throws Exception {

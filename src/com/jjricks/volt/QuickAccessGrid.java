@@ -96,7 +96,6 @@ final class QuickAccessGrid extends ViewGroup {
                     : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
-            boolean wasLockState = cell.lockState;
             cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
@@ -127,6 +126,7 @@ final class QuickAccessGrid extends ViewGroup {
             } else if (doneBy || doneTime) state = "—";
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
+            String shortValue = null;
             if (alerts) {
                 ChargeAlertPolicy.Settings alertSettings = service == null ? null : service.chargeAlerts();
                 Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
@@ -135,6 +135,9 @@ final class QuickAccessGrid extends ViewGroup {
                 state = level == null ? NO_VALUE : low != null ? T.dashboardModelTileLowAt(T.fmtPercent(Fmt.integer(low)))
                         : level == 0 ? off : ChargeAlertPolicy.levelText(level);
                 featureLive = level != null;
+                // A Setting tile too narrow for "Low 20%" at the smallest size shows the shorter whole value "On", never
+                // an ellipsis (measureTile); the description keeps the full value.
+                if (level != null && low != null) shortValue = T.commonOn();
             }
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
@@ -143,11 +146,14 @@ final class QuickAccessGrid extends ViewGroup {
             if (tiles) {
                 // A page or menu shortcut has no value; its name takes the value line instead.
                 String shownValue = state.isEmpty() ? tileLabel(cell.entry) : state;
-                if (!shownValue.contentEquals(cell.value.getText())) {
+                // Compared with the full value, not the view's text, which measureTile may have set to the short value.
+                if (!shownValue.equals(cell.fullValue) || !java.util.Objects.equals(shortValue, cell.shortValue)) {
+                    cell.fullValue = shownValue; cell.shortValue = shortValue;
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
-                    // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
-                    if (wasLockState || cell.lockState) cell.requestLayout();
+                    // The value's size, a lock word dropping and a short value are decided while measuring, and a text
+                    // of the same height requests no layout of its own: ask for one on every change.
+                    cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
@@ -243,6 +249,8 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
+        /** Setting tiles only: the value the tile states, and a shorter whole value for a tile too narrow for it (or null). */
+        String fullValue, shortValue;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
@@ -357,12 +365,16 @@ final class QuickAccessGrid extends ViewGroup {
                 icon.setVisibility(GONE);
                 text += icon.getLayoutParams().width + ui.dp(6);
             }
+            // Fit the full value first; a short value shown at the last fit is put back.
+            if (fullValue != null && !fullValue.contentEquals(value.getText())) value.setText(fullValue);
             value.setTextSize(size);
             while (size > floor && (value.getPaint().measureText(value.getText().toString()) > text
                     || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
                 size -= .5f;
                 value.setTextSize(size);
             }
+            // Still too wide at the smallest size: the shorter whole value ("On" for "Low 20%"), never an ellipsis.
+            if (shortValue != null && value.getPaint().measureText(value.getText().toString()) > text) value.setText(shortValue);
             // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
             if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
                 value.setVisibility(GONE); padlock.setVisibility(VISIBLE);
