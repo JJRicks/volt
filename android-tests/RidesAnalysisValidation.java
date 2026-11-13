@@ -751,7 +751,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
         main(() -> {
             content.set(dialog.get().getWindow().getDecorView());
             check(text(content.get(), "Off").isSelected(), "Fresh basemaps default off without changing an existing preference");
-            check(!settings.contains("map_tile_url"), "Fresh provider uses USGS default");
+            check(!settings.contains("map_tile_url") && text(content.get(), "OSM").getLeft() < text(content.get(), "USGS (US)").getLeft(), "Fresh provider uses the OpenStreetMap default, listed first");
             check(text(content.get(), "Edit custom provider").getVisibility() != View.VISIBLE, "Custom provider editor hidden unless Custom is picked");
             int offTop = text(content.get(), "Off").getTop(), offHeight = text(content.get(), "Off").getHeight();
             for (String label : new String[]{"USGS (US)", "OSM", "Custom"}) check(text(content.get(), label).getTop() == offTop && text(content.get(), label).getHeight() == offHeight, "Map provider choices share one centred row height: " + label);
@@ -845,12 +845,17 @@ public final class RidesAnalysisValidation extends Instrumentation {
         main(() -> preferences.set(MapPreferences.show(activity))); settle();
         main(() -> {
             View settingsContent = preferences.get().getWindow().getDecorView();
-            check(text(settingsContent, "Off").isSelected(), "App preferences reflects the map's disabled state"); text(settingsContent, "USGS (US)").performClick();
+            check(text(settingsContent, "Off").isSelected(), "App preferences reflects the map's disabled state"); text(settingsContent, "OSM").performClick();
             check(providerPrompt(settingsContent) == null, "Shared approval is reused from app preferences");
         }); settle();
         check(inlineToggle.isChecked() && expandedToggle.isChecked() && (boolean)field(inline, "streets") && (boolean)field(expanded, "streets"), "App preferences enable synchronizes inline and expanded maps without recreation");
         main(() -> { text(preferences.get().getWindow().getDecorView(), "Off").performClick(); preferences.get().dismiss(); byDescription(full, "Close expanded route map").performClick(); }); settle();
         check(!settings.getBoolean("map_basemap_enabled", true) && !inlineToggle.isChecked() && !(boolean)field(inline, "streets"), "Closing fullscreen preserves the chosen disabled state");
+        int beforeSwitch = tileCalls.get();
+        main(() -> settings.edit().putString("map_tile_url", "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}").remove("map_tile_attribution").remove("map_tile_attribution_url").commit()); settle();
+        main(() -> check(((String)field(field(inline, "provider"), "template")).contains("nationalmap.gov") && text((View)inline.getParent(), "U.S. Geological Survey, National Geospatial Program") != null
+                && text((View)inline.getParent(), "© OpenStreetMap contributors") == null, "An open map follows a provider change, tiles and credit together"));
+        check(tileCalls.get() == beforeSwitch, "A provider change with the basemap off requests no tiles");
         check((boolean)field(expanded, "closed"), "Expanded map resources still close after preference changes");
     }
     Switch basemapSwitch(View root) {

@@ -87,20 +87,29 @@ public final class MapPreferences {
         }
     }
 
-    /** The one copy of the map privacy fact; approval enables tiles and is remembered. */
+    /**
+     * The one copy of the map privacy fact; approval enables tiles and is remembered. It names the provider
+     * the basemap will use, and approval saves that provider when none is saved, so a later change of
+     * Volt's default never moves an approved basemap to a provider that was not named (MapDefault).
+     */
     private static AlertDialog consent(ScreenHost host, Runnable approved, Consumer<AlertDialog> closed) {
         Ui ui = host.ui(); SharedPreferences settings = host.service().settings;
+        MapSource named = MapSource.load(settings);
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
         body.addView(ui.text(T.mapsConsentTitle(), 21, true));
+        TextView provider = ui.text(named.displayName(), 15, true);
+        provider.setPadding(0, ui.dp(8), 0, 0); body.addView(provider);
         TextView message = ui.text(T.mapsConsentMessage(), 15, false);
         message.setPadding(0, ui.dp(12), 0, 0); body.addView(message);
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll)
                 .setNegativeButton(T.commonCancel(), null)
                 .setPositiveButton(T.mapsConsentEnable(), (d, which) -> {
-                    settings.edit().putBoolean("map_basemap_enabled", true)
-                            .putBoolean("map_basemap_explained", true).apply();
+                    SharedPreferences.Editor approval = settings.edit().putBoolean("map_basemap_enabled", true)
+                            .putBoolean("map_basemap_explained", true);
+                    if (!settings.contains(MapDefault.URL_KEY)) named.put(approval);
+                    approval.apply();
                     approved.run();
                 }).create();
         dialog.setOnDismissListener(d -> closed.accept(dialog));
@@ -114,8 +123,9 @@ public final class MapPreferences {
     }
 
     /**
-     * Map settings: one segmented control for Off and each provider. Picking a provider turns the
-     * basemap on (after the one-time consent); Off turns it off. Custom shows its editor button.
+     * Map settings: one segmented control for Off and each provider, the default (OpenStreetMap) first.
+     * Picking a provider turns the basemap on (after the one-time consent); Off turns it off. Custom
+     * shows its editor button.
      */
     private static final class ProviderControl extends LinearLayout {
         // Unused since B14: the constructor's local LABELS shows these options from the catalog. It stays
@@ -138,7 +148,7 @@ public final class MapPreferences {
             // The option labels by choice index, rendered for this control in the current language (R5: a
             // static array cannot hold catalog text). It shadows the unused English field of the same name: G1
             // refuses a rename on the line that holds "Online map" (B14 report).
-            String[] LABELS = {T.commonOff(), T.mapsProviderUsgs(), T.mapsProviderOsm(), T.mapsProviderCustom()};
+            String[] LABELS = {T.commonOff(), T.mapsProviderOsm(), T.mapsProviderUsgs(), T.mapsProviderCustom()};
             setOrientation(VERTICAL);
             selector = new SegmentedSelector(ui, T.mapsOnlineMap(), LABELS, this::chose);
             // Single-line labels of one size share the track's height, so every value sits centred;
@@ -153,7 +163,7 @@ public final class MapPreferences {
         private int current() {
             if (!enabled(settings)) return 0;
             String url = MapSource.load(settings).url;
-            return MapSource.USGS_URL.equals(url) ? 1 : MapSource.OSM_URL.equals(url) ? 2 : 3;
+            return MapSource.OSM_URL.equals(url) ? 1 : MapSource.USGS_URL.equals(url) ? 2 : 3;
         }
 
         private boolean customSaved() {
@@ -170,8 +180,8 @@ public final class MapPreferences {
         private void chose(int choice) {
             if (choice == 0) { settings.edit().putBoolean("map_basemap_enabled", false).apply(); refresh(); return; }
             if (choice == 3 && !customSaved()) { custom(host, this::customClosed); return; }
-            if (choice == 1) MapSource.USGS.save(settings);
-            else if (choice == 2) MapSource.OSM.save(settings);
+            if (choice == 1) MapSource.OSM.save(settings);
+            else if (choice == 2) MapSource.USGS.save(settings);
             enable();
         }
 
@@ -197,6 +207,17 @@ public final class MapPreferences {
             if (prompt != null) prompt.dismiss();
             super.onDetachedFromWindow();
         }
+    }
+
+    /**
+     * Saves the answer to the one-time offer to leave USGS (MapDefault.offersSwitch) as the person's own
+     * choice, in one commit with the mark that it was answered, so it is never asked again, also after a
+     * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS.
+     */
+    static void answerUsgsSwitch(SharedPreferences settings, boolean switchToOsm) {
+        SharedPreferences.Editor answer = settings.edit().putBoolean(MapDefault.SWITCH_ANSWERED_KEY, true);
+        (switchToOsm ? MapSource.OSM : MapSource.USGS).put(answer);
+        answer.apply();
     }
 
     public static AlertDialog show(ScreenHost host) {
