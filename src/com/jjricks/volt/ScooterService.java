@@ -1010,6 +1010,22 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
         return !destroyed&&p!=null&&ble!=null&&ChargeAlertPolicy.offered(alertDescriptor(p));
     }
+    /** Why chargeAlertsOffered() is false (ChargeAlertPolicy.missing), or null when it is true. */
+    public CapabilityResolver.Reason chargeAlertsMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return CapabilityResolver.Reason.NOT_CONNECTED;
+        return ChargeAlertPolicy.missing(alertDescriptor(p));
+    }
+    /**
+     * The Battery page's Charge done by rule (timed_charging and charge_start offered) for the selected scooter, judged
+     * like chargeAlertsOffered (the live model while connected to it, its saved model offline): why it can't schedule
+     * charging, or null when it can or no scooter is selected (ShortcutPicker.scheduleMissing).
+     */
+    public CapabilityResolver.Reason chargeScheduleMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return null;
+        return ShortcutPicker.scheduleMissing(alertDescriptor(p));
+    }
     public ChargeAlertPolicy.Settings chargeAlerts(){
         if(destroyed||settings==null)return ChargeAlertPolicy.Settings.OFF;
         ensureAlertPolicy();return alertPolicy==null?ChargeAlertPolicy.Settings.OFF:alertPolicy.settings();
