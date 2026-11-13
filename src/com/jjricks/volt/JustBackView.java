@@ -42,7 +42,9 @@ final class JustBackView extends LinearLayout {
 
     private final Ui ui;
     private final TextView saved, distance;
+    private final LinearLayout first;
     private final RouteView route;
+    private final Tiles tiles;
     private final Cell time, speed, battery;
     private String rideId;
     private String shownKey = "";
@@ -61,7 +63,7 @@ final class JustBackView extends LinearLayout {
         setFocusable(true);
         setOnClickListener(v -> { if (rideId != null) open.accept(rideId); });
 
-        LinearLayout first = new LinearLayout(host.activity());
+        first = new LinearLayout(host.activity());
         first.setOrientation(HORIZONTAL);
         first.setGravity(Gravity.CENTER_VERTICAL);
         saved = ui.caption("");
@@ -92,7 +94,7 @@ final class JustBackView extends LinearLayout {
         time = new Cell(host, HubText.justBackRideTime());
         speed = new Cell(host, HubText.justBackAvgSpeed());
         battery = new Cell(host, HubText.justBackBattery(null));
-        Tiles tiles = new Tiles(host, ui.dp(8), time, speed, battery);
+        tiles = new Tiles(host, ui.dp(8), time, speed, battery);
         // The tiles read as one group of their own: the card's name says only the ride and that it opens.
         tiles.setFocusable(true);
         if (android.os.Build.VERSION.SDK_INT >= 28) tiles.setScreenReaderFocusable(true);
@@ -100,6 +102,26 @@ final class JustBackView extends LinearLayout {
         tilesSize.topMargin = ui.dp(10);
         tilesSize.setMarginEnd(ui.dp(8));
         addView(tiles, tilesSize);
+    }
+
+    @Override protected void onMeasure(int widthSpec, int heightSpec) {
+        // The tiles may take two rows only when they still fit the top area's fixed height with the words above them;
+        // the route panel cannot give up more than all of its height (council early review of part 9, second round).
+        int room = Integer.MAX_VALUE;
+        if (MeasureSpec.getMode(heightSpec) == MeasureSpec.EXACTLY) {
+            measureChildWithMargins(first, widthSpec, 0, heightSpec, 0);
+            room = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom()
+                    - outer(first, first.getMeasuredHeight()) - outer(distance, ((LayoutParams) distance.getLayoutParams()).height)
+                    - outer(route, 0) - outer(tiles, 0);
+        }
+        tiles.setMaxHeight(Math.max(0, room));
+        super.onMeasure(widthSpec, heightSpec);
+    }
+
+    /** A child's height plus its top and bottom margins. */
+    private static int outer(View child, int height) {
+        LayoutParams size = (LayoutParams) child.getLayoutParams();
+        return height + size.topMargin + size.bottomMargin;
     }
 
     /** The ride shown, or null before the first bind. */
@@ -115,8 +137,15 @@ final class JustBackView extends LinearLayout {
         String key = s.id + ":" + units;
         if (!key.equals(shownKey)) show(s, units, key);
         // The line sighted owners read first is spoken first too (council early review of part 9, note 7).
-        String spoken = ended + ", " + spokenRide.render();
+        // Two sentences, as two separately translated strings; a combined one waits for a batch part.
+        String spoken = ended + (endsSentence(ended) ? " " : ". ") + spokenRide.render();
         if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
+    }
+
+    /** Whether text already ends in sentence punctuation (a translation may end its line with one). */
+    private static boolean endsSentence(String text) {
+        String trimmed = text.trim();
+        return !trimmed.isEmpty() && ".!?\u3002\uff01\uff1f\u061f\u0964".indexOf(trimmed.charAt(trimmed.length() - 1)) >= 0;
     }
 
     /** Everything but the ended line, for ride s in units; key is the ride and units it shows. */
@@ -185,12 +214,15 @@ final class JustBackView extends LinearLayout {
      * The three tiles: three in a row while every name fits a third whole in two lines, else two in a row with the
      * battery tile spanning the second row (TileFit.columns, council early review of part 9, note 2). The names keep
      * their full words: no name is broken inside a word or cut at normal text size; the route panel above gives up
-     * the height a second row takes (it draws nothing when too little is left).
+     * the height a second row takes (it draws nothing when too little is left). When even all of the route panel's
+     * height is not enough for a second row (large text), the tiles stay three in a row with names ellipsized at two
+     * lines, so nothing runs past the top area's bottom edge.
      */
     private static final class Tiles extends android.view.ViewGroup {
         private final Cell[] cells;
         private final int gap;
         private int columns = 3;
+        private int maxHeight = Integer.MAX_VALUE;
 
         Tiles(ScreenHost host, int gap, Cell... cells) {
             super(host.activity());
@@ -199,14 +231,28 @@ final class JustBackView extends LinearLayout {
             for (Cell cell : cells) addView(cell);
         }
 
+        /** The most height the tiles may take, set by JustBackView before each measure. */
+        void setMaxHeight(int value) { maxHeight = value; }
+
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int width = MeasureSpec.getSize(widthSpec);
             int third = (width - 2 * gap) / 3;
             String[] names = new String[cells.length];
             for (int i = 0; i < cells.length; i++) names[i] = cells[i].label();
             Cell first = cells[0];
-            columns = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
+            int wanted = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
                     : TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES);
+            int height = measureAt(wanted, width);
+            if (wanted != 3) {
+                int fewer = TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES, height, maxHeight);
+                if (fewer == 3) height = measureAt(3, width);
+            }
+            setMeasuredDimension(width, resolveSize(height, heightSpec));
+        }
+
+        /** Measures the cells with count tiles in a row and returns the height they take. */
+        private int measureAt(int count, int width) {
+            columns = count;
             int height = 0, row = 0;
             for (int i = 0; i < cells.length; i++) {
                 int span = columns == 3 ? 1 : i == cells.length - 1 && cells.length % 2 == 1 ? 2 : 1;
@@ -228,7 +274,7 @@ final class JustBackView extends LinearLayout {
                     cells[j].measure(MeasureSpec.makeMeasureSpec(cells[j].getMeasuredWidth(), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(tallest, MeasureSpec.EXACTLY));
                 rowStart = i + 1;
             }
-            setMeasuredDimension(width, resolveSize(height, heightSpec));
+            return height;
         }
 
         @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {

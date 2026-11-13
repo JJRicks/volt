@@ -33,6 +33,11 @@ public final class TileFitTest {
                 "Polish battery name needing three lines: two in a row");
         require(TileFit.fits("Spadek poziomu baterii", CHARS, 15, 2) && TileFit.fits("Medelhastighet", CHARS, 15, 2),
                 "and half a row (about twice a third) holds them whole");
+        // Two rows must fit the tiles' fixed-height area (large text): else three in a row, names ellipsized.
+        String[] swedish = {"Tripptid", "Medelhastighet", "Minskad batterinivå"};
+        require(TileFit.columns(swedish, CHARS, 12, 2, 200, 180) == 3, "Two rows taller than the room: three in a row");
+        require(TileFit.columns(swedish, CHARS, 12, 2, 180, 180) == 2, "Two rows that fit the room: two in a row");
+        require(TileFit.columns(new String[]{"Ride time", "Avg speed", "Battery drop"}, CHARS, 12, 2, 0, 0) == 3, "Names that fit thirds stay three in a row");
         System.out.println("TileFit: " + checks + " checks passed");
     }
 

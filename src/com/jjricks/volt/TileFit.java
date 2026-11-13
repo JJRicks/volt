@@ -22,6 +22,16 @@ final class TileFit {
         return 3;
     }
 
+    /**
+     * As {@link #columns(String[], ToDoubleFunction, double, int)}, but two in a row only when their height, twoRowHeight,
+     * fits room: otherwise 3 (names then end in an ellipsis), since the tiles' area has a fixed height and nothing may
+     * run past it.
+     */
+    static int columns(String[] names, ToDoubleFunction<String> width, double thirdRoom, int nameLines, double twoRowHeight, double room) {
+        int columns = columns(names, width, thirdRoom, nameLines);
+        return columns == 2 && twoRowHeight > room ? 3 : columns;
+    }
+
     /** The index of the first rung of rungs that fits room in maxLines lines; the last rung's index when none does. */
     static int pick(String[] rungs, ToDoubleFunction<String> width, double room, int maxLines) {
         for (int i = 0; i < rungs.length; i++) if (fits(rungs[i], width, room, maxLines)) return i;
