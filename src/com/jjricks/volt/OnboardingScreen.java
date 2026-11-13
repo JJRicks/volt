@@ -162,13 +162,22 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     /**
-     * A first setup is under way (HomeStylePrefs.seed): never finished or skipped, not "Run setup again", and past
-     * Welcome or holding the profile it created. Its profile is setup's own, not a sign of an earlier owner.
+     * Setup was finished or skipped on this installation, or is being run again after that (More's "Run setup
+     * again" clears the finished flag but sets {@link #KEY_RERUN}). Read-only; safe at app start (HomeStylePrefs).
      */
-    static boolean firstSetupInProgress(SharedPreferences p) {
-        if (p.getBoolean(KEY_DONE, false) || p.getBoolean(KEY_RERUN, false)) return false;
-        String created = p.getString(KEY_CREATED, "");
-        return p.getInt(KEY_STEP, WELCOME) > WELCOME || (created != null && !created.isEmpty());
+    static boolean finishedOnce(Context context) {
+        SharedPreferences p = prefs(context);
+        return p.getBoolean(KEY_DONE, false) || p.getBoolean(KEY_RERUN, false);
+    }
+
+    /**
+     * First-run setup is still under way: never finished, skipped or re-run, and {@link #needed} would show it (past
+     * Welcome, or no configured scooter yet). Setup itself stores a scooter profile, the last page and a dashboard
+     * before it ends, so those are not signs of an earlier owner yet (HomeStyle). Read-only, without the service.
+     */
+    static boolean firstRunPending(Context context) {
+        if (finishedOnce(context)) return false;
+        return prefs(context).getInt(KEY_STEP, WELCOME) > WELCOME || !hasConfiguredProfile(context, null);
     }
 
     /** Re-opens the flow at "Choose a path" (for a "Run setup again" entry). Call rebuild() after. */
@@ -410,12 +419,16 @@ public final class OnboardingScreen implements AppScreen {
 
     private void finish(boolean skipped) {
         String style = homeStyle();
+        boolean rerun = prefs.getBoolean(KEY_RERUN, false);
         prefs.edit().clear().putBoolean(KEY_DONE, true).commit();
         // Finishing is an explicit Home style choice (the one shown on the last step, Clean preselected on a new
-        // install); skipping chooses nothing and only records a new install's origin (no What's new for it).
+        // install), which also records a new install's origin. Skipping first-run setup chooses nothing and only
+        // records the new install (HomeStylePrefs.recordNewInstall, with Clean when no style is stored): the seed
+        // waits while first-run setup is under way, so setup's end must record it (no What's new for it). Skipping
+        // a rerun changes nothing: that installation's history is the seed's.
         SharedPreferences app = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
-        if (skipped) HomeStylePrefs.setupSkipped(app);
-        else HomeStylePrefs.markChosen(app, style);
+        if (!skipped) HomeStylePrefs.markChosen(app, style);
+        else if (!rerun) HomeStylePrefs.setupSkipped(app);
         closed = true;
         if (identityField != null) identityField.setText("");
         if (listener != null) { if (skipped) listener.onSkipped(); else listener.onFinished(); }

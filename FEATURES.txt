@@ -72,10 +72,7 @@ PREVIOUSLY IN 1.12.1
   chip row tightens before SPORT or DRIVE can push the clock off a narrow
   screen, and it has Lock and Record buttons while the scooter is stopped.
 - Start automatically, off by default: Record rides automatically and Riding
-  mode's Open automatically act when the connected scooter moves. Record rides
-  automatically starts while Volt is in the background only with Rides >
-  Recording settings > Start recording in the background, also off by default;
-  such a ride has no GPS route.
+  mode's Open automatically act when the connected scooter moves.
 - The live charging card clears about 15 s after unplugging and, on Android 16
   and later, shows the level on a dial.
 - Charge done by and Scheduled charging say when the scooter has confirmed the
@@ -785,8 +782,8 @@ open or Follow phone), Hide status bar (off by default), Show seconds on clock
 (off by default; every Clock reading in riding mode then ticks each second
 while it's on screen, dropping AM/PM before seconds where a spot is narrow,
 and TalkBack isn't told each tick) and night vision, plus
-Record rides automatically and Open automatically, which are also in Rides >
-Recording settings and Rides > Riding mode. Every change saves at once. The menu closes with its close
+Record rides automatically (also in Rides > Recording settings) and Open
+automatically (also in Rides > Riding mode). Every change saves at once. The menu closes with its close
 button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
 a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is
@@ -808,14 +805,15 @@ on emulators only.
 
 Auto-start (Ride > Recording settings and Ride > Riding mode, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
-above zero while Volt is on screen; it starts one while Volt is in the
-background only with Ride > Recording settings > Start recording in the
+above zero while Volt is in front (resumed); it starts one while Volt is in
+the background only with Ride > Recording settings > Start recording in the
 background (also off by default) and Stay connected in background on, and a
-ride started that way has no GPS route. Riding mode > Open automatically
-(also in riding mode's tune menu) opens riding mode the same way, only while
-Volt is on screen and no dialog or sheet is open; of the Scooter pages, only
-over the subject list, Controls, Battery & charging and Lights & sound (not
-their sub-pages, Security or Service). A manual stop or backing out holds that
+ride started that way has no GPS route. On Android 8 and 9 a Volt in split
+screen without focus counts as background (a known limit). Riding mode > Open
+automatically (also in riding mode's tune menu) opens riding mode the same
+way, only while Volt is in front and no dialog or sheet is open; of the
+Scooter pages, only over the subject list, Controls, Battery & charging and
+Lights & sound (not their sub-pages, Security or Service). A manual stop or backing out holds that
 switch until the scooter reconnects; a ride that ends by itself does not.
 Emulator-tested.
 
@@ -1119,7 +1117,9 @@ High-speed charger selection. Its Charger row shows the charger for estimates an
 opens its one home, Battery & charging > Estimates & charger > Charger; Developer
 options no longer has a charger selector. Email to Volt on the same page attaches
 this scooter's recordings to an email to Volt's report address, which helps tune
-charging time estimates for that model. There is no automatic charger detection. Bounded
+charging time estimates for that model. The attachment is
+volt-charge-recordings.json (gzip-compressed as volt-charge-recordings.json.gz
+when over 25 MB). There is no automatic charger detection. Bounded
 local samples are saved every ten seconds. Temporary disconnects allow up to
 five minutes of recovery with the same journal and marked gaps. Completion,
 Stop, explicit Disconnect, recovery expiry or an ending/error condition closes it. Simulation cannot create training evidence.
@@ -1241,7 +1241,7 @@ What each model offers: see OTHER NAVEE MODELS above. Setup's last step offers
 the choice (Clean selected on a new install), each style drawn in detail with
 the scooter's photo and sample readings. Owners updating from a Volt without
 Clean keep Widgets and see a one-time What's new sheet: Switch to Clean or Keep
-Widgets; for owners who had Record rides automatically on, a notice that
+Widgets (left out once they chose a style or Home is already Clean); for owners who had Record rides automatically on, a notice that
 background starts are now off, with the Start recording in the background
 switch and a link to Recording settings; then the installed version's
 changelog, bundled in the APK, with a link to its release page.
